@@ -25,6 +25,53 @@ const deriveUnitPriceFromPackaging = (row: any): number | null => {
   return null;
 };
 
+/** ✅ HARDENED: Robust item mapper untuk DB format */
+const mapItemForDB = (i: any) => {
+  const jumlah = Number(
+    i.kuantitas ??
+    i.jumlah ??
+    i.qty_base ?? // fallback dari komponen lama
+    0
+  );
+
+  const hargaPerSatuan = Number(
+    i.hargaSatuan ??
+    i.harga_per_satuan ??
+    i.price_unit ?? // kalau ada istilah lain
+    deriveUnitPriceFromPackaging(i) ?? // hitung dari kemasan
+    0
+  );
+
+  const satuan = String(
+    i.satuan ??
+    i.base_unit ?? // fallback dari komponen lama
+    ''
+  ).trim();
+
+  const subtotal = i.subtotal !== undefined
+    ? Number(i.subtotal)
+    : jumlah * hargaPerSatuan;
+
+  return {
+    // ✅ KOLOM WAJIB: yang dibaca trigger WAC
+    bahan_baku_id: String(i.bahanBakuId ?? i.bahan_baku_id ?? ''),
+    jumlah: Math.max(0, jumlah),
+    harga_per_satuan: Math.max(0, hargaPerSatuan),
+
+    // ✅ METADATA: tambahan yang aman disimpan
+    nama: String(i.nama ?? '').trim(),
+    satuan,
+    subtotal: Math.max(0, subtotal),
+    keterangan: i.keterangan ? String(i.keterangan).trim() : null,
+
+    // ✅ INFO KEMASAN: opsional, abaikan kalau null/empty
+    jumlah_kemasan: toNumber(i.jumlah_kemasan ?? i.jumlahKemasan) || null,
+    satuan_kemasan: (i.satuan_kemasan ?? i.satuanKemasan) ? String(i.satuan_kemasan ?? i.satuanKemasan).trim() : null,
+    isi_per_kemasan: toNumber(i.isi_per_kemasan ?? i.isiPerKemasan) || null,
+    harga_total_beli_kemasan: toNumber(i.harga_total_beli_kemasan ?? i.hargaTotalBeliKemasan) || null,
+  };
+};
+
 /** Bentuk baris DB (after select) */
 type DbPurchaseRow = {
   id: string;
@@ -117,49 +164,6 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
   }
 };
 
-/** Builder item baru (DB shape) dari item UI */
-const buildDbItem = (i: any) => {
-  const bahanBakuId = i.bahanBakuId ?? i.bahan_baku_id;
-  const qtyBase = toNumber(i.qty_base ?? i.kuantitas ?? i.jumlah);
-  const baseUnit = i.base_unit ?? i.satuan ?? '';
-  // prioritas: harga_per_satuan explicit -> dari kemasan -> hargaSatuan lama
-  const unitPrice =
-    toNumber(i.harga_per_satuan) ||
-    toNumber(deriveUnitPriceFromPackaging(i) ?? 0) ||
-    toNumber(i.hargaSatuan);
-
-  const jumlahKemasan = toNumber(i.jumlah_kemasan ?? i.jumlahKemasan);
-  const isiPerKemasan = toNumber(i.isi_per_kemasan ?? i.isiPerKemasan);
-  const satuanKemasan = i.satuan_kemasan ?? i.satuanKemasan ?? null;
-  const hargaTotalBeliKemasan = toNumber(
-    i.harga_total_beli_kemasan ?? i.hargaTotalBeliKemasan
-  );
-
-  const subtotal =
-    i.subtotal !== undefined && i.subtotal !== null
-      ? toNumber(i.subtotal)
-      : qtyBase * unitPrice;
-
-  return {
-    // WAJIB utk trigger WAC
-    bahan_baku_id: bahanBakuId,
-    qty_base: qtyBase,
-    base_unit: baseUnit,
-    harga_per_satuan: unitPrice,
-
-    // OPSIONAL: info kemasan (kalau diisi akan dipakai di UI & validasi)
-    jumlah_kemasan: jumlahKemasan || null,
-    isi_per_kemasan: isiPerKemasan || null,
-    satuan_kemasan: satuanKemasan,
-    harga_total_beli_kemasan: hargaTotalBeliKemasan || null,
-
-    // metadata tambahan (aman)
-    nama: i.nama ?? null,
-    keterangan: i.keterangan ?? i.catatan ?? null,
-    subtotal, // simpan biar total cepat
-  };
-};
-
 /** ==== DB <- FRONTEND (INSERT) ==== */
 export const transformPurchaseForDB = (
   p: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
@@ -167,10 +171,11 @@ export const transformPurchaseForDB = (
 ) => {
   return {
     user_id: userId,
-    supplier: p.supplier,
+    supplier: String(p.supplier || '').trim(),
     tanggal: toYMD(p.tanggal),
-    total_nilai: p.totalNilai,
-    items: (p.items ?? []).map(buildDbItem),
+    total_nilai: Math.max(0, Number(p.totalNilai) || 0),
+    // ✅ HARDENED: Gunakan mapper yang robust
+    items: (p.items ?? []).map(mapItemForDB),
     status: p.status ?? 'pending',
     metode_perhitungan: p.metodePerhitungan ?? 'AVERAGE',
   };
@@ -180,14 +185,15 @@ export const transformPurchaseForDB = (
 export const transformPurchaseUpdateForDB = (p: Partial<Purchase>) => {
   const out: Record<string, any> = { updated_at: new Date().toISOString() };
 
-  if (p.supplier !== undefined) out.supplier = p.supplier;
+  if (p.supplier !== undefined) out.supplier = String(p.supplier || '').trim();
   if (p.tanggal !== undefined) out.tanggal = toYMD(p.tanggal as any);
-  if (p.totalNilai !== undefined) out.total_nilai = p.totalNilai;
+  if (p.totalNilai !== undefined) out.total_nilai = Math.max(0, Number(p.totalNilai) || 0);
   if (p.status !== undefined) out.status = p.status;
   if (p.metodePerhitungan !== undefined) out.metode_perhitungan = p.metodePerhitungan;
 
   if (p.items !== undefined) {
-    out.items = (p.items ?? []).map(buildDbItem);
+    // ✅ HARDENED: Gunakan mapper yang robust untuk update juga
+    out.items = (p.items ?? []).map(mapItemForDB);
   }
   return out;
 };
@@ -237,38 +243,48 @@ export const normalizePurchaseFormData = (formData: any): any => ({
     : [],
 });
 
+/** ✅ HARDENED: Perketat sanitisasi form dengan fallback konsisten */
 export const sanitizePurchaseData = (data: any): any => ({
   supplier: String(data.supplier || '').trim(),
   tanggal: data.tanggal,
   totalNilai: Math.max(0, Number(data.totalNilai) || 0),
   items: Array.isArray(data.items)
-    ? data.items.map((item: any) => ({
-        bahanBakuId: String(item.bahanBakuId || item.bahan_baku_id || ''),
-        nama: String(item.nama || '').trim(),
-        kuantitas: Math.max(0, toNumber(item.kuantitas ?? item.qty_base)),
-        satuan: String(item.satuan || item.base_unit || '').trim(),
-        hargaSatuan:
-          Math.max(
-            0,
-            toNumber(item.hargaSatuan ?? item.harga_per_satuan ?? deriveUnitPriceFromPackaging(item) ?? 0)
-          ),
-        subtotal: Math.max(
-          0,
-          toNumber(
-            item.subtotal ??
-              (toNumber(item.kuantitas ?? item.qty_base) *
-                (toNumber(item.hargaSatuan ?? item.harga_per_satuan) ||
-                  toNumber(deriveUnitPriceFromPackaging(item) ?? 0)))
-          )
-        ),
-        // simpan info kemasan jika ada (opsional untuk UI)
-        jumlahKemasan: item.jumlahKemasan ?? item.jumlah_kemasan ?? undefined,
-        isiPerKemasan: item.isiPerKemasan ?? item.isi_per_kemasan ?? undefined,
-        satuanKemasan: item.satuanKemasan ?? item.satuan_kemasan ?? undefined,
-        hargaTotalBeliKemasan:
-          item.hargaTotalBeliKemasan ?? item.harga_total_beli_kemasan ?? undefined,
-        keterangan: item.keterangan ? String(item.keterangan).trim() : undefined,
-      }))
+    ? data.items.map((item: any) => {
+        const kuantitas = Number(
+          item.kuantitas ?? 
+          item.jumlah ?? 
+          item.qty_base ?? 
+          0
+        );
+        const hargaSatuan = Number(
+          item.hargaSatuan ?? 
+          item.harga_per_satuan ?? 
+          item.price_unit ?? 
+          deriveUnitPriceFromPackaging(item) ??
+          0
+        );
+        const satuan = String(
+          item.satuan ?? 
+          item.base_unit ?? 
+          ''
+        ).trim();
+
+        return {
+          bahanBakuId: String(item.bahanBakuId ?? item.bahan_baku_id || ''),
+          nama: String(item.nama || '').trim(),
+          kuantitas: Math.max(0, kuantitas),
+          satuan,
+          hargaSatuan: Math.max(0, hargaSatuan),
+          subtotal: Math.max(0, Number(item.subtotal ?? kuantitas * hargaSatuan) || 0),
+          keterangan: item.keterangan ? String(item.keterangan).trim() : undefined,
+          
+          // ✅ KEMASAN: Simpan info kemasan jika ada (untuk UI yang masih pakai)
+          jumlahKemasan: item.jumlahKemasan ?? item.jumlah_kemasan ?? undefined,
+          isiPerKemasan: item.isiPerKemasan ?? item.isi_per_kemasan ?? undefined,
+          satuanKemasan: item.satuanKemasan ?? item.satuan_kemasan ?? undefined,
+          hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ?? item.harga_total_beli_kemasan ?? undefined,
+        };
+      })
     : [],
   status: data.status || 'pending',
   metodePerhitungan: data.metodePerhitungan || 'AVERAGE',

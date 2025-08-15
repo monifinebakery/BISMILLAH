@@ -48,7 +48,6 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
-// ✅ IMPROVED: Robust number conversion that handles comma/period, thousand separators
 const toNumber = (v: string | number | '' | undefined | null): number => {
   if (v === '' || v == null) return 0;
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
@@ -68,6 +67,29 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 };
+
+// ✅ INLINE SafeNumericInput - no external file needed
+const SafeNumericInput = React.forwardRef<
+  HTMLInputElement, 
+  React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
+>(({ className = '', value, onChange, ...props }, ref) => {
+  const baseClasses = "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:cursor-not-allowed disabled:opacity-50";
+  
+  return (
+    <input
+      ref={ref}
+      type="text"
+      inputMode="decimal"
+      value={String(value ?? '')}
+      onChange={onChange}
+      className={`${baseClasses} ${className}`}
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck="false"
+      {...props}
+    />
+  );
+});
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,
@@ -613,9 +635,7 @@ const EditItemForm: React.FC<{
         <div className="space-y-2">
           <Label>Kuantitas *</Label>
           <div className="flex gap-2">
-            <Input
-              type="text"
-              inputMode="decimal"
+            <SafeNumericInput
               value={String(editedItem.kuantitas ?? '')} // ✅ FIXED: Force string
               onChange={(e) =>
                 setEditedItem(prev => ({
@@ -624,9 +644,6 @@ const EditItemForm: React.FC<{
                 }))
               }
               placeholder="0"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
             />
             <div className="flex items-center px-3 bg-gray-100 rounded text-sm text-gray-600 min-w-[60px]">
               {item.satuan}
@@ -637,9 +654,7 @@ const EditItemForm: React.FC<{
         {/* Unit Price - FIXED: Always string value, no switching */}
         <div className="space-y-2">
           <Label>Harga Satuan *</Label>
-          <Input
-            type="text"
-            inputMode="decimal"
+          <SafeNumericInput
             value={String(editedItem.hargaSatuan ?? '')} // ✅ FIXED: Force string
             onChange={(e) =>
               setEditedItem(prev => ({
@@ -648,9 +663,6 @@ const EditItemForm: React.FC<{
               }))
             }
             placeholder="0"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck="false"
           />
         </div>
 

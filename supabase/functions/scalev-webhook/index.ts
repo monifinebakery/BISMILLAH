@@ -107,13 +107,14 @@ const handler = async (req: Request): Promise<Response> => {
     // ✅ VALIDATION: Must have order_id
     if (!orderId) {
       console.log('❌ No order_id found');
+      const origin = req.headers.get('origin') || '';
       return new Response(JSON.stringify({
         success: false,
         error: 'order_id is required',
         available_fields: Object.keys(payloadData)
       }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" }
       });
     }
 

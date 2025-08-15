@@ -1,4 +1,4 @@
-// useProfitAnalysis.ts - Fixed Dependencies & React Error #310
+// useProfitAnalysis.ts - Fixed Dependencies & React Error #310 with WAC Integration
 // ==============================================
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -14,18 +14,27 @@ import {
 } from '../types/profitAnalysis.types';
 import profitAnalysisApi from '../services/profitAnalysisApi';
 
+// ✅ IMPORT WAC HELPERS
+import { fetchBahanMap, fetchPemakaianByPeriode, calculatePemakaianValue } from '../services/profitAnalysisApi';
+import { calcHPP } from '../utils/profitCalculations';
+
 // Query Keys
 export const PROFIT_QUERY_KEYS = {
   analysis: (period?: string) => ['profit-analysis', 'calculation', period],
   history: (dateRange?: DateRangeFilter) => ['profit-analysis', 'history', dateRange],
   current: () => ['profit-analysis', 'current'],
   realTime: (period: string) => ['profit-analysis', 'realtime', period],
+  // ✅ ADD WAC QUERY KEYS
+  bahanMap: () => ['profit-analysis', 'bahan-map'],
+  pemakaian: (start: string, end: string) => ['profit-analysis', 'pemakaian', start, end],
 } as const;
 
 export interface UseProfitAnalysisOptions {
   autoCalculate?: boolean;
   defaultPeriod?: string;
   enableRealTime?: boolean;
+  // ✅ ADD WAC OPTIONS
+  enableWAC?: boolean;
 }
 
 export interface UseProfitAnalysisReturn {
@@ -44,6 +53,9 @@ export interface UseProfitAnalysisReturn {
   loadProfitHistory: (dateRange?: DateRangeFilter) => Promise<void>;
   refreshAnalysis: () => Promise<void>;
   
+  // ✅ ADD WAC ACTIONS
+  refreshWACData: () => Promise<void>;
+  
   // Computed values
   profitMetrics: {
     grossProfit: number;
@@ -53,12 +65,23 @@ export interface UseProfitAnalysisReturn {
     revenue: number;
     cogs: number;
     opex: number;
+    // ✅ ADD WAC METRICS
+    totalHPP: number;
+    hppBreakdown: Array<{ id: string; nama: string; qty: number; price: number; hpp: number }>;
   };
   
   // Utilities
   getProfitByPeriod: (period: string) => RealTimeProfitCalculation | undefined;
   isDataStale: boolean;
   lastCalculated: Date | null;
+  
+  // ✅ ADD WAC UTILITIES
+  bahanMap: Record<string, any>;
+  pemakaian: any[];
+  labels: {
+    hppLabel: string;
+    hppHint: string;
+  };
 }
 
 export const useProfitAnalysis = (
@@ -67,7 +90,9 @@ export const useProfitAnalysis = (
   const {
     autoCalculate = true,
     defaultPeriod = new Date().toISOString().slice(0, 7), // Safe default
-    enableRealTime = true
+    enableRealTime = true,
+    // ✅ ADD WAC OPTION DEFAULT
+    enableWAC = true
   } = options;
 
   const queryClient = useQueryClient();
@@ -107,6 +132,27 @@ export const useProfitAnalysis = (
     retry: 2,
   });
 
+  // ✅ WAC QUERIES: Bahan map and pemakaian data
+  const bahanMapQuery = useQuery({
+    queryKey: PROFIT_QUERY_KEYS.bahanMap(),
+    queryFn: fetchBahanMap,
+    enabled: enableWAC,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const pemakaianQuery = useQuery({
+    queryKey: PROFIT_QUERY_KEYS.pemakaian(currentPeriod, currentPeriod),
+    queryFn: async () => {
+      const start = currentPeriod + '-01';
+      const end = new Date(new Date(currentPeriod + '-01').getFullYear(), 
+                          new Date(currentPeriod + '-01').getMonth() + 1, 0)
+                  .toISOString().split('T')[0];
+      return fetchPemakaianByPeriode(start, end);
+    },
+    enabled: enableWAC && Boolean(currentPeriod),
+    staleTime: 60 * 1000, // 1 minute
+  });
+
   // ✅ MUTATION: Manual calculation
   const calculateProfitMutation = useMutation({
     mutationFn: async (period: string) => {
@@ -138,6 +184,35 @@ export const useProfitAnalysis = (
   const opex = currentData?.opex_data?.total ?? 0;
   const calculatedAt = currentData?.calculated_at ?? null;
 
+  // ✅ WAC CALCULATION
+  const { totalHPP, hppBreakdown } = useMemo(() => {
+    if (bahanMapQuery.data && pemakaianQuery.data) {
+      try {
+        const res = calcHPP(pemakaianQuery.data, bahanMapQuery.data);
+        return {
+          totalHPP: res.totalHPP,
+          hppBreakdown: res.breakdown
+        };
+      } catch (err) {
+        logger.error('Error calculating HPP:', err);
+        return {
+          totalHPP: 0,
+          hppBreakdown: []
+        };
+      }
+    }
+    return {
+      totalHPP: 0,
+      hppBreakdown: []
+    };
+  }, [bahanMapQuery.data, pemakaianQuery.data]);
+
+  // ✅ WAC LABELS & TOOLTIP
+  const labels = useMemo(() => ({
+    hppLabel: 'Total HPP (WAC)',
+    hppHint: 'Dihitung pakai WAC (harga rata-rata tertimbang) bila tersedia; bila belum ada, menggunakan harga satuan.'
+  }), []);
+
   // ✅ FIX #2: Use extracted primitive values in useMemo dependencies
   const profitMetrics = useMemo(() => {
     if (!currentData) {
@@ -148,7 +223,10 @@ export const useProfitAnalysis = (
         netMargin: 0,
         revenue: 0,
         cogs: 0,
-        opex: 0
+        opex: 0,
+        // ✅ ADD WAC METRICS
+        totalHPP: 0,
+        hppBreakdown: []
       };
     }
 
@@ -165,7 +243,10 @@ export const useProfitAnalysis = (
         netMargin,
         revenue,
         cogs,
-        opex
+        opex,
+        // ✅ INCLUDE WAC METRICS
+        totalHPP,
+        hppBreakdown
       };
     } catch (err) {
       logger.error('Error calculating profit metrics:', err);
@@ -176,10 +257,13 @@ export const useProfitAnalysis = (
         netMargin: 0,
         revenue: 0,
         cogs: 0,
-        opex: 0
+        opex: 0,
+        // ✅ INCLUDE WAC METRICS ON ERROR
+        totalHPP: 0,
+        hppBreakdown: []
       };
     }
-  }, [revenue, cogs, opex, currentData]); // ✅ Now using primitive values
+  }, [revenue, cogs, opex, currentData, totalHPP, hppBreakdown]); // ✅ Now using primitive values and WAC data
 
   // ✅ ACTIONS
   const calculateProfit = useCallback(async (period?: string): Promise<boolean> => {
@@ -231,6 +315,21 @@ export const useProfitAnalysis = (
     }
   }, [currentAnalysisQuery]);
 
+  // ✅ WAC ACTION: Refresh WAC data
+  const refreshWACData = useCallback(async () => {
+    logger.info('🔄 Refreshing WAC data');
+    try {
+      await Promise.all([
+        bahanMapQuery.refetch(),
+        pemakaianQuery.refetch()
+      ]);
+      toast.success('Data WAC berhasil diperbarui');
+    } catch (error) {
+      logger.error('❌ Refresh WAC failed:', error);
+      toast.error('Gagal memperbarui data WAC');
+    }
+  }, [bahanMapQuery, pemakaianQuery]);
+
   // ✅ UTILITIES
   const getProfitByPeriod = useCallback((period: string) => {
     return profitHistory.find(p => p.period === period);
@@ -278,8 +377,10 @@ export const useProfitAnalysis = (
     // State
     currentAnalysis: currentData || null,
     profitHistory,
-    loading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending,
-    error: error || currentAnalysisQuery.error?.message || null,
+    loading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending || 
+             bahanMapQuery.isLoading || pemakaianQuery.isLoading,
+    error: error || currentAnalysisQuery.error?.message || 
+           bahanMapQuery.error?.message || pemakaianQuery.error?.message || null,
     
     // Period management
     currentPeriod,
@@ -289,6 +390,8 @@ export const useProfitAnalysis = (
     calculateProfit,
     loadProfitHistory,
     refreshAnalysis,
+    // ✅ INCLUDE WAC ACTION
+    refreshWACData,
     
     // Computed values
     profitMetrics,
@@ -297,5 +400,10 @@ export const useProfitAnalysis = (
     getProfitByPeriod,
     isDataStale,
     lastCalculated,
+    
+    // ✅ INCLUDE WAC UTILITIES
+    bahanMap: bahanMapQuery.data ?? {},
+    pemakaian: pemakaianQuery.data ?? [],
+    labels
   };
 };

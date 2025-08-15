@@ -2,7 +2,24 @@
 // ✅ FIXED: Updated for complete schema support with isi_per_kemasan
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
 
+// ✅ TAMBAH: Helper untuk mendapatkan harga efektif (WAC > 0, fallback ke harga satuan)
+const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
+  const wac = Number(item.hargaRataRata ?? 0);
+  const base = Number(item.harga ?? 0);
+  return wac > 0 ? wac : base;
+};
+
+// ✅ TAMBAH: Helper untuk mengecek apakah menggunakan WAC
+const isUsingWac = (item: BahanBakuFrontend): boolean => {
+  const wac = Number(item.hargaRataRata ?? 0);
+  return wac > 0;
+};
+
 export const warehouseUtils = {
+  // ✅ EKSPOR: expose helper
+  getEffectiveUnitPrice,
+  isUsingWac,
+  
   // Data filtering (updated for new field names)
   filterItems: (items: BahanBakuFrontend[], searchTerm: string, filters: FilterState): BahanBakuFrontend[] => {
     let filtered = [...items];
@@ -53,14 +70,26 @@ export const warehouseUtils = {
     return filtered;
   },
 
-  // Data sorting (updated for new field names)
+  // ✅ UPDATE: Data sorting dengan harga efektif
   sortItems: (items: BahanBakuFrontend[], sortConfig: SortConfig): BahanBakuFrontend[] => {
-    return [...items].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+    const key = sortConfig.key;
 
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return [...items].sort((a, b) => {
+      let av: any = a[key as keyof BahanBakuFrontend];
+      let bv: any = b[key as keyof BahanBakuFrontend];
+
+      // jika sort by harga → pakai harga efektif (WAC || harga satuan)
+      if (key === 'harga' || key === 'hargaRataRata') {
+        av = getEffectiveUnitPrice(a);
+        bv = getEffectiveUnitPrice(b);
+      }
+
+      // normalisasi number/string/null
+      const na = typeof av === 'number' ? av : (av ? String(av).toLowerCase() : '');
+      const nb = typeof bv === 'number' ? bv : (bv ? String(bv).toLowerCase() : '');
+
+      if (na < nb) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (na > nb) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
   },
@@ -217,7 +246,7 @@ export const warehouseUtils = {
     }
   },
 
-  // ✅ FIXED: Export helpers with correct field names
+  // ✅ UPDATE: Export helpers dengan WAC dan harga efektif
   prepareExportData: (items: BahanBakuFrontend[]) => {
     return items.map(item => ({
       'Nama': item.nama,
@@ -226,10 +255,12 @@ export const warehouseUtils = {
       'Stok': item.stok,
       'Minimum': item.minimum,
       'Satuan': item.satuan,
-      'Harga Satuan': warehouseUtils.formatCurrency(item.harga),
+      'Harga Satuan (Input)': warehouseUtils.formatCurrency(item.harga || 0),
+      'Harga Rata-rata (WAC)': item.hargaRataRata != null ? warehouseUtils.formatCurrency(item.hargaRataRata) : '-',
+      'Harga Efektif': warehouseUtils.formatCurrency(getEffectiveUnitPrice(item)),
       'Tanggal Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
       'Jumlah Beli Kemasan': item.jumlahBeliKemasan || '-',
-      'Isi Per Kemasan': item.isiPerKemasan || '-', // ✅ FIXED: Use isiPerKemasan
+      'Isi Per Kemasan': item.isiPerKemasan || '-',
       'Satuan Kemasan': item.satuanKemasan || '-',
       'Harga Total Beli Kemasan': item.hargaTotalBeliKemasan ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan) : '-',
       'Dibuat': warehouseUtils.formatDate(item.createdAt),
@@ -281,12 +312,13 @@ export const warehouseUtils = {
     };
   },
 
-  // ✅ ENHANCED: Calculate packaging metrics with isi_per_kemasan
+  // ✅ UPDATE: Calculate packaging metrics dengan harga efektif
   calculatePackagingMetrics: (item: BahanBakuFrontend) => {
+    const effPrice = getEffectiveUnitPrice(item);
     const metrics = {
       unitCostFromPackage: 0,
       packagingEfficiency: 0,
-      totalValue: item.stok * item.harga,
+      totalValue: item.stok * effPrice,
       totalContent: 0,
       packageInfo: null as string | null,
     };
@@ -308,8 +340,8 @@ export const warehouseUtils = {
       }
 
       // Calculate efficiency (lower is better)
-      if (item.harga > 0) {
-        metrics.packagingEfficiency = (metrics.unitCostFromPackage / item.harga) * 100;
+      if (effPrice > 0) {
+        metrics.packagingEfficiency = (metrics.unitCostFromPackage / effPrice) * 100;
       }
     }
 
@@ -360,14 +392,15 @@ export const warehouseUtils = {
     return Math.ceil(thirtyDaysStock + safetyStock + currentShortfall);
   },
 
-  // Generate stock report data
+  // ✅ UPDATE: Generate stock report dengan harga efektif
   generateStockReport: (items: BahanBakuFrontend[]) => {
     const totalItems = items.length;
     const lowStockItems = warehouseUtils.getLowStockItems(items);
     const outOfStockItems = warehouseUtils.getOutOfStockItems(items);
     const expiringItems = warehouseUtils.getExpiringItems(items, 30);
 
-    const totalValue = items.reduce((sum, item) => sum + (item.stok * item.harga), 0);
+    // ✅ GUNAKAN HARGA EFEKTIF
+    const totalValue = items.reduce((sum, item) => sum + (item.stok * getEffectiveUnitPrice(item)), 0);
     const averageStockLevel = items.reduce((sum, item) => sum + item.stok, 0) / totalItems;
 
     const categoryBreakdown = items.reduce((acc, item) => {

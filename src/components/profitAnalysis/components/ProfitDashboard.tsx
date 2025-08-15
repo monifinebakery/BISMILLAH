@@ -1,3 +1,4 @@
+// src/components/warehouse/components/ProfitDashboard.tsx
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
   Info,
   Target,
   Lightbulb,
+  RotateCw,
 } from 'lucide-react';
 
 // Import komponen Analisis Profit
@@ -63,7 +65,188 @@ export interface ProfitDashboardProps {
 // HELPER FUNCTIONS - PURE FUNCTIONS OUTSIDE COMPONENT
 // ==============================================
 
-const calculateAdvancedMetricsHelper = (profitHistory, currentAnalysis) => {
+// Fungsi validasi data sebelum forecast
+const validateForecastData = (currentAnalysis: any) => {
+  const revenue = currentAnalysis?.revenue_data?.total || 0;
+  const cogs = currentAnalysis?.cogs_data?.total || 0;
+  const opex = currentAnalysis?.opex_data?.total || 0;
+  
+  const issues = [];
+  
+  // Validasi basic
+  if (revenue <= 0) issues.push("Revenue harus lebih besar dari 0");
+  if (cogs < 0) issues.push("COGS tidak boleh negatif");
+  if (opex < 0) issues.push("OPEX tidak boleh negatif");
+  
+  // Validasi rasio yang masuk akal
+  if (cogs > revenue * 1.5) issues.push("COGS terlalu tinggi dibanding revenue");
+  if (opex > revenue * 2) issues.push("OPEX terlalu tinggi dibanding revenue");
+  
+  // Hitung margin untuk validasi
+  const grossProfit = revenue - cogs;
+  const netProfit = grossProfit - opex;
+  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  
+  // Peringatan untuk margin ekstrem
+  if (netMargin < -100) issues.push("Margin negatif ekstrem terdeteksi");
+  if (netMargin > 90) issues.push("Margin terlalu tinggi, periksa data");
+  
+  return {
+    isValid: issues.length === 0,
+    issues,
+    sanitizedData: {
+      revenue: Math.max(0, revenue),
+      cogs: Math.max(0, Math.min(cogs, revenue * 0.95)), // COGS max 95% dari revenue
+      opex: Math.max(0, Math.min(opex, revenue * 0.8))   // OPEX max 80% dari revenue
+    },
+    metrics: {
+      grossProfit,
+      netProfit,
+      netMargin,
+      grossMargin: revenue > 0 ? (grossProfit / revenue) * 100 : 0
+    }
+  };
+};
+
+const generateForecastHelper = (profitHistory: any[], currentAnalysis: any) => {
+  if (!currentAnalysis?.revenue_data?.total || !profitHistory?.length || profitHistory.length < 3) {
+    return null;
+  }
+  
+  try {
+    // Validasi data terlebih dahulu
+    const validation = validateForecastData(currentAnalysis);
+    if (!validation.isValid) {
+      console.warn('Data validation issues:', validation.issues);
+      // Gunakan data yang sudah disanitasi
+      currentAnalysis = {
+        ...currentAnalysis,
+        revenue_data: { total: validation.sanitizedData.revenue },
+        cogs_data: { total: validation.sanitizedData.cogs },
+        opex_data: { total: validation.sanitizedData.opex }
+      };
+    }
+    
+    const revenue = currentAnalysis.revenue_data.total || 0;
+    const cogs = currentAnalysis.cogs_data?.total || 0;
+    const opex = currentAnalysis.opex_data?.total || 0;
+    
+    // Hitung profit dan margin aktual
+    const grossProfit = revenue - cogs;
+    const netProfit = grossProfit - opex;
+    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+    
+    // Analisis tren dari history (ambil 3-6 periode terakhir)
+    const recentHistory = profitHistory.slice(-6);
+    let averageGrowthRate = 0;
+    let averageMargin = netMargin;
+    
+    if (recentHistory.length >= 2) {
+      const growthRates = [];
+      const margins = [];
+      
+      for (let i = 1; i < recentHistory.length; i++) {
+        const prevRevenue = recentHistory[i-1].revenue_data?.total || 0;
+        const currRevenue = recentHistory[i].revenue_data?.total || 0;
+        
+        if (prevRevenue > 0 && currRevenue > 0) {
+          const growthRate = ((currRevenue - prevRevenue) / prevRevenue) * 100;
+          growthRates.push(growthRate);
+          
+          // Hitung margin untuk periode ini
+          const periodCogs = recentHistory[i].cogs_data?.total || 0;
+          const periodOpex = recentHistory[i].opex_data?.total || 0;
+          const periodNetProfit = currRevenue - periodCogs - periodOpex;
+          const periodMargin = (periodNetProfit / currRevenue) * 100;
+          margins.push(periodMargin);
+        }
+      }
+      
+      // Rata-rata pertumbuhan dan margin
+      if (growthRates.length > 0) {
+        averageGrowthRate = growthRates.reduce((sum, rate) => sum + rate, 0) / growthRates.length;
+      }
+      
+      if (margins.length > 0) {
+        averageMargin = margins.reduce((sum, margin) => sum + margin, 0) / margins.length;
+      }
+    }
+    
+    // Batasi pertumbuhan agar realistis (-20% hingga +50% per bulan)
+    const monthlyGrowthRate = Math.max(-20, Math.min(50, averageGrowthRate)) / 100;
+    
+    // Prediksi revenue berdasarkan tren
+    const nextMonthRevenue = revenue * (1 + monthlyGrowthRate);
+    const nextQuarterRevenue = revenue * Math.pow(1 + monthlyGrowthRate, 3);
+    const nextYearRevenue = revenue * Math.pow(1 + monthlyGrowthRate, 12);
+    
+    // Asumsi COGS dan OPEX sebagai persentase dari revenue (berdasarkan rata-rata historis)
+    const cogsPercentage = revenue > 0 ? (cogs / revenue) : 0.6; // default 60%
+    const opexPercentage = revenue > 0 ? (opex / revenue) : 0.25; // default 25%
+    
+    // Hitung prediksi profit
+    const calculatePredictedProfit = (predictedRevenue: number) => {
+      const predictedCogs = predictedRevenue * cogsPercentage;
+      const predictedOpex = predictedRevenue * opexPercentage;
+      const predictedNetProfit = predictedRevenue - predictedCogs - predictedOpex;
+      const predictedMargin = predictedRevenue > 0 ? (predictedNetProfit / predictedRevenue) * 100 : 0;
+      
+      return {
+        profit: predictedNetProfit,
+        margin: predictedMargin
+      };
+    };
+    
+    const nextMonth = calculatePredictedProfit(nextMonthRevenue);
+    const nextQuarter = calculatePredictedProfit(nextQuarterRevenue);
+    const nextYear = calculatePredictedProfit(nextYearRevenue);
+    
+    // Hitung confidence berdasarkan konsistensi data historis
+    const calculateConfidence = (periodsAhead: number) => {
+      const baseConfidence = 90;
+      const historyPenalty = Math.max(0, (6 - recentHistory.length) * 10);
+      const timeDecay = periodsAhead * 5; // confidence menurun seiring waktu
+      const volatilityPenalty = Math.abs(averageGrowthRate) > 10 ? 15 : 0;
+      
+      return Math.max(30, baseConfidence - historyPenalty - timeDecay - volatilityPenalty);
+    };
+    
+    return {
+      nextMonth: {
+        profit: nextMonth.profit,
+        margin: nextMonth.margin,
+        confidence: calculateConfidence(1),
+      },
+      nextQuarter: {
+        profit: nextQuarter.profit,
+        margin: nextQuarter.margin,
+        confidence: calculateConfidence(3),
+      },
+      nextYear: {
+        profit: nextYear.profit,
+        margin: nextYear.margin,
+        confidence: calculateConfidence(12),
+      },
+      // Tambahan info untuk debugging
+      metadata: {
+        currentRevenue: revenue,
+        currentNetProfit: netProfit,
+        currentMargin: netMargin,
+        averageGrowthRate: averageGrowthRate,
+        cogsPercentage: cogsPercentage * 100,
+        opexPercentage: opexPercentage * 100,
+        historyLength: recentHistory.length,
+        validationIssues: validation.issues
+      }
+    };
+  } catch (error) {
+    console.error('Error in generateForecastHelper:', error);
+    return null;
+  }
+};
+
+const calculateAdvancedMetricsHelper = (profitHistory: any[], currentAnalysis: any) => {
   if (!currentAnalysis?.revenue_data?.total) return null;
   
   try {
@@ -92,46 +275,7 @@ const calculateAdvancedMetricsHelper = (profitHistory, currentAnalysis) => {
   }
 };
 
-const generateForecastHelper = (profitHistory, currentAnalysis) => {
-  if (!currentAnalysis?.revenue_data?.total || !profitHistory?.length || profitHistory.length < 3) {
-    return null;
-  }
-  
-  try {
-    const rollingAverages = calculateRollingAverages(profitHistory, 3);
-    const currentMargins = calculateMargins(
-      currentAnalysis.revenue_data.total,
-      currentAnalysis.cogs_data?.total || 0,
-      currentAnalysis.opex_data?.total || 0
-    );
-    
-    const baseProfit = rollingAverages.profitAverage || 0;
-    const baseMargin = currentMargins.netMargin || 0;
-    
-    return {
-      nextMonth: {
-        profit: baseProfit * 1.02,
-        margin: baseMargin,
-        confidence: 75,
-      },
-      nextQuarter: {
-        profit: baseProfit * 3 * 1.05,
-        margin: baseMargin * 1.01,
-        confidence: 65,
-      },
-      nextYear: {
-        profit: baseProfit * 12 * 1.15,
-        margin: baseMargin * 1.05,
-        confidence: 45,
-      },
-    };
-  } catch (error) {
-    console.error('Error in generateForecastHelper:', error);
-    return null;
-  }
-};
-
-const performBenchmarkHelper = (advancedMetrics) => {
+const performBenchmarkHelper = (advancedMetrics: any) => {
   if (!advancedMetrics?.netProfitMargin) return null;
   
   try {
@@ -167,7 +311,7 @@ const performBenchmarkHelper = (advancedMetrics) => {
   }
 };
 
-const generateExecutiveSummaryHelper = (currentAnalysis, advancedMetrics) => {
+const generateExecutiveSummaryHelper = (currentAnalysis: any, advancedMetrics: any) => {
   if (!currentAnalysis || !advancedMetrics) return null;
   
   try {
@@ -187,7 +331,7 @@ const generateExecutiveSummaryHelper = (currentAnalysis, advancedMetrics) => {
   }
 };
 
-const findPreviousAnalysis = (currentPeriod, profitHistory) => {
+const findPreviousAnalysis = (currentPeriod: string, profitHistory: any[]) => {
   if (!currentPeriod || !profitHistory?.length) return null;
   
   try {
@@ -208,18 +352,18 @@ const findPreviousAnalysis = (currentPeriod, profitHistory) => {
 // MAIN COMPONENT
 // ==============================================
 
-const ProfitDashboard = ({
+const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   className = '',
   defaultPeriod,
   showAdvancedMetrics = true,
 }) => {
   // ✅ SEMUA STATE HOOKS DI ATAS - SELALU DIPANGGIL DALAM URUTAN YANG SAMA
   const [isDataStale, setIsDataStale] = useState(false);
-  const [lastCalculated, setLastCalculated] = useState(null);
+  const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
-  // ✅ SEMUA CUSTOM HOOKS DI SINI - SELALU DIPANGGIL DALAM URUTAN YANG SAMA
+  // ✅ UPDATE: Destructuring dari hook dengan WAC
   const {
     currentAnalysis,
     profitHistory,
@@ -228,10 +372,15 @@ const ProfitDashboard = ({
     currentPeriod,
     setCurrentPeriod,
     refreshAnalysis,
+    // ⬇️ baru
+    profitMetrics,
+    labels,
+    refreshWACData,
   } = useProfitAnalysis({
     defaultPeriod: defaultPeriod || getCurrentPeriod(),
     autoCalculate: true,
     enableRealTime: true,
+    enableWAC: true, // disarankan aktif
   });
 
   const { analyzeMargins, comparePeriods: comparePeriodsHook, generateForecast: generateForecastHook } = useProfitCalculation();
@@ -248,9 +397,6 @@ const ProfitDashboard = ({
   const advancedMetrics = showAdvancedMetrics ? 
     calculateAdvancedMetricsHelper(profitHistory, currentAnalysis) : null;
   
-  const forecast = showAdvancedMetrics ? 
-    generateForecastHelper(profitHistory, currentAnalysis) : null;
-  
   const benchmark = showAdvancedMetrics ? 
     performBenchmarkHelper(advancedMetrics) : null;
   
@@ -262,26 +408,32 @@ const ProfitDashboard = ({
   // Check if we have valid data
   const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
 
-  // ✅ EVENT HANDLERS - TIDAK MENGGUNAKAN useCallback UNTUK MENGHINDARI HOOK ISSUES
-  const handlePeriodChange = (period) => {
+  // ✅ UPDATE: Event handler dengan refresh WAC
+  const handlePeriodChange = (period: string) => {
     setCurrentPeriod(period);
   };
 
+  // ✅ UPDATE: Refresh juga data WAC
   const handleRefresh = async () => {
     try {
-      await refreshAnalysis();
+      await Promise.all([
+        refreshAnalysis(),
+        refreshWACData(),   // ⬅️ refresh data WAC (bahanMap & pemakaian)
+      ]);
       setLastCalculated(new Date());
     } catch (error) {
       console.error('Error refreshing:', error);
     }
   };
 
+  // ✅ 1) UPDATE: Pakai COGS efektif saat export CSV
   const handleExportData = () => {
     if (!currentAnalysis) return;
     
     try {
       const revenue = currentAnalysis.revenue_data?.total || 0;
-      const cogs = currentAnalysis.cogs_data?.total || 0;
+      // ⬇️ pakai WAC (profitMetrics.cogs), fallback ke API kalau belum ada
+      const cogs = profitMetrics?.cogs ?? (currentAnalysis.cogs_data?.total || 0);
       const opex = currentAnalysis.opex_data?.total || 0;
       
       const csvContent = `Period,Revenue,COGS,OPEX,Gross Profit,Net Profit
@@ -379,56 +531,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
   };
 
   const renderForecast = () => {
-    if (!forecast || !showAdvancedMetrics) return null;
-
-    return (
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Prediksi Profit</CardTitle>
-          <CardDescription>Prediksi bertenaga AI berdasarkan tren historis dan analisis pasar</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Bulan Depan</div>
-              <div className="text-2xl font-bold text-blue-700 mb-1">
-                {formatCurrency(forecast.nextMonth?.profit || 0)}
-              </div>
-              <div className="text-sm text-blue-600">
-                {formatPercentage(forecast.nextMonth?.margin || 0)} margin
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                {(forecast.nextMonth?.confidence || 0).toFixed(0)}% keyakinan
-              </div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Kuartal Depan</div>
-              <div className="text-2xl font-bold text-green-700 mb-1">
-                {formatCurrency(forecast.nextQuarter?.profit || 0)}
-              </div>
-              <div className="text-sm text-green-600">
-                {formatPercentage(forecast.nextQuarter?.margin || 0)} margin
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                {(forecast.nextQuarter?.confidence || 0).toFixed(0)}% keyakinan
-              </div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Tahun Depan</div>
-              <div className="text-2xl font-bold text-purple-700 mb-1">
-                {formatCurrency(forecast.nextYear?.profit || 0)}
-              </div>
-              <div className="text-sm text-purple-600">
-                {formatPercentage(forecast.nextYear?.margin || 0)} margin
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                {(forecast.nextYear?.confidence || 0).toFixed(0)}% keyakinan
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null; // Fitur prediksi dihapus
   };
 
   // ✅ MAIN RENDER - PASTIKAN TIDAK ADA CONDITIONAL HOOKS
@@ -460,7 +563,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             disabled={loading}
             className="flex items-center space-x-2"
           >
-            <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </Button>
           <Button
@@ -481,13 +584,13 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         {isDataStale && (
           <Badge variant="secondary" className="flex items-center space-x-1">
             <AlertTriangle className="w-3 h-3" />
-            <span>Data mungkin sudah usang</span>
+            <span className="text-xs">Data mungkin sudah usang</span>
           </Badge>
         )}
         {lastCalculated && (
           <Badge variant="outline" className="flex items-center space-x-1">
             <CheckCircle className="w-3 h-3" />
-            <span>Diperbarui: {lastCalculated.toLocaleTimeString()}</span>
+            <span className="text-xs">Diperbarui: {lastCalculated.toLocaleTimeString('id-ID')}</span>
           </Badge>
         )}
         {benchmark?.competitive?.position && (
@@ -496,7 +599,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             className="flex items-center space-x-1"
           >
             <Target className="w-3 h-3" />
-            <span>performa {benchmark.competitive.position}</span>
+            <span className="text-xs">performa {benchmark.competitive.position}</span>
           </Badge>
         )}
       </div>
@@ -512,17 +615,17 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
       {/* Executive Summary */}
       {renderExecutiveSummary()}
 
-      {/* Summary Cards */}
+      {/* Summary Cards - ✅ 2) UPDATE: Rapihin props ke ProfitSummaryCards */}
       {hasValidData && (
         <ProfitSummaryCards 
           currentAnalysis={currentAnalysis} 
           previousAnalysis={previousAnalysis} 
           isLoading={loading} 
+          // ⬇️ props baru (sudah dirapihkan)
+          effectiveCogs={profitMetrics.cogs}
+          labels={labels}
         />
       )}
-
-      {/* Forecast */}
-      {renderForecast()}
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -535,16 +638,23 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
 
         <TabsContent value="ikhtisar" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* ✅ 3) UPDATE: Teruskan WAC ke ProfitTrendChart */}
             <ProfitBreakdownChart 
               currentAnalysis={currentAnalysis} 
               isLoading={loading} 
               chartType={selectedChartType} 
+              // ⬇️ supaya chart pakai angka WAC
+              effectiveCogs={profitMetrics.cogs}
+              labels={labels}
             />
             <ProfitTrendChart
               profitHistory={profitHistory}
               isLoading={loading}
               chartType="line"
               showMetrics={['revenue', 'grossProfit', 'netProfit']}
+              // ⬇️ tambahkan effectiveCogs dan labels
+              effectiveCogs={profitMetrics.cogs}
+              labels={labels}
             />
           </div>
         </TabsContent>
@@ -555,14 +665,22 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             isLoading={loading}
             chartType="area"
             showMetrics={['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex']}
+            // ⬇️ tambahkan effectiveCogs dan labels
+            effectiveCogs={profitMetrics.cogs}
+            labels={labels}
           />
         </TabsContent>
 
         <TabsContent value="breakdown" className="space-y-6">
+          {/* ✅ 4) UPDATE: Kirim WAC props ke komponen yang baru kamu update */}
           <DetailedBreakdownTable 
             currentAnalysis={currentAnalysis} 
             isLoading={loading} 
             showExport={true} 
+            // ⬇️ HPP total & breakdown WAC
+            effectiveCogs={profitMetrics.cogs}
+            hppBreakdown={profitMetrics.hppBreakdown}
+            labels={labels}
           />
         </TabsContent>
 
@@ -648,7 +766,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         </TabsContent>
       </Tabs>
 
-      {/* Status Footer */}
+      {/* Status Footer - ✅ 5) UPDATE: Tambah badge kecil "WAC aktif" di status bar */}
       {hasValidData && !loading && (
         <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-2">
@@ -658,26 +776,18 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             </span>
           </div>
           <span>•</span>
-          <span>Pendapatan: {formatCurrency(currentAnalysis.revenue_data?.total || 0)}</span>
+          <span>Pendapatan: {formatCurrency(profitMetrics.revenue)}</span>
           <span>•</span>
-          <span>
-            Laba Bersih: {formatCurrency(
-              (currentAnalysis.revenue_data?.total || 0) - 
-              (currentAnalysis.cogs_data?.total || 0) - 
-              (currentAnalysis.opex_data?.total || 0)
-            )}
-          </span>
+          <span>Laba Bersih: {formatCurrency(profitMetrics.netProfit)}</span>
           <span>•</span>
-          <span>
-            Margin: {formatPercentage(
-              (currentAnalysis.revenue_data?.total || 0) > 0
-                ? (((currentAnalysis.revenue_data?.total || 0) - 
-                    (currentAnalysis.cogs_data?.total || 0) - 
-                    (currentAnalysis.opex_data?.total || 0)) / 
-                   (currentAnalysis.revenue_data?.total || 0)) * 100
-                : 0
-            )}
-          </span>
+          <span>Margin: {formatPercentage(profitMetrics.netMargin)}</span>
+          {/* ✅ TAMBAH: Badge/tooltip info WAC */}
+          {labels?.hppLabel && (
+            <>
+              <span>•</span>
+              <span title={labels.hppHint}>{labels.hppLabel} aktif</span>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -28,6 +28,12 @@ export interface DetailedBreakdownTableProps {
   isLoading: boolean;
   showExport?: boolean;
   className?: string;
+  /** ⬇️ COGS efektif (WAC) */
+  effectiveCogs?: number;
+  /** ⬇️ rincian HPP dari WAC calcHPP (opsional) */
+  hppBreakdown?: Array<{ id: string; nama: string; qty: number; price: number; hpp: number }>;
+  /** ⬇️ label/tooltip WAC */
+  labels?: { hppLabel: string; hppHint: string };
 }
 
 interface BreakdownSection {
@@ -51,7 +57,7 @@ interface BreakdownItem {
 // MEMOIZED SUB-COMPONENTS
 // ==============================================
 
-const MemoizedSectionHeader = React.memo(({ section, sortedItemsLength }) => {
+const MemoizedSectionHeader = React.memo(({ section, sortedItemsLength }: { section: BreakdownSection; sortedItemsLength: number }) => {
   const Icon = section.icon;
   
   return (
@@ -77,7 +83,7 @@ const MemoizedSectionHeader = React.memo(({ section, sortedItemsLength }) => {
   );
 });
 
-const MemoizedTableRow = React.memo(({ item, itemIndex }) => {
+const MemoizedTableRow = React.memo(({ item, itemIndex }: { item: BreakdownItem; itemIndex: number }) => {
   return (
     <TableRow key={itemIndex} className="hover:bg-white hover:bg-opacity-50 transition-colors">
       <TableCell className="font-medium">
@@ -122,7 +128,7 @@ const MemoizedTableRow = React.memo(({ item, itemIndex }) => {
   );
 });
 
-const MemoizedSectionSummary = React.memo(({ section, sortedItems }) => {
+const MemoizedSectionSummary = React.memo(({ section, sortedItems }: { section: BreakdownSection; sortedItems: BreakdownItem[] }) => {
   return (
     <div className="mt-3 p-3 bg-gray-50 rounded-lg">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -165,8 +171,11 @@ const DetailedBreakdownTable = ({
   currentAnalysis,
   isLoading,
   showExport = true,
-  className = ''
-}) => {
+  className = '',
+  effectiveCogs,
+  hppBreakdown,
+  labels
+}: DetailedBreakdownTableProps) => {
   
   const [activeTab, setActiveTab] = useState('all');
   const [sortBy, setSortBy] = useState('amount');
@@ -174,7 +183,7 @@ const DetailedBreakdownTable = ({
 
   // ✅ Extract primitive values first
   const revenue = currentAnalysis?.revenue_data?.total ?? 0;
-  const cogs = currentAnalysis?.cogs_data?.total ?? 0;
+  const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : currentAnalysis?.cogs_data?.total) ?? 0;
   const opex = currentAnalysis?.opex_data?.total ?? 0;
   const revenueTransactions = currentAnalysis?.revenue_data?.transactions ?? [];
   const opexCosts = currentAnalysis?.opex_data?.costs ?? [];
@@ -192,9 +201,9 @@ const DetailedBreakdownTable = ({
   // ✅ Group revenue by category
   const groupedRevenue = useMemo(() => {
     return revenueItems.reduce((acc, item) => {
-      const existing = acc.find(a => a.name === item.name);
+      const existing = acc.find((a: any) => a.name === item.name);
       if (existing) {
-        return acc.map(a => 
+        return acc.map((a: any) => 
           a.name === item.name 
             ? { 
                 ...a, 
@@ -210,23 +219,29 @@ const DetailedBreakdownTable = ({
     }, []);
   }, [revenueItems, revenue]);
 
-  // ✅ Process COGS items
+  // ✅ UPDATE: Process COGS items - pakai hppBreakdown kalau ada
   const cogsItems = useMemo(() => {
+    if (hppBreakdown && hppBreakdown.length > 0 && cogs > 0) {
+      // mapping WAC breakdown → rows
+      const items = hppBreakdown
+        .map(b => ({
+          name: b.nama || 'Komponen HPP',
+          amount: b.hpp || 0,                  // nilai HPP per komponen
+          percentage: cogs > 0 ? ((b.hpp || 0) / cogs) * 100 : 0,
+          type: 'Bahan Langsung'
+        }))
+        .filter(i => i.amount > 0);
+
+      // kalau misal total rounding berbeda, tetap jalan
+      return items;
+    }
+
+    // fallback lama
     return [
-      {
-        name: 'Biaya Bahan Baku',
-        amount: cogs * 0.8,
-        percentage: cogs > 0 ? 80 : 0,
-        type: 'Bahan Langsung'
-      },
-      {
-        name: 'Tenaga Kerja Langsung',
-        amount: cogs * 0.2,
-        percentage: cogs > 0 ? 20 : 0,
-        type: 'Tenaga Kerja Langsung'
-      }
+      { name: 'Biaya Bahan Baku', amount: cogs * 0.8, percentage: cogs > 0 ? 80 : 0, type: 'Bahan Langsung' },
+      { name: 'Tenaga Kerja Langsung', amount: cogs * 0.2, percentage: cogs > 0 ? 20 : 0, type: 'Tenaga Kerja Langsung' }
     ].filter(item => item.amount > 0);
-  }, [cogs]);
+  }, [hppBreakdown, cogs]);
 
   // ✅ Process OPEX items
   const opexItems = useMemo(() => {
@@ -272,7 +287,7 @@ const DetailedBreakdownTable = ({
   const filteredSections = useMemo(() => {
     if (activeTab === 'all') return breakdownSections;
     
-    const sectionMap = {
+    const sectionMap: Record<string, number> = {
       revenue: 0,
       cogs: 1,
       opex: 2
@@ -283,9 +298,9 @@ const DetailedBreakdownTable = ({
   }, [breakdownSections, activeTab]);
 
   // ✅ OPTIMASI: Memoize sorting function
-  const getSortedItems = useCallback((items) => {
+  const getSortedItems = useCallback((items: BreakdownItem[]) => {
     return [...items].sort((a, b) => {
-      let aValue, bValue;
+      let aValue: string | number, bValue: string | number;
       
       switch (sortBy) {
         case 'name':
@@ -342,11 +357,11 @@ const DetailedBreakdownTable = ({
     URL.revokeObjectURL(url);
   }, [breakdownSections, currentAnalysis?.period]);
 
-  const handleTabChange = useCallback((tab) => {
+  const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
   }, []);
 
-  const handleSortChange = useCallback((newSortBy) => {
+  const handleSortChange = useCallback((newSortBy: string) => {
     if (sortBy === newSortBy) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -408,6 +423,18 @@ const DetailedBreakdownTable = ({
             <CardDescription>
               Breakdown lengkap sumber pendapatan dan komponen biaya untuk {currentAnalysis.period}
             </CardDescription>
+            
+            {/* ⬇️ Tambah indikator WAC di header HPP */}
+            {labels?.hppLabel && (
+              <div className="mt-1 text-xs text-gray-500">
+                <span
+                  className="underline decoration-dotted cursor-help"
+                  title={labels.hppHint}
+                >
+                  {labels.hppLabel} aktif
+                </span>
+              </div>
+            )}
           </div>
           
           {/* Export Button */}

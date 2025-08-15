@@ -1,6 +1,6 @@
 // ===== 1. UPDATE WarehouseTable.tsx =====
 // src/components/warehouse/components/WarehouseTable.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Edit2, 
@@ -15,7 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   MoreVertical,
-  RefreshCw  // ✅ TAMBAH: Import refresh icon
+  RefreshCw
 } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
 import type { BahanBakuFrontend, SortConfig } from '../types';
@@ -37,7 +37,6 @@ interface WarehouseTableProps {
   allCurrentSelected: boolean;
   someCurrentSelected: boolean;
   emptyStateAction: () => void;
-  // ✅ TAMBAH: Props untuk refetch
   onRefresh?: () => void;
   lastUpdated?: Date;
 }
@@ -62,16 +61,24 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   allCurrentSelected,
   someCurrentSelected,
   emptyStateAction,
-  // ✅ TAMBAH: Destructure new props
   onRefresh,
   lastUpdated,
 }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [showMobileActions, setShowMobileActions] = useState<string | null>(null);
-  // ✅ TAMBAH: Loading state untuk refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ✅ TAMBAH: Handle refresh dengan loading state
+  // ✅ TAMBAH: Debug log untuk verifikasi WAC
+  useEffect(() => {
+    if (import.meta.env.DEV && items.length > 0) {
+      console.debug('[WAC check]', items.slice(0,3).map(i => ({
+        nama: i.nama,
+        hargaRataRata: i.hargaRataRata,
+        harga: i.harga
+      })));
+    }
+  }, [items]);
+
   const handleRefresh = async () => {
     if (onRefresh) {
       logger.component('WarehouseTable', 'Refreshing data...');
@@ -85,7 +92,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     }
   };
 
-  // Toggle expanded state for mobile cards
   const toggleExpanded = (itemId: string) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(itemId)) {
@@ -97,7 +103,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     logger.component('WarehouseTable', `Item ${itemId} ${newExpanded.has(itemId) ? 'expanded' : 'collapsed'}`);
   };
 
-  // Sort icon helper
   const getSortIcon = (key: keyof BahanBakuFrontend) => {
     if (sortConfig.key !== key) {
       return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
@@ -107,7 +112,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       : <ArrowDown className="w-4 h-4 text-orange-500" />;
   };
 
-  // Highlight search terms
   const highlightText = (text: string, searchTerm: string) => {
     if (!searchTerm) return text;
     
@@ -121,7 +125,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     );
   };
 
-  // Enhanced stock level calculation with number conversion
   const getStockLevel = (item: BahanBakuFrontend) => {
     const stok = Number(item.stok) || 0;
     const minimum = Number(item.minimum) || 0;
@@ -129,7 +132,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     return warehouseUtils.formatStockLevel(stok, minimum);
   };
 
-  // Check if item is expiring soon
   const isExpiringItem = (item: BahanBakuFrontend): boolean => {
     if (!item.expiry) return false;
     const expiryDate = new Date(item.expiry);
@@ -138,20 +140,17 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     return expiryDate <= threshold && expiryDate > new Date();
   };
 
-  // Check if item has low stock
   const isLowStockItem = (item: BahanBakuFrontend): boolean => {
     const stok = Number(item.stok) || 0;
     const minimum = Number(item.minimum) || 0;
     return stok <= minimum && stok > 0;
   };
 
-  // Check if item is out of stock
   const isOutOfStockItem = (item: BahanBakuFrontend): boolean => {
     const stok = Number(item.stok) || 0;
     return stok <= 0;
   };
 
-  // Debug helper for development
   const debugItem = (item: BahanBakuFrontend) => {
     if (import.meta.env.DEV && item.nama.includes('Daging')) {
       logger.debug('WAREHOUSE TABLE DEBUG:', {
@@ -162,6 +161,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
         minimumType: typeof item.minimum,
         harga: item.harga,
         hargaType: typeof item.harga,
+        hargaRataRata: item.hargaRataRata,
         stockLevel: getStockLevel(item),
         isLowStock: isLowStockItem(item),
         isOutOfStock: isOutOfStockItem(item),
@@ -170,7 +170,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     }
   };
 
-  // ✅ TAMBAH: Enhanced empty state dengan refresh
   if (!isLoading && items.length === 0) {
     logger.component('WarehouseTable', 'Displaying empty state', { hasSearchTerm: !!searchTerm });
     
@@ -187,7 +186,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           }
         </p>
         
-        {/* ✅ TAMBAH: Action buttons with refresh */}
         <div className="flex flex-col sm:flex-row gap-3">
           {!searchTerm && (
             <Button onClick={emptyStateAction} className="flex items-center gap-2">
@@ -209,7 +207,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           )}
         </div>
 
-        {/* ✅ TAMBAH: Show last updated time */}
         {lastUpdated && (
           <p className="text-xs text-gray-400 mt-4">
             Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
@@ -219,7 +216,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     );
   }
 
-  // ✅ TAMBAH: Loading state enhancement
   if (isLoading) {
     logger.component('WarehouseTable', 'Displaying loading state', { lastUpdated: lastUpdated?.toISOString() });
     
@@ -243,7 +239,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   // Mobile Card View
   const MobileCardView = () => (
     <div className="md:hidden space-y-3 p-4">
-      {/* ✅ UPDATE: Mobile header dengan info update */}
       <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-200">
         <div>
           <span className="text-sm font-medium text-gray-700">
@@ -268,7 +263,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
         )}
       </div>
 
-      {/* Mobile Selection Header */}
       {isSelectionMode && (
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4">
           <button
@@ -313,11 +307,9 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
               ${stockLevel.level === 'low' ? 'border-yellow-200 bg-yellow-50' : ''}
             `}
           >
-            {/* Card Header - Always Visible */}
             <div className="p-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                  {/* Selection Checkbox */}
                   {isSelectionMode && (
                     <button
                       onClick={() => {
@@ -335,7 +327,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                     </button>
                   )}
 
-                  {/* Stock Level Indicator */}
                   <div className={`w-3 h-3 rounded-full mt-2 flex-shrink-0 ${
                     stockLevel.level === 'out' ? 'bg-red-500' :
                     stockLevel.level === 'low' ? 'bg-yellow-500' :
@@ -344,7 +335,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   title={`Stock Level: ${stockLevel.level}`}
                   />
 
-                  {/* Main Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
@@ -355,7 +345,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                           {highlightText(item.kategori, searchTerm)} • {item.stok} {item.satuan}
                         </p>
                         
-                        {/* Multiple alert indicators */}
                         <div className="flex flex-col gap-1 mt-2">
                           {isExpiringSoon && (
                             <div className="flex items-center gap-1 text-xs text-red-600">
@@ -378,7 +367,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                         </div>
                       </div>
 
-                      {/* Mobile Actions */}
                       {!isSelectionMode && (
                         <div className="flex items-center gap-1 ml-2">
                           <button
@@ -407,7 +395,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       )}
                     </div>
 
-                    {/* Quick Stock Info */}
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex items-center gap-4">
                         <div className="text-sm">
@@ -421,7 +408,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                           <span className="text-gray-500 ml-1">{item.satuan}</span>
                         </div>
                         <div className="text-sm font-medium text-gray-900">
-                          {warehouseUtils.formatCurrency(Number(item.harga) || 0)}
+                          {/* ✅ UPDATE: Gunakan helper harga efektif */}
+                          {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                         </div>
                       </div>
                     </div>
@@ -429,7 +417,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                 </div>
               </div>
 
-              {/* Mobile Actions Dropdown */}
               {showMobileActions === item.id && !isSelectionMode && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <div className="flex gap-2">
@@ -464,7 +451,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
               )}
             </div>
 
-            {/* Expanded Details */}
             {isExpanded && (
               <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -479,7 +465,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   <div>
                     <span className="text-gray-500">Harga per {item.satuan}:</span>
                     <div className="font-medium text-gray-900">
-                      {warehouseUtils.formatCurrency(Number(item.harga) || 0)}
+                      {/* ✅ UPDATE: Gunakan helper harga efektif */}
+                      {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
+                    </div>
+                    {/* ✅ UPDATE: Gunakan helper isUsingWac untuk label */}
+                    <div className="text-xs text-gray-500 mt-1">
+                      per {item.satuan}{warehouseUtils.isUsingWac(item) ? ' · rata-rata' : ''}
                     </div>
                   </div>
                   <div>
@@ -488,7 +479,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       {item.expiry ? warehouseUtils.formatDate(item.expiry) : '-'}
                     </div>
                   </div>
-                  {/* Additional packaging info if available */}
                   {item.jumlahBeliKemasan && (
                     <>
                       <div>
@@ -517,7 +507,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   // Desktop Table View
   const DesktopTableView = () => (
     <div className="hidden md:block overflow-x-auto">
-      {/* ✅ UPDATE: Desktop header dengan last updated info di kiri */}
       <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
         <div>
           <span className="text-sm font-medium text-gray-700">
@@ -546,7 +535,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       <table className="w-full">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
-            {/* Selection Column */}
             {isSelectionMode && (
               <th className="w-12 px-4 py-3 text-left">
                 <button
@@ -568,7 +556,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
               </th>
             )}
 
-            {/* Table Headers */}
             <th className="px-4 py-3 text-left">
               <button
                 onClick={() => {
@@ -609,11 +596,9 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             </th>
 
             <th className="px-4 py-3 text-left">
+              {/* ✅ UPDATE: Sort "Harga" pakai harga efektif */}
               <button
-                onClick={() => {
-                  onSort('harga');
-                  logger.component('WarehouseTable', 'Sort by harga clicked');
-                }}
+                onClick={() => onSort('harga' as keyof BahanBakuFrontend)}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
               >
                 Harga
@@ -662,7 +647,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   ${stockLevel.level === 'low' ? 'bg-yellow-50' : ''}
                 `}
               >
-                {/* Selection Column */}
                 {isSelectionMode && (
                   <td className="px-4 py-4">
                     <button
@@ -682,7 +666,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   </td>
                 )}
 
-                {/* Name Column */}
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
@@ -700,7 +683,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                         {highlightText(item.nama, searchTerm)}
                       </div>
                       
-                      {/* Multiple alert indicators for desktop */}
                       <div className="flex flex-col gap-1 mt-1">
                         {isExpiringSoon && (
                           <div className="flex items-center gap-1 text-xs text-red-600">
@@ -725,7 +707,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   </div>
                 </td>
 
-                {/* Category Column */}
                 <td className="px-4 py-4">
                   <span className="text-sm text-gray-900">
                     {highlightText(item.kategori, searchTerm)}
@@ -735,7 +716,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   </div>
                 </td>
 
-                {/* Stock Column */}
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
                     <span className={`font-medium ${
@@ -754,17 +734,17 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   </div>
                 </td>
 
-                {/* Price Column */}
                 <td className="px-4 py-4">
                   <span className="text-sm font-medium text-gray-900">
-                    {warehouseUtils.formatCurrency(Number(item.harga) || 0)}
+                    {/* ✅ UPDATE: Gunakan helper harga efektif */}
+                    {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                   </span>
                   <div className="text-xs text-gray-500">
-                    per {item.satuan}
+                    {/* ✅ UPDATE: Gunakan helper isUsingWac untuk label */}
+                    per {item.satuan}{warehouseUtils.isUsingWac(item) ? ' · rata-rata' : ''}
                   </div>
                 </td>
 
-                {/* Expiry Column */}
                 <td className="px-4 py-4">
                   {item.expiry ? (
                     <div className={`text-sm ${isExpiringSoon ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
@@ -775,7 +755,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   )}
                 </td>
 
-                {/* Actions Column */}
                 {!isSelectionMode && (
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">

@@ -20,6 +20,10 @@ export interface ProfitBreakdownChartProps {
   chartType?: 'bar' | 'pie';
   showComparison?: boolean;
   className?: string;
+  /** ⬇️ WAC-aware COGS dari useProfitAnalysis */
+  effectiveCogs?: number;
+  /** ⬇️ tooltip/label WAC */
+  labels?: { hppLabel: string; hppHint: string };
 }
 
 interface ChartData {
@@ -42,7 +46,7 @@ interface BarChartData {
 // HELPER FUNCTIONS OUTSIDE COMPONENT
 // ==============================================
 
-const calculateMetrics = (revenue, cogs, opex) => {
+const calculateMetrics = (revenue: number, cogs: number, opex: number) => {
   const grossProfit = revenue - cogs;
   const netProfit = grossProfit - opex;
 
@@ -55,7 +59,7 @@ const calculateMetrics = (revenue, cogs, opex) => {
   };
 };
 
-const generateBarChartData = (metrics) => {
+const generateBarChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
   return [
     {
       category: 'Breakdown Keuangan',
@@ -68,7 +72,7 @@ const generateBarChartData = (metrics) => {
   ];
 };
 
-const generatePieChartData = (metrics) => {
+const generatePieChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
   const totalRevenue = metrics.revenue;
   
   if (totalRevenue === 0) {
@@ -99,7 +103,7 @@ const generatePieChartData = (metrics) => {
   return data.filter(item => item.value > 0);
 };
 
-const calculateSummaryStats = (metrics) => {
+const calculateSummaryStats = (metrics: ReturnType<typeof calculateMetrics>) => {
   const grossMargin = metrics.revenue > 0 ? (metrics.grossProfit / metrics.revenue) * 100 : 0;
   const netMargin = metrics.revenue > 0 ? (metrics.netProfit / metrics.revenue) * 100 : 0;
   const cogsRatio = metrics.revenue > 0 ? (metrics.cogs / metrics.revenue) * 100 : 0;
@@ -112,13 +116,13 @@ const calculateSummaryStats = (metrics) => {
 // TOOLTIP COMPONENTS
 // ==============================================
 
-const CustomBarTooltip = ({ active, payload, label }) => {
+const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) return null;
 
   return (
     <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
       <p className="font-semibold text-gray-800 mb-2">{label}</p>
-      {payload.map((entry, index) => (
+      {payload.map((entry: any, index: number) => (
         <div key={index} className="flex items-center space-x-2 mb-1">
           <div 
             className="w-3 h-3 rounded-full" 
@@ -134,7 +138,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
   );
 };
 
-const CustomPieTooltip = ({ active, payload }) => {
+const CustomPieTooltip = ({ active, payload }: any) => {
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;
@@ -158,12 +162,14 @@ const ProfitBreakdownChart = ({
   isLoading,
   chartType = 'bar',
   showComparison = false,
-  className = ''
-}) => {
+  className = '',
+  effectiveCogs,
+  labels
+}: ProfitBreakdownChartProps) => {
 
-  // ✅ NO useMemo - Calculate directly on each render
+  // ✅ UPDATE: Pakai effectiveCogs kalau ada
   const revenue = currentAnalysis?.revenue_data?.total ?? 0;
-  const cogs = currentAnalysis?.cogs_data?.total ?? 0;
+  const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : currentAnalysis?.cogs_data?.total) ?? 0;
   const opex = currentAnalysis?.opex_data?.total ?? 0;
 
   // Calculate all metrics directly
@@ -173,7 +179,7 @@ const ProfitBreakdownChart = ({
   const summaryStats = calculateSummaryStats(metrics);
 
   // ✅ PIE LABEL FUNCTION
-  const renderPieLabel = (entry) => {
+  const renderPieLabel = (entry: any) => {
     return `${entry.name}: ${entry.percentage.toFixed(1)}%`;
   };
 
@@ -317,6 +323,18 @@ const ProfitBreakdownChart = ({
                 : 'Alokasi pendapatan antara biaya dan profit'
               }
             </CardDescription>
+
+            {/* ⬇️ Tambah badge WAC jika tersedia */}
+            {labels?.hppLabel && (
+              <div className="mt-1 text-xs text-gray-500">
+                <span
+                  className="underline decoration-dotted cursor-help"
+                  title={labels.hppHint}
+                >
+                  {labels.hppLabel} aktif
+                </span>
+              </div>
+            )}
           </div>
           
           {/* Quick Stats */}

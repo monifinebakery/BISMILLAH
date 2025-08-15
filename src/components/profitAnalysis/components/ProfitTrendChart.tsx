@@ -1,3 +1,4 @@
+// src/components/warehouse/components/ProfitTrendChart.tsx
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,12 @@ export interface ProfitTrendChartProps {
   chartType?: 'line' | 'area';
   showMetrics?: ('revenue' | 'grossProfit' | 'netProfit' | 'margins')[];
   className?: string;
+  /** ⬇️ WAC-aware COGS dari useProfitAnalysis */
+  effectiveCogs?: number;
+  /** ⬇️ Nilai stok WAC dari warehouse */
+  wacStockValue?: number;
+  /** ⬇️ label/tooltip WAC */
+  labels?: { hppLabel: string; hppHint: string };
 }
 
 interface TrendData {
@@ -34,13 +41,19 @@ interface TrendData {
   netProfit: number;
   grossMargin: number;
   netMargin: number;
+  // ✅ TAMBAH: Field baru untuk nilai stok WAC
+  stockValue?: number;
 }
 
 // ==============================================
 // HELPER FUNCTIONS OUTSIDE COMPONENT
 // ==============================================
 
-const processTrendData = (profitHistory) => {
+const processTrendData = (
+  profitHistory: RealTimeProfitCalculation[], 
+  effectiveCogs?: number,
+  wacStockValue?: number
+) => {
   if (!profitHistory || profitHistory.length === 0) return [];
 
   // Create copy of array to avoid mutation
@@ -48,7 +61,8 @@ const processTrendData = (profitHistory) => {
   
   return sortedHistory.map(analysis => {
     const revenue = analysis.revenue_data?.total || 0;
-    const cogs = analysis.cogs_data?.total || 0;
+    // ✅ UPDATE: Gunakan effectiveCogs kalau ada
+    const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : analysis.cogs_data?.total) || 0;
     const opex = analysis.opex_data?.total || 0;
     const grossProfit = revenue - cogs;
     const netProfit = grossProfit - opex;
@@ -64,12 +78,14 @@ const processTrendData = (profitHistory) => {
       grossProfit,
       netProfit,
       grossMargin,
-      netMargin
+      netMargin,
+      // ✅ TAMBAH: Nilai stok WAC
+      stockValue: wacStockValue
     };
   });
 };
 
-const analyzeTrend = (trendData) => {
+const analyzeTrend = (trendData: TrendData[]) => {
   if (trendData.length < 2) {
     return {
       revenueGrowth: 0,
@@ -117,13 +133,13 @@ const analyzeTrend = (trendData) => {
 // TOOLTIP COMPONENT
 // ==============================================
 
-const CustomTooltip = ({ active, payload, label, viewType }) => {
+const CustomTooltip = ({ active, payload, label, viewType }: any) => {
   if (!active || !payload || !payload.length) return null;
 
   return (
     <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg min-w-48">
       <p className="font-semibold text-gray-800 mb-3">{label}</p>
-      {payload.map((entry, index) => (
+      {payload.map((entry: any, index: number) => (
         <div key={index} className="flex items-center justify-between space-x-4 mb-1">
           <div className="flex items-center space-x-2">
             <div 
@@ -135,6 +151,8 @@ const CustomTooltip = ({ active, payload, label, viewType }) => {
           <span className="text-sm font-medium">
             {viewType === 'margins' && entry.dataKey.includes('Margin')
               ? `${entry.value.toFixed(1)}%`
+              : entry.dataKey === 'stockValue'
+              ? formatCurrency(entry.value)
               : formatCurrency(entry.value)
             }
           </span>
@@ -148,22 +166,25 @@ const CustomTooltip = ({ active, payload, label, viewType }) => {
 // MAIN COMPONENT
 // ==============================================
 
-const ProfitTrendChart = ({
+const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
   profitHistory,
   isLoading,
   chartType = 'line',
   showMetrics = ['revenue', 'grossProfit', 'netProfit'],
-  className = ''
+  className = '',
+  effectiveCogs,
+  wacStockValue,
+  labels
 }) => {
   
   const [selectedMetrics, setSelectedMetrics] = useState(['revenue', 'grossProfit', 'netProfit']);
   const [viewType, setViewType] = useState('values');
 
   // ✅ NO useMemo - Calculate directly on each render
-  const trendData = processTrendData(profitHistory);
+  const trendData = processTrendData(profitHistory, effectiveCogs, wacStockValue);
   const trendAnalysis = analyzeTrend(trendData);
 
-  // ✅ METRIC CONFIGURATIONS
+  // ✅ METRIC CONFIGURATIONS - UPDATE dengan stockValue
   const metricConfigs = {
     revenue: { key: 'revenue', label: 'Pendapatan', color: CHART_CONFIG.colors.revenue },
     grossProfit: { key: 'grossProfit', label: 'Laba Kotor', color: CHART_CONFIG.colors.gross_profit },
@@ -171,11 +192,13 @@ const ProfitTrendChart = ({
     cogs: { key: 'cogs', label: 'HPP', color: CHART_CONFIG.colors.cogs },
     opex: { key: 'opex', label: 'Biaya Ops', color: CHART_CONFIG.colors.opex },
     grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.gross_profit },
-    netMargin: { key: 'netMargin', label: 'Margin Bersih', color: CHART_CONFIG.colors.net_profit }
+    netMargin: { key: 'netMargin', label: 'Margin Bersih', color: CHART_CONFIG.colors.net_profit },
+    // ✅ TAMBAH: Entry baru untuk stockValue
+    stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: '#f59e0b' }
   };
 
   // ✅ EVENT HANDLERS
-  const toggleMetric = (metric) => {
+  const toggleMetric = (metric: string) => {
     setSelectedMetrics(prev => 
       prev.includes(metric) 
         ? prev.filter(m => m !== metric)
@@ -247,7 +270,7 @@ const ProfitTrendChart = ({
         
         {/* Render selected metrics */}
         {selectedMetrics.map(metric => {
-          const config = metricConfigs[metric];
+          const config = metricConfigs[metric as keyof typeof metricConfigs];
           if (!config) return null;
           
           return (
@@ -326,6 +349,19 @@ const ProfitTrendChart = ({
             name="Biaya Ops"
           />
         )}
+        
+        {/* Stock Value Area */}
+        {selectedMetrics.includes('stockValue') && (
+          <Area
+            type="monotone"
+            dataKey="stockValue"
+            stackId="2"
+            stroke={metricConfigs.stockValue.color}
+            fill={metricConfigs.stockValue.color}
+            fillOpacity={0.4}
+            name="Nilai Stok (WAC)"
+          />
+        )}
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -364,10 +400,10 @@ const ProfitTrendChart = ({
         {/* Metric Toggles */}
         <div className="flex flex-wrap gap-2 mt-4">
           {(viewType === 'values' 
-            ? ['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex'] 
+            ? ['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex', 'stockValue'] 
             : ['grossMargin', 'netMargin']
           ).map(metric => {
-            const config = metricConfigs[metric];
+            const config = metricConfigs[metric as keyof typeof metricConfigs];
             const isSelected = selectedMetrics.includes(metric);
             
             return (

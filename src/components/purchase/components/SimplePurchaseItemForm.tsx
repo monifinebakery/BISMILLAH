@@ -142,12 +142,15 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Kuantitas *</Label>
             <div className="flex gap-2">
               <Input
-                type="number"
                 inputMode="decimal"
-                min="0.001"
-                step="0.001"
                 value={formData.kuantitas}
-                onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty, numbers, and decimal point
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData(prev => ({ ...prev, kuantitas: value }));
+                  }
+                }}
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -162,12 +165,15 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <Input
-                type="number"
                 inputMode="decimal"
-                min="0"
-                step="0.01"
                 value={formData.hargaSatuan}
-                onChange={(e) => setFormData(prev => ({ ...prev, hargaSatuan: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty, numbers, and decimal point
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData(prev => ({ ...prev, hargaSatuan: value }));
+                  }
+                }}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
               />
@@ -304,12 +310,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <Label className="text-sm font-medium text-gray-700">Total yang Dibeli</Label>
           <div className="flex gap-2">
             <Input
-              type="number"
               inputMode="decimal"
-              min="0.001"
-              step="0.001"
               value={formData.kuantitas}
-              onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                  setFormData(prev => ({ ...prev, kuantitas: value }));
+                }
+              }}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
             />
@@ -331,11 +339,15 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Jumlah Kemasan</Label>
             <Input
-              type="number"
-              inputMode="decimal"
-              min="1"
+              inputMode="numeric"
               value={formData.jumlahKemasan}
-              onChange={(e) => setFormData(prev => ({ ...prev, jumlahKemasan: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Only allow integers for packaging count
+                if (value === '' || /^\d*$/.test(value)) {
+                  setFormData(prev => ({ ...prev, jumlahKemasan: value }));
+                }
+              }}
               placeholder="1"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
             />
@@ -363,12 +375,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Isi Per Kemasan</Label>
             <div className="flex gap-2">
               <Input
-                type="number"
                 inputMode="decimal"
-                min="0.001"
-                step="0.001"
                 value={formData.isiPerKemasan}
-                onChange={(e) => setFormData(prev => ({ ...prev, isiPerKemasan: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData(prev => ({ ...prev, isiPerKemasan: value }));
+                  }
+                }}
                 placeholder="500"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -383,12 +397,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <Input
-                type="number"
                 inputMode="decimal"
-                min="0"
-                step="0.01"
                 value={formData.hargaTotalBeliKemasan}
-                onChange={(e) => setFormData(prev => ({ ...prev, hargaTotalBeliKemasan: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData(prev => ({ ...prev, hargaTotalBeliKemasan: value }));
+                  }
+                }}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="25000"
               />

@@ -54,7 +54,7 @@ const mapItemForDB = (i: any) => {
 
   return {
     // ✅ KOLOM WAJIB: yang dibaca trigger WAC
-    bahan_baku_id: String(i.bahanBakuId ?? i.bahan_baku_id ?? ''),
+    bahan_baku_id: String((i.bahanBakuId ?? i.bahan_baku_id) || ''),
     jumlah: Math.max(0, jumlah),
     harga_per_satuan: Math.max(0, hargaPerSatuan),
 
@@ -270,12 +270,12 @@ export const sanitizePurchaseData = (data: any): any => ({
         ).trim();
 
         return {
-          bahanBakuId: String(item.bahanBakuId ?? item.bahan_baku_id || ''),
+          bahanBakuId: String((item.bahanBakuId ?? item.bahan_baku_id) || ''),
           nama: String(item.nama || '').trim(),
           kuantitas: Math.max(0, kuantitas),
           satuan,
           hargaSatuan: Math.max(0, hargaSatuan),
-          subtotal: Math.max(0, Number(item.subtotal ?? kuantitas * hargaSatuan) || 0),
+          subtotal: Math.max(0, Number(item.subtotal ?? (kuantitas * hargaSatuan)) || 0),
           keterangan: item.keterangan ? String(item.keterangan).trim() : undefined,
           
           // ✅ KEMASAN: Simpan info kemasan jika ada (untuk UI yang masih pakai)

@@ -626,6 +626,7 @@ const EditItemForm: React.FC<{
               placeholder="0"
               autoComplete="off"
               autoCorrect="off"
+              spellCheck="false"
             />
             <div className="flex items-center px-3 bg-gray-100 rounded text-sm text-gray-600 min-w-[60px]">
               {item.satuan}
@@ -649,6 +650,7 @@ const EditItemForm: React.FC<{
             placeholder="0"
             autoComplete="off"
             autoCorrect="off"
+            spellCheck="false"
           />
         </div>
 

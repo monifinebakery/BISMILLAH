@@ -1,5 +1,5 @@
 // src/components/purchase/components/SimplePurchaseItemForm.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,6 +68,33 @@ const toNumber = (v: string | number | '' | undefined) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// ---- Guards: block invalid numeric input before it reaches state ----
+// Allow digits and optionally a single decimal separator ('.' or ',')
+const makeBeforeInputGuard = (getValue: () => string, allowDecimal = true) =>
+  (e: React.FormEvent<HTMLInputElement> & { nativeEvent: InputEvent }) => {
+    const ch = (e.nativeEvent as any).data ?? '';
+    if (!ch) return; // control keys, deletes, etc.
+
+    const el = e.currentTarget as HTMLInputElement;
+    const cur = getValue() ?? '';
+    const next = cur.slice(0, el.selectionStart ?? cur.length) + ch + cur.slice(el.selectionEnd ?? cur.length);
+
+    if (!allowDecimal) {
+      if (!/^\d*$/.test(next)) e.preventDefault();
+      return;
+    }
+
+    // Decimal: digits + optional one [.,] + up to 6 fraction digits
+    if (!/^\d*(?:[.,]\d{0,6})?$/.test(next)) e.preventDefault();
+  };
+
+const handlePasteGuard = (allowDecimal = true) =>
+  (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text').trim();
+    const ok = allowDecimal ? /^\d*(?:[.,]\d{0,6})?$/.test(text) : /^\d*$/.test(text);
+    if (!ok) e.preventDefault();
+  };
+
 // ✅ INLINE SafeNumericInput - no external file needed
 const SafeNumericInput = React.forwardRef<
   HTMLInputElement, 
@@ -123,12 +150,22 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   const accuratePrice = calculateAccuratePrice();
   const accuracyLevel = mode === 'packaging' ? 100 : mode === 'accurate' ? 85 : 70;
 
-  // Update accurate price when in packaging mode
+  // Update accurate price when in packaging mode - prevent unnecessary updates
   useEffect(() => {
     if (mode === 'packaging' && accuratePrice > 0) {
-      setFormData(prev => ({ ...prev, hargaSatuan: String(accuratePrice) }));
+      setFormData(prev => (
+        prev.hargaSatuan === String(accuratePrice)
+          ? prev
+          : { ...prev, hargaSatuan: String(accuratePrice) }
+      ));
     }
   }, [mode, accuratePrice]);
+
+  // Diagnostics - check for unnecessary remounts
+  useEffect(() => {
+    console.log('MOUNT <SimplePurchaseItemForm>');
+    return () => console.log('UNMOUNT <SimplePurchaseItemForm>');
+  }, []);
 
   const handleBahanBakuSelect = (id: string) => {
     const selected = bahanBaku.find(b => b.id === id);
@@ -158,14 +195,17 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     return String(val);
   }, [formData]);
 
+  // ✅ ULTRA OPTIMIZED: Use form's addItem directly for zero overhead
   const handleSubmit = () => {
     const qty = toNumber(formData.kuantitas);
     const price = toNumber(formData.hargaSatuan);
 
+    // Basic validation only
     if (!formData.bahanBakuId) return toast.error('Pilih bahan baku');
     if (qty <= 0) return toast.error('Kuantitas harus > 0');
     if (price <= 0) return toast.error('Harga satuan harus > 0');
 
+    // Direct call to form's addItem - no intermediate handlers
     onAdd({
       ...formData,
       kuantitas: qty,
@@ -177,7 +217,17 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     } as FormData);
   };
 
-  const QuickMode = () => (
+  // Refs for focus stability
+  const qtyRef = useRef<HTMLInputElement>(null);
+  const priceRef = useRef<HTMLInputElement>(null);
+
+  const QuickMode = React.memo(function QuickMode() {
+    useEffect(() => {
+      console.log('MOUNT <QuickMode>');
+      return () => console.log('UNMOUNT <QuickMode>');
+    }, []);
+    
+    return (
     <div className="space-y-6">
       {/* Input Fields - Responsive Grid */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -205,8 +255,15 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Kuantitas *</Label>
             <div className="flex gap-2">
               <SafeNumericInput
+                ref={qtyRef}
                 value={String(formData.kuantitas ?? '')}
-                onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
+                onBeforeInput={makeBeforeInputGuard(() => String(formData.kuantitas ?? ''), true)}
+                onPaste={handlePasteGuard(true)}
+                onChange={(e) => {
+                  handleNumericChange('kuantitas', e.target.value);
+                  // Focus safety net
+                  requestAnimationFrame(() => qtyRef.current?.focus());
+                }}
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -221,8 +278,15 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <SafeNumericInput
+                ref={priceRef}
                 value={getValue('hargaSatuan')}
-                onChange={(e) => handleNumericChange('hargaSatuan', e.target.value)}
+                onBeforeInput={makeBeforeInputGuard(() => getValue('hargaSatuan'), true)}
+                onPaste={handlePasteGuard(true)}
+                onChange={(e) => {
+                  handleNumericChange('hargaSatuan', e.target.value);
+                  // Focus safety net
+                  requestAnimationFrame(() => priceRef.current?.focus());
+                }}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
               />
@@ -231,7 +295,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </div>
       </div>
 
-      {/* Accuracy Alert - Clean & Minimal */}
+      {/* Accuracy Alert - Always in DOM, hidden when not needed */}
       <Alert className="border-amber-200 bg-amber-50/50 backdrop-blur-sm">
         <AlertTriangle className="h-4 w-4 text-amber-600" />
         <AlertDescription>
@@ -259,9 +323,16 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </AlertDescription>
       </Alert>
     </div>
-  );
+    );
+  });
 
-  const AccurateModePrompt = () => (
+  const AccurateModePrompt = React.memo(function AccurateModePrompt() {
+    useEffect(() => {
+      console.log('MOUNT <AccurateModePrompt>');
+      return () => console.log('UNMOUNT <AccurateModePrompt>');
+    }, []);
+    
+    return (
     <div className="space-y-6">
       <div className="text-center py-8">
         {/* Icon */}
@@ -314,9 +385,16 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </div>
       </div>
     </div>
-  );
+    );
+  });
 
-  const PackagingMode = () => (
+  const PackagingMode = React.memo(function PackagingMode() {
+    useEffect(() => {
+      console.log('MOUNT <PackagingMode>');
+      return () => console.log('UNMOUNT <PackagingMode>');
+    }, []);
+    
+    return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -360,6 +438,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="flex gap-2">
             <SafeNumericInput
               value={getValue('kuantitas')}
+              onBeforeInput={makeBeforeInputGuard(() => getValue('kuantitas'), true)}
+              onPaste={handlePasteGuard(true)}
               onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -383,6 +463,9 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Jumlah Kemasan</Label>
             <SafeNumericInput
               value={getValue('jumlahKemasan')}
+              inputMode="numeric"
+              onBeforeInput={makeBeforeInputGuard(() => getValue('jumlahKemasan'), false)}
+              onPaste={handlePasteGuard(false)}
               onChange={(e) => handleNumericChange('jumlahKemasan', e.target.value)}
               placeholder="1"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -412,6 +495,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="flex gap-2">
               <SafeNumericInput
                 value={getValue('isiPerKemasan')}
+                onBeforeInput={makeBeforeInputGuard(() => getValue('isiPerKemasan'), true)}
+                onPaste={handlePasteGuard(true)}
                 onChange={(e) => handleNumericChange('isiPerKemasan', e.target.value)}
                 placeholder="500"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -428,6 +513,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <SafeNumericInput
                 value={getValue('hargaTotalBeliKemasan')}
+                onBeforeInput={makeBeforeInputGuard(() => getValue('hargaTotalBeliKemasan'), true)}
+                onPaste={handlePasteGuard(true)}
                 onChange={(e) => handleNumericChange('hargaTotalBeliKemasan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="25000"
@@ -437,39 +524,38 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </div>
       </div>
 
-      {/* Calculation Result */}
-      {accuratePrice > 0 && (
-        <Alert className="border-emerald-200 bg-emerald-50/50 backdrop-blur-sm">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          <AlertDescription>
-            <div className="space-y-3">
-              <div className="font-medium text-emerald-800">✨ HPP Akurat Berhasil Dihitung!</div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                <div className="text-center sm:text-left">
-                  <div className="text-emerald-700 font-medium">Total Isi</div>
-                  <div className="text-gray-700">
-                    {toNumber(formData.jumlahKemasan)} × {toNumber(formData.isiPerKemasan)} = {toNumber(formData.jumlahKemasan) * toNumber(formData.isiPerKemasan)} {formData.satuan}
-                  </div>
+      {/* Calculation Result - Always in DOM, hidden when not needed */}
+      <Alert className={accuratePrice > 0 ? "border-emerald-200 bg-emerald-50/50 backdrop-blur-sm" : "hidden"}>
+        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+        <AlertDescription>
+          <div className="space-y-3">
+            <div className="font-medium text-emerald-800">✨ HPP Akurat Berhasil Dihitung!</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+              <div className="text-center sm:text-left">
+                <div className="text-emerald-700 font-medium">Total Isi</div>
+                <div className="text-gray-700">
+                  {toNumber(formData.jumlahKemasan)} × {toNumber(formData.isiPerKemasan)} = {toNumber(formData.jumlahKemasan) * toNumber(formData.isiPerKemasan)} {formData.satuan}
                 </div>
-                <div className="text-center">
-                  <div className="text-emerald-700 font-medium">HPP Per {formData.satuan}</div>
-                  <div className="font-bold text-lg text-orange-600">
-                    {formatCurrency(accuratePrice)}
-                  </div>
+              </div>
+              <div className="text-center">
+                <div className="text-emerald-700 font-medium">HPP Per {formData.satuan}</div>
+                <div className="font-bold text-lg text-orange-600">
+                  {formatCurrency(accuratePrice)}
                 </div>
-                <div className="text-center sm:text-right">
-                  <div className="text-emerald-700 font-medium">Subtotal</div>
-                  <div className="font-semibold text-gray-900">
-                    {formatCurrency(toNumber(formData.kuantitas) * accuratePrice)}
-                  </div>
+              </div>
+              <div className="text-center sm:text-right">
+                <div className="text-emerald-700 font-medium">Subtotal</div>
+                <div className="font-semibold text-gray-900">
+                  {formatCurrency(toNumber(formData.kuantitas) * accuratePrice)}
                 </div>
               </div>
             </div>
-          </AlertDescription>
-        </Alert>
-      )}
+          </div>
+        </AlertDescription>
+      </Alert>
     </div>
-  );
+    );
+  });
 
   return (
     <Card className="border-dashed border-orange-200 bg-orange-50/30 backdrop-blur-sm">
@@ -505,47 +591,41 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         {mode === 'accurate' && <AccurateModePrompt />}
         {mode === 'packaging' && <PackagingMode />}
         
-        {/* Notes - Only show in active modes */}
-        {mode !== 'accurate' && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Keterangan</Label>
-            <Textarea
-              value={formData.keterangan}
-              onChange={(e) => setFormData(prev => ({ ...prev, keterangan: e.target.value }))}
-              placeholder="Keterangan tambahan (opsional)"
-              rows={2}
-              className="border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-            />
-          </div>
-        )}
+        {/* Notes - Always in DOM, hidden when not needed */}
+        <div className={mode !== 'accurate' ? "space-y-2" : "hidden"}>
+          <Label className="text-sm font-medium text-gray-700">Keterangan</Label>
+          <Textarea
+            value={formData.keterangan}
+            onChange={(e) => setFormData(prev => ({ ...prev, keterangan: e.target.value }))}
+            placeholder="Keterangan tambahan (opsional)"
+            rows={2}
+            className="border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+          />
+        </div>
 
-        {/* Subtotal Preview */}
-        {mode !== 'accurate' && toNumber(formData.kuantitas) > 0 && toNumber(formData.hargaSatuan) > 0 && (
-          <div className="bg-white/60 border border-gray-200 p-4 rounded-xl">
-            <div className="text-sm text-gray-700">
-              <span className="font-medium">Subtotal: </span>
-              <span className="font-semibold text-orange-600 text-lg">
-                {formatCurrency(toNumber(formData.kuantitas) * toNumber(formData.hargaSatuan))}
-              </span>
-            </div>
+        {/* Subtotal Preview - Always in DOM, hidden when not needed */}
+        <div className={(mode !== 'accurate' && toNumber(formData.kuantitas) > 0 && toNumber(formData.hargaSatuan) > 0) ? "bg-white/60 border border-gray-200 p-4 rounded-xl" : "hidden"}>
+          <div className="text-sm text-gray-700">
+            <span className="font-medium">Subtotal: </span>
+            <span className="font-semibold text-orange-600 text-lg">
+              {formatCurrency(toNumber(formData.kuantitas) * toNumber(formData.hargaSatuan))}
+            </span>
           </div>
-        )}
+        </div>
 
-        {/* Submit Button */}
-        {mode !== 'accurate' && (
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!formData.bahanBakuId || toNumber(formData.kuantitas) <= 0 || toNumber(formData.hargaSatuan) <= 0}
-            className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 shadow-sm disabled:bg-gray-300 disabled:text-gray-500"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah ke Daftar
-          </Button>
-        )}
+        {/* Submit Button - Always in DOM, hidden when not needed */}
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!formData.bahanBakuId || toNumber(formData.kuantitas) <= 0 || toNumber(formData.hargaSatuan) <= 0}
+          className={mode !== 'accurate' ? "w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 shadow-sm disabled:bg-gray-300 disabled:text-gray-500" : "hidden"}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Tambah ke Daftar
+        </Button>
       </CardContent>
     </Card>
   );
 };
 
-export default SimplePurchaseItemForm;
+export default React.memo(SimplePurchaseItemForm);

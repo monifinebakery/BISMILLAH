@@ -14,8 +14,8 @@ import { createNotificationHelper } from '@/utils/notificationHelpers';
 // Services
 import { warehouseApi } from '../services/warehouseApi';
 
-// Types
-import type { BahanBaku, BahanBakuFrontend } from '../types';
+// Types - ✅ FIXED: Remove unused BahanBaku import
+import type { BahanBakuFrontend } from '../types';
 
 // Query keys
 const warehouseQueryKeys = {
@@ -51,8 +51,8 @@ interface WarehouseContextType {
   getOutOfStockItems: () => BahanBakuFrontend[];
   getExpiringItems: (days?: number) => BahanBakuFrontend[];
 
-  // useQuery specific
-  refetch: () => void;
+  // ✅ FIXED: Proper refetch type from useQuery
+  refetch: () => Promise<any>;
   isRefetching: boolean;
 }
 
@@ -187,6 +187,21 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   const { addActivity } = useActivity();
   const { addNotification } = useNotification();
 
+  // ✅ FIXED: Live connection status tracking
+  const [isConnected, setIsConnected] = React.useState(navigator.onLine);
+  React.useEffect(() => {
+    const handleOnline = () => setIsConnected(true);
+    const handleOffline = () => setIsConnected(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   if (enableDebugLogs) {
     logger.debug(`[${providerId.current}] 🏗️ Context rendering with useQuery`);
   }
@@ -204,11 +219,11 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     queryFn: () => fetchWarehouseData(user?.id),
     enabled: !!user,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    retry: (failureCount, error: any) => {
-      if (error?.status >= 400 && error?.status < 500) {
-        return false;
-      }
-      return failureCount < 2;
+    // ✅ FIXED: Simplified retry logic for better error handling
+    retry: (failureCount, err: any) => {
+      const code = Number(err?.code || err?.status || 0);
+      if (code >= 400 && code < 500) return false; // Don't retry client errors
+      return failureCount < 1; // Only 1 retry for other errors
     },
   });
 
@@ -386,10 +401,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     });
   };
 
-  // Connection status
-  const [isConnected] = React.useState(navigator.onLine);
-
-  // ✅ ENHANCED: Context value with debug logging
+  // ✅ ENHANCED: Context value with proper types
   const contextValue: WarehouseContextType = {
     // Data
     bahanBaku,
@@ -415,7 +427,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     getOutOfStockItems,
     getExpiringItems,
 
-    // useQuery specific
+    // ✅ FIXED: Proper refetch type and value
     refetch,
     isRefetching,
   };

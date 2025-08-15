@@ -266,8 +266,102 @@ const getWarehouseData = async (userId: string) => {
 
 // ===== WAREHOUSE INTEGRATION HELPERS =====
 
+// ✅ TAMBAH: Utils kecil untuk mencoba query dengan aman
+async function tryQuery<T>(fn: () => Promise<T>): Promise<T | null> {
+  try { return await fn(); } catch { return null; }
+}
+
 /**
- * ✅ TAMBAHKAN: Fetch all bahan baku and build map by ID
+ * ✅ PATCH: Ambil pemakaian bahan antara start..end dengan fallback berlapis
+ * 1) VIEW public.pemakaian_bahan_view
+ * 2) Tabel datar public.pemakaian_bahan (jika ada)
+ * 3) Join header+detail (pemakaian + pemakaian_detail) kalau ada
+ * 4) RPC get_pemakaian_bahan(start, end) kalau tersedia
+ * Return: Array<{ bahan_baku_id, qty_base, tanggal }>
+ */
+export async function fetchPemakaianByPeriode(start: string, end: string): Promise<any[]> {
+  // ✅ BONUS: Pastikan end tanggal adalah last day bulan tersebut
+  const endDate = new Date(end);
+  const lastDayOfMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+  const formattedEnd = [
+    lastDayOfMonth.getFullYear(),
+    String(lastDayOfMonth.getMonth() + 1).padStart(2, '0'),
+    String(lastDayOfMonth.getDate()).padStart(2, '0'),
+  ].join('-');
+
+  // 1) VIEW
+  const v1 = await tryQuery(async () => {
+    const { data, error } = await supabase
+      .from('pemakaian_bahan_view')
+      .select('bahan_baku_id,qty_base,tanggal')
+      .gte('tanggal', start)
+      .lte('tanggal', formattedEnd);
+    if (error) throw error;
+    return data ?? [];
+  });
+  if (v1 && v1.length >= 0) return v1;
+
+  // 2) Tabel datar (mis. hasil ETL) bernama pemakaian_bahan
+  const v2 = await tryQuery(async () => {
+    const { data, error } = await supabase
+      .from('pemakaian_bahan')
+      .select('bahan_baku_id,qty_base,tanggal')
+      .gte('tanggal', start)
+      .lte('tanggal', formattedEnd);
+    if (error) throw error;
+    return data ?? [];
+  });
+  if (v2 && v2.length >= 0) return v2;
+
+  // 3) Join header+detail (nama umum)
+  const v3 = await tryQuery(async () => {
+    // ambil header dulu
+    const { data: headers, error: e1 } = await supabase
+      .from('pemakaian')
+      .select('id,tanggal')
+      .gte('tanggal', start)
+      .lte('tanggal', formattedEnd);
+    if (e1) throw e1;
+    if (!headers?.length) return [];
+
+    const headerIds = headers.map(h => h.id);
+    const { data: details, error: e2 } = await supabase
+      .from('pemakaian_detail')
+      .select('pemakaian_id,bahan_baku_id,qty_base');
+    if (e2) throw e2;
+
+    const headerMap = new Map(headers.map(h => [h.id, h.tanggal]));
+    return (details ?? [])
+      .filter(d => headerMap.has(d.pemakaian_id))
+      .map(d => ({
+        bahan_baku_id: d.bahan_baku_id,
+        qty_base: d.qty_base,
+        tanggal: headerMap.get(d.pemakaian_id)
+      }));
+  });
+  if (v3 && v3.length >= 0) return v3;
+
+  // 4) RPC bila ada
+  const v4 = await tryQuery(async () => {
+    const { data, error } = await supabase
+      .rpc('get_pemakaian_bahan', { p_start: start, p_end: formattedEnd });
+    if (error) throw error;
+    // pastikan shape seragam
+    return (data ?? []).map((r: any) => ({
+      bahan_baku_id: r.bahan_baku_id ?? r.bahan ?? r.id_bahan,
+      qty_base: Number(r.qty_base ?? r.qty ?? r.quantity ?? 0),
+      tanggal: r.tanggal ?? r.date
+    }));
+  });
+  if (v4 && v4.length >= 0) return v4;
+
+  // gagal total
+  logger.error('Failed to fetch pemakaian bahan from any source', { start, end: formattedEnd });
+  return [];
+}
+
+/**
+ * ✅ TAMBAH: Fetch all bahan baku and build map by ID
  * Includes hargaRataRata (WAC) for accurate COGS calculation
  */
 export async function fetchBahanMap(): Promise<Record<string, any>> {
@@ -294,35 +388,16 @@ export async function fetchBahanMap(): Promise<Record<string, any>> {
 }
 
 /**
- * ✅ TAMBAHKAN: Get effective unit price (WAC > 0, fallback to unit price)
+ * ✅ TAMBAH: Get effective unit price (WAC > 0, fallback to unit price)
  */
-export function getEffectiveUnitPrice(bahan: any): number {
-  const wac = Number(bahan.hargaRataRata ?? 0);
-  const base = Number(bahan.harga ?? 0);
+export function getEffectiveUnitPrice(item: any): number {
+  const wac = Number(item.hargaRataRata ?? 0);
+  const base = Number(item.harga ?? 0);
   return wac > 0 ? wac : base;
 }
 
 /**
- * ✅ TAMBAHKAN: Fetch pemakaian bahan by period
- */
-export async function fetchPemakaianByPeriode(start: string, end: string): Promise<any[]> {
-  try {
-    const { data, error } = await supabase
-      .from('pemakaian_bahan_view')
-      .select('bahan_baku_id, qty_base, tanggal')
-      .gte('tanggal', start)
-      .lte('tanggal', end);
-
-    if (error) throw error;
-    return data ?? [];
-  } catch (error) {
-    logger.error('Failed to fetch pemakaian bahan:', error);
-    return [];
-  }
-}
-
-/**
- * ✅ TAMBAHKAN: Calculate COGS value using WAC
+ * ✅ TAMBAH: Calculate COGS value using WAC
  */
 export function calculatePemakaianValue(
   pemakaian: any,

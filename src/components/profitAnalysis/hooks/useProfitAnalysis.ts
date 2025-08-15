@@ -14,7 +14,7 @@ import {
 } from '../types/profitAnalysis.types';
 import profitAnalysisApi from '../services/profitAnalysisApi';
 
-// ✅ IMPORT WAC HELPERS
+// ✅ IMPORT WAC HELPERS (termasuk calculatePemakaianValue)
 import { fetchBahanMap, fetchPemakaianByPeriode, calculatePemakaianValue } from '../services/profitAnalysisApi';
 import { calcHPP } from '../utils/profitCalculations';
 
@@ -231,7 +231,9 @@ export const useProfitAnalysis = (
     }
 
     try {
-      const grossProfit = revenue - cogs;
+      // ✅ Pakai totalHPP (WAC) jika tersedia; fallback ke cogs dari kalkulasi lama
+      const effectiveCogs = totalHPP > 0 ? totalHPP : cogs;
+      const grossProfit = revenue - effectiveCogs;
       const netProfit = grossProfit - opex;
       const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
       const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
@@ -242,7 +244,7 @@ export const useProfitAnalysis = (
         grossMargin,
         netMargin,
         revenue,
-        cogs,
+        cogs: effectiveCogs,
         opex,
         // ✅ INCLUDE WAC METRICS
         totalHPP,
@@ -263,7 +265,7 @@ export const useProfitAnalysis = (
         hppBreakdown: []
       };
     }
-  }, [revenue, cogs, opex, currentData, totalHPP, hppBreakdown]); // ✅ Now using primitive values and WAC data
+  }, [revenue, cogs, opex, currentData, totalHPP, hppBreakdown]); // ✅ Sekarang menggunakan primitive value dan data WAC
 
   // ✅ ACTIONS
   const calculateProfit = useCallback(async (period?: string): Promise<boolean> => {
@@ -352,7 +354,7 @@ export const useProfitAnalysis = (
       logger.error('Error checking data freshness:', err);
       return true;
     }
-  }, [calculatedAt]); // ✅ Using primitive string value
+  }, [calculatedAt]); // ✅ Menggunakan nilai primitif string
 
   // ✅ FIX #4: Memoize the Date object creation to avoid re-creation on every render
   const lastCalculated = useMemo(() => {
@@ -364,7 +366,7 @@ export const useProfitAnalysis = (
       logger.error('Error parsing calculated_at:', err);
       return null;
     }
-  }, [calculatedAt]); // ✅ Using primitive string value
+  }, [calculatedAt]); // ✅ Menggunakan nilai primitif string
 
   // ✅ AUTO-LOAD HISTORY on mount
   useEffect(() => {

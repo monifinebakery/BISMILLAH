@@ -1,6 +1,8 @@
 // src/components/warehouse/services/warehouseUtils.ts
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
 
+import { warehouseUtils } from '@/components/warehouse/services';
+
 // Harga efektif: pakai WAC kalau ada, else harga input
 const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
   const wac = Number(item.hargaRataRata ?? 0);

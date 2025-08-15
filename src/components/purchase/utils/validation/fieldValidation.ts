@@ -3,28 +3,19 @@
 import { FieldValidation } from './types';
 
 /**
- * Validate supplier field
+ * Validate supplier field (expects supplier ID string)
  */
 export const validateSupplier = (supplier?: string): FieldValidation => {
   if (!supplier || typeof supplier !== 'string') {
-    return {
-      isValid: false,
-      error: 'Supplier harus dipilih',
-    };
+    return { isValid: false, error: 'Supplier harus dipilih' };
   }
 
   if (supplier.trim().length === 0) {
-    return {
-      isValid: false,
-      error: 'Supplier tidak boleh kosong',
-    };
+    return { isValid: false, error: 'Supplier tidak boleh kosong' };
   }
 
   if (supplier.length > 255) {
-    return {
-      isValid: false,
-      error: 'Nama supplier terlalu panjang (maksimal 255 karakter)',
-    };
+    return { isValid: false, error: 'Nama supplier terlalu panjang (maksimal 255 karakter)' };
   }
 
   return { isValid: true };
@@ -32,19 +23,18 @@ export const validateSupplier = (supplier?: string): FieldValidation => {
 
 /**
  * Validate calculation method
+ * (Optional; default aplikasi adalah 'AVERAGE' bila kosong)
  */
 export const validateCalculationMethod = (method?: string): FieldValidation => {
   const validMethods = ['FIFO', 'LIFO', 'AVERAGE'];
-  
+
   if (!method) {
-    return { isValid: true }; // Optional field, will default to FIFO
+    // biarkan kosong: akan di-default-kan ke 'AVERAGE' di layer lain
+    return { isValid: true };
   }
 
   if (!validMethods.includes(method)) {
-    return {
-      isValid: false,
-      error: 'Metode perhitungan tidak valid',
-    };
+    return { isValid: false, error: 'Metode perhitungan tidak valid' };
   }
 
   return { isValid: true };
@@ -59,24 +49,15 @@ export const validateRequiredString = (
   maxLength?: number
 ): FieldValidation => {
   if (!value || typeof value !== 'string') {
-    return {
-      isValid: false,
-      error: `${fieldName} harus diisi`,
-    };
+    return { isValid: false, error: `${fieldName} harus diisi` };
   }
 
   if (value.trim().length === 0) {
-    return {
-      isValid: false,
-      error: `${fieldName} tidak boleh kosong`,
-    };
+    return { isValid: false, error: `${fieldName} tidak boleh kosong` };
   }
 
   if (maxLength && value.length > maxLength) {
-    return {
-      isValid: false,
-      error: `${fieldName} terlalu panjang (maksimal ${maxLength} karakter)`,
-    };
+    return { isValid: false, error: `${fieldName} terlalu panjang (maksimal ${maxLength} karakter)` };
   }
 
   return { isValid: true };
@@ -90,23 +71,14 @@ export const validateOptionalString = (
   fieldName: string = 'Field',
   maxLength?: number
 ): FieldValidation => {
-  // Allow empty/undefined for optional fields
-  if (!value) {
-    return { isValid: true };
-  }
+  if (!value) return { isValid: true };
 
   if (typeof value !== 'string') {
-    return {
-      isValid: false,
-      error: `${fieldName} harus berupa teks`,
-    };
+    return { isValid: false, error: `${fieldName} harus berupa teks` };
   }
 
   if (maxLength && value.length > maxLength) {
-    return {
-      isValid: false,
-      error: `${fieldName} terlalu panjang (maksimal ${maxLength} karakter)`,
-    };
+    return { isValid: false, error: `${fieldName} terlalu panjang (maksimal ${maxLength} karakter)` };
   }
 
   return { isValid: true };

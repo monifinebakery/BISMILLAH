@@ -55,6 +55,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   suppliers,
   bahanBaku,
   onClose,
+  initialAddMode, // <— NEW: Added prop for auto-opening with specific mode
 }) => {
   // Form management
   const {
@@ -100,14 +101,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     updateItem,
   });
 
-  // ✅ Reset form states when dialog opens/closes
+  // ✅ Reset form states when dialog opens/closes + handle initialAddMode
   useEffect(() => {
     if (isOpen) {
-      setShowAddItem(false);
+      // Auto-open add item form if initialAddMode is 'packaging'
+      setShowAddItem(initialAddMode === 'packaging');
       handleCancelEditItem();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, initialAddMode]);
 
   // ✅ Handle form submission
   const onSubmit = async () => {
@@ -357,20 +359,23 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* ✅ NEW: Smart Add New Item Form dengan desain minimalis modern */}
+              {/* ✅ Smart Add New Item Form with initialMode support */}
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
                   bahanBaku={bahanBaku}
+                  initialMode={initialAddMode === 'packaging' ? 'packaging' : 'quick'} // <— NEW: Pass initial mode
                   onCancel={() => setShowAddItem(false)}
                   onAdd={(cleanData) => {
                     // Ensure subtotal is calculated for UI consistency
                     const subtotal = Number(cleanData.kuantitas) * Number(cleanData.hargaSatuan);
-                    handleAddItem({ ...cleanData, subtotal });
+                    addItem({ ...cleanData, subtotal }); // <— FIX: Use addItem from form hook
                     setShowAddItem(false);
                     toast.success(`${cleanData.nama} berhasil ditambahkan`);
                   }}
                 />
-              )}="              {/* Items List */}
+              )}
+
+              {/* Items List */}
               {formData.items.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -401,7 +406,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                               <div>
                                 <div className="font-medium">{item.nama}</div>
                                 <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
-                                {/* ✅ IMPROVED: Tampilkan ringkas info kemasan dengan fallback satuan */}
+                                {/* ✅ IMPROVED: Display packaging info with fallback unit */}
                                 {(item as any).jumlahKemasan > 0 && (item as any).isiPerKemasan > 0 && (
                                   <div className="text-xs text-gray-500 mt-1">
                                     Kemasan: {(item as any).jumlahKemasan} × {(item as any).isiPerKemasan} {item.satuan || 'unit'}
@@ -533,7 +538,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   );
 };
 
-// ✅ NEW: Edit Item Form Component
+// ✅ Edit Item Form Component
 const EditItemForm: React.FC<{
   item: PurchaseItem;
   onSave: (item: Partial<PurchaseItem>) => void;

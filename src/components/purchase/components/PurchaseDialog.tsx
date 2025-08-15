@@ -46,7 +46,7 @@ import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
-import SimplePurchaseItemForm from './SimplePurchaseItemForm';
+import SimplePurchaseItemForm, { FormData } from './SimplePurchaseItemForm';
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,
@@ -370,7 +370,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     toast.success(`${cleanData.nama} berhasil ditambahkan`);
                   }}
                 />
-              )}="              {/* Items List */}
+              )}
+
+              {/* Items List */}
               {formData.items.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />

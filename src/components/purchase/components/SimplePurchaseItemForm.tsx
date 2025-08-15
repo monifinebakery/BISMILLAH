@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface BahanBaku {
   id: string;
@@ -163,8 +164,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   // Diagnostics - check for unnecessary remounts
   useEffect(() => {
-    console.log('MOUNT <SimplePurchaseItemForm>');
-    return () => console.log('UNMOUNT <SimplePurchaseItemForm>');
+    logger.debug('MOUNT <SimplePurchaseItemForm>');
+    return () => logger.debug('UNMOUNT <SimplePurchaseItemForm>');
   }, []);
 
   const handleBahanBakuSelect = (id: string) => {
@@ -223,8 +224,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   const QuickMode = React.memo(function QuickMode() {
     useEffect(() => {
-      console.log('MOUNT <QuickMode>');
-      return () => console.log('UNMOUNT <QuickMode>');
+      logger.debug('MOUNT <QuickMode>');
+      return () => logger.debug('UNMOUNT <QuickMode>');
     }, []);
     
     return (
@@ -328,8 +329,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   const AccurateModePrompt = React.memo(function AccurateModePrompt() {
     useEffect(() => {
-      console.log('MOUNT <AccurateModePrompt>');
-      return () => console.log('UNMOUNT <AccurateModePrompt>');
+      logger.debug('MOUNT <AccurateModePrompt>');
+      return () => logger.debug('UNMOUNT <AccurateModePrompt>');
     }, []);
     
     return (
@@ -390,8 +391,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   const PackagingMode = React.memo(function PackagingMode() {
     useEffect(() => {
-      console.log('MOUNT <PackagingMode>');
-      return () => console.log('UNMOUNT <PackagingMode>');
+      logger.debug('MOUNT <PackagingMode>');
+      return () => logger.debug('UNMOUNT <PackagingMode>');
     }, []);
     
     return (

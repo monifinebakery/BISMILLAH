@@ -264,6 +264,77 @@ const getWarehouseData = async (userId: string) => {
   }
 };
 
+// ===== WAREHOUSE INTEGRATION HELPERS =====
+
+/**
+ * ✅ TAMBAHKAN: Fetch all bahan baku and build map by ID
+ * Includes hargaRataRata (WAC) for accurate COGS calculation
+ */
+export async function fetchBahanMap(): Promise<Record<string, any>> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    
+    const service = await warehouseApi.createService('crud', { userId });
+    const items = await service.fetchBahanBaku();
+    
+    // Build map by ID
+    const bahanMap: Record<string, any> = {};
+    items.forEach(item => {
+      bahanMap[item.id] = item;
+    });
+    
+    return bahanMap;
+  } catch (error) {
+    logger.error('Failed to fetch bahan map:', error);
+    return {};
+  }
+}
+
+/**
+ * ✅ TAMBAHKAN: Get effective unit price (WAC > 0, fallback to unit price)
+ */
+export function getEffectiveUnitPrice(bahan: any): number {
+  const wac = Number(bahan.hargaRataRata ?? 0);
+  const base = Number(bahan.harga ?? 0);
+  return wac > 0 ? wac : base;
+}
+
+/**
+ * ✅ TAMBAHKAN: Fetch pemakaian bahan by period
+ */
+export async function fetchPemakaianByPeriode(start: string, end: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('pemakaian_bahan_view')
+      .select('bahan_baku_id, qty_base, tanggal')
+      .gte('tanggal', start)
+      .lte('tanggal', end);
+
+    if (error) throw error;
+    return data ?? [];
+  } catch (error) {
+    logger.error('Failed to fetch pemakaian bahan:', error);
+    return [];
+  }
+}
+
+/**
+ * ✅ TAMBAHKAN: Calculate COGS value using WAC
+ */
+export function calculatePemakaianValue(
+  pemakaian: any,
+  bahanMap: Record<string, any>
+): number {
+  const bahan = bahanMap[pemakaian.bahan_baku_id];
+  if (!bahan) return 0;
+  
+  const hargaEfektif = getEffectiveUnitPrice(bahan);
+  return Number(pemakaian.qty_base || 0) * hargaEfektif;
+}
+
 // ===== MAIN API OBJECT =====
 
 /**
@@ -784,6 +855,14 @@ export const profitAnalysisApi = {
     const currentPeriod = new Date().toISOString().slice(0, 7);
     return this.calculateProfitAnalysis(currentPeriod, 'monthly');
   }
+};
+
+// ✅ EKSPOR: Helper functions untuk digunakan di komponen lain
+export { 
+  fetchBahanMap, 
+  getEffectiveUnitPrice, 
+  fetchPemakaianByPeriode, 
+  calculatePemakaianValue 
 };
 
 export default profitAnalysisApi;

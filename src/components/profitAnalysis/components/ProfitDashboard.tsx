@@ -63,6 +63,187 @@ export interface ProfitDashboardProps {
 // HELPER FUNCTIONS - PURE FUNCTIONS OUTSIDE COMPONENT
 // ==============================================
 
+// Fungsi validasi data sebelum forecast
+const validateForecastData = (currentAnalysis) => {
+  const revenue = currentAnalysis?.revenue_data?.total || 0;
+  const cogs = currentAnalysis?.cogs_data?.total || 0;
+  const opex = currentAnalysis?.opex_data?.total || 0;
+  
+  const issues = [];
+  
+  // Validasi basic
+  if (revenue <= 0) issues.push("Revenue harus lebih besar dari 0");
+  if (cogs < 0) issues.push("COGS tidak boleh negatif");
+  if (opex < 0) issues.push("OPEX tidak boleh negatif");
+  
+  // Validasi rasio yang masuk akal
+  if (cogs > revenue * 1.5) issues.push("COGS terlalu tinggi dibanding revenue");
+  if (opex > revenue * 2) issues.push("OPEX terlalu tinggi dibanding revenue");
+  
+  // Hitung margin untuk validasi
+  const grossProfit = revenue - cogs;
+  const netProfit = grossProfit - opex;
+  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  
+  // Peringatan untuk margin ekstrem
+  if (netMargin < -100) issues.push("Margin negatif ekstrem terdeteksi");
+  if (netMargin > 90) issues.push("Margin terlalu tinggi, periksa data");
+  
+  return {
+    isValid: issues.length === 0,
+    issues,
+    sanitizedData: {
+      revenue: Math.max(0, revenue),
+      cogs: Math.max(0, Math.min(cogs, revenue * 0.95)), // COGS max 95% dari revenue
+      opex: Math.max(0, Math.min(opex, revenue * 0.8))   // OPEX max 80% dari revenue
+    },
+    metrics: {
+      grossProfit,
+      netProfit,
+      netMargin,
+      grossMargin: revenue > 0 ? (grossProfit / revenue) * 100 : 0
+    }
+  };
+};
+
+const generateForecastHelper = (profitHistory, currentAnalysis) => {
+  if (!currentAnalysis?.revenue_data?.total || !profitHistory?.length || profitHistory.length < 3) {
+    return null;
+  }
+  
+  try {
+    // Validasi data terlebih dahulu
+    const validation = validateForecastData(currentAnalysis);
+    if (!validation.isValid) {
+      console.warn('Data validation issues:', validation.issues);
+      // Gunakan data yang sudah disanitasi
+      currentAnalysis = {
+        ...currentAnalysis,
+        revenue_data: { total: validation.sanitizedData.revenue },
+        cogs_data: { total: validation.sanitizedData.cogs },
+        opex_data: { total: validation.sanitizedData.opex }
+      };
+    }
+    
+    const revenue = currentAnalysis.revenue_data.total || 0;
+    const cogs = currentAnalysis.cogs_data?.total || 0;
+    const opex = currentAnalysis.opex_data?.total || 0;
+    
+    // Hitung profit dan margin aktual
+    const grossProfit = revenue - cogs;
+    const netProfit = grossProfit - opex;
+    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+    
+    // Analisis tren dari history (ambil 3-6 periode terakhir)
+    const recentHistory = profitHistory.slice(-6);
+    let averageGrowthRate = 0;
+    let averageMargin = netMargin;
+    
+    if (recentHistory.length >= 2) {
+      const growthRates = [];
+      const margins = [];
+      
+      for (let i = 1; i < recentHistory.length; i++) {
+        const prevRevenue = recentHistory[i-1].revenue_data?.total || 0;
+        const currRevenue = recentHistory[i].revenue_data?.total || 0;
+        
+        if (prevRevenue > 0 && currRevenue > 0) {
+          const growthRate = ((currRevenue - prevRevenue) / prevRevenue) * 100;
+          growthRates.push(growthRate);
+          
+          // Hitung margin untuk periode ini
+          const periodCogs = recentHistory[i].cogs_data?.total || 0;
+          const periodOpex = recentHistory[i].opex_data?.total || 0;
+          const periodNetProfit = currRevenue - periodCogs - periodOpex;
+          const periodMargin = (periodNetProfit / currRevenue) * 100;
+          margins.push(periodMargin);
+        }
+      }
+      
+      // Rata-rata pertumbuhan dan margin
+      if (growthRates.length > 0) {
+        averageGrowthRate = growthRates.reduce((sum, rate) => sum + rate, 0) / growthRates.length;
+      }
+      
+      if (margins.length > 0) {
+        averageMargin = margins.reduce((sum, margin) => sum + margin, 0) / margins.length;
+      }
+    }
+    
+    // Batasi pertumbuhan agar realistis (-20% hingga +50% per bulan)
+    const monthlyGrowthRate = Math.max(-20, Math.min(50, averageGrowthRate)) / 100;
+    
+    // Prediksi revenue berdasarkan tren
+    const nextMonthRevenue = revenue * (1 + monthlyGrowthRate);
+    const nextQuarterRevenue = revenue * Math.pow(1 + monthlyGrowthRate, 3);
+    const nextYearRevenue = revenue * Math.pow(1 + monthlyGrowthRate, 12);
+    
+    // Asumsi COGS dan OPEX sebagai persentase dari revenue (berdasarkan rata-rata historis)
+    const cogsPercentage = revenue > 0 ? (cogs / revenue) : 0.6; // default 60%
+    const opexPercentage = revenue > 0 ? (opex / revenue) : 0.25; // default 25%
+    
+    // Hitung prediksi profit
+    const calculatePredictedProfit = (predictedRevenue) => {
+      const predictedCogs = predictedRevenue * cogsPercentage;
+      const predictedOpex = predictedRevenue * opexPercentage;
+      const predictedNetProfit = predictedRevenue - predictedCogs - predictedOpex;
+      const predictedMargin = predictedRevenue > 0 ? (predictedNetProfit / predictedRevenue) * 100 : 0;
+      
+      return {
+        profit: predictedNetProfit,
+        margin: predictedMargin
+      };
+    };
+    
+    const nextMonth = calculatePredictedProfit(nextMonthRevenue);
+    const nextQuarter = calculatePredictedProfit(nextQuarterRevenue);
+    const nextYear = calculatePredictedProfit(nextYearRevenue);
+    
+    // Hitung confidence berdasarkan konsistensi data historis
+    const calculateConfidence = (periodsAhead) => {
+      const baseConfidence = 90;
+      const historyPenalty = Math.max(0, (6 - recentHistory.length) * 10);
+      const timeDecay = periodsAhead * 5; // confidence menurun seiring waktu
+      const volatilityPenalty = Math.abs(averageGrowthRate) > 10 ? 15 : 0;
+      
+      return Math.max(30, baseConfidence - historyPenalty - timeDecay - volatilityPenalty);
+    };
+    
+    return {
+      nextMonth: {
+        profit: nextMonth.profit,
+        margin: nextMonth.margin,
+        confidence: calculateConfidence(1),
+      },
+      nextQuarter: {
+        profit: nextQuarter.profit,
+        margin: nextQuarter.margin,
+        confidence: calculateConfidence(3),
+      },
+      nextYear: {
+        profit: nextYear.profit,
+        margin: nextYear.margin,
+        confidence: calculateConfidence(12),
+      },
+      // Tambahan info untuk debugging
+      metadata: {
+        currentRevenue: revenue,
+        currentNetProfit: netProfit,
+        currentMargin: netMargin,
+        averageGrowthRate: averageGrowthRate,
+        cogsPercentage: cogsPercentage * 100,
+        opexPercentage: opexPercentage * 100,
+        historyLength: recentHistory.length,
+        validationIssues: validation.issues
+      }
+    };
+  } catch (error) {
+    console.error('Error in generateForecastHelper:', error);
+    return null;
+  }
+};
+
 const calculateAdvancedMetricsHelper = (profitHistory, currentAnalysis) => {
   if (!currentAnalysis?.revenue_data?.total) return null;
   
@@ -88,45 +269,6 @@ const calculateAdvancedMetricsHelper = (profitHistory, currentAnalysis) => {
     };
   } catch (error) {
     console.error('Error in calculateAdvancedMetricsHelper:', error);
-    return null;
-  }
-};
-
-const generateForecastHelper = (profitHistory, currentAnalysis) => {
-  if (!currentAnalysis?.revenue_data?.total || !profitHistory?.length || profitHistory.length < 3) {
-    return null;
-  }
-  
-  try {
-    const rollingAverages = calculateRollingAverages(profitHistory, 3);
-    const currentMargins = calculateMargins(
-      currentAnalysis.revenue_data.total,
-      currentAnalysis.cogs_data?.total || 0,
-      currentAnalysis.opex_data?.total || 0
-    );
-    
-    const baseProfit = rollingAverages.profitAverage || 0;
-    const baseMargin = currentMargins.netMargin || 0;
-    
-    return {
-      nextMonth: {
-        profit: baseProfit * 1.02,
-        margin: baseMargin,
-        confidence: 75,
-      },
-      nextQuarter: {
-        profit: baseProfit * 3 * 1.05,
-        margin: baseMargin * 1.01,
-        confidence: 65,
-      },
-      nextYear: {
-        profit: baseProfit * 12 * 1.15,
-        margin: baseMargin * 1.05,
-        confidence: 45,
-      },
-    };
-  } catch (error) {
-    console.error('Error in generateForecastHelper:', error);
     return null;
   }
 };
@@ -379,7 +521,23 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
   };
 
   const renderForecast = () => {
-    if (!forecast || !showAdvancedMetrics) return null;
+    if (!forecast) {
+      return (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Prediksi Profit</CardTitle>
+            <CardDescription>Data tidak cukup untuk membuat prediksi yang akurat</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-gray-500">
+              <Info className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p className="mb-2">Minimal 3 periode data historis diperlukan untuk prediksi AI</p>
+              <p className="text-sm">Saat ini tersedia: {profitHistory?.length || 0} periode</p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
 
     return (
       <Card className="mb-6">
@@ -388,6 +546,24 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           <CardDescription>Prediksi bertenaga AI berdasarkan tren historis dan analisis pasar</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Peringatan jika ada masalah validasi */}
+          {forecast.metadata?.validationIssues?.length > 0 && (
+            <Alert className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="font-medium mb-1">Peringatan Data:</div>
+                <ul className="text-sm list-disc list-inside space-y-1">
+                  {forecast.metadata.validationIssues.map((issue, index) => (
+                    <li key={index}>{issue}</li>
+                  ))}
+                </ul>
+                <div className="mt-2 text-xs text-gray-600">
+                  Data telah disesuaikan untuk prediksi yang lebih akurat.
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-sm text-gray-600 mb-1">Bulan Depan</div>
@@ -426,6 +602,39 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
               </div>
             </div>
           </div>
+          
+          {/* Metodologi dan Info Debug */}
+          {forecast.metadata && (
+            <div className="mt-6 space-y-4">
+              <div className="border-t pt-4">
+                <h4 className="font-medium text-gray-900 mb-2">Metodologi Prediksi</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-600">Pertumbuhan Rata-rata</div>
+                    <div className="font-medium">{forecast.metadata.averageGrowthRate.toFixed(1)}%/bulan</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">Rasio COGS</div>
+                    <div className="font-medium">{forecast.metadata.cogsPercentage.toFixed(1)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">Rasio OPEX</div>
+                    <div className="font-medium">{forecast.metadata.opexPercentage.toFixed(1)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">Data Historis</div>
+                    <div className="font-medium">{forecast.metadata.historyLength} periode</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+                <strong>Catatan:</strong> Prediksi ini menggunakan analisis tren historis dengan 
+                pembatasan pertumbuhan realistis (-20% hingga +50% per bulan). Tingkat keyakinan 
+                menurun seiring bertambahnya jangka waktu prediksi.
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -522,7 +731,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
       )}
 
       {/* Forecast */}
-      {renderForecast()}
+      {showAdvancedMetrics && renderForecast()}
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

@@ -45,6 +45,7 @@ interface SimplePurchaseItemFormProps {
   bahanBaku: BahanBaku[];
   onCancel: () => void;
   onAdd: (formData: FormData) => void;
+  initialMode?: 'quick' | 'packaging'; // NEW: Allow initial mode
 }
 
 // Helper baru: normalisasi angka yang tahan banting
@@ -72,8 +73,13 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   bahanBaku,
   onCancel,
   onAdd,
+  initialMode = 'quick', // NEW: Default to quick mode
 }) => {
-  const [mode, setMode] = useState<'quick' | 'accurate' | 'packaging'>('quick');
+  const [mode, setMode] = useState<'quick' | 'accurate' | 'packaging'>(
+    initialMode === 'packaging' ? 'packaging' : 'quick'
+  );
+  
+  // ✅ FIXED: Always use strings for numeric inputs to prevent value switching
   const [formData, setFormData] = useState<FormData>({
     bahanBakuId: '',
     nama: '',
@@ -95,7 +101,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   const accuratePrice = calculateAccuratePrice();
   const accuracyLevel = mode === 'packaging' ? 100 : mode === 'accurate' ? 85 : 70;
 
-  // 1) UPDATE: Selalu simpan string ke state (hindari overwrite number)
+  // Update accurate price when in packaging mode
   useEffect(() => {
     if (mode === 'packaging' && accuratePrice > 0) {
       setFormData(prev => ({ ...prev, hargaSatuan: String(accuratePrice) }));
@@ -114,7 +120,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     }
   };
 
-  // Handler untuk input numerik yang fleksibel
+  // ✅ FIXED: Handler untuk input numerik - langsung update tanpa trigger validation
   const handleNumericChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -174,6 +180,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 autoComplete="off"
                 autoCorrect="off"
+                spellCheck="false"
               />
               <div className="flex items-center px-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600 min-w-[60px] justify-center">
                 {formData.satuan || 'unit'}
@@ -194,6 +201,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 placeholder="0"
                 autoComplete="off"
                 autoCorrect="off"
+                spellCheck="false"
               />
             </div>
           </div>
@@ -336,6 +344,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               autoComplete="off"
               autoCorrect="off"
+              spellCheck="false"
             />
             <div className="flex items-center px-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600 min-w-[60px] justify-center">
               {formData.satuan || 'unit'}
@@ -364,6 +373,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               autoComplete="off"
               autoCorrect="off"
+              spellCheck="false"
             />
           </div>
 
@@ -397,6 +407,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 autoComplete="off"
                 autoCorrect="off"
+                spellCheck="false"
               />
               <div className="flex items-center px-2 bg-white border border-gray-200 rounded-md text-xs text-gray-600 min-w-[45px] justify-center">
                 {formData.satuan || 'unit'}
@@ -417,6 +428,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 placeholder="25000"
                 autoComplete="off"
                 autoCorrect="off"
+                spellCheck="false"
               />
             </div>
           </div>

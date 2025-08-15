@@ -317,10 +317,25 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   // ✅ REAL-TIME SUBSCRIPTION
   // ===========================================
 
-  useEffect(() => {
+  const notifDebounceRef = React.useRef<number | null>(null);
+
+  useEffect(() => {
     if (!userId) return;
 
     logger.debug('Setting up notification real-time subscription');
+
+    const requestInvalidate = () => {
+      if (notifDebounceRef.current) {
+        window.clearTimeout(notifDebounceRef.current);
+      }
+      notifDebounceRef.current = window.setTimeout(() => {
+        // Invalidate queries to refetch fresh data
+        queryClient.invalidateQueries({
+          queryKey: notificationQueryKeys.list(userId)
+        });
+        notifDebounceRef.current = null;
+      }, 250);
+    };
 
     const channel = supabase
       .channel(`notifications-${userId}`)
@@ -329,28 +344,28 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${userId}`
-      }, (payload) => {
+      }, (payload) => {
         logger.debug('Notification real-time event:', payload.eventType);
-        
-        // Invalidate queries to refetch fresh data
-        queryClient.invalidateQueries({
-          queryKey: notificationQueryKeys.list(userId)
-        });
+        requestInvalidate();
 
         // Show toast for new notifications
-        if (payload.eventType === 'INSERT' && payload.new) {
+        if (payload.eventType === 'INSERT'  payload.new) {
           const newNotification = payload.new as any;
           if (settings?.push_notifications !== false) {
             toast.info(newNotification.title, {
               description: newNotification.message,
-              duration: newNotification.priority >= 4 ? 8000 : 4000
+              duration: newNotification.priority = 4 ? 8000 : 4000
             });
           }
         }
       })
       .subscribe();
 
-    return () => {
+    return () => {
+      if (notifDebounceRef.current) {
+        window.clearTimeout(notifDebounceRef.current);
+        notifDebounceRef.current = null;
+      }
       supabase.removeChannel(channel);
     };
   }, [userId, queryClient, settings?.push_notifications]);
@@ -434,7 +449,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   // ✅ CONTEXT VALUE
   // ===========================================
 
-  const value: NotificationContextType = {
+  const value: NotificationContextType = useMemo(() => ({
     notifications,
     unreadCount,
     urgentCount,
@@ -452,7 +467,29 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     updateSettings: updateSettingsFn,
     refreshNotifications,
     clearAllNotifications: clearAllNotificationsFn,
-  };
+  }), [
+    notifications,
+    unreadCount,
+    urgentCount,
+    notificationsLoading,
+    settingsLoading,
+    addMutation.isPending,
+    markAsReadMutation.isPending,
+    markAllAsReadMutation.isPending,
+    deleteMutation.isPending,
+    archiveMutation.isPending,
+    clearAllMutation.isPending,
+    updateSettingsMutation.isPending,
+    settings,
+    addNotificationFn,
+    markAsReadFn,
+    markAllAsReadFn,
+    deleteNotificationFn,
+    archiveNotificationFn,
+    updateSettingsFn,
+    refreshNotifications,
+    clearAllNotificationsFn
+  ]);
 
   return (
     <NotificationContext.Provider value={value}>

@@ -548,7 +548,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   };
 
   // Context value
-  const contextValue: OperationalCostContextType = {
+  const contextValue: OperationalCostContextType = useMemo(() => ({
     state: enhancedState,
     actions: {
       loadCosts,
@@ -563,7 +563,20 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       refreshData,
       setError,
     },
-  };
+  }), [
+    enhancedState,
+    loadCosts,
+    createCost,
+    updateCost,
+    deleteCost,
+    loadAllocationSettings,
+    saveAllocationSettings,
+    calculateOverheadQuery,
+    setFilters,
+    clearFilters,
+    refreshData,
+    setError,
+  ]);
 
   logger.debug('🎯 Context value prepared:', {
     costsCount: enhancedState.costs.length,

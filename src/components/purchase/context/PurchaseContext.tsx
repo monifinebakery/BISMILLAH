@@ -429,24 +429,44 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // blok sementara saat bulk
   const setBulkProcessing = useCallback((v: boolean) => { blockRealtimeRef.current = v; }, []);
 
+  const debounceTimerRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!user?.id) return;
+
+    const requestInvalidate = () => {
+      if (blockRealtimeRef.current) return;
+      if (debounceTimerRef.current) {
+        window.clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = window.setTimeout(() => {
+        // ringan: cukup soft-invalidate
+        queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user.id) });
+        // ✅ JUGA INVALIDATE WAREHOUSE: Karena realtime change bisa jadi dari user lain/trigger
+        invalidateWarehouseData();
+        debounceTimerRef.current = null;
+      }, 300);
+    };
+
     const channel = supabase
       .channel(`realtime-purchases-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'purchases', filter: `user_id=eq.${user.id}` },
         (_payload) => {
-          if (blockRealtimeRef.current) return;
-          // ringan: cukup soft-invalidate
-          queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user.id) });
-          // ✅ JUGA INVALIDATE WAREHOUSE: Karena realtime change bisa jadi dari user lain/trigger
-          invalidateWarehouseData();
+          requestInvalidate();
         })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return () => {
+      if (debounceTimerRef.current) {
+        window.clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      supabase.removeChannel(channel);
+    };
   }, [user?.id, queryClient, invalidateWarehouseData]);
 
   // ------------------- Context value -------------------
-  const contextValue: PurchaseContextType = {
+  const contextValue: PurchaseContextType = useMemo(() => ({
     // from original type
     purchases,
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
@@ -467,7 +487,27 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     validatePrerequisites,
     setBulkProcessing,
     getSupplierName,
-  };
+  }), [
+    purchases,
+    isLoading,
+    error,
+    createMutation.isPending,
+    updateMutation.isPending,
+    deleteMutation.isPending,
+    statusMutation.isPending,
+    addPurchase,
+    updatePurchaseAction,
+    deletePurchaseAction,
+    refreshPurchases,
+    stats,
+    setStatus,
+    bulkDelete,
+    bulkStatusUpdate,
+    findPurchase,
+    validatePrerequisites,
+    setBulkProcessing,
+    getSupplierName,
+  ]);
 
   return (
     <PurchaseContext.Provider value={contextValue}>

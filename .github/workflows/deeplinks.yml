@@ -1,0 +1,37 @@
+name: Deep Link Check (Netlify)
+
+on:
+  push:
+    branches: [ dev3 ]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL to test (overrides repo var)'
+        required: false
+        default: ''
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set BASE_URL
+        id: seturl
+        run: |
+          if [[ -n "${{ github.event.inputs.base_url }}" ]]; then
+            echo "BASE_URL=${{ github.event.inputs.base_url }}" >> $GITHUB_ENV
+          elif [[ -n "${{ vars.NETLIFY_DEV_URL }}" ]]; then
+            echo "BASE_URL=${{ vars.NETLIFY_DEV_URL }}" >> $GITHUB_ENV
+          else
+            echo "BASE_URL=https://dev3--gleaming-peony-f4a091.netlify.app" >> $GITHUB_ENV
+          fi
+
+      - name: Show target URL
+        run: echo "Testing deep links on $BASE_URL"
+
+      - name: Run deep link checks
+        run: |
+          chmod +x scripts/check-deeplinks.sh
+          scripts/check-deeplinks.sh "$BASE_URL"

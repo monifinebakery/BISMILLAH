@@ -1,5 +1,6 @@
 // src/components/purchase/types/purchase.types.ts
 
+// ============ App (Frontend) Shapes ============
 export interface PurchaseItem {
   bahanBakuId: string;
   nama: string;
@@ -13,7 +14,7 @@ export interface PurchaseItem {
 export interface Purchase {
   id: string;
   userId: string;
-  supplier: string;
+  supplier: string;           // supplier ID (relasi)
   tanggal: Date;
   totalNilai: number;
   items: PurchaseItem[];
@@ -35,13 +36,13 @@ export interface StatusOption {
 
 // Form types
 export interface PurchaseFormData {
-  supplier: string;
+  supplier: string; // supplier ID
   tanggal: Date;
   items: PurchaseItem[];
   metodePerhitungan: CalculationMethod;
 }
 
-// Stats types
+// ============ Stats ============
 export interface PurchaseStats {
   total: number;
   totalValue: number;
@@ -53,23 +54,37 @@ export interface PurchaseStats {
   completionRate: number;
 }
 
-// API types
+// ============ API / DB Shapes ============
+// Baris item untuk disimpan ke DB (snake_case). Ini yang dibaca trigger WAC.
+export interface PurchaseItemDB {
+  bahan_baku_id: string;
+  jumlah: number;
+  harga_per_satuan: number;
+  // metadata tambahan (aman disimpan)
+  nama?: string;
+  satuan?: string;
+  subtotal?: number;
+  keterangan?: string | null;
+}
+
+// Payload INSERT ke tabel purchases
+export interface CreatePurchaseRequest {
+  user_id: string;
+  supplier: string; // supplier ID
+  tanggal: string; // 'YYYY-MM-DD'
+  total_nilai: number;
+  items: PurchaseItemDB[]; // ✅ gunakan shape DB
+  status?: PurchaseStatus;
+  metode_perhitungan?: CalculationMethod;
+}
+
+// Response pembelian (opsional kalau perlu)
 export interface PurchaseApiResponse {
   data: Purchase[] | null;
   error: string | null;
 }
 
-export interface CreatePurchaseRequest {
-  user_id: string;
-  supplier: string;
-  tanggal: string;
-  total_nilai: number;
-  items: PurchaseItem[];
-  status?: PurchaseStatus;
-  metode_perhitungan?: CalculationMethod;
-}
-
-// Enhanced table context types with filtering and sorting
+// ============ Table Context (UI) ============
 export interface PurchaseTableContextType {
   // Selection
   selectedItems: string[];
@@ -78,36 +93,36 @@ export interface PurchaseTableContextType {
   clearSelection: () => void;
   isAllSelected: boolean;
   toggleSelectItem: (id: string) => void;
-  
+
   // Bulk operations
   bulkDelete: () => Promise<void>;
   isBulkDeleting: boolean;
   showBulkDeleteDialog: boolean;
   setShowBulkDeleteDialog: (show: boolean) => void;
-  
+
   // Filtering and searching
   filteredPurchases: Purchase[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   statusFilter: PurchaseStatus | 'all';
   setStatusFilter: (status: PurchaseStatus | 'all') => void;
-  
+
   // Sorting
   sortField: 'tanggal' | 'totalNilai' | 'supplier' | 'status';
   sortOrder: 'asc' | 'desc';
   handleSort: (field: 'tanggal' | 'totalNilai' | 'supplier' | 'status') => void;
-  
+
   // Utility functions
   getSupplierName: (supplierId: string) => string;
 }
 
-// Context types - DIPERBARUI
+// ============ Purchase Context ============
 export interface PurchaseContextType {
   // State
   purchases: Purchase[];
   isLoading: boolean;
   error: string | null;
-  // isProcessing?: boolean; // (opsional; kalau mau disediakan)
+  isProcessing?: boolean; // ✅ disediakan karena dipakai di PurchaseContext
 
   // Core actions
   addPurchase: (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
@@ -134,9 +149,8 @@ export interface PurchaseContextType {
   setBulkProcessing: (v: boolean) => void;
 }
 
-// Hook types
+// Hook aliases
 export interface UsePurchaseReturn extends PurchaseContextType {}
-
 export interface UsePurchaseTableReturn extends PurchaseTableContextType {}
 
 export interface UsePurchaseStatsReturn {
@@ -144,7 +158,7 @@ export interface UsePurchaseStatsReturn {
   isCalculating: boolean;
 }
 
-// Status management hook types
+// ============ Status management hooks ============
 export interface UsePurchaseStatusProps {
   onStatusUpdate: (purchaseId: string, newStatus: PurchaseStatus) => Promise<boolean>;
   onError?: (error: string) => void;
@@ -157,7 +171,7 @@ export interface UsePurchaseStatusReturn {
   isUpdatingPurchase: (purchaseId: string) => boolean;
 }
 
-// Component props types
+// ============ Component Props ============
 export interface PurchaseDialogProps {
   isOpen: boolean;
   mode: 'create' | 'edit';
@@ -167,14 +181,16 @@ export interface PurchaseDialogProps {
   onClose: () => void;
 }
 
-// Enhanced PurchaseTable props with new handlers - DIPERBARUI
 export interface PurchaseTablePropsExtended {
   onEdit: (purchase: Purchase) => void;
   onStatusChange?: (purchaseId: string, newStatus: PurchaseStatus) => Promise<void>;
   onDelete?: (purchaseId: string) => Promise<void>;
   onBulkDelete?: (purchaseIds: string[]) => Promise<void>;
   onViewDetails?: (purchase: Purchase) => void;
-  validateStatusChange?: (purchaseId: string, newStatus: PurchaseStatus) => Promise<{
+  validateStatusChange?: (
+    purchaseId: string,
+    newStatus: PurchaseStatus
+  ) => Promise<{
     canChange: boolean;
     warnings: string[];
     errors: string[];
@@ -185,7 +201,7 @@ export interface PurchaseHeaderProps {
   totalPurchases: number;
   totalValue: number;
   pendingCount: number;
-  onAddPurchase: () => void;
+  onAddPurchase: (intent?: AddPurchaseIntent) => void; // <— ubah ke terima intent
   onExport?: () => void;
   onSettings?: () => void;
   className?: string;
@@ -228,7 +244,7 @@ export interface BulkActionsToolbarProps {
   isDeleting?: boolean;
 }
 
-// Filter and search types
+// Filters / Pagination / Export
 export interface PurchaseFilters {
   searchQuery: string;
   statusFilter: PurchaseStatus | 'all';
@@ -241,7 +257,6 @@ export interface PurchaseFilters {
   sortOrder: 'asc' | 'desc';
 }
 
-// Pagination types
 export interface PaginationState {
   currentPage: number;
   itemsPerPage: number;
@@ -249,7 +264,6 @@ export interface PaginationState {
   totalItems: number;
 }
 
-// Export types for external use
 export interface PurchaseExportData {
   tanggal: string;
   supplier: string;
@@ -261,7 +275,7 @@ export interface PurchaseExportData {
   dibuat: string;
 }
 
-// Validation types
+// Validation
 export interface PurchaseValidationError {
   field: string;
   message: string;
@@ -272,7 +286,7 @@ export interface PurchaseValidationResult {
   errors: PurchaseValidationError[];
 }
 
-// Event handler types
+// Events
 export type PurchaseEventHandler<T = void> = (purchase: Purchase) => T;
 export type PurchaseStatusEventHandler = (purchaseId: string, newStatus: PurchaseStatus) => Promise<void>;
 export type PurchaseBulkEventHandler = (purchaseIds: string[]) => Promise<void>;

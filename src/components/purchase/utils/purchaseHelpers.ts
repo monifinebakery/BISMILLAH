@@ -15,6 +15,7 @@ export const calculatePurchaseStats = (purchases: Purchase[]): PurchaseStats => 
         completed: 0,
         cancelled: 0,
       },
+      completionRate: 0, // ✅ tambahkan agar selalu ada
     };
   }
 
@@ -36,7 +37,10 @@ export const calculatePurchaseStats = (purchases: Purchase[]): PurchaseStats => 
     }
   );
 
-  return stats;
+  return {
+    ...stats,
+    completionRate: stats.total > 0 ? (stats.byStatus.completed / stats.total) * 100 : 0, // ✅ hitung persen selesai
+  };
 };
 
 /**
@@ -67,8 +71,8 @@ export const searchPurchases = (purchases: Purchase[], query: string): Purchase[
     // Search in items
     return purchase.items?.some(item =>
       item.nama?.toLowerCase().includes(searchTerm) ||
-      item.catatan?.toLowerCase().includes(searchTerm) ||
-      item.keterangan?.toLowerCase().includes(searchTerm)
+      // item.catatan?.toLowerCase().includes(searchTerm) || // ❌ tidak ada di type
+      item.keterangan?.toLowerCase().includes(searchTerm)    // ✅ gunakan field yang ada
     );
   });
 };
@@ -358,12 +362,12 @@ export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
   const rows = purchases.map(purchase => [
     new Date(purchase.tanggal).toLocaleDateString('id-ID'),
     purchase.supplier || '',
-    purchase.totalNilai.toString(),
+    (purchase.totalNilai ?? 0).toString(),                 // ✅ aman null/undefined
     getStatusDisplayText(purchase.status),
-    purchase.items?.length.toString() || '0',
-    getFormattedTotalQuantities(purchase), // Use formatted quantities with proper units
+    (purchase.items?.length ?? 0).toString(),              // ✅ aman
+    getFormattedTotalQuantities(purchase),
     purchase.metodePerhitungan || '',
-    new Date(purchase.createdAt || purchase.tanggal).toLocaleDateString('id-ID')
+    new Date((purchase.createdAt ?? purchase.tanggal)).toLocaleDateString('id-ID') // ✅ fallback aman
   ]);
 
   const csvContent = [headers, ...rows]
@@ -380,7 +384,7 @@ export const debounce = <T extends (...args: any[]) => any>(
   func: T,
   delay: number
 ): ((...args: Parameters<T>) => void) => {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: ReturnType<typeof setTimeout>; // ✅ cross-env (browser/node)
   
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId);

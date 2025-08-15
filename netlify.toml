@@ -1,0 +1,17 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Ensure SPA routing works by redirecting all routes to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Optional: local Netlify Dev settings for Vite
+[dev]
+  command = "npm run dev"
+  port = 8080
+  targetPort = 8080
+  framework = "vite"
+

@@ -55,7 +55,7 @@ export class PurchaseApiService {
       const { data, error } = await supabase
         .from('purchases')
         .insert(payload)
-        .select('id')
+        .select('id') // return id
         .single();
 
       if (error) throw new Error(error.message);
@@ -117,6 +117,11 @@ export class PurchaseApiService {
       logger.error('Error updating status:', err);
       return { success: false, error: err.message || 'Gagal update status' };
     }
+  }
+
+  // NEW: Helper biar jelas dipakai tombol "Selesai"
+  static async completePurchase(id: string, userId: string) {
+    return this.setPurchaseStatus(id, userId, 'completed' as Purchase['status']);
   }
 
   /**
@@ -197,6 +202,7 @@ export class PurchaseApiService {
         .from('purchases')
         .select('*')
         .eq('user_id', userId)
+        // NB: jika kolom "supplier" kamu bukan text, sesuaikan or() ini
         .or(`supplier.ilike.%${query}%,items.cs.{"nama":"${query}"}`)
         .order('tanggal', { ascending: false })
         .limit(limit);

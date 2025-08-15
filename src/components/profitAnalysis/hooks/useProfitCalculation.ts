@@ -16,6 +16,7 @@ interface FinancialTransaction {
   type: 'income' | 'expense';
   category?: string;
   amount?: number;
+  date?: string; // ✅ PERBAIKAN 2: Tambah field date untuk kompatibilitas filter
 }
 
 interface BahanBakuFrontend {
@@ -138,8 +139,9 @@ export const useProfitCalculation = (
   // ✅ MARGIN ANALYSIS - No dependencies needed
   const analyzeMargins = useCallback((grossMargin: number, netMargin: number) => {
     try {
-      const grossRating = getMarginRating((grossMargin || 0) / 100, 'gross');
-      const netRating = getMarginRating((netMargin || 0) / 100, 'net');
+      // ✅ PERBAIKAN 1: Kirim nilai dalam persen, bukan desimal
+      const grossRating = getMarginRating(grossMargin || 0, 'gross');
+      const netRating = getMarginRating(netMargin || 0, 'net');
       
       const recommendations: string[] = [];
       

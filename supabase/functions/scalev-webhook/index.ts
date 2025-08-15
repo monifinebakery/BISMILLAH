@@ -1,12 +1,7 @@
 // SIMPLIFIED webhook - Removed auth_email, simplified auto-linking
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS"
-};
+import { getCorsHeaders, handleOptions } from '../_shared/cors.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '', 
@@ -84,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
   console.log('🎯 SIMPLIFIED WEBHOOK: EMAIL EXTRACTION + SIMPLE AUTO-LINKING');
   
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleOptions(req);
   }
 
   try {
@@ -112,13 +107,14 @@ const handler = async (req: Request): Promise<Response> => {
     // ✅ VALIDATION: Must have order_id
     if (!orderId) {
       console.log('❌ No order_id found');
+      const origin = req.headers.get('origin') || '';
       return new Response(JSON.stringify({
         success: false,
         error: 'order_id is required',
         available_fields: Object.keys(payloadData)
       }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" }
       });
     }
 
@@ -261,6 +257,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('🎉 Simplified webhook completed successfully');
     console.log('Final record:', finalRecord);
     
+    const origin = req.headers.get('origin') || '';
     return new Response(JSON.stringify({
       success: true,
       message: `Payment ${operationType.toLowerCase()} successful`,
@@ -280,19 +277,20 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" }
     });
 
   } catch (error) {
     console.error('❌ SIMPLIFIED WEBHOOK ERROR:', error.message);
     
+    const origin = req.headers.get('origin') || '';
     return new Response(JSON.stringify({
       success: false,
       error: 'Simplified webhook failed',
       details: error.message
     }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" }
     });
   }
 };

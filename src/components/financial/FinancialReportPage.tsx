@@ -361,7 +361,7 @@ const FinancialReportPage: React.FC = () => {
         {/* ✅ SIMPLIFIED Header */}
         <div className="space-y-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan Arus Kas</h1>
             <p className="text-muted-foreground text-sm sm:text-base">
               Analisis pemasukan, pengeluaran, dan saldo bisnis Anda
             </p>

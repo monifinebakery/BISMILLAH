@@ -10,12 +10,7 @@ import {
   RotateCcw,
   AlertTriangle,
   CheckCircle,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
   Download,
-  Settings,
-  Info,
   Target,
   Lightbulb,
   RotateCw,
@@ -451,6 +446,14 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
     }
   };
 
+  // ✅ 5) UPDATE: Angka aman untuk footer dan konsisten pakai util
+  const safeRevenue = profitMetrics?.revenue ?? currentAnalysis?.revenue_data?.total ?? 0;
+  const safeCogs    = profitMetrics?.cogs    ?? currentAnalysis?.cogs_data?.total    ?? 0;
+  const safeOpex    =                            currentAnalysis?.opex_data?.total    ?? 0;
+
+  // konsisten pakai util
+  const footerCalc = calculateMargins(safeRevenue, safeCogs, safeOpex);
+
   // ✅ RENDER FUNCTIONS - SIMPLE FUNCTIONS TANPA HOOKS
   const renderExecutiveSummary = () => {
     if (!executiveSummary || !showAdvancedMetrics) return null;
@@ -615,14 +618,14 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
       {/* Executive Summary */}
       {renderExecutiveSummary()}
 
-      {/* Summary Cards - ✅ 2) UPDATE: Rapihin props ke ProfitSummaryCards */}
+      {/* Summary Cards - ✅ 1) UPDATE: Amanin semua akses profitMetrics */}
       {hasValidData && (
         <ProfitSummaryCards 
           currentAnalysis={currentAnalysis} 
           previousAnalysis={previousAnalysis} 
           isLoading={loading} 
-          // ⬇️ props baru (sudah dirapihkan)
-          effectiveCogs={profitMetrics.cogs}
+          // ⬇️ props baru dengan fallback
+          effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
           labels={labels}
         />
       )}
@@ -638,13 +641,13 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
 
         <TabsContent value="ikhtisar" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* ✅ 3) UPDATE: Teruskan WAC ke ProfitTrendChart */}
+            {/* ✅ 1) UPDATE: Amanin semua akses profitMetrics */}
             <ProfitBreakdownChart 
               currentAnalysis={currentAnalysis} 
               isLoading={loading} 
               chartType={selectedChartType} 
-              // ⬇️ supaya chart pakai angka WAC
-              effectiveCogs={profitMetrics.cogs}
+              // ⬇️ supaya chart pakai angka WAC dengan fallback
+              effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
               labels={labels}
             />
             <ProfitTrendChart
@@ -652,8 +655,8 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
               isLoading={loading}
               chartType="line"
               showMetrics={['revenue', 'grossProfit', 'netProfit']}
-              // ⬇️ tambahkan effectiveCogs dan labels
-              effectiveCogs={profitMetrics.cogs}
+              // ⬇️ tambahkan effectiveCogs dan labels dengan fallback
+              effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
               labels={labels}
             />
           </div>
@@ -665,21 +668,21 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             isLoading={loading}
             chartType="area"
             showMetrics={['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex']}
-            // ⬇️ tambahkan effectiveCogs dan labels
-            effectiveCogs={profitMetrics.cogs}
+            // ⬇️ tambahkan effectiveCogs dan labels dengan fallback
+            effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
             labels={labels}
           />
         </TabsContent>
 
         <TabsContent value="breakdown" className="space-y-6">
-          {/* ✅ 4) UPDATE: Kirim WAC props ke komponen yang baru kamu update */}
+          {/* ✅ 1) UPDATE: Amanin semua akses profitMetrics */}
           <DetailedBreakdownTable 
             currentAnalysis={currentAnalysis} 
             isLoading={loading} 
             showExport={true} 
-            // ⬇️ HPP total & breakdown WAC
-            effectiveCogs={profitMetrics.cogs}
-            hppBreakdown={profitMetrics.hppBreakdown}
+            // ⬇️ HPP total & breakdown WAC dengan fallback
+            effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
+            hppBreakdown={profitMetrics?.hppBreakdown ?? []}
             labels={labels}
           />
         </TabsContent>
@@ -766,22 +769,24 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         </TabsContent>
       </Tabs>
 
-      {/* Status Footer - ✅ 5) UPDATE: Tambah badge kecil "WAC aktif" di status bar */}
+      {/* Status Footer - ✅ 2) UPDATE: Rapihin label periode footer */}
+      {/* ✅ 3) UPDATE: Angka footer selalu valid + margin pakai util yang sama */}
       {hasValidData && !loading && (
         <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-2">
             <CheckCircle className="w-4 h-4 text-green-600" />
             <span>
-              Analisis selesai untuk {formatPeriodLabel ? formatPeriodLabel(currentPeriod) : formatPeriodLabelTransformer(currentPeriod)}
+              Analisis selesai untuk {(formatPeriodLabel ?? formatPeriodLabelTransformer)(currentPeriod)}
             </span>
           </div>
           <span>•</span>
-          <span>Pendapatan: {formatCurrency(profitMetrics.revenue)}</span>
+          {/* ✅ 3) UPDATE: Footer dengan angka aman dan util konsisten */}
+          <span>Pendapatan: {formatCurrency(safeRevenue)}</span>
           <span>•</span>
-          <span>Laba Bersih: {formatCurrency(profitMetrics.netProfit)}</span>
+          <span>Laba Bersih: {formatCurrency(footerCalc.netProfit)}</span>
           <span>•</span>
-          <span>Margin: {formatPercentage(profitMetrics.netMargin)}</span>
-          {/* ✅ TAMBAH: Badge/tooltip info WAC */}
+          <span>Margin: {formatPercentage(footerCalc.netMargin)}</span>
+          {/* ✅ 5) UPDATE: Badge kecil "WAC aktif" di status bar */}
           {labels?.hppLabel && (
             <>
               <span>•</span>

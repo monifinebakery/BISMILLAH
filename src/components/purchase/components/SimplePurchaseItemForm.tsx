@@ -1,6 +1,7 @@
 // src/components/purchase/components/SimplePurchaseItemForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -141,10 +142,21 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     }
   };
 
-  // ✅ FIXED: Handler untuk input numerik - langsung update tanpa trigger validation
-  const handleNumericChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  // ✅ SUPER LIGHTWEIGHT: Direct field updater - NO VALIDATION
+  const handleNumericChange = useCallback((field: keyof FormData, value: string) => {
+    // PURE state update - no side effects, no validation, no re-render triggers
+    setFormData(prev => {
+      if (prev[field] === value) return prev; // Skip if same value
+      return { ...prev, [field]: value };
+    });
+  }, [setFormData]);
+
+  // ✅ STABLE: Simple value getter without dependencies
+  const getValue = useCallback((field: keyof FormData) => {
+    const val = formData[field];
+    if (val === null || val === undefined) return '';
+    return String(val);
+  }, [formData]);
 
   const handleSubmit = () => {
     const qty = toNumber(formData.kuantitas);
@@ -209,7 +221,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <SafeNumericInput
-                value={String(formData.hargaSatuan ?? '')}
+                value={getValue('hargaSatuan')}
                 onChange={(e) => handleNumericChange('hargaSatuan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
@@ -346,16 +358,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">Total yang Dibeli</Label>
           <div className="flex gap-2">
-            <Input
-              type="text"
-              inputMode="decimal"
-              value={String(formData.kuantitas ?? '')}
+            <SafeNumericInput
+              value={getValue('kuantitas')}
               onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
             />
             <div className="flex items-center px-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600 min-w-[60px] justify-center">
               {formData.satuan || 'unit'}
@@ -375,7 +382,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Jumlah Kemasan</Label>
             <SafeNumericInput
-              value={String(formData.jumlahKemasan ?? '')}
+              value={getValue('jumlahKemasan')}
               onChange={(e) => handleNumericChange('jumlahKemasan', e.target.value)}
               placeholder="1"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -404,7 +411,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Isi Per Kemasan</Label>
             <div className="flex gap-2">
               <SafeNumericInput
-                value={String(formData.isiPerKemasan ?? '')}
+                value={getValue('isiPerKemasan')}
                 onChange={(e) => handleNumericChange('isiPerKemasan', e.target.value)}
                 placeholder="500"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -420,7 +427,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <SafeNumericInput
-                value={String(formData.hargaTotalBeliKemasan ?? '')}
+                value={getValue('hargaTotalBeliKemasan')}
                 onChange={(e) => handleNumericChange('hargaTotalBeliKemasan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="25000"

@@ -411,7 +411,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                           {/* ✅ UPDATE: Gunakan helper harga efektif */}
                           {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                         </div>
-                        {/* ✅ UPDATE: Hapus indikator "rata-rata" duplikat */}
                       </div>
                     </div>
                   </div>
@@ -469,7 +468,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       {/* ✅ UPDATE: Gunakan helper harga efektif */}
                       {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                     </div>
-                    {/* ✅ UPDATE: Hapus indikator "rata-rata" duplikat */}
+                    {/* ✅ UPDATE: Gunakan helper isUsingWac untuk label */}
+                    <div className="text-xs text-gray-500 mt-1">
+                      per {item.satuan}{warehouseUtils.isUsingWac(item) ? ' · rata-rata' : ''}
+                    </div>
                   </div>
                   <div>
                     <span className="text-gray-500">Kadaluarsa:</span>
@@ -738,8 +740,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                     {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                   </span>
                   <div className="text-xs text-gray-500">
-                    {/* ✅ UPDATE: Hapus indikator "rata-rata" duplikat, gunakan satu indikator saja */}
-                    per {item.satuan}{item.hargaRataRata != null ? ' · rata-rata' : ''}
+                    {/* ✅ UPDATE: Gunakan helper isUsingWac untuk label */}
+                    per {item.satuan}{warehouseUtils.isUsingWac(item) ? ' · rata-rata' : ''}
                   </div>
                 </td>
 

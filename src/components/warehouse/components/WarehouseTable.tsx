@@ -411,12 +411,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                           {/* ✅ UPDATE: Gunakan helper harga efektif */}
                           {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                         </div>
-                        {/* ✅ ADD: WAC indicator */}
-                        {item.hargaRataRata != null && (
-                          <div className="text-xs text-gray-500">
-                            rata-rata
-                          </div>
-                        )}
+                        {/* ✅ UPDATE: Hapus indikator "rata-rata" duplikat */}
                       </div>
                     </div>
                   </div>
@@ -474,12 +469,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       {/* ✅ UPDATE: Gunakan helper harga efektif */}
                       {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                     </div>
-                    {/* ✅ ADD: WAC indicator */}
-                    {item.hargaRataRata != null && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        rata-rata
-                      </div>
-                    )}
+                    {/* ✅ UPDATE: Hapus indikator "rata-rata" duplikat */}
                   </div>
                   <div>
                     <span className="text-gray-500">Kadaluarsa:</span>
@@ -604,11 +594,9 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             </th>
 
             <th className="px-4 py-3 text-left">
+              {/* ✅ UPDATE: Sort "Harga" pakai harga efektif */}
               <button
-                onClick={() => {
-                  onSort('harga');
-                  logger.component('WarehouseTable', 'Sort by harga clicked');
-                }}
+                onClick={() => onSort('harga' as keyof BahanBakuFrontend)}
                 className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
               >
                 Harga
@@ -750,14 +738,9 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                     {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                   </span>
                   <div className="text-xs text-gray-500">
+                    {/* ✅ UPDATE: Hapus indikator "rata-rata" duplikat, gunakan satu indikator saja */}
                     per {item.satuan}{item.hargaRataRata != null ? ' · rata-rata' : ''}
                   </div>
-                  {/* ✅ ADD: WAC indicator (opsional jika ingin tetap menampilkan) */}
-                  {item.hargaRataRata != null && (
-                    <div className="text-xs text-gray-500">
-                      rata-rata
-                    </div>
-                  )}
                 </td>
 
                 <td className="px-4 py-4">

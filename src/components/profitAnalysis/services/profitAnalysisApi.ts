@@ -33,6 +33,69 @@ const getCurrentUserId = async (): Promise<string | null> => {
   return user.id;
 };
 
+// ===== WAREHOUSE + PEMAKAIAN HELPERS (export utk dipakai hooks) =====
+// Catatan: kolom snake_case mengikuti schema Supabase
+
+/**
+ * Ambil semua bahan baku dan buat map by ID (pastikan field harga_rata_rata & harga_satuan ada)
+ */
+export async function fetchBahanMap(): Promise<Record<string, any>> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const service = await warehouseApi.createService('crud', { userId: user.id });
+    const items = await service.fetchBahanBaku();
+    const map: Record<string, any> = {};
+    (items || []).forEach((it: any) => {
+      map[it.id] = {
+        ...it,
+        harga_rata_rata: Number(it.harga_rata_rata ?? it.hargaRataRata ?? 0),
+        harga_satuan: Number(it.harga_satuan ?? it.harga ?? 0),
+      };
+    });
+    return map;
+  } catch (e) {
+    logger.error('Failed to fetch bahan map:', e);
+    return {};
+  }
+}
+
+export function getEffectiveUnitPrice(item: any): number {
+  const wac = Number(item.harga_rata_rata ?? 0);
+  const base = Number(item.harga_satuan ?? 0);
+  return wac > 0 ? wac : base;
+}
+
+/**
+ * Ambil pemakaian bahan dari view (ikut kolom harga_efektif / hpp_value)
+ */
+export async function fetchPemakaianByPeriode(start: string, end: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('pemakaian_bahan_view')
+      .select('bahan_baku_id, qty_base, tanggal, harga_efektif, hpp_value')
+      .gte('tanggal', start)
+      .lte('tanggal', end);
+    if (error) throw error;
+    return data ?? [];
+  } catch (e) {
+    logger.error('Failed to fetch pemakaian bahan:', e);
+    return [];
+  }
+}
+
+/**
+ * Hitung nilai HPP baris pemakaian (pakai hpp_value/harga_efektif; fallback ke map)
+ */
+export function calculatePemakaianValue(p: any, bahanMap: Record<string, any>): number {
+  const qty = Number(p.qty_base || 0);
+  if (typeof p.hpp_value === 'number') return Number(p.hpp_value);
+  if (typeof p.harga_efektif === 'number') return qty * Number(p.harga_efektif);
+  const bahan = bahanMap[p.bahan_baku_id];
+  if (!bahan) return 0;
+  return qty * getEffectiveUnitPrice(bahan);
+}
+
 // ===== HELPER FUNCTIONS (PISAHKAN DARI OBJECT LITERAL) =====
 
 /**

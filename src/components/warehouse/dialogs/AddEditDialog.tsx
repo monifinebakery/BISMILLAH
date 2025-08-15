@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Plus, Edit2, Save, AlertCircle, Calculator, RefreshCw, ChevronDown, Info } from 'lucide-react';
+import { X, Plus, Edit2, Save, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
@@ -29,10 +29,6 @@ interface FormData {
   satuan: string;
   harga: number;
   expiry: string;
-  jumlahBeliKemasan: number;
-  isiPerKemasan: number;
-  satuanKemasan: string;
-  hargaTotalBeliKemasan: number;
 }
 
 const initialFormData: FormData = {
@@ -44,10 +40,6 @@ const initialFormData: FormData = {
   satuan: '',
   harga: 0,
   expiry: '',
-  jumlahBeliKemasan: 0,
-  isiPerKemasan: 1,
-  satuanKemasan: '',
-  hargaTotalBeliKemasan: 0,
 };
 
 const baseUnits = [
@@ -60,40 +52,6 @@ const baseUnits = [
   { value: 'lembar', label: 'lembar', category: 'Satuan', baseUnit: 'lembar', multiplier: 1 },
   { value: 'meter', label: 'meter', category: 'Panjang', baseUnit: 'meter', multiplier: 1 },
 ];
-
-const packageTypes = [
-  'pak', 'box', 'dus', 'karton', 'sak', 'botol', 'kaleng', 'jerigen',
-  'roll', 'bundle', 'krat', 'bal', 'pallet', 'container', 'drum',
-  'sachet', 'pouch', 'kantong', 'plastik', 'kemasan'
-];
-
-const convertToBaseUnit = (value: number, fromUnit: string): number => {
-  const unit = baseUnits.find(u => u.value === fromUnit);
-  return unit ? value * unit.multiplier : value;
-};
-
-const convertFromBaseUnit = (value: number, toUnit: string): number => {
-  const unit = baseUnits.find(u => u.value === toUnit);
-  return unit ? value / unit.multiplier : value;
-};
-
-const getUnitDomain = (unit: string): 'mass' | 'volume' | 'count' | 'length' | 'unknown' => {
-  const unitData = baseUnits.find(u => u.value === unit);
-  if (!unitData) return 'unknown';
-  if (unitData.baseUnit === 'gram') return 'mass';
-  if (unitData.baseUnit === 'ml') return 'volume';
-  if (['pcs', 'buah', 'lembar'].includes(unitData.baseUnit)) return 'count';
-  if (unitData.baseUnit === 'meter') return 'length';
-  return 'unknown';
-};
-
-const parsePackageInfo = (satuanKemasan: string | null): { isiPerKemasan: number; satuanKemasan: string } => {
-  if (!satuanKemasan) return { isiPerKemasan: 1, satuanKemasan: '' };
-  const match = satuanKemasan.match(/^(\d+(?:\.\d+)?)\s+\w+\s+per\s+(.+)$/);
-  return match 
-    ? { isiPerKemasan: parseFloat(match[1]), satuanKemasan: match[2].trim() }
-    : { isiPerKemasan: 1, satuanKemasan: satuanKemasan };
-};
 
 const fetchDialogData = async (type: 'categories' | 'suppliers'): Promise<string[]> => {
   try {
@@ -124,7 +82,6 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     categories: false,
     suppliers: false,
     units: false,
-    packageTypes: false,
   });
 
   const isEditMode = mode === 'edit' || !!item;
@@ -148,7 +105,6 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   useEffect(() => {
     if (isEditMode && item) {
-      const { isiPerKemasan, satuanKemasan } = parsePackageInfo(item.satuanKemasan);
       setFormData({
         nama: item.nama || '',
         kategori: item.kategori || '',
@@ -158,10 +114,6 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         satuan: item.satuan || '',
         harga: Number(item.harga) || 0,
         expiry: item.expiry ? item.expiry.split('T')[0] : '',
-        jumlahBeliKemasan: Number(item.jumlahBeliKemasan) || 0,
-        isiPerKemasan,
-        satuanKemasan,
-        hargaTotalBeliKemasan: Number(item.hargaTotalBeliKemasan) || 0,
       });
     } else {
       setFormData(initialFormData);
@@ -170,24 +122,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   }, [isEditMode, item, isOpen]);
 
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
-    setFormData(prev => {
-      const updated = { ...prev, [field]: value };
-      if (['jumlahBeliKemasan', 'isiPerKemasan', 'hargaTotalBeliKemasan'].includes(field)) {
-        const jumlah = field === 'jumlahBeliKemasan' ? Number(value) : updated.jumlahBeliKemasan;
-        const isiPerKemasan = field === 'isiPerKemasan' ? Number(value) : updated.isiPerKemasan;
-        const total = field === 'hargaTotalBeliKemasan' ? Number(value) : updated.hargaTotalBeliKemasan;
-        
-        if (jumlah > 0 && isiPerKemasan > 0 && total > 0) {
-          const totalContent = jumlah * isiPerKemasan;
-          const unitPrice = Math.round(total / totalContent);
-          updated.harga = unitPrice;
-          if (field === 'hargaTotalBeliKemasan' || field === 'isiPerKemasan') {
-            toast.success(`Harga per ${updated.satuan}: ${warehouseUtils.formatCurrency(unitPrice)}`);
-          }
-        }
-      }
-      return updated;
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
     if (errors.length > 0) setErrors([]);
   };
 
@@ -200,19 +135,6 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     if (formData.stok < 0) errors.push('Stok tidak boleh negatif');
     if (formData.minimum < 0) errors.push('Minimum stok tidak boleh negatif');
     if (formData.harga <= 0) errors.push('Harga per satuan harus lebih dari 0');
-
-    const hasPackageData = formData.jumlahBeliKemasan > 0 || 
-                          formData.isiPerKemasan > 0 || 
-                          formData.hargaTotalBeliKemasan > 0 ||
-                          formData.satuanKemasan?.trim();
-    
-    if (hasPackageData) {
-      if (formData.jumlahBeliKemasan > 0) {
-        if (!formData.satuanKemasan?.trim()) errors.push('Jenis kemasan harus diisi jika ada jumlah kemasan');
-        if (formData.isiPerKemasan <= 0) errors.push('Isi per kemasan harus lebih dari 0');
-        if (formData.hargaTotalBeliKemasan <= 0) errors.push('Harga total beli kemasan harus lebih dari 0');
-      }
-    }
     
     setErrors(errors);
     return errors.length === 0;
@@ -236,10 +158,6 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         satuan: formData.satuan.trim(),
         harga: formData.harga,
         expiry: formData.expiry || null,
-        jumlahBeliKemasan: formData.jumlahBeliKemasan || null,
-        isiPerKemasan: formData.isiPerKemasan || null,
-        satuanKemasan: formData.satuanKemasan ? formData.satuanKemasan.trim() : null,
-        hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan || null,
       };
       
       await onSave(submitData);
@@ -261,18 +179,15 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     }
   };
 
-  const handleSelect = (field: 'kategori' | 'supplier' | 'satuan' | 'satuanKemasan', value: string) => {
+  const handleSelect = (field: 'kategori' | 'supplier' | 'satuan', value: string) => {
     handleFieldChange(field, value);
     setShowDropdown(prev => ({ 
       ...prev, 
       categories: field === 'kategori' ? false : prev.categories,
       suppliers: field === 'supplier' ? false : prev.suppliers,
       units: field === 'satuan' ? false : prev.units,
-      packageTypes: field === 'satuanKemasan' ? false : prev.packageTypes,
     }));
   };
-
-  const calculateTotalContent = () => formData.jumlahBeliKemasan * formData.isiPerKemasan;
 
   const getStockLevelInfo = (stok: number, minimum: number) => {
     const stockData = warehouseUtils.formatStockLevel(stok, minimum);
@@ -306,16 +221,12 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     unit.value.toLowerCase().includes(formData.satuan.toLowerCase())
   );
 
-  const filteredPackageTypes = packageTypes.filter(type => 
-    type.toLowerCase().includes(formData.satuanKemasan.toLowerCase())
-  );
-
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
       <div 
-        className="bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col"
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl flex flex-col"
         style={{ height: 'calc(100vh - 160px)', maxHeight: '90vh', minHeight: '500px' }}
       >
         <div className="flex items-center justify-between p-4 sm:p-6 border-b flex-shrink-0">
@@ -325,7 +236,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-semibold">{isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}</h2>
-              <p className="text-xs sm:text-sm text-gray-600">{isEditMode ? 'Ubah data bahan baku' : 'Tambah bahan baku baru'}</p>
+              <p className="text-xs sm:text-sm text-gray-600">{isEditMode ? 'Ubah data master bahan baku' : 'Tambah data master bahan baku baru'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -352,22 +263,11 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
           </div>
         )}
 
-        {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && (
-          <div className="p-2 sm:p-3 bg-green-50 border-b border-green-200 flex-shrink-0">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-green-700">
-              <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>
-                💡 Harga per {formData.satuan}: <strong>{warehouseUtils.formatCurrency(formData.harga)}</strong> 
-                (dari {formData.jumlahBeliKemasan} × {formData.isiPerKemasan} = {calculateTotalContent()} {formData.satuan})
-              </span>
-            </div>
-          </div>
-        )}
-
         <div className="flex-1 overflow-y-auto">
           <form onSubmit={handleSubmit} className="h-full flex flex-col">
             <div className="flex-1 p-3 sm:p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Left Column - Basic Info */}
                 <div className="space-y-4 sm:space-y-6">
                   <div>
                     <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Informasi Dasar</h3>
@@ -521,7 +421,10 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       </div>
                     </div>
                   </div>
+                </div>
 
+                {/* Right Column - Stock & Price */}
+                <div className="space-y-4 sm:space-y-6">
                   <div>
                     <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Informasi Stok</h3>
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -555,176 +458,36 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Detail Pembelian</h3>
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Jumlah Kemasan</label>
-                          <Input
-                            type="number"
-                            value={formData.jumlahBeliKemasan}
-                            onChange={(e) => handleFieldChange('jumlahBeliKemasan', Number(e.target.value))}
-                            min="0"
-                            disabled={isSubmitting}
-                            placeholder="0"
-                            className="text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                            Isi per Kemasan * <span className="text-xs text-gray-500 block">({formData.satuan || 'satuan'})</span>
-                          </label>
-                          <Input
-                            type="number"
-                            value={formData.isiPerKemasan}
-                            onChange={(e) => handleFieldChange('isiPerKemasan', Number(e.target.value))}
-                            min="0.01"
-                            step="0.01"
-                            disabled={isSubmitting}
-                            placeholder="500"
-                            className="text-sm"
-                          />
-                        </div>
-                        <div className="relative">
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Jenis Kemasan</label>
-                          <div className="relative">
-                            <Input
-                              value={formData.satuanKemasan}
-                              onChange={(e) => {
-                                handleFieldChange('satuanKemasan', e.target.value);
-                                setShowDropdown(prev => ({ ...prev, packageTypes: true }));
-                              }}
-                              onFocus={() => setShowDropdown(prev => ({ ...prev, packageTypes: true }))}
-                              onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, packageTypes: false })), 200)}
-                              placeholder="pak, botol, dus"
-                              disabled={isSubmitting}
-                              className="text-sm"
-                            />
-                            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                          </div>
-                          {showDropdown.packageTypes && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-32 sm:max-h-40 overflow-y-auto">
-                              {filteredPackageTypes.length > 0 ? (
-                                filteredPackageTypes.map((type) => (
-                                  <button
-                                    key={type}
-                                    type="button"
-                                    onClick={() => handleSelect('satuanKemasan', type)}
-                                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm"
-                                  >
-                                    {type}
-                                  </button>
-                                ))
-                              ) : (
-                                <div className="px-3 py-2 text-xs sm:text-sm text-gray-500">
-                                  Tidak ada jenis kemasan yang cocok
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Harga Referensi</h3>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                        Harga per {formData.satuan || 'satuan'} *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                        <Input
+                          type="number"
+                          value={formData.harga}
+                          onChange={(e) => handleFieldChange('harga', Number(e.target.value))}
+                          min="0"
+                          className="pl-10 sm:pl-12 text-sm"
+                          disabled={isSubmitting}
+                          required
+                          placeholder="0"
+                        />
                       </div>
-
-                      {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.satuanKemasan && (
-                        <div className="p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="flex items-center gap-2 text-xs sm:text-sm text-blue-700">
-                            <Info className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span>
-                              Contoh: {formData.jumlahBeliKemasan} {formData.satuanKemasan} × {formData.isiPerKemasan} {formData.satuan} = 
-                              <strong> {calculateTotalContent()} {formData.satuan}</strong> total
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                          Harga Total Beli Kemasan <span className="text-xs text-gray-500 ml-1">(akan menghitung harga per {formData.satuan} otomatis)</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-                          <Input
-                            type="number"
-                            value={formData.hargaTotalBeliKemasan}
-                            onChange={(e) => handleFieldChange('hargaTotalBeliKemasan', Number(e.target.value))}
-                            min="0"
-                            className="pl-10 sm:pl-12 text-sm"
-                            disabled={isSubmitting}
-                            placeholder="0"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                          Harga per {formData.satuan || 'Satuan'} * 
-                          <span className="text-xs text-green-600 ml-1">
-                            {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && '(dihitung otomatis)'}
-                          </span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-                          <Input
-                            type="number"
-                            value={formData.harga}
-                            onChange={(e) => handleFieldChange('harga', Number(e.target.value))}
-                            min="0"
-                            className="pl-10 sm:pl-12 text-sm"
-                            disabled={isSubmitting}
-                            required
-                            placeholder="0"
-                          />
-                        </div>
-                        {/* ✅ ADD: WAC display for edit mode */}
-                        {isEditMode && typeof item?.hargaRataRata === 'number' && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Harga rata-rata (server): <strong>{warehouseUtils.formatCurrency(item.hargaRataRata)}</strong>
-                          </p>
-                        )}
+                      {isEditMode && typeof item?.hargaRataRata === 'number' && (
                         <p className="text-xs text-gray-500 mt-1">
-                          💡 Tip: Isi detail kemasan di atas, maka harga per {formData.satuan} akan dihitung otomatis
+                          Harga rata-rata (server): <strong>{warehouseUtils.formatCurrency(item.hargaRataRata)}</strong>
                         </p>
-                      </div>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 Catatan: Harga ini hanya referensi master. WAC (Weighted Average Cost) dihitung dari transaksi pembelian aktual.
+                      </p>
                     </div>
                   </div>
-
-                  {formData.jumlahBeliKemasan > 0 && formData.isiPerKemasan > 0 && formData.hargaTotalBeliKemasan > 0 && (
-                    <div className="p-3 sm:p-4 bg-green-50 rounded-lg border border-green-200">
-                      <h4 className="text-xs sm:text-sm font-medium text-green-900 mb-2 sm:mb-3 flex items-center gap-2">
-                        <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
-                        Ringkasan Pembelian & Perhitungan
-                      </h4>
-                      <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-green-700">Jumlah kemasan:</span>
-                          <span className="font-medium">{formData.jumlahBeliKemasan} {formData.satuanKemasan}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-green-700">Isi per kemasan:</span>
-                          <span className="font-medium">{formData.isiPerKemasan} {formData.satuan}</span>
-                        </div>
-                        <div className="flex justify-between border-t border-green-200 pt-1 sm:pt-2">
-                          <span className="text-green-700">Total isi:</span>
-                          <span className="font-bold">{calculateTotalContent()} {formData.satuan}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-green-700">Harga total:</span>
-                          <span className="font-medium">{warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)}</span>
-                        </div>
-                        <div className="flex justify-between border-t border-green-200 pt-1 sm:pt-2">
-                          <span className="text-green-700">Harga per {formData.satuan}:</span>
-                          <span className="font-bold text-green-900">{warehouseUtils.formatCurrency(formData.harga)}</span>
-                        </div>
-                        <div className="text-xs text-green-600 mt-2 sm:mt-3 p-2 bg-green-100 rounded">
-                          ✅ Perhitungan: {warehouseUtils.formatCurrency(formData.hargaTotalBeliKemasan)} ÷ ({formData.jumlahBeliKemasan} × {formData.isiPerKemasan}) = {warehouseUtils.formatCurrency(formData.harga)} per {formData.satuan}
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {formData.stok > 0 && formData.minimum > 0 && (
                     <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -745,24 +508,6 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       )}
                     </div>
                   )}
-
-                  <div className="p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="text-xs sm:text-sm font-medium text-blue-700 mb-2 flex items-center gap-2">
-                      <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
-                      Cara Menghitung Harga per Satuan
-                    </h4>
-                    <div className="text-xs text-blue-600 space-y-2">
-                      <div className="p-2 bg-blue-100 rounded">
-                        <strong>Contoh:</strong> Beli 2 pak biji chia, isi 500 gram per pak, total bayar Rp 180.000
-                      </div>
-                      <div>1. <strong>Total isi:</strong> 2 pak × 500 gram = 1.000 gram</div>
-                      <div>2. <strong>Harga per gram:</strong> Rp 180.000 ÷ 1.000 gram = Rp 180/gram</div>
-                      <div>3. <strong>Bukan:</strong> Rp 180.000 ÷ 2 pak = Rp 90.000/pak ❌</div>
-                      <div className="text-blue-700 font-medium mt-2">
-                        💡 <strong>Kunci:</strong> Selalu bagi dengan total isi, bukan jumlah kemasan!
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

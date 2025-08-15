@@ -1,0 +1,37 @@
+name: Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches: [ dev3 ]
+    paths:
+      - 'supabase/functions/**'
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: 'Supabase project ref (overrides default)'
+        required: false
+        default: ''
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -e
+          PROJECT_REF="${{ github.event.inputs.project_ref }}"
+          if [ -z "$PROJECT_REF" ]; then PROJECT_REF="kewhzkfvswbimmwtpymw"; fi
+          echo "Deploying to project: $PROJECT_REF"
+          supabase functions deploy scalev-webhook --project-ref "$PROJECT_REF"

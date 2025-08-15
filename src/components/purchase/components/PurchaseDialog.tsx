@@ -46,6 +46,50 @@ import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
+import SimplePurchaseItemForm from './SimplePurchaseItemForm';
+
+const toNumber = (v: string | number | '' | undefined | null): number => {
+  if (v === '' || v == null) return 0;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  
+  // Remove spaces and non-numeric characters except comma, period, minus
+  let s = v.toString().trim().replace(/\s+/g, '');
+  s = s.replace(/[^\d,.\-]/g, '');
+  
+  // Handle both comma and period: assume period = thousand separator, comma = decimal
+  if (s.includes(',') && s.includes('.')) {
+    s = s.replace(/\./g, '').replace(/,/g, '.');
+  } else {
+    // Only comma: treat as decimal separator
+    s = s.replace(/,/g, '.');
+  }
+  
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+};
+
+// ✅ INLINE SafeNumericInput - no external file needed
+const SafeNumericInput = React.forwardRef<
+  HTMLInputElement, 
+  React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
+>(({ className = '', value, onChange, ...props }, ref) => {
+  const baseClasses = "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:cursor-not-allowed disabled:opacity-50";
+  
+  return (
+    <input
+      ref={ref}
+      type="text"
+      inputMode="decimal"
+      value={String(value ?? '')}
+      onChange={onChange}
+      className={`${baseClasses} ${className}`}
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck="false"
+      {...props}
+    />
+  );
+});
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,
@@ -54,6 +98,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   suppliers,
   bahanBaku,
   onClose,
+  initialAddMode, // <— NEW: Added prop for auto-opening with specific mode
 }) => {
   // Form management
   const {
@@ -86,13 +131,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   // Item management
   const {
-    newItem,
-    setNewItem,
     showAddItem,
     setShowAddItem,
     editingItemIndex,
-    handleBahanBakuSelect,
-    handleAddItem,
     handleEditItem,
     handleSaveEditedItem,
     handleCancelEditItem,
@@ -103,25 +144,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     updateItem,
   });
 
-  // Reset form states when dialog opens/closes
+  // ✅ Reset form states when dialog opens/closes + handle initialAddMode
   useEffect(() => {
     if (isOpen) {
-      setNewItem({
-        bahanBakuId: '',
-        nama: '',
-        kuantitas: 0,
-        satuan: '',
-        hargaSatuan: 0,
-        keterangan: '',
-      });
-      setShowAddItem(false);
+      // Auto-open add item form if initialAddMode is 'packaging'
+      setShowAddItem(initialAddMode === 'packaging');
       handleCancelEditItem();
     }
-    // We intentionally only depend on `isOpen` to avoid resetting
-    // state on every render which would prevent the add-item form
-    // from toggling correctly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, initialAddMode]);
 
   // ✅ Handle form submission
   const onSubmit = async () => {
@@ -150,7 +181,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     if (confirm('Reset semua perubahan ke kondisi awal?')) {
       handleReset();
       setShowAddItem(false);
-      setEditingItemIndex(null);
+      if (handleCancelEditItem) handleCancelEditItem();
       toast.info('Form direset ke kondisi awal');
     }
   };
@@ -371,120 +402,20 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Add New Item Form */}
+              {/* ✅ Smart Add New Item Form with initialMode support */}
               {canEdit && showAddItem && (
-                <Card className="border-dashed border-blue-300 bg-blue-50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-blue-900">Tambah Item Baru</h4>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAddItem(false)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                      {/* Bahan Baku Selection */}
-                      <div className="space-y-2">
-                        <Label>Bahan Baku *</Label>
-                        <Select
-                          value={newItem.bahanBakuId}
-                          onValueChange={handleBahanBakuSelect}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih bahan baku" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {bahanBaku.map((bahan) => (
-                              <SelectItem key={bahan.id} value={bahan.id}>
-                                {bahan.nama} ({bahan.satuan})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Quantity */}
-                      <div className="space-y-2">
-                        <Label>Kuantitas *</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="number"
-                            min="0.001"
-                            step="0.001"
-                            value={newItem.kuantitas || ''}
-                            onChange={(e) =>
-                              setNewItem(prev => ({
-                                ...prev,
-                                kuantitas: parseFloat(e.target.value) || 0
-                              }))
-                            }
-                            placeholder="0"
-                          />
-                          <div className="flex items-center px-3 bg-gray-100 rounded text-sm text-gray-600 min-w-[60px]">
-                            {newItem.satuan || 'unit'}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Unit Price */}
-                      <div className="space-y-2">
-                        <Label>Harga Satuan *</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={newItem.hargaSatuan || ''}
-                          onChange={(e) =>
-                            setNewItem(prev => ({
-                              ...prev,
-                              hargaSatuan: parseFloat(e.target.value) || 0
-                            }))
-                          }
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div className="space-y-2 mb-4">
-                      <Label>Keterangan</Label>
-                      <Textarea
-                        value={newItem.keterangan || ''}
-                        onChange={(e) =>
-                          setNewItem(prev => ({ ...prev, keterangan: e.target.value }))
-                        }
-                        placeholder="Keterangan tambahan (opsional)"
-                        rows={2}
-                      />
-                    </div>
-
-                    {/* Subtotal Preview */}
-                    {newItem.kuantitas && newItem.hargaSatuan && (
-                      <div className="bg-blue-100 p-3 rounded-lg mb-4">
-                        <div className="text-sm text-blue-800">
-                          <strong>Subtotal: </strong>
-                          {formatCurrency((newItem.kuantitas || 0) * (newItem.hargaSatuan || 0))}
-                        </div>
-                      </div>
-                    )}
-
-                    <Button
-                      type="button"
-                      onClick={handleAddItem}
-                      disabled={!newItem.bahanBakuId || !newItem.kuantitas || !newItem.hargaSatuan}
-                      className="w-full"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah ke Daftar
-                    </Button>
-                  </CardContent>
-                </Card>
+                <SimplePurchaseItemForm
+                  bahanBaku={bahanBaku}
+                  initialMode={initialAddMode === 'packaging' ? 'packaging' : 'quick'} // <— NEW: Pass initial mode
+                  onCancel={() => setShowAddItem(false)}
+                  onAdd={(cleanData) => {
+                    // Ensure subtotal is calculated for UI consistency
+                    const subtotal = Number(cleanData.kuantitas) * Number(cleanData.hargaSatuan);
+                    addItem({ ...cleanData, subtotal }); // <— FIX: Use addItem from form hook
+                    setShowAddItem(false);
+                    toast.success(`${cleanData.nama} berhasil ditambahkan`);
+                  }}
+                />
               )}
 
               {/* Items List */}
@@ -518,6 +449,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                               <div>
                                 <div className="font-medium">{item.nama}</div>
                                 <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
+                                {/* ✅ IMPROVED: Display packaging info with fallback unit */}
+                                {(item as any).jumlahKemasan > 0 && (item as any).isiPerKemasan > 0 && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Kemasan: {(item as any).jumlahKemasan} × {(item as any).isiPerKemasan} {item.satuan || 'unit'}
+                                    {(item as any).satuanKemasan ? ` (${(item as any).satuanKemasan})` : ''}
+                                  </div>
+                                )}
                               </div>
                               <div className="text-right">
                                 <div className="font-medium">{item.kuantitas} {item.satuan}</div>
@@ -643,23 +581,29 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   );
 };
 
-// ✅ NEW: Edit Item Form Component
+// ✅ FIXED: Edit Item Form Component with bulletproof string-based number inputs
 const EditItemForm: React.FC<{
   item: PurchaseItem;
   onSave: (item: Partial<PurchaseItem>) => void;
   onCancel: () => void;
 }> = ({ item, onSave, onCancel }) => {
+  // ✅ FIXED: Always store as strings to prevent any number/string switching
   const [editedItem, setEditedItem] = useState({
-    kuantitas: item.kuantitas,
-    hargaSatuan: item.hargaSatuan,
+    kuantitas: String(item.kuantitas ?? ''),
+    hargaSatuan: String(item.hargaSatuan ?? ''),
     keterangan: item.keterangan || '',
   });
 
   const handleSave = () => {
-    onSave(editedItem);
+    // Convert strings to numbers when saving
+    onSave({
+      kuantitas: toNumber(editedItem.kuantitas),
+      hargaSatuan: toNumber(editedItem.hargaSatuan),
+      keterangan: editedItem.keterangan,
+    });
   };
 
-  const subtotal = editedItem.kuantitas * editedItem.hargaSatuan;
+  const subtotal = toNumber(editedItem.kuantitas) * toNumber(editedItem.hargaSatuan);
 
   return (
     <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -678,7 +622,7 @@ const EditItemForm: React.FC<{
             type="button"
             size="sm"
             onClick={handleSave}
-            disabled={!editedItem.kuantitas || !editedItem.hargaSatuan}
+            disabled={toNumber(editedItem.kuantitas) <= 0 || toNumber(editedItem.hargaSatuan) <= 0}
           >
             <Save className="h-4 w-4 mr-2" />
             Simpan
@@ -687,19 +631,16 @@ const EditItemForm: React.FC<{
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Quantity */}
+        {/* Quantity - FIXED: Always string value, no switching */}
         <div className="space-y-2">
           <Label>Kuantitas *</Label>
           <div className="flex gap-2">
-            <Input
-              type="number"
-              min="0.001"
-              step="0.001"
-              value={editedItem.kuantitas}
+            <SafeNumericInput
+              value={String(editedItem.kuantitas ?? '')} // ✅ FIXED: Force string
               onChange={(e) =>
                 setEditedItem(prev => ({
                   ...prev,
-                  kuantitas: parseFloat(e.target.value) || 0
+                  kuantitas: e.target.value
                 }))
               }
               placeholder="0"
@@ -710,18 +651,15 @@ const EditItemForm: React.FC<{
           </div>
         </div>
 
-        {/* Unit Price */}
+        {/* Unit Price - FIXED: Always string value, no switching */}
         <div className="space-y-2">
           <Label>Harga Satuan *</Label>
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            value={editedItem.hargaSatuan}
+          <SafeNumericInput
+            value={String(editedItem.hargaSatuan ?? '')} // ✅ FIXED: Force string
             onChange={(e) =>
               setEditedItem(prev => ({
                 ...prev,
-                hargaSatuan: parseFloat(e.target.value) || 0
+                hargaSatuan: e.target.value
               }))
             }
             placeholder="0"
@@ -762,8 +700,8 @@ const EditItemForm: React.FC<{
             </div>
             <div>
               <strong>Sesudah:</strong>
-              <div>Qty: {editedItem.kuantitas} {item.satuan}</div>
-              <div>Harga: {formatCurrency(editedItem.hargaSatuan)}</div>
+              <div>Qty: {toNumber(editedItem.kuantitas)} {item.satuan}</div>
+              <div>Harga: {formatCurrency(toNumber(editedItem.hargaSatuan))}</div>
               <div>Subtotal: {formatCurrency(subtotal)}</div>
             </div>
           </div>

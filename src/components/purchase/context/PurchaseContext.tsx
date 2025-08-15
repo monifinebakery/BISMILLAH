@@ -4,6 +4,7 @@
 // - Stats, bulk ops, validate prerequisites
 // - Edit/Hapus setelah 'completed' diperbolehkan (stok & WAC diurus trigger DB)
 // - Realtime aman (hindari refetch berlebih)
+// ✅ TAMBAH: Invalidate warehouse data setiap ada perubahan purchase
 
 import React, { createContext, useContext, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -32,6 +33,12 @@ import { validatePurchaseData, getStatusDisplayText } from '../utils/purchaseHel
 const purchaseQueryKeys = {
   all: ['purchases'] as const,
   list: (userId?: string) => [...purchaseQueryKeys.all, 'list', userId] as const,
+} as const;
+
+// ✅ WAREHOUSE QUERY KEYS: Untuk invalidation
+const warehouseQueryKeys = {
+  list: () => ['warehouse', 'list'] as const,
+  analysis: () => ['warehouse', 'analysis'] as const,
 } as const;
 
 // ------------------- API helpers -------------------
@@ -100,6 +107,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return 'Supplier';
     }
   }, [suppliers]);
+
+  // ✅ HELPER: Invalidate warehouse data after purchase changes
+  const invalidateWarehouseData = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+    queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
+  }, [queryClient]);
 
   // ------------------- Query (list) -------------------
   const {
@@ -174,6 +187,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     onSuccess: (newRow, _payload, ctx) => {
       // swap temp with real
       setCacheList((old) => [newRow, ...old.filter((p) => p.id !== ctx?.tempId)]);
+
+      // ✅ INVALIDATE WAREHOUSE: Trigger DB mungkin sudah update stok jika status=completed
+      invalidateWarehouseData();
+
       // Info
       const totalValue = formatCurrency(newRow.totalNilai);
       toast.success(`Pembelian dibuat (${getSupplierName(newRow.supplier)} • ${totalValue})`);
@@ -212,6 +229,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     },
     onSuccess: (fresh, _vars, ctx) => {
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
+
+      // ✅ INVALIDATE WAREHOUSE: Trigger DB akan rekalkulasi stok/WAC jika diperlukan
+      invalidateWarehouseData();
+
       toast.success('Pembelian diperbarui. (Stok akan disesuaikan otomatis bila diperlukan)');
     },
     onError: (err, _vars, ctx) => {
@@ -232,6 +253,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     },
     onSuccess: (fresh, _vars, ctx) => {
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
+
+      // ✅ INVALIDATE WAREHOUSE: Apply/rollback WAC & stok terjadi di trigger DB
+      invalidateWarehouseData();
+
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
       
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
@@ -270,6 +295,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { prev, id };
     },
     onSuccess: (_res, id, ctx) => {
+      // ✅ INVALIDATE WAREHOUSE: Trigger DB akan reversal stok/WAC jika pernah applied
+      invalidateWarehouseData();
+
       const p = ctx?.prev?.find((x) => x.id === id);
       if (p) {
         const supplierName = getSupplierName(p.supplier);
@@ -410,10 +438,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (blockRealtimeRef.current) return;
           // ringan: cukup soft-invalidate
           queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user.id) });
+          // ✅ JUGA INVALIDATE WAREHOUSE: Karena realtime change bisa jadi dari user lain/trigger
+          invalidateWarehouseData();
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id, queryClient]);
+  }, [user?.id, queryClient, invalidateWarehouseData]);
 
   // ------------------- Context value -------------------
   const contextValue: PurchaseContextType = {

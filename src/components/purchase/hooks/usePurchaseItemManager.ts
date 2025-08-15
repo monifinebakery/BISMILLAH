@@ -1,3 +1,4 @@
+// src/components/purchase/hooks/usePurchaseItemManager.ts
 import { useState } from 'react';
 import type { PurchaseItem } from '../types/purchase.types';
 import { toast } from 'sonner';
@@ -15,58 +16,118 @@ interface UsePurchaseItemManagerProps {
   updateItem: (index: number, item: Partial<PurchaseItem>) => void;
 }
 
+// Tambahan field kemasan yang kita kirim ke transformer (opsional di DB)
+type PackagingExtras = {
+  jumlahKemasan?: string;
+  isiPerKemasan?: string;
+  satuanKemasan?: string;
+  hargaTotalBeliKemasan?: string;
+};
+
+type NewItemState = {
+  bahanBakuId: string;
+  nama: string;
+  kuantitas: string;
+  satuan: string;
+  hargaSatuan: string;
+  keterangan?: string;
+} & PackagingExtras;
+
+const toPosNum = (v: unknown, def = 0): number => {
+  const n = Number(v);
+  if (Number.isFinite(n) && n > 0) return n;
+  if (n === 0) return 0;
+  return def;
+};
+
 export const usePurchaseItemManager = ({
   bahanBaku,
   items,
   addItem,
   updateItem,
 }: UsePurchaseItemManagerProps) => {
-  const [newItem, setNewItem] = useState<Partial<PurchaseItem>>({
+  const [newItem, setNewItem] = useState<NewItemState>({
     bahanBakuId: '',
     nama: '',
-    kuantitas: 0,
+    kuantitas: '',
     satuan: '',
-    hargaSatuan: 0,
+    hargaSatuan: '',
     keterangan: '',
+    // kemasan (opsional)
+    jumlahKemasan: '',
+    isiPerKemasan: '1',
+    satuanKemasan: '',
+    hargaTotalBeliKemasan: '',
   });
 
   const [showAddItem, setShowAddItem] = useState(false);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
   const handleBahanBakuSelect = (bahanBakuId: string) => {
-    const selectedBahan = bahanBaku.find((b) => b.id === bahanBakuId);
-    if (selectedBahan) {
+    const selected = bahanBaku.find((b) => b.id === bahanBakuId);
+    if (selected) {
       setNewItem((prev) => ({
         ...prev,
         bahanBakuId,
-        nama: selectedBahan.nama,
-        satuan: selectedBahan.satuan,
+        nama: selected.nama ?? prev.nama ?? '',
+        // kalau user sudah isi satuan manual, jangan ditimpa
+        satuan: prev.satuan && prev.satuan.trim() ? prev.satuan : (selected.satuan || 'unit'),
       }));
     }
   };
 
-  const handleAddItem = () => {
-    if (!newItem.bahanBakuId || !newItem.nama || !newItem.kuantitas || !newItem.hargaSatuan) {
-      toast.error('Lengkapi data item terlebih dahulu');
-      return;
-    }
+  // Dipanggil dari dialog: handleAddItem({...payload})
+  const handleAddItem = (payload?: NewItemState) => {
+    const src = payload ?? newItem;
 
-    addItem({
-      bahanBakuId: newItem.bahanBakuId!,
-      nama: newItem.nama!,
-      kuantitas: newItem.kuantitas!,
-      satuan: newItem.satuan!,
-      hargaSatuan: newItem.hargaSatuan!,
-      keterangan: newItem.keterangan,
-    });
+    // sanitasi angka
+    const qty = toPosNum(src.kuantitas, 0);
+    const price = toPosNum(src.hargaSatuan, 0);
 
+    // validasi minimal
+    if (!src.bahanBakuId) return toast.error('Pilih bahan baku dahulu');
+    if (!src.nama || !src.nama.trim()) return toast.error('Nama bahan baku tidak valid');
+    if (qty <= 0) return toast.error('Kuantitas harus > 0');
+    if (price <= 0) return toast.error('Harga satuan harus > 0');
+
+    // kemasan → kirim undefined untuk nilai kosong agar di-NULL di DB
+    const jk = toPosNum(src.jumlahKemasan, 0);
+    const ipk = toPosNum(src.isiPerKemasan, 0);
+    const htot = toPosNum(src.hargaTotalBeliKemasan, 0);
+    const sk = (src.satuanKemasan ?? '').trim();
+
+    // addItem minta Omit<PurchaseItem, 'subtotal'> → subtotal dihitung di form/core
+    const itemToAdd: Omit<PurchaseItem, 'subtotal'> & {
+      jumlahKemasan?: number;
+      isiPerKemasan?: number;
+      satuanKemasan?: string;
+      hargaTotalBeliKemasan?: number;
+    } = {
+      bahanBakuId: String(src.bahanBakuId),
+      nama: String(src.nama).trim(),
+      kuantitas: qty,
+      satuan: (src.satuan ?? 'unit').trim(),
+      hargaSatuan: price,
+      keterangan: src.keterangan ? String(src.keterangan).trim() : undefined,
+      ...(jk > 0 ? { jumlahKemasan: jk } : {}),
+      ...(ipk > 0 ? { isiPerKemasan: ipk } : {}),
+      ...(sk ? { satuanKemasan: sk } : {}),
+      ...(htot > 0 ? { hargaTotalBeliKemasan: htot } : {}),
+    };
+    addItem(itemToAdd);
+
+    // reset mini-form
     setNewItem({
       bahanBakuId: '',
       nama: '',
-      kuantitas: 0,
+      kuantitas: '',
       satuan: '',
-      hargaSatuan: 0,
+      hargaSatuan: '',
       keterangan: '',
+      jumlahKemasan: '',
+      isiPerKemasan: '1',
+      satuanKemasan: '',
+      hargaTotalBeliKemasan: '',
     });
     setShowAddItem(false);
     toast.success('Item berhasil ditambahkan');
@@ -78,14 +139,17 @@ export const usePurchaseItemManager = ({
   };
 
   const handleSaveEditedItem = (index: number, updatedItem: Partial<PurchaseItem>) => {
-    if (!updatedItem.kuantitas || !updatedItem.hargaSatuan) {
-      toast.error('Kuantitas dan harga satuan harus diisi');
+    const qty = toPosNum(updatedItem.kuantitas, 0);
+    const price = toPosNum(updatedItem.hargaSatuan, 0);
+
+    if (qty <= 0 || price <= 0) {
+      toast.error('Kuantitas dan harga satuan harus > 0');
       return;
     }
 
     updateItem(index, {
       ...updatedItem,
-      subtotal: (updatedItem.kuantitas || 0) * (updatedItem.hargaSatuan || 0),
+      subtotal: qty * price,
     });
 
     setEditingItemIndex(null);
@@ -103,10 +167,9 @@ export const usePurchaseItemManager = ({
     setShowAddItem,
     editingItemIndex,
     handleBahanBakuSelect,
-    handleAddItem,
+    handleAddItem,          // ← sekarang menerima payload opsional
     handleEditItem,
     handleSaveEditedItem,
     handleCancelEditItem,
   };
 };
-

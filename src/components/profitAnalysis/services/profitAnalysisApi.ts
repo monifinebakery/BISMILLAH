@@ -857,12 +857,4 @@ export const profitAnalysisApi = {
   }
 };
 
-// ✅ EKSPOR: Helper functions untuk digunakan di komponen lain
-export { 
-  fetchBahanMap, 
-  getEffectiveUnitPrice, 
-  fetchPemakaianByPeriode, 
-  calculatePemakaianValue 
-};
-
 export default profitAnalysisApi;

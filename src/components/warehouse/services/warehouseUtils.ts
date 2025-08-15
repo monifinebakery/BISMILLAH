@@ -2,13 +2,23 @@
 // ✅ FIXED: Updated for complete schema support with isi_per_kemasan
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
 
-// ✅ TAMBAH: Helper untuk mendapatkan harga efektif (WAC || harga satuan)
-const getEffectiveUnitPrice = (item: BahanBakuFrontend) =>
-  (item.hargaRataRata ?? item.harga ?? 0);
+// ✅ TAMBAH: Helper untuk mendapatkan harga efektif (WAC > 0, fallback ke harga satuan)
+const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
+  const wac = Number(item.hargaRataRata ?? 0);
+  const base = Number(item.harga ?? 0);
+  return wac > 0 ? wac : base;
+};
+
+// ✅ TAMBAH: Helper untuk mengecek apakah menggunakan WAC
+const isUsingWac = (item: BahanBakuFrontend): boolean => {
+  const wac = Number(item.hargaRataRata ?? 0);
+  return wac > 0;
+};
 
 export const warehouseUtils = {
   // ✅ EKSPOR: expose helper
   getEffectiveUnitPrice,
+  isUsingWac,
   
   // Data filtering (updated for new field names)
   filterItems: (items: BahanBakuFrontend[], searchTerm: string, filters: FilterState): BahanBakuFrontend[] => {
@@ -69,7 +79,7 @@ export const warehouseUtils = {
       let bv: any = b[key as keyof BahanBakuFrontend];
 
       // jika sort by harga → pakai harga efektif (WAC || harga satuan)
-      if (key === 'harga') {
+      if (key === 'harga' || key === 'hargaRataRata') {
         av = getEffectiveUnitPrice(a);
         bv = getEffectiveUnitPrice(b);
       }
@@ -250,7 +260,7 @@ export const warehouseUtils = {
       'Harga Efektif': warehouseUtils.formatCurrency(getEffectiveUnitPrice(item)),
       'Tanggal Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
       'Jumlah Beli Kemasan': item.jumlahBeliKemasan || '-',
-      'Isi Per Kemasan': item.isiPerKemasan || '-', // ✅ FIXED: Use isiPerKemasan
+      'Isi Per Kemasan': item.isiPerKemasan || '-',
       'Satuan Kemasan': item.satuanKemasan || '-',
       'Harga Total Beli Kemasan': item.hargaTotalBeliKemasan ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan) : '-',
       'Dibuat': warehouseUtils.formatDate(item.createdAt),

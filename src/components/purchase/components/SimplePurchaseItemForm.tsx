@@ -394,6 +394,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
       logger.debug('MOUNT <PackagingMode>');
       return () => logger.debug('UNMOUNT <PackagingMode>');
     }, []);
+
+    // 🔧 NEW: refs untuk jaga fokus di packaging inputs
+    const packQtyRef = useRef<HTMLInputElement>(null);
+    const perPackRef = useRef<HTMLInputElement>(null);
+    const totalPayRef = useRef<HTMLInputElement>(null);
     
     return (
     <div className="space-y-6">
@@ -438,10 +443,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <Label className="text-sm font-medium text-gray-700">Total yang Dibeli</Label>
           <div className="flex gap-2">
             <SafeNumericInput
+              ref={packQtyRef}
               value={getValue('kuantitas')}
               onBeforeInput={makeBeforeInputGuard(() => getValue('kuantitas'), true)}
               onPaste={handlePasteGuard(true)}
-              onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
+              onChange={(e) => {
+                handleNumericChange('kuantitas', e.target.value);
+                requestAnimationFrame(() => packQtyRef.current?.focus());
+              }}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
             />
@@ -463,11 +472,15 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Jumlah Kemasan</Label>
             <SafeNumericInput
+              ref={packQtyRef}
               value={getValue('jumlahKemasan')}
               inputMode="numeric"
               onBeforeInput={makeBeforeInputGuard(() => getValue('jumlahKemasan'), false)}
               onPaste={handlePasteGuard(false)}
-              onChange={(e) => handleNumericChange('jumlahKemasan', e.target.value)}
+              onChange={(e) => {
+                handleNumericChange('jumlahKemasan', e.target.value);
+                requestAnimationFrame(() => packQtyRef.current?.focus());
+              }}
               placeholder="1"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
             />
@@ -495,10 +508,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Isi Per Kemasan</Label>
             <div className="flex gap-2">
               <SafeNumericInput
+                ref={perPackRef}
                 value={getValue('isiPerKemasan')}
                 onBeforeInput={makeBeforeInputGuard(() => getValue('isiPerKemasan'), true)}
                 onPaste={handlePasteGuard(true)}
-                onChange={(e) => handleNumericChange('isiPerKemasan', e.target.value)}
+                onChange={(e) => {
+                  handleNumericChange('isiPerKemasan', e.target.value);
+                  requestAnimationFrame(() => perPackRef.current?.focus());
+                }}
                 placeholder="500"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -513,10 +530,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <SafeNumericInput
+                ref={totalPayRef}
                 value={getValue('hargaTotalBeliKemasan')}
                 onBeforeInput={makeBeforeInputGuard(() => getValue('hargaTotalBeliKemasan'), true)}
                 onPaste={handlePasteGuard(true)}
-                onChange={(e) => handleNumericChange('hargaTotalBeliKemasan', e.target.value)}
+                onChange={(e) => {
+                  handleNumericChange('hargaTotalBeliKemasan', e.target.value);
+                  requestAnimationFrame(() => totalPayRef.current?.focus());
+                }}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="25000"
               />

@@ -17,9 +17,8 @@ interface ServiceConfig {
 }
 
 // ✅ ENHANCED: Data transformation helpers with package content support
-// ✅ UPDATE: Tambahkan support untuk WAC yang benar
-const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
-  // ✅ A. Tambahkan mapping WAC yang benar
+// ✅ UPDATE: Ketik parameter transformToFrontend dengan benar
+const transformToFrontend = (dbItem: BahanBaku & { harga_rata2?: string | number }): BahanBakuFrontend => {
   const wac =
     dbItem.harga_rata_rata != null
       ? Number(dbItem.harga_rata_rata)
@@ -36,7 +35,7 @@ const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
     minimum: Number(dbItem.minimum) || 0,
     satuan: dbItem.satuan,
     harga: Number(dbItem.harga_satuan) || 0,
-    hargaRataRata: wac,                 // ✅ ← ini yang hilang
+    hargaRataRata: wac,
     supplier: dbItem.supplier,
     expiry: dbItem.tanggal_kadaluwarsa,
     createdAt: dbItem.created_at,
@@ -142,7 +141,7 @@ class CrudService {
         tanggal_kadaluwarsa, created_at, updated_at, jumlah_beli_kemasan,
         isi_per_kemasan, satuan_kemasan, harga_total_beli_kemasan,
         harga_rata_rata, harga_rata2
-      `); // ✅ B. Pastikan select-nya benar tanpa komentar
+      `);
       
       // Filter by user_id if provided
       if (this.config.userId) {
@@ -250,7 +249,7 @@ class CrudService {
       // Remove user_id from updates to avoid changing ownership
       delete (dbUpdates as any).user_id;
 
-      logger.debug('Updating item with data:', { id, dbUpdates });
+      logger.debug('Updating item with ', { id, dbUpdates });
 
       let query = supabase
         .from('bahan_baku')
@@ -281,16 +280,14 @@ class CrudService {
     try {
       let query = supabase
         .from('bahan_baku')
-        .select(`
-          *, harga_rata_rata, harga_rata2
-        `)
+        .select('*')
         .eq('id', id);
 
       if (this.config.userId) {
         query = query.eq('user_id', this.config.userId);
       }
 
-      const { data, error } = await query.single();
+      const { data, error } = await query.maybeSingle();
       
       if (error) throw error;
       return data ? transformToFrontend(data) : null;
@@ -498,7 +495,7 @@ class SubscriptionService {
           logger.debug('Subscription update:', payload);
           // Transform and handle real-time updates here
           if (payload.new) {
-            const transformedData = transformToFrontend(payload.new);
+            const transformedData = transformToFrontend(payload.new as any);
             // Handle the transformed data
           }
         })
@@ -519,18 +516,18 @@ class SubscriptionService {
 }
 
 /**
- * Cache Service - Simple in-memory caching (Enhanced)
+ * ✅ FIXED: Cache Service dengan tipe yang benar
  */
 class CacheService {
-  private cache = new Map<string, {  any; timestamp: number; ttl: number }>();
+  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 
   constructor(private config: ServiceConfig) {}
 
-  set(key: string,  any, ttlMinutes: number = 5) {
+  set(key: string, data: any, ttlMinutes: number = 5) {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl: ttlMinutes * 60 * 1000
+      ttl: ttlMinutes * 60 * 1000,
     });
   }
 
@@ -542,7 +539,6 @@ class CacheService {
       this.cache.delete(key);
       return null;
     }
-
     return item.data;
   }
 
@@ -550,17 +546,16 @@ class CacheService {
     this.cache.clear();
   }
 
-  // ✅ NEW: Cache statistics
   getStats() {
-    const entries = Array.from(this.cache.entries());
-    const valid = entries.filter(([_, item]) => Date.now() - item.timestamp <= item.ttl);
+    const entries = Array.from(this.cache.values());
+    const valid = entries.filter((it) => Date.now() - it.timestamp <= it.ttl);
     const expired = entries.length - valid.length;
 
     return {
       total: entries.length,
       valid: valid.length,
       expired,
-      hitRate: valid.length / Math.max(entries.length, 1)
+      hitRate: entries.length ? valid.length / entries.length : 1,
     };
   }
 }

@@ -2,11 +2,12 @@
 // src/components/warehouse/components/WarehouseHeader.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, AlertTriangle, Upload, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Package, AlertTriangle, Upload, RefreshCw, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface WarehouseHeaderProps {
   itemCount: number;
@@ -244,10 +245,27 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
                 </span>
               </div>
 
-              {/* ✅ UPDATE: Render condition untuk total value */}
+              {/* ✅ UPDATE: Render condition untuk total value dengan tooltip */}
               {stats && stats.totalValue !== undefined && (
                 <div className="flex flex-col">
-                  <span className="text-white opacity-75 text-xs uppercase tracking-wide">Total Value</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1">
+                          <span className="text-white opacity-75 text-xs uppercase tracking-wide">
+                            Nilai Stok (Harga Rata-Rata)
+                          </span>
+                          <Info className="h-3 w-3 text-white opacity-60 cursor-pointer" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-sm">
+                        <p>
+                          Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost),
+                          yaitu rata-rata harga pembelian terakhir yang sudah termasuk semua pembelian sebelumnya.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <span className="font-bold text-lg">
                     {new Intl.NumberFormat('id-ID', {
                       style: 'currency',

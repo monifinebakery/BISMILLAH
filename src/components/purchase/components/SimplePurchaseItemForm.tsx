@@ -47,13 +47,25 @@ interface SimplePurchaseItemFormProps {
   onAdd: (formData: FormData) => void;
 }
 
-// Helper baru: normalisasi angka
+// Helper baru: normalisasi angka yang tahan banting
 const toNumber = (v: string | number | '' | undefined) => {
   if (v === '' || v == null) return 0;
   if (typeof v === 'number') return isFinite(v) ? v : 0;
-  // ganti koma -> titik, buang spasi
-  const n = Number(v.replace(/\s+/g, '').replace(',', '.'));
-  return isNaN(n) ? 0 : n;
+
+  // buang spasi & karakter non angka/koma/titik
+  let s = v.toString().trim().replace(/\s+/g, '');
+  s = s.replace(/[^\d,.\-]/g, '');
+
+  // kalau ada KOMA dan TITIK sekaligus: anggap TITIK = pemisah ribuan → hapus semua titik, koma jadi desimal
+  if (s.includes(',') && s.includes('.')) {
+    s = s.replace(/\./g, '').replace(/,/g, '.');
+  } else {
+    // kalau cuma koma → pakai koma sebagai desimal
+    s = s.replace(/,/g, '.');
+  }
+
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
 };
 
 const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
@@ -83,9 +95,10 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   const accuratePrice = calculateAccuratePrice();
   const accuracyLevel = mode === 'packaging' ? 100 : mode === 'accurate' ? 85 : 70;
 
+  // 1) UPDATE: Selalu simpan string ke state (hindari overwrite number)
   useEffect(() => {
     if (mode === 'packaging' && accuratePrice > 0) {
-      setFormData(prev => ({ ...prev, hargaSatuan: accuratePrice }));
+      setFormData(prev => ({ ...prev, hargaSatuan: String(accuratePrice) }));
     }
   }, [mode, accuratePrice]);
 
@@ -155,10 +168,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               <Input
                 type="text"
                 inputMode="decimal"
-                value={formData.kuantitas}
+                value={String(formData.kuantitas ?? '')}
                 onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+                autoComplete="off"
+                autoCorrect="off"
               />
               <div className="flex items-center px-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600 min-w-[60px] justify-center">
                 {formData.satuan || 'unit'}
@@ -173,10 +188,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               <Input
                 type="text"
                 inputMode="decimal"
-                value={formData.hargaSatuan}
+                value={String(formData.hargaSatuan ?? '')}
                 onChange={(e) => handleNumericChange('hargaSatuan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
+                autoComplete="off"
+                autoCorrect="off"
               />
             </div>
           </div>
@@ -313,10 +330,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Input
               type="text"
               inputMode="decimal"
-              value={formData.kuantitas}
+              value={String(formData.kuantitas ?? '')}
               onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+              autoComplete="off"
+              autoCorrect="off"
             />
             <div className="flex items-center px-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600 min-w-[60px] justify-center">
               {formData.satuan || 'unit'}
@@ -339,10 +358,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               type="text"
               inputMode="numeric"
               pattern="\d*"
-              value={formData.jumlahKemasan}
+              value={String(formData.jumlahKemasan ?? '')}
               onChange={(e) => handleNumericChange('jumlahKemasan', e.target.value)}
               placeholder="1"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+              autoComplete="off"
+              autoCorrect="off"
             />
           </div>
 
@@ -370,10 +391,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               <Input
                 type="text"
                 inputMode="decimal"
-                value={formData.isiPerKemasan}
+                value={String(formData.isiPerKemasan ?? '')}
                 onChange={(e) => handleNumericChange('isiPerKemasan', e.target.value)}
                 placeholder="500"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+                autoComplete="off"
+                autoCorrect="off"
               />
               <div className="flex items-center px-2 bg-white border border-gray-200 rounded-md text-xs text-gray-600 min-w-[45px] justify-center">
                 {formData.satuan || 'unit'}
@@ -388,10 +411,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               <Input
                 type="text"
                 inputMode="decimal"
-                value={formData.hargaTotalBeliKemasan}
+                value={String(formData.hargaTotalBeliKemasan ?? '')}
                 onChange={(e) => handleNumericChange('hargaTotalBeliKemasan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="25000"
+                autoComplete="off"
+                autoCorrect="off"
               />
             </div>
           </div>

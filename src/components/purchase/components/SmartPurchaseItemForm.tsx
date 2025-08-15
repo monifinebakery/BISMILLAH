@@ -1,169 +1,138 @@
-import React, { useEffect, useMemo, useState } from 'react';
+// src/components/purchase/components/SimplePurchaseItemForm.tsx
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import {
-  Calculator,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
+import { 
+  Calculator, 
+  TrendingUp, 
+  AlertTriangle, 
+  CheckCircle2, 
   Package,
   Receipt,
   Target,
   X,
   Plus
 } from 'lucide-react';
-import type { PurchaseItem } from '../types/purchase.types';
+import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 
-// ==== Props untuk integrasi dengan dialog yang ada ====
-export interface SmartPurchaseItemFormProps {
-  bahanBaku: Array<{ id: string; nama: string; satuan: string }>;
-  onCancel?: () => void;
-  onAdd: (item: Omit<PurchaseItem, 'subtotal'>) => void; // kamu sudah punya addItem(model lama)
-  // optional preset (misal saat user pilih bahan duluan)
-  preset?: {
-    bahanBakuId?: string;
-    nama?: string;
-    satuan?: string;
-  };
+interface BahanBaku {
+  id: string;
+  nama: string;
+  satuan: string;
 }
 
-type Mode = 'quick' | 'accurate' | 'packaging';
+interface FormData {
+  bahanBakuId: string;
+  nama: string;
+  satuan: string;
+  kuantitas: number;
+  hargaSatuan: number;
+  keterangan: string;
+  // Packaging data
+  jumlahKemasan: number;
+  isiPerKemasan: number;
+  satuanKemasan: string;
+  hargaTotalBeliKemasan: number;
+}
 
-const currency = (n: number) => `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
+interface SimplePurchaseItemFormProps {
+  bahanBaku: BahanBaku[];
+  onCancel: () => void;
+  onAdd: (formData: FormData) => void;
+}
 
-const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
+const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   bahanBaku,
   onCancel,
   onAdd,
-  preset
 }) => {
-  const [mode, setMode] = useState<Mode>('quick');
-
-  // state item (kompatibel dengan PurchaseItem + field kemasan opsional)
-  const [formData, setFormData] = useState<{
-    bahanBakuId: string;
-    nama: string;
-    satuan: string;
-    kuantitas: number;
-    hargaSatuan: number;
-    keterangan?: string;
-    // packaging (opsional)
-    jumlahKemasan?: number;
-    isiPerKemasan?: number;
-    satuanKemasan?: string;
-    hargaTotalBeli?: number;
-  }>({
-    bahanBakuId: preset?.bahanBakuId || '',
-    nama: preset?.nama || '',
-    satuan: preset?.satuan || '',
+  const [mode, setMode] = useState<'quick' | 'accurate' | 'packaging'>('quick');
+  const [formData, setFormData] = useState<FormData>({
+    bahanBakuId: '',
+    nama: '',
+    satuan: '',
     kuantitas: 0,
     hargaSatuan: 0,
     keterangan: '',
-    jumlahKemasan: undefined,
-    isiPerKemasan: undefined,
-    satuanKemasan: undefined,
-    hargaTotalBeli: undefined,
+    // Packaging data
+    jumlahKemasan: 0,
+    isiPerKemasan: 1,
+    satuanKemasan: '',
+    hargaTotalBeliKemasan: 0,
   });
 
-  // kalau preset berubah (misal user pilih bahan duluan)
-  useEffect(() => {
-    if (!preset) return;
-    setFormData(prev => ({
-      ...prev,
-      bahanBakuId: preset.bahanBakuId || prev.bahanBakuId,
-      nama: preset.nama || prev.nama,
-      satuan: preset.satuan || prev.satuan,
-    }));
-  }, [preset]);
-
-  // helper bahan baku -> set nama+satuan otomatis
-  const handleSelectBahan = (id: string) => {
-    const bb = bahanBaku.find(b => b.id === id);
-    setFormData(prev => ({
-      ...prev,
-      bahanBakuId: id,
-      nama: bb?.nama || '',
-      satuan: bb?.satuan || 'unit',
-    }));
+  // Calculate accurate price from packaging
+  const calculateAccuratePrice = () => {
+    const { jumlahKemasan, isiPerKemasan, hargaTotalBeliKemasan } = formData;
+    const totalContent = jumlahKemasan * isiPerKemasan;
+    return totalContent > 0 ? Math.round((hargaTotalBeliKemasan / totalContent) * 100) / 100 : 0;
   };
 
-  // harga akurat dari kemasan
-  const accuratePrice = useMemo(() => {
-    const totalIsi =
-      (Number(formData.jumlahKemasan) || 0) * (Number(formData.isiPerKemasan) || 0);
-    const ttl = Number(formData.hargaTotalBeli) || 0;
-    if (totalIsi > 0 && ttl > 0) {
-      return Math.round((ttl / totalIsi) * 100) / 100; // 2 desimal
-    }
-    return 0;
-  }, [formData.jumlahKemasan, formData.isiPerKemasan, formData.hargaTotalBeli]);
+  const accuratePrice = calculateAccuratePrice();
+  const accuracyLevel = mode === 'packaging' ? 100 : mode === 'accurate' ? 85 : 70;
+  const priceDifference = Math.abs(formData.hargaSatuan - accuratePrice);
+  const impactOnMargin = priceDifference > 0 ? ((priceDifference / formData.hargaSatuan) * 100).toFixed(1) : 0;
 
-  // auto-update harga satuan kalau mode packaging
+  // Auto-update accurate price when in packaging mode
   useEffect(() => {
-    if (mode !== 'packaging') return;
-    if (accuratePrice > 0) {
-      // override cuma kalau user belum isi manual / selisih sangat kecil
-      if (!formData.hargaSatuan || Math.abs(formData.hargaSatuan - accuratePrice) < 0.0001) {
-        setFormData(prev => ({ ...prev, hargaSatuan: accuratePrice }));
-      }
+    if (mode === 'packaging' && accuratePrice > 0) {
+      setFormData(prev => ({ ...prev, hargaSatuan: accuratePrice }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, accuratePrice]);
 
-  const accuracyLevel = mode === 'packaging' ? 100 : mode === 'accurate' ? 85 : 70;
-  const priceDifference = Math.abs((formData.hargaSatuan || 0) - (accuratePrice || 0));
-  const impactOnMargin =
-    priceDifference > 0 && formData.hargaSatuan > 0
-      ? ((priceDifference / formData.hargaSatuan) * 100).toFixed(1)
-      : 0;
-
-  // submit → kirim ke onAdd (kompatibel sama hook/transformer)
-  const handleAdd = () => {
-    // validasi minimal
-    if (!formData.bahanBakuId) return toast.error('Pilih bahan baku dulu');
-    if (!formData.kuantitas || formData.kuantitas <= 0) return toast.error('Kuantitas harus > 0');
-    if (!formData.hargaSatuan || formData.hargaSatuan <= 0) return toast.error('Harga satuan harus > 0');
-
-    onAdd({
-      bahanBakuId: formData.bahanBakuId,
-      nama: formData.nama,
-      kuantitas: formData.kuantitas,
-      satuan: formData.satuan || 'unit',
-      hargaSatuan: formData.hargaSatuan,
-      keterangan: formData.keterangan || '',
-      // ⚠️ Note: field kemasan TIDAK ada di tipe PurchaseItem.
-      // Tapi transformer kita menerima key opsional ini di "items" (akan di-copy & dinormalisasi).
-      // Jadi kita ikutkan di object (TypeScript akan warning), kita biarkan onAdd men-drop via pick.
-      // Solusi: cast saat panggil (di bawah).
-    } as any);
-
-    toast.success('Item ditambahkan');
-    onCancel?.();
+  // Handle bahan baku selection
+  const handleBahanBakuSelect = (id: string) => {
+    const selected = bahanBaku.find(b => b.id === id);
+    if (selected) {
+      setFormData(prev => ({
+        ...prev,
+        bahanBakuId: id,
+        nama: selected.nama,
+        satuan: selected.satuan,
+      }));
+    }
   };
 
-  // ==== UI sections ====
+  // Handle form submission
+  const handleSubmit = () => {
+    // Validation
+    if (!formData.bahanBakuId) return toast.error('Pilih bahan baku');
+    if (formData.kuantitas <= 0) return toast.error('Kuantitas harus > 0');
+    if (formData.hargaSatuan <= 0) return toast.error('Harga satuan harus > 0');
+
+    // Clean data for submission
+    const cleanData = {
+      ...formData,
+      // ✅ Kirim undefined kalau kosong → transformer simpan null di DB
+      jumlahKemasan: formData.jumlahKemasan > 0 ? formData.jumlahKemasan : undefined,
+      isiPerKemasan: formData.isiPerKemasan > 0 ? formData.isiPerKemasan : undefined,
+      satuanKemasan: formData.satuanKemasan.trim() || undefined,
+      hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan > 0 ? formData.hargaTotalBeliKemasan : undefined,
+    };
+
+    onAdd(cleanData as FormData);
+  };
+
   const QuickMode = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Bahan Baku *</Label>
-          <Select
-            value={formData.bahanBakuId}
-            onValueChange={handleSelectBahan}
-          >
+          <Select value={formData.bahanBakuId} onValueChange={handleBahanBakuSelect}>
             <SelectTrigger>
               <SelectValue placeholder="Pilih bahan baku" />
             </SelectTrigger>
             <SelectContent>
-              {bahanBaku.map(bb => (
-                <SelectItem key={bb.id} value={bb.id}>
-                  {bb.nama} ({bb.satuan})
+              {bahanBaku.map((bahan) => (
+                <SelectItem key={bahan.id} value={bahan.id}>
+                  {bahan.nama} ({bahan.satuan})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -175,9 +144,11 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
           <div className="flex gap-2">
             <Input
               type="number"
+              min="0.001"
+              step="0.001"
               value={formData.kuantitas || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: Number(e.target.value) }))}
-              className="flex-1"
+              onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: Number(e.target.value) || 0 }))}
+              placeholder="0"
             />
             <div className="flex items-center px-3 bg-gray-100 rounded text-sm min-w-[60px] justify-center">
               {formData.satuan || 'unit'}
@@ -191,29 +162,37 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
             <Input
               type="number"
+              min="0"
+              step="0.01"
               value={formData.hargaSatuan || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, hargaSatuan: Number(e.target.value) }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, hargaSatuan: Number(e.target.value) || 0 }))}
               className="pl-8"
+              placeholder="0"
             />
           </div>
         </div>
       </div>
 
+      {/* Accuracy Warning */}
       <Alert className="border-yellow-200 bg-yellow-50">
         <AlertTriangle className="h-4 w-4 text-yellow-600" />
         <AlertDescription>
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-medium text-yellow-800">Mode Perkiraan – Akurasi {accuracyLevel}%</div>
+              <div className="font-medium text-yellow-800">Mode Perkiraan - Akurasi {accuracyLevel}%</div>
               <p className="text-yellow-700 text-sm mt-1">
-                Untuk profit tracking yang presisi, gunakan data dari nota pembelian
+                Untuk profit tracking yang presisi, gunakan data dari nota pembelian asli
               </p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="bg-yellow-100 text-yellow-700">
                 Estimasi
               </Badge>
-              <Button size="sm" onClick={() => setMode('accurate')} className="bg-green-600 hover:bg-green-700">
+              <Button
+                size="sm"
+                onClick={() => setMode('accurate')}
+                className="bg-green-600 hover:bg-green-700"
+              >
                 <Target className="h-4 w-4 mr-1" />
                 Mode Akurat
               </Button>
@@ -221,13 +200,6 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
           </div>
         </AlertDescription>
       </Alert>
-
-      <div className="bg-blue-50 p-3 rounded-lg">
-        <div className="text-sm text-blue-800">
-          <strong>Subtotal: </strong>
-          {currency((formData.kuantitas || 0) * (formData.hargaSatuan || 0))}
-        </div>
-      </div>
     </div>
   );
 
@@ -239,7 +211,7 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Mode Akurat: Profit Tracking Presisi</h3>
         <p className="text-gray-600 mb-6">Dapatkan HPP yang akurat untuk analisis margin profit yang real</p>
-
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <CheckCircle2 className="h-6 w-6 text-green-600 mx-auto mb-2" />
@@ -283,6 +255,7 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
 
   const PackagingMode = () => (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Receipt className="h-5 w-5 text-green-600" />
@@ -294,20 +267,18 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
         </Button>
       </div>
 
+      {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Bahan Baku *</Label>
-          <Select
-            value={formData.bahanBakuId}
-            onValueChange={handleSelectBahan}
-          >
+          <Select value={formData.bahanBakuId} onValueChange={handleBahanBakuSelect}>
             <SelectTrigger>
               <SelectValue placeholder="Pilih bahan baku" />
             </SelectTrigger>
             <SelectContent>
-              {bahanBaku.map(bb => (
-                <SelectItem key={bb.id} value={bb.id}>
-                  {bb.nama} ({bb.satuan})
+              {bahanBaku.map((bahan) => (
+                <SelectItem key={bahan.id} value={bahan.id}>
+                  {bahan.nama} ({bahan.satuan})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -315,12 +286,23 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
         </div>
         <div className="space-y-2">
           <Label>Total yang Dibeli</Label>
-          <div className="p-3 bg-gray-50 rounded border text-sm">
-            {(formData.kuantitas || 0)} {formData.satuan || 'unit'}
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              min="0.001"
+              step="0.001"
+              value={formData.kuantitas || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: Number(e.target.value) || 0 }))}
+              placeholder="0"
+            />
+            <div className="flex items-center px-3 bg-gray-100 rounded text-sm min-w-[60px] justify-center">
+              {formData.satuan || 'unit'}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Packaging Details */}
       <div className="bg-blue-50 p-4 rounded-lg">
         <div className="font-medium text-blue-900 mb-3">📦 Detail Kemasan dari Nota:</div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -330,17 +312,18 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
               type="number"
               min="1"
               value={formData.jumlahKemasan || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, jumlahKemasan: Number(e.target.value) || undefined }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, jumlahKemasan: Number(e.target.value) || 0 }))}
+              placeholder="1"
             />
           </div>
           <div className="space-y-2">
             <Label>Jenis Kemasan</Label>
-            <Select
-              value={formData.satuanKemasan || ''}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, satuanKemasan: value || undefined }))}
+            <Select 
+              value={formData.satuanKemasan}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, satuanKemasan: value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="(opsional)" />
+                <SelectValue placeholder="Pilih jenis" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="pak">pak</SelectItem>
@@ -357,8 +340,11 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
             <div className="flex gap-1">
               <Input
                 type="number"
+                min="0.001"
+                step="0.001"
                 value={formData.isiPerKemasan || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, isiPerKemasan: Number(e.target.value) || undefined }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, isiPerKemasan: Number(e.target.value) || 0 }))}
+                placeholder="500"
                 className="flex-1"
               />
               <div className="flex items-center px-2 bg-gray-100 rounded text-xs">
@@ -372,97 +358,126 @@ const SmartPurchaseItemForm: React.FC<SmartPurchaseItemFormProps> = ({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <Input
                 type="number"
-                value={formData.hargaTotalBeli || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, hargaTotalBeli: Number(e.target.value) || undefined }))}
+                min="0"
+                step="0.01"
+                value={formData.hargaTotalBeliKemasan || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, hargaTotalBeliKemasan: Number(e.target.value) || 0 }))}
                 className="pl-8"
+                placeholder="25000"
               />
             </div>
           </div>
         </div>
       </div>
 
-      <Alert className="border-green-200 bg-green-50">
-        <CheckCircle2 className="h-4 w-4 text-green-600" />
-        <AlertDescription>
-          <div className="space-y-2">
-            <div className="font-medium text-green-800">✨ HPP Akurat Berhasil Dihitung!</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <div className="text-green-700">Total Isi:</div>
-                <div className="font-medium">
-                  {(formData.jumlahKemasan || 0)} × {(formData.isiPerKemasan || 0)} = {(formData.jumlahKemasan || 0) * (formData.isiPerKemasan || 0)} {formData.satuan || 'unit'}
+      {/* Calculation Result */}
+      {accuratePrice > 0 && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <div className="font-medium text-green-800">✨ HPP Akurat Berhasil Dihitung!</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-green-700">Total Isi:</div>
+                  <div className="font-medium">
+                    {formData.jumlahKemasan} × {formData.isiPerKemasan} = {formData.jumlahKemasan * formData.isiPerKemasan} {formData.satuan}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-green-700">HPP Per {formData.satuan}:</div>
+                  <div className="font-bold text-lg text-green-800">
+                    {formatCurrency(accuratePrice)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-green-700">Subtotal:</div>
+                  <div className="font-medium">
+                    {formatCurrency(formData.kuantitas * accuratePrice)}
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-green-700">HPP Per {formData.satuan || 'unit'}:</div>
-                <div className="font-bold text-lg text-green-800">
-                  {currency(accuratePrice)}
+              
+              {priceDifference > 1 && (
+                <div className="mt-3 p-2 bg-yellow-100 rounded text-yellow-800 text-sm">
+                  💡 Lebih akurat dari perkiraan manual: selisih {formatCurrency(priceDifference)} ({impactOnMargin}% impact on margin)
                 </div>
-              </div>
-              <div>
-                <div className="text-green-700">Subtotal (perkiraan saat ini):</div>
-                <div className="font-medium">
-                  {currency((formData.kuantitas || 0) * (accuratePrice || 0))}
-                </div>
-              </div>
+              )}
             </div>
-
-            {priceDifference > 1 && formData.hargaSatuan > 0 && (
-              <div className="mt-3 p-2 bg-yellow-100 rounded text-yellow-800 text-sm">
-                💡 Selisih dari perkiraan awal: {currency(priceDifference)} ({impactOnMargin}% impact pada margin)
-              </div>
-            )}
-          </div>
-        </AlertDescription>
-      </Alert>
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="border-dashed border-blue-300 bg-blue-50">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-blue-900">
             <Plus className="h-5 w-5" />
             Tambah Item Baru
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={
-                accuracyLevel >= 100
-                  ? 'bg-green-100 text-green-700'
-                  : accuracyLevel >= 85
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-yellow-100 text-yellow-700'
-              }
-            >
+            <Badge variant="outline" className={
+              accuracyLevel >= 100 ? "bg-green-100 text-green-700" :
+              accuracyLevel >= 85 ? "bg-blue-100 text-blue-700" :
+              "bg-yellow-100 text-yellow-700"
+            }>
               Akurasi {accuracyLevel}%
             </Badge>
-          </div>
+          </CardTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {mode === 'quick' && <QuickMode />}
         {mode === 'accurate' && <AccurateModePrompt />}
         {mode === 'packaging' && <PackagingMode />}
+        
+        {/* Notes (show in all modes except accurate prompt) */}
+        {mode !== 'accurate' && (
+          <div className="space-y-2">
+            <Label>Keterangan</Label>
+            <Textarea
+              value={formData.keterangan}
+              onChange={(e) => setFormData(prev => ({ ...prev, keterangan: e.target.value }))}
+              placeholder="Keterangan tambahan (opsional)"
+              rows={2}
+            />
+          </div>
+        )}
 
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-          <Button variant="outline" onClick={onCancel}>
-            Batal
-          </Button>
+        {/* Subtotal Preview */}
+        {mode !== 'accurate' && formData.kuantitas > 0 && formData.hargaSatuan > 0 && (
+          <div className="bg-blue-100 p-3 rounded-lg">
+            <div className="text-sm text-blue-800">
+              <strong>Subtotal: </strong>
+              {formatCurrency(formData.kuantitas * formData.hargaSatuan)}
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {mode !== 'accurate' && (
           <Button
-            className="bg-green-600 hover:bg-green-700"
-            onClick={handleAdd}
-            disabled={!formData.bahanBakuId || !formData.kuantitas || !formData.hargaSatuan}
+            type="button"
+            onClick={handleSubmit}
+            disabled={!formData.bahanBakuId || formData.kuantitas <= 0 || formData.hargaSatuan <= 0}
+            className="w-full bg-green-600 hover:bg-green-700"
           >
             <Plus className="h-4 w-4 mr-2" />
             Tambah ke Daftar
           </Button>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
 };
 
-export default SmartPurchaseItemForm;
+export default SimplePurchaseItemForm;

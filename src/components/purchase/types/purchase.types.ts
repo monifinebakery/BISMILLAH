@@ -177,7 +177,6 @@ export interface PurchaseDialogProps {
   mode: 'create' | 'edit';
   purchase?: Purchase | null;
   suppliers: Array<{ id: string; nama: string }>;
-  onAddPurchase: (intent?: AddPurchaseIntent) => void; // <— ubah ke terima intent
   bahanBaku: Array<{ id: string; nama: string; satuan: string }>;
   onClose: () => void;
 }
@@ -202,7 +201,7 @@ export interface PurchaseHeaderProps {
   totalPurchases: number;
   totalValue: number;
   pendingCount: number;
-  onAddPurchase: () => void;
+  onAddPurchase: (intent?: AddPurchaseIntent) => void; // <— ubah ke terima intent
   onExport?: () => void;
   onSettings?: () => void;
   className?: string;

@@ -222,13 +222,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   const qtyRef = useRef<HTMLInputElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
 
-  const QuickMode = React.memo(function QuickMode() {
-    useEffect(() => {
-      logger.debug('MOUNT <QuickMode>');
-      return () => logger.debug('UNMOUNT <QuickMode>');
-    }, []);
-    
-    return (
+  // Memoized UI blocks to avoid subtree remounts on re-render
+  const quickUI = React.useMemo(() => (
     <div className="space-y-6">
       {/* Input Fields - Responsive Grid */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -324,16 +319,9 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </AlertDescription>
       </Alert>
     </div>
-    );
-  });
+  ), [formData, accuracyLevel, handleNumericChange, handleBahanBakuSelect]);
 
-  const AccurateModePrompt = React.memo(function AccurateModePrompt() {
-    useEffect(() => {
-      logger.debug('MOUNT <AccurateModePrompt>');
-      return () => logger.debug('UNMOUNT <AccurateModePrompt>');
-    }, []);
-    
-    return (
+  const accuratePromptUI = React.useMemo(() => (
     <div className="space-y-6">
       <div className="text-center py-8">
         {/* Icon */}
@@ -386,21 +374,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </div>
       </div>
     </div>
-    );
-  });
+  ), [setMode]);
 
-  const PackagingMode = React.memo(function PackagingMode() {
-    useEffect(() => {
-      logger.debug('MOUNT <PackagingMode>');
-      return () => logger.debug('UNMOUNT <PackagingMode>');
-    }, []);
+  // Refs for packaging focus safety
+  const packQtyRef = useRef<HTMLInputElement>(null);
+  const perPackRef = useRef<HTMLInputElement>(null);
+  const totalPayRef = useRef<HTMLInputElement>(null);
 
-    // 🔧 NEW: refs untuk jaga fokus di packaging inputs
-    const packQtyRef = useRef<HTMLInputElement>(null);
-    const perPackRef = useRef<HTMLInputElement>(null);
-    const totalPayRef = useRef<HTMLInputElement>(null);
-    
-    return (
+  const packagingUI = React.useMemo(() => (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -576,8 +557,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </AlertDescription>
       </Alert>
     </div>
-    );
-  });
+  ), [formData, accuracyLevel, accuratePrice, handleNumericChange, handleBahanBakuSelect]);
 
   return (
     <Card className="border-dashed border-orange-200 bg-orange-50/30 backdrop-blur-sm">
@@ -609,9 +589,9 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {mode === 'quick' && <QuickMode />}
-        {mode === 'accurate' && <AccurateModePrompt />}
-        {mode === 'packaging' && <PackagingMode />}
+        {mode === 'quick' && quickUI}
+        {mode === 'accurate' && accuratePromptUI}
+        {mode === 'packaging' && packagingUI}
         
         {/* Notes - Always in DOM, hidden when not needed */}
         <div className={mode !== 'accurate' ? "space-y-2" : "hidden"}>

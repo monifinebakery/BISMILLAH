@@ -15,7 +15,7 @@ interface AddEditDialogProps {
   onClose: () => void;
   mode: 'add' | 'edit';
   item?: BahanBakuFrontend;
-  onSave: (data: any) => Promise<void>;
+  onSave: (any) => Promise<void>;
   availableCategories: string[];
   availableSuppliers: string[];
 }
@@ -187,7 +187,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         }
       }
       return updated;
-    });a
+    });
     if (errors.length > 0) setErrors([]);
   };
 
@@ -679,6 +679,12 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                             placeholder="0"
                           />
                         </div>
+                        {/* ✅ ADD: WAC display for edit mode */}
+                        {isEditMode && typeof item?.hargaRataRata === 'number' && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Harga rata-rata (server): <strong>{warehouseUtils.formatCurrency(item.hargaRataRata)}</strong>
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500 mt-1">
                           💡 Tip: Isi detail kemasan di atas, maka harga per {formData.satuan} akan dihitung otomatis
                         </p>

@@ -1,10 +1,12 @@
+// src/components/warehouse/components/ProfitSummaryCards.tsx
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   DollarSign, TrendingUp, Calculator, ShoppingCart,
-  ArrowUp, ArrowDown, Minus
+  ArrowUp, ArrowDown, Minus, Package, Info
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { formatCurrency, formatPercentage, calculateGrowth, getGrowthStatus } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
@@ -18,6 +20,12 @@ export interface ProfitSummaryCardsProps {
   previousAnalysis?: RealTimeProfitCalculation | null;
   isLoading: boolean;
   className?: string;
+  /** ⬇️ WAC-aware COGS dari useProfitAnalysis */
+  effectiveCogs?: number;
+  /** ⬇️ Nilai stok WAC dari warehouse */
+  wacStockValue?: number;
+  /** ⬇️ label/tooltip WAC */
+  labels?: { hppLabel: string; hppHint: string };
 }
 
 interface MetricCard {
@@ -35,7 +43,7 @@ interface MetricCard {
 // HELPER FUNCTIONS OUTSIDE COMPONENT
 // ==============================================
 
-const calculateMetrics = (currentAnalysis, currentRevenue, currentCogs, currentOpex) => {
+const calculateMetrics = (currentAnalysis: RealTimeProfitCalculation | null, effectiveCogs?: number) => {
   if (!currentAnalysis) {
     return {
       revenue: 0,
@@ -48,15 +56,19 @@ const calculateMetrics = (currentAnalysis, currentRevenue, currentCogs, currentO
     };
   }
 
-  const grossProfit = currentRevenue - currentCogs;
-  const netProfit = grossProfit - currentOpex;
-  const grossMargin = currentRevenue > 0 ? (grossProfit / currentRevenue) * 100 : 0;
-  const netMargin = currentRevenue > 0 ? (netProfit / currentRevenue) * 100 : 0;
+  const revenue = currentAnalysis.revenue_data?.total ?? 0;
+  // ✅ UPDATE: Gunakan effectiveCogs kalau ada
+  const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : currentAnalysis.cogs_data?.total) ?? 0;
+  const opex = currentAnalysis.opex_data?.total ?? 0;
+  const grossProfit = revenue - cogs;
+  const netProfit = grossProfit - opex;
+  const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
   return {
-    revenue: currentRevenue,
-    cogs: currentCogs,
-    opex: currentOpex,
+    revenue,
+    cogs,
+    opex,
     grossProfit,
     netProfit,
     grossMargin,
@@ -64,7 +76,11 @@ const calculateMetrics = (currentAnalysis, currentRevenue, currentCogs, currentO
   };
 };
 
-const calculateChanges = (metrics, previousAnalysis, prevRevenue, prevCogs, prevOpex) => {
+const calculateChanges = (
+  metrics: ReturnType<typeof calculateMetrics>, 
+  previousAnalysis: RealTimeProfitCalculation | undefined,
+  effectiveCogs?: number
+) => {
   if (!previousAnalysis) {
     return {
       revenueChange: 0,
@@ -74,6 +90,10 @@ const calculateChanges = (metrics, previousAnalysis, prevRevenue, prevCogs, prev
     };
   }
 
+  const prevRevenue = previousAnalysis.revenue_data?.total ?? 0;
+  // ✅ UPDATE: Gunakan effectiveCogs kalau ada
+  const prevCogs = (typeof effectiveCogs === 'number' ? effectiveCogs : previousAnalysis.cogs_data?.total) ?? 0;
+  const prevOpex = previousAnalysis.opex_data?.total ?? 0;
   const prevGrossProfit = prevRevenue - prevCogs;
   const prevNetProfit = prevGrossProfit - prevOpex;
 
@@ -85,8 +105,13 @@ const calculateChanges = (metrics, previousAnalysis, prevRevenue, prevCogs, prev
   };
 };
 
-const generateCards = (metrics, changes) => {
-  return [
+const generateCards = (
+  metrics: ReturnType<typeof calculateMetrics>, 
+  changes: ReturnType<typeof calculateChanges>,
+  wacStockValue?: number,
+  labels?: { hppLabel: string; hppHint: string }
+) => {
+  const cards = [
     {
       title: 'Total Pendapatan',
       value: metrics.revenue,
@@ -122,18 +147,34 @@ const generateCards = (metrics, changes) => {
       icon: ShoppingCart,
       color: 'text-amber-600',
       bgColor: 'bg-amber-50',
-      subtitle: `${formatPercentage((metrics.cogs / metrics.revenue) * 100)} dari pendapatan`,
+      subtitle: `${formatPercentage((metrics.cogs / Math.max(metrics.revenue, 1)) * 100)} dari pendapatan`,
       change: changes.cogsChange,
       changeType: getGrowthStatus(changes.cogsChange * -1).status // Invert untuk HPP (lebih rendah = lebih baik)
     }
   ];
+
+  // ✅ TAMBAH: Card baru untuk Nilai Stok WAC
+  if (typeof wacStockValue === 'number' && wacStockValue > 0) {
+    cards.splice(3, 0, {
+      title: 'Nilai Stok Bahan Baku',
+      value: wacStockValue,
+      icon: Package,
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50',
+      subtitle: labels?.hppLabel ? `${labels.hppLabel} aktif` : 'Harga rata-rata',
+      change: undefined,
+      changeType: 'neutral'
+    });
+  }
+
+  return cards;
 };
 
 // ==============================================
 // CHANGE ICON COMPONENT
 // ==============================================
 
-const getChangeIcon = (type) => {
+const getChangeIcon = (type: 'positive' | 'negative' | 'neutral') => {
   const iconProps = "w-4 h-4";
   
   switch (type) {
@@ -150,26 +191,29 @@ const getChangeIcon = (type) => {
 // MAIN COMPONENT
 // ==============================================
 
-const ProfitSummaryCards = ({
+const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   currentAnalysis,
   previousAnalysis,
   isLoading,
-  className = ''
+  className = '',
+  effectiveCogs,
+  wacStockValue,
+  labels
 }) => {
   
   // ✅ NO useMemo - Extract primitive values directly
   const currentRevenue = currentAnalysis?.revenue_data?.total ?? 0;
-  const currentCogs = currentAnalysis?.cogs_data?.total ?? 0;
+  const currentCogs = (typeof effectiveCogs === 'number' ? effectiveCogs : currentAnalysis?.cogs_data?.total) ?? 0;
   const currentOpex = currentAnalysis?.opex_data?.total ?? 0;
   
   const prevRevenue = previousAnalysis?.revenue_data?.total ?? 0;
-  const prevCogs = previousAnalysis?.cogs_data?.total ?? 0;
+  const prevCogs = (typeof effectiveCogs === 'number' ? effectiveCogs : previousAnalysis?.cogs_data?.total) ?? 0;
   const prevOpex = previousAnalysis?.opex_data?.total ?? 0;
 
   // ✅ NO useMemo - Calculate directly
-  const metrics = calculateMetrics(currentAnalysis, currentRevenue, currentCogs, currentOpex);
-  const changes = calculateChanges(metrics, previousAnalysis, prevRevenue, prevCogs, prevOpex);
-  const cards = generateCards(metrics, changes);
+  const metrics = calculateMetrics(currentAnalysis, effectiveCogs);
+  const changes = calculateChanges(metrics, previousAnalysis, effectiveCogs);
+  const cards = generateCards(metrics, changes, wacStockValue, labels);
 
   // ✅ LOADING STATE
   if (isLoading) {
@@ -233,6 +277,22 @@ const ProfitSummaryCards = ({
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
                 {card.title}
+                {/* ✅ TAMBAH: Tooltip untuk WAC stock value */}
+                {card.title === 'Nilai Stok Bahan Baku' && labels?.hppLabel && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-gray-400 ml-1 inline cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-sm">
+                        <p>
+                          Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost),
+                          yaitu rata-rata harga pembelian terakhir yang sudah termasuk semua pembelian sebelumnya.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </CardTitle>
               <div className={`p-2 rounded-lg ${card.bgColor}`}>
                 <Icon className={`w-4 h-4 ${card.color}`} />

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppUpdate, UpdateContextType } from './types';
 import { UpdateNotification } from './UpdateNotification';
+import { logger } from '@/utils/logger';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const UpdateContext = createContext<UpdateContextType | undefined>(undefined);
@@ -27,21 +28,21 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const fetchUpdates = useCallback(async () => {
     if (!user?.id || !isReady) {
-      console.log('Skipping fetch: user.id or auth not ready', { userId: user?.id, isReady });
+      logger.debug('Skipping fetch: user.id or auth not ready', { userId: user?.id, isReady });
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log('Fetching updates for user:', user.id);
+      logger.info('Fetching updates for user:', user.id);
 
       let isAdmin = false;
       try {
         const { data: isAdminData, error: adminError } = await supabase.rpc('is_user_admin');
         if (!adminError && isAdminData) isAdmin = true;
       } catch (adminCheckError) {
-        console.warn('Could not check admin status, assuming non-admin:', adminCheckError);
+        logger.warn('Could not check admin status, assuming non-admin:', adminCheckError);
       }
 
       let query = supabase.from('app_updates').select('*');
@@ -53,7 +54,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const { data: updates, error: updatesError } = await query;
       if (updatesError) {
-        console.error('Error fetching updates:', updatesError.message);
+        logger.error('Error fetching updates:', updatesError.message);
         setLatestUpdate(null);
         setUnseenUpdates([]);
         setHasUnseenUpdates(false);
@@ -61,7 +62,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       if (!updates || updates.length === 0) {
-        console.log('No updates found');
+        logger.debug('No updates found');
         setLatestUpdate(null);
         setUnseenUpdates([]);
         setHasUnseenUpdates(false);
@@ -77,12 +78,14 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (seenError) throw seenError;
         const ids = (seenData ?? []).map((s: { update_id: string }) => s.update_id);
         seenIdsSet = new Set(ids);
-        setSeenUpdateIds(seenIdsSet);
+        // Update the ref with the fetched seen IDs
+        seenUpdateIdsRef.current = seenIdsSet;
       } catch (err) {
         const error = err as Error;
-        console.error('Error fetching seen updates:', error.message);
+        logger.error('Error fetching seen updates:', error.message);
         toast.error('Gagal memuat status pembaruan');
-        setSeenUpdateIds(new Set());
+        // Reset the ref to empty set on error
+        seenUpdateIdsRef.current = new Set();
       }
 
       setLatestUpdate(updates[0]);
@@ -94,13 +97,13 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setHasUnseenUpdates(newUnseen.length > 0);
 
       if (!isAdmin && newUnseen.length > 0) {
-        console.log('Triggering popup for all unseen updates:', newUnseen.map(u => u.title));
+        logger.info('Triggering popup for all unseen updates:', newUnseen.map(u => u.title));
         setTimeout(() => showUpdateNotification(newUnseen), 1000); // Tampilkan semua unseen updates
       } else {
-        console.log('No popup: Admin or no unseen updates');
+        logger.debug('No popup: Admin or no unseen updates');
       }
     } catch (error) {
-      console.error('Error in fetchUpdates:', error);
+      logger.error('Error in fetchUpdates:', error);
       setTimeout(() => toast.error('Gagal memuat pembaruan terbaru'), 2000);
     } finally {
       setLoading(false);
@@ -144,6 +147,22 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!user?.id) return;
 
       try {
+        // Persist to database
+        const { error } = await supabase
+          .from('user_seen_updates')
+          .upsert({
+            user_id: user.id,
+            update_id: updateId,
+            seen_at: new Date().toISOString()
+          });
+
+        if (error) {
+          console.error('Error persisting seen status:', error);
+          toast.error('Gagal menyimpan status pembaruan');
+          return;
+        }
+
+        // Update local state
         seenUpdateIdsRef.current.add(updateId);
         setUnseenUpdates((prev) => {
           const filtered = prev.filter((update) => update.id !== updateId);
@@ -153,6 +172,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.log('Marked as seen:', updateId);
       } catch (error) {
         console.error('Error in markAsSeen:', error);
+        toast.error('Gagal menyimpan status pembaruan');
       }
     },
     [user?.id]
@@ -162,7 +182,25 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!user?.id || unseenUpdates.length === 0) return;
 
     try {
-      
+      // Prepare data for bulk insert
+      const unseenUpdateData = unseenUpdates.map(update => ({
+        user_id: user.id,
+        update_id: update.id,
+        seen_at: new Date().toISOString()
+      }));
+
+      // Persist to database
+      const { error } = await supabase
+        .from('user_seen_updates')
+        .upsert(unseenUpdateData);
+
+      if (error) {
+        console.error('Error persisting all seen status:', error);
+        toast.error('Gagal menyimpan status pembaruan');
+        return;
+      }
+
+      // Update local state
       unseenUpdates.forEach((update) => seenUpdateIdsRef.current.add(update.id));
       setUnseenUpdates([]);
       setHasUnseenUpdates(false);

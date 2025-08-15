@@ -98,16 +98,21 @@ export const validatePurchaseItems = (items: PurchaseItem[]): ValidationResult =
     warnings.push('Terlalu banyak item dalam satu pembelian (lebih dari 50 item)');
   }
 
-  // Validate each item
+  // Validate each item and track duplicates in single pass
+  const seen = new Map<string, number>();
   items.forEach((item, index) => {
     const itemValidation = validatePurchaseItem(item, index + 1);
     errors.push(...itemValidation.errors);
     warnings.push(...itemValidation.warnings);
-  });
 
-  // Check for duplicate items
-  const duplicateWarnings = checkDuplicateItems(items);
-  warnings.push(...duplicateWarnings);
+    const key = `${item.bahanBakuId}-${item.nama}`.toLowerCase();
+    const firstIndex = seen.get(key);
+    if (firstIndex !== undefined) {
+      warnings.push(`Item duplikat ditemukan pada baris ${firstIndex} dan ${index + 1}`);
+    } else {
+      seen.set(key, index + 1);
+    }
+  });
 
   return {
     isValid: errors.length === 0,
@@ -121,19 +126,15 @@ export const validatePurchaseItems = (items: PurchaseItem[]): ValidationResult =
  */
 export const checkDuplicateItems = (items: PurchaseItem[]): string[] => {
   const warnings: string[] = [];
-  const seen = new Map<string, number[]>();
+  const seen = new Map<string, number>();
 
   items.forEach((item, index) => {
-    const key = `${item.bahanBakuId}-${item.nama}`;
-    if (!seen.has(key)) {
-      seen.set(key, []);
-    }
-    seen.get(key)!.push(index + 1);
-  });
-
-  seen.forEach((indices, key) => {
-    if (indices.length > 1) {
-      warnings.push(`Item duplikat ditemukan pada baris ${indices.join(', ')}`);
+    const key = `${item.bahanBakuId}-${item.nama}`.toLowerCase();
+    const firstIndex = seen.get(key);
+    if (firstIndex !== undefined) {
+      warnings.push(`Item duplikat ditemukan pada baris ${firstIndex} dan ${index + 1}`);
+    } else {
+      seen.set(key, index + 1);
     }
   });
 

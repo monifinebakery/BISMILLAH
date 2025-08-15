@@ -9,7 +9,6 @@ export { warehouseApi } from './warehouseApi';
 
 // Utilities
 export { warehouseUtils } from './warehouseUtils';
-export { default as warehouseUtils } from './warehouseUtils';
 
 // Types
 export type {

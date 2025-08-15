@@ -46,7 +46,7 @@ import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
-import { SimplePurchaseItemForm } from './SimplePurchaseItemForm';
+import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,

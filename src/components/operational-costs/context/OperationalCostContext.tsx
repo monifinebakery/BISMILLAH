@@ -172,7 +172,10 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   const stabilizedFilters = useMemo(() => {
     logger.debug('📊 Filters stabilized:', state.filters);
     return state.filters;
-  }, [JSON.stringify(state.filters)]);
+  }, [state.filters]);
+
+  // Memoized string representation for comparison
+  const filtersString = useMemo(() => JSON.stringify(state.filters), [state.filters]);
 
   // Helper function to set loading state
   const setLoading = useCallback((key: keyof OperationalCostState['loading'], value: boolean) => {
@@ -493,14 +496,14 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   // Filter actions
   const setFilters = useCallback((filters: CostFilters) => {
     // ✅ Prevent unnecessary updates if filters are the same
-    if (JSON.stringify(filters) !== JSON.stringify(state.filters)) {
+    if (JSON.stringify(filters) !== filtersString) {
       logger.info('📊 Setting new filters:', filters);
       dispatch({ type: 'SET_FILTERS', payload: filters });
       // Queries will automatically refetch when filters change
     } else {
       logger.debug('📊 Filters unchanged, skipping update');
     }
-  }, [state.filters]);
+  }, [filtersString]);
 
   const clearFilters = useCallback(() => {
     logger.info('📊 Clearing all filters');

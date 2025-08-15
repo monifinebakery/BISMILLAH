@@ -361,7 +361,7 @@ const ProfitDashboard = ({
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
-  // ✅ SEMUA CUSTOM HOOKS DI SINI - SELALU DIPANGGIL DALAM URUTAN YANG SAMA
+  // ✅ UPDATE: Destructuring dari hook dengan WAC
   const {
     currentAnalysis,
     profitHistory,
@@ -370,10 +370,15 @@ const ProfitDashboard = ({
     currentPeriod,
     setCurrentPeriod,
     refreshAnalysis,
+    // ⬇️ baru
+    profitMetrics,
+    labels,
+    refreshWACData,
   } = useProfitAnalysis({
     defaultPeriod: defaultPeriod || getCurrentPeriod(),
     autoCalculate: true,
     enableRealTime: true,
+    enableWAC: true, // disarankan aktif
   });
 
   const { analyzeMargins, comparePeriods: comparePeriodsHook, generateForecast: generateForecastHook } = useProfitCalculation();
@@ -401,14 +406,18 @@ const ProfitDashboard = ({
   // Check if we have valid data
   const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
 
-  // ✅ EVENT HANDLERS - TIDAK MENGGUNAKAN useCallback UNTUK MENGHINDARI HOOK ISSUES
+  // ✅ UPDATE: Event handler dengan refresh WAC
   const handlePeriodChange = (period) => {
     setCurrentPeriod(period);
   };
 
+  // ✅ UPDATE: Refresh juga data WAC
   const handleRefresh = async () => {
     try {
-      await refreshAnalysis();
+      await Promise.all([
+        refreshAnalysis(),
+        refreshWACData(),   // ⬅️ refresh data WAC (bahanMap & pemakaian)
+      ]);
       setLastCalculated(new Date());
     } catch (error) {
       console.error('Error refreshing:', error);
@@ -602,12 +611,17 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
       {/* Executive Summary */}
       {renderExecutiveSummary()}
 
-      {/* Summary Cards */}
+      {/* Summary Cards - UPDATE: Kirim angka efektif ke komponen anak */}
       {hasValidData && (
         <ProfitSummaryCards 
           currentAnalysis={currentAnalysis} 
           previousAnalysis={previousAnalysis} 
           isLoading={loading} 
+          // ⬇️ props baru (nanti kita update file komponennya)
+          effectiveCogs={profitMetrics.cogs}
+          grossProfit={profitMetrics.grossProfit}
+          netProfit={profitMetrics.netProfit}
+          labels={labels}
         />
       )}
 
@@ -622,10 +636,13 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
 
         <TabsContent value="ikhtisar" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* UPDATE: ProfitBreakdownChart dengan angka WAC */}
             <ProfitBreakdownChart 
               currentAnalysis={currentAnalysis} 
               isLoading={loading} 
               chartType={selectedChartType} 
+              // ⬇️ supaya chart pakai angka WAC
+              effectiveCogs={profitMetrics.cogs}
             />
             <ProfitTrendChart
               profitHistory={profitHistory}
@@ -646,10 +663,15 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         </TabsContent>
 
         <TabsContent value="breakdown" className="space-y-6">
+          {/* UPDATE: DetailedBreakdownTable dengan HPP WAC */}
           <DetailedBreakdownTable 
             currentAnalysis={currentAnalysis} 
             isLoading={loading} 
             showExport={true} 
+            // ⬇️ HPP total & breakdown WAC
+            effectiveCogs={profitMetrics.cogs}
+            hppBreakdown={profitMetrics.hppBreakdown}
+            labels={labels}
           />
         </TabsContent>
 
@@ -735,7 +757,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         </TabsContent>
       </Tabs>
 
-      {/* Status Footer */}
+      {/* Status Footer - UPDATE: Gunakan profitMetrics dan tambah badge WAC */}
       {hasValidData && !loading && (
         <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-2">
@@ -745,25 +767,16 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             </span>
           </div>
           <span>•</span>
-          <span>Pendapatan: {formatCurrency(currentAnalysis.revenue_data?.total || 0)}</span>
+          {/* UPDATE: Gunakan profitMetrics untuk konsistensi WAC */}
+          <span>Pendapatan: {formatCurrency(profitMetrics.revenue)}</span>
           <span>•</span>
-          <span>
-            Laba Bersih: {formatCurrency(
-              (currentAnalysis.revenue_data?.total || 0) - 
-              (currentAnalysis.cogs_data?.total || 0) - 
-              (currentAnalysis.opex_data?.total || 0)
-            )}
-          </span>
+          <span>Laba Bersih: {formatCurrency(profitMetrics.netProfit)}</span>
           <span>•</span>
-          <span>
-            Margin: {formatPercentage(
-              (currentAnalysis.revenue_data?.total || 0) > 0
-                ? (((currentAnalysis.revenue_data?.total || 0) - 
-                    (currentAnalysis.cogs_data?.total || 0) - 
-                    (currentAnalysis.opex_data?.total || 0)) / 
-                   (currentAnalysis.revenue_data?.total || 0)) * 100
-                : 0
-            )}
+          <span>Margin: {formatPercentage(profitMetrics.netMargin)}</span>
+          {/* ✅ TAMBAH: Badge/tooltip info WAC */}
+          <span>•</span>
+          <span title={labels.hppHint}>
+            {labels.hppLabel} aktif
           </span>
         </div>
       )}

@@ -851,4 +851,3 @@ export default SimplePurchaseItemForm;
   );
 };
 
-export default SimplePurchaseItemForm;

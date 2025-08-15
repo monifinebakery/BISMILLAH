@@ -113,10 +113,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         satuan: '',
         hargaSatuan: 0,
         keterangan: '',
-        // 🆕 packaging
+        // ✅ FIXED: Default values yang bersih
         jumlahKemasan: 0,
         isiPerKemasan: 1,
-        satuanKemasan: 'pak, botol, dus',
+        satuanKemasan: '', // ✅ String kosong, bukan placeholder dummy
         hargaTotalBeliKemasan: 0,
       });
       setShowAddItem(false);
@@ -128,16 +128,36 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // ✅ Auto-hitung harga satuan dari detail kemasan
+  // ✅ IMPROVED: Auto-hitung harga satuan dari detail kemasan
   useEffect(() => {
-    const { jumlahKemasan, isiPerKemasan, hargaTotalBeliKemasan } = newItem as any;
+    const { jumlahKemasan, isiPerKemasan, hargaTotalBeliKemasan, hargaSatuan } = newItem as any;
     const totalIsi = (Number(jumlahKemasan) || 0) * (Number(isiPerKemasan) || 0);
     if (totalIsi > 0 && Number(hargaTotalBeliKemasan) > 0) {
-      const unit = Number(hargaTotalBeliKemasan) / totalIsi;
-      setNewItem(prev => ({ ...prev, hargaSatuan: unit }));
+      const computed = Number(hargaTotalBeliKemasan) / totalIsi;
+      // ✅ Bulatkan ke 2 desimal untuk angka yang rapi
+      const rounded = Math.round(computed * 100) / 100;
+      // ✅ Jangan override kalau user sudah isi manual dengan nilai berbeda
+      if (!hargaSatuan || Math.abs(hargaSatuan - computed) < 0.0001) {
+        setNewItem(prev => ({ ...prev, hargaSatuan: rounded }));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newItem.jumlahKemasan, newItem.isiPerKemasan, newItem.hargaTotalBeliKemasan]);
+
+  // ✅ IMPROVED: Enhanced handleBahanBakuSelect
+  const enhancedHandleBahanBakuSelect = (id: string) => {
+    const bb = bahanBaku.find((x: any) => x.id === id);
+    setNewItem(prev => ({
+      ...prev,
+      bahanBakuId: id,
+      nama: bb?.nama || prev.nama,
+      satuan: bb?.satuan || prev.satuan || 'unit',
+    }));
+    // Call original handler if exists
+    if (handleBahanBakuSelect) {
+      handleBahanBakuSelect(id);
+    }
+  };
 
   // ✅ Handle form submission
   const onSubmit = async () => {
@@ -410,7 +430,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         <Label>Bahan Baku *</Label>
                         <Select
                           value={newItem.bahanBakuId}
-                          onValueChange={handleBahanBakuSelect}
+                          onValueChange={enhancedHandleBahanBakuSelect}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Pilih bahan baku" />
@@ -467,7 +487,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                       </div>
                     </div>
 
-                    {/* 🆕 Detail Kemasan (opsional, akan auto-hitung harga satuan) */}
+                    {/* ✅ IMPROVED: Detail Kemasan dengan field yang bersih */}
                     <div className="col-span-full rounded-lg border p-3 mb-4">
                       <div className="text-sm font-medium mb-2">Detail Kemasan (opsional)</div>
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -498,17 +518,21 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         </div>
                         <div className="space-y-2">
                           <Label>Jenis Kemasan</Label>
+                          {/* ✅ FIXED: Proper placeholder tanpa value dummy */}
                           <Select
-                            value={(newItem as any).satuanKemasan || 'pak, botol, dus'}
+                            value={(newItem as any).satuanKemasan || ''}
                             onValueChange={(v) => setNewItem(prev => ({ ...prev, satuanKemasan: v }))}
                           >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih jenis kemasan (opsional)" />
+                            </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="pak, botol, dus">pak, botol, dus</SelectItem>
                               <SelectItem value="pak">pak</SelectItem>
                               <SelectItem value="dus">dus</SelectItem>
                               <SelectItem value="botol">botol</SelectItem>
                               <SelectItem value="karung">karung</SelectItem>
+                              <SelectItem value="kaleng">kaleng</SelectItem>
+                              <SelectItem value="box">box</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -554,19 +578,32 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                       </div>
                     )}
 
+                    {/* ✅ IMPROVED: Sanitasi payload saat "Tambah ke Daftar" */}
                     <Button
                       type="button"
                       onClick={() => {
-                        // pastikan subtotal terisi
-                        const subtotal = (newItem.kuantitas || 0) * (newItem.hargaSatuan || 0);
+                        const qty = Number(newItem.kuantitas) || 0;
+                        const price = Number(newItem.hargaSatuan) || 0;
+                        const subtotal = qty * price;
+
+                        const jk = Number((newItem as any).jumlahKemasan) || 0;
+                        const ipk = Number((newItem as any).isiPerKemasan) || 0;
+                        const htotal = Number((newItem as any).hargaTotalBeliKemasan) || 0;
+                        const sk = ((newItem as any).satuanKemasan || '').trim();
+
+                        // ✅ Minimal validasi UX biar jelas
+                        if (!newItem.bahanBakuId) return toast.error('Pilih bahan baku');
+                        if (qty <= 0) return toast.error('Kuantitas harus > 0');
+                        if (price <= 0) return toast.error('Harga satuan harus > 0');
+
                         handleAddItem({
                           ...newItem,
                           subtotal,
-                          // kemasan ikut
-                          jumlahKemasan: (newItem as any).jumlahKemasan || 0,
-                          isiPerKemasan: (newItem as any).isiPerKemasan || 0,
-                          satuanKemasan: (newItem as any).satuanKemasan || undefined,
-                          hargaTotalBeliKemasan: (newItem as any).hargaTotalBeliKemasan || 0,
+                          // ✅ Kirim undefined kalau kosong → transformer simpan null di DB
+                          jumlahKemasan: jk > 0 ? jk : undefined,
+                          isiPerKemasan: ipk > 0 ? ipk : undefined,
+                          satuanKemasan: sk || undefined,
+                          hargaTotalBeliKemasan: htotal > 0 ? htotal : undefined,
                         });
                       }}
                       disabled={!newItem.bahanBakuId || !newItem.kuantitas || !newItem.hargaSatuan}
@@ -610,11 +647,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                               <div>
                                 <div className="font-medium">{item.nama}</div>
                                 <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
-                                {/* ✅ Tampilkan ringkas info kemasan di list item (kalau ada) */}
+                                {/* ✅ IMPROVED: Tampilkan ringkas info kemasan dengan fallback satuan */}
                                 {(item as any).jumlahKemasan > 0 && (item as any).isiPerKemasan > 0 && (
                                   <div className="text-xs text-gray-500 mt-1">
-                                    Kemasan: {(item as any).jumlahKemasan} × {(item as any).isiPerKemasan} {item.satuan}
-                                    { (item as any).satuanKemasan ? ` (${(item as any).satuanKemasan})` : '' }
+                                    Kemasan: {(item as any).jumlahKemasan} × {(item as any).isiPerKemasan} {item.satuan || 'unit'}
+                                    {(item as any).satuanKemasan ? ` (${(item as any).satuanKemasan})` : ''}
                                   </div>
                                 )}
                               </div>

@@ -1,7 +1,6 @@
 // src/components/purchase/components/SimplePurchaseItemForm.tsx
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,7 +47,6 @@ interface SimplePurchaseItemFormProps {
   initialMode?: 'quick' | 'packaging'; // NEW: Allow initial mode
 }
 
-// Helper baru: normalisasi angka yang tahan banting
 const toNumber = (v: string | number | '' | undefined) => {
   if (v === '' || v == null) return 0;
   if (typeof v === 'number') return isFinite(v) ? v : 0;
@@ -68,6 +66,29 @@ const toNumber = (v: string | number | '' | undefined) => {
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 };
+
+// ✅ INLINE SafeNumericInput - no external file needed
+const SafeNumericInput = React.forwardRef<
+  HTMLInputElement, 
+  React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
+>(({ className = '', value, onChange, ...props }, ref) => {
+  const baseClasses = "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:cursor-not-allowed disabled:opacity-50";
+  
+  return (
+    <input
+      ref={ref}
+      type="text"
+      inputMode="decimal"
+      value={String(value ?? '')}
+      onChange={onChange}
+      className={`${baseClasses} ${className}`}
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck="false"
+      {...props}
+    />
+  );
+});
 
 const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   bahanBaku,
@@ -171,16 +192,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Kuantitas *</Label>
             <div className="flex gap-2">
-              <Input
-                type="text"
-                inputMode="decimal"
+              <SafeNumericInput
                 value={String(formData.kuantitas ?? '')}
                 onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
               />
               <div className="flex items-center px-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600 min-w-[60px] justify-center">
                 {formData.satuan || 'unit'}
@@ -192,16 +208,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Harga Satuan *</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-              <Input
-                type="text"
-                inputMode="decimal"
+              <SafeNumericInput
                 value={String(formData.hargaSatuan ?? '')}
                 onChange={(e) => handleNumericChange('hargaSatuan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
               />
             </div>
           </div>
@@ -363,17 +374,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Jumlah Kemasan</Label>
-            <Input
-              type="text"
-              inputMode="numeric"
-              pattern="\d*"
+            <SafeNumericInput
               value={String(formData.jumlahKemasan ?? '')}
               onChange={(e) => handleNumericChange('jumlahKemasan', e.target.value)}
               placeholder="1"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
             />
           </div>
 
@@ -398,16 +403,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Isi Per Kemasan</Label>
             <div className="flex gap-2">
-              <Input
-                type="text"
-                inputMode="decimal"
+              <SafeNumericInput
                 value={String(formData.isiPerKemasan ?? '')}
                 onChange={(e) => handleNumericChange('isiPerKemasan', e.target.value)}
                 placeholder="500"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
               />
               <div className="flex items-center px-2 bg-white border border-gray-200 rounded-md text-xs text-gray-600 min-w-[45px] justify-center">
                 {formData.satuan || 'unit'}
@@ -419,16 +419,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Total Bayar</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-              <Input
-                type="text"
-                inputMode="decimal"
+              <SafeNumericInput
                 value={String(formData.hargaTotalBeliKemasan ?? '')}
                 onChange={(e) => handleNumericChange('hargaTotalBeliKemasan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="25000"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
               />
             </div>
           </div>

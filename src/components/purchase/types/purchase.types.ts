@@ -177,6 +177,7 @@ export interface PurchaseDialogProps {
   mode: 'create' | 'edit';
   purchase?: Purchase | null;
   suppliers: Array<{ id: string; nama: string }>;
+  onAddPurchase: (intent?: AddPurchaseIntent) => void; // <— ubah ke terima intent
   bahanBaku: Array<{ id: string; nama: string; satuan: string }>;
   onClose: () => void;
 }

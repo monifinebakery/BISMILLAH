@@ -93,7 +93,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     handleEditItem,
     handleSaveEditedItem,
     handleCancelEditItem,
-    handleAddItem, // ✅ Pastikan handleAddItem ada di sini
   } = usePurchaseItemManager({
     bahanBaku,
     items: formData.items,
@@ -358,7 +357,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* ✅ NEW: Smart Add New Item Form */}
+              {/* ✅ NEW: Smart Add New Item Form dengan desain minimalis modern */}
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
                   bahanBaku={bahanBaku}
@@ -371,8 +370,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     toast.success(`${cleanData.nama} berhasil ditambahkan`);
                   }}
                 />
-              )}
-              {/* Items List */}
+              )}="              {/* Items List */}
               {formData.items.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />

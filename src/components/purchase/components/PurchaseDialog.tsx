@@ -48,6 +48,12 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
+// Helper function to safely convert string to number
+const toNumber = (value: string): number => {
+  const num = parseFloat(value);
+  return isNaN(num) ? 0 : num;
+};
+
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,
   mode,
@@ -538,23 +544,29 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   );
 };
 
-// ✅ Edit Item Form Component
+// ✅ FIXED: Edit Item Form Component with proper string-based number inputs
 const EditItemForm: React.FC<{
   item: PurchaseItem;
   onSave: (item: Partial<PurchaseItem>) => void;
   onCancel: () => void;
 }> = ({ item, onSave, onCancel }) => {
+  // ✅ FIXED: Store as strings to prevent input issues
   const [editedItem, setEditedItem] = useState({
-    kuantitas: item.kuantitas,
-    hargaSatuan: item.hargaSatuan,
+    kuantitas: String(item.kuantitas),
+    hargaSatuan: String(item.hargaSatuan),
     keterangan: item.keterangan || '',
   });
 
   const handleSave = () => {
-    onSave(editedItem);
+    // Convert strings to numbers when saving
+    onSave({
+      kuantitas: toNumber(editedItem.kuantitas),
+      hargaSatuan: toNumber(editedItem.hargaSatuan),
+      keterangan: editedItem.keterangan,
+    });
   };
 
-  const subtotal = editedItem.kuantitas * editedItem.hargaSatuan;
+  const subtotal = toNumber(editedItem.kuantitas) * toNumber(editedItem.hargaSatuan);
 
   return (
     <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -573,7 +585,7 @@ const EditItemForm: React.FC<{
             type="button"
             size="sm"
             onClick={handleSave}
-            disabled={!editedItem.kuantitas || !editedItem.hargaSatuan}
+            disabled={toNumber(editedItem.kuantitas) <= 0 || toNumber(editedItem.hargaSatuan) <= 0}
           >
             <Save className="h-4 w-4 mr-2" />
             Simpan
@@ -582,19 +594,18 @@ const EditItemForm: React.FC<{
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Quantity */}
+        {/* Quantity - FIXED: type="text" with inputMode="decimal" */}
         <div className="space-y-2">
           <Label>Kuantitas *</Label>
           <div className="flex gap-2">
             <Input
-              type="number"
-              min="0.001"
-              step="0.001"
+              type="text"
+              inputMode="decimal"
               value={editedItem.kuantitas}
               onChange={(e) =>
                 setEditedItem(prev => ({
                   ...prev,
-                  kuantitas: parseFloat(e.target.value) || 0
+                  kuantitas: e.target.value
                 }))
               }
               placeholder="0"
@@ -605,18 +616,17 @@ const EditItemForm: React.FC<{
           </div>
         </div>
 
-        {/* Unit Price */}
+        {/* Unit Price - FIXED: type="text" with inputMode="decimal" */}
         <div className="space-y-2">
           <Label>Harga Satuan *</Label>
           <Input
-            type="number"
-            min="0"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
             value={editedItem.hargaSatuan}
             onChange={(e) =>
               setEditedItem(prev => ({
                 ...prev,
-                hargaSatuan: parseFloat(e.target.value) || 0
+                hargaSatuan: e.target.value
               }))
             }
             placeholder="0"
@@ -657,8 +667,8 @@ const EditItemForm: React.FC<{
             </div>
             <div>
               <strong>Sesudah:</strong>
-              <div>Qty: {editedItem.kuantitas} {item.satuan}</div>
-              <div>Harga: {formatCurrency(editedItem.hargaSatuan)}</div>
+              <div>Qty: {toNumber(editedItem.kuantitas)} {item.satuan}</div>
+              <div>Harga: {formatCurrency(toNumber(editedItem.hargaSatuan))}</div>
               <div>Subtotal: {formatCurrency(subtotal)}</div>
             </div>
           </div>

@@ -1,23 +1,23 @@
 // src/components/purchase/components/SimplePurchaseItemForm.tsx
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
+  Plus, 
+  X, 
   Calculator, 
   TrendingUp, 
   AlertTriangle, 
   CheckCircle2, 
-  Package,
+  Package as PackageIcon,
   Receipt,
-  Target,
-  X,
-  Plus
+  Target
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
@@ -28,18 +28,17 @@ interface BahanBaku {
   satuan: string;
 }
 
-interface FormData {
+export interface FormData {
   bahanBakuId: string;
   nama: string;
   satuan: string;
   kuantitas: number;
   hargaSatuan: number;
   keterangan: string;
-  // Packaging data
-  jumlahKemasan: number;
-  isiPerKemasan: number;
-  satuanKemasan: string;
-  hargaTotalBeliKemasan: number;
+  jumlahKemasan?: number;
+  isiPerKemasan?: number;
+  satuanKemasan?: string;
+  hargaTotalBeliKemasan?: number;
 }
 
 interface SimplePurchaseItemFormProps {
@@ -61,33 +60,27 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     kuantitas: 0,
     hargaSatuan: 0,
     keterangan: '',
-    // Packaging data
     jumlahKemasan: 0,
     isiPerKemasan: 1,
     satuanKemasan: '',
     hargaTotalBeliKemasan: 0,
   });
 
-  // Calculate accurate price from packaging
   const calculateAccuratePrice = () => {
     const { jumlahKemasan, isiPerKemasan, hargaTotalBeliKemasan } = formData;
-    const totalContent = jumlahKemasan * isiPerKemasan;
-    return totalContent > 0 ? Math.round((hargaTotalBeliKemasan / totalContent) * 100) / 100 : 0;
+    const totalContent = (jumlahKemasan || 0) * (isiPerKemasan || 0);
+    return totalContent > 0 ? Math.round(((hargaTotalBeliKemasan || 0) / totalContent) * 100) / 100 : 0;
   };
 
   const accuratePrice = calculateAccuratePrice();
   const accuracyLevel = mode === 'packaging' ? 100 : mode === 'accurate' ? 85 : 70;
-  const priceDifference = Math.abs(formData.hargaSatuan - accuratePrice);
-  const impactOnMargin = priceDifference > 0 ? ((priceDifference / formData.hargaSatuan) * 100).toFixed(1) : 0;
 
-  // Auto-update accurate price when in packaging mode
   useEffect(() => {
     if (mode === 'packaging' && accuratePrice > 0) {
       setFormData(prev => ({ ...prev, hargaSatuan: accuratePrice }));
     }
   }, [mode, accuratePrice]);
 
-  // Handle bahan baku selection
   const handleBahanBakuSelect = (id: string) => {
     const selected = bahanBaku.find(b => b.id === id);
     if (selected) {
@@ -100,21 +93,17 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     }
   };
 
-  // Handle form submission
   const handleSubmit = () => {
-    // Validation
     if (!formData.bahanBakuId) return toast.error('Pilih bahan baku');
     if (formData.kuantitas <= 0) return toast.error('Kuantitas harus > 0');
     if (formData.hargaSatuan <= 0) return toast.error('Harga satuan harus > 0');
 
-    // Clean data for submission
     const cleanData = {
       ...formData,
-      // ✅ Kirim undefined kalau kosong → transformer simpan null di DB
-      jumlahKemasan: formData.jumlahKemasan > 0 ? formData.jumlahKemasan : undefined,
-      isiPerKemasan: formData.isiPerKemasan > 0 ? formData.isiPerKemasan : undefined,
-      satuanKemasan: formData.satuanKemasan.trim() || undefined,
-      hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan > 0 ? formData.hargaTotalBeliKemasan : undefined,
+      jumlahKemasan: (formData.jumlahKemasan || 0) > 0 ? formData.jumlahKemasan : undefined,
+      isiPerKemasan: (formData.isiPerKemasan || 0) > 0 ? formData.isiPerKemasan : undefined,
+      satuanKemasan: formData.satuanKemasan?.trim() || undefined,
+      hargaTotalBeliKemasan: (formData.hargaTotalBeliKemasan || 0) > 0 ? formData.hargaTotalBeliKemasan : undefined,
     };
 
     onAdd(cleanData as FormData);
@@ -173,7 +162,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </div>
       </div>
 
-      {/* Accuracy Warning */}
       <Alert className="border-yellow-200 bg-yellow-50">
         <AlertTriangle className="h-4 w-4 text-yellow-600" />
         <AlertDescription>
@@ -230,22 +218,13 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           </div>
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <div className="text-sm text-gray-600 mb-2">📝 Yang perlu disiapkan:</div>
-          <div className="text-sm text-gray-700">
-            ✓ Nota/struk pembelian<br/>
-            ✓ Info kemasan (berapa pak dibeli, isi per pak)<br/>
-            ✓ Total pembayaran
-          </div>
-        </div>
-
         <div className="flex gap-3 justify-center">
           <Button variant="outline" onClick={() => setMode('quick')}>
             <X className="h-4 w-4 mr-2" />
             Nanti Saja
           </Button>
           <Button onClick={() => setMode('packaging')} className="bg-green-600 hover:bg-green-700">
-            <Package className="h-4 w-4 mr-2" />
+            <PackageIcon className="h-4 w-4 mr-2" />
             Lanjutkan
           </Button>
         </div>
@@ -255,7 +234,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   const PackagingMode = () => (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Receipt className="h-5 w-5 text-green-600" />
@@ -267,7 +245,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </Button>
       </div>
 
-      {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Bahan Baku *</Label>
@@ -302,7 +279,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </div>
       </div>
 
-      {/* Packaging Details */}
       <div className="bg-blue-50 p-4 rounded-lg">
         <div className="font-medium text-blue-900 mb-3">📦 Detail Kemasan dari Nota:</div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -319,7 +295,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="space-y-2">
             <Label>Jenis Kemasan</Label>
             <Select 
-              value={formData.satuanKemasan}
+              value={formData.satuanKemasan || ''}
               onValueChange={(value) => setFormData(prev => ({ ...prev, satuanKemasan: value }))}
             >
               <SelectTrigger>
@@ -330,8 +306,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 <SelectItem value="dus">dus</SelectItem>
                 <SelectItem value="karung">karung</SelectItem>
                 <SelectItem value="botol">botol</SelectItem>
-                <SelectItem value="kaleng">kaleng</SelectItem>
-                <SelectItem value="box">box</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -370,7 +344,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </div>
       </div>
 
-      {/* Calculation Result */}
       {accuratePrice > 0 && (
         <Alert className="border-green-200 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -381,7 +354,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 <div>
                   <div className="text-green-700">Total Isi:</div>
                   <div className="font-medium">
-                    {formData.jumlahKemasan} × {formData.isiPerKemasan} = {formData.jumlahKemasan * formData.isiPerKemasan} {formData.satuan}
+                    {formData.jumlahKemasan} × {formData.isiPerKemasan} = {(formData.jumlahKemasan || 0) * (formData.isiPerKemasan || 0)} {formData.satuan}
                   </div>
                 </div>
                 <div>
@@ -397,12 +370,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                   </div>
                 </div>
               </div>
-              
-              {priceDifference > 1 && (
-                <div className="mt-3 p-2 bg-yellow-100 rounded text-yellow-800 text-sm">
-                  💡 Lebih akurat dari perkiraan manual: selisih {formatCurrency(priceDifference)} ({impactOnMargin}% impact on margin)
-                </div>
-              )}
             </div>
           </AlertDescription>
         </Alert>
@@ -440,7 +407,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         {mode === 'accurate' && <AccurateModePrompt />}
         {mode === 'packaging' && <PackagingMode />}
         
-        {/* Notes (show in all modes except accurate prompt) */}
         {mode !== 'accurate' && (
           <div className="space-y-2">
             <Label>Keterangan</Label>
@@ -453,7 +419,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           </div>
         )}
 
-        {/* Subtotal Preview */}
         {mode !== 'accurate' && formData.kuantitas > 0 && formData.hargaSatuan > 0 && (
           <div className="bg-blue-100 p-3 rounded-lg">
             <div className="text-sm text-blue-800">
@@ -463,7 +428,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           </div>
         )}
 
-        {/* Action Buttons */}
         {mode !== 'accurate' && (
           <Button
             type="button"

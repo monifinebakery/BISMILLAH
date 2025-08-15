@@ -29,6 +29,7 @@ export type {
 // import BulkDeleteDialog from './BulkDeleteDialog';
 // import PurchaseDetailDialog from './PurchaseDetailDialog';
 // import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
+// import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
 // ✅ LAZY COMPONENT REFERENCES: For documentation and lazy loading
 export const PURCHASE_COMPONENTS_LAZY = {
@@ -36,6 +37,7 @@ export const PURCHASE_COMPONENTS_LAZY = {
   PurchaseDialog: () => import('./PurchaseDialog'),
   PurchaseTable: () => import('./PurchaseTable'),
   PurchaseDetailDialog: () => import('./PurchaseDetailDialog'),
+  SimplePurchaseItemForm: () => import('./SimplePurchaseItemForm'),
   
   // Action components (medium - load when needed)
   BulkActionsToolbar: () => import('./BulkActionsToolbar'),
@@ -48,7 +50,7 @@ export const PURCHASE_COMPONENTS_LAZY = {
 } as const;
 
 // ✅ COMPONENT GROUPS: For batch loading
-export const PURCHASE_COMPONENT_GROUPS = {
+export const PURCHASE_COMPONENTS_GROUPS = {
   // Core dialogs - load together
   dialogs: () => Promise.all([
     import('./PurchaseDialog'),
@@ -61,6 +63,12 @@ export const PURCHASE_COMPONENT_GROUPS = {
   table: () => Promise.all([
     import('./PurchaseTable'),
     import('./BulkActionsToolbar')
+  ]),
+  
+  // Form components - load together
+  forms: () => Promise.all([
+    import('./PurchaseDialog'),
+    import('./SimplePurchaseItemForm')
   ]),
   
   // All lazy components - for preloading
@@ -77,10 +85,12 @@ export const PURCHASE_COMPONENTS_MIGRATION = {
     // NEW (direct import - better code splitting):
     import PurchaseDialog from '@/components/purchase/components/PurchaseDialog';
     import PurchaseTable from '@/components/purchase/components/PurchaseTable';
+    import SimplePurchaseItemForm from '@/components/purchase/components/SimplePurchaseItemForm';
     
     // OR (lazy import - best performance):
     const PurchaseDialog = React.lazy(() => import('@/components/purchase/components/PurchaseDialog'));
     const PurchaseTable = React.lazy(() => import('@/components/purchase/components/PurchaseTable'));
+    const SimplePurchaseItemForm = React.lazy(() => import('@/components/purchase/components/SimplePurchaseItemForm'));
   `,
   
   // Quick migration function

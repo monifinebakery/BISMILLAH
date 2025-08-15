@@ -46,6 +46,7 @@ import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
+import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,
@@ -86,13 +87,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   // Item management
   const {
-    newItem,
-    setNewItem,
     showAddItem,
     setShowAddItem,
     editingItemIndex,
-    handleBahanBakuSelect,
-    handleAddItem,
     handleEditItem,
     handleSaveEditedItem,
     handleCancelEditItem,
@@ -106,58 +103,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   // ✅ Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
-      setNewItem({
-        bahanBakuId: '',
-        nama: '',
-        kuantitas: 0,
-        satuan: '',
-        hargaSatuan: 0,
-        keterangan: '',
-        // ✅ FIXED: Default values yang bersih
-        jumlahKemasan: 0,
-        isiPerKemasan: 1,
-        satuanKemasan: '', // ✅ String kosong, bukan placeholder dummy
-        hargaTotalBeliKemasan: 0,
-      });
       setShowAddItem(false);
       handleCancelEditItem();
     }
-    // We intentionally only depend on `isOpen` to avoid resetting
-    // state on every render which would prevent the add-item form
-    // from toggling correctly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
-
-  // ✅ IMPROVED: Auto-hitung harga satuan dari detail kemasan
-  useEffect(() => {
-    const { jumlahKemasan, isiPerKemasan, hargaTotalBeliKemasan, hargaSatuan } = newItem as any;
-    const totalIsi = (Number(jumlahKemasan) || 0) * (Number(isiPerKemasan) || 0);
-    if (totalIsi > 0 && Number(hargaTotalBeliKemasan) > 0) {
-      const computed = Number(hargaTotalBeliKemasan) / totalIsi;
-      // ✅ Bulatkan ke 2 desimal untuk angka yang rapi
-      const rounded = Math.round(computed * 100) / 100;
-      // ✅ Jangan override kalau user sudah isi manual dengan nilai berbeda
-      if (!hargaSatuan || Math.abs(hargaSatuan - computed) < 0.0001) {
-        setNewItem(prev => ({ ...prev, hargaSatuan: rounded }));
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newItem.jumlahKemasan, newItem.isiPerKemasan, newItem.hargaTotalBeliKemasan]);
-
-  // ✅ IMPROVED: Enhanced handleBahanBakuSelect
-  const enhancedHandleBahanBakuSelect = (id: string) => {
-    const bb = bahanBaku.find((x: any) => x.id === id);
-    setNewItem(prev => ({
-      ...prev,
-      bahanBakuId: id,
-      nama: bb?.nama || prev.nama,
-      satuan: bb?.satuan || prev.satuan || 'unit',
-    }));
-    // Call original handler if exists
-    if (handleBahanBakuSelect) {
-      handleBahanBakuSelect(id);
-    }
-  };
 
   // ✅ Handle form submission
   const onSubmit = async () => {
@@ -186,7 +136,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     if (confirm('Reset semua perubahan ke kondisi awal?')) {
       handleReset();
       setShowAddItem(false);
-      setEditingItemIndex(null);
+      if (handleCancelEditItem) handleCancelEditItem();
       toast.info('Form direset ke kondisi awal');
     }
   };
@@ -407,216 +357,20 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Add New Item Form */}
+              {/* ✅ NEW: Smart Add New Item Form */}
               {canEdit && showAddItem && (
-                <Card className="border-dashed border-blue-300 bg-blue-50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-blue-900">Tambah Item Baru</h4>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAddItem(false)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                      {/* Bahan Baku Selection */}
-                      <div className="space-y-2">
-                        <Label>Bahan Baku *</Label>
-                        <Select
-                          value={newItem.bahanBakuId}
-                          onValueChange={enhancedHandleBahanBakuSelect}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih bahan baku" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {bahanBaku.map((bahan) => (
-                              <SelectItem key={bahan.id} value={bahan.id}>
-                                {bahan.nama} ({bahan.satuan})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Quantity */}
-                      <div className="space-y-2">
-                        <Label>Kuantitas *</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="number"
-                            min="0.001"
-                            step="0.001"
-                            value={newItem.kuantitas || ''}
-                            onChange={(e) =>
-                              setNewItem(prev => ({
-                                ...prev,
-                                kuantitas: parseFloat(e.target.value) || 0
-                              }))
-                            }
-                            placeholder="0"
-                          />
-                          <div className="flex items-center px-3 bg-gray-100 rounded text-sm text-gray-600 min-w-[60px]">
-                            {newItem.satuan || 'unit'}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Unit Price */}
-                      <div className="space-y-2">
-                        <Label>Harga Satuan *</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={newItem.hargaSatuan || ''}
-                          onChange={(e) =>
-                            setNewItem(prev => ({
-                              ...prev,
-                              hargaSatuan: parseFloat(e.target.value) || 0
-                            }))
-                          }
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-
-                    {/* ✅ IMPROVED: Detail Kemasan dengan field yang bersih */}
-                    <div className="col-span-full rounded-lg border p-3 mb-4">
-                      <div className="text-sm font-medium mb-2">Detail Kemasan (opsional)</div>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div className="space-y-2">
-                          <Label>Jumlah Kemasan</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={(newItem as any).jumlahKemasan || ''}
-                            onChange={(e) => setNewItem(prev => ({ ...prev, jumlahKemasan: Number(e.target.value) || 0 }))}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Isi per Kemasan *</Label>
-                          <Input
-                            type="number"
-                            min="0.001"
-                            step="0.001"
-                            value={(newItem as any).isiPerKemasan || ''}
-                            onChange={(e) => setNewItem(prev => ({ ...prev, isiPerKemasan: Number(e.target.value) || 0 }))}
-                            placeholder="1"
-                          />
-                          <div className="text-xs text-gray-500">
-                            Satuan dasar: {newItem.satuan || 'unit'}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Jenis Kemasan</Label>
-                          {/* ✅ FIXED: Proper placeholder tanpa value dummy */}
-                          <Select
-                            value={(newItem as any).satuanKemasan || ''}
-                            onValueChange={(v) => setNewItem(prev => ({ ...prev, satuanKemasan: v }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih jenis kemasan (opsional)" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pak">pak</SelectItem>
-                              <SelectItem value="dus">dus</SelectItem>
-                              <SelectItem value="botol">botol</SelectItem>
-                              <SelectItem value="karung">karung</SelectItem>
-                              <SelectItem value="kaleng">kaleng</SelectItem>
-                              <SelectItem value="box">box</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Harga Total Beli Kemasan</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={(newItem as any).hargaTotalBeliKemasan || ''}
-                            onChange={(e) => setNewItem(prev => ({ ...prev, hargaTotalBeliKemasan: Number(e.target.value) || 0 }))}
-                            placeholder="0"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-2 text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-800">
-                        Harga per satuan akan dihitung: <b>harga total ÷ (jumlah kemasan × isi per kemasan)</b>.  
-                        Kamu masih bisa override kolom "Harga Satuan" di atas jika perlu.
-                      </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div className="space-y-2 mb-4">
-                      <Label>Keterangan</Label>
-                      <Textarea
-                        value={newItem.keterangan || ''}
-                        onChange={(e) =>
-                          setNewItem(prev => ({ ...prev, keterangan: e.target.value }))
-                        }
-                        placeholder="Keterangan tambahan (opsional)"
-                        rows={2}
-                      />
-                    </div>
-
-                    {/* Subtotal Preview */}
-                    {newItem.kuantitas && newItem.hargaSatuan && (
-                      <div className="bg-blue-100 p-3 rounded-lg mb-4">
-                        <div className="text-sm text-blue-800">
-                          <strong>Subtotal: </strong>
-                          {formatCurrency((newItem.kuantitas || 0) * (newItem.hargaSatuan || 0))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ✅ IMPROVED: Sanitasi payload saat "Tambah ke Daftar" */}
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        const qty = Number(newItem.kuantitas) || 0;
-                        const price = Number(newItem.hargaSatuan) || 0;
-                        const subtotal = qty * price;
-
-                        const jk = Number((newItem as any).jumlahKemasan) || 0;
-                        const ipk = Number((newItem as any).isiPerKemasan) || 0;
-                        const htotal = Number((newItem as any).hargaTotalBeliKemasan) || 0;
-                        const sk = ((newItem as any).satuanKemasan || '').trim();
-
-                        // ✅ Minimal validasi UX biar jelas
-                        if (!newItem.bahanBakuId) return toast.error('Pilih bahan baku');
-                        if (qty <= 0) return toast.error('Kuantitas harus > 0');
-                        if (price <= 0) return toast.error('Harga satuan harus > 0');
-
-                        handleAddItem({
-                          ...newItem,
-                          subtotal,
-                          // ✅ Kirim undefined kalau kosong → transformer simpan null di DB
-                          jumlahKemasan: jk > 0 ? jk : undefined,
-                          isiPerKemasan: ipk > 0 ? ipk : undefined,
-                          satuanKemasan: sk || undefined,
-                          hargaTotalBeliKemasan: htotal > 0 ? htotal : undefined,
-                        });
-                      }}
-                      disabled={!newItem.bahanBakuId || !newItem.kuantitas || !newItem.hargaSatuan}
-                      className="w-full"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah ke Daftar
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Items List */}
+                <SimplePurchaseItemForm
+                  bahanBaku={bahanBaku}
+                  onCancel={() => setShowAddItem(false)}
+                  onAdd={(cleanData) => {
+                    // Ensure subtotal is calculated for UI consistency
+                    const subtotal = Number(cleanData.kuantitas) * Number(cleanData.hargaSatuan);
+                    handleAddItem({ ...cleanData, subtotal });
+                    setShowAddItem(false);
+                    toast.success(`${cleanData.nama} berhasil ditambahkan`);
+                  }}
+                />
+              )}="              {/* Items List */}
               {formData.items.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />

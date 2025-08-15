@@ -3,6 +3,7 @@
 
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS } from '../constants/profitConstants';
+import { warehouseUtils } from '@/components/warehouse/services/warehouseUtils';
 
 // Interfaces matching the actual schema
 export interface FinancialTransactionActual {
@@ -36,6 +37,7 @@ export interface BahanBakuActual {
   satuan_kemasan: string | null;
   harga_total_beli_kemasan: number | null;
   isi_per_kemasan: number | null;
+  harga_rata_rata: number | null; // ✅ TAMBAH: WAC field
 }
 
 export interface OperationalCostActual {
@@ -48,6 +50,54 @@ export interface OperationalCostActual {
   created_at: string;
   updated_at: string;
   cost_category: string | null;
+}
+
+// ✅ TAMBAH: Interface untuk pemakaian bahan
+export interface PemakaianBahan {
+  bahan_baku_id: string;
+  qty_base: number;
+}
+
+/**
+ * ✅ TAMBAH: Get effective unit price using warehouseUtils
+ */
+export function getEffectiveUnitPrice(item: BahanBakuActual): number {
+  // Gunakan warehouseUtils untuk konsistensi
+  const frontendItem: any = {
+    hargaRataRata: item.harga_rata_rata,
+    harga: item.harga_satuan
+  };
+  return warehouseUtils.getEffectiveUnitPrice(frontendItem);
+}
+
+/**
+ * ✅ TAMBAH: Calculate HPP using effective price (WAC)
+ */
+export function calcHPP(
+  pemakaian: PemakaianBahan[],
+  bahanMap: Record<string, BahanBakuActual>
+): { totalHPP: number; breakdown: Array<{ id: string; qty: number; price: number; hpp: number }> } {
+  let total = 0;
+  const breakdown = [];
+
+  for (const row of pemakaian) {
+    const bb = bahanMap[row.bahan_baku_id];
+    if (!bb) continue;
+
+    const price = getEffectiveUnitPrice(bb);
+    const hpp = Math.round(row.qty_base * price);
+
+    total += hpp;
+    breakdown.push({ 
+      id: row.bahan_baku_id, 
+      qty: row.qty_base, 
+      price, 
+      hpp,
+      nama: bb.nama || 'Unknown'
+    });
+  }
+
+  return { totalHPP: Math.round(total), breakdown };
 }
 
 /**
@@ -63,11 +113,18 @@ export const calculateRealTimeProfit = (
 
   const revenueTransactions = periodTransactions.filter(t => t.type === 'income');
   const totalRevenue = revenueTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  // Calculate COGS based on material stock and unit price
+  
+  // ✅ UPDATE: Calculate COGS using effective price (WAC)
   const {
-    totalCOGS,
+    totalHPP: totalCOGS,
     breakdown: materialBreakdown
-  } = calculateInventoryBasedCOGS(materials);
+  } = calcHPP(
+    materials.map(m => ({ 
+      bahan_baku_id: m.id, 
+      qty_base: (Number(m.stok) || 0) * 0.1 // Estimasi pemakaian 10%
+    })),
+    Object.fromEntries(materials.map(m => [m.id, m]))
+  );
 
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
   const totalOpEx = activeCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
@@ -81,10 +138,10 @@ export const calculateRealTimeProfit = (
   }));
 
   const enhancedCOGSTransactions = materialBreakdown.map(item => ({
-    name: item.material_name,
-    cost: item.total_cost,
-    unit_price: item.unit_price,
-    quantity: item.quantity_used ?? item.estimated_usage ?? 0,
+    name: item.nama,
+    cost: item.hpp,
+    unit_price: item.price,
+    quantity: item.qty,
     category: 'Direct Material'
   }));
 
@@ -205,7 +262,8 @@ export const calculateInventoryBasedCOGS = (
   if (!usageData || usageData.length === 0) {
     const totalInventoryValue = materials.reduce((sum, m) => {
       const stock = Number(m.stok) || 0;
-      const price = Number(m.harga_satuan) || 0;
+      // ✅ UPDATE: Use effective unit price (WAC)
+      const price = getEffectiveUnitPrice(m);
       return sum + (stock * price);
     }, 0);
     
@@ -214,8 +272,8 @@ export const calculateInventoryBasedCOGS = (
       breakdown: materials.map(m => ({
         material_name: m.nama || 'Unknown',
         estimated_usage: (Number(m.stok) || 0) * 0.1,
-        unit_price: Number(m.harga_satuan) || 0,
-        total_cost: ((Number(m.stok) || 0) * 0.1) * (Number(m.harga_satuan) || 0),
+        unit_price: getEffectiveUnitPrice(m),
+        total_cost: ((Number(m.stok) || 0) * 0.1) * getEffectiveUnitPrice(m),
         percentage: 0
       }))
     };
@@ -225,7 +283,8 @@ export const calculateInventoryBasedCOGS = (
     const material = materials.find(m => m.id === usage.materialId);
     if (!material) return null;
     
-    const unitPrice = Number(material.harga_satuan) || 0;
+    // ✅ UPDATE: Use effective unit price (WAC)
+    const unitPrice = getEffectiveUnitPrice(material);
     const totalCost = usage.quantityUsed * unitPrice;
     
     return {

@@ -47,6 +47,15 @@ interface SimplePurchaseItemFormProps {
   onAdd: (formData: FormData) => void;
 }
 
+// Helper baru: normalisasi angka
+const toNumber = (v: string | number | '' | undefined) => {
+  if (v === '' || v == null) return 0;
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  // ganti koma -> titik, buang spasi
+  const n = Number(v.replace(/\s+/g, '').replace(',', '.'));
+  return isNaN(n) ? 0 : n;
+};
+
 const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   bahanBaku,
   onCancel,
@@ -66,12 +75,9 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     hargaTotalBeliKemasan: '',
   });
 
-  // Helper function untuk konversi number safely
-  const num = (v: number | '' | undefined) => (v === '' || v == null ? 0 : Number(v));
-
   const calculateAccuratePrice = () => {
-    const totalContent = num(formData.jumlahKemasan) * num(formData.isiPerKemasan);
-    return totalContent > 0 ? Math.round((num(formData.hargaTotalBeliKemasan) / totalContent) * 100) / 100 : 0;
+    const totalContent = toNumber(formData.jumlahKemasan) * toNumber(formData.isiPerKemasan);
+    return totalContent > 0 ? Math.round((toNumber(formData.hargaTotalBeliKemasan) / totalContent) * 100) / 100 : 0;
   };
 
   const accuratePrice = calculateAccuratePrice();
@@ -95,61 +101,26 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     }
   };
 
-  // Utility function untuk validasi angka
-  const isValidNumber = (val: string | number): boolean => {
-    if (val === '') return false;
-    const num = Number(val);
-    return !isNaN(num) && isFinite(num) && num >= 0;
-  };
-
-  // Utility function untuk parsing angka
-  const parseNumber = (val: string | number): number | '' => {
-    if (val === '') return '';
-    const num = Number(val);
-    return isNaN(num) ? '' : num;
-  };
-
   // Handler untuk input numerik yang fleksibel
   const handleNumericChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Handler untuk validasi input numerik
-  const validateNumericInput = (field: keyof FormData, value: string) => {
-    if (value === '') {
-      setFormData(prev => ({ ...prev, [field]: '' }));
-      return;
-    }
-
-    // Untuk field integer (jumlahKemasan)
-    if (field === 'jumlahKemasan') {
-      if (/^\d*$/.test(value)) {
-        setFormData(prev => ({ ...prev, [field]: value }));
-      }
-      return;
-    }
-
-    // Untuk field decimal
-    if (/^\d*\.?\d*$/.test(value)) {
-      setFormData(prev => ({ ...prev, [field]: value }));
-    }
-  };
-
   const handleSubmit = () => {
-    const qty = formData.kuantitas;
-    const price = formData.hargaSatuan;
+    const qty = toNumber(formData.kuantitas);
+    const price = toNumber(formData.hargaSatuan);
 
     if (!formData.bahanBakuId) return toast.error('Pilih bahan baku');
-    if (!isValidNumber(qty) || Number(qty) <= 0) return toast.error('Kuantitas harus > 0');
-    if (!isValidNumber(price) || Number(price) <= 0) return toast.error('Harga satuan harus > 0');
+    if (qty <= 0) return toast.error('Kuantitas harus > 0');
+    if (price <= 0) return toast.error('Harga satuan harus > 0');
 
     onAdd({
       ...formData,
-      kuantitas: Number(qty),
-      hargaSatuan: Number(price),
-      jumlahKemasan: formData.jumlahKemasan !== '' ? Number(formData.jumlahKemasan) : undefined,
-      isiPerKemasan: formData.isiPerKemasan !== '' ? Number(formData.isiPerKemasan) : undefined,
-      hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan !== '' ? Number(formData.hargaTotalBeliKemasan) : undefined,
+      kuantitas: qty,
+      hargaSatuan: price,
+      jumlahKemasan: formData.jumlahKemasan === '' ? undefined : toNumber(formData.jumlahKemasan),
+      isiPerKemasan: formData.isiPerKemasan === '' ? undefined : toNumber(formData.isiPerKemasan),
+      hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan === '' ? undefined : toNumber(formData.hargaTotalBeliKemasan),
       satuanKemasan: formData.satuanKemasan?.trim() || undefined,
     } as FormData);
   };
@@ -182,10 +153,10 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Kuantitas *</Label>
             <div className="flex gap-2">
               <Input
+                type="text"
                 inputMode="decimal"
                 value={formData.kuantitas}
                 onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
-                onBlur={(e) => validateNumericInput('kuantitas', e.target.value)}
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -200,10 +171,10 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <Input
+                type="text"
                 inputMode="decimal"
                 value={formData.hargaSatuan}
                 onChange={(e) => handleNumericChange('hargaSatuan', e.target.value)}
-                onBlur={(e) => validateNumericInput('hargaSatuan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
               />
@@ -340,10 +311,10 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <Label className="text-sm font-medium text-gray-700">Total yang Dibeli</Label>
           <div className="flex gap-2">
             <Input
+              type="text"
               inputMode="decimal"
               value={formData.kuantitas}
               onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
-              onBlur={(e) => validateNumericInput('kuantitas', e.target.value)}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
             />
@@ -365,10 +336,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Jumlah Kemasan</Label>
             <Input
+              type="text"
               inputMode="numeric"
+              pattern="\d*"
               value={formData.jumlahKemasan}
               onChange={(e) => handleNumericChange('jumlahKemasan', e.target.value)}
-              onBlur={(e) => validateNumericInput('jumlahKemasan', e.target.value)}
               placeholder="1"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
             />
@@ -396,10 +368,10 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <Label className="text-sm font-medium text-gray-700">Isi Per Kemasan</Label>
             <div className="flex gap-2">
               <Input
+                type="text"
                 inputMode="decimal"
                 value={formData.isiPerKemasan}
                 onChange={(e) => handleNumericChange('isiPerKemasan', e.target.value)}
-                onBlur={(e) => validateNumericInput('isiPerKemasan', e.target.value)}
                 placeholder="500"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -414,10 +386,10 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <Input
+                type="text"
                 inputMode="decimal"
                 value={formData.hargaTotalBeliKemasan}
                 onChange={(e) => handleNumericChange('hargaTotalBeliKemasan', e.target.value)}
-                onBlur={(e) => validateNumericInput('hargaTotalBeliKemasan', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="25000"
               />
@@ -437,7 +409,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 <div className="text-center sm:text-left">
                   <div className="text-emerald-700 font-medium">Total Isi</div>
                   <div className="text-gray-700">
-                    {num(formData.jumlahKemasan)} × {num(formData.isiPerKemasan)} = {num(formData.jumlahKemasan) * num(formData.isiPerKemasan)} {formData.satuan}
+                    {toNumber(formData.jumlahKemasan)} × {toNumber(formData.isiPerKemasan)} = {toNumber(formData.jumlahKemasan) * toNumber(formData.isiPerKemasan)} {formData.satuan}
                   </div>
                 </div>
                 <div className="text-center">
@@ -449,7 +421,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 <div className="text-center sm:text-right">
                   <div className="text-emerald-700 font-medium">Subtotal</div>
                   <div className="font-semibold text-gray-900">
-                    {formatCurrency(num(formData.kuantitas) * accuratePrice)}
+                    {formatCurrency(toNumber(formData.kuantitas) * accuratePrice)}
                   </div>
                 </div>
               </div>
@@ -509,12 +481,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         )}
 
         {/* Subtotal Preview */}
-        {mode !== 'accurate' && num(formData.kuantitas) > 0 && num(formData.hargaSatuan) > 0 && (
+        {mode !== 'accurate' && toNumber(formData.kuantitas) > 0 && toNumber(formData.hargaSatuan) > 0 && (
           <div className="bg-white/60 border border-gray-200 p-4 rounded-xl">
             <div className="text-sm text-gray-700">
               <span className="font-medium">Subtotal: </span>
               <span className="font-semibold text-orange-600 text-lg">
-                {formatCurrency(num(formData.kuantitas) * num(formData.hargaSatuan))}
+                {formatCurrency(toNumber(formData.kuantitas) * toNumber(formData.hargaSatuan))}
               </span>
             </div>
           </div>
@@ -525,7 +497,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={!formData.bahanBakuId || !isValidNumber(formData.kuantitas) || Number(formData.kuantitas) <= 0 || !isValidNumber(formData.hargaSatuan) || Number(formData.hargaSatuan) <= 0}
+            disabled={!formData.bahanBakuId || toNumber(formData.kuantitas) <= 0 || toNumber(formData.hargaSatuan) <= 0}
             className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 shadow-sm disabled:bg-gray-300 disabled:text-gray-500"
           >
             <Plus className="h-4 w-4 mr-2" />

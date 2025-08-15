@@ -1,5 +1,4 @@
 // src/components/purchase/components/PurchaseDetailDialog.tsx
-
 import React from 'react';
 import {
   Dialog,
@@ -22,10 +21,9 @@ import {
   DollarSign,
   Hash,
   Clock,
-  X
 } from 'lucide-react';
 
-import { Purchase, PurchaseStatus } from '../types/purchase.types';
+import { Purchase } from '../types/purchase.types';
 import { getStatusDisplayText, getStatusColor } from '../utils/purchaseHelpers';
 
 interface PurchaseDetailDialogProps {
@@ -36,6 +34,9 @@ interface PurchaseDetailDialogProps {
   onClose: () => void;
   onEdit?: (purchase: Purchase) => void;
 }
+
+const currency = (n: number) =>
+  `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
 
 const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
   isOpen,
@@ -48,7 +49,7 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
   if (!purchase) return null;
 
   // Get supplier details
-  const supplier = suppliers.find(s => s.id === purchase.supplierId);
+  const supplier = suppliers.find(s => s.id === (purchase as any).supplierId || s.id === (purchase as any).supplier_id);
   
   // Format date
   const formatDate = (dateString: string) => {
@@ -65,10 +66,32 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
     }
   };
 
-  // Get material name from ID
-  const getMaterialName = (materialId: string) => {
-    const material = bahanBaku.find(bb => bb.id === materialId);
+  // Get material name by ID (support old & new key)
+  const getMaterialName = (item: any) => {
+    const id = item.bahan_baku_id ?? item.bahanBakuId;
+    const material = bahanBaku.find((bb) => bb.id === id);
     return material?.nama || 'Material tidak ditemukan';
+  };
+
+  // Normalize item fields (support old & new schema)
+  const normalizeItem = (raw: any) => {
+    const qtyBase = raw.qty_base ?? raw.kuantitas ?? 0;
+    const baseUnit = raw.base_unit ?? raw.satuan ?? '';
+    const hargaUnit = raw.harga_per_satuan ?? raw.hargaSatuan ?? 0;
+    const subtotal = raw.subtotal ?? (Number(qtyBase) * Number(hargaUnit));
+    const kemasan = (raw.jumlah_kemasan && raw.isi_per_kemasan)
+      ? `${raw.jumlah_kemasan} × ${raw.isi_per_kemasan} ${baseUnit}${raw.satuan_kemasan ? ` (${raw.satuan_kemasan})` : ''}`
+      : null;
+
+    return {
+      nama: getMaterialName(raw),
+      catatan: raw.catatan ?? null,
+      qtyBase,
+      baseUnit,
+      hargaUnit,
+      subtotal,
+      kemasanInfo: kemasan
+    };
   };
 
   const handleEdit = () => {
@@ -126,11 +149,11 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
                     <span className="text-sm">{formatDate(purchase.tanggal)}</span>
                   </div>
 
-                  {purchase.createdAt && (
+                  {(purchase as any).createdAt && (
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-gray-500" />
                       <span className="text-sm text-gray-600">Dibuat:</span>
-                      <span className="text-sm">{formatDate(purchase.createdAt)}</span>
+                      <span className="text-sm">{formatDate((purchase as any).createdAt)}</span>
                     </div>
                   )}
 
@@ -138,7 +161,7 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
                     <DollarSign className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">Total Nilai:</span>
                     <span className="font-semibold text-green-600">
-                      Rp {purchase.totalNilai.toLocaleString('id-ID')}
+                      {currency(purchase.totalNilai)}
                     </span>
                   </div>
                 </div>
@@ -220,7 +243,7 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
           <div>
             <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Daftar Item ({purchase.items.length} item)
+              Daftar Item ({purchase.items?.length || 0} item)
             </h3>
             
             <div className="border rounded-lg overflow-hidden">
@@ -232,10 +255,10 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
                         Bahan Baku
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Kuantitas
+                        Qty (base)
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Harga Satuan
+                        Harga / base
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Total
@@ -243,37 +266,43 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {purchase.items.map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {getMaterialName(item.bahanBakuId)}
-                            </p>
-                            {item.catatan && (
-                              <p className="text-sm text-gray-500 mt-1">
-                                {item.catatan}
-                              </p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="text-sm text-gray-900">
-                            {item.kuantitas} {item.satuan}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="text-sm text-gray-900">
-                            Rp {item.hargaSatuan.toLocaleString('id-ID')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="font-medium text-gray-900">
-                            Rp {(item.kuantitas * item.hargaSatuan).toLocaleString('id-ID')}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {purchase.items.map((raw: any, index: number) => {
+                      const item = normalizeItem(raw);
+                      return (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div>
+                              <p className="font-medium text-gray-900">{item.nama}</p>
+                              {item.kemasanInfo && (
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  Kemasan: {item.kemasanInfo}
+                                </p>
+                              )}
+                              {raw.catatan && (
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {raw.catatan}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-sm text-gray-900">
+                              {item.qtyBase} {item.baseUnit}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-sm text-gray-900">
+                              {currency(item.hargaUnit)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-medium text-gray-900">
+                              {currency(item.subtotal)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot className="bg-gray-50">
                     <tr>
@@ -281,7 +310,7 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
                         Total Keseluruhan:
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-lg text-green-600">
-                        Rp {purchase.totalNilai.toLocaleString('id-ID')}
+                        {currency(purchase.totalNilai)}
                       </td>
                     </tr>
                   </tfoot>
@@ -293,8 +322,8 @@ const PurchaseDetailDialog: React.FC<PurchaseDetailDialogProps> = ({
           {/* Action Buttons */}
           <div className="flex justify-between items-center pt-4 border-t">
             <div className="text-sm text-gray-500">
-              {purchase.updatedAt && (
-                <span>Terakhir diupdate: {formatDate(purchase.updatedAt)}</span>
+              {(purchase as any).updatedAt && (
+                <span>Terakhir diupdate: {formatDate((purchase as any).updatedAt)}</span>
               )}
             </div>
             

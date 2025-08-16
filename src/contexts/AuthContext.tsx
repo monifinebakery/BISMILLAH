@@ -145,7 +145,7 @@ const validateSession = (session: Session | null): { session: Session | null; us
 };
 
 // ✅ Safe timeout wrapper yang konsisten dengan authUtils
-const safeWithTimeout = async <T>(
+const safeWithTimeout = async <T,>(
   promise: Promise<T>, 
   timeoutMs: number, 
   timeoutMessage: string,

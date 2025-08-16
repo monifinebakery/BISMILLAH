@@ -6,12 +6,25 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Debug environment variables
+console.log('🔍 Supabase Client Debug:', {
+  VITE_SUPABASE_URL: SUPABASE_URL ? 'PRESENT' : 'MISSING',
+  VITE_SUPABASE_ANON_KEY: SUPABASE_PUBLISHABLE_KEY ? 'PRESENT' : 'MISSING',
+  mode: import.meta.env.MODE,
+  dev: import.meta.env.DEV,
+  prod: import.meta.env.PROD
+});
+
 // Validate required environment variables
 if (!SUPABASE_URL) {
+  console.error('❌ SUPABASE_URL is missing or empty:', SUPABASE_URL);
+  console.error('Available environment variables:', import.meta.env);
   throw new Error('Missing VITE_SUPABASE_URL environment variable');
 }
 
 if (!SUPABASE_PUBLISHABLE_KEY) {
+  console.error('❌ SUPABASE_PUBLISHABLE_KEY is missing or empty:', SUPABASE_PUBLISHABLE_KEY);
+  console.error('Available environment variables:', import.meta.env);
   throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
 }
 

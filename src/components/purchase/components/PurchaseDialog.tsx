@@ -67,6 +67,7 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
 };
 
 // ✅ OPTIMIZED: Move outside component to prevent recreation  
+
 const SafeNumericInput = React.forwardRef<
   HTMLInputElement, 
   React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
@@ -582,6 +583,7 @@ const EditItemForm: React.FC<{
   onCancel: () => void;
 }> = ({ item, onSave, onCancel }) => {
   // ✅ PURE STATE: No validation during typing
+
   const [editedItem, setEditedItem] = useState({
     kuantitas: String(item.kuantitas ?? ''),
     hargaSatuan: String(item.hargaSatuan ?? ''),
@@ -639,6 +641,7 @@ const EditItemForm: React.FC<{
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Quantity - ZERO OVERHEAD */}
+
         <div className="space-y-2">
           <Label>Kuantitas *</Label>
           <div className="flex gap-2">

@@ -20,6 +20,7 @@ interface UsePurchaseFormReturn {
   setFormData: (data: PurchaseFormData, skipValidation?: boolean) => void;
   updateFormField: (field: keyof PurchaseFormData, value: any) => void; // ✅ NEW
 
+
   // Form state
   isSubmitting: boolean;
   isDirty: boolean;
@@ -95,6 +96,7 @@ export const usePurchaseForm = ({
     if (skipValidation) return;
 
     // Only validate on explicit request (submit/blur)
+
     if (validationTimeoutRef.current) {
       clearTimeout(validationTimeoutRef.current);
     }
@@ -110,6 +112,7 @@ export const usePurchaseForm = ({
     setFormDataState(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
     // NO validation during typing - only on submit
+
   }, []);
 
   // ✅ NEW: Manual validation trigger (untuk dipanggil saat submit atau blur)
@@ -181,6 +184,7 @@ export const usePurchaseForm = ({
       // Skip validation untuk operasi item
     },
     []
+
   );
 
   // Form submission
@@ -257,7 +261,6 @@ export const usePurchaseForm = ({
   // }, []);
 
   // Initial validation hanya saat submit - lebih performant
-
   // Cleanup pending validation timeout on unmount
   useEffect(() => {
     return () => {
@@ -272,6 +275,7 @@ export const usePurchaseForm = ({
     formData,
     setFormData,
     updateFormField, // ✅ NEW: Stable field updater
+
 
     // Form state
     isSubmitting,

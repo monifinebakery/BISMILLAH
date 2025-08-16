@@ -202,11 +202,13 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     const price = toNumber(formData.hargaSatuan);
 
     // Basic validation only
+
     if (!formData.bahanBakuId) return toast.error('Pilih bahan baku');
     if (qty <= 0) return toast.error('Kuantitas harus > 0');
     if (price <= 0) return toast.error('Harga satuan harus > 0');
 
     // Direct call to form's addItem - no intermediate handlers
+
     onAdd({
       ...formData,
       kuantitas: qty,
@@ -224,6 +226,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   // Memoized UI blocks to avoid subtree remounts on re-render
   const quickUI = React.useMemo(() => (
+
     <div className="space-y-6">
       {/* Input Fields - Responsive Grid */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -260,6 +263,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                   // Focus safety net
                   requestAnimationFrame(() => qtyRef.current?.focus());
                 }}
+
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -283,6 +287,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                   // Focus safety net
                   requestAnimationFrame(() => priceRef.current?.focus());
                 }}
+
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
               />
@@ -322,6 +327,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   ), [formData, accuracyLevel, handleNumericChange, handleBahanBakuSelect]);
 
   const accuratePromptUI = React.useMemo(() => (
+
     <div className="space-y-6">
       <div className="text-center py-8">
         {/* Icon */}

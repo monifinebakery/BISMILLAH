@@ -376,12 +376,13 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     </div>
   ), [setMode]);
 
-  // Refs for packaging focus safety
+  // Refs untuk packaging focus safety
+  const qtyBoughtRef = useRef<HTMLInputElement>(null);
   const packQtyRef = useRef<HTMLInputElement>(null);
   const perPackRef = useRef<HTMLInputElement>(null);
   const totalPayRef = useRef<HTMLInputElement>(null);
 
-  const packagingUI = React.useMemo(() => (
+  const packagingEl = React.useMemo(() => (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -424,13 +425,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <Label className="text-sm font-medium text-gray-700">Total yang Dibeli</Label>
           <div className="flex gap-2">
             <SafeNumericInput
-              ref={packQtyRef}
+              ref={qtyBoughtRef}
               value={getValue('kuantitas')}
               onBeforeInput={makeBeforeInputGuard(() => getValue('kuantitas'), true)}
               onPaste={handlePasteGuard(true)}
               onChange={(e) => {
                 handleNumericChange('kuantitas', e.target.value);
-                requestAnimationFrame(() => packQtyRef.current?.focus());
+                // keep focus setelah re-render
+                requestAnimationFrame(() => qtyBoughtRef.current?.focus());
               }}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -591,7 +593,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
       <CardContent className="space-y-6">
         {mode === 'quick' && quickUI}
         {mode === 'accurate' && accuratePromptUI}
-        {mode === 'packaging' && packagingUI}
+        {mode === 'packaging' && packagingEl}
         
         {/* Notes - Always in DOM, hidden when not needed */}
         <div className={mode !== 'accurate' ? "space-y-2" : "hidden"}>

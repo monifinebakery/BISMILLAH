@@ -403,6 +403,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
   // ✅ ENHANCED: Context value with proper types (memoized)
   const contextValue: WarehouseContextType = React.useMemo(() => ({
+
     // Data
     bahanBaku,
     loading,
@@ -428,6 +429,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     getExpiringItems,
 
     // ✅ FIXED: Proper refetch type and value
+
     refetch,
     isRefetching,
   }), [

@@ -18,6 +18,8 @@ interface UsePurchaseFormReturn {
   // Form data
   formData: PurchaseFormData;
   setFormData: (data: PurchaseFormData, skipValidation?: boolean) => void;
+  updateFormField: (field: keyof PurchaseFormData, value: any) => void; // ✅ NEW
+
 
   // Form state
   isSubmitting: boolean;
@@ -85,15 +87,16 @@ export const usePurchaseForm = ({
   // Calculate total value
   const totalValue = calculatePurchaseTotal(formData.items);
 
-  // ✅ FIXED: Update form data dengan opsi skip validation untuk numeric input
-  const setFormData = useCallback((data: PurchaseFormData, skipValidation = false) => {
+  // ✅ ULTRA LIGHTWEIGHT: Skip all validation for form field updates
+  const setFormData = useCallback((data: PurchaseFormData, skipValidation = true) => { // Default skip!
     setFormDataState(data);
     setIsDirty(true);
 
-    // Skip auto-validation jika diminta (untuk menghindari gangguan pada numeric input)
+    // ✅ ALWAYS SKIP validation for performance during typing
     if (skipValidation) return;
 
-    // Debounce validation to avoid lag on fast typing
+    // Only validate on explicit request (submit/blur)
+
     if (validationTimeoutRef.current) {
       clearTimeout(validationTimeoutRef.current);
     }
@@ -102,6 +105,14 @@ export const usePurchaseForm = ({
       const validationResult = validatePurchaseForm(data);
       setValidation(validationResult);
     }, 300);
+  }, []); // ✅ FIXED: Empty deps to prevent re-creation
+
+  // ✅ LIGHTWEIGHT: Direct field updater without validation
+  const updateFormField = useCallback((field: keyof PurchaseFormData, value: any) => {
+    setFormDataState(prev => ({ ...prev, [field]: value }));
+    setIsDirty(true);
+    // NO validation during typing - only on submit
+
   }, []);
 
   // ✅ NEW: Manual validation trigger (untuk dipanggil saat submit atau blur)
@@ -119,7 +130,7 @@ export const usePurchaseForm = ({
     [formData]
   );
 
-  // Items management
+  // ✅ FIXED: Items management dengan stable references
   const addItem = useCallback(
     (item: Omit<PurchaseItem, 'subtotal'>) => {
       const newItem: PurchaseItem = {
@@ -127,57 +138,53 @@ export const usePurchaseForm = ({
         subtotal: calculateItemSubtotal(item.kuantitas, item.hargaSatuan),
       };
 
-      const updatedFormData: PurchaseFormData = {
-        ...formData,
-        items: [...formData.items, newItem],
-      };
-
-      // Skip validation untuk operasi item (akan divalidasi saat submit)
-      setFormData(updatedFormData, true);
+      setFormDataState(prev => ({
+        ...prev,
+        items: [...prev.items, newItem],
+      }));
+      setIsDirty(true);
+      // Skip validation untuk operasi item
     },
-    [formData, setFormData]
+    []
   );
 
   const updateItem = useCallback(
     (index: number, itemUpdate: Partial<PurchaseItem>) => {
-      const updatedItems = [...formData.items];
-      const merged = { ...updatedItems[index], ...itemUpdate };
+      setFormDataState(prev => {
+        const updatedItems = [...prev.items];
+        const merged = { ...updatedItems[index], ...itemUpdate };
 
-      // Recalculate subtotal if qty or price changed
-      if (
-        itemUpdate.kuantitas !== undefined ||
-        itemUpdate.hargaSatuan !== undefined
-      ) {
-        merged.subtotal = calculateItemSubtotal(
-          merged.kuantitas,
-          merged.hargaSatuan
-        );
-      }
+        // Recalculate subtotal if qty or price changed
+        if (
+          itemUpdate.kuantitas !== undefined ||
+          itemUpdate.hargaSatuan !== undefined
+        ) {
+          merged.subtotal = calculateItemSubtotal(
+            merged.kuantitas,
+            merged.hargaSatuan
+          );
+        }
 
-      updatedItems[index] = merged;
-
-      const updatedFormData: PurchaseFormData = {
-        ...formData,
-        items: updatedItems,
-      };
-
-      // Skip validation untuk operasi item (akan divalidasi saat submit)
-      setFormData(updatedFormData, true);
+        updatedItems[index] = merged;
+        return { ...prev, items: updatedItems };
+      });
+      setIsDirty(true);
+      // Skip validation untuk operasi item
     },
-    [formData, setFormData]
+    []
   );
 
   const removeItem = useCallback(
     (index: number) => {
-      const updatedItems = formData.items.filter((_, i) => i !== index);
-      const updatedFormData: PurchaseFormData = {
-        ...formData,
-        items: updatedItems,
-      };
-      // Skip validation untuk operasi item (akan divalidasi saat submit)
-      setFormData(updatedFormData, true);
+      setFormDataState(prev => ({
+        ...prev,
+        items: prev.items.filter((_, i) => i !== index),
+      }));
+      setIsDirty(true);
+      // Skip validation untuk operasi item
     },
-    [formData, setFormData]
+    []
+
   );
 
   // Form submission
@@ -247,13 +254,13 @@ export const usePurchaseForm = ({
     });
   }, [mode, initialData]);
 
-  // Initial validation on mount (tanpa debounce)
-  useEffect(() => {
-    const validationResult = validatePurchaseForm(formData);
-    setValidation(validationResult);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // ✅ DISABLED: Skip initial validation for better performance
+  // useEffect(() => {
+  //   const validationResult = validatePurchaseForm(formData);
+  //   setValidation(validationResult);
+  // }, []);
 
+  // Initial validation hanya saat submit - lebih performant
   // Cleanup pending validation timeout on unmount
   useEffect(() => {
     return () => {
@@ -267,6 +274,8 @@ export const usePurchaseForm = ({
     // Form data
     formData,
     setFormData,
+    updateFormField, // ✅ NEW: Stable field updater
+
 
     // Form state
     isSubmitting,

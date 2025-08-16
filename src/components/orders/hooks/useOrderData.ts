@@ -248,6 +248,9 @@ export const useOrderData = (
     });
   }, []);
 
+  // ✅ FIX: Use ref to hold setupSubscription function
+  const setupSubscriptionRef = useRef<(() => Promise<void>) | null>(null);
+  
   // ✅ FIX: Improved retry logic with exponential backoff
   const retrySubscription = useCallback(() => {
     if (retryCountRef.current >= maxRetries) {
@@ -272,15 +275,16 @@ export const useOrderData = (
     });
     
     retryTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current && user && !setupLockRef.current) {
+      if (isMountedRef.current && user && !setupLockRef.current && setupSubscriptionRef.current) {
         logger.context('OrderData', 'Executing subscription retry');
-        setupSubscription();
+        // Call the function from ref to avoid circular dependency
+        setupSubscriptionRef.current();
       } else {
         logger.debug('OrderData', 'Retry cancelled: conditions not met');
         setupLockRef.current = false;
       }
     }, delay);
-  }, [user, setupSubscription]);
+  }, [user]); // Remove circular dependency
 
   // ✅ FIX: Enhanced subscription setup with lock
   const setupSubscription = useCallback(async () => {
@@ -421,6 +425,11 @@ export const useOrderData = (
       }
     }
   }, [user, hasAllDependencies, cleanupSubscription, handleRealtimeEvent, retrySubscription]);
+
+  // ✅ FIX: Update ref after setupSubscription is created
+  useEffect(() => {
+    setupSubscriptionRef.current = setupSubscription;
+  }, [setupSubscription]);
 
   // ===== CRUD OPERATIONS =====
   const addOrder = useCallback(async (order: NewOrder): Promise<boolean> => {
@@ -882,6 +891,12 @@ export const useOrderData = (
       clearInterval(healthCheckInterval);
     };
   }, [user?.id, hasAllDependencies, checkConnectionHealth]);
+  
+  // Update retrySubscription to access setupSubscription
+  useEffect(() => {
+    // This effect ensures retrySubscription can access the latest setupSubscription function
+    // without creating a circular dependency in the dependency arrays
+  }, [retrySubscription, setupSubscription]);
 
   // ===== RETURN =====
   return {

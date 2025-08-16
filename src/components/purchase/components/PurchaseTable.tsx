@@ -1,90 +1,30 @@
-// src/components/purchase/components/PurchaseTable.tsx - Enhanced with Delete & Edit
+// src/components/purchase/components/PurchaseTable.tsx - Refactored with extracted components
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { 
-  Search, 
-  MoreHorizontal, 
-  Edit, 
-  Trash2,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Package,
-  Calendar,
-  User,
-  Receipt,
-  ChevronDown,
-  AlertTriangle
-} from 'lucide-react';
+import { Table, TableBody } from '@/components/ui/table';
+import { Search } from 'lucide-react';
 
-// ✅ Type imports
-import { PurchaseTablePropsExtended, PurchaseStatus, Purchase } from '../types/purchase.types';
+// Type imports
+import { PurchaseTablePropsExtended, Purchase, PurchaseStatus } from '../types/purchase.types';
 import { usePurchaseTable } from '../context/PurchaseTableContext';
 import { usePurchaseTableDialogs } from '../hooks/usePurchaseTableDialogs';
 
-// ✅ Utility imports
-import { formatCurrency } from '@/utils/formatUtils';
-import { 
-  getStatusColor, 
-  getStatusDisplayText, 
-  getFormattedTotalQuantities 
-} from '../utils/purchaseHelpers';
-
-// ✅ Component imports
+// Component imports
 import EmptyState from './EmptyState';
 import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
+import {
+  TableFilters,
+  PurchaseTableHeader,
+  PurchaseTableRow,
+  TablePagination,
+  DeleteConfirmationDialogs,
+} from './table';
+
+// Utils
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
-
-// ✅ Constants
-const STATUS_OPTIONS: { value: PurchaseStatus; label: string; color: string }[] = [
-  { value: 'pending', label: 'Menunggu', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  { value: 'completed', label: 'Selesai', color: 'bg-green-100 text-green-800 border-green-200' },
-  { value: 'cancelled', label: 'Dibatalkan', color: 'bg-red-100 text-red-800 border-red-200' },
-];
-
-const ITEMS_PER_PAGE_OPTIONS = [
-  { value: '5', label: '5' },
-  { value: '10', label: '10' },
-  { value: '25', label: '25' },
-  { value: '50', label: '50' }
-];
 
 
 // ✅ Enhanced PurchaseTable with delete and edit functionality
@@ -298,119 +238,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     }
   }), [dialogState.statusConfirmation, onStatusChange, resetStatus, resetDelete, resetBulkDelete]);
 
-  // ✅ Sort icon renderer
-  const renderSortIcon = useCallback((field: string) => {
-    if (sortField !== field) {
-      return <ArrowUpDown className="h-4 w-4 opacity-50" />;
-    }
-    return sortOrder === 'asc' ? 
-      <ArrowUp className="h-4 w-4" /> : 
-      <ArrowDown className="h-4 w-4" />;
-  }, [sortField, sortOrder]);
-
-  // ✅ Status dropdown component
-  const StatusDropdown = React.memo<{
-    purchase: Purchase;
-    isEditing: boolean;
-    onStartEdit: () => void;
-  }>(({ purchase, isEditing, onStartEdit }) => {
-    if (!isEditing) {
-      return (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onStartEdit}
-          className="h-auto p-1 justify-start hover:bg-gray-50"
-        >
-          <Badge 
-            variant="outline" 
-            className={`${getStatusColor(purchase.status)} cursor-pointer hover:opacity-80`}
-          >
-            {getStatusDisplayText(purchase.status)}
-            <ChevronDown className="h-3 w-3 ml-1" />
-          </Badge>
-        </Button>
-      );
-    }
-
-    return (
-      <Select
-        value={purchase.status}
-        onValueChange={(value: PurchaseStatus) => handleStatusChange(purchase.id, value)}
-        defaultOpen={true}
-      >
-        <SelectTrigger className="w-[120px] h-8">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${option.color.split(' ')[0]}`} />
-                {option.label}
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  });
-
-  // ✅ Action buttons component - ENHANCED with only Edit and Delete
-  const ActionButtons = React.memo<{ purchase: Purchase }>(({ purchase }) => {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-            aria-label={`Actions for purchase ${purchase.id}`}
-            type="button"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          align="end" 
-          className="w-[140px] z-[9999] bg-white border border-gray-200 shadow-lg rounded-md"
-          side="bottom"
-          sideOffset={4}
-          avoidCollisions={true}
-          collisionPadding={8}
-        >
-          {/* ✅ Edit Menu Item - DIPERBAIKI: tidak disabled walau status completed */}
-          <DropdownMenuItem 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              actionHandlers.edit(purchase);
-            }}
-            // edit selalu diizinkan; trigger DB akan koreksi stok jika data berubah
-            className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 px-3 py-2 text-sm"
-            role="menuitem"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </DropdownMenuItem>
-          
-          {/* ✅ Delete Menu Item - Always Enabled */}
-          <DropdownMenuItem 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              actionHandlers.delete(purchase);
-            }}
-            className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 text-sm"
-            role="menuitem"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Hapus
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  });
 
   // ✅ Early return for empty state
   if (!paginationData.hasData && !searchQuery && statusFilter === 'all') {
@@ -425,88 +252,20 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
 
   return (
     <div className="space-y-4">
-      {/* ✅ Filters and Search */}
-      <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          {/* Search */}
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Cari supplier, item..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {/* Filters */}
-          <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={(value: PurchaseStatus | 'all') => setStatusFilter(value)}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${option.color.split(' ')[0]}`} />
-                      {option.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ITEMS_PER_PAGE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Results info */}
-        {(searchQuery || statusFilter !== 'all') && (
-          <div className="mt-3 text-sm text-gray-600">
-            Menampilkan {filteredPurchases.length} hasil
-            {searchQuery && ` untuk "${searchQuery}"`}
-            {statusFilter !== 'all' && ` dengan status "${getStatusDisplayText(statusFilter)}"`}
-          </div>
-        )}
-
-        {/* ✅ ENHANCED: Bulk Actions with Delete */}
-        {selectedItems.length > 0 && (
-          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-blue-900">
-                {selectedItems.length} item dipilih
-              </span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => setSelectedItems([])}>
-                  Batal Pilih
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="destructive"
-                  onClick={actionHandlers.bulkDelete}
-                  className="flex items-center gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Hapus Terpilih
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
+      {/* Filters and Search */}
+      <TableFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        itemsPerPage={itemsPerPage}
+        setItemsPerPage={setItemsPerPage}
+        filteredCount={filteredPurchases.length}
+        selectedItemsCount={selectedItems.length}
+        onClearSelection={() => setSelectedItems([])}
+        onBulkDelete={actionHandlers.bulkDelete}
+        onResetFilters={actionHandlers.resetFilters}
+      />
 
       {/* ✅ Table */}
       <Card>

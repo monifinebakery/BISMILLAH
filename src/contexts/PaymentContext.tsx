@@ -174,10 +174,13 @@ const accessPromise = getUserAccessStatus();
       }
       
       if (!user || !user.id || !user.email) {
-        logger.warn('PaymentContext: Invalid user object:', { 
+        // ✅ Reduce log level for normal loading state
+        logger.debug('PaymentContext: User not ready yet:', { 
           hasUser: !!user, 
           hasId: !!user?.id, 
-          hasEmail: !!user?.email 
+          hasEmail: !!user?.email,
+          authReady,
+          authLoading
         });
         setIsUserValid(false);
         return;
@@ -187,9 +190,10 @@ const accessPromise = getUserAccessStatus();
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error || !session || !session.user) {
-          logger.warn('PaymentContext: Invalid session:', { 
+          logger.debug('PaymentContext: Session not ready:', { 
             hasSession: !!session, 
-            error: error?.message 
+            error: error?.message,
+            note: 'This is normal during app initialization'
           });
           setIsUserValid(false);
           return;

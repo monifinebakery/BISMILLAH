@@ -1,6 +1,6 @@
 // src/components/purchase/components/PurchaseDialog.tsx - Enhanced for Edit Mode
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -48,19 +48,17 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
+// ✅ OPTIMIZED: Move outside component to prevent recreation
 const toNumber = (v: string | number | '' | undefined | null): number => {
   if (v === '' || v == null) return 0;
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
   
-  // Remove spaces and non-numeric characters except comma, period, minus
   let s = v.toString().trim().replace(/\s+/g, '');
   s = s.replace(/[^\d,.\-]/g, '');
   
-  // Handle both comma and period: assume period = thousand separator, comma = decimal
   if (s.includes(',') && s.includes('.')) {
     s = s.replace(/\./g, '').replace(/,/g, '.');
   } else {
-    // Only comma: treat as decimal separator
     s = s.replace(/,/g, '.');
   }
   
@@ -68,7 +66,8 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// ✅ INLINE SafeNumericInput - no external file needed
+// ✅ OPTIMIZED: Move outside component to prevent recreation  
+
 const SafeNumericInput = React.forwardRef<
   HTMLInputElement, 
   React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
@@ -100,10 +99,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   onClose,
   initialAddMode, // <— NEW: Added prop for auto-opening with specific mode
 }) => {
-  // Form management
+  // ✅ ULTRA LIGHTWEIGHT: Zero validation during typing
   const {
     formData,
     setFormData,
+    updateFormField, // ✅ NEW: Use this for single field updates
     isSubmitting,
     isDirty,
     validation,
@@ -154,18 +154,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialAddMode]);
 
-  // ✅ Handle form submission
-  const onSubmit = async () => {
-    if (formData.items.length === 0) {
-      toast.error('Minimal harus ada 1 item dalam pembelian');
-      return;
-    }
-
-    await handleSubmit();
-  };
-
-  // ✅ Handle cancel with unsaved changes warning
-  const handleCancel = () => {
+  // ✅ MEMOIZED HANDLERS: Prevent recreation on every render
+  const handleCancel = useCallback(() => {
     if (isDirty) {
       if (confirm('Ada perubahan yang belum disimpan. Yakin ingin keluar?')) {
         handleReset();
@@ -174,17 +164,24 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     } else {
       onClose();
     }
-  };
+  }, [isDirty, handleReset, onClose]);
 
-  // ✅ Reset form to initial state
-  const handleResetForm = () => {
+  const handleResetForm = useCallback(() => {
     if (confirm('Reset semua perubahan ke kondisi awal?')) {
       handleReset();
       setShowAddItem(false);
       if (handleCancelEditItem) handleCancelEditItem();
       toast.info('Form direset ke kondisi awal');
     }
-  };
+  }, [handleReset, setShowAddItem, handleCancelEditItem]);
+
+  const onSubmit = useCallback(async () => {
+    if (formData.items.length === 0) {
+      toast.error('Minimal harus ada 1 item dalam pembelian');
+      return;
+    }
+    await handleSubmit();
+  }, [formData.items.length, handleSubmit]);
 
   // ✅ Check if purchase can be edited (not completed)
   const canEdit = !purchase || purchase.status !== 'completed';
@@ -301,9 +298,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <Label htmlFor="supplier">Supplier *</Label>
                   <Select
                     value={formData.supplier}
-                    onValueChange={(value) => 
-                      setFormData({ ...formData, supplier: value })
-                    }
+                    onValueChange={(value) => updateFormField('supplier', value)} // ✅ FIXED: Use updateFormField
                     disabled={!canEdit}
                   >
                     <SelectTrigger className={!canEdit ? 'opacity-50' : ''}>
@@ -342,7 +337,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         mode="single"
                         selected={formData.tanggal}
                         onSelect={(date) => 
-                          date && setFormData({ ...formData, tanggal: date })
+                          date && updateFormField('tanggal', date) // ✅ FIXED: Use updateFormField
                         }
                         initialFocus
                         disabled={!canEdit}
@@ -358,7 +353,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <Select
                   value={formData.metodePerhitungan}
                   onValueChange={(value: 'FIFO' | 'LIFO' | 'AVERAGE') =>
-                    setFormData({ ...formData, metodePerhitungan: value })
+                    updateFormField('metodePerhitungan', value) // ✅ FIXED: Use updateFormField
                   }
                   disabled={!canEdit}
                 >
@@ -581,18 +576,32 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   );
 };
 
-// ✅ FIXED: Edit Item Form Component with bulletproof string-based number inputs
+// ✅ ULTRA LIGHTWEIGHT: Edit Item Form dengan zero validation overhead
 const EditItemForm: React.FC<{
   item: PurchaseItem;
   onSave: (item: Partial<PurchaseItem>) => void;
   onCancel: () => void;
 }> = ({ item, onSave, onCancel }) => {
-  // ✅ FIXED: Always store as strings to prevent any number/string switching
+  // ✅ PURE STATE: No validation during typing
+
   const [editedItem, setEditedItem] = useState({
     kuantitas: String(item.kuantitas ?? ''),
     hargaSatuan: String(item.hargaSatuan ?? ''),
     keterangan: item.keterangan || '',
   });
+
+  // ✅ ZERO OVERHEAD: Direct state update
+  const handleFieldChange = useCallback((field: string, value: string) => {
+    setEditedItem(prev => {
+      if (prev[field] === value) return prev; // Skip if same
+      return { ...prev, [field]: value };
+    });
+  }, []);
+
+  // ✅ SIMPLE GETTER: No complex logic
+  const getValue = useCallback((field: string) => {
+    return String(editedItem[field] ?? '');
+  }, [editedItem]);
 
   const handleSave = () => {
     // Convert strings to numbers when saving
@@ -631,18 +640,14 @@ const EditItemForm: React.FC<{
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Quantity - FIXED: Always string value, no switching */}
+        {/* Quantity - ZERO OVERHEAD */}
+
         <div className="space-y-2">
           <Label>Kuantitas *</Label>
           <div className="flex gap-2">
             <SafeNumericInput
-              value={String(editedItem.kuantitas ?? '')} // ✅ FIXED: Force string
-              onChange={(e) =>
-                setEditedItem(prev => ({
-                  ...prev,
-                  kuantitas: e.target.value
-                }))
-              }
+              value={getValue('kuantitas')}
+              onChange={(e) => handleFieldChange('kuantitas', e.target.value)}
               placeholder="0"
             />
             <div className="flex items-center px-3 bg-gray-100 rounded text-sm text-gray-600 min-w-[60px]">
@@ -651,17 +656,12 @@ const EditItemForm: React.FC<{
           </div>
         </div>
 
-        {/* Unit Price - FIXED: Always string value, no switching */}
+        {/* Unit Price - ZERO OVERHEAD */}
         <div className="space-y-2">
           <Label>Harga Satuan *</Label>
           <SafeNumericInput
-            value={String(editedItem.hargaSatuan ?? '')} // ✅ FIXED: Force string
-            onChange={(e) =>
-              setEditedItem(prev => ({
-                ...prev,
-                hargaSatuan: e.target.value
-              }))
-            }
+            value={getValue('hargaSatuan')}
+            onChange={(e) => handleFieldChange('hargaSatuan', e.target.value)}
             placeholder="0"
           />
         </div>
@@ -680,9 +680,7 @@ const EditItemForm: React.FC<{
         <Label>Keterangan</Label>
         <Textarea
           value={editedItem.keterangan}
-          onChange={(e) =>
-            setEditedItem(prev => ({ ...prev, keterangan: e.target.value }))
-          }
+          onChange={(e) => handleFieldChange('keterangan', e.target.value)}
           placeholder="Keterangan tambahan (opsional)"
           rows={2}
         />

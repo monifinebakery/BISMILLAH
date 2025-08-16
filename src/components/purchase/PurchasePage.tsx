@@ -2,6 +2,7 @@
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // ✅ CONSOLIDATED: Context imports (kept as-is, already optimal)
 import { PurchaseProvider, usePurchase } from './context/PurchaseContext';
@@ -237,8 +238,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         const success = await deletePurchase(purchaseId);
         if (!success) throw new Error('Delete operation failed');
       } catch (error) {
-        console.error('Delete failed:', error);
-        toast.error('Gagal menghapus pembelian: ' + (error.message || 'Unknown error'));
+        logger.error('Delete failed:', error);
+        toast.error('Gagal menghapus pembelian: ' + ((error as any).message || 'Unknown error'));
       } finally {
         setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
       }
@@ -256,8 +257,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         await bulkDelete(purchaseIds);
         toast.success(`${purchaseIds.length} pembelian berhasil dihapus`);
       } catch (error) {
-        console.error('Bulk delete failed:', error);
-        toast.error('Gagal menghapus pembelian: ' + (error.message || 'Unknown error'));
+        logger.error('Bulk delete failed:', error);
+        toast.error('Gagal menghapus pembelian: ' + ((error as any).message || 'Unknown error'));
       } finally {
         purchaseContext.setBulkProcessing(false);
         setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
@@ -289,7 +290,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         
         toast.success('Data pembelian berhasil di-export');
       } catch (error) {
-        console.error('Export error:', error);
+        logger.error('Export error:', error);
         toast.error('Gagal export data pembelian');
       } finally {
         setAppState(prev => ({ ...prev, ui: { ...prev.ui, isExporting: false } }));

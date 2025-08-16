@@ -35,3 +35,40 @@ jobs:
           if [ -z "$PROJECT_REF" ]; then PROJECT_REF="kewhzkfvswbimmwtpymw"; fi
           echo "Deploying to project: $PROJECT_REF"
           supabase functions deploy scalev-webhook --project-ref "$PROJECT_REF"
+
+      - name: Verify endpoint (preflight + POST) - dev and prod origins
+        run: |
+          set -e
+          PROJECT_REF="${{ github.event.inputs.project_ref }}"
+          if [ -z "$PROJECT_REF" ]; then PROJECT_REF="kewhzkfvswbimmwtpymw"; fi
+
+          DEV_URL="${{ vars.NETLIFY_DEV_URL }}"
+          if [ -z "$DEV_URL" ]; then DEV_URL="https://dev3--gleaming-peony-f4a091.netlify.app"; fi
+          PROD_URL="https://kalkulator.monifine.my.id"
+
+          FN_BASE="https://$PROJECT_REF.functions.supabase.co"
+          FN_ENDPOINT="$FN_BASE/scalev-webhook"
+
+          echo "Testing preflight (DEV origin): $DEV_URL"
+          curl -s -f -X OPTIONS "$FN_ENDPOINT" \
+            -H "Origin: $DEV_URL" \
+            -H "Access-Control-Request-Method: POST" >/dev/null
+
+          echo "Testing preflight (PROD origin): $PROD_URL"
+          curl -s -f -X OPTIONS "$FN_ENDPOINT" \
+            -H "Origin: $PROD_URL" \
+            -H "Access-Control-Request-Method: POST" >/dev/null
+
+          echo "Testing POST (DEV origin)"
+          curl -s -f -X POST "$FN_ENDPOINT" \
+            -H "Origin: $DEV_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"data":{"order_id":"CI-TEST-DEV","payment_status":"unpaid","email":"ci@example.com"}}' >/dev/null
+
+          echo "Testing POST (PROD origin)"
+          curl -s -f -X POST "$FN_ENDPOINT" \
+            -H "Origin: $PROD_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"data":{"order_id":"CI-TEST-PROD","payment_status":"unpaid","email":"ci@example.com"}}' >/dev/null
+
+          echo "All endpoint checks passed."

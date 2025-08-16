@@ -6,6 +6,8 @@
  * Dependencies reduced from 8 to 4
  */
 
+import { logger } from '@/utils/logger';
+
 // ✅ CORE HOOK: Consolidated purchase operations
 export { usePurchaseCore } from './usePurchaseCore';
 
@@ -48,7 +50,7 @@ export const PURCHASE_HOOKS_LEGACY = {
   // Note: usePurchaseStats is now included in main exports
   // These are truly deprecated hooks
   usePurchaseStatus: () => {
-    console.warn('usePurchaseStatus is deprecated. Use usePurchaseCore instead.');
+    logger.warn('usePurchaseStatus is deprecated. Use usePurchaseCore instead.');
     return import('./usePurchaseStatus').then(m => m.usePurchaseStatus);
   }
 } as const;

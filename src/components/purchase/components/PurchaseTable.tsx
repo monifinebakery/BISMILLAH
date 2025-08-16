@@ -3,8 +3,21 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody } from '@/components/ui/table';
-import { Search } from 'lucide-react';
+import { Table, TableBody, TableHeader, TableHead, TableCell, TableRow } from '@/components/ui/table';
+import { Search, Calendar, User, Package, Receipt, AlertTriangle, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { formatCurrency } from '@/utils/formatUtils';
+import { getStatusDisplayText, getFormattedTotalQuantities } from '../utils/purchaseHelpers';
 
 // Type imports
 import { PurchaseTablePropsExtended, Purchase, PurchaseStatus } from '../types/purchase.types';
@@ -20,6 +33,8 @@ import {
   PurchaseTableRow,
   TablePagination,
   DeleteConfirmationDialogs,
+  StatusDropdown,
+  ActionButtons,
 } from './table';
 
 // Utils
@@ -238,6 +253,13 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     }
   }), [dialogState.statusConfirmation, onStatusChange, resetStatus, resetDelete, resetBulkDelete]);
 
+  // ✅ Sort icon helper function
+  const renderSortIcon = (field: string) => {
+    if (sortField !== field) return null;
+    return sortOrder === 'asc' ? 
+      <ArrowUp className="w-4 h-4 ml-1" /> : 
+      <ArrowDown className="w-4 h-4 ml-1" />;
+  };
 
   // ✅ Early return for empty state
   if (!paginationData.hasData && !searchQuery && statusFilter === 'all') {

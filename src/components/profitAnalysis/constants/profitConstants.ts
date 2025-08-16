@@ -111,25 +111,28 @@ export const OPEX_CATEGORIES = [
   'Lainnya'
 ] as const;
 
-// Konfigurasi chart dan warna
+// Konfigurasi chart dan warna - Orange sebagai primary
 export const CHART_CONFIG = {
-  // 🍽️ Warna utama untuk komponen keuangan F&B (user-friendly)
+  // 🍽️ Warna utama dengan orange dominan untuk F&B
   colors: {
+    primary: '#ea580c',      // 🔥 Orange Utama - Brand Color
     revenue: '#16a34a',      // 💰 Hijau - Omset/Penjualan
-    cogs: '#f59e0b',         // 🥘 Kuning - Modal Bahan Baku
-    opex: '#dc2626',         // 🏪 Merah - Biaya Bulanan Tetap
-    gross_profit: '#2563eb', // 📈 Biru - Untung Kotor
-    net_profit: '#8b5cf6',   // 💎 Ungu - Untung Bersih
+    cogs: '#f59e0b',         // 🥘 Orange - Modal Bahan Baku (Highlight)
+    opex: '#ef4444',         // 🏪 Merah - Biaya Bulanan Tetap
+    gross_profit: '#ea580c', // 📈 Orange - Untung Kotor (Primary)
+    net_profit: '#dc2626',   // 💎 Merah Gelap - Untung Bersih
     positive: '#16a34a',     // ✅ Hijau - Untung
     negative: '#dc2626',     // ❌ Merah - Rugi
-    neutral: '#6b7280'       // ⚪ Abu-abu - Netral
+    neutral: '#64748b',      // ⚪ Abu-abu - Netral
+    warning: '#f59e0b',      // ⚠️ Orange Terang - Warning
+    info: '#ea580c'          // ℹ️ Orange - Info
   },
   
-  // Warna berdasarkan rating margin
+  // Warna berdasarkan rating margin dengan orange accent
   margin_colors: {
     excellent: '#16a34a',    // Hijau - Sangat Baik
-    good: '#65a30d',         // Hijau Muda - Baik
-    fair: '#f59e0b',         // Kuning - Cukup
+    good: '#ea580c',         // Orange - Baik (Brand Color)
+    fair: '#f59e0b',         // Orange Terang - Cukup
     poor: '#dc2626'          // Merah - Kurang
   },
   

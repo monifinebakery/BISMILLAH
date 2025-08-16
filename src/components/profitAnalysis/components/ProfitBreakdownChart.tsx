@@ -62,7 +62,7 @@ const calculateMetrics = (revenue: number, cogs: number, opex: number) => {
 const generateBarChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
   return [
     {
-      category: '🍽️ Ringkasan Warung Bulan Ini',
+      category: '🍽️ Ringkasan Warung',
       'Omset': metrics.revenue,
       'Modal Bahan': metrics.cogs,
       'Biaya Tetap': metrics.opex,
@@ -226,7 +226,7 @@ const ProfitBreakdownChart = ({
 
   // ✅ BAR CHART RENDER
   const renderBarChart = () => (
-    <ResponsiveContainer width="100%" height={350}>
+    <ResponsiveContainer width="100%" height={300}>
       <BarChart 
         data={barChartData} 
         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
@@ -288,7 +288,7 @@ const ProfitBreakdownChart = ({
 
   // ✅ PIE CHART RENDER
   const renderPieChart = () => (
-    <ResponsiveContainer width="100%" height={350}>
+    <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
           data={pieChartData}
@@ -339,12 +339,12 @@ const ProfitBreakdownChart = ({
           
           {/* Quick Stats */}
           <div className="text-right">
-            <div className="text-sm text-gray-600">🎯 Untung Kotor</div>
-            <div className="text-lg font-bold text-blue-600">
+            <div className="text-xs sm:text-sm text-gray-600">🎯 Untung Kotor</div>
+            <div className="text-sm sm:text-lg font-bold text-orange-600">
               {summaryStats.grossMargin.toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-600 mt-1">💎 Untung Bersih</div>
-            <div className="text-lg font-bold text-purple-600">
+            <div className="text-xs sm:text-sm text-gray-600 mt-1">💎 Untung Bersih</div>
+            <div className="text-sm sm:text-lg font-bold text-orange-700">
               {summaryStats.netMargin.toFixed(1)}%
             </div>
           </div>
@@ -358,43 +358,43 @@ const ProfitBreakdownChart = ({
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 border-t">
           <div className="text-center">
-            <div className="text-sm text-gray-600">💰 Total Omset</div>
-            <div className="text-lg font-bold text-green-600">
+            <div className="text-xs sm:text-sm text-gray-600">💰 Total Omset</div>
+            <div className="text-sm sm:text-lg font-bold text-green-600">
               {formatCurrency(metrics.revenue)}
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">🥘 Modal Bahan Baku</div>
-            <div className="text-lg font-bold text-amber-600">
+            <div className="text-xs sm:text-sm text-gray-600">🥘 Modal Bahan</div>
+            <div className="text-sm sm:text-lg font-bold text-orange-600">
               {formatCurrency(metrics.cogs)}
             </div>
-            <div className="text-xs text-gray-500">
-              {summaryStats.cogsRatio.toFixed(1)}% dari omset
+            <div className="text-xs text-gray-500 hidden sm:block">
+              {summaryStats.cogsRatio.toFixed(1)}%
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">🏪 Biaya Tetap Bulanan</div>
-            <div className="text-lg font-bold text-red-600">
+            <div className="text-xs sm:text-sm text-gray-600">🏪 Biaya Tetap</div>
+            <div className="text-sm sm:text-lg font-bold text-red-600">
               {formatCurrency(metrics.opex)}
             </div>
-            <div className="text-xs text-gray-500">
-              {summaryStats.opexRatio.toFixed(1)}% dari omset
+            <div className="text-xs text-gray-500 hidden sm:block">
+              {summaryStats.opexRatio.toFixed(1)}%
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">💎 Untung Bersih</div>
-            <div className={`text-lg font-bold ${
-              metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+            <div className="text-xs sm:text-sm text-gray-600">💎 Untung Bersih</div>
+            <div className={`text-sm sm:text-lg font-bold ${
+              metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600'
             }`}>
               {formatCurrency(metrics.netProfit)}
             </div>
-            <div className="text-xs text-gray-500">
-              {summaryStats.netMargin.toFixed(1)}% margin
+            <div className="text-xs text-gray-500 hidden sm:block">
+              {summaryStats.netMargin.toFixed(1)}%
             </div>
           </div>
         </div>

@@ -139,8 +139,8 @@ const generateCards = (
       title: '📈 Untung Kotor',
       value: metrics.grossProfit,
       icon: TrendingUp,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
       subtitle: `${formatPercentage(metrics.grossMargin)} dari penjualan`,
       change: changes.grossProfitChange,
       changeType: getGrowthStatus(changes.grossProfitChange).status,
@@ -150,8 +150,8 @@ const generateCards = (
       title: '💵 Untung Bersih (Take Home)',
       value: metrics.netProfit,
       icon: Calculator,
-      color: metrics.netProfit >= 0 ? 'text-purple-600' : 'text-red-600',
-      bgColor: metrics.netProfit >= 0 ? 'bg-purple-50' : 'bg-red-50',
+      color: metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600',
+      bgColor: metrics.netProfit >= 0 ? 'bg-orange-50' : 'bg-red-50',
       subtitle: `${formatPercentage(metrics.netMargin)} margin akhir`,
       change: changes.netProfitChange,
       changeType: getGrowthStatus(changes.netProfitChange).status,
@@ -161,8 +161,8 @@ const generateCards = (
       title: `🛒 Modal Bahan Baku ${getFoodCategoryEmoji(cogsPercentage)}`,
       value: metrics.cogs,
       icon: ShoppingCart,
-      color: cogsPercentage > 60 ? 'text-red-600' : cogsPercentage > 40 ? 'text-amber-600' : 'text-green-600',
-      bgColor: cogsPercentage > 60 ? 'bg-red-50' : cogsPercentage > 40 ? 'bg-amber-50' : 'bg-green-50',
+      color: cogsPercentage > 60 ? 'text-red-600' : cogsPercentage > 40 ? 'text-orange-600' : 'text-green-600',
+      bgColor: cogsPercentage > 60 ? 'bg-red-50' : cogsPercentage > 40 ? 'bg-orange-50' : 'bg-green-50',
       subtitle: `${formatPercentage(cogsPercentage)} dari penjualan`,
       change: changes.cogsChange,
       changeType: getGrowthStatus(changes.cogsChange * -1).status,
@@ -178,8 +178,8 @@ const generateCards = (
       title: 'Nilai Stok Bahan Baku',
       value: wacStockValue,
       icon: Package,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
       subtitle: labels?.hppLabel ? `${labels.hppLabel} aktif` : 'Harga rata-rata',
       change: undefined,
       changeType: 'neutral'
@@ -237,7 +237,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   // ✅ LOADING STATE
   if (isLoading) {
     return (
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -258,7 +258,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   // ✅ NO DATA STATE
   if (!currentAnalysis) {
     return (
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
         {cards.map((card, index) => {
           const Icon = card.icon;
           return (
@@ -286,7 +286,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
 
   // ✅ MAIN RENDER
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
+    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
       {cards.map((card, index) => {
         const Icon = card.icon;
         const hasChange = card.change !== undefined && previousAnalysis;
@@ -330,8 +330,8 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                 <Icon className={`w-4 h-4 ${card.color}`} />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold mb-1">
+            <CardContent className="p-4 sm:p-6">
+              <div className="text-lg sm:text-2xl font-bold mb-1">
                 {formatCurrency(card.value)}
               </div>
               

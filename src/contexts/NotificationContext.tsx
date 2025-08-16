@@ -319,7 +319,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const notifDebounceRef = React.useRef<number | null>(null);
 
-  useEffect(() => {
+  useEffect(() => {
     if (!userId) return;
 
     logger.debug('Setting up notification real-time subscription');

@@ -542,30 +542,30 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">💰 Untung Rugi Warung</h1>
-          <p className="text-gray-600">Lihat untung-rugi bulan ini, modal bahan baku, dan perkiraan bulan depan - semua dalam bahasa yang mudah dimengerti</p>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">💰 Untung Rugi Warung</h1>
+          <p className="text-gray-600 text-sm sm:text-base mt-1">Lihat untung-rugi bulan ini, modal bahan baku, dan perkiraan bulan depan - semua dalam bahasa yang mudah dimengerti</p>
           {/* 🍽️ Quick Status Summary */}
           {hasValidData && (
-            <div className="flex items-center space-x-4 mt-2 text-sm">
-              <span className={`px-2 py-1 rounded-full text-xs ${
+            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-3 space-y-2 sm:space-y-0">
+              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                 footerCalc.netProfit >= 0 
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-red-100 text-red-800'
               }`}>
                 {footerCalc.netProfit >= 0 ? '📈 Untung' : '📉 Rugi'} {formatCurrency(Math.abs(footerCalc.netProfit))}
               </span>
-              <span className="text-gray-500">•</span>
-              <span className="text-gray-600">
-                Modal bahan: {formatPercentage((safeCogs / Math.max(safeRevenue, 1)) * 100)} dari omset
+              <span className="hidden sm:inline text-gray-400">•</span>
+              <span className="text-gray-600 text-xs sm:text-sm">
+                Modal bahan: <span className="font-medium text-orange-600">{formatPercentage((safeCogs / Math.max(safeRevenue, 1)) * 100)}</span> dari omset
               </span>
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-4 mt-4 lg:mt-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-4 lg:mt-0">
           <Select value={currentPeriod} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Pilih periode" />
             </SelectTrigger>
             <SelectContent>
@@ -576,41 +576,45 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
               ))}
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center space-x-2"
-          >
-            <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportData}
-            disabled={!hasValidData}
-            className="flex items-center space-x-2"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export</span>
-          </Button>
+          
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center space-x-1 flex-1 sm:flex-initial"
+            >
+              <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportData}
+              disabled={!hasValidData}
+              className="flex items-center space-x-1 flex-1 sm:flex-initial"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Status Indicators */}
-      <div className="flex items-center space-x-4">
+      <div className="flex flex-wrap items-center gap-2">
         {isDataStale && (
           <Badge variant="secondary" className="flex items-center space-x-1">
             <AlertTriangle className="w-3 h-3" />
-            <span className="text-xs">Data mungkin sudah usang</span>
+            <span className="text-xs">Data usang</span>
           </Badge>
         )}
         {lastCalculated && (
           <Badge variant="outline" className="flex items-center space-x-1">
             <CheckCircle className="w-3 h-3" />
-            <span className="text-xs">Diperbarui: {lastCalculated.toLocaleTimeString('id-ID')}</span>
+            <span className="text-xs hidden sm:inline">Diperbarui: {lastCalculated.toLocaleTimeString('id-ID')}</span>
+            <span className="text-xs sm:hidden">Update: {lastCalculated.toLocaleTimeString('id-ID', { timeStyle: 'short' })}</span>
           </Badge>
         )}
         {benchmark?.competitive?.position && (
@@ -619,7 +623,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
             className="flex items-center space-x-1"
           >
             <Target className="w-3 h-3" />
-            <span className="text-xs">performa {benchmark.competitive.position}</span>
+            <span className="text-xs">{benchmark.competitive.position}</span>
           </Badge>
         )}
       </div>
@@ -632,8 +636,10 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         </Alert>
       )}
 
-      {/* Executive Summary */}
-      {renderExecutiveSummary()}
+      {/* Executive Summary - Hidden on mobile to save space */}
+      <div className="hidden md:block">
+        {renderExecutiveSummary()}
+      </div>
 
       {/* Summary Cards - ✅ 1) UPDATE: Amanin semua akses profitMetrics */}
       {hasValidData && (
@@ -649,15 +655,27 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="ikhtisar">📊 Ringkasan</TabsTrigger>
-          <TabsTrigger value="tren">📈 Grafik Bulanan</TabsTrigger>
-          <TabsTrigger value="breakdown">🧾 Detail Biaya</TabsTrigger>
-          <TabsTrigger value="wawasan">💡 Saran & Tips</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 h-auto p-1">
+          <TabsTrigger value="ikhtisar" className="text-xs sm:text-sm px-1 py-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
+            <span className="hidden sm:inline">📊 Ringkasan</span>
+            <span className="sm:hidden">📊</span>
+          </TabsTrigger>
+          <TabsTrigger value="tren" className="text-xs sm:text-sm px-1 py-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
+            <span className="hidden sm:inline">📈 Grafik</span>
+            <span className="sm:hidden">📈</span>
+          </TabsTrigger>
+          <TabsTrigger value="breakdown" className="text-xs sm:text-sm px-1 py-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
+            <span className="hidden sm:inline">🧾 Detail</span>
+            <span className="sm:hidden">🧾</span>
+          </TabsTrigger>
+          <TabsTrigger value="wawasan" className="text-xs sm:text-sm px-1 py-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
+            <span className="hidden sm:inline">💡 Tips</span>
+            <span className="sm:hidden">💡</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="ikhtisar" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TabsContent value="ikhtisar" className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* ✅ 1) UPDATE: Amanin semua akses profitMetrics */}
             <ProfitBreakdownChart 
               currentAnalysis={currentAnalysis} 
@@ -679,7 +697,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           </div>
         </TabsContent>
 
-        <TabsContent value="tren" className="space-y-6">
+        <TabsContent value="tren" className="space-y-4 sm:space-y-6">
           <ProfitTrendChart
             profitHistory={profitHistory}
             isLoading={loading}
@@ -691,7 +709,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           />
         </TabsContent>
 
-        <TabsContent value="breakdown" className="space-y-6">
+        <TabsContent value="breakdown" className="space-y-4 sm:space-y-6">
           {/* ✅ 1) UPDATE: Amanin semua akses profitMetrics */}
           <DetailedBreakdownTable 
             currentAnalysis={currentAnalysis} 
@@ -704,7 +722,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           />
         </TabsContent>
 
-        <TabsContent value="wawasan" className="space-y-6">
+        <TabsContent value="wawasan" className="space-y-4 sm:space-y-6">
           {/* ✅ F&B INSIGHTS - Smart recommendations untuk warung */}
           <FNBInsights 
             currentAnalysis={currentAnalysis}
@@ -721,30 +739,30 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
                 <CardDescription>Data teknis untuk analisis mendalam</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-orange-50 rounded-lg">
+                    <div className="text-xl sm:text-2xl font-bold text-orange-600">
                       {formatPercentage(advancedMetrics.grossProfitMargin)}
                     </div>
-                    <div className="text-sm text-gray-600">🎯 Margin Kotor</div>
+                    <div className="text-xs sm:text-sm text-gray-600">🎯 Margin Kotor</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                    <div className="text-xl sm:text-2xl font-bold text-green-600">
                       {formatPercentage(advancedMetrics.netProfitMargin)}
                     </div>
-                    <div className="text-sm text-gray-600">💎 Margin Bersih</div>
+                    <div className="text-xs sm:text-sm text-gray-600">💎 Margin Bersih</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
+                  <div className="text-center p-3 bg-purple-50 rounded-lg">
+                    <div className="text-xl sm:text-2xl font-bold text-purple-600">
                       {formatPercentage(advancedMetrics.monthlyGrowthRate)}
                     </div>
-                    <div className="text-sm text-gray-600">📈 Pertumbuhan Bulanan</div>
+                    <div className="text-xs sm:text-sm text-gray-600">📈 Pertumbuhan</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-amber-600">
+                  <div className="text-center p-3 bg-amber-50 rounded-lg">
+                    <div className="text-xl sm:text-2xl font-bold text-amber-600">
                       {formatPercentage(advancedMetrics.marginOfSafety)}
                     </div>
-                    <div className="text-sm text-gray-600">🛡️ Margin Keamanan</div>
+                    <div className="text-xs sm:text-sm text-gray-600">🛡️ Keamanan</div>
                   </div>
                 </div>
               </CardContent>
@@ -755,11 +773,11 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           {benchmark && (
             <Card>
               <CardHeader>
-                <CardTitle>Benchmarking Kompetitif</CardTitle>
-                <CardDescription>Bagaimana performa Anda dibandingkan dengan standar industri</CardDescription>
+                <CardTitle className="text-base sm:text-lg">Benchmarking Kompetitif</CardTitle>
+                <CardDescription className="text-sm">Bagaimana performa Anda dibandingkan dengan standar industri</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <div className="text-sm text-gray-600 mb-2">Rata-rata Industri</div>
                     <div className="text-xl font-bold text-gray-700 mb-1">
@@ -797,27 +815,41 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
       {/* Status Footer - ✅ 2) UPDATE: Rapihin label periode footer */}
       {/* ✅ 3) UPDATE: Angka footer selalu valid + margin pakai util yang sama */}
       {hasValidData && !loading && (
-        <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="w-4 h-4 text-green-600" />
-            <span>
-              Analisis selesai untuk {(formatPeriodLabel ?? formatPeriodLabelTransformer)(currentPeriod)}
-            </span>
+        <div className="p-3 sm:p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-700">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+              <span className="truncate">
+                Analisis {(formatPeriodLabel ?? formatPeriodLabelTransformer)(currentPeriod)}
+              </span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <span className="flex items-center">
+                💰 Omset: <span className="font-medium ml-1 text-orange-700">{formatCurrency(safeRevenue)}</span>
+              </span>
+              <span className="hidden sm:inline text-gray-400">•</span>
+              <span className="flex items-center">
+                💎 Untung: <span className={`font-medium ml-1 ${
+                  footerCalc.netProfit >= 0 ? 'text-green-700' : 'text-red-600'
+                }`}>{formatCurrency(footerCalc.netProfit)}</span>
+              </span>
+              <span className="hidden sm:inline text-gray-400">•</span>
+              <span className="flex items-center">
+                📊 Margin: <span className="font-medium ml-1 text-blue-700">{formatPercentage(footerCalc.netMargin)}</span>
+              </span>
+              
+              {/* ✅ 5) UPDATE: Badge kecil "WAC aktif" di status bar */}
+              {labels?.hppLabel && (
+                <>
+                  <span className="hidden sm:inline text-gray-400">•</span>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full" title={labels.hppHint}>
+                    {labels.hppLabel}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
-          <span>•</span>
-          {/* ✅ 3) UPDATE: Footer dengan angka aman dan util konsisten */}
-          <span>💰 Omset: {formatCurrency(safeRevenue)}</span>
-          <span>•</span>
-          <span>💎 Untung Bersih: {formatCurrency(footerCalc.netProfit)}</span>
-          <span>•</span>
-          <span>📊 Margin: {formatPercentage(footerCalc.netMargin)}</span>
-          {/* ✅ 5) UPDATE: Badge kecil "WAC aktif" di status bar */}
-          {labels?.hppLabel && (
-            <>
-              <span>•</span>
-              <span title={labels.hppHint}>{labels.hppLabel} aktif</span>
-            </>
-          )}
         </div>
       )}
     </div>

@@ -303,14 +303,14 @@ const FNBInsights: React.FC<FNBInsightsProps> = ({
   
   if (!currentAnalysis || insights.length === 0) {
     return (
-      <div className={`space-y-6 ${className}`}>
+      <div className={`space-y-4 sm:space-y-6 ${className}`}>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Lightbulb className="w-5 h-5 mr-2 text-blue-600" />
+            <CardTitle className="flex items-center text-base sm:text-lg">
+              <Lightbulb className="w-5 h-5 mr-2 text-orange-600" />
               🍽️ Saran & Tips Khusus Warung
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Belum ada cukup data untuk memberikan saran. Pastikan data keuangan sudah lengkap.
             </CardDescription>
           </CardHeader>
@@ -320,16 +320,16 @@ const FNBInsights: React.FC<FNBInsightsProps> = ({
   }
   
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-4 sm:space-y-6 ${className}`}>
       
       {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Lightbulb className="w-5 h-5 mr-2 text-blue-600" />
+          <CardTitle className="flex items-center text-base sm:text-lg">
+            <Lightbulb className="w-5 h-5 mr-2 text-orange-600" />
             🍽️ Saran & Tips Khusus Warung
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Analisis otomatis berdasarkan data keuangan warung Anda dengan saran yang bisa langsung diterapkan
           </CardDescription>
         </CardHeader>
@@ -339,27 +339,27 @@ const FNBInsights: React.FC<FNBInsightsProps> = ({
       {categorizedInsights.high.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-red-600 flex items-center">
-              <AlertTriangle className="w-5 h-5 mr-2" />
+            <CardTitle className="text-red-600 flex items-center text-base sm:text-lg">
+              <AlertTriangle className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
               🚨 Perlu Perhatian Segera
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {categorizedInsights.high.map((insight, index) => {
                 const Icon = insight.icon;
                 const ActionIcon = insight.actionIcon;
                 
                 return (
                   <Alert key={index} className="border-red-200 bg-red-50">
-                    <Icon className="h-4 w-4 text-red-600" />
+                    <Icon className="h-4 w-4 text-red-600 flex-shrink-0" />
                     <AlertDescription>
                       <div className="space-y-2">
-                        <div className="font-semibold text-red-800">{insight.title}</div>
-                        <div className="text-red-700">{insight.message}</div>
+                        <div className="font-semibold text-red-800 text-sm sm:text-base">{insight.title}</div>
+                        <div className="text-red-700 text-xs sm:text-sm leading-relaxed">{insight.message}</div>
                         {insight.action && (
-                          <Button size="sm" variant="outline" className="mt-2 border-red-300 text-red-700 hover:bg-red-100">
-                            {ActionIcon && <ActionIcon className="w-4 h-4 mr-1" />}
+                          <Button size="sm" variant="outline" className="mt-2 border-red-300 text-red-700 hover:bg-red-100 text-xs">
+                            {ActionIcon && <ActionIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
                             {insight.action}
                           </Button>
                         )}
@@ -377,27 +377,27 @@ const FNBInsights: React.FC<FNBInsightsProps> = ({
       {categorizedInsights.medium.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-amber-600 flex items-center">
-              <Target className="w-5 h-5 mr-2" />
+            <CardTitle className="text-orange-600 flex items-center text-base sm:text-lg">
+              <Target className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
               💡 Peluang Optimasi
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {categorizedInsights.medium.map((insight, index) => {
                 const Icon = insight.icon;
                 const ActionIcon = insight.actionIcon;
                 
                 return (
-                  <Alert key={index} className="border-amber-200 bg-amber-50">
-                    <Icon className="h-4 w-4 text-amber-600" />
+                  <Alert key={index} className="border-orange-200 bg-orange-50">
+                    <Icon className="h-4 w-4 text-orange-600 flex-shrink-0" />
                     <AlertDescription>
                       <div className="space-y-2">
-                        <div className="font-semibold text-amber-800">{insight.title}</div>
-                        <div className="text-amber-700">{insight.message}</div>
+                        <div className="font-semibold text-orange-800 text-sm sm:text-base">{insight.title}</div>
+                        <div className="text-orange-700 text-xs sm:text-sm leading-relaxed">{insight.message}</div>
                         {insight.action && (
-                          <Button size="sm" variant="outline" className="mt-2 border-amber-300 text-amber-700 hover:bg-amber-100">
-                            {ActionIcon && <ActionIcon className="w-4 h-4 mr-1" />}
+                          <Button size="sm" variant="outline" className="mt-2 border-orange-300 text-orange-700 hover:bg-orange-100 text-xs">
+                            {ActionIcon && <ActionIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
                             {insight.action}
                           </Button>
                         )}
@@ -415,27 +415,27 @@ const FNBInsights: React.FC<FNBInsightsProps> = ({
       {categorizedInsights.low.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-green-600 flex items-center">
-              <CheckCircle className="w-5 h-5 mr-2" />
+            <CardTitle className="text-green-600 flex items-center text-base sm:text-lg">
+              <CheckCircle className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
               ✅ Hal Yang Sudah Baik
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {categorizedInsights.low.map((insight, index) => {
                 const Icon = insight.icon;
                 const ActionIcon = insight.actionIcon;
                 
                 return (
                   <Alert key={index} className="border-green-200 bg-green-50">
-                    <Icon className="h-4 w-4 text-green-600" />
+                    <Icon className="h-4 w-4 text-green-600 flex-shrink-0" />
                     <AlertDescription>
                       <div className="space-y-2">
-                        <div className="font-semibold text-green-800">{insight.title}</div>
-                        <div className="text-green-700">{insight.message}</div>
+                        <div className="font-semibold text-green-800 text-sm sm:text-base">{insight.title}</div>
+                        <div className="text-green-700 text-xs sm:text-sm leading-relaxed">{insight.message}</div>
                         {insight.action && (
-                          <Button size="sm" variant="outline" className="mt-2 border-green-300 text-green-700 hover:bg-green-100">
-                            {ActionIcon && <ActionIcon className="w-4 h-4 mr-1" />}
+                          <Button size="sm" variant="outline" className="mt-2 border-green-300 text-green-700 hover:bg-green-100 text-xs">
+                            {ActionIcon && <ActionIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
                             {insight.action}
                           </Button>
                         )}
@@ -452,21 +452,21 @@ const FNBInsights: React.FC<FNBInsightsProps> = ({
       {/* Summary Stats */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm text-gray-600">📊 Ringkasan Analisis</CardTitle>
+          <CardTitle className="text-sm sm:text-base text-gray-700">📊 Ringkasan Analisis</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="destructive">
+            <Badge variant="destructive" className="text-xs">
               {categorizedInsights.high.length} Prioritas Tinggi
             </Badge>
-            <Badge variant="secondary">
+            <Badge className="bg-orange-100 text-orange-800 text-xs">
               {categorizedInsights.medium.length} Peluang Optimasi
             </Badge>
-            <Badge variant="outline">
+            <Badge variant="outline" className="text-xs">
               {categorizedInsights.low.length} Hal Positif
             </Badge>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-500 mt-3 leading-relaxed">
             Analisis diperbarui berdasarkan data keuangan terbaru • Saran khusus untuk bisnis F&B
           </p>
         </CardContent>

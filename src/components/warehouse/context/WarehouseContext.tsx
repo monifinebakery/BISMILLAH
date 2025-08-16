@@ -400,9 +400,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       return expiryDate <= threshold && expiryDate > new Date();
     });
   }, [bahanBaku]);
-
   // ✅ ENHANCED: Context value with proper types (memoized)
-  const contextValue: WarehouseContextType = React.useMemo(() =e ({
+  const contextValue: WarehouseContextType = React.useMemo(() => ({
     // Data
     bahanBaku,
     loading,
@@ -428,7 +427,6 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     getExpiringItems,
 
     // ✅ FIXED: Proper refetch type and value
-
     refetch,
     isRefetching,
   }), [

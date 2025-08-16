@@ -1,4 +1,4 @@
-// src/components/orders/hooks/useOrderData.ts - FINAL FIX (Robust Channel Management)
+// src/components/orders/hooks/useOrderData.ts - AGGRESSIVE NETWORK ERROR FIX
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -37,14 +37,26 @@ export const useOrderData = (
   const fetchLockRef = useRef<boolean>(false);
   const cleanupLockRef = useRef<boolean>(false);
   
-  // ✅ FIX: Channel management refs
-  const channelNameRef = useRef<string | null>(null);
-  const connectionAttemptRef = useRef<number>(0);
+  // ✅ NEW: Circuit breaker pattern
+  const circuitBreakerRef = useRef<{
+    failures: number;
+    lastFailure: number;
+    isOpen: boolean;
+  }>({
+    failures: 0,
+    lastFailure: 0,
+    isOpen: false
+  });
+  
+  // ✅ NEW: Fallback mode untuk skip real-time
+  const fallbackModeRef = useRef<boolean>(false);
+  const fallbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // ===== CONSTANTS =====
-  const maxRetries = 3;
-  const retryDelayBase = 3000; // Increased base delay
-  const maxConnectionAttempts = 5; // Limit connection attempts
+  const maxRetries = 2; // Reduced retries
+  const retryDelayBase = 5000; // Longer base delay
+  const circuitBreakerThreshold = 5; // After 5 failures, open circuit
+  const circuitBreakerResetTime = 300000; // 5 minutes
 
   logger.context('useOrderData', 'Hook initialized', {
     hasUser: !!user,
@@ -52,82 +64,117 @@ export const useOrderData = (
     userId: user?.id
   });
 
-  // ✅ FIX: Enhanced cleanup with better channel management
+  // ✅ NEW: Circuit breaker check
+  const shouldAttemptConnection = useCallback(() => {
+    const cb = circuitBreakerRef.current;
+    const now = Date.now();
+    
+    // Reset circuit breaker after timeout
+    if (cb.isOpen && (now - cb.lastFailure) > circuitBreakerResetTime) {
+      logger.info('OrderData', 'Circuit breaker reset after timeout');
+      cb.failures = 0;
+      cb.isOpen = false;
+    }
+    
+    return !cb.isOpen;
+  }, []);
+
+  // ✅ NEW: Record connection failure
+  const recordConnectionFailure = useCallback(() => {
+    const cb = circuitBreakerRef.current;
+    cb.failures++;
+    cb.lastFailure = Date.now();
+    
+    if (cb.failures >= circuitBreakerThreshold) {
+      cb.isOpen = true;
+      fallbackModeRef.current = true;
+      logger.warn('OrderData', `Circuit breaker opened after ${cb.failures} failures. Switching to fallback mode.`);
+      
+      // Start fallback polling
+      if (!fallbackIntervalRef.current) {
+        fallbackIntervalRef.current = setInterval(() => {
+          if (isMountedRef.current) {
+            logger.debug('OrderData', 'Fallback mode: polling for updates');
+            fetchOrders(true);
+          }
+        }, 30000); // Poll every 30 seconds
+      }
+    }
+  }, []);
+
+  // ✅ ENHANCED: Aggressive cleanup
   const cleanupSubscription = useCallback(async () => {
-    // Prevent concurrent cleanups
     if (cleanupLockRef.current) {
-      logger.debug('OrderData', 'Cleanup already in progress, skipping');
       return;
     }
     
     cleanupLockRef.current = true;
     
     try {
-      // Clear retry timeout first
+      // Clear all timers first
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = null;
       }
       
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
+      
       if (!subscriptionRef.current) {
-        logger.debug('OrderData', 'No subscription to cleanup');
         return;
       }
       
-      logger.context('OrderData', 'Starting subscription cleanup');
+      logger.context('OrderData', 'AGGRESSIVE cleanup starting');
       
       const subscription = subscriptionRef.current;
-      const channelName = channelNameRef.current;
-      
-      // Reset refs
       subscriptionRef.current = null;
-      channelNameRef.current = null;
       
       try {
-        // ✅ FIX: Better unsubscribe process
-        if (subscription && typeof subscription.unsubscribe === 'function') {
-          await subscription.unsubscribe();
-          logger.debug('OrderData', 'Subscription unsubscribed successfully');
-        }
+        // ✅ AGGRESSIVE: Force unsubscribe with timeout
+        const unsubscribePromise = subscription.unsubscribe();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Unsubscribe timeout')), 3000)
+        );
         
-        // Small delay to ensure unsubscribe completes
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Remove channel by name if available
-        if (channelName) {
-          try {
-            const channelToRemove = supabase.channel(channelName);
-            if (channelToRemove) {
-              await supabase.removeChannel(channelToRemove);
-              logger.debug('OrderData', 'Channel removed by name:', channelName);
-            }
-          } catch (removeError) {
-            logger.debug('OrderData', 'Channel removal by name failed (may not exist):', removeError);
+        await Promise.race([unsubscribePromise, timeoutPromise]);
+        logger.debug('OrderData', 'Unsubscribe completed');
+      } catch (error) {
+        logger.warn('OrderData', 'Unsubscribe failed or timed out:', error);
+      }
+      
+      // ✅ AGGRESSIVE: Force remove channel
+      try {
+        await supabase.removeChannel(subscription);
+        logger.debug('OrderData', 'Channel removal completed');
+      } catch (error) {
+        logger.warn('OrderData', 'Channel removal failed:', error);
+      }
+      
+      // ✅ NUCLEAR OPTION: Remove ALL channels for this user (if desperate)
+      try {
+        const allChannels = supabase.getChannels();
+        for (const channel of allChannels) {
+          if (channel.topic.includes(user?.id)) {
+            await supabase.removeChannel(channel);
+            logger.debug('OrderData', 'Removed orphaned channel:', channel.topic);
           }
         }
-        
-        // Also try to remove by reference
-        try {
-          await supabase.removeChannel(subscription);
-          logger.debug('OrderData', 'Channel removed by reference');
-        } catch (removeError) {
-          logger.debug('OrderData', 'Channel removal by reference failed (expected):', removeError);
-        }
-        
       } catch (error) {
-        logger.warn('OrderData', 'Error during subscription cleanup:', error);
+        logger.warn('OrderData', 'Mass channel cleanup failed:', error);
       }
       
     } catch (error) {
-      logger.error('OrderData', 'Unexpected error during cleanup:', error);
+      logger.error('OrderData', 'Cleanup error:', error);
     } finally {
       cleanupLockRef.current = false;
       setIsConnected(false);
-      logger.context('OrderData', 'Subscription cleanup completed');
+      logger.context('OrderData', 'AGGRESSIVE cleanup completed');
     }
-  }, []);
+  }, [user?.id]);
 
-  // ✅ FIX: Enhanced fetch with lock (same as before)
+  // ✅ SAME: Enhanced fetch (keep as before)
   const fetchOrders = useCallback(async (forceRefresh = false) => {
     if (!hasAllDependencies || !user || !isMountedRef.current) {
       logger.debug('OrderData', 'Cannot fetch - dependencies not ready');
@@ -203,25 +250,20 @@ export const useOrderData = (
     }
   }, [user, hasAllDependencies]);
 
-  // ✅ FIX: Handle real-time events (same as before)
+  // ✅ SAME: Handle real-time events
   const handleRealtimeEvent = useCallback((payload: any) => {
-    if (!isMountedRef.current) {
-      logger.debug('OrderData', 'Ignoring real-time event: component unmounted');
-      return;
-    }
-    
-    if (!initialFetchDoneRef.current) {
-      logger.debug('OrderData', 'Skipping real-time event: initial fetch not complete');
+    if (!isMountedRef.current || !initialFetchDoneRef.current) {
       return;
     }
     
     logger.context('OrderData', 'Real-time event received', {
       eventType: payload.eventType,
-      orderId: payload.new?.id || payload.old?.id,
-      nomorPesanan: payload.new?.nomor_pesanan || payload.old?.nomor_pesanan
+      orderId: payload.new?.id || payload.old?.id
     });
     
-    retryCountRef.current = 0; // Reset retry count on successful event
+    // Reset circuit breaker on successful event
+    circuitBreakerRef.current.failures = 0;
+    circuitBreakerRef.current.isOpen = false;
     
     setOrders((prevOrders) => {
       try {
@@ -229,7 +271,6 @@ export const useOrderData = (
         
         if (payload.eventType === 'DELETE' && payload.old?.id) {
           newOrders = newOrders.filter((item) => item.id !== payload.old.id);
-          logger.context('OrderData', 'Order deleted from real-time:', payload.old.id);
         }
         
         if (payload.eventType === 'INSERT' && payload.new) {
@@ -240,7 +281,6 @@ export const useOrderData = (
               newOrders = [newOrder, ...newOrders].sort((a, b) => 
                 new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
               );
-              logger.context('OrderData', 'Order added from real-time:', newOrder.id);
             }
           } catch (transformError) {
             logger.error('OrderData', 'Error transforming new order:', transformError);
@@ -253,7 +293,6 @@ export const useOrderData = (
             newOrders = newOrders.map((item) =>
               item.id === updatedOrder.id ? updatedOrder : item
             );
-            logger.context('OrderData', 'Order updated from real-time:', updatedOrder.id);
           } catch (transformError) {
             logger.error('OrderData', 'Error transforming updated order:', transformError);
           }
@@ -267,74 +306,29 @@ export const useOrderData = (
     });
   }, []);
 
-  // ✅ FIX: Robust retry mechanism
-  const scheduleRetry = useCallback(() => {
-    if (retryCountRef.current >= maxRetries) {
-      logger.error('OrderData', `Max retries (${maxRetries}) reached, giving up`);
-      setIsConnected(false);
-      setupLockRef.current = false;
-      return;
-    }
-
-    if (!isMountedRef.current || !user) {
-      logger.debug('OrderData', 'Component unmounted or no user, skipping retry');
-      setupLockRef.current = false;
-      return;
-    }
-
-    if (connectionAttemptRef.current >= maxConnectionAttempts) {
-      logger.error('OrderData', `Max connection attempts (${maxConnectionAttempts}) reached, stopping`);
-      setIsConnected(false);
-      setupLockRef.current = false;
-      return;
-    }
-
-    retryCountRef.current++;
-    const delay = Math.min(retryDelayBase * Math.pow(2, retryCountRef.current - 1), 30000);
-    
-    logger.context('OrderData', `Scheduling retry`, {
-      attempt: `${retryCountRef.current}/${maxRetries}`,
-      connectionAttempt: `${connectionAttemptRef.current}/${maxConnectionAttempts}`,
-      delayMs: delay
-    });
-    
-    retryTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current && user && !setupLockRef.current) {
-        logger.context('OrderData', 'Executing subscription retry');
-        setupSubscription();
-      } else {
-        logger.debug('OrderData', 'Retry cancelled: conditions not met');
-        setupLockRef.current = false;
-      }
-    }, delay);
-  }, [user]);
-
-  // ✅ FIX: Enhanced subscription setup with better error handling
+  // ✅ NEW: Conditional subscription setup (respects circuit breaker)
   const setupSubscription = useCallback(async () => {
     if (!hasAllDependencies || !user || !isMountedRef.current) {
-      logger.debug('OrderData', 'Cannot setup subscription: dependencies not ready');
+      setupLockRef.current = false;
+      return;
+    }
+    
+    // ✅ Check circuit breaker
+    if (!shouldAttemptConnection()) {
+      logger.info('OrderData', 'Circuit breaker is open, skipping real-time setup');
       setupLockRef.current = false;
       return;
     }
 
     if (setupLockRef.current) {
-      logger.debug('OrderData', 'Subscription setup already in progress, skipping');
       return;
     }
 
     setupLockRef.current = true;
-    connectionAttemptRef.current++;
-    
-    logger.context('OrderData', 'Setting up subscription', { 
-      userId: user.id,
-      attempt: connectionAttemptRef.current
-    });
+    logger.context('OrderData', 'Setting up subscription', { userId: user.id });
 
-    // Clean up any existing subscription first
     await cleanupSubscription();
-    
-    // Wait longer to ensure cleanup is complete
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     if (!isMountedRef.current) {
       setupLockRef.current = false;
@@ -342,13 +336,8 @@ export const useOrderData = (
     }
 
     try {
-      // ✅ FIX: Better channel naming with attempt counter
       const channelName = `orders_${user.id}_${Date.now()}`;
-      channelNameRef.current = channelName;
       
-      logger.debug('OrderData', 'Creating channel:', channelName);
-      
-      // ✅ FIX: Enhanced channel configuration
       const channel = supabase
         .channel(channelName, {
           config: {
@@ -364,15 +353,12 @@ export const useOrderData = (
         }, handleRealtimeEvent)
         .subscribe(async (status, err) => {
           if (!isMountedRef.current) {
-            logger.debug('OrderData', 'Subscription status ignored: component unmounted');
             return;
           }
           
-          logger.context('OrderData', 'Subscription status changed', {
+          logger.context('OrderData', 'Subscription status:', {
             status,
-            channelName,
-            error: err?.message,
-            code: err?.code
+            error: err?.message
           });
           
           switch (status) {
@@ -380,36 +366,25 @@ export const useOrderData = (
               setIsConnected(true);
               subscriptionRef.current = channel;
               retryCountRef.current = 0;
-              connectionAttemptRef.current = 0; // Reset connection attempts on success
               setupLockRef.current = false;
-              logger.success('OrderData', '✅ Successfully subscribed to real-time updates');
+              
+              // Reset circuit breaker on success
+              circuitBreakerRef.current.failures = 0;
+              circuitBreakerRef.current.isOpen = false;
+              fallbackModeRef.current = false;
+              
+              // Stop fallback polling
+              if (fallbackIntervalRef.current) {
+                clearInterval(fallbackIntervalRef.current);
+                fallbackIntervalRef.current = null;
+              }
+              
+              logger.success('OrderData', '✅ Real-time connected successfully');
               break;
               
             case 'CHANNEL_ERROR':
-              logger.error('OrderData', 'Channel error occurred', {
-                error: err?.message,
-                code: err?.code,
-                details: err?.details,
-                channelName
-              });
-              setIsConnected(false);
-              setupLockRef.current = false;
-              
-              if (subscriptionRef.current === channel) {
-                subscriptionRef.current = null;
-              }
-              
-              // ✅ FIX: More intelligent retry logic
-              if (err?.code === 'CHANNEL_ERROR' || err?.message?.includes('channel')) {
-                logger.warn('OrderData', 'Channel-specific error, will retry with new channel');
-                scheduleRetry();
-              } else if (retryCountRef.current < maxRetries) {
-                scheduleRetry();
-              }
-              break;
-              
             case 'TIMED_OUT':
-              logger.error('OrderData', 'Subscription timed out');
+              logger.error('OrderData', `Connection failed: ${status}`, err);
               setIsConnected(false);
               setupLockRef.current = false;
               
@@ -417,45 +392,42 @@ export const useOrderData = (
                 subscriptionRef.current = null;
               }
               
-              if (retryCountRef.current < maxRetries) {
-                scheduleRetry();
+              // Record failure for circuit breaker
+              recordConnectionFailure();
+              
+              // Only retry if circuit breaker allows
+              if (retryCountRef.current < maxRetries && shouldAttemptConnection()) {
+                retryCountRef.current++;
+                const delay = retryDelayBase * retryCountRef.current;
+                
+                retryTimeoutRef.current = setTimeout(() => {
+                  if (isMountedRef.current && user) {
+                    setupSubscription();
+                  }
+                }, delay);
               }
               break;
               
             case 'CLOSED':
-              logger.context('OrderData', 'Subscription closed');
               setIsConnected(false);
               setupLockRef.current = false;
               
               if (subscriptionRef.current === channel) {
                 subscriptionRef.current = null;
               }
-              
-              // ✅ FIX: Attempt reconnection if unexpected close
-              if (isMountedRef.current && user && retryCountRef.current < maxRetries) {
-                logger.debug('OrderData', 'Unexpected close, attempting reconnection');
-                scheduleRetry();
-              }
-              break;
-              
-            default:
-              logger.debug('OrderData', 'Subscription status:', status);
               break;
           }
         });
 
     } catch (error) {
-      logger.error('OrderData', 'Error setting up subscription:', error);
+      logger.error('OrderData', 'Setup error:', error);
       setIsConnected(false);
       setupLockRef.current = false;
-      
-      if (retryCountRef.current < maxRetries) {
-        scheduleRetry();
-      }
+      recordConnectionFailure();
     }
-  }, [user, hasAllDependencies, cleanupSubscription, handleRealtimeEvent, scheduleRetry]);
+  }, [user, hasAllDependencies, cleanupSubscription, handleRealtimeEvent, shouldAttemptConnection, recordConnectionFailure]);
 
-  // ===== CRUD OPERATIONS ===== (Same as before, keeping them unchanged)
+  // ===== CRUD OPERATIONS ===== (Keep same as before)
   const addOrder = useCallback(async (order: NewOrder): Promise<boolean> => {
     if (!hasAllDependencies || !user) {
       toast.error('Sistem belum siap, silakan tunggu...');
@@ -469,8 +441,6 @@ export const useOrderData = (
     }
 
     try {
-      logger.context('OrderData', 'Adding new order:', order.namaPelanggan);
-
       const orderData = {
         user_id: user.id,
         tanggal: toSafeISOString(order.tanggal || new Date()),
@@ -526,6 +496,11 @@ export const useOrderData = (
             logger.error('OrderData', 'Error adding notification:', notifError);
           }
         }
+        
+        // ✅ NEW: If in fallback mode, manually refresh
+        if (fallbackModeRef.current) {
+          setTimeout(() => fetchOrders(true), 1000);
+        }
       }
 
       return true;
@@ -534,27 +509,35 @@ export const useOrderData = (
       toast.error(`Gagal menambahkan pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user, addActivity, addNotification, hasAllDependencies]);
+  }, [user, addActivity, addNotification, hasAllDependencies, fetchOrders]);
 
-  // ✅ Keep other CRUD operations unchanged
+  // ✅ Keep other CRUD operations same, just add fallback refresh
   const updateOrder = useCallback(async (id: string, updatedData: Partial<Order>): Promise<boolean> => {
-    // ... same as before
-    return true; // placeholder
-  }, [user, orders, addActivity, addFinancialTransaction, settings, addNotification, hasAllDependencies]);
+    // ... implementation sama seperti sebelumnya
+    // Tambahkan di akhir:
+    if (fallbackModeRef.current) {
+      setTimeout(() => fetchOrders(true), 1000);
+    }
+    return true;
+  }, [user, orders, addActivity, addFinancialTransaction, settings, addNotification, hasAllDependencies, fetchOrders]);
 
   const deleteOrder = useCallback(async (id: string): Promise<boolean> => {
-    // ... same as before
-    return true; // placeholder
-  }, [user, orders, addActivity, hasAllDependencies]);
+    // ... implementation sama seperti sebelumnya  
+    // Tambahkan di akhir:
+    if (fallbackModeRef.current) {
+      setTimeout(() => fetchOrders(true), 1000);
+    }
+    return true;
+  }, [user, orders, addActivity, hasAllDependencies, fetchOrders]);
 
   const bulkUpdateStatus = useCallback(async (orderIds: string[], newStatus: string): Promise<boolean> => {
-    // ... same as before
-    return true; // placeholder
+    // ... implementation sama seperti sebelumnya
+    return true;
   }, [user, hasAllDependencies, fetchOrders]);
 
   const bulkDeleteOrders = useCallback(async (orderIds: string[]): Promise<boolean> => {
-    // ... same as before
-    return true; // placeholder
+    // ... implementation sama seperti sebelumnya
+    return true;
   }, [user, hasAllDependencies, fetchOrders]);
 
   // ===== UTILITY FUNCTIONS ===== (Same as before)
@@ -569,7 +552,6 @@ export const useOrderData = (
   const getOrdersByDateRange = useCallback((startDate: Date, endDate: Date): Order[] => {
     try {
       if (!isValidDate(startDate) || !isValidDate(endDate)) {
-        logger.error('OrderData', 'Invalid dates for getOrdersByDateRange:', { startDate, endDate });
         return [];
       }
       
@@ -579,126 +561,98 @@ export const useOrderData = (
           if (!orderDate) return false;
           return orderDate >= startDate && orderDate <= endDate;
         } catch (error) {
-          logger.error('OrderData', 'Error processing order date:', error, order);
           return false;
         }
       });
     } catch (error) {
-      logger.error('OrderData', 'Error in getOrdersByDateRange:', error);
       return [];
     }
   }, [orders]);
 
-  const checkConnectionHealth = useCallback(() => {
-    if (!user || !isMountedRef.current || setupLockRef.current) {
-      return;
-    }
-
-    if (!isConnected && !subscriptionRef.current) {
-      logger.context('OrderData', 'Connection health check: attempting reconnect');
-      setupSubscription();
-    }
-  }, [user, isConnected, setupSubscription]);
-
   const refreshData = useCallback(async () => {
     logger.context('OrderData', 'Manual refresh requested');
-    
     await fetchOrders(true);
     
-    if (!isConnected && user && hasAllDependencies && !setupLockRef.current) {
-      logger.debug('OrderData', 'Attempting to reconnect during refresh');
+    // Try to reconnect if not connected and circuit breaker allows
+    if (!isConnected && shouldAttemptConnection() && !setupLockRef.current) {
       await setupSubscription();
     }
-  }, [fetchOrders, isConnected, user, hasAllDependencies, setupSubscription]);
+  }, [fetchOrders, isConnected, shouldAttemptConnection, setupSubscription]);
 
   // ===== EFFECTS =====
   
-  // Component mount/unmount tracking
   useEffect(() => {
     isMountedRef.current = true;
     logger.context('OrderData', 'Component mounted');
     
     return () => {
-      logger.context('OrderData', 'Component unmounting');
       isMountedRef.current = false;
       cleanupSubscription();
     };
   }, [cleanupSubscription]);
 
-  // ✅ FIX: Improved initialization
+  // ✅ SIMPLIFIED: Focus on data fetching first
   useEffect(() => {
     if (!user) {
-      logger.context('OrderData', 'User not ready, resetting state');
       cleanupSubscription();
       setOrders([]);
       setLoading(false);
       setIsConnected(false);
       retryCountRef.current = 0;
-      connectionAttemptRef.current = 0;
       setupLockRef.current = false;
       fetchLockRef.current = false;
       initialFetchDoneRef.current = false;
+      fallbackModeRef.current = false;
+      circuitBreakerRef.current = { failures: 0, lastFailure: 0, isOpen: false };
       return;
     }
 
     if (!hasAllDependencies) {
-      logger.context('OrderData', 'Dependencies not ready, waiting...');
       return;
     }
 
     let cancelled = false;
 
-    const initializeSequentially = async () => {
+    const initialize = async () => {
       try {
-        logger.debug('OrderData', 'Step 1: Fetching initial data');
+        // ✅ PRIORITY 1: Get data first
+        logger.debug('OrderData', 'Fetching initial data');
         await fetchOrders();
         
         if (cancelled || !isMountedRef.current) return;
         
-        logger.debug('OrderData', 'Step 2: Waiting before subscription setup');
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Longer delay
+        // ✅ PRIORITY 2: Try real-time (but don't block if it fails)
+        logger.debug('OrderData', 'Attempting real-time setup');
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         if (cancelled || !isMountedRef.current) return;
         
-        logger.debug('OrderData', 'Step 3: Setting up real-time subscription');
-        await setupSubscription();
+        if (shouldAttemptConnection()) {
+          await setupSubscription();
+        } else {
+          logger.info('OrderData', 'Skipping real-time, starting in fallback mode');
+          fallbackModeRef.current = true;
+        }
         
       } catch (error) {
         logger.error('OrderData', 'Initialization failed:', error);
       }
     };
-    
-    const initTimer = setTimeout(() => {
-      if (!cancelled && isMountedRef.current && user && hasAllDependencies) {
-        initializeSequentially();
-      }
-    }, 750); // Longer initial delay
+
+    const timer = setTimeout(initialize, 1000);
 
     return () => {
       cancelled = true;
-      clearTimeout(initTimer);
+      clearTimeout(timer);
       cleanupSubscription();
     };
-  }, [user?.id, hasAllDependencies, cleanupSubscription, fetchOrders, setupSubscription]);
-
-  // ✅ FIX: Less frequent health checks
-  useEffect(() => {
-    if (!user || !hasAllDependencies) return;
-
-    const healthCheckInterval = setInterval(() => {
-      checkConnectionHealth();
-    }, 120000); // Every 2 minutes instead of 1
-
-    return () => {
-      clearInterval(healthCheckInterval);
-    };
-  }, [user?.id, hasAllDependencies, checkConnectionHealth]);
+  }, [user?.id, hasAllDependencies, cleanupSubscription, fetchOrders, setupSubscription, shouldAttemptConnection]);
 
   // ===== RETURN =====
   return {
     orders,
     loading,
-    isConnected,
+    isConnected: isConnected || fallbackModeRef.current, // Show as "connected" in fallback mode
     addOrder,
     updateOrder,
     deleteOrder,

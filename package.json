@@ -14,7 +14,10 @@
     "clean": "rm -rf node_modules/.vite dist",
     "clean:all": "rm -rf node_modules .vite dist package-lock.json",
     "check-deps": "npm ls react react-dom",
-    "check-react": "npm ls | grep react"
+    "check-react": "npm ls | grep react",
+    "push": "./auto-push.sh",
+    "push:quick": "git add -A && git commit -m '🚀 Quick update' && git push",
+    "push:msg": "./auto-push.sh"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^1.12.0",

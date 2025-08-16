@@ -319,16 +319,16 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const notifDebounceRef = React.useRef<number | null>(null);
 
-  useEffect(() => {
+  useEffect(() => {
     if (!userId) return;
 
     logger.debug('Setting up notification real-time subscription');
 
-    const requestInvalidate = () => {
+    const requestInvalidate = () => {
       if (notifDebounceRef.current) {
         window.clearTimeout(notifDebounceRef.current);
       }
-      notifDebounceRef.current = window.setTimeout(() => {
+      notifDebounceRef.current = window.setTimeout(() => {
         // Invalidate queries to refetch fresh data
         queryClient.invalidateQueries({
           queryKey: notificationQueryKeys.list(userId)
@@ -344,24 +344,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${userId}`
-      }, (payload) => {
+      }, (payload) => {
         logger.debug('Notification real-time event:', payload.eventType);
         requestInvalidate();
 
         // Show toast for new notifications
-        if (payload.eventType === 'INSERT'  payload.new) {
+        if (payload.eventType === 'INSERT' && payload.new) {
           const newNotification = payload.new as any;
           if (settings?.push_notifications !== false) {
             toast.info(newNotification.title, {
               description: newNotification.message,
-              duration: newNotification.priority = 4 ? 8000 : 4000
+              duration: newNotification.priority >= 4 ? 8000 : 4000
             });
           }
         }
       })
       .subscribe();
 
-    return () => {
+    return () => {
       if (notifDebounceRef.current) {
         window.clearTimeout(notifDebounceRef.current);
         notifDebounceRef.current = null;

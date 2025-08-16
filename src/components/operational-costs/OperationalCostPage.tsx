@@ -1,113 +1,108 @@
-import React, { useState, Suspense, lazy } from 'react';
-import { Plus, Settings, Calculator, DollarSign, AlertTriangle } from 'lucide-react';
+// src/components/operational-costs/OperationalCostPageSimple.tsx
 
-// ✅ CONSOLIDATED: Context imports
+import React, { useState } from 'react';
+import { Plus, Calculator, Edit2, Trash2, DollarSign } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { OperationalCostProvider, useOperationalCost } from './context';
-import { logger } from '@/utils/logger';
-
-// ✅ CONSOLIDATED: All components in single import
-import {
-  CostSummaryCard,
-  CostList,
-  CostForm,
-  AllocationSettings,
-  LoadingState,
-  EmptyState,
-  AutoModeOperationalCost,
-  SimpleAllocationSettings
-} from './components';
-
-// ✅ CONSOLIDATED: Types import
+import { formatCurrency } from './utils/costHelpers';
 import { OperationalCost } from './types';
 
-// ✅ KEEP: Lazy load dialogs (existing logic)
-const CostDialog = lazy(() => import('./dialogs/CostDialog'));
-const DeleteConfirmDialog = lazy(() => import('./dialogs/DeleteConfirmDialog'));
-const AllocationDialog = lazy(() => import('./dialogs/AllocationDialog'));
-
-interface OperationalCostPageContentProps {}
-
-const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = () => {
+const OperationalCostContent: React.FC = () => {
   const { state, actions } = useOperationalCost();
   
-  // Dialog states
-  const [showCostDialog, setShowCostDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showAllocationDialog, setShowAllocationDialog] = useState(false);
-  const [selectedCost, setSelectedCost] = useState<OperationalCost | null>(null);
-  
-  // UI states - Default to auto mode now
-  const [activeTab, setActiveTab] = useState<'auto' | 'costs' | 'allocation'>('auto');
-  const [allocationMode, setAllocationMode] = useState<'auto' | 'advanced'>('auto');
-
-  // Auto-mode state
-  const [autoModeData, setAutoModeData] = useState<{
-    perProductCost: number;
-    monthlyProduction: number;
+  const [productionTarget, setProductionTarget] = useState(3000);
+  const [newCost, setNewCost] = useState({
+    nama_biaya: '',
+    jumlah_per_bulan: 0,
+    jenis: 'tetap' as 'tetap' | 'variabel',
+    cost_category: 'general' as any,
+    isAdding: false
+  });
+  const [editingCost, setEditingCost] = useState<{
+    id: string;
+    nama_biaya: string;
+    jumlah_per_bulan: number;
+    jenis: 'tetap' | 'variabel';
+    cost_category: string;
   } | null>(null);
 
-  // Handle cost actions
-  const handleAddCost = () => {
-    setSelectedCost(null);
-    setShowCostDialog(true);
+  // Calculate totals
+  const totalMonthlyCosts = state.summary?.total_biaya_aktif || 0;
+  const costPerProduct = productionTarget > 0 ? totalMonthlyCosts / productionTarget : 0;
+
+  // Handlers
+  const handleSaveNewCost = async () => {
+    if (!newCost.nama_biaya || newCost.jumlah_per_bulan <= 0) return;
+    
+    const success = await actions.createCost({
+      nama_biaya: newCost.nama_biaya,
+      jumlah_per_bulan: newCost.jumlah_per_bulan,
+      jenis: newCost.jenis,
+      cost_category: newCost.cost_category,
+      status: 'aktif'
+    });
+    
+    if (success) {
+      setNewCost({
+        nama_biaya: '',
+        jumlah_per_bulan: 0,
+        jenis: 'tetap',
+        cost_category: 'general',
+        isAdding: false
+      });
+    }
   };
 
   const handleEditCost = (cost: OperationalCost) => {
-    setSelectedCost(cost);
-    setShowCostDialog(true);
+    setEditingCost({
+      id: cost.id,
+      nama_biaya: cost.nama_biaya,
+      jumlah_per_bulan: cost.jumlah_per_bulan,
+      jenis: cost.jenis as 'tetap' | 'variabel',
+      cost_category: cost.cost_category || 'general'
+    });
   };
 
-  const handleDeleteCost = (cost: OperationalCost) => {
-    setSelectedCost(cost);
-    setShowDeleteDialog(true);
+  const handleSaveEdit = async () => {
+    if (!editingCost) return;
+    
+    const success = await actions.updateCost(editingCost.id, {
+      nama_biaya: editingCost.nama_biaya,
+      jumlah_per_bulan: editingCost.jumlah_per_bulan,
+      jenis: editingCost.jenis,
+      cost_category: editingCost.cost_category
+    });
+    
+    if (success) {
+      setEditingCost(null);
+    }
   };
 
-  const handleViewCost = (cost: OperationalCost) => {
-    setSelectedCost(cost);
-    logger.info('View cost:', cost);
+  const handleDeleteCost = async (costId: string) => {
+    if (confirm('Yakin ingin menghapus biaya ini?')) {
+      await actions.deleteCost(costId);
+    }
   };
 
-  // Handle allocation settings
-  const handleOpenAllocationSettings = () => {
-    setShowAllocationDialog(true);
-  };
+  const productionSuggestions = [1000, 2000, 3000, 5000, 8000, 10000];
 
-  const handleCalculateOverhead = async () => {
-    await actions.calculateOverhead();
-  };
-
-  // Auto-mode handlers
-  const handleAutoModeAllocationChange = (perProductCost: number, monthlyProduction: number) => {
-    setAutoModeData({ perProductCost, monthlyProduction });
-  };
-
-  const handleSwitchToAdvanced = () => {
-    setAllocationMode('advanced');
-    setActiveTab('allocation');
-  };
-
-  const handleBackToAuto = () => {
-    setAllocationMode('auto');
-    setActiveTab('auto');
-  };
-
-  // Check if we have any costs
-  const hasCosts = state.costs.length > 0;
-  const hasActiveSettings = !!state.allocationSettings;
-
-  // Show loading state while auth is being checked
+  // Loading state
   if (state.loading.auth) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-3 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <div className="animate-spin h-8 w-8 border-3 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-gray-600">Memuat...</p>
         </div>
       </div>
     );
   }
 
-  // Show auth error if not authenticated
+  // Auth check
   if (!state.isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -119,7 +114,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
           </p>
           <button 
             onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
           >
             Refresh Halaman
           </button>
@@ -128,358 +123,406 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
     );
   }
 
-  // Check if there are any issues with allocation settings
-  const isConnected = true; // You can replace this with actual connection status
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Connection Warning */}
-      {!isConnected && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-          <div className="flex">
-            <AlertTriangle className="h-5 w-5 text-yellow-400" />
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                Koneksi tidak stabil. Data mungkin tidak ter-update secara real-time.
-              </p>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-50 rounded-lg">
+              <DollarSign className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Biaya Operasional</h1>
+              <p className="text-gray-600">Kelola biaya operasional dan hitung overhead per produk</p>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Header Card with orange gradient background */}
-      <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
-            {/* Icon Container */}
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
-                <DollarSign className="h-8 w-8 text-white" />
-              </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* Top Section: Calculator */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5 text-orange-600" />
+              🧮 Kalkulator Overhead
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            
+            {/* Input Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* Content */}
+              {/* Monthly Fixed Costs */}
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-white">
-                  Biaya Operasional
-                </h1>
-                <p className="text-orange-100 mt-2 text-base md:text-lg">
-                  Kelola biaya operasional dan hitung overhead untuk HPP produksi
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Biaya tetap bulanan Anda:
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    Rp
+                  </span>
+                  <Input
+                    type="text"
+                    value={formatCurrency(totalMonthlyCosts)}
+                    readOnly
+                    className="pl-8 bg-gray-50 font-medium"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Total dari {state.costs.length} item biaya di bawah
                 </p>
               </div>
-            </div>
 
-            {/* Desktop Action Buttons - Horizontal Layout */}
-            <div className="hidden lg:flex items-center gap-3">
-              <button
-                onClick={handleCalculateOverhead}
-                disabled={state.loading.overhead || !hasCosts || !hasActiveSettings}
-                className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Hitung overhead berdasarkan pengaturan alokasi"
-              >
-                <Calculator className="h-4 w-4" />
-                {state.loading.overhead ? 'Menghitung...' : 'Hitung Overhead'}
-              </button>
-              
-              <button
-                onClick={handleOpenAllocationSettings}
-                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
-              >
-                <Settings className="h-4 w-4" />
-                Pengaturan
-              </button>
-              
-              <button
-                onClick={handleAddCost}
-                disabled={state.loading.costs}
-                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm disabled:opacity-50"
-              >
-                <Plus className="h-4 w-4" />
-                Tambah Biaya
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Action Buttons - Vertical Layout */}
-          <div className="lg:hidden mt-6 space-y-3">
-            <button
-              onClick={handleCalculateOverhead}
-              disabled={state.loading.overhead || !hasCosts || !hasActiveSettings}
-              className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Hitung overhead berdasarkan pengaturan alokasi"
-            >
-              <Calculator className="h-4 w-4" />
-              {state.loading.overhead ? 'Menghitung...' : 'Hitung Overhead'}
-            </button>
-            
-            <button
-              onClick={handleOpenAllocationSettings}
-              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
-            >
-              <Settings className="h-4 w-4" />
-              Pengaturan
-            </button>
-            
-            <button
-              onClick={handleAddCost}
-              disabled={state.loading.costs}
-              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" />
-              Tambah Biaya
-            </button>
-          </div>
-
-          {/* Stats Bar */}
-          {hasCosts && (
-            <div className="mt-6">
-              <div className="text-orange-100 text-sm">
-                Total: {state.costs.length} biaya{!hasActiveSettings && ' • Pengaturan alokasi belum diatur'}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('auto')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'auto'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              🚀 Auto-Mode (Default)
-            </button>
-            <button
-              onClick={() => setActiveTab('costs')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'costs'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Daftar Biaya ({state.costs.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('allocation')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'allocation'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Pengaturan Alokasi
-              {!hasActiveSettings && (
-                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Belum Diatur
-                </span>
-              )}
-            </button>
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'auto' ? (
-          /* Auto Mode Tab */
-          <div className="space-y-8">
-            <AutoModeOperationalCost
-              totalMonthlyCosts={state.summary.total_biaya_aktif}
-              onAllocationChange={handleAutoModeAllocationChange}
-              onAdvancedMode={handleSwitchToAdvanced}
-              isLoading={state.loading.costs || state.loading.allocation}
-            />
-            
-            {/* Show simple allocation settings if we have auto mode data */}
-            {autoModeData && (
-              <SimpleAllocationSettings
-                settings={state.allocationSettings}
-                costSummary={state.summary}
-                simpleData={autoModeData}
-                onSave={actions.saveAllocationSettings}
-                onBackToAuto={handleBackToAuto}
-                loading={state.loading.allocation}
-              />
-            )}
-          </div>
-        ) : activeTab === 'costs' ? (
-          /* Costs Tab */
-          <div className="space-y-8">
-            {/* Summary Card */}
-            <CostSummaryCard 
-              summary={state.summary}
-              loading={state.loading.summary || state.loading.costs}
-            />
-
-            {/* Overhead Calculation Result */}
-            {state.overheadCalculation && (
-              <div className="bg-white rounded-lg border p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Calculator className="h-5 w-5 mr-2 text-orange-600" />
-                  Hasil Perhitungan Overhead
-                </h3>
+              {/* Production Target */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Target produksi bulanan:
+                </label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={productionTarget || ''}
+                    onChange={(e) => setProductionTarget(parseFloat(e.target.value) || 0)}
+                    placeholder="3000"
+                    className="pr-16"
+                  />
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    produk
+                  </span>
+                </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-bold text-orange-600 break-all">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                      }).format(state.overheadCalculation.overhead_per_unit)}
-                    </div>
-                    <div className="text-sm text-gray-500">Overhead per Unit</div>
+                {/* Quick suggestions */}
+                <div className="flex gap-1 flex-wrap items-center mt-2">
+                  <p className="text-xs text-gray-400 mr-2">Coba:</p>
+                  {productionSuggestions.map((amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => setProductionTarget(amount)}
+                      className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border text-gray-600 hover:text-gray-800 transition-colors"
+                    >
+                      {amount.toLocaleString()} pcs
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+            </div>
+
+            {/* Result */}
+            {totalMonthlyCosts > 0 && productionTarget > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-orange-700">
+                    💡 Setiap produk perlu "bayar":
+                  </p>
+                  <div className="text-2xl font-bold text-orange-800">
+                    {formatCurrency(costPerProduct)}
                   </div>
-                  
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-bold text-gray-900 break-all">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                      }).format(state.overheadCalculation.total_costs)}
+                  <p className="text-sm text-orange-600">
+                    untuk tutup biaya operasional
+                  </p>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-orange-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                    <div className="text-center">
+                      <p className="text-orange-600">Total Biaya/Bulan</p>
+                      <p className="font-medium text-orange-800">{formatCurrency(totalMonthlyCosts)}</p>
                     </div>
-                    <div className="text-sm text-gray-500">Total Biaya Aktif</div>
-                  </div>
-                  
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-gray-700">
-                      {state.overheadCalculation.metode === 'per_unit' 
-                        ? `${state.overheadCalculation.nilai_basis.toLocaleString('id-ID')} unit/bulan`
-                        : `${state.overheadCalculation.nilai_basis}% dari material`
-                      }
+                    <div className="text-center">
+                      <p className="text-orange-600">Target Produksi/Bulan</p>
+                      <p className="font-medium text-orange-800">{productionTarget.toLocaleString()} produk</p>
                     </div>
-                    <div className="text-sm text-gray-500">Metode Alokasi</div>
+                    <div className="text-center">
+                      <p className="text-orange-600">Biaya per Produk</p>
+                      <p className="font-medium text-orange-800">{formatCurrency(costPerProduct)}</p>
+                    </div>
                   </div>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <Button className="bg-orange-600 hover:bg-orange-700">
+                    Gunakan angka ini
+                  </Button>
                 </div>
               </div>
             )}
 
-            {/* Error Display */}
-            {state.error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <div className="text-sm text-red-800">
-                  <strong>Error:</strong> {state.error}
-                </div>
-                <button
-                  onClick={() => actions.setError(null)}
-                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-                >
-                  Tutup
-                </button>
+            {totalMonthlyCosts === 0 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <p className="text-gray-600">
+                  Tambahkan biaya operasional di bawah untuk melihat hasil perhitungan
+                </p>
               </div>
             )}
 
-            {/* Costs List */}
-            <CostList
-              costs={state.costs}
-              loading={state.loading.costs}
-              onEdit={handleEditCost}
-              onDelete={handleDeleteCost}
-              onView={handleViewCost}
-              filters={state.filters}
-              onFiltersChange={actions.setFilters}
-            />
-          </div>
-        ) : (
-          /* Allocation Tab */
-          <div className="space-y-8">
-            {!hasCosts ? (
-              <EmptyState
-                type="no-data"
-                title="Tambah Biaya Operasional Terlebih Dahulu"
-                description="Anda perlu menambahkan biaya operasional sebelum mengatur metode alokasi."
-                actionLabel="Tambah Biaya"
-                onAction={handleAddCost}
-              />
-            ) : allocationMode === 'auto' ? (
-              <SimpleAllocationSettings
-                settings={state.allocationSettings}
-                costSummary={state.summary}
-                simpleData={autoModeData}
-                onSave={actions.saveAllocationSettings}
-                onBackToAuto={handleBackToAuto}
-                loading={state.loading.allocation}
-              />
-            ) : (
-              <AllocationSettings
-                settings={state.allocationSettings}
-                costSummary={state.summary}
-                onSave={actions.saveAllocationSettings}
-                loading={state.loading.allocation}
-              />
-            )}
-          </div>
-        )}
+          </CardContent>
+        </Card>
+
+        {/* Bottom Section: Cost Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>📋 Detail Biaya Operasional ({state.costs.length} item)</span>
+              <Button
+                onClick={() => setNewCost(prev => ({ ...prev, isAdding: true }))}
+                size="sm"
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Tambah Biaya Baru
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-2 font-medium text-gray-700">Nama Biaya</th>
+                    <th className="text-right py-3 px-2 font-medium text-gray-700">Jumlah/Bulan</th>
+                    <th className="text-center py-3 px-2 font-medium text-gray-700">Jenis</th>
+                    <th className="text-center py-3 px-2 font-medium text-gray-700">Kategori</th>
+                    <th className="text-center py-3 px-2 font-medium text-gray-700">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  {/* Add new cost row */}
+                  {newCost.isAdding && (
+                    <tr className="border-b border-gray-100 bg-blue-50">
+                      <td className="py-3 px-2">
+                        <Input
+                          placeholder="Nama biaya..."
+                          value={newCost.nama_biaya}
+                          onChange={(e) => setNewCost(prev => ({ ...prev, nama_biaya: e.target.value }))}
+                          className="h-8"
+                        />
+                      </td>
+                      <td className="py-3 px-2">
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={newCost.jumlah_per_bulan || ''}
+                            onChange={(e) => setNewCost(prev => ({ ...prev, jumlah_per_bulan: parseFloat(e.target.value) || 0 }))}
+                            className="h-8 pl-6 text-right"
+                          />
+                        </div>
+                      </td>
+                      <td className="py-3 px-2">
+                        <Select value={newCost.jenis} onValueChange={(value: 'tetap' | 'variabel') => setNewCost(prev => ({ ...prev, jenis: value }))}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="tetap">Tetap</SelectItem>
+                            <SelectItem value="variabel">Variabel</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="py-3 px-2">
+                        <Select value={newCost.cost_category} onValueChange={(value) => setNewCost(prev => ({ ...prev, cost_category: value }))}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="general">General</SelectItem>
+                            <SelectItem value="administrative">Administrative</SelectItem>
+                            <SelectItem value="selling">Selling</SelectItem>
+                            <SelectItem value="overhead">Overhead</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button
+                            size="sm"
+                            onClick={handleSaveNewCost}
+                            disabled={!newCost.nama_biaya || newCost.jumlah_per_bulan <= 0}
+                            className="h-8 px-2 bg-green-600 hover:bg-green-700"
+                          >
+                            ✓
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setNewCost(prev => ({ ...prev, isAdding: false, nama_biaya: '', jumlah_per_bulan: 0 }))}
+                            className="h-8 px-2"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Existing costs */}
+                  {state.costs.map((cost) => (
+                    <tr key={cost.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      
+                      {editingCost?.id === cost.id ? (
+                        // Edit mode
+                        <>
+                          <td className="py-3 px-2">
+                            <Input
+                              value={editingCost.nama_biaya}
+                              onChange={(e) => setEditingCost(prev => prev ? ({ ...prev, nama_biaya: e.target.value }) : null)}
+                              className="h-8"
+                            />
+                          </td>
+                          <td className="py-3 px-2">
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                              <Input
+                                type="number"
+                                value={editingCost.jumlah_per_bulan || ''}
+                                onChange={(e) => setEditingCost(prev => prev ? ({ ...prev, jumlah_per_bulan: parseFloat(e.target.value) || 0 }) : null)}
+                                className="h-8 pl-6 text-right"
+                              />
+                            </div>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Select value={editingCost.jenis} onValueChange={(value: 'tetap' | 'variabel') => setEditingCost(prev => prev ? ({ ...prev, jenis: value }) : null)}>
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="tetap">Tetap</SelectItem>
+                                <SelectItem value="variabel">Variabel</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Select value={editingCost.cost_category} onValueChange={(value) => setEditingCost(prev => prev ? ({ ...prev, cost_category: value }) : null)}>
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="general">General</SelectItem>
+                                <SelectItem value="administrative">Administrative</SelectItem>
+                                <SelectItem value="selling">Selling</SelectItem>
+                                <SelectItem value="overhead">Overhead</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <div className="flex justify-center gap-1">
+                              <Button
+                                size="sm"
+                                onClick={handleSaveEdit}
+                                className="h-8 px-2 bg-green-600 hover:bg-green-700"
+                              >
+                                ✓
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingCost(null)}
+                                className="h-8 px-2"
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        // View mode
+                        <>
+                          <td className="py-3 px-2 font-medium">{cost.nama_biaya}</td>
+                          <td className="py-3 px-2 text-right font-medium">{formatCurrency(cost.jumlah_per_bulan)}</td>
+                          <td className="py-3 px-2 text-center">
+                            <Badge variant={cost.jenis === 'tetap' ? 'default' : 'secondary'}>
+                              {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <Badge variant="outline" className="text-xs">
+                              {cost.cost_category || 'general'}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <div className="flex justify-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditCost(cost)}
+                                className="h-8 px-2"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteCost(cost.id)}
+                                className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+
+                  {/* Empty state */}
+                  {state.costs.length === 0 && !newCost.isAdding && (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-gray-500">
+                        <div className="space-y-2">
+                          <p>Belum ada biaya operasional</p>
+                          <Button
+                            onClick={() => setNewCost(prev => ({ ...prev, isAdding: true }))}
+                            size="sm"
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Tambah Biaya Pertama
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+
+                </tbody>
+                
+                {/* Total Row */}
+                {state.costs.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-300 font-semibold bg-gray-50">
+                      <td className="py-3 px-2">Total:</td>
+                      <td className="py-3 px-2 text-right text-lg">{formatCurrency(totalMonthlyCosts)}</td>
+                      <td className="py-3 px-2"></td>
+                      <td className="py-3 px-2"></td>
+                      <td className="py-3 px-2"></td>
+                    </tr>
+                  </tfoot>
+                )}
+
+              </table>
+            </div>
+
+          </CardContent>
+        </Card>
+
       </div>
-
-      {/* Dialogs */}
-      <Suspense fallback={<LoadingState type="form" />}>
-        {showCostDialog && (
-          <CostDialog
-            cost={selectedCost}
-            isOpen={showCostDialog}
-            onClose={() => {
-              setShowCostDialog(false);
-              setSelectedCost(null);
-            }}
-            onSave={async (data) => {
-              const success = selectedCost 
-                ? await actions.updateCost(selectedCost.id, data)
-                : await actions.createCost(data);
-              
-              if (success) {
-                setShowCostDialog(false);
-                setSelectedCost(null);
-              }
-              
-              return success;
-            }}
-          />
-        )}
-
-        {showDeleteDialog && selectedCost && (
-          <DeleteConfirmDialog
-            cost={selectedCost}
-            isOpen={showDeleteDialog}
-            onClose={() => {
-              setShowDeleteDialog(false);
-              setSelectedCost(null);
-            }}
-            onConfirm={async () => {
-              const success = await actions.deleteCost(selectedCost.id);
-              if (success) {
-                setShowDeleteDialog(false);
-                setSelectedCost(null);
-              }
-              return success;
-            }}
-          />
-        )}
-
-        {showAllocationDialog && (
-          <AllocationDialog
-            isOpen={showAllocationDialog}
-            onClose={() => setShowAllocationDialog(false)}
-            settings={state.allocationSettings}
-            costSummary={state.summary}
-            onSave={actions.saveAllocationSettings}
-            loading={state.loading.allocation}
-          />
-        )}
-      </Suspense>
     </div>
   );
 };
 
-// Main component with provider
 const OperationalCostPage: React.FC = () => {
   return (
     <OperationalCostProvider>
-      <OperationalCostPageContent />
+      <OperationalCostContent />
     </OperationalCostProvider>
   );
 };

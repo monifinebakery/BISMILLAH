@@ -387,6 +387,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   const packQtyRef = useRef<HTMLInputElement>(null);
   const perPackRef = useRef<HTMLInputElement>(null);
   const totalPayRef = useRef<HTMLInputElement>(null);
+  // Focus safety-net for PackagingMode "Total yang Dibeli"
+  const qtyPackRef = useRef<HTMLInputElement>(null);
 
   const packagingEl = React.useMemo(() => (
     <div className="space-y-6">
@@ -431,14 +433,14 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <Label className="text-sm font-medium text-gray-700">Total yang Dibeli</Label>
           <div className="flex gap-2">
             <SafeNumericInput
-              ref={qtyBoughtRef}
+              ref={qtyPackRef}
               value={getValue('kuantitas')}
               onBeforeInput={makeBeforeInputGuard(() => getValue('kuantitas'), true)}
               onPaste={handlePasteGuard(true)}
               onChange={(e) => {
                 handleNumericChange('kuantitas', e.target.value);
-                // keep focus setelah re-render
-                requestAnimationFrame(() => qtyBoughtRef.current?.focus());
+                // 🔒 tahan fokus biar gak lepas setiap re-render
+                requestAnimationFrame(() => qtyPackRef.current?.focus());
               }}
               placeholder="0"
               className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"

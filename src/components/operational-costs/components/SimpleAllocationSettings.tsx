@@ -41,12 +41,17 @@ export const SimpleAllocationSettings: React.FC<SimpleAllocationSettingsProps> =
   const [currentMode, setCurrentMode] = useState<'simple' | 'advanced'>('simple');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Auto-apply simple allocation if we have simple data
+  // Auto-apply simple allocation if we have simple data and no existing settings
   useEffect(() => {
-    if (simpleData && !isProcessing) {
+    // Only auto-apply if:
+    // 1. We have simpleData
+    // 2. We don't have existing settings
+    // 3. We're not already processing
+    // 4. The simpleData values are valid
+    if (simpleData && !settings && !isProcessing && simpleData.monthlyProduction > 0) {
       handleApplySimpleAllocation();
     }
-  }, [simpleData]);
+  }, [simpleData?.monthlyProduction, settings, isProcessing]);
 
   const handleApplySimpleAllocation = async () => {
     if (!simpleData) return;

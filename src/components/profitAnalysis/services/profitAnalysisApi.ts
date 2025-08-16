@@ -11,7 +11,10 @@ import {
   DateRangeFilter,
   RevenueBreakdown,
   COGSBreakdown,
-  OpExBreakdown
+  OpExBreakdown,
+  FNBCOGSBreakdown,
+  FNBAnalysisResult,
+  FNBInsight
 } from '../types/profitAnalysis.types';
 
 // Import existing APIs with compatibility
@@ -19,7 +22,10 @@ import financialApi from '@/components/financial/services/financialApi';
 import { warehouseApi } from '@/components/warehouse/services/warehouseApi';
 import { operationalCostApi } from '@/components/operational-costs/services/operationalCostApi';
 
-import { calculateRealTimeProfit, calculateMargins } from '../utils/profitCalculations';
+import { calculateRealTimeProfit, calculateMargins, generateExecutiveInsights, getCOGSEfficiencyRating } from '../utils/profitCalculations';
+import { transformToFNBCOGSBreakdown } from '../utils/profitTransformers';
+// 🍽️ Import F&B constants
+import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
 
 /**
  * Get current user ID
@@ -99,18 +105,37 @@ export function calculatePemakaianValue(p: any, bahanMap: Record<string, any>): 
 // ===== HELPER FUNCTIONS (PISAHKAN DARI OBJECT LITERAL) =====
 
 /**
- * Parse revenue transactions from JSONB
+ * 🍽️ Parse F&B revenue transactions from JSONB with category mapping
  */
 const parseTransactions = (transactionsJson: any): any[] => {
   try {
     if (!transactionsJson) return [];
     const transactions = Array.isArray(transactionsJson) ? transactionsJson : JSON.parse(transactionsJson);
-    return transactions.map((t: any) => ({
-      category: t.category || 'Uncategorized',
-      amount: Number(t.amount) || 0,
-      description: t.description || '',
-      date: t.date
-    }));
+    
+    return transactions.map((t: any) => {
+      let category = t.category || 'Uncategorized';
+      
+      // 🍽️ Map to F&B friendly categories
+      const categoryMapping: Record<string, string> = {
+        'Penjualan': 'Penjualan Makanan',
+        'Sales': 'Penjualan Makanan', 
+        'Food Sales': 'Penjualan Makanan',
+        'Beverage Sales': 'Penjualan Minuman',
+        'Minuman': 'Penjualan Minuman',
+        'Catering': 'Paket Catering',
+        'Delivery': 'Delivery/Ojol',
+        'Event': 'Event & Acara'
+      };
+      
+      category = categoryMapping[category] || category;
+      
+      return {
+        category,
+        amount: Number(t.amount) || 0,
+        description: t.description || '',
+        date: t.date
+      };
+    });
   } catch (error) {
     logger.warn('Error parsing transactions JSON:', error);
     return [];
@@ -136,18 +161,47 @@ const parseCOGSTransactions = (transactionsJson: any): any[] => {
 };
 
 /**
- * Parse operational costs from JSONB
+ * 🏪 Parse F&B operational costs from JSONB with friendly names
  */
 const parseOpExCosts = (costsJson: any): any[] => {
   try {
     if (!costsJson) return [];
     const costs = Array.isArray(costsJson) ? costsJson : JSON.parse(costsJson);
-    return costs.map((c: any) => ({
-      nama_biaya: c.name || c.nama_biaya,
-      jumlah_per_bulan: Number(c.amount) || 0,
-      jenis: c.type || 'tetap',
-      cost_category: c.category || 'general'
-    }));
+    
+    return costs.map((c: any) => {
+      let friendlyName = c.name || c.nama_biaya;
+      
+      // 🏪 Map to F&B friendly operational cost names
+      const nameMapping: Record<string, string> = {
+        'Gaji': 'Gaji Karyawan',
+        'Salary': 'Gaji Karyawan',
+        'Rent': 'Sewa Tempat', 
+        'Sewa': 'Sewa Tempat',
+        'Electricity': 'Listrik & Air',
+        'Listrik': 'Listrik & Air',
+        'Water': 'Listrik & Air',
+        'Air': 'Listrik & Air',
+        'Marketing': 'Promosi & Iklan',
+        'Advertising': 'Promosi & Iklan',
+        'Promosi': 'Promosi & Iklan'
+      };
+      
+      // Find mapping
+      const mappedName = Object.keys(nameMapping).find(key => 
+        friendlyName.toLowerCase().includes(key.toLowerCase())
+      );
+      
+      if (mappedName) {
+        friendlyName = nameMapping[mappedName];
+      }
+      
+      return {
+        nama_biaya: friendlyName,
+        jumlah_per_bulan: Number(c.amount) || 0,
+        jenis: c.type || 'tetap',
+        cost_category: c.category || 'general'
+      };
+    });
   } catch (error) {
     logger.warn('Error parsing OpEx costs JSON:', error);
     return [];
@@ -155,7 +209,7 @@ const parseOpExCosts = (costsJson: any): any[] => {
 };
 
 /**
- * Assess data quality
+ * 🍽️ Assess data quality with F&B specific thresholds
  */
 const assessDataQuality = (calculation: RealTimeProfitCalculation): {
   score: number;
@@ -166,42 +220,57 @@ const assessDataQuality = (calculation: RealTimeProfitCalculation): {
   const issues: string[] = [];
   const recommendations: string[] = [];
   
-  // Check revenue data
+  // Check revenue data with F&B context
   if (calculation.revenue_data.total <= 0) {
     score -= 30;
-    issues.push('Tidak ada data revenue');
-    recommendations.push('Tambahkan transaksi pemasukan');
+    issues.push('💰 Tidak ada data omset');
+    recommendations.push('🏋️ Catat semua penjualan makanan dan minuman');
   }
   
   // Check COGS data
   if (calculation.cogs_data.total <= 0) {
     score -= 20;
-    issues.push('Tidak ada data COGS');
-    recommendations.push('Tambahkan transaksi pembelian bahan baku');
+    issues.push('🥘 Tidak ada data modal bahan baku');
+    recommendations.push('📝 Catat pembelian semua bahan: sayur, daging, bumbu, dll');
   }
   
   // Check OpEx data
   if (calculation.opex_data.total <= 0) {
     score -= 20;
-    issues.push('Tidak ada data biaya operasional');
-    recommendations.push('Konfigurasi biaya operasional');
+    issues.push('🏪 Tidak ada data biaya bulanan tetap');
+    recommendations.push('⚙️ Set biaya rutin: sewa, listrik, gaji karyawan');
   }
   
-  // Business logic validation
+  // F&B business logic validation
   const revenue = calculation.revenue_data.total;
   const cogs = calculation.cogs_data.total;
   const opex = calculation.opex_data.total;
+  const cogsRatio = revenue > 0 ? cogs / revenue : 0;
   
+  // Use F&B specific thresholds
   if (cogs > revenue) {
     score -= 15;
-    issues.push('COGS lebih besar dari revenue');
-    recommendations.push('Review kategorisasi transaksi');
+    issues.push('⚠️ Modal bahan baku lebih besar dari omset (tidak wajar)');
+    recommendations.push('🔍 Cek pencatatan: apakah ada yang salah kategori?');
   }
   
-  if (opex > revenue * 0.8) {
+  if (cogsRatio > FNB_THRESHOLDS.ALERTS.high_ingredient_cost) {
     score -= 10;
-    issues.push('Biaya operasional terlalu tinggi');
-    recommendations.push('Review efisiensi operasional');
+    issues.push(`🥘 Modal bahan baku terlalu tinggi (${(cogsRatio * 100).toFixed(1)}% dari omset)`);
+    recommendations.push('📊 Review supplier dan porsi menu');
+  }
+  
+  if (opex > revenue * 0.3) { // F&B specific: OpEx shouldn't exceed 30% of revenue
+    score -= 10;
+    issues.push('🏪 Biaya bulanan tetap terlalu tinggi untuk warung F&B');
+    recommendations.push('💰 Cari cara hemat listrik, sewa, atau gaji');
+  }
+  
+  // Low revenue warning for F&B
+  if (revenue > 0 && revenue < FNB_THRESHOLDS.ALERTS.low_revenue) {
+    score -= 5;
+    issues.push('📋 Omset masih di bawah rata-rata warung yang sehat');
+    recommendations.push('🚀 Fokus promosi dan tambah jam buka');
   }
   
   return {
@@ -846,6 +915,285 @@ export const profitAnalysisApi = {
   async getCurrentMonthProfit(): Promise<ProfitApiResponse<RealTimeProfitCalculation>> {
     const currentPeriod = new Date().toISOString().slice(0, 7);
     return this.calculateProfitAnalysis(currentPeriod, 'monthly');
+  },
+
+  /**
+   * 🍽️ NEW: Generate F&B specific insights and recommendations
+   */
+  async generateFNBInsights(
+    period: string,
+    effectiveCogs?: number,
+    hppBreakdown?: FNBCOGSBreakdown[]
+  ): Promise<ProfitApiResponse<FNBAnalysisResult>> {
+    try {
+      const profitResult = await this.calculateProfitAnalysis(period);
+      if (!profitResult.success) {
+        return {
+          data: {} as FNBAnalysisResult,
+          error: profitResult.error || 'Failed to get profit data',
+          success: false
+        };
+      }
+
+      const calculation = profitResult.data;
+      const revenue = calculation.revenue_data.total;
+      const cogs = effectiveCogs || calculation.cogs_data.total;
+      const opex = calculation.opex_data.total;
+      const margins = calculateMargins(revenue, cogs, opex);
+      const executiveInsights = generateExecutiveInsights(calculation);
+
+      // Generate F&B specific insights
+      const insights: FNBInsight[] = [];
+      const alerts: FNBInsight[] = [];
+      const opportunities: FNBInsight[] = [];
+      const seasonalTips: FNBInsight[] = [];
+
+      // Cost control insights
+      const cogsRatio = revenue > 0 ? cogs / revenue : 0;
+      if (cogsRatio > FNB_THRESHOLDS.ALERTS.high_ingredient_cost) {
+        alerts.push({
+          id: 'high-ingredient-cost',
+          type: 'alert',
+          title: '🥘 Modal bahan baku terlalu mahal',
+          description: `${(cogsRatio * 100).toFixed(1)}% dari omset (ideal <60%)`,
+          impact: 'high',
+          category: 'cost_control',
+          actionable: true,
+          action: {
+            label: 'Analisis Supplier',
+            type: 'internal',
+            data: { cogsRatio, threshold: FNB_THRESHOLDS.ALERTS.high_ingredient_cost }
+          },
+          value: cogs - (revenue * FNB_THRESHOLDS.ALERTS.high_ingredient_cost),
+          icon: '🥘'
+        });
+      }
+
+      // Revenue opportunities
+      if (revenue > 0 && revenue < FNB_THRESHOLDS.ALERTS.low_revenue) {
+        opportunities.push({
+          id: 'boost-revenue',
+          type: 'opportunity',
+          title: '📈 Potensi naikkan omset',
+          description: 'Omset masih bisa ditingkatkan untuk warung yang sehat',
+          impact: 'medium',
+          category: 'revenue_boost',
+          actionable: true,
+          action: {
+            label: 'Tips Marketing',
+            type: 'external',
+            data: { currentRevenue: revenue, targetRevenue: FNB_THRESHOLDS.ALERTS.low_revenue }
+          },
+          value: FNB_THRESHOLDS.ALERTS.low_revenue - revenue,
+          icon: '📈'
+        });
+      }
+
+      // Expensive items analysis
+      if (hppBreakdown && hppBreakdown.length > 0) {
+        const expensiveItems = hppBreakdown.filter(item => 
+          item.is_expensive || item.percentage > 15
+        );
+
+        if (expensiveItems.length > 0) {
+          alerts.push({
+            id: 'expensive-ingredients',
+            type: 'alert',
+            title: `🚨 ${expensiveItems.length} bahan termahal`,
+            description: `Bahan: ${expensiveItems.map(i => i.item_name).slice(0, 3).join(', ')}`,
+            impact: 'medium',
+            category: 'cost_control',
+            actionable: true,
+            action: {
+              label: 'Lihat Detail',
+              type: 'internal',
+              data: expensiveItems
+            },
+            value: expensiveItems.reduce((sum, item) => sum + item.total_cost, 0),
+            icon: '🔍'
+          });
+        }
+      }
+
+      // Seasonal tips (basic examples)
+      const currentMonth = new Date().getMonth() + 1;
+      if (currentMonth >= 3 && currentMonth <= 5) { // Ramadan season
+        seasonalTips.push({
+          id: 'ramadan-opportunity',
+          type: 'seasonal',
+          title: '🌙 Musim Ramadan',
+          description: 'Siapkan menu takjil dan sahur untuk boost omset',
+          impact: 'high',
+          category: 'seasonal',
+          actionable: true,
+          action: {
+            label: 'Menu Ramadan',
+            type: 'external'
+          },
+          icon: '🌙'
+        });
+      }
+
+      // Margin analysis insights
+      if (margins.netMargin >= 18) {
+        insights.push({
+          id: 'excellent-margin',
+          type: 'suggestion',
+          title: '🎉 Margin sangat sehat!',
+          description: `Untung bersih ${margins.netMargin.toFixed(1)}% - siap untuk ekspansi`,
+          impact: 'low',
+          category: 'efficiency',
+          actionable: false,
+          icon: '✅'
+        });
+
+        opportunities.push({
+          id: 'expansion-ready',
+          type: 'opportunity',
+          title: '🚀 Siap Expand',
+          description: 'Warung sudah sehat, pertimbangkan buka cabang',
+          impact: 'high',
+          category: 'revenue_boost',
+          actionable: true,
+          action: {
+            label: 'Tips Ekspansi',
+            type: 'external'
+          },
+          icon: '🏪'
+        });
+      }
+
+      const result: FNBAnalysisResult = {
+        period,
+        insights,
+        alerts,
+        opportunities,
+        seasonal_tips: seasonalTips,
+        summary: {
+          total_insights: insights.length + alerts.length + opportunities.length + seasonalTips.length,
+          high_priority_count: [...alerts, ...opportunities, ...seasonalTips].filter(i => i.impact === 'high').length,
+          potential_savings: alerts.reduce((sum, alert) => sum + (alert.value || 0), 0),
+          potential_revenue_boost: opportunities.reduce((sum, opp) => sum + (opp.value || 0), 0)
+        }
+      };
+
+      return {
+        data: result,
+        success: true,
+        message: `Generated ${result.summary.total_insights} F&B insights`
+      };
+
+    } catch (error) {
+      logger.error('❌ Error generating F&B insights:', error);
+      return {
+        data: {} as FNBAnalysisResult,
+        error: error instanceof Error ? error.message : 'Failed to generate insights',
+        success: false
+      };
+    }
+  },
+
+  /**
+   * 🍽️ NEW: Get F&B COGS breakdown with categories
+   */
+  async getFNBCOGSBreakdown(
+    period: string,
+    effectiveCogs?: number
+  ): Promise<ProfitApiResponse<FNBCOGSBreakdown[]>> {
+    try {
+      // Try to get from WAC data first
+      const bahanMap = await fetchBahanMap();
+      const pemakaian = await fetchPemakaianByPeriode(
+        period + '-01',
+        period + '-31'
+      );
+
+      if (bahanMap && Object.keys(bahanMap).length > 0 && pemakaian && pemakaian.length > 0) {
+        const fnbBreakdown: FNBCOGSBreakdown[] = pemakaian.map(item => {
+          const bahan = bahanMap[item.bahan_baku_id];
+          if (!bahan) return null;
+
+          const qty = Number(item.qty_base || 0);
+          const unitPrice = getEffectiveUnitPrice(bahan);
+          const totalCost = calculatePemakaianValue(item, bahanMap);
+          const category = profitAnalysisApi.categorizeFNBItem(bahan.nama || '');
+
+          return {
+            item_id: item.bahan_baku_id,
+            item_name: bahan.nama || 'Unknown',
+            category,
+            quantity_used: qty,
+            unit: bahan.satuan || 'unit',
+            unit_price: unitPrice,
+            total_cost: totalCost,
+            percentage: effectiveCogs ? (totalCost / effectiveCogs) * 100 : 0,
+            wac_price: unitPrice,
+            is_expensive: totalCost > FNB_THRESHOLDS.ALERTS.expensive_item_threshold
+          };
+        }).filter(Boolean) as FNBCOGSBreakdown[];
+
+        return {
+          data: fnbBreakdown,
+          success: true,
+          message: 'F&B COGS breakdown generated from WAC data'
+        };
+      }
+
+      // Fallback to basic breakdown
+      return {
+        data: [],
+        success: true,
+        message: 'No WAC data available for F&B breakdown'
+      };
+
+    } catch (error) {
+      logger.error('❌ Error getting F&B COGS breakdown:', error);
+      return {
+        data: [],
+        error: error instanceof Error ? error.message : 'Failed to get F&B breakdown',
+        success: false
+      };
+    }
+  },
+
+  /**
+   * 🍽️ Helper: Categorize F&B items
+   */
+  categorizeFNBItem(itemName: string): string {
+    const name = itemName.toLowerCase();
+    
+    // Main ingredients
+    if (name.includes('beras') || name.includes('daging') || name.includes('ayam') ||
+        name.includes('ikan') || name.includes('sayur') || name.includes('tahu') ||
+        name.includes('tempe') || name.includes('mie')) {
+      return 'Bahan Makanan Utama';
+    }
+    
+    // Spices and seasonings
+    if (name.includes('garam') || name.includes('gula') || name.includes('bumbu') ||
+        name.includes('kecap') || name.includes('saos') || name.includes('merica') ||
+        name.includes('bawang') || name.includes('cabai')) {
+      return 'Bumbu & Rempah';
+    }
+    
+    // Beverages
+    if (name.includes('air') || name.includes('teh') || name.includes('kopi') ||
+        name.includes('jus') || name.includes('sirup') || name.includes('susu')) {
+      return 'Minuman & Sirup';
+    }
+    
+    // Packaging
+    if (name.includes('kemasan') || name.includes('box') || name.includes('cup') ||
+        name.includes('plastik') || name.includes('kertas') || name.includes('styrofoam')) {
+      return 'Kemasan & Wadah';
+    }
+    
+    // Gas and fuel
+    if (name.includes('gas') || name.includes('lpg') || name.includes('bensin')) {
+      return 'Gas & Bahan Bakar';
+    }
+    
+    return 'Lainnya';
   }
 };
 

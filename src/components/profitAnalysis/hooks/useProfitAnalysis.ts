@@ -10,13 +10,17 @@ import {
   ProfitAnalysis, 
   RealTimeProfitCalculation, 
   DateRangeFilter,
-  ProfitApiResponse 
+  ProfitApiResponse,
+  FNBCOGSBreakdown,
+  FNBLabels
 } from '../types/profitAnalysis.types';
 import profitAnalysisApi from '../services/profitAnalysisApi';
 
 // ✅ IMPORT WAC HELPERS (termasuk calculatePemakaianValue)
 import { fetchBahanMap, fetchPemakaianByPeriode, calculatePemakaianValue } from '../services/profitAnalysisApi';
 import { calcHPP } from '../utils/profitCalculations';
+// 🍽️ Import F&B constants
+import { FNB_LABELS } from '../constants/profitConstants';
 
 // Query Keys
 export const PROFIT_QUERY_KEYS = {
@@ -56,18 +60,18 @@ export interface UseProfitAnalysisReturn {
   // ✅ ADD WAC ACTIONS
   refreshWACData: () => Promise<void>;
   
-  // Computed values
+  // 🍽️ Enhanced computed values with F&B metrics
   profitMetrics: {
     grossProfit: number;
     netProfit: number;
     grossMargin: number;
     netMargin: number;
     revenue: number;
-    cogs: number;
+    cogs: number;           // Effective COGS (WAC or API fallback)
     opex: number;
-    // ✅ ADD WAC METRICS
+    // WAC specific metrics
     totalHPP: number;
-    hppBreakdown: Array<{ id: string; nama: string; qty: number; price: number; hpp: number }>;
+    hppBreakdown: FNBCOGSBreakdown[];
   };
   
   // Utilities
@@ -75,13 +79,10 @@ export interface UseProfitAnalysisReturn {
   isDataStale: boolean;
   lastCalculated: Date | null;
   
-  // ✅ ADD WAC UTILITIES
+  // 🍽️ F&B specific utilities
   bahanMap: Record<string, any>;
   pemakaian: any[];
-  labels: {
-    hppLabel: string;
-    hppHint: string;
-  };
+  labels: FNBLabels;
 }
 
 export const useProfitAnalysis = (
@@ -207,11 +208,35 @@ export const useProfitAnalysis = (
     };
   }, [bahanMapQuery.data, pemakaianQuery.data]);
 
-  // ✅ WAC LABELS & TOOLTIP
-  const labels = useMemo(() => ({
-    hppLabel: 'Total HPP (WAC)',
-    hppHint: 'Dihitung pakai WAC (harga rata-rata tertimbang) bila tersedia; bila belum ada, menggunakan harga satuan.'
-  }), []);
+  // 🍽️ F&B LABELS - User-friendly terminology
+  const labels: FNBLabels = useMemo(() => {
+    const hasWAC = totalHPP > 0;
+    
+    return {
+      // Revenue labels
+      revenueLabel: FNB_LABELS.revenue.title,
+      revenueHint: FNB_LABELS.revenue.hint,
+      
+      // COGS labels (Modal Bahan Baku)
+      cogsLabel: hasWAC ? FNB_LABELS.wac.title : FNB_LABELS.cogs.title,
+      cogsHint: hasWAC ? FNB_LABELS.wac.hint : FNB_LABELS.cogs.hint,
+      
+      // OPEX labels
+      opexLabel: FNB_LABELS.opex.title,
+      opexHint: FNB_LABELS.opex.hint,
+      
+      // Profit labels
+      grossProfitLabel: FNB_LABELS.grossProfit.title,
+      grossProfitHint: FNB_LABELS.grossProfit.hint,
+      netProfitLabel: FNB_LABELS.netProfit.title,
+      netProfitHint: FNB_LABELS.netProfit.hint,
+      
+      // WAC specific (backward compatibility)
+      hppLabel: hasWAC ? FNB_LABELS.wac.short : FNB_LABELS.cogs.short,
+      hppHint: hasWAC ? FNB_LABELS.wac.hint : FNB_LABELS.cogs.hint,
+      wacActiveLabel: hasWAC ? 'WAC Aktif' : undefined
+    };
+  }, [totalHPP]);
 
   // ✅ FIX #2: Use extracted primitive values in useMemo dependencies
   const profitMetrics = useMemo(() => {
@@ -224,9 +249,9 @@ export const useProfitAnalysis = (
         revenue: 0,
         cogs: 0,
         opex: 0,
-        // ✅ ADD WAC METRICS
+        // WAC metrics
         totalHPP: 0,
-        hppBreakdown: []
+        hppBreakdown: [] as FNBCOGSBreakdown[]
       };
     }
 
@@ -246,9 +271,20 @@ export const useProfitAnalysis = (
         revenue,
         cogs: effectiveCogs,
         opex,
-        // ✅ INCLUDE WAC METRICS
+        // WAC metrics with F&B breakdown
         totalHPP,
-        hppBreakdown
+        hppBreakdown: hppBreakdown.map((item): FNBCOGSBreakdown => ({
+          item_id: item.id,
+          item_name: item.nama,
+          category: 'Bahan Makanan Utama', // Default category, could be enhanced
+          quantity_used: item.qty,
+          unit: 'unit', // Default unit, could be enhanced
+          unit_price: item.price,
+          total_cost: item.hpp,
+          percentage: totalHPP > 0 ? (item.hpp / totalHPP) * 100 : 0,
+          wac_price: item.price,
+          is_expensive: item.hpp > 100000 // > 100k considered expensive
+        }))
       };
     } catch (err) {
       logger.error('Error calculating profit metrics:', err);
@@ -260,9 +296,9 @@ export const useProfitAnalysis = (
         revenue: 0,
         cogs: 0,
         opex: 0,
-        // ✅ INCLUDE WAC METRICS ON ERROR
+        // WAC metrics on error
         totalHPP: 0,
-        hppBreakdown: []
+        hppBreakdown: [] as FNBCOGSBreakdown[]
       };
     }
   }, [revenue, cogs, opex, currentData, totalHPP, hppBreakdown]); // ✅ Sekarang menggunakan primitive value dan data WAC

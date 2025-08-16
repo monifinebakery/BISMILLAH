@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   DollarSign, TrendingUp, Calculator, ShoppingCart,
-  ArrowUp, ArrowDown, Minus, Package, Info
+  ArrowUp, ArrowDown, Minus, Package, Info, AlertTriangle, HelpCircle
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -37,6 +37,8 @@ interface MetricCard {
   subtitle?: string;
   change?: number;
   changeType: 'positive' | 'negative' | 'neutral';
+  helpText?: string; // 🍽️ Penjelasan dalam bahasa sederhana
+  alert?: string;    // 🚨 Alert khusus untuk F&B
 }
 
 // ==============================================
@@ -105,51 +107,68 @@ const calculateChanges = (
   };
 };
 
+// 🍽️ Helper untuk emoji kategori F&B
+const getFoodCategoryEmoji = (percentage: number) => {
+  if (percentage > 60) return '🔴'; // Alert - terlalu tinggi
+  if (percentage > 40) return '🟡'; // Warning - perlu perhatian  
+  return '🟢'; // Good - sehat
+};
+
 const generateCards = (
   metrics: ReturnType<typeof calculateMetrics>, 
   changes: ReturnType<typeof calculateChanges>,
   wacStockValue?: number,
   labels?: { hppLabel: string; hppHint: string }
 ) => {
+  const cogsPercentage = (metrics.cogs / Math.max(metrics.revenue, 1)) * 100;
+  const opexPercentage = (metrics.opex / Math.max(metrics.revenue, 1)) * 100;
+  
   const cards = [
     {
-      title: 'Total Pendapatan',
+      title: '💰 Penjualan Bulan Ini',
       value: metrics.revenue,
       icon: DollarSign,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
+      subtitle: 'Total omset dari semua penjualan',
       change: changes.revenueChange,
-      changeType: getGrowthStatus(changes.revenueChange).status
+      changeType: getGrowthStatus(changes.revenueChange).status,
+      helpText: 'Semua uang yang masuk dari jualan makanan & minuman'
     },
     {
-      title: 'Laba Kotor',
+      title: '📈 Untung Kotor',
       value: metrics.grossProfit,
       icon: TrendingUp,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      subtitle: `${formatPercentage(metrics.grossMargin)} margin`,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      subtitle: `${formatPercentage(metrics.grossMargin)} dari penjualan`,
       change: changes.grossProfitChange,
-      changeType: getGrowthStatus(changes.grossProfitChange).status
+      changeType: getGrowthStatus(changes.grossProfitChange).status,
+      helpText: 'Untung sebelum dipotong biaya operasional (listrik, sewa, gaji)'
     },
     {
-      title: 'Laba Bersih',
+      title: '💵 Untung Bersih (Take Home)',
       value: metrics.netProfit,
       icon: Calculator,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      subtitle: `${formatPercentage(metrics.netMargin)} margin`,
+      color: metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600',
+      bgColor: metrics.netProfit >= 0 ? 'bg-orange-50' : 'bg-red-50',
+      subtitle: `${formatPercentage(metrics.netMargin)} margin akhir`,
       change: changes.netProfitChange,
-      changeType: getGrowthStatus(changes.netProfitChange).status
+      changeType: getGrowthStatus(changes.netProfitChange).status,
+      helpText: 'Untung beneran yang bisa dibawa pulang setelah semua biaya'
     },
     {
-      title: 'Total HPP',
+      title: `🛒 Modal Bahan Baku ${getFoodCategoryEmoji(cogsPercentage)}`,
       value: metrics.cogs,
       icon: ShoppingCart,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-50',
-      subtitle: `${formatPercentage((metrics.cogs / Math.max(metrics.revenue, 1)) * 100)} dari pendapatan`,
+      color: cogsPercentage > 60 ? 'text-red-600' : cogsPercentage > 40 ? 'text-orange-600' : 'text-green-600',
+      bgColor: cogsPercentage > 60 ? 'bg-red-50' : cogsPercentage > 40 ? 'bg-orange-50' : 'bg-green-50',
+      subtitle: `${formatPercentage(cogsPercentage)} dari penjualan`,
       change: changes.cogsChange,
-      changeType: getGrowthStatus(changes.cogsChange * -1).status // Invert untuk HPP (lebih rendah = lebih baik)
+      changeType: getGrowthStatus(changes.cogsChange * -1).status,
+      helpText: 'Uang yang keluar untuk beli bahan makanan & minuman',
+      alert: cogsPercentage > 60 ? 'Modal bahan terlalu tinggi! Cari supplier lebih murah atau naikin harga jual' : 
+             cogsPercentage > 40 ? 'Modal bahan agak tinggi, perlu diperhatikan' : 'Modal bahan sehat'
     }
   ];
 
@@ -159,8 +178,8 @@ const generateCards = (
       title: 'Nilai Stok Bahan Baku',
       value: wacStockValue,
       icon: Package,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
       subtitle: labels?.hppLabel ? `${labels.hppLabel} aktif` : 'Harga rata-rata',
       change: undefined,
       changeType: 'neutral'
@@ -218,7 +237,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   // ✅ LOADING STATE
   if (isLoading) {
     return (
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -239,7 +258,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   // ✅ NO DATA STATE
   if (!currentAnalysis) {
     return (
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
         {cards.map((card, index) => {
           const Icon = card.icon;
           return (
@@ -267,7 +286,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
 
   // ✅ MAIN RENDER
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}>
+    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
       {cards.map((card, index) => {
         const Icon = card.icon;
         const hasChange = card.change !== undefined && previousAnalysis;
@@ -275,8 +294,21 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
         return (
           <Card key={index} className="hover:shadow-md transition-shadow duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
                 {card.title}
+                {/* ✅ TAMBAH: Tooltip untuk semua cards dengan helpText */}
+                {(card as any).helpText && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3 h-3 text-blue-400 ml-1 cursor-help hover:text-blue-600" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-sm">
+                        <p>{(card as any).helpText}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
                 {/* ✅ TAMBAH: Tooltip untuk WAC stock value */}
                 {card.title === 'Nilai Stok Bahan Baku' && labels?.hppLabel && (
                   <TooltipProvider>
@@ -298,8 +330,8 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                 <Icon className={`w-4 h-4 ${card.color}`} />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold mb-1">
+            <CardContent className="p-4 sm:p-6">
+              <div className="text-lg sm:text-2xl font-bold mb-1">
                 {formatCurrency(card.value)}
               </div>
               
@@ -326,8 +358,18 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                 </div>
               )}
               
+              {/* ✅ TAMBAH: Alert khusus F&B */}
+              {(card as any).alert && (
+                <div className="flex items-start space-x-2 mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-yellow-800">
+                    {(card as any).alert}
+                  </p>
+                </div>
+              )}
+              
               {/* No comparison data */}
-              {!hasChange && previousAnalysis === undefined && (
+              {!hasChange && previousAnalysis === undefined && !(card as any).alert && (
                 <p className="text-xs text-gray-400">
                   Tidak ada data sebelumnya untuk perbandingan
                 </p>

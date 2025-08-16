@@ -170,37 +170,121 @@ function validatePayload(payloadData) {
 async function processPaymentUpsert(paymentData, autoLinkedUserId) {
   console.log('🔄 Processing payment with UPSERT approach');
   
-  const upsertData = {
-    order_id: paymentData.orderId,
-    pg_reference_id: paymentData.pgReferenceId,
-    email: paymentData.extractedEmail || 'unlinked@payment.com',
-    payment_status: paymentData.paymentStatus === 'paid' ? 'settled' : 'pending',
-    is_paid: paymentData.paymentStatus === 'paid',
-    updated_at: new Date().toISOString()
-  };
-  
-  // Add user_id if auto-linked
-  if (autoLinkedUserId) {
-    upsertData.user_id = autoLinkedUserId;
-  }
-  
-  // ✅ Use UPSERT to handle race conditions
-  const { data, error } = await supabase
-    .from('user_payments')
-    .upsert(upsertData, {
-      onConflict: 'order_id',
-      ignoreDuplicates: false // Update existing records
-    })
-    .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid')
-    .single();
-  
-  if (error) {
-    console.error('❌ UPSERT failed:', error);
+  try {
+    // ✅ First, try to find existing payment
+    const { data: existingPayment, error: findError } = await supabase
+      .from('user_payments')
+      .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, created_at, updated_at')
+      .eq('order_id', paymentData.orderId)
+      .maybeSingle();
+    
+    if (findError && findError.code !== 'PGRST116') {
+      console.error('❌ Error finding payment:', findError);
+      throw findError;
+    }
+    
+    if (existingPayment) {
+      // ✅ UPDATE existing record
+      console.log('✅ Found existing payment, updating...');
+      
+      const updateData = {};
+      
+      // Update email if we extracted one and current is placeholder
+      if (paymentData.extractedEmail && 
+          (!existingPayment.email || 
+           existingPayment.email.includes('@payment.com') || 
+           existingPayment.email.includes('@webhook.com'))) {
+        updateData.email = paymentData.extractedEmail;
+        console.log('📧 Updating email to extracted value');
+      }
+      
+      // Update pg_reference_id if not set
+      if (paymentData.pgReferenceId && !existingPayment.pg_reference_id) {
+        updateData.pg_reference_id = paymentData.pgReferenceId;
+        console.log('📝 Adding pg_reference_id');
+      }
+      
+      // Update payment status and is_paid
+      if (paymentData.paymentStatus === 'paid') {
+        updateData.payment_status = 'settled';
+        updateData.is_paid = true;
+        console.log('💰 MARKING AS PAID');
+        
+        // Auto-link if payment becomes paid AND no user_id yet
+        if (!existingPayment.user_id && autoLinkedUserId) {
+          updateData.user_id = autoLinkedUserId;
+          console.log('🔗 Auto-linked to user:', autoLinkedUserId);
+        }
+      } else if (paymentData.paymentStatus === 'unpaid') {
+        updateData.payment_status = 'pending';
+        updateData.is_paid = false;
+        console.log('⏳ MARKING AS UNPAID');
+      } else if (paymentData.paymentStatus) {
+        updateData.payment_status = paymentData.paymentStatus;
+        console.log('📝 Updating status to:', paymentData.paymentStatus);
+      }
+      
+      // Only update if there are changes
+      if (Object.keys(updateData).length === 0) {
+        console.log('⚠️ No updates needed');
+        return existingPayment;
+      } else {
+        console.log('🔄 Updating with:', updateData);
+        
+        const { data: updatedPayment, error: updateError } = await supabase
+          .from('user_payments')
+          .update(updateData)
+          .eq('order_id', paymentData.orderId)
+          .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, created_at, updated_at')
+          .single();
+        
+        if (updateError) {
+          console.error('❌ Update failed:', updateError);
+          throw updateError;
+        }
+        
+        console.log('✅ Update success');
+        return updatedPayment;
+      }
+    } else {
+      // ✅ CREATE new record
+      console.log('➕ No existing payment found, creating new...');
+      
+      const newPaymentData = {
+        order_id: paymentData.orderId,
+        pg_reference_id: paymentData.pgReferenceId,
+        email: paymentData.extractedEmail || 'unlinked@payment.com',
+        payment_status: paymentData.paymentStatus === 'paid' ? 'settled' : 'pending',
+        is_paid: paymentData.paymentStatus === 'paid'
+      };
+      
+      // Add user_id if auto-linked
+      if (autoLinkedUserId) {
+        newPaymentData.user_id = autoLinkedUserId;
+        console.log('🔗 Auto-linked new payment to user:', autoLinkedUserId);
+      }
+      
+      console.log('📝 Creating new payment:', newPaymentData);
+      
+      const { data: newPayment, error: createError } = await supabase
+        .from('user_payments')
+        .insert(newPaymentData)
+        .select('user_id, order_id, pg_reference_id, email, payment_status, is_paid, created_at, updated_at')
+        .single();
+      
+      if (createError) {
+        console.error('❌ Create failed:', createError);
+        throw createError;
+      }
+      
+      console.log('✅ Create success');
+      return newPayment;
+    }
+    
+  } catch (error) {
+    console.error('❌ Payment processing failed:', error);
     throw error;
   }
-  
-  console.log('✅ UPSERT success');
-  return data;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -280,7 +364,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
     
-    // ✅ STEP 2: Process payment with UPSERT (prevents race conditions)
+    // ✅ STEP 2: Process payment with race condition protection
     const finalRecord = await processPaymentUpsert({
       orderId,
       paymentStatus,

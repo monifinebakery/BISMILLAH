@@ -86,23 +86,31 @@ const MemoizedSectionHeader = React.memo(({ section, sortedItemsLength }: { sect
 const MemoizedTableRow = React.memo(({ item, itemIndex }: { item: BreakdownItem; itemIndex: number }) => {
   return (
     <TableRow key={itemIndex} className="hover:bg-white hover:bg-opacity-50 transition-colors">
-      <TableCell className="font-medium">
-        {item.name}
+      <TableCell className="font-medium text-xs sm:text-sm">
+        <div className="truncate max-w-[100px] sm:max-w-none" title={item.name}>
+          {item.name}
+        </div>
+        {/* Show percentage on mobile (when hidden column) */}
+        <div className="sm:hidden text-xs text-gray-500 mt-1">
+          {formatPercentage(item.percentage)}
+        </div>
       </TableCell>
       
-      <TableCell className="text-right font-semibold">
-        {formatCurrency(item.amount)}
+      <TableCell className="text-right font-semibold text-xs sm:text-sm">
+        <div className="truncate">
+          {formatCurrency(item.amount)}
+        </div>
       </TableCell>
       
-      <TableCell className="text-right">
+      <TableCell className="text-right hidden sm:table-cell">
         <div className="flex items-center justify-end space-x-2">
-          <span className="font-medium">
+          <span className="font-medium text-xs sm:text-sm">
             {formatPercentage(item.percentage)}
           </span>
           
-          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-12 sm:w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div 
-              className="h-full rounded-full transition-all duration-300 bg-current opacity-60"
+              className="h-full rounded-full transition-all duration-300 bg-orange-500 opacity-60"
               style={{ 
                 width: `${Math.min(item.percentage, 100)}%`
               }}
@@ -111,16 +119,16 @@ const MemoizedTableRow = React.memo(({ item, itemIndex }: { item: BreakdownItem;
         </div>
       </TableCell>
       
-      <TableCell className="text-center">
+      <TableCell className="text-center hidden md:table-cell">
         <Badge variant="outline" className="text-xs">
           {item.type ? (
             item.type === 'tetap' ? 'Tetap' : 
             item.type === 'variabel' ? 'Variabel' : 
-            item.type === 'Bahan Langsung' ? 'Bahan Langsung' :
-            item.type === 'Tenaga Kerja Langsung' ? 'Tenaga Kerja' :
+            item.type === 'Bahan Langsung' ? 'Bahan' :
+            item.type === 'Tenaga Kerja Langsung' ? 'Tenaga' :
             item.type
           ) : (
-            item.count ? `${item.count} transaksi` : 'N/A'
+            item.count ? `${item.count}x` : 'N/A'
           )}
         </Badge>
       </TableCell>
@@ -452,18 +460,19 @@ const DetailedBreakdownTable = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex space-x-2 mt-4">
+        <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
         {[
-          { key: 'all', label: '📊 Semua Kategori' },
+          { key: 'all', label: '📊 Semua' },
           { key: 'revenue', label: '💰 Pemasukan' },
-          { key: 'cogs', label: '🛒 Belanja Bahan' },
-          { key: 'opex', label: '🏠 Biaya Bulanan' }
+          { key: 'cogs', label: '🛍️ Belanja' },
+          { key: 'opex', label: '🏠 Biaya' }
         ].map(tab => (
             <Button
               key={tab.key}
               variant={activeTab === tab.key ? 'default' : 'outline'}
               size="sm"
               onClick={() => handleTabChange(tab.key)}
+              className="text-xs px-2 py-1"
             >
               {tab.label}
             </Button>
@@ -471,11 +480,11 @@ const DetailedBreakdownTable = ({
         </div>
 
         {/* Sort Controls */}
-        <div className="flex space-x-2 mt-2">
-          <span className="text-sm text-gray-600 py-2">Urutkan berdasarkan:</span>
+        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2">
+          <span className="text-xs sm:text-sm text-gray-600 py-1">Urutkan:</span>
           {[
             { key: 'amount', label: 'Jumlah' },
-            { key: 'percentage', label: 'Persentase' },
+            { key: 'percentage', label: '%' },
             { key: 'name', label: 'Nama' }
           ].map(sort => (
             <Button
@@ -483,6 +492,7 @@ const DetailedBreakdownTable = ({
               variant={sortBy === sort.key ? 'default' : 'ghost'}
               size="sm"
               onClick={() => handleSortChange(sort.key)}
+              className="text-xs px-2 py-1"
             >
               {sort.label}
               {sortBy === sort.key && (
@@ -509,21 +519,21 @@ const DetailedBreakdownTable = ({
                 />
 
                 {/* Items Table */}
-                <div className={`rounded-lg border ${section.bgColor} border-opacity-20`}>
+                <div className={`rounded-lg border ${section.bgColor} border-opacity-20 overflow-x-auto`}>
                   <Table>
                     <TableHeader>
                       <TableRow className="border-b border-gray-200">
-                        <TableHead className="font-semibold">Item</TableHead>
-                        <TableHead className="font-semibold text-right">Jumlah</TableHead>
-                        <TableHead className="font-semibold text-right">Persentase</TableHead>
-                        <TableHead className="font-semibold text-center">Detail</TableHead>
+                        <TableHead className="font-semibold text-xs sm:text-sm min-w-[120px]">Item</TableHead>
+                        <TableHead className="font-semibold text-right text-xs sm:text-sm min-w-[80px]">Jumlah</TableHead>
+                        <TableHead className="font-semibold text-right text-xs sm:text-sm min-w-[60px] hidden sm:table-cell">%</TableHead>
+                        <TableHead className="font-semibold text-center text-xs sm:text-sm min-w-[60px] hidden md:table-cell">Detail</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {sortedItems.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                            Tidak ada item ditemukan untuk {section.title.toLowerCase()}
+                          <TableCell colSpan={4} className="text-center py-6 sm:py-8 text-gray-500 text-xs sm:text-sm">
+                            Tidak ada item ditemukan
                           </TableCell>
                         </TableRow>
                       ) : (

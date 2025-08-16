@@ -12,9 +12,7 @@ import {
   CostForm,
   AllocationSettings,
   LoadingState,
-  EmptyState,
-  AutoModeOperationalCost,
-  SimpleAllocationSettings
+  EmptyState
 } from './components';
 
 // ✅ CONSOLIDATED: Types import
@@ -24,6 +22,14 @@ import { OperationalCost } from './types';
 const CostDialog = lazy(() => import('./dialogs/CostDialog'));
 const DeleteConfirmDialog = lazy(() => import('./dialogs/DeleteConfirmDialog'));
 const AllocationDialog = lazy(() => import('./dialogs/AllocationDialog'));
+
+// ❌ REMOVED: Individual component imports - now consolidated
+// - import CostSummaryCard from './components/CostSummaryCard';
+// - import CostList from './components/CostList';
+// - import CostForm from './components/CostForm';
+// - import AllocationSettings from './components/AllocationSettings';
+// - import LoadingState from './components/LoadingState';
+// - import EmptyState from './components/EmptyState';
 
 interface OperationalCostPageContentProps {}
 
@@ -36,15 +42,8 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
   const [showAllocationDialog, setShowAllocationDialog] = useState(false);
   const [selectedCost, setSelectedCost] = useState<OperationalCost | null>(null);
   
-  // UI states - Default to auto mode now
-  const [activeTab, setActiveTab] = useState<'auto' | 'costs' | 'allocation'>('auto');
-  const [allocationMode, setAllocationMode] = useState<'auto' | 'advanced'>('auto');
-
-  // Auto-mode state
-  const [autoModeData, setAutoModeData] = useState<{
-    perProductCost: number;
-    monthlyProduction: number;
-  } | null>(null);
+  // UI states
+  const [activeTab, setActiveTab] = useState<'costs' | 'allocation'>('costs');
 
   // Handle cost actions
   const handleAddCost = () => {
@@ -74,21 +73,6 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
 
   const handleCalculateOverhead = async () => {
     await actions.calculateOverhead();
-  };
-
-  // Auto-mode handlers
-  const handleAutoModeAllocationChange = (perProductCost: number, monthlyProduction: number) => {
-    setAutoModeData({ perProductCost, monthlyProduction });
-  };
-
-  const handleSwitchToAdvanced = () => {
-    setAllocationMode('advanced');
-    setActiveTab('allocation');
-  };
-
-  const handleBackToAuto = () => {
-    setAllocationMode('auto');
-    setActiveTab('auto');
   };
 
   // Check if we have any costs
@@ -245,16 +229,6 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
         <div className="border-b border-gray-200 mb-8">
           <nav className="-mb-px flex space-x-8 overflow-x-auto">
             <button
-              onClick={() => setActiveTab('auto')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'auto'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              🚀 Auto-Mode (Default)
-            </button>
-            <button
               onClick={() => setActiveTab('costs')}
               className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'costs'
@@ -282,30 +256,7 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
           </nav>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'auto' ? (
-          /* Auto Mode Tab */
-          <div className="space-y-8">
-            <AutoModeOperationalCost
-              totalMonthlyCosts={state.summary.total_biaya_aktif}
-              onAllocationChange={handleAutoModeAllocationChange}
-              onAdvancedMode={handleSwitchToAdvanced}
-              isLoading={state.loading.costs || state.loading.allocation}
-            />
-            
-            {/* Show simple allocation settings if we have auto mode data */}
-            {autoModeData && (
-              <SimpleAllocationSettings
-                settings={state.allocationSettings}
-                costSummary={state.summary}
-                simpleData={autoModeData}
-                onSave={actions.saveAllocationSettings}
-                onBackToAuto={handleBackToAuto}
-                loading={state.loading.allocation}
-              />
-            )}
-          </div>
-        ) : activeTab === 'costs' ? (
+        {activeTab === 'costs' ? (
           /* Costs Tab */
           <div className="space-y-8">
             {/* Summary Card */}
@@ -395,15 +346,6 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
                 actionLabel="Tambah Biaya"
                 onAction={handleAddCost}
               />
-            ) : allocationMode === 'auto' ? (
-              <SimpleAllocationSettings
-                settings={state.allocationSettings}
-                costSummary={state.summary}
-                simpleData={autoModeData}
-                onSave={actions.saveAllocationSettings}
-                onBackToAuto={handleBackToAuto}
-                loading={state.loading.allocation}
-              />
             ) : (
               <AllocationSettings
                 settings={state.allocationSettings}
@@ -463,11 +405,16 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
         {showAllocationDialog && (
           <AllocationDialog
             isOpen={showAllocationDialog}
-            onClose={() => setShowAllocationDialog(false)}
             settings={state.allocationSettings}
             costSummary={state.summary}
-            onSave={actions.saveAllocationSettings}
-            loading={state.loading.allocation}
+            onClose={() => setShowAllocationDialog(false)}
+            onSave={async (data) => {
+              const success = await actions.saveAllocationSettings(data);
+              if (success) {
+                setShowAllocationDialog(false);
+              }
+              return success;
+            }}
           />
         )}
       </Suspense>
@@ -475,8 +422,8 @@ const OperationalCostPageContent: React.FC<OperationalCostPageContentProps> = ()
   );
 };
 
-// Main component with provider
-const OperationalCostPageV2: React.FC = () => {
+// Main page component with provider
+const OperationalCostPage: React.FC = () => {
   return (
     <OperationalCostProvider>
       <OperationalCostPageContent />
@@ -484,4 +431,4 @@ const OperationalCostPageV2: React.FC = () => {
   );
 };
 
-export default OperationalCostPageV2;
+export default OperationalCostPage;

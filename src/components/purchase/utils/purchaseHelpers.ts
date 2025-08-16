@@ -378,6 +378,13 @@ export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
 };
 
 /**
+ * Get supplier name with fallback
+ */
+export const getSupplierName = (supplier?: string): string => {
+  return supplier || 'Tidak ada supplier';
+};
+
+/**
  * Debounce function for search
  */
 export const debounce = <T extends (...args: any[]) => any>(

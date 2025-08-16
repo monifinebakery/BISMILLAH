@@ -23,7 +23,7 @@ import { warehouseApi } from '@/components/warehouse/services/warehouseApi';
 import { operationalCostApi } from '@/components/operational-costs/services/operationalCostApi';
 
 import { calculateRealTimeProfit, calculateMargins, generateExecutiveInsights, getCOGSEfficiencyRating } from '../utils/profitCalculations';
-import { transformToFNBCOGSBreakdown, categorizeF&BItem } from '../utils/profitTransformers';
+import { transformToFNBCOGSBreakdown } from '../utils/profitTransformers';
 // 🍽️ Import F&B constants
 import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
 
@@ -1116,7 +1116,7 @@ export const profitAnalysisApi = {
           const qty = Number(item.qty_base || 0);
           const unitPrice = getEffectiveUnitPrice(bahan);
           const totalCost = calculatePemakaianValue(item, bahanMap);
-          const category = this.categorizeFNBItem(bahan.nama || '');
+          const category = profitAnalysisApi.categorizeFNBItem(bahan.nama || '');
 
           return {
             item_id: item.bahan_baku_id,

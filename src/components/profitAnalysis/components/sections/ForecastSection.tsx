@@ -1,0 +1,166 @@
+// src/components/profitAnalysis/components/sections/ForecastSection.tsx
+
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
+
+// ==============================================
+// TYPES
+// ==============================================
+
+export interface ForecastPeriod {
+  profit: number;
+  margin: number;
+  confidence: number;
+}
+
+export interface ForecastData {
+  nextMonth: ForecastPeriod;
+  nextQuarter: ForecastPeriod;
+  nextYear: ForecastPeriod;
+  metadata?: {
+    currentRevenue: number;
+    currentNetProfit: number;
+    currentMargin: number;
+    averageGrowthRate: number;
+    cogsPercentage: number;
+    opexPercentage: number;
+    historyLength: number;
+    validationIssues: string[];
+  };
+}
+
+export interface ForecastSectionProps {
+  data: ForecastData | null;
+  isLoading?: boolean;
+  title?: string;
+  description?: string;
+}
+
+// ==============================================
+// FORECAST CARD COMPONENT
+// ==============================================
+
+interface ForecastCardProps {
+  period: string;
+  data: ForecastPeriod;
+  currentProfit: number;
+}
+
+const ForecastCard: React.FC<ForecastCardProps> = ({ period, data, currentProfit }) => {
+  const isPositive = data.profit >= currentProfit;
+  const change = ((data.profit - currentProfit) / Math.abs(currentProfit)) * 100;
+
+  return (
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center justify-between">
+          {period}
+          <Badge variant={data.confidence > 70 ? 'default' : 'secondary'}>
+            {data.confidence.toFixed(0)}% yakin
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div>
+            <div className="text-2xl font-bold flex items-center">
+              {formatCurrency(data.profit)}
+              {isPositive ? (
+                <TrendingUp className="w-5 h-5 text-green-600 ml-2" />
+              ) : (
+                <TrendingDown className="w-5 h-5 text-red-600 ml-2" />
+              )}
+            </div>
+            <div className="text-sm text-gray-600">
+              Prediksi untung bersih
+            </div>
+          </div>
+          <div>
+            <div className="text-lg font-semibold text-blue-600">
+              {formatPercentage(data.margin)}
+            </div>
+            <div className="text-sm text-gray-600">
+              Margin prediksi
+            </div>
+          </div>
+          <div>
+            <div className={`text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositive ? '+' : ''}{change.toFixed(1)}% dari sekarang
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ==============================================
+// COMPONENT
+// ==============================================
+
+const ForecastSection: React.FC<ForecastSectionProps> = ({
+  data,
+  isLoading = false,
+  title = '🔮 Prediksi Untung Rugi',
+  description = 'Perkiraan performa bisnis berdasarkan tren historis'
+}) => {
+  // Don't render if no data, loading, or insufficient history
+  if (!data || isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>
+            {isLoading ? 'Memuat prediksi...' : 'Butuh data historis minimal 3 bulan untuk prediksi'}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  const currentProfit = data.metadata?.currentNetProfit ?? 0;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-xl font-bold">{title}</h3>
+        <p className="text-gray-600 text-sm">{description}</p>
+        {data.metadata?.validationIssues && data.metadata.validationIssues.length > 0 && (
+          <div className="mt-2 p-2 bg-amber-50 rounded text-xs text-amber-800">
+            ⚠️ Catatan: {data.metadata.validationIssues.join(', ')}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <ForecastCard 
+          period="Bulan Depan" 
+          data={data.nextMonth} 
+          currentProfit={currentProfit}
+        />
+        <ForecastCard 
+          period="3 Bulan Ke Depan" 
+          data={data.nextQuarter} 
+          currentProfit={currentProfit}
+        />
+        <ForecastCard 
+          period="Tahun Depan" 
+          data={data.nextYear} 
+          currentProfit={currentProfit}
+        />
+      </div>
+
+      {data.metadata && (
+        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+          <strong>Basis perhitungan:</strong> Data {data.metadata.historyLength} periode terakhir, 
+          pertumbuhan rata-rata {data.metadata.averageGrowthRate.toFixed(1)}% per bulan
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ForecastSection;

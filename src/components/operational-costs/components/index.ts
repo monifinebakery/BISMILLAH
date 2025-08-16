@@ -14,10 +14,6 @@ export { default as AllocationSettings } from './AllocationSettings';
 export { default as LoadingState } from './LoadingState';
 export { default as EmptyState } from './EmptyState';
 
-// ✅ NEW AUTO-MODE COMPONENTS
-export { AutoModeOperationalCost } from './AutoModeOperationalCost';
-export { SimpleAllocationSettings } from './SimpleAllocationSettings';
-
 // ❌ REMOVED: Lazy loaded components - use direct imports when needed
 // - CostFormLazy, CostListLazy, etc.
 // These can be imported directly where needed for lazy loading

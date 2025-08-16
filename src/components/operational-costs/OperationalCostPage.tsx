@@ -1,90 +1,85 @@
-// src/components/operational-costs/OperationalCostPageSimple.tsx
+// src/components/operational-costs/OperationalCostPage.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Calculator, Edit2, Trash2, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { OperationalCostProvider, useOperationalCost } from './context';
 import { formatCurrency } from './utils/costHelpers';
 import { OperationalCost } from './types';
+import { CostFormDialog } from './components/CostFormDialog';
 
 const OperationalCostContent: React.FC = () => {
   const { state, actions } = useOperationalCost();
   
   const [productionTarget, setProductionTarget] = useState(3000);
-  const [newCost, setNewCost] = useState({
-    nama_biaya: '',
-    jumlah_per_bulan: 0,
-    jenis: 'tetap' as 'tetap' | 'variabel',
-    cost_category: 'general' as any,
-    isAdding: false
-  });
-  const [editingCost, setEditingCost] = useState<{
-    id: string;
-    nama_biaya: string;
-    jumlah_per_bulan: number;
-    jenis: 'tetap' | 'variabel';
-    cost_category: string;
-  } | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingCost, setEditingCost] = useState<OperationalCost | null>(null);
+
+  // Auto-refresh data when component mounts
+  useEffect(() => {
+    if (state.isAuthenticated) {
+      actions.fetchCosts();
+    }
+  }, [state.isAuthenticated]);
+
+  // Auto-refresh after CRUD operations
+  useEffect(() => {
+    if (state.isAuthenticated && !state.loading.costs) {
+      actions.fetchCosts();
+    }
+  }, [state.costs.length]); // Refresh when costs count changes
 
   // Calculate totals
   const totalMonthlyCosts = state.summary?.total_biaya_aktif || 0;
   const costPerProduct = productionTarget > 0 ? totalMonthlyCosts / productionTarget : 0;
 
   // Handlers
-  const handleSaveNewCost = async () => {
-    if (!newCost.nama_biaya || newCost.jumlah_per_bulan <= 0) return;
+  const handleOpenAddDialog = () => {
+    setEditingCost(null);
+    setShowDialog(true);
+  };
+
+  const handleOpenEditDialog = (cost: OperationalCost) => {
+    setEditingCost(cost);
+    setShowDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setShowDialog(false);
+    setEditingCost(null);
+  };
+
+  const handleSaveDialog = async (costData: any) => {
+    let success = false;
     
-    const success = await actions.createCost({
-      nama_biaya: newCost.nama_biaya,
-      jumlah_per_bulan: newCost.jumlah_per_bulan,
-      jenis: newCost.jenis,
-      cost_category: newCost.cost_category,
-      status: 'aktif'
-    });
-    
-    if (success) {
-      setNewCost({
-        nama_biaya: '',
-        jumlah_per_bulan: 0,
-        jenis: 'tetap',
-        cost_category: 'general',
-        isAdding: false
+    if (editingCost) {
+      // Update existing cost
+      success = await actions.updateCost(editingCost.id, costData);
+    } else {
+      // Create new cost
+      success = await actions.createCost({
+        ...costData,
+        status: 'aktif'
       });
     }
-  };
-
-  const handleEditCost = (cost: OperationalCost) => {
-    setEditingCost({
-      id: cost.id,
-      nama_biaya: cost.nama_biaya,
-      jumlah_per_bulan: cost.jumlah_per_bulan,
-      jenis: cost.jenis as 'tetap' | 'variabel',
-      cost_category: cost.cost_category || 'general'
-    });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingCost) return;
-    
-    const success = await actions.updateCost(editingCost.id, {
-      nama_biaya: editingCost.nama_biaya,
-      jumlah_per_bulan: editingCost.jumlah_per_bulan,
-      jenis: editingCost.jenis,
-      cost_category: editingCost.cost_category
-    });
     
     if (success) {
-      setEditingCost(null);
+      handleCloseDialog();
+      // Data will auto-refresh due to useEffect
     }
+    
+    return success;
   };
 
   const handleDeleteCost = async (costId: string) => {
     if (confirm('Yakin ingin menghapus biaya ini?')) {
-      await actions.deleteCost(costId);
+      const success = await actions.deleteCost(costId);
+      if (success) {
+        // Data will auto-refresh due to useEffect
+      }
     }
   };
 
@@ -270,7 +265,7 @@ const OperationalCostContent: React.FC = () => {
             <CardTitle className="flex items-center justify-between">
               <span>📋 Detail Biaya Operasional ({state.costs.length} item)</span>
               <Button
-                onClick={() => setNewCost(prev => ({ ...prev, isAdding: true }))}
+                onClick={handleOpenAddDialog}
                 size="sm"
                 className="bg-orange-600 hover:bg-orange-700"
               >
@@ -294,194 +289,52 @@ const OperationalCostContent: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  
-                  {/* Add new cost row */}
-                  {newCost.isAdding && (
-                    <tr className="border-b border-gray-100 bg-blue-50">
-                      <td className="py-3 px-2">
-                        <Input
-                          placeholder="Nama biaya..."
-                          value={newCost.nama_biaya}
-                          onChange={(e) => setNewCost(prev => ({ ...prev, nama_biaya: e.target.value }))}
-                          className="h-8"
-                        />
+                  {/* Existing costs */}
+                  {state.costs.map((cost) => (
+                    <tr key={cost.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-2 font-medium">{cost.nama_biaya}</td>
+                      <td className="py-3 px-2 text-right font-medium">{formatCurrency(cost.jumlah_per_bulan)}</td>
+                      <td className="py-3 px-2 text-center">
+                        <Badge variant={cost.jenis === 'tetap' ? 'default' : 'secondary'}>
+                          {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
+                        </Badge>
                       </td>
-                      <td className="py-3 px-2">
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={newCost.jumlah_per_bulan || ''}
-                            onChange={(e) => setNewCost(prev => ({ ...prev, jumlah_per_bulan: parseFloat(e.target.value) || 0 }))}
-                            className="h-8 pl-6 text-right"
-                          />
-                        </div>
-                      </td>
-                      <td className="py-3 px-2">
-                        <Select value={newCost.jenis} onValueChange={(value: 'tetap' | 'variabel') => setNewCost(prev => ({ ...prev, jenis: value }))}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="tetap">Tetap</SelectItem>
-                            <SelectItem value="variabel">Variabel</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-3 px-2">
-                        <Select value={newCost.cost_category} onValueChange={(value) => setNewCost(prev => ({ ...prev, cost_category: value }))}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="general">General</SelectItem>
-                            <SelectItem value="administrative">Administrative</SelectItem>
-                            <SelectItem value="selling">Selling</SelectItem>
-                            <SelectItem value="overhead">Overhead</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <td className="py-3 px-2 text-center">
+                        <Badge variant="outline" className="text-xs">
+                          {cost.cost_category || 'general'}
+                        </Badge>
                       </td>
                       <td className="py-3 px-2 text-center">
                         <div className="flex justify-center gap-1">
                           <Button
                             size="sm"
-                            onClick={handleSaveNewCost}
-                            disabled={!newCost.nama_biaya || newCost.jumlah_per_bulan <= 0}
-                            className="h-8 px-2 bg-green-600 hover:bg-green-700"
+                            variant="outline"
+                            onClick={() => handleOpenEditDialog(cost)}
+                            className="h-8 px-2"
                           >
-                            ✓
+                            <Edit2 className="h-3 w-3" />
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setNewCost(prev => ({ ...prev, isAdding: false, nama_biaya: '', jumlah_per_bulan: 0 }))}
-                            className="h-8 px-2"
+                            onClick={() => handleDeleteCost(cost.id)}
+                            className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            ✕
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </td>
                     </tr>
-                  )}
-
-                  {/* Existing costs */}
-                  {state.costs.map((cost) => (
-                    <tr key={cost.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      
-                      {editingCost?.id === cost.id ? (
-                        // Edit mode
-                        <>
-                          <td className="py-3 px-2">
-                            <Input
-                              value={editingCost.nama_biaya}
-                              onChange={(e) => setEditingCost(prev => prev ? ({ ...prev, nama_biaya: e.target.value }) : null)}
-                              className="h-8"
-                            />
-                          </td>
-                          <td className="py-3 px-2">
-                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-                              <Input
-                                type="number"
-                                value={editingCost.jumlah_per_bulan || ''}
-                                onChange={(e) => setEditingCost(prev => prev ? ({ ...prev, jumlah_per_bulan: parseFloat(e.target.value) || 0 }) : null)}
-                                className="h-8 pl-6 text-right"
-                              />
-                            </div>
-                          </td>
-                          <td className="py-3 px-2">
-                            <Select value={editingCost.jenis} onValueChange={(value: 'tetap' | 'variabel') => setEditingCost(prev => prev ? ({ ...prev, jenis: value }) : null)}>
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="tetap">Tetap</SelectItem>
-                                <SelectItem value="variabel">Variabel</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="py-3 px-2">
-                            <Select value={editingCost.cost_category} onValueChange={(value) => setEditingCost(prev => prev ? ({ ...prev, cost_category: value }) : null)}>
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="general">General</SelectItem>
-                                <SelectItem value="administrative">Administrative</SelectItem>
-                                <SelectItem value="selling">Selling</SelectItem>
-                                <SelectItem value="overhead">Overhead</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="py-3 px-2 text-center">
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                size="sm"
-                                onClick={handleSaveEdit}
-                                className="h-8 px-2 bg-green-600 hover:bg-green-700"
-                              >
-                                ✓
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setEditingCost(null)}
-                                className="h-8 px-2"
-                              >
-                                ✕
-                              </Button>
-                            </div>
-                          </td>
-                        </>
-                      ) : (
-                        // View mode
-                        <>
-                          <td className="py-3 px-2 font-medium">{cost.nama_biaya}</td>
-                          <td className="py-3 px-2 text-right font-medium">{formatCurrency(cost.jumlah_per_bulan)}</td>
-                          <td className="py-3 px-2 text-center">
-                            <Badge variant={cost.jenis === 'tetap' ? 'default' : 'secondary'}>
-                              {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-2 text-center">
-                            <Badge variant="outline" className="text-xs">
-                              {cost.cost_category || 'general'}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-2 text-center">
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditCost(cost)}
-                                className="h-8 px-2"
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDeleteCost(cost.id)}
-                                className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </td>
-                        </>
-                      )}
-                    </tr>
                   ))}
 
                   {/* Empty state */}
-                  {state.costs.length === 0 && !newCost.isAdding && (
+                  {state.costs.length === 0 && (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-gray-500">
                         <div className="space-y-2">
                           <p>Belum ada biaya operasional</p>
                           <Button
-                            onClick={() => setNewCost(prev => ({ ...prev, isAdding: true }))}
+                            onClick={handleOpenAddDialog}
                             size="sm"
                             className="bg-orange-600 hover:bg-orange-700"
                           >
@@ -515,6 +368,15 @@ const OperationalCostContent: React.FC = () => {
         </Card>
 
       </div>
+
+      {/* Cost Form Dialog */}
+      <CostFormDialog
+        isOpen={showDialog}
+        onClose={handleCloseDialog}
+        onSave={handleSaveDialog}
+        cost={editingCost}
+        isLoading={state.loading.costs}
+      />
     </div>
   );
 };

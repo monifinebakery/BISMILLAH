@@ -304,7 +304,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   });
 
   // ✅ FIXED: CRUD operations with proper async handling (stabilized with useCallback)
-  const addBahanBaku = React.useCallback(async (bahan: OmitBahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'): Promiseboolean => {
+  const addBahanBaku = React.useCallback(async (bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
     try {
       logger.debug(`[${providerId.current}] 🎯 addBahanBaku called:`, bahan);
       const result = await createMutation.mutateAsync(bahan);
@@ -316,7 +316,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     }
   }, [createMutation]);
 
-  const updateBahanBaku = React.useCallback(async (id: string, updates: PartialBahanBakuFrontend): Promiseboolean => {
+  const updateBahanBaku = React.useCallback(async (id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> => {
     try {
       logger.info(`[${providerId.current}] 🎯 updateBahanBaku called:`, { id, updates });
       const result = await updateMutation.mutateAsync({ id, updates });
@@ -328,7 +328,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     }
   }, [updateMutation]);
 
-  const deleteBahanBaku = React.useCallback(async (id: string): Promiseboolean => {
+  const deleteBahanBaku = React.useCallback(async (id: string): Promise<boolean> => {
     try {
       logger.debug(`[${providerId.current}] 🎯 deleteBahanBaku called:`, { id });
       const result = await deleteMutation.mutateAsync(id);
@@ -340,7 +340,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     }
   }, [deleteMutation]);
 
-  const bulkDeleteBahanBaku = React.useCallback(async (ids: string[]): Promiseboolean => {
+  const bulkDeleteBahanBaku = React.useCallback(async (ids: string[]): Promise<boolean> => {
     try {
       logger.debug(`[${providerId.current}] 🎯 bulkDeleteBahanBaku called:`, { ids });
       const result = await bulkDeleteMutation.mutateAsync(ids);
@@ -352,18 +352,18 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     }
   }, [bulkDeleteMutation]);
 
-  const refreshData = React.useCallback(async (): Promisevoid => {
+  const refreshData = React.useCallback(async (): Promise<void> => {
     logger.debug(`[${providerId.current}] 🔄 refreshData called`);
     await refetch();
   }, [refetch]);
 
   // Utility functions
-  const getBahanBakuByName = React.useCallback((nama: string): BahanBakuFrontend | undefined => {
+  const getBahanBakuByName = React.useCallback((nama: string): BahanBakuFrontend | undefined => {
     if (!nama || typeof nama !== 'string') return undefined;
-    return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
+    return bahanBaku.find(bahan => bahan.nama.toLowerCase() === nama.toLowerCase());
   }, [bahanBaku]);
 
-  const reduceStok = React.useCallback(async (nama: string, jumlah: number): Promiseboolean => {
+  const reduceStok = React.useCallback(async (nama: string, jumlah: number): Promise<boolean> => {
     try {
       const service = await warehouseApi.createService('crud', {
         userId: user?.id,
@@ -382,28 +382,26 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   }, [user?.id, enableDebugLogs, bahanBaku, refetch]);
 
   // Analysis functions
-  const getLowStockItems = React.useCallback((): BahanBakuFrontend[] => {
-    return bahanBaku.filter(item => Number(item.stok) = Number(item.minimum));
+  const getLowStockItems = React.useCallback((): BahanBakuFrontend[] => {
+    return bahanBaku.filter(item => Number(item.stok) <= Number(item.minimum));
   }, [bahanBaku]);
 
-  const getOutOfStockItems = React.useCallback((): BahanBakuFrontend[] => {
-    return bahanBaku.filter(item => Number(item.stok) === 0);
+  const getOutOfStockItems = React.useCallback((): BahanBakuFrontend[] => {
+    return bahanBaku.filter(item => Number(item.stok) === 0);
   }, [bahanBaku]);
 
-  const getExpiringItems = React.useCallback((days: number = 30): BahanBakuFrontend[] => {
+  const getExpiringItems = React.useCallback((days: number = 30): BahanBakuFrontend[] => {
     const threshold = new Date();
     threshold.setDate(threshold.getDate() + days);
     
-    return bahanBaku.filter(item => {
+    return bahanBaku.filter(item => {
       if (!item.expiry) return false;
       const expiryDate = new Date(item.expiry);
-      return expiryDate = threshold  expiryDate  new Date();
+      return expiryDate <= threshold && expiryDate > new Date();
     });
   }, [bahanBaku]);
-
   // ✅ ENHANCED: Context value with proper types (memoized)
-  const contextValue: WarehouseContextType = React.useMemo(() => ({
-
+  const contextValue: WarehouseContextType = React.useMemo(() => ({
     // Data
     bahanBaku,
     loading,
@@ -429,7 +427,6 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     getExpiringItems,
 
     // ✅ FIXED: Proper refetch type and value
-
     refetch,
     isRefetching,
   }), [

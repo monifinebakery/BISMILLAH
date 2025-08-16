@@ -7,11 +7,16 @@ import {
   RevenueBreakdown,
   COGSBreakdown,
   OpExBreakdown,
-  ProfitChartData 
+  ProfitChartData,
+  FNBCOGSBreakdown,
+  WACBreakdown 
 } from '../types/profitAnalysis.types';
 
+// 🍽️ Import F&B constants for categorization
+import { FNB_COGS_CATEGORIES, FNB_REVENUE_CATEGORIES, FNB_OPEX_CATEGORIES } from '../constants/profitConstants';
+
 /**
- * Transform financial transactions to revenue breakdown
+ * 🍽️ Transform financial transactions to F&B revenue breakdown
  */
 export const transformToRevenueBreakdown = (
   transactions: any[]
@@ -19,9 +24,24 @@ export const transformToRevenueBreakdown = (
   const incomeTransactions = transactions.filter(t => t.type === 'income');
   const totalRevenue = incomeTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
   
-  // Group by category
+  // Group by F&B category with mapping
   const categoryGroups = incomeTransactions.reduce((groups, transaction) => {
-    const category = transaction.category || 'Lainnya';
+    let category = transaction.category || 'Lainnya';
+    
+    // 🍽️ Map generic categories to F&B specific categories
+    const categoryMapping: Record<string, string> = {
+      'Penjualan': 'Penjualan Makanan',
+      'Sales': 'Penjualan Makanan', 
+      'Food Sales': 'Penjualan Makanan',
+      'Beverage Sales': 'Penjualan Minuman',
+      'Minuman': 'Penjualan Minuman',
+      'Catering': 'Paket Catering',
+      'Delivery': 'Delivery/Ojol',
+      'Event': 'Event & Acara'
+    };
+    
+    category = categoryMapping[category] || category;
+    
     if (!groups[category]) {
       groups[category] = {
         transactions: [],
@@ -43,7 +63,95 @@ export const transformToRevenueBreakdown = (
 };
 
 /**
- * Transform expense transactions to COGS breakdown
+ * 🍽️ Transform WAC breakdown to F&B COGS breakdown
+ */
+export const transformToFNBCOGSBreakdown = (
+  wacBreakdown: WACBreakdown[],
+  totalCogs?: number
+): FNBCOGSBreakdown[] => {
+  const effectiveTotal = totalCogs || wacBreakdown.reduce((sum, item) => sum + item.total_value, 0);
+  
+  return wacBreakdown.map(item => {
+    // 🍽️ Categorize based on item name with F&B context
+    const category = categorizeFNBItem(item.item_name);
+    const isExpensive = item.total_value > 500000; // > 500k considered expensive
+    
+    return {
+      item_id: item.item_id,
+      item_name: item.item_name,
+      category,
+      quantity_used: item.current_stock, // Using current stock as proxy
+      unit: 'unit', // Could be enhanced with actual unit data
+      unit_price: item.wac_price,
+      total_cost: item.total_value,
+      percentage: effectiveTotal > 0 ? (item.total_value / effectiveTotal) * 100 : 0,
+      wac_price: item.wac_price,
+      is_expensive: isExpensive
+    };
+  });
+};
+
+/**
+ * 🍽️ Categorize F&B items based on name patterns
+ */
+const categorizeFNBItem = (itemName: string): string => {
+  const name = itemName.toLowerCase();
+  
+  // Main ingredients
+  if (name.includes('beras') || name.includes('rice') || 
+      name.includes('daging') || name.includes('meat') ||
+      name.includes('ayam') || name.includes('chicken') ||
+      name.includes('ikan') || name.includes('fish') ||
+      name.includes('sayur') || name.includes('vegetable') ||
+      name.includes('tahu') || name.includes('tempe') ||
+      name.includes('mie') || name.includes('noodle')) {
+    return 'Bahan Makanan Utama';
+  }
+  
+  // Spices and seasonings
+  if (name.includes('garam') || name.includes('salt') ||
+      name.includes('gula') || name.includes('sugar') ||
+      name.includes('bumbu') || name.includes('spice') ||
+      name.includes('kecap') || name.includes('saos') ||
+      name.includes('sauce') || name.includes('merica') ||
+      name.includes('pepper') || name.includes('bawang') ||
+      name.includes('onion') || name.includes('cabai') ||
+      name.includes('chili')) {
+    return 'Bumbu & Rempah';
+  }
+  
+  // Beverages
+  if (name.includes('air') || name.includes('water') ||
+      name.includes('teh') || name.includes('tea') ||
+      name.includes('kopi') || name.includes('coffee') ||
+      name.includes('jus') || name.includes('juice') ||
+      name.includes('sirup') || name.includes('syrup') ||
+      name.includes('susu') || name.includes('milk')) {
+    return 'Minuman & Sirup';
+  }
+  
+  // Packaging
+  if (name.includes('kemasan') || name.includes('pack') ||
+      name.includes('box') || name.includes('cup') ||
+      name.includes('plastik') || name.includes('plastic') ||
+      name.includes('kertas') || name.includes('paper') ||
+      name.includes('styrofoam') || name.includes('container')) {
+    return 'Kemasan & Wadah';
+  }
+  
+  // Gas and fuel
+  if (name.includes('gas') || name.includes('lpg') ||
+      name.includes('bensin') || name.includes('fuel') ||
+      name.includes('bahan bakar')) {
+    return 'Gas & Bahan Bakar';
+  }
+  
+  // Default category
+  return 'Lainnya';
+};
+
+/**
+ * Transform expense transactions to COGS breakdown (legacy support)
  */
 export const transformToCOGSBreakdown = (
   transactions: any[]
@@ -83,7 +191,7 @@ export const transformToCOGSBreakdown = (
 };
 
 /**
- * Transform operational costs to OpEx breakdown
+ * 🏪 Transform operational costs to F&B OpEx breakdown with friendly names
  */
 export const transformToOpExBreakdown = (
   operationalCosts: any[]
@@ -91,12 +199,43 @@ export const transformToOpExBreakdown = (
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
   const totalOpEx = activeCosts.reduce((sum, c) => sum + (c.jumlah_per_bulan || 0), 0);
 
-  return activeCosts.map(cost => ({
-    cost_name: cost.nama_biaya,
-    amount: cost.jumlah_per_bulan || 0,
-    type: cost.jenis,
-    percentage: totalOpEx > 0 ? ((cost.jumlah_per_bulan || 0) / totalOpEx) * 100 : 0
-  }));
+  return activeCosts.map(cost => {
+    // 🏪 Map cost names to F&B friendly terms
+    let friendlyName = cost.nama_biaya;
+    const nameMapping: Record<string, string> = {
+      'Gaji': 'Gaji Karyawan',
+      'Salary': 'Gaji Karyawan',
+      'Rent': 'Sewa Tempat', 
+      'Sewa': 'Sewa Tempat',
+      'Electricity': 'Listrik & Air',
+      'Listrik': 'Listrik & Air',
+      'Water': 'Listrik & Air',
+      'Air': 'Listrik & Air',
+      'Marketing': 'Promosi & Iklan',
+      'Advertising': 'Promosi & Iklan',
+      'Promosi': 'Promosi & Iklan',
+      'Transport': 'Transportasi',
+      'Internet': 'Internet & Pulsa',
+      'Phone': 'Internet & Pulsa',
+      'Pulsa': 'Internet & Pulsa'
+    };
+    
+    // Try to find mapping
+    const mappedName = Object.keys(nameMapping).find(key => 
+      friendlyName.toLowerCase().includes(key.toLowerCase())
+    );
+    
+    if (mappedName) {
+      friendlyName = nameMapping[mappedName];
+    }
+    
+    return {
+      cost_name: friendlyName,
+      amount: cost.jumlah_per_bulan || 0,
+      type: cost.jenis,
+      percentage: totalOpEx > 0 ? ((cost.jumlah_per_bulan || 0) / totalOpEx) * 100 : 0
+    };
+  });
 };
 
 /**
@@ -146,14 +285,18 @@ export const transformToProfitAnalysis = (
 };
 
 /**
- * Transform profit analysis history to chart data
+ * 🍽️ Transform profit analysis history to chart data with WAC support
  */
 export const transformToChartData = (
-  profitHistory: RealTimeProfitCalculation[]
+  profitHistory: RealTimeProfitCalculation[],
+  effectiveCogs?: number // WAC calculated COGS for current period
 ): ProfitChartData[] => {
-  return profitHistory.map(analysis => {
+  return profitHistory.map((analysis, index) => {
     const revenue = analysis.revenue_data.total;
-    const cogs = analysis.cogs_data.total;
+    // Use effective COGS for latest period if available
+    const cogs = (index === profitHistory.length - 1 && effectiveCogs !== undefined) 
+      ? effectiveCogs 
+      : analysis.cogs_data.total;
     const opex = analysis.opex_data.total;
     const grossProfit = revenue - cogs;
     const netProfit = grossProfit - opex;
@@ -285,57 +428,63 @@ export const formatPercentage = (value: number, decimals: number = 1): string =>
 };
 
 /**
- * Format large numbers with abbreviations
+ * 💰 Format large numbers with Indonesian abbreviations (UMKM friendly)
  */
 export const formatLargeNumber = (num: number): string => {
   if (num >= 1000000000) {
-    return (num / 1000000000).toFixed(1) + 'B';
+    return (num / 1000000000).toFixed(1) + ' Milyar';
   }
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+    return (num / 1000000).toFixed(1) + ' Juta';
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + ' Ribu';
   }
-  return num.toString();
+  return new Intl.NumberFormat('id-ID').format(num);
 };
 
 /**
- * Transform period string to readable format
+ * 🗺️ Format period string to UMKM friendly readable format
  */
 export const formatPeriodLabel = (period: string, periodType: 'monthly' | 'quarterly' | 'yearly' = 'monthly'): string => {
   if (periodType === 'yearly') {
-    return period; // "2024"
+    return `Tahun ${period}`; // "Tahun 2024"
   }
 
   if (periodType === 'quarterly') {
     // "2024-Q1" format
     const [year, quarter] = period.split('-Q');
-    return `Q${quarter} ${year}`;
+    return `Kuartal ${quarter} ${year}`;
   }
 
   // Monthly: "2024-01" format
   const [year, month] = period.split('-');
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
   ];
   
   const monthIndex = parseInt(month) - 1;
+  if (monthIndex < 0 || monthIndex >= monthNames.length) {
+    return period; // fallback
+  }
   return `${monthNames[monthIndex]} ${year}`;
 };
 
 /**
- * Get short period label for charts
+ * 🗺️ Get short period label for charts (Indonesian)
  */
 export const getShortPeriodLabel = (period: string): string => {
   const [year, month] = period.split('-');
   const shortMonths = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
   ];
   
   const monthIndex = parseInt(month) - 1;
+  if (monthIndex < 0 || monthIndex >= shortMonths.length) {
+    return period; // fallback
+  }
   return `${shortMonths[monthIndex]} ${year.slice(-2)}`;
 };
 

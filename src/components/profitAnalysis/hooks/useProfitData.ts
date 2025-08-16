@@ -1,12 +1,23 @@
-// useProfitData.ts - Fixed Dependencies
+// useProfitData.ts - Enhanced with F&B UMKM friendly formatting
 // ==============================================
 
 import { useMemo, useCallback } from 'react';
-import { ProfitChartData, ProfitTrendData, RealTimeProfitCalculation } from '../types/profitAnalysis.types';
+import { 
+  ProfitChartData, 
+  ProfitTrendData, 
+  RealTimeProfitCalculation,
+  FNBCOGSBreakdown 
+} from '../types/profitAnalysis.types';
+
+// 🍽️ Import F&B labels for export
+import { FNB_LABELS } from '../constants/profitConstants';
 
 export interface UseProfitDataOptions {
   history?: RealTimeProfitCalculation[];
   currentAnalysis?: RealTimeProfitCalculation;
+  // 🍽️ F&B specific options
+  effectiveCogs?: number;    // WAC calculated COGS
+  hppBreakdown?: FNBCOGSBreakdown[];  // F&B breakdown
 }
 
 export interface UseProfitDataReturn {
@@ -21,21 +32,28 @@ export interface UseProfitDataReturn {
   bestPerformingPeriod: RealTimeProfitCalculation | null;
   worstPerformingPeriod: RealTimeProfitCalculation | null;
   
-  // Breakdown data
+  // 🍽️ Enhanced breakdown data with F&B categories
   revenueBreakdown: Array<{ category: string; amount: number; percentage: number }>;
   costBreakdown: Array<{ category: string; amount: number; percentage: number }>;
+  fnbCostBreakdown: Array<{ category: string; amount: number; percentage: number; items: FNBCOGSBreakdown[] }>;
   
-  // Utilities
+  // 📊 Enhanced utilities
   formatPeriodLabel: (period: string) => string;
-  exportData: () => any[];
+  exportData: () => any[];          // General export
+  exportFNBData: () => any[];       // F&B specific export with friendly terms
 }
 
 export const useProfitData = (
   options: UseProfitDataOptions = {}
 ): UseProfitDataReturn => {
-  const { history = [], currentAnalysis } = options;
+  const { 
+    history = [], 
+    currentAnalysis,
+    effectiveCogs,      // WAC calculated COGS
+    hppBreakdown = []   // F&B breakdown
+  } = options;
 
-  // ✅ UTILITIES - No dependencies needed for static function
+  // 🗺️ Enhanced period formatting - UMKM friendly
   const formatPeriodLabel = useCallback((period: string): string => {
     try {
       if (!period || typeof period !== 'string') return period || '';
@@ -44,8 +62,8 @@ export const useProfitData = (
       if (!year || !month) return period;
       
       const monthNames = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
       ];
       
       const monthIndex = parseInt(month) - 1;
@@ -67,7 +85,8 @@ export const useProfitData = (
         if (!analysis) return null;
         
         const revenue = analysis.revenue_data?.total || 0;
-        const cogs = analysis.cogs_data?.total || 0;
+        // 🍽️ Use effective COGS if available (WAC), otherwise fallback to API COGS
+        const cogs = effectiveCogs !== undefined ? effectiveCogs : (analysis.cogs_data?.total || 0);
         const opex = analysis.opex_data?.total || 0;
         const grossProfit = revenue - cogs;
         const netProfit = grossProfit - opex;
@@ -214,18 +233,19 @@ export const useProfitData = (
     if (!currentAnalysis) return [];
 
     try {
-      const cogsTotal = currentAnalysis.cogs_data?.total || 0;
+      // 🍽️ Use effective COGS (WAC) if available
+      const cogsTotal = effectiveCogs !== undefined ? effectiveCogs : (currentAnalysis.cogs_data?.total || 0);
       const opexTotal = currentAnalysis.opex_data?.total || 0;
       const totalCosts = cogsTotal + opexTotal;
       
       const breakdown = [
         {
-          category: 'HPP',
+          category: '🥘 Modal Bahan Baku',  // F&B friendly term
           amount: cogsTotal,
           percentage: totalCosts > 0 ? (cogsTotal / totalCosts) * 100 : 0
         },
         {
-          category: 'Biaya Ops',
+          category: '🏪 Biaya Bulanan Tetap', // F&B friendly term
           amount: opexTotal,
           percentage: totalCosts > 0 ? (opexTotal / totalCosts) * 100 : 0
         }
@@ -236,8 +256,42 @@ export const useProfitData = (
       console.error('Error processing cost breakdown:', error);
       return [];
     }
-  }, [currentAnalysis?.cogs_data?.total, currentAnalysis?.opex_data?.total]);
+  }, [currentAnalysis?.cogs_data?.total, currentAnalysis?.opex_data?.total, effectiveCogs]);
 
+  // 🍽️ F&B specific cost breakdown by category
+  const fnbCostBreakdown = useMemo(() => {
+    if (!hppBreakdown || hppBreakdown.length === 0) return [];
+
+    try {
+      // Group by category
+      const categoryGroups = hppBreakdown.reduce((groups, item) => {
+        const category = item.category || 'Lainnya';
+        if (!groups[category]) {
+          groups[category] = {
+            items: [],
+            total: 0
+          };
+        }
+        groups[category].items.push(item);
+        groups[category].total += item.total_cost;
+        return groups;
+      }, {} as Record<string, { items: FNBCOGSBreakdown[]; total: number }>);
+
+      const totalCogs = effectiveCogs || 0;
+      
+      return Object.entries(categoryGroups).map(([category, data]) => ({
+        category,
+        amount: data.total,
+        percentage: totalCogs > 0 ? (data.total / totalCogs) * 100 : 0,
+        items: data.items
+      }));
+    } catch (error) {
+      console.error('Error processing F&B cost breakdown:', error);
+      return [];
+    }
+  }, [hppBreakdown, effectiveCogs]);
+
+  // 📊 General export (backward compatibility)
   const exportData = useCallback(() => {
     if (!Array.isArray(chartData) || chartData.length === 0) return [];
     
@@ -257,6 +311,27 @@ export const useProfitData = (
       return [];
     }
   }, [chartData, formatPeriodLabel]);
+  
+  // 🍽️ F&B friendly export with UMKM terminology
+  const exportFNBData = useCallback(() => {
+    if (!Array.isArray(chartData) || chartData.length === 0) return [];
+    
+    try {
+      return chartData.map(data => ({
+        'Periode': formatPeriodLabel(data?.period || ''),
+        'Omset (Rp)': data?.revenue || 0,
+        'Modal Bahan Baku (Rp)': data?.cogs || 0,
+        'Biaya Bulanan Tetap (Rp)': data?.opex || 0,
+        'Untung Kotor (Rp)': data?.gross_profit || 0,
+        'Untung Bersih (Rp)': data?.net_profit || 0,
+        'Margin Kotor (%)': (data?.gross_margin || 0).toFixed(1),
+        'Margin Bersih (%)': (data?.net_margin || 0).toFixed(1)
+      }));
+    } catch (error) {
+      console.error('Error exporting F&B data:', error);
+      return [];
+    }
+  }, [chartData, formatPeriodLabel]);
 
   return {
     // Chart data
@@ -266,12 +341,14 @@ export const useProfitData = (
     // Summary data
     ...summaryMetrics,
     
-    // Breakdown data
+    // 🍽️ Enhanced breakdown data
     revenueBreakdown,
     costBreakdown,
+    fnbCostBreakdown,
     
-    // Utilities
+    // 📊 Enhanced utilities
     formatPeriodLabel,
-    exportData
+    exportData,
+    exportFNBData
   };
 };

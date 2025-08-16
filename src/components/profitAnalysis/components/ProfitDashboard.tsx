@@ -21,6 +21,7 @@ import ProfitSummaryCards from './ProfitSummaryCards';
 import ProfitBreakdownChart from './ProfitBreakdownChart';
 import ProfitTrendChart from './ProfitTrendChart';
 import DetailedBreakdownTable from './DetailedBreakdownTable';
+import FNBInsights from './FNBInsights';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitCalculation, useProfitData } from '../hooks';
@@ -543,8 +544,24 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analisis Profit</h1>
-          <p className="text-gray-600">Analisis profit komprehensif dengan kalkulasi real-time dan business intelligence</p>
+          <h1 className="text-3xl font-bold tracking-tight">💰 Untung Rugi Warung</h1>
+          <p className="text-gray-600">Lihat untung-rugi bulan ini, modal bahan baku, dan perkiraan bulan depan - semua dalam bahasa yang mudah dimengerti</p>
+          {/* 🍽️ Quick Status Summary */}
+          {hasValidData && (
+            <div className="flex items-center space-x-4 mt-2 text-sm">
+              <span className={`px-2 py-1 rounded-full text-xs ${
+                footerCalc.netProfit >= 0 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {footerCalc.netProfit >= 0 ? '📈 Untung' : '📉 Rugi'} {formatCurrency(Math.abs(footerCalc.netProfit))}
+              </span>
+              <span className="text-gray-500">•</span>
+              <span className="text-gray-600">
+                Modal bahan: {formatPercentage((safeCogs / Math.max(safeRevenue, 1)) * 100)} dari omset
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center space-x-4 mt-4 lg:mt-0">
           <Select value={currentPeriod} onValueChange={handlePeriodChange}>
@@ -633,10 +650,10 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="ikhtisar">Ikhtisar</TabsTrigger>
-          <TabsTrigger value="tren">Tren</TabsTrigger>
-          <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
-          <TabsTrigger value="wawasan">Wawasan</TabsTrigger>
+          <TabsTrigger value="ikhtisar">📊 Ringkasan</TabsTrigger>
+          <TabsTrigger value="tren">📈 Grafik Bulanan</TabsTrigger>
+          <TabsTrigger value="breakdown">🧾 Detail Biaya</TabsTrigger>
+          <TabsTrigger value="wawasan">💡 Saran & Tips</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ikhtisar" className="space-y-6">
@@ -688,12 +705,20 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
         </TabsContent>
 
         <TabsContent value="wawasan" className="space-y-6">
-          {/* Advanced Metrics */}
+          {/* ✅ F&B INSIGHTS - Smart recommendations untuk warung */}
+          <FNBInsights 
+            currentAnalysis={currentAnalysis}
+            previousAnalysis={previousAnalysis}
+            effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
+            hppBreakdown={profitMetrics?.hppBreakdown ?? []}
+          />
+          
+          {/* Advanced Metrics - moved below F&B insights */}
           {advancedMetrics && (
             <Card>
               <CardHeader>
-                <CardTitle>Analitik Lanjutan</CardTitle>
-                <CardDescription>Mendalami metrik performa keuangan</CardDescription>
+                <CardTitle>📊 Metrik Lanjutan</CardTitle>
+                <CardDescription>Data teknis untuk analisis mendalam</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -701,25 +726,25 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
                     <div className="text-2xl font-bold text-blue-600">
                       {formatPercentage(advancedMetrics.grossProfitMargin)}
                     </div>
-                    <div className="text-sm text-gray-600">Margin Kotor</div>
+                    <div className="text-sm text-gray-600">🎯 Margin Kotor</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">
                       {formatPercentage(advancedMetrics.netProfitMargin)}
                     </div>
-                    <div className="text-sm text-gray-600">Margin Bersih</div>
+                    <div className="text-sm text-gray-600">💎 Margin Bersih</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-600">
                       {formatPercentage(advancedMetrics.monthlyGrowthRate)}
                     </div>
-                    <div className="text-sm text-gray-600">Pertumbuhan Bulanan</div>
+                    <div className="text-sm text-gray-600">📈 Pertumbuhan Bulanan</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-amber-600">
                       {formatPercentage(advancedMetrics.marginOfSafety)}
                     </div>
-                    <div className="text-sm text-gray-600">Margin Keamanan</div>
+                    <div className="text-sm text-gray-600">🛡️ Margin Keamanan</div>
                   </div>
                 </div>
               </CardContent>
@@ -781,11 +806,11 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           </div>
           <span>•</span>
           {/* ✅ 3) UPDATE: Footer dengan angka aman dan util konsisten */}
-          <span>Pendapatan: {formatCurrency(safeRevenue)}</span>
+          <span>💰 Omset: {formatCurrency(safeRevenue)}</span>
           <span>•</span>
-          <span>Laba Bersih: {formatCurrency(footerCalc.netProfit)}</span>
+          <span>💎 Untung Bersih: {formatCurrency(footerCalc.netProfit)}</span>
           <span>•</span>
-          <span>Margin: {formatPercentage(footerCalc.netMargin)}</span>
+          <span>📊 Margin: {formatPercentage(footerCalc.netMargin)}</span>
           {/* ✅ 5) UPDATE: Badge kecil "WAC aktif" di status bar */}
           {labels?.hppLabel && (
             <>

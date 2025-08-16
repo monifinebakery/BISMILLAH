@@ -47,6 +47,37 @@ export interface COGSBreakdown {
   percentage: number;
 }
 
+// 🍽️ F&B specific breakdown dengan kategori yang ramah
+export interface FNBCOGSBreakdown {
+  item_id: string;
+  item_name: string;          // Nama bahan (ex: "Beras Premium")
+  category: string;           // Kategori F&B (ex: "Bahan Makanan Utama")
+  quantity_used: number;
+  unit: string;              // "kg", "liter", "pcs"
+  unit_price: number;        // Harga per unit
+  total_cost: number;        // Total biaya
+  percentage: number;        // % dari total COGS
+  wac_price?: number;        // WAC price jika tersedia
+  is_expensive?: boolean;    // Flag untuk bahan mahal
+}
+
+// 💰 WAC (Weighted Average Cost) breakdown
+export interface WACBreakdown {
+  item_id: string;
+  item_name: string;
+  current_stock: number;
+  purchases: {
+    date: string;
+    quantity: number;
+    unit_price: number;
+    remaining_qty: number;
+  }[];
+  wac_price: number;        // Calculated WAC
+  total_value: number;      // Stock value at WAC
+  fifo_price?: number;      // FIFO untuk perbandingan
+  last_purchase_price: number;
+}
+
 export interface OpExBreakdown {
   cost_name: string;
   amount: number;
@@ -87,22 +118,31 @@ export interface ProfitTrendData {
   };
 }
 
-// Real-time Calculation Types (On-demand)
+// Real-time Calculation Types (On-demand) - Enhanced untuk F&B
 export interface RealTimeProfitCalculation {
   period: string;
   revenue_data: {
     total: number;
     transactions: any[]; // From financial_transactions
+    categories?: string[]; // F&B revenue categories
   };
   cogs_data: {
     total: number;
     materials: any[]; // From bahan_baku usage
+    breakdown?: FNBCOGSBreakdown[]; // Enhanced breakdown
   };
   opex_data: {
     total: number;
     costs: any[]; // From operational_costs
   };
   calculated_at: string;
+  
+  // 🆕 WAC integration
+  wac_data?: {
+    total_wac_cogs: number;
+    wac_breakdown: WACBreakdown[];
+    calculation_method: 'api' | 'wac';
+  };
 }
 
 // Advanced metrics types
@@ -144,6 +184,60 @@ export interface CostOptimizationRecommendations {
   priority: 'high' | 'medium' | 'low';
 }
 
+// 🍽️ F&B Specific Insights dan Recommendations
+export interface FNBInsight {
+  id: string;
+  type: 'alert' | 'suggestion' | 'opportunity' | 'seasonal';
+  title: string;
+  description: string;
+  impact: 'high' | 'medium' | 'low';
+  category: 'cost_control' | 'revenue_boost' | 'efficiency' | 'seasonal';
+  actionable: boolean;
+  action?: {
+    label: string;
+    type: 'internal' | 'external' | 'calculation';
+    data?: any;
+  };
+  value?: number; // Estimated impact value
+  icon?: string;
+}
+
+export interface FNBAnalysisResult {
+  period: string;
+  insights: FNBInsight[];
+  alerts: FNBInsight[];
+  opportunities: FNBInsight[];
+  seasonal_tips: FNBInsight[];
+  summary: {
+    total_insights: number;
+    high_priority_count: number;
+    potential_savings: number;
+    potential_revenue_boost: number;
+  };
+}
+
+// 🏷️ User-friendly labels untuk terminologi
+export interface FNBLabels {
+  // Basic financial terms
+  revenueLabel: string;     // "Omset" instead of "Revenue"
+  revenueHint: string;
+  cogsLabel: string;        // "Modal Bahan Baku" instead of "COGS"
+  cogsHint: string;
+  opexLabel: string;        // "Biaya Bulanan Tetap" instead of "OpEx"
+  opexHint: string;
+  
+  // Profit terms
+  grossProfitLabel: string; // "Untung Kotor"
+  grossProfitHint: string;
+  netProfitLabel: string;   // "Untung Bersih"
+  netProfitHint: string;
+  
+  // WAC specific
+  hppLabel?: string;        // "Modal Rata-rata Tertimbang"
+  hppHint?: string;
+  wacActiveLabel?: string;
+}
+
 export interface ProfitBenchmark {
   industry: {
     averageNetMargin: number;
@@ -164,14 +258,25 @@ export interface ProfitApiResponse<T = any> {
   success: boolean;
 }
 
-// ✅ FIXED: Context Types - Use RealTimeProfitCalculation instead of ProfitAnalysis
+// ✅ ENHANCED: Context Types dengan F&B support dan WAC
 export interface ProfitAnalysisContextType {
-  // State - ✅ Fixed to use RealTimeProfitCalculation
-  profitData: RealTimeProfitCalculation[]; // Changed from ProfitAnalysis[]
-  currentAnalysis: RealTimeProfitCalculation | null; // Changed from ProfitAnalysis
+  // State - Enhanced dengan F&B support
+  profitData: RealTimeProfitCalculation[];
+  currentAnalysis: RealTimeProfitCalculation | null;
   isLoading: boolean;
   error: string | null;
   lastUpdated: Date | null;
+  
+  // 🆕 F&B specific state
+  profitMetrics?: {
+    revenue: number;
+    cogs: number;           // WAC calculated COGS
+    opex: number;
+    grossProfit: number;
+    netProfit: number;
+    hppBreakdown: FNBCOGSBreakdown[];
+  };
+  labels?: FNBLabels;       // User-friendly labels
   
   // Actions
   calculateProfit: (period: string, periodType?: 'monthly' | 'quarterly' | 'yearly') => Promise<boolean>;
@@ -180,11 +285,19 @@ export interface ProfitAnalysisContextType {
   clearError: () => void;
   resetState: () => void;
   
+  // 🆕 F&B specific actions
+  refreshWACData?: () => Promise<void>;
+  generateFNBInsights?: (period: string) => Promise<FNBAnalysisResult>;
+  
   // Utilities
-  getProfitByPeriod: (period: string) => RealTimeProfitCalculation | undefined; // Changed return type
+  getProfitByPeriod: (period: string) => RealTimeProfitCalculation | undefined;
   calculateRealTimeProfit: (period: string) => Promise<RealTimeProfitCalculation>;
   
   // Query status
   isRefreshing: boolean;
   isCalculating: boolean;
+  
+  // 🆕 WAC status
+  isWACEnabled?: boolean;
+  wacLastUpdated?: Date | null;
 }

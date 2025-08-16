@@ -2,7 +2,7 @@
 // ==============================================
 
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
-import { PROFIT_CONSTANTS } from '../constants/profitConstants';
+import { PROFIT_CONSTANTS, FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
 import { warehouseUtils } from '@/components/warehouse/services/warehouseUtils';
 
 // Interfaces matching the actual schema
@@ -255,14 +255,34 @@ export const filterTransactionsByPeriod = (
 };
 
 /**
- * Get margin rating based on thresholds
+ * 🍽️ Get F&B specific margin rating with industry-appropriate thresholds
  */
 export const getMarginRating = (margin: number, type: 'gross' | 'net'): string => {
-  const thresholds = PROFIT_CONSTANTS.MARGIN_THRESHOLDS;
+  // Use F&B specific thresholds which are more realistic for food industry
+  const fnbThresholds = FNB_THRESHOLDS.MARGIN_TARGETS;
+  const fallbackThresholds = PROFIT_CONSTANTS.MARGIN_THRESHOLDS;
   
-  if (margin >= thresholds.EXCELLENT[type] * 100) return 'excellent';
-  if (margin >= thresholds.GOOD[type] * 100) return 'good';  
-  if (margin >= thresholds.FAIR[type] * 100) return 'fair';
+  const targetThreshold = fnbThresholds.EXCELLENT[type] ?? fallbackThresholds.EXCELLENT[type];
+  const goodThreshold = fnbThresholds.GOOD[type] ?? fallbackThresholds.GOOD[type];
+  const fairThreshold = fnbThresholds.FAIR[type] ?? fallbackThresholds.FAIR[type];
+  const poorThreshold = fnbThresholds.POOR[type] ?? fallbackThresholds.POOR[type];
+  
+  // Convert decimal to percentage if needed
+  const marginPercent = margin > 1 ? margin : margin * 100;
+  
+  if (marginPercent >= targetThreshold * 100) return 'excellent';
+  if (marginPercent >= goodThreshold * 100) return 'good';  
+  if (marginPercent >= fairThreshold * 100) return 'fair';
+  return 'poor';
+};
+
+/**
+ * 🍽️ Get F&B specific COGS efficiency rating
+ */
+export const getCOGSEfficiencyRating = (cogsRatio: number): string => {
+  if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.EXCELLENT) return 'excellent';
+  if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.GOOD) return 'good';
+  if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.FAIR) return 'fair';
   return 'poor';
 };
 
@@ -550,7 +570,7 @@ export const validateDataQuality = (
 };
 
 /**
- * Generate executive insights
+ * 🍽️ Generate F&B specific executive insights with UMKM friendly language
  */
 export const generateExecutiveInsights = (
   calculation: RealTimeProfitCalculation,
@@ -574,88 +594,110 @@ export const generateExecutiveInsights = (
   const opportunities: string[] = [];
   const recommendedActions: string[] = [];
   
+  // 🍽️ F&B specific revenue analysis
   if (revenue > 0) {
-    keyHighlights.push(`Revenue: ${formatCurrency(revenue)}`);
+    keyHighlights.push(`💰 Omset: ${formatCurrency(revenue)}`);
+    
+    // Check if revenue meets F&B threshold
+    if (revenue < FNB_THRESHOLDS.ALERTS.low_revenue) {
+      opportunities.push(`🎯 Omset bisa ditingkatkan (saat ini ${formatCurrency(revenue)})`);
+      recommendedActions.push('🚀 Fokus promosi menu favorit dan ekspansi jam buka');
+    }
   } else {
-    criticalIssues.push('Tidak ada revenue dalam periode ini');
-    recommendedActions.push('Fokus pada aktivitas penjualan dan marketing');
+    criticalIssues.push('❌ Tidak ada omset dalam periode ini');
+    recommendedActions.push('🏃‍♂️ Segera buka warung dan fokus pada marketing');
   }
   
-  if (grossMargin >= 50) {
-    keyHighlights.push(`Gross margin sangat baik: ${grossMargin.toFixed(1)}%`);
-  } else if (grossMargin >= 30) {
-    keyHighlights.push(`Gross margin sehat: ${grossMargin.toFixed(1)}%`);
-  } else if (grossMargin >= 15) {
-    opportunities.push(`Gross margin dapat ditingkatkan dari ${grossMargin.toFixed(1)}%`);
-    recommendedActions.push('Review harga jual dan efisiensi produksi');
+  // 🍽️ F&B specific gross margin analysis with friendlier language
+  if (grossMargin >= 65) {
+    keyHighlights.push(`📈 Untung kotor sangat baik: ${grossMargin.toFixed(1)}%`);
+  } else if (grossMargin >= 55) {
+    keyHighlights.push(`✅ Untung kotor sehat: ${grossMargin.toFixed(1)}%`);
+  } else if (grossMargin >= 45) {
+    opportunities.push(`📊 Untung kotor bisa ditingkatkan dari ${grossMargin.toFixed(1)}%`);
+    recommendedActions.push('🥘 Cek harga bahan baku dengan supplier, pertimbangkan naikkan harga menu');
   } else {
-    criticalIssues.push(`Gross margin rendah: ${grossMargin.toFixed(1)}%`);
-    recommendedActions.push('Urgent: optimasi COGS dan review pricing strategy');
+    criticalIssues.push(`⚠️ Untung kotor terlalu kecil: ${grossMargin.toFixed(1)}%`);
+    recommendedActions.push('🚨 Urgent: negosiasi supplier atau naikkan harga jual');
   }
   
-  if (netMargin >= 20) {
-    keyHighlights.push(`Net margin excellent: ${netMargin.toFixed(1)}%`);
-  } else if (netMargin >= 10) {
-    keyHighlights.push(`Net margin baik: ${netMargin.toFixed(1)}%`);
+  // 🍽️ F&B specific net margin analysis with UMKM friendly language
+  if (netMargin >= 25) {
+    keyHighlights.push(`💎 Untung bersih luar biasa: ${netMargin.toFixed(1)}%`);
+  } else if (netMargin >= 18) {
+    keyHighlights.push(`🎉 Untung bersih sangat baik: ${netMargin.toFixed(1)}%`);
+  } else if (netMargin >= 12) {
+    keyHighlights.push(`👍 Untung bersih sehat: ${netMargin.toFixed(1)}%`);
   } else if (netMargin >= 5) {
-    opportunities.push(`Net margin dapat ditingkatkan dari ${netMargin.toFixed(1)}%`);
-    recommendedActions.push('Optimasi biaya operasional');
+    opportunities.push(`📈 Untung bersih bisa ditingkatkan dari ${netMargin.toFixed(1)}%`);
+    recommendedActions.push('🏪 Cek biaya bulanan: listrik, sewa, gaji - mana yang bisa dihemat');
   } else if (netMargin < 0) {
-    criticalIssues.push(`Bisnis mengalami kerugian: ${netMargin.toFixed(1)}%`);
-    recommendedActions.push('Action plan recovery: reduce costs, increase sales');
+    criticalIssues.push(`📉 Warung rugi: ${netMargin.toFixed(1)}%`);
+    recommendedActions.push('🚨 Plan darurat: kurangi biaya, tingkatkan penjualan segera');
   } else {
-    criticalIssues.push(`Net margin sangat rendah: ${netMargin.toFixed(1)}%`);
-    recommendedActions.push('Review struktur biaya dan strategi pricing');
+    criticalIssues.push(`⚠️ Untung bersih sangat kecil: ${netMargin.toFixed(1)}%`);
+    recommendedActions.push('🔍 Review semua biaya dan strategi harga menu');
   }
   
   const cogsPercentage = revenue > 0 ? (cogs / revenue) * 100 : 0;
   const opexPercentage = revenue > 0 ? (opex / revenue) * 100 : 0;
   
-  if (cogsPercentage > 70) {
-    criticalIssues.push(`COGS terlalu tinggi: ${cogsPercentage.toFixed(1)}% dari revenue`);
-    recommendedActions.push('Review supplier dan proses produksi');
-  } else if (cogsPercentage > 50) {
-    opportunities.push(`COGS dapat dioptimasi: ${cogsPercentage.toFixed(1)}% dari revenue`);
+  // 🍽️ F&B specific cost structure analysis
+  if (cogsPercentage > FNB_THRESHOLDS.ALERTS.high_ingredient_cost * 100) {
+    criticalIssues.push(`🥘 Modal bahan baku terlalu mahal: ${cogsPercentage.toFixed(1)}% dari omset`);
+    recommendedActions.push('🔍 Cari supplier lebih murah, review porsi menu yang boros bahan');
+  } else if (cogsPercentage > 45) {
+    opportunities.push(`🥘 Modal bahan bisa dihemat: ${cogsPercentage.toFixed(1)}% dari omset (ideal <45%)`);
+    recommendedActions.push('📊 Analisis menu mana yang paling boros bahan');
+  } else {
+    keyHighlights.push(`✅ Modal bahan baku efisien: ${cogsPercentage.toFixed(1)}% dari omset`);
   }
   
-  if (opexPercentage > 40) {
-    criticalIssues.push(`Biaya operasional tinggi: ${opexPercentage.toFixed(1)}% dari revenue`);
-    recommendedActions.push('Audit dan streamline operasional expenses');
-  } else if (opexPercentage > 25) {
-    opportunities.push(`Efisiensi operasional dapat ditingkatkan: ${opexPercentage.toFixed(1)}%`);
+  if (opexPercentage > 30) {
+    criticalIssues.push(`🏪 Biaya bulanan tetap tinggi: ${opexPercentage.toFixed(1)}% dari omset`);
+    recommendedActions.push('💡 Cek biaya listrik, sewa, gaji - mana yang bisa dinegosiasi');
+  } else if (opexPercentage > 20) {
+    opportunities.push(`🏪 Biaya bulanan bisa dioptimalkan: ${opexPercentage.toFixed(1)}% dari omset`);
+    recommendedActions.push('📋 Review kontrak sewa dan efisiensi operasional');
   }
   
   if (previousCalculation) {
     const comparison = comparePeriods(calculation, previousCalculation);
     
+    // 🍽️ F&B specific growth analysis with friendly language
     if (comparison.revenueGrowth > 15) {
-      keyHighlights.push(`Revenue growth sangat baik: +${comparison.revenueGrowth.toFixed(1)}%`);
+      keyHighlights.push(`🚀 Omset tumbuh pesat: +${comparison.revenueGrowth.toFixed(1)}% dari bulan lalu`);
     } else if (comparison.revenueGrowth > 5) {
-      keyHighlights.push(`Revenue growth positif: +${comparison.revenueGrowth.toFixed(1)}%`);
+      keyHighlights.push(`📈 Omset naik: +${comparison.revenueGrowth.toFixed(1)}% dari bulan lalu`);
     } else if (comparison.revenueGrowth < -10) {
-      criticalIssues.push(`Revenue menurun signifikan: ${comparison.revenueGrowth.toFixed(1)}%`);
-      recommendedActions.push('Analisis penyebab penurunan dan action plan recovery');
+      criticalIssues.push(`📉 Omset turun drastis: ${comparison.revenueGrowth.toFixed(1)}% dari bulan lalu`);
+      recommendedActions.push('🔍 Cek kenapa omset turun: ada pesaing baru? menu kurang laris?');
     }
     
     if (comparison.trend === 'improving') {
-      keyHighlights.push('Tren profit menunjukkan perbaikan');
+      keyHighlights.push('📊 Tren untung-rugi semakin membaik');
     } else if (comparison.trend === 'declining') {
-      criticalIssues.push('Tren profit menurun');
-      recommendedActions.push('Identifikasi faktor penyebab penurunan profit');
+      criticalIssues.push('📉 Tren untung-rugi menurun');
+      recommendedActions.push('🧐 Cari tahu kenapa untung berkurang: bahan mahal? pelanggan berkurang?');
     }
   }
   
-  if (netProfit > 0 && grossMargin > 30 && netMargin > 10) {
-    opportunities.push('Bisnis dalam kondisi sehat, siap untuk ekspansi');
-    recommendedActions.push('Pertimbangkan investasi untuk growth');
+  // 🍽️ F&B specific business health assessment
+  if (netProfit > 0 && grossMargin > 55 && netMargin > 18) {
+    opportunities.push('🎉 Warung sangat sehat, siap expand atau buka cabang');
+    recommendedActions.push('💰 Pertimbangkan investasi peralatan atau lokasi baru');
+  } else if (netProfit > 0 && grossMargin > 45 && netMargin > 12) {
+    opportunities.push('👍 Warung sehat, fokus tingkatkan efisiensi');
+    recommendedActions.push('🎯 Optimalkan menu terlaris dan kurangi yang tidak laku');
   } else if (netProfit > 0) {
-    opportunities.push('Bisnis profitable, fokus pada peningkatan efisiensi');
+    opportunities.push('✅ Warung sudah untung, tapi masih bisa ditingkatkan');
+    recommendedActions.push('📊 Analisis menu mana yang paling menguntungkan');
   }
   
   const dataQuality = validateDataQuality(calculation);
   if (dataQuality.score < 70) {
-    opportunities.push('Tingkatkan kualitas data untuk analisis yang lebih akurat');
-    recommendedActions.push('Lengkapi data transaksi dan kategorisasi');
+    opportunities.push('📝 Tingkatkan pencatatan untuk analisis yang lebih akurat');
+    recommendedActions.push('✏️ Catat semua pemasukan dan pengeluaran dengan lengkap');
   }
   
   return {

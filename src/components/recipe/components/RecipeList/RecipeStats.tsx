@@ -112,25 +112,28 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
 
   return (
     <div className="space-y-6">
-      {/* Grid Statistik Utama */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <Card key={card.title} className="border-0 shadow-md transition-shadow hover:shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="mb-1 text-sm font-medium text-gray-600">{card.title}</p>
-                  <p className="mb-1 text-2xl font-bold text-gray-900">{card.value}</p>
-                  <p className="text-xs text-gray-500">{card.subtitle}</p>
-                </div>
-                <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg ${card.bgColor}`}>
-                  <card.icon className={`h-6 w-6 ${card.textColor}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Grid Statistik Utama */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((card) => {
+          const CardIcon = card.icon;
+          return (
+            <Card key={card.title} className="border-0 shadow-md transition-shadow hover:shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="mb-1 text-sm font-medium text-gray-600">{card.title}</p>
+                    <p className="mb-1 text-2xl font-bold text-gray-900">{card.value}</p>
+                    <p className="text-xs text-gray-500">{card.subtitle}</p>
+                  </div>
+                  <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg ${card.bgColor}`}>
+                    <CardIcon className={`h-6 w-6 ${card.textColor}`} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       {/* Wawasan Detail */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -169,27 +172,33 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
           </CardContent>
         </Card>
 
-        {/* Tren Biaya */}
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <trendIndicator.icon className={`h-5 w-5 ${trendIndicator.color}`} />
-              <h3 className="font-semibold text-gray-900">Tren Biaya</h3>
-            </div>
-            <div className="text-center">
-              <p className="mb-2 text-2xl font-bold text-gray-900">{formatCurrency(costAnalysis.averageCost)}</p>
-              <p className="mb-4 text-sm text-gray-600">Rata-rata HPP per porsi</p>
-              <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${
-                costAnalysis.costTrend === 'increasing' ? 'bg-red-50 text-red-700' :
-                costAnalysis.costTrend === 'decreasing' ? 'bg-green-50 text-green-700' :
-                'bg-blue-50 text-blue-700'
-              }`}>
-                <trendIndicator.icon className="h-4 w-4" />
-                {trendIndicator.text}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Tren Biaya */}
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-6">
+            <div className="mb-4 flex items-center gap-2">
+              {(() => {
+                const TrendIcon = trendIndicator.icon;
+                return <TrendIcon className={`h-5 w-5 ${trendIndicator.color}`} />;
+              })()}
+              <h3 className="font-semibold text-gray-900">Tren Biaya</h3>
+            </div>
+            <div className="text-center">
+              <p className="mb-2 text-2xl font-bold text-gray-900">{formatCurrency(costAnalysis.averageCost)}</p>
+              <p className="mb-4 text-sm text-gray-600">Rata-rata HPP per porsi</p>
+              <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${
+                costAnalysis.costTrend === 'increasing' ? 'bg-red-50 text-red-700' :
+                costAnalysis.costTrend === 'decreasing' ? 'bg-green-50 text-green-700' :
+                'bg-blue-50 text-blue-700'
+              }`}>
+                {(() => {
+                  const TrendIcon = trendIndicator.icon;
+                  return <TrendIcon className="h-4 w-4" />;
+                })()}
+                {trendIndicator.text}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Performa Resep */}
         <Card className="border-0 shadow-md">

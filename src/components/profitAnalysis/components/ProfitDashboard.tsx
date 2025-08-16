@@ -540,7 +540,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
 
   // ✅ MAIN RENDER - PASTIKAN TIDAK ADA CONDITIONAL HOOKS
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex-1">
@@ -655,26 +655,28 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 h-auto p-1">
-          <TabsTrigger value="ikhtisar" className="text-xs sm:text-sm px-1 py-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
-            <span className="hidden sm:inline">📊 Ringkasan</span>
-            <span className="sm:hidden">📊</span>
-          </TabsTrigger>
-          <TabsTrigger value="tren" className="text-xs sm:text-sm px-1 py-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
-            <span className="hidden sm:inline">📈 Grafik</span>
-            <span className="sm:hidden">📈</span>
-          </TabsTrigger>
-          <TabsTrigger value="breakdown" className="text-xs sm:text-sm px-1 py-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
-            <span className="hidden sm:inline">🧾 Detail</span>
-            <span className="sm:hidden">🧾</span>
-          </TabsTrigger>
-          <TabsTrigger value="wawasan" className="text-xs sm:text-sm px-1 py-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
-            <span className="hidden sm:inline">💡 Tips</span>
-            <span className="sm:hidden">💡</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-hidden">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 gap-1">
+            <TabsTrigger value="ikhtisar" className="text-xs sm:text-sm px-2 py-3 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 flex flex-col sm:flex-row items-center justify-center gap-1">
+              <span className="text-base sm:text-sm">📊</span>
+              <span className="text-xs sm:text-sm font-medium">Ringkasan</span>
+            </TabsTrigger>
+            <TabsTrigger value="tren" className="text-xs sm:text-sm px-2 py-3 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 flex flex-col sm:flex-row items-center justify-center gap-1">
+              <span className="text-base sm:text-sm">📈</span>
+              <span className="text-xs sm:text-sm font-medium">Grafik</span>
+            </TabsTrigger>
+            <TabsTrigger value="breakdown" className="text-xs sm:text-sm px-2 py-3 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 flex flex-col sm:flex-row items-center justify-center gap-1">
+              <span className="text-base sm:text-sm">🧾</span>
+              <span className="text-xs sm:text-sm font-medium">Detail</span>
+            </TabsTrigger>
+            <TabsTrigger value="wawasan" className="text-xs sm:text-sm px-2 py-3 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 flex flex-col sm:flex-row items-center justify-center gap-1">
+              <span className="text-base sm:text-sm">💡</span>
+              <span className="text-xs sm:text-sm font-medium">Tips</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="ikhtisar" className="space-y-4 sm:space-y-6">
+        <TabsContent value="ikhtisar" className="space-y-4 sm:space-y-6 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* ✅ 1) UPDATE: Amanin semua akses profitMetrics */}
             <ProfitBreakdownChart 
@@ -697,7 +699,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           </div>
         </TabsContent>
 
-        <TabsContent value="tren" className="space-y-4 sm:space-y-6">
+        <TabsContent value="tren" className="space-y-4 sm:space-y-6 mt-6">
           <ProfitTrendChart
             profitHistory={profitHistory}
             isLoading={loading}
@@ -709,7 +711,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           />
         </TabsContent>
 
-        <TabsContent value="breakdown" className="space-y-4 sm:space-y-6">
+        <TabsContent value="breakdown" className="space-y-4 sm:space-y-6 mt-6">
           {/* ✅ 1) UPDATE: Amanin semua akses profitMetrics */}
           <DetailedBreakdownTable 
             currentAnalysis={currentAnalysis} 
@@ -722,7 +724,7 @@ ${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs -
           />
         </TabsContent>
 
-        <TabsContent value="wawasan" className="space-y-4 sm:space-y-6">
+        <TabsContent value="wawasan" className="space-y-4 sm:space-y-6 mt-6">
           {/* ✅ F&B INSIGHTS - Smart recommendations untuk warung */}
           <FNBInsights 
             currentAnalysis={currentAnalysis}

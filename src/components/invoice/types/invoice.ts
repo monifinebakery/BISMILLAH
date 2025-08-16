@@ -1,5 +1,6 @@
 // src/components/invoice/types/invoice.ts
-import type { InvoiceItem, Customer } from './index';
+import type { InvoiceItem } from './item';
+import type { Customer } from './customer';
 
 export type InvoiceStatus = 'BELUM LUNAS' | 'LUNAS' | 'JATUH TEMPO';
 export type DiscountType = 'percent' | 'fixed';

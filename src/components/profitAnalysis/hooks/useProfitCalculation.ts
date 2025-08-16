@@ -1,15 +1,18 @@
-// useProfitCalculation.ts - Fixed Dynamic Import Issues
+// useProfitCalculation.ts - Enhanced with F&B specific calculations
 // ==============================================
 
 import { useCallback } from 'react';
-import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
+import { RealTimeProfitCalculation, FNBCOGSBreakdown, FNBInsight } from '../types/profitAnalysis.types';
 
-// ✅ FIX: Use static imports instead of dynamic require
+// ✅ Import calculation utilities
 import { 
   calculateMargins, 
   getMarginRating, 
   filterTransactionsByPeriod 
 } from '../utils/profitCalculations';
+
+// 🍽️ Import F&B constants and thresholds
+import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
 
 // Types for external dependencies
 interface FinancialTransaction {
@@ -55,11 +58,24 @@ export interface UseProfitCalculationReturn {
     netMargin: number;
   };
   
-  // Analysis
+  // 🍽️ F&B specific margin analysis
   analyzeMargins: (grossMargin: number, netMargin: number) => {
     grossRating: string;
     netRating: string;
     recommendations: string[];
+    fnbSpecific: {
+      cogsRatio: number;
+      cogsRating: string;
+      fnbRecommendations: string[];
+    };
+  };
+  
+  // 📊 Enhanced F&B analytics
+  analyzeFNBMetrics: (revenue: number, cogs: number, hppBreakdown: FNBCOGSBreakdown[]) => {
+    insights: FNBInsight[];
+    expensiveItems: FNBCOGSBreakdown[];
+    cogsEfficiency: 'excellent' | 'good' | 'fair' | 'poor';
+    suggestedActions: string[];
   };
   
   // Comparisons
@@ -136,42 +152,68 @@ export const useProfitCalculation = (
     }
   }, []); // No dependencies needed for this calculation
 
-  // ✅ MARGIN ANALYSIS - No dependencies needed
+  // 🍽️ Enhanced F&B MARGIN ANALYSIS
   const analyzeMargins = useCallback((grossMargin: number, netMargin: number) => {
     try {
-      // ✅ PERBAIKAN 1: Kirim nilai dalam persen, bukan desimal
       const grossRating = getMarginRating(grossMargin || 0, 'gross');
       const netRating = getMarginRating(netMargin || 0, 'net');
       
       const recommendations: string[] = [];
       
+      // 🍽️ F&B specific recommendations
       if (grossRating === 'poor') {
-        recommendations.push('Pertimbangkan untuk mengurangi biaya bahan baku atau meningkatkan harga jual');
+        recommendations.push('🥘 Coba negosiasi harga bahan baku dengan supplier atau cari supplier alternatif');
+        recommendations.push('💰 Pertimbangkan naikkan harga menu yang margin-nya tipis');
       }
       if (netRating === 'poor') {
-        recommendations.push('Review dan optimalisasi biaya operasional yang tidak perlu');
+        recommendations.push('🏪 Cek biaya bulanan: listrik, sewa, gaji - mana yang bisa dihemat');
+        recommendations.push('📦 Pertimbangkan delivery sendiri daripada pakai ojol terus');
       }
       if (grossRating === 'excellent' && netRating === 'poor') {
-        recommendations.push('HPP sudah baik, fokus pada efisiensi operasional');
+        recommendations.push('👍 Modal bahan sudah oke, fokus kurangi biaya tetap bulanan');
       }
       if (grossRating === 'good' && netRating === 'good') {
-        recommendations.push('Performa baik, pertahankan dan cari peluang pertumbuhan');
+        recommendations.push('🎉 Warung Anda sudah sehat! Saatnya expand atau tambah menu baru');
+      }
+      
+      // Calculate COGS ratio for F&B specific analysis
+      const cogsRatio = grossMargin > 0 ? (100 - grossMargin) / 100 : 0;
+      let cogsRating = 'poor';
+      
+      if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.EXCELLENT) cogsRating = 'excellent';
+      else if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.GOOD) cogsRating = 'good';
+      else if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.FAIR) cogsRating = 'fair';
+      
+      const fnbRecommendations: string[] = [];
+      if (cogsRating === 'poor') {
+        fnbRecommendations.push('⚠️ Modal bahan terlalu tinggi untuk bisnis F&B (ideal < 45%)');
+        fnbRecommendations.push('🔍 Analisis menu mana yang paling boros bahan');
       }
       
       return {
         grossRating: grossRating || 'poor',
         netRating: netRating || 'poor',
-        recommendations
+        recommendations,
+        fnbSpecific: {
+          cogsRatio: cogsRatio * 100,
+          cogsRating,
+          fnbRecommendations
+        }
       };
     } catch (error) {
       console.error('Error analyzing margins:', error);
       return {
         grossRating: 'poor',
         netRating: 'poor',
-        recommendations: ['Terjadi kesalahan dalam analisis margin']
+        recommendations: ['❌ Terjadi kesalahan dalam analisis margin'],
+        fnbSpecific: {
+          cogsRatio: 0,
+          cogsRating: 'poor',
+          fnbRecommendations: []
+        }
       };
     }
-  }, []); // No dependencies needed
+  }, []);
 
   // ✅ PERIOD COMPARISON - No dependencies needed
   const comparePeriods = useCallback((
@@ -288,10 +330,108 @@ export const useProfitCalculation = (
     }
   }, []); // No dependencies needed
 
+  // 🍽️ NEW: F&B specific metrics analysis
+  const analyzeFNBMetrics = useCallback((
+    revenue: number, 
+    cogs: number, 
+    hppBreakdown: FNBCOGSBreakdown[]
+  ) => {
+    try {
+      const insights: FNBInsight[] = [];
+      const suggestedActions: string[] = [];
+      
+      // Find expensive items (> 500k or > 15% of total COGS)
+      const expensiveItems = hppBreakdown.filter(item => 
+        item.total_cost > FNB_THRESHOLDS.ALERTS.expensive_item_threshold ||
+        item.percentage > 15
+      );
+      
+      // Analyze COGS efficiency
+      const cogsRatio = revenue > 0 ? cogs / revenue : 0;
+      let cogsEfficiency: 'excellent' | 'good' | 'fair' | 'poor' = 'poor';
+      
+      if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.EXCELLENT) {
+        cogsEfficiency = 'excellent';
+      } else if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.GOOD) {
+        cogsEfficiency = 'good';
+      } else if (cogsRatio <= FNB_THRESHOLDS.COGS_RATIOS.FAIR) {
+        cogsEfficiency = 'fair';
+      }
+      
+      // Generate insights based on analysis
+      if (expensiveItems.length > 0) {
+        insights.push({
+          id: 'expensive-ingredients',
+          type: 'alert',
+          title: `🚨 ${expensiveItems.length} bahan baku termahal`,
+          description: `Bahan: ${expensiveItems.map(i => i.item_name).join(', ')}`,
+          impact: 'high',
+          category: 'cost_control',
+          actionable: true,
+          action: {
+            label: 'Lihat detail',
+            type: 'internal',
+            data: expensiveItems
+          },
+          icon: '🥘'
+        });
+        
+        suggestedActions.push('🔍 Negosiasi harga dengan supplier untuk bahan termahal');
+        suggestedActions.push('🔄 Cari supplier alternatif dengan harga lebih kompetitif');
+      }
+      
+      if (cogsEfficiency === 'poor') {
+        insights.push({
+          id: 'high-cogs-ratio',
+          type: 'alert',
+          title: '⚠️ Modal bahan terlalu tinggi',
+          description: `${Math.round(cogsRatio * 100)}% dari omset (ideal <45%)`,
+          impact: 'high',
+          category: 'cost_control',
+          actionable: true,
+          icon: '📉'
+        });
+        
+        suggestedActions.push('📊 Review porsi dan resep untuk efisiensi bahan');
+        suggestedActions.push('💰 Pertimbangkan penyesuaian harga menu');
+      }
+      
+      if (cogsEfficiency === 'excellent') {
+        insights.push({
+          id: 'excellent-cogs',
+          type: 'opportunity',
+          title: '🎆 Kontrol modal bahan sangat baik!',
+          description: 'Efisiensi bahan baku Anda sudah optimal',
+          impact: 'medium',
+          category: 'efficiency',
+          actionable: false,
+          icon: '✅'
+        });
+      }
+      
+      return {
+        insights,
+        expensiveItems,
+        cogsEfficiency,
+        suggestedActions
+      };
+    } catch (error) {
+      console.error('Error analyzing F&B metrics:', error);
+      return {
+        insights: [],
+        expensiveItems: [],
+        cogsEfficiency: 'poor' as const,
+        suggestedActions: ['❌ Terjadi kesalahan dalam analisis F&B']
+      };
+    }
+  }, []);
+
   return {
     calculateLocalProfit,
     analyzeMargins,
     comparePeriods,
-    generateForecast
+    generateForecast,
+    // 🍽️ F&B specific functions
+    analyzeFNBMetrics
   };
 };

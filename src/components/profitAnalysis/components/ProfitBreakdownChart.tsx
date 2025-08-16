@@ -35,11 +35,11 @@ interface ChartData {
 
 interface BarChartData {
   category: string;
-  Pendapatan: number;
-  HPP: number;
-  BiayaOps: number;
-  'Laba Kotor': number;
-  'Laba Bersih': number;
+  'Omset': number;
+  'Modal Bahan': number;
+  'Biaya Tetap': number;
+  'Untung Kotor': number;
+  'Untung Bersih': number;
 }
 
 // ==============================================
@@ -62,12 +62,12 @@ const calculateMetrics = (revenue: number, cogs: number, opex: number) => {
 const generateBarChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
   return [
     {
-      category: 'Breakdown Keuangan',
-      Pendapatan: metrics.revenue,
-      HPP: metrics.cogs,
-      BiayaOps: metrics.opex,
-      'Laba Kotor': metrics.grossProfit,
-      'Laba Bersih': metrics.netProfit
+      category: '🍽️ Ringkasan Warung Bulan Ini',
+      'Omset': metrics.revenue,
+      'Modal Bahan': metrics.cogs,
+      'Biaya Tetap': metrics.opex,
+      'Untung Kotor': metrics.grossProfit,
+      'Untung Bersih': metrics.netProfit
     }
   ];
 };
@@ -81,19 +81,19 @@ const generatePieChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
 
   const data = [
     {
-      name: 'Laba Bersih',
+      name: '💎 Untung Bersih',
       value: metrics.netProfit,
       percentage: (metrics.netProfit / totalRevenue) * 100,
       color: CHART_CONFIG.colors.net_profit
     },
     {
-      name: 'HPP',
+      name: '🥘 Modal Bahan Baku',
       value: metrics.cogs,
       percentage: (metrics.cogs / totalRevenue) * 100,
       color: CHART_CONFIG.colors.cogs
     },
     {
-      name: 'Biaya Operasional',
+      name: '🏪 Biaya Bulanan Tetap',
       value: metrics.opex,
       percentage: (metrics.opex / totalRevenue) * 100,
       color: CHART_CONFIG.colors.opex
@@ -188,9 +188,9 @@ const ProfitBreakdownChart = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Breakdown Profit</CardTitle>
+          <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
           <CardDescription>
-            Breakdown keuangan menampilkan pendapatan, biaya, dan margin profit
+            Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -205,17 +205,17 @@ const ProfitBreakdownChart = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Breakdown Profit</CardTitle>
+          <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
           <CardDescription>
-            Breakdown keuangan menampilkan pendapatan, biaya, dan margin profit
+            Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-gray-400 text-lg mb-2">Data Tidak Tersedia</div>
+              <div className="text-gray-400 text-lg mb-2">📊 Belum Ada Data Omset</div>
               <div className="text-gray-500 text-sm">
-                Pilih periode yang memiliki data keuangan untuk melihat breakdown
+                Pilih periode yang sudah ada transaksi untuk melihat ringkasan keuangan warung
               </div>
             </div>
           </div>
@@ -248,37 +248,37 @@ const ProfitBreakdownChart = ({
           iconType="circle"
         />
         
-        {/* Bar Pendapatan */}
+        {/* Bar Omset */}
         <Bar 
-          dataKey="Pendapatan" 
+          dataKey="Omset" 
           fill={CHART_CONFIG.colors.revenue}
           radius={[2, 2, 0, 0]}
         />
         
-        {/* Bar HPP */}
+        {/* Bar Modal Bahan */}
         <Bar 
-          dataKey="HPP" 
+          dataKey="Modal Bahan" 
           fill={CHART_CONFIG.colors.cogs}
           radius={[2, 2, 0, 0]}
         />
         
-        {/* Bar Biaya Ops */}
+        {/* Bar Biaya Tetap */}
         <Bar 
-          dataKey="BiayaOps" 
+          dataKey="Biaya Tetap" 
           fill={CHART_CONFIG.colors.opex}
           radius={[2, 2, 0, 0]}
         />
         
-        {/* Bar Laba Kotor */}
+        {/* Bar Untung Kotor */}
         <Bar 
-          dataKey="Laba Kotor" 
+          dataKey="Untung Kotor" 
           fill={CHART_CONFIG.colors.gross_profit}
           radius={[2, 2, 0, 0]}
         />
         
-        {/* Bar Laba Bersih */}
+        {/* Bar Untung Bersih */}
         <Bar 
-          dataKey="Laba Bersih" 
+          dataKey="Untung Bersih" 
           fill={CHART_CONFIG.colors.net_profit}
           radius={[2, 2, 0, 0]}
         />
@@ -316,11 +316,11 @@ const ProfitBreakdownChart = ({
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>Breakdown Profit</CardTitle>
+            <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
             <CardDescription>
               {chartType === 'bar' 
-                ? 'Breakdown keuangan menampilkan pendapatan, biaya, dan margin profit'
-                : 'Alokasi pendapatan antara biaya dan profit'
+                ? 'Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih'
+                : 'Proporsi omset untuk modal bahan, biaya bulanan, dan keuntungan'
               }
             </CardDescription>
 
@@ -339,11 +339,11 @@ const ProfitBreakdownChart = ({
           
           {/* Quick Stats */}
           <div className="text-right">
-            <div className="text-sm text-gray-600">Margin Kotor</div>
+            <div className="text-sm text-gray-600">🎯 Untung Kotor</div>
             <div className="text-lg font-bold text-blue-600">
               {summaryStats.grossMargin.toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-600 mt-1">Margin Bersih</div>
+            <div className="text-sm text-gray-600 mt-1">💎 Untung Bersih</div>
             <div className="text-lg font-bold text-purple-600">
               {summaryStats.netMargin.toFixed(1)}%
             </div>
@@ -360,34 +360,34 @@ const ProfitBreakdownChart = ({
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t">
           <div className="text-center">
-            <div className="text-sm text-gray-600">Pendapatan</div>
+            <div className="text-sm text-gray-600">💰 Total Omset</div>
             <div className="text-lg font-bold text-green-600">
               {formatCurrency(metrics.revenue)}
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">HPP</div>
+            <div className="text-sm text-gray-600">🥘 Modal Bahan Baku</div>
             <div className="text-lg font-bold text-amber-600">
               {formatCurrency(metrics.cogs)}
             </div>
             <div className="text-xs text-gray-500">
-              {summaryStats.cogsRatio.toFixed(1)}% dari pendapatan
+              {summaryStats.cogsRatio.toFixed(1)}% dari omset
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">Biaya Ops</div>
+            <div className="text-sm text-gray-600">🏪 Biaya Tetap Bulanan</div>
             <div className="text-lg font-bold text-red-600">
               {formatCurrency(metrics.opex)}
             </div>
             <div className="text-xs text-gray-500">
-              {summaryStats.opexRatio.toFixed(1)}% dari pendapatan
+              {summaryStats.opexRatio.toFixed(1)}% dari omset
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-sm text-gray-600">Laba Bersih</div>
+            <div className="text-sm text-gray-600">💎 Untung Bersih</div>
             <div className={`text-lg font-bold ${
               metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
             }`}>

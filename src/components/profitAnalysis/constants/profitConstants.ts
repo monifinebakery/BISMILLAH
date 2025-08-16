@@ -58,7 +58,39 @@ export const PROFIT_CONSTANTS = {
   }
 } as const;
 
-// Kategori pendapatan dalam Bahasa Indonesia
+// 🍽️ Kategori pendapatan untuk F&B UMKM
+export const FNB_REVENUE_CATEGORIES = [
+  'Penjualan Makanan',
+  'Penjualan Minuman', 
+  'Paket Catering',
+  'Delivery/Ojol',
+  'Event & Acara',
+  'Lainnya'
+] as const;
+
+// 🍽️ Kategori HPP (Modal Bahan Baku) untuk F&B
+export const FNB_COGS_CATEGORIES = [
+  'Bahan Makanan Utama',
+  'Bumbu & Rempah',
+  'Minuman & Sirup',
+  'Kemasan & Wadah',
+  'Gas & Bahan Bakar',
+  'Lainnya'
+] as const;
+
+// 🏪 Kategori biaya operasional untuk warung/resto
+export const FNB_OPEX_CATEGORIES = [
+  'Gaji Karyawan',
+  'Sewa Tempat',
+  'Listrik & Air',
+  'Promosi & Iklan',
+  'Transportasi',
+  'Internet & Pulsa',
+  'Administrasi',
+  'Lainnya'
+] as const;
+
+// 🔄 Fallback untuk bisnis non-F&B
 export const REVENUE_CATEGORIES = [
   'Penjualan Produk',
   'Jasa Konsultasi', 
@@ -68,7 +100,6 @@ export const REVENUE_CATEGORIES = [
   'Lainnya'
 ] as const;
 
-// Kategori biaya operasional
 export const OPEX_CATEGORIES = [
   'Gaji & Tunjangan',
   'Sewa Kantor',
@@ -82,16 +113,16 @@ export const OPEX_CATEGORIES = [
 
 // Konfigurasi chart dan warna
 export const CHART_CONFIG = {
-  // Warna utama untuk komponen keuangan
+  // 🍽️ Warna utama untuk komponen keuangan F&B (user-friendly)
   colors: {
-    revenue: '#16a34a',      // Hijau - Pendapatan
-    cogs: '#f59e0b',         // Kuning - HPP
-    opex: '#dc2626',         // Merah - Biaya Operasional
-    gross_profit: '#2563eb', // Biru - Laba Kotor
-    net_profit: '#8b5cf6',   // Ungu - Laba Bersih
-    positive: '#16a34a',     // Hijau - Positif
-    negative: '#dc2626',     // Merah - Negatif
-    neutral: '#6b7280'       // Abu-abu - Netral
+    revenue: '#16a34a',      // 💰 Hijau - Omset/Penjualan
+    cogs: '#f59e0b',         // 🥘 Kuning - Modal Bahan Baku
+    opex: '#dc2626',         // 🏪 Merah - Biaya Bulanan Tetap
+    gross_profit: '#2563eb', // 📈 Biru - Untung Kotor
+    net_profit: '#8b5cf6',   // 💎 Ungu - Untung Bersih
+    positive: '#16a34a',     // ✅ Hijau - Untung
+    negative: '#dc2626',     // ❌ Merah - Rugi
+    neutral: '#6b7280'       // ⚪ Abu-abu - Netral
   },
   
   // Warna berdasarkan rating margin
@@ -156,7 +187,85 @@ function getMonthName(month: number): string {
 // Export helper function
 export { getMonthName };
 
-// Validasi threshold
+// 🍽️ Label dan terminologi ramah untuk F&B UMKM
+export const FNB_LABELS = {
+  // Revenue labels
+  revenue: {
+    title: '💰 Omset Bulan Ini',
+    short: 'Omset',
+    description: 'Total uang masuk dari penjualan makanan dan minuman',
+    hint: 'Semua hasil jualan dalam sebulan'
+  },
+  
+  // COGS labels (Modal Bahan Baku)
+  cogs: {
+    title: '🥘 Modal Bahan Baku',
+    short: 'Modal Bahan',
+    description: 'Uang yang dikeluarkan untuk membeli bahan makanan, bumbu, dan kemasan',
+    hint: 'Semua pengeluaran untuk bahan yang dijual'
+  },
+  
+  // OPEX labels (Biaya Bulanan Tetap)
+  opex: {
+    title: '🏪 Biaya Bulanan Tetap',
+    short: 'Biaya Tetap',
+    description: 'Biaya yang harus dibayar setiap bulan (sewa, listrik, gaji, dll)',
+    hint: 'Pengeluaran rutin yang tidak tergantung jualan'
+  },
+  
+  // Profit labels
+  grossProfit: {
+    title: '📈 Untung Kotor',
+    short: 'Untung Kotor', 
+    description: 'Omset dikurangi modal bahan baku',
+    hint: 'Keuntungan sebelum potong biaya tetap'
+  },
+  
+  netProfit: {
+    title: '💎 Untung Bersih',
+    short: 'Untung Bersih',
+    description: 'Keuntungan sesudah dikurangi semua biaya',
+    hint: 'Uang yang benar-benar masuk kantong'
+  },
+  
+  // WAC specific
+  wac: {
+    title: '⚖️ Modal Rata-rata Tertimbang',
+    short: 'WAC',
+    description: 'Perhitungan modal bahan baku berdasarkan harga rata-rata pembelian',
+    hint: 'Lebih akurat dari harga terakhir'
+  }
+} as const;
+
+// 🎯 Threshold khusus untuk bisnis F&B
+export const FNB_THRESHOLDS = {
+  // Margin sehat untuk F&B
+  MARGIN_TARGETS: {
+    // F&B umumnya margin lebih tipis
+    EXCELLENT: { gross: 0.65, net: 0.25 }, // 65% gross, 25% net
+    GOOD: { gross: 0.55, net: 0.18 },      // 55% gross, 18% net  
+    FAIR: { gross: 0.45, net: 0.12 },      // 45% gross, 12% net
+    POOR: { gross: 0.35, net: 0.05 }       // 35% gross, 5% net
+  },
+  
+  // Rasio COGS khusus F&B
+  COGS_RATIOS: {
+    EXCELLENT: 0.35, // 35% dari omset
+    GOOD: 0.45,      // 45% dari omset
+    FAIR: 0.55,      // 55% dari omset  
+    POOR: 0.65       // 65% dari omset (terlalu tinggi)
+  },
+  
+  // Alert thresholds
+  ALERTS: {
+    high_ingredient_cost: 0.6,    // Modal bahan > 60% omset
+    low_revenue: 2000000,         // Omset < 2 juta (untuk warung)
+    negative_margin: 0,           // Margin negatif
+    expensive_item_threshold: 500000 // Item > 500rb (bahan mahal)
+  }
+} as const;
+
+// Validasi threshold (tetap ada untuk backward compatibility)
 export const VALIDATION_RULES = {
   // Minimum values untuk validasi data
   MIN_REVENUE: 0,

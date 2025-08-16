@@ -236,10 +236,12 @@ const DetailedBreakdownTable = ({
       return items;
     }
 
-    // fallback lama
+    // fallback F&B friendly
     return [
-      { name: 'Biaya Bahan Baku', amount: cogs * 0.8, percentage: cogs > 0 ? 80 : 0, type: 'Bahan Langsung' },
-      { name: 'Tenaga Kerja Langsung', amount: cogs * 0.2, percentage: cogs > 0 ? 20 : 0, type: 'Tenaga Kerja Langsung' }
+      { name: '🍚 Bahan Makanan Utama', amount: cogs * 0.6, percentage: cogs > 0 ? 60 : 0, type: '🍽️ Bahan Pokok' },
+      { name: '🧂 Bumbu & Pelengkap', amount: cogs * 0.2, percentage: cogs > 0 ? 20 : 0, type: '🌶️ Bumbu Dapur' },
+      { name: '🥤 Minuman & Es', amount: cogs * 0.15, percentage: cogs > 0 ? 15 : 0, type: '🥤 Minuman' },
+      { name: '🍽️ Kemasan & Perlengkapan', amount: cogs * 0.05, percentage: cogs > 0 ? 5 : 0, type: '📦 Kemasan' }
     ].filter(item => item.amount > 0);
   }, [hppBreakdown, cogs]);
 
@@ -257,28 +259,31 @@ const DetailedBreakdownTable = ({
   const breakdownSections = useMemo(() => {
     return [
       {
-        title: 'Sumber Pendapatan',
+        title: '💰 Sumber Pemasukan (Dari Mana Uang Masuk)',
         icon: DollarSign,
         color: 'text-green-700',
         bgColor: 'bg-green-50',
         total: revenue,
-        items: groupedRevenue
+        items: groupedRevenue,
+        helpText: 'Semua uang yang masuk ke warung dari penjualan makanan, minuman, dan layanan lainnya'
       },
       {
-        title: 'Harga Pokok Penjualan (HPP)',
+        title: '🛒 Modal Bahan Baku (Belanja Dapur)',
         icon: ShoppingCart,
         color: 'text-amber-700',
         bgColor: 'bg-amber-50',
         total: cogs,
-        items: cogsItems
+        items: cogsItems,
+        helpText: 'Uang yang keluar untuk beli bahan-bahan makanan dan minuman'
       },
       {
-        title: 'Biaya Operasional',
+        title: '🏠 Biaya Bulanan Tetap (Operasional)',
         icon: Calculator,
         color: 'text-red-700',
         bgColor: 'bg-red-50',
         total: opex,
-        items: opexItems
+        items: opexItems,
+        helpText: 'Biaya yang harus dibayar setiap bulan: sewa, listrik, gaji, internet, dll'
       }
     ];
   }, [groupedRevenue, cogsItems, opexItems, revenue, cogs, opex]);
@@ -375,9 +380,9 @@ const DetailedBreakdownTable = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Breakdown Detail</CardTitle>
+          <CardTitle>📋 Rincian Lengkap Keuangan Warung</CardTitle>
           <CardDescription>
-            Breakdown lengkap sumber pendapatan dan komponen biaya
+            Dari mana uang masuk dan kemana uang keluar - dalam bahasa yang mudah dipahami
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -396,16 +401,16 @@ const DetailedBreakdownTable = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Breakdown Detail</CardTitle>
+          <CardTitle>📋 Rincian Lengkap Keuangan Warung</CardTitle>
           <CardDescription>
-            Breakdown lengkap sumber pendapatan dan komponen biaya
+            Dari mana uang masuk dan kemana uang keluar - dalam bahasa yang mudah dipahami
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <div className="text-gray-400 text-lg mb-2">Tidak Ada Data Breakdown</div>
+            <div className="text-gray-400 text-lg mb-2">📋 Belum Ada Rincian Data</div>
             <div className="text-gray-500 text-sm">
-              Pilih periode dengan data keuangan untuk melihat breakdown detail
+              Pilih periode yang sudah ada transaksi untuk melihat rincian keuangan warung
             </div>
           </div>
         </CardContent>
@@ -418,11 +423,11 @@ const DetailedBreakdownTable = ({
     <Card className={className}>
       <CardHeader>
         <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>Breakdown Detail</CardTitle>
-            <CardDescription>
-              Breakdown lengkap sumber pendapatan dan komponen biaya untuk {currentAnalysis.period}
-            </CardDescription>
+        <div>
+          <CardTitle>📋 Rincian Lengkap Keuangan Warung</CardTitle>
+          <CardDescription>
+            Dari mana uang masuk dan kemana uang keluar untuk periode {currentAnalysis.period} - dalam bahasa yang mudah dipahami
+          </CardDescription>
             
             {/* ⬇️ Tambah indikator WAC di header HPP */}
             {labels?.hppLabel && (
@@ -448,12 +453,12 @@ const DetailedBreakdownTable = ({
 
         {/* Tab Navigation */}
         <div className="flex space-x-2 mt-4">
-          {[
-            { key: 'all', label: 'Semua Kategori' },
-            { key: 'revenue', label: 'Pendapatan' },
-            { key: 'cogs', label: 'HPP' },
-            { key: 'opex', label: 'Biaya Ops' }
-          ].map(tab => (
+        {[
+          { key: 'all', label: '📊 Semua Kategori' },
+          { key: 'revenue', label: '💰 Pemasukan' },
+          { key: 'cogs', label: '🛒 Belanja Bahan' },
+          { key: 'opex', label: '🏠 Biaya Bulanan' }
+        ].map(tab => (
             <Button
               key={tab.key}
               variant={activeTab === tab.key ? 'default' : 'outline'}
@@ -555,9 +560,9 @@ const DetailedBreakdownTable = ({
                 <div className="text-2xl font-bold text-green-700 mb-1">
                   {formatCurrency(breakdownSections[0]?.total || 0)}
                 </div>
-                <div className="text-sm text-green-600">Total Pendapatan</div>
+                <div className="text-sm text-green-600">💰 Total Omset</div>
                 <div className="text-xs text-gray-600 mt-1">
-                  Dari {breakdownSections[0]?.items.length || 0} sumber
+                  Dari {breakdownSections[0]?.items.length || 0} sumber pemasukan
                 </div>
               </div>
 
@@ -568,9 +573,9 @@ const DetailedBreakdownTable = ({
                     (breakdownSections[1]?.total || 0) + (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-red-600">Total Biaya</div>
+                <div className="text-sm text-red-600">💸 Total Pengeluaran</div>
                 <div className="text-xs text-gray-600 mt-1">
-                  HPP + Biaya Ops
+                  Modal Bahan + Biaya Bulanan
                 </div>
               </div>
 
@@ -583,7 +588,7 @@ const DetailedBreakdownTable = ({
                     (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-blue-600">Laba Bersih</div>
+                <div className="text-sm text-blue-600">💎 Untung Bersih</div>
                 <div className="text-xs text-gray-600 mt-1">
                   {formatPercentage(
                     breakdownSections[0]?.total > 0

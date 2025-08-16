@@ -125,13 +125,7 @@ const accessPromise = getUserAccessStatus();
           !paymentLoading &&
           isUserValid) {
         logger.info('PaymentContext: Auto-showing manual order popup');
-{
-        const id = window.setTimeout(() =[0m> setShowOrderPopup(true), 1500);
-        // Best-effort cancel on unmount or re-run
-        // We keep a local variable; since this runs inside an effect-triggered callback,
-        // re-runs will schedule a new timeout and the old one will get GC'd quickly.
-        // For stricter control, lift this into a ref + dedicated effect.
-      }
+        window.setTimeout(() => setShowOrderPopup(true), 1500);
       }
       
     } catch (error) {

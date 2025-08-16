@@ -280,7 +280,7 @@ export const useOrderData = (
         setupLockRef.current = false;
       }
     }, delay);
-  }, [user]); // Will be defined below
+  }, [user, setupSubscription]);
 
   // ✅ FIX: Enhanced subscription setup with lock
   const setupSubscription = useCallback(async () => {
@@ -809,7 +809,7 @@ export const useOrderData = (
       isMountedRef.current = false;
       cleanupSubscription();
     };
-  }, []); // Only on mount/unmount
+  }, [cleanupSubscription]); // Only on mount/unmount
 
   // ✅ FIX: Sequential initialization with proper delays
   useEffect(() => {
@@ -868,7 +868,7 @@ export const useOrderData = (
       clearTimeout(initTimer);
       cleanupSubscription();
     };
-  }, [user?.id, hasAllDependencies]); // Stable dependencies
+  }, [user?.id, hasAllDependencies, cleanupSubscription, fetchOrders, setupSubscription]); // Stable dependencies
 
   // ✅ FIX: Connection health check with proper interval
   useEffect(() => {

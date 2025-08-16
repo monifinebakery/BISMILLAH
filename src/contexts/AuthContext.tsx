@@ -117,6 +117,25 @@ const validateSession = (session: Session | null): { session: Session | null; us
   return { session, user: sanitizedUser };
 };
 
+// ✅ FIX: Safe timeout wrapper that handles promise rejections
+const safeWithTimeout = async <T>(
+  promise: Promise<T>, 
+  timeoutMs: number, 
+  timeoutMessage: string
+): Promise<{ data: T | null; error: Error | null }> => {
+  try {
+    const result = await withTimeout(promise, timeoutMs, timeoutMessage);
+    return { data: result, error: null };
+  } catch (error) {
+    logger.warn('AuthContext: Timeout or error in safeWithTimeout:', {
+      timeoutMs,
+      timeoutMessage,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
+  }
+};
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
@@ -139,12 +158,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       logger.context('AuthContext', 'Manual user refresh triggered');
       const adaptiveTimeout = getAdaptiveTimeout(10000);
 
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('AuthContext refresh timeout')), adaptiveTimeout)
+      // ✅ FIX: Use safe timeout wrapper
+      const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
+        supabase.auth.getSession(),
+        adaptiveTimeout,
+        'AuthContext refresh timeout'
       );
 
-const { data: { session }, error } = await withTimeout(sessionPromise as any, adaptiveTimeout, 'AuthContext refresh timeout') as any;
+      if (timeoutError) {
+        logger.error('AuthContext refresh timeout/error:', timeoutError);
+        return;
+      }
+
+      const { data: { session }, error } = sessionResult as any;
 
       if (error) {
         logger.error('AuthContext refresh error:', error);
@@ -182,16 +208,32 @@ const { data: { session }, error } = await withTimeout(sessionPromise as any, ad
         const adaptiveTimeout = getAdaptiveTimeout(15000);
         logger.debug('AuthContext: Using adaptive timeout:', adaptiveTimeout);
 
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth initialization timeout')), adaptiveTimeout)
+        // ✅ FIX: Use safe timeout wrapper to prevent unhandled promise rejection
+        const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
+          supabase.auth.getSession(),
+          adaptiveTimeout,
+          'Auth initialization timeout'
         );
-
-const { data: { session } } = await withTimeout(sessionPromise as any, adaptiveTimeout, 'Auth initialization timeout') as any;
 
         if (!mounted) return;
 
+        if (timeoutError) {
+          logger.error('AuthContext initialization timeout/error:', timeoutError);
+          
+          // ✅ Handle timeout gracefully
+          const capabilities = detectDeviceCapabilities();
+          if (capabilities.isSlowDevice || capabilities.networkType === '2g' || capabilities.networkType === '3g') {
+            logger.warn('AuthContext: Mobile device timeout detected, allowing graceful fallback');
+          }
+          
+          setSession(null);
+          setUser(null);
+          return;
+        }
+
+        const { data: { session } } = sessionResult as any;
         const { session: validSession, user: validUser } = validateSession(session);
+        
         logger.context('AuthContext', 'Initial session loaded and validated:', {
           hasSession: !!validSession,
           hasValidUser: !!validUser,
@@ -216,13 +258,6 @@ const { data: { session } } = await withTimeout(sessionPromise as any, adaptiveT
       } catch (error) {
         logger.error('AuthContext initialization failed:', error);
 
-        if (error.message?.includes('timeout')) {
-          const capabilities = detectDeviceCapabilities();
-          if (capabilities.isSlowDevice || capabilities.networkType === '2g' || capabilities.networkType === '3g') {
-            logger.warn('AuthContext: Mobile device timeout detected, allowing graceful fallback');
-          }
-        }
-
         if (mounted) {
           setSession(null);
           setUser(null);
@@ -235,6 +270,17 @@ const { data: { session } } = await withTimeout(sessionPromise as any, adaptiveT
         }
       }
     };
+
+    // ✅ FIX: Add error handler for unhandled promise rejections
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (event.reason?.message?.includes('Auth initialization timeout') || 
+          event.reason?.message?.includes('AuthContext refresh timeout')) {
+        logger.warn('AuthContext: Caught unhandled timeout promise rejection:', event.reason);
+        event.preventDefault(); // Prevent the error from being logged as unhandled
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     initializeAuth();
 
@@ -273,6 +319,7 @@ const { data: { session } } = await withTimeout(sessionPromise as any, adaptiveT
     return () => {
       mounted = false;
       logger.context('AuthContext', 'Cleaning up auth subscription');
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       subscription.unsubscribe();
     };
   }, []);

@@ -37,14 +37,15 @@ export const usePromoForm = (initialData = {}) => {
   const [isDirty, setIsDirty] = useState(false);
 
   // Update form data
-  const updateFormData = useCallback((updates) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+const updateFormData = useCallback((updates) => {
+    setFormData(prev => {
+      const next = { ...prev, ...updates };
+      // Auto-save to localStorage for draft using the exact next state
+      storage.saveDraft(next);
+      return next;
+    });
     setIsDirty(true);
-    
-    // Auto-save to localStorage for draft
-    const updatedData = { ...formData, ...updates };
-    storage.saveDraft(updatedData);
-  }, [formData]);
+  }, []);
 
   // Validate form based on type
   const validateForm = useCallback((type = PROMO_TYPES.DISCOUNT, recipes = []) => {

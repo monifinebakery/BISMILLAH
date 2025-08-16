@@ -21,26 +21,26 @@ export const validateForecastData = (currentAnalysis: any) => {
   if (cogs < 0) issues.push("COGS tidak boleh negatif");
   if (opex < 0) issues.push("OPEX tidak boleh negatif");
   
-  // Ratio validation
-  if (cogs > revenue * 1.5) issues.push("COGS terlalu tinggi dibanding revenue");
-  if (opex > revenue * 2) issues.push("OPEX terlalu tinggi dibanding revenue");
+  // More flexible ratio validation for small F&B businesses and startups
+  if (cogs > revenue * 2.0) issues.push("COGS terlalu tinggi dibanding revenue");
+  if (opex > revenue * 3.0) issues.push("OPEX terlalu tinggi dibanding revenue");
   
   // Calculate margin for validation
   const grossProfit = revenue - cogs;
   const netProfit = grossProfit - opex;
   const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
   
-  // Extreme margin warnings
-  if (netMargin < -100) issues.push("Margin negatif ekstrem terdeteksi");
-  if (netMargin > 90) issues.push("Margin terlalu tinggi, periksa data");
+  // More realistic margin warnings for F&B businesses
+  if (netMargin < -200) issues.push("Margin negatif ekstrem terdeteksi");
+  if (netMargin > 95) issues.push("Margin terlalu tinggi, periksa data");
   
   return {
     isValid: issues.length === 0,
     issues,
     sanitizedData: {
       revenue: Math.max(0, revenue),
-      cogs: Math.max(0, Math.min(cogs, revenue * 0.95)), // COGS max 95% dari revenue
-      opex: Math.max(0, Math.min(opex, revenue * 0.8))   // OPEX max 80% dari revenue
+      cogs: Math.max(0, Math.min(cogs, revenue * 1.8)), // COGS max 180% dari revenue (untuk startup)
+      opex: Math.max(0, Math.min(opex, revenue * 2.5))  // OPEX max 250% dari revenue (untuk startup)
     },
     metrics: {
       grossProfit,

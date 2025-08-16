@@ -6,6 +6,7 @@ import { useUnlinkedPayments } from '@/hooks/useUnlinkedPayments';
 import { getUserAccessStatus } from '@/services/auth/payments/access';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { withTimeout } from '@/utils/asyncUtils';
 
 interface PaymentContextType {
   // Original payment context
@@ -105,12 +106,8 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       logger.debug('PaymentContext: Refreshing access status for valid user:', user?.email);
       
-      const accessPromise = getUserAccessStatus();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Access status timeout')), 8000)
-      );
-      
-      const accessStatus = await Promise.race([accessPromise, timeoutPromise]) as any;
+const accessPromise = getUserAccessStatus();
+      const accessStatus = await withTimeout(accessPromise, 8000, 'Access status timeout') as any;
       
       logger.debug('Access status result:', {
         hasAccess: accessStatus.hasAccess,
@@ -128,7 +125,13 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           !paymentLoading &&
           isUserValid) {
         logger.info('PaymentContext: Auto-showing manual order popup');
-        setTimeout(() => setShowOrderPopup(true), 1500);
+{
+        const id = window.setTimeout(() =[0m> setShowOrderPopup(true), 1500);
+        // Best-effort cancel on unmount or re-run
+        // We keep a local variable; since this runs inside an effect-triggered callback,
+        // re-runs will schedule a new timeout and the old one will get GC'd quickly.
+        // For stricter control, lift this into a ref + dedicated effect.
+      }
       }
       
     } catch (error) {

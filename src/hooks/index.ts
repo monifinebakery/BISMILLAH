@@ -178,10 +178,14 @@ export const useIntersectionObserver = (
     observer.observe(element);
 
     return () => {
-      observer.unobserve(element);
+      try {
+        observer.unobserve(element);
+      } finally {
+        observer.disconnect();
+      }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elementRef.current, ...dependencies]);
+  // Note: do not include elementRef.current; element changes will retrigger when ref attached
+  }, [options, ...dependencies]);
 
   return { elementRef, isIntersecting, entry };
 };

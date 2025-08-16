@@ -1,6 +1,7 @@
 // src/lib/authUtils.ts - CLEAN VERSION WITHOUT DUPLICATES
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { withTimeout, withSoftTimeout } from '@/utils/asyncUtils';
 
 /**
  * ✅ Device capability detection
@@ -178,10 +179,7 @@ export const validateAuthSession = async (retryCount = 0) => {
       setTimeout(() => reject(new Error('Session validation timeout')), adaptiveTimeout)
     );
     
-    const { data: { session }, error } = await Promise.race([
-      sessionPromise, 
-      timeoutPromise
-    ]) as any;
+const { data: { session }, error } = await withTimeout(sessionPromise as any, adaptiveTimeout, 'Session validation timeout') as any;
     
     if (error) {
       logger.error('⚠️ Error validating auth session:', error);
@@ -317,10 +315,7 @@ export const checkSessionExists = async () => {
       setTimeout(() => resolve({ data: { session: null }, error: null }), adaptiveTimeout)
     );
     
-    const { data: { session }, error } = await Promise.race([
-      sessionPromise, 
-      timeoutPromise
-    ]) as any;
+const { data: { session }, error } = await withSoftTimeout(sessionPromise as any, adaptiveTimeout, { data: { session: null }, error: null } as any) as any;
     
     if (error) {
       logger.debug('⚠️ Error checking session (safe mode):', error.message);
@@ -353,10 +348,7 @@ export const refreshSessionSafely = async () => {
       setTimeout(() => reject(new Error('Session refresh timeout')), adaptiveTimeout)
     );
     
-    const { data: { session }, error } = await Promise.race([
-      refreshPromise,
-      timeoutPromise
-    ]) as any;
+const { data: { session }, error } = await withTimeout(refreshPromise as any, adaptiveTimeout, 'Session refresh timeout') as any;
     
     if (error) {
       logger.error('⚠️ Session refresh error:', error);
@@ -407,10 +399,7 @@ export const debugAuthState = async () => {
         setTimeout(() => resolve({ data: { session: null }, error: { message: 'Debug timeout' } }), adaptiveTimeout)
       );
       
-      const { data: { session }, error } = await Promise.race([
-        sessionPromise,
-        timeoutPromise
-      ]) as any;
+const { data: { session }, error } = await withSoftTimeout(sessionPromise as any, adaptiveTimeout, { data: { session: null }, error: { message: 'Debug timeout' } } as any) as any;
       
       sessionInfo = {
         hasSession: !!session,

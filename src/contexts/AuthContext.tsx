@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
+import { withTimeout, withSoftTimeout } from '@/utils/asyncUtils';
 
 // Device capability detection
 const detectDeviceCapabilities = () => {
@@ -143,10 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setTimeout(() => reject(new Error('AuthContext refresh timeout')), adaptiveTimeout)
       );
 
-      const { data: { session }, error } = await Promise.race([
-        sessionPromise,
-        timeoutPromise,
-      ]) as any;
+const { data: { session }, error } = await withTimeout(sessionPromise as any, adaptiveTimeout, 'AuthContext refresh timeout') as any;
 
       if (error) {
         logger.error('AuthContext refresh error:', error);
@@ -189,10 +187,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setTimeout(() => reject(new Error('Auth initialization timeout')), adaptiveTimeout)
         );
 
-        const { data: { session } } = await Promise.race([
-          sessionPromise,
-          timeoutPromise,
-        ]) as any;
+const { data: { session } } = await withTimeout(sessionPromise as any, adaptiveTimeout, 'Auth initialization timeout') as any;
 
         if (!mounted) return;
 

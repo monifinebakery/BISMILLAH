@@ -129,8 +129,19 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({
         <h3 className="text-xl font-bold">{title}</h3>
         <p className="text-gray-600 text-sm">{description}</p>
         {data.metadata?.validationIssues && data.metadata.validationIssues.length > 0 && (
-          <div className="mt-2 p-2 bg-amber-50 rounded text-xs text-amber-800">
-            ⚠️ Catatan: {data.metadata.validationIssues.join(', ')}
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-blue-800 text-sm font-medium mb-1">
+              <span>💡</span>
+              <span>Catatan Data:</span>
+            </div>
+            <ul className="text-xs text-blue-700 space-y-1">
+              {data.metadata.validationIssues.map((issue, index) => (
+                <li key={index}>• {issue}</li>
+              ))}
+            </ul>
+            <p className="text-xs text-blue-600 mt-2 italic">
+              *Prediksi telah disesuaikan dengan kondisi bisnis F&B pada umumnya
+            </p>
           </div>
         )}
       </div>

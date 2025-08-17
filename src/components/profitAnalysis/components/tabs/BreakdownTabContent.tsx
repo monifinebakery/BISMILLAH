@@ -3,8 +3,8 @@
 import React from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 
-// Import breakdown table component
-const DetailedBreakdownTable = React.lazy(() => import('../DetailedBreakdownTable'));
+// Use lazy wrapper to keep code-splitting without mixing imports
+import DetailedBreakdownTable from '../lazy/LazyDetailedBreakdownTable';
 
 // ==============================================
 // TYPES

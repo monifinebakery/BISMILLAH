@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { PaymentRecord } from '@/services/auth/types';
 import { clearSessionCache } from '../core/session';
+import { getCurrentUserValidated } from '@/services/auth/core/authentication';
 
 // ✅ UUID Sanitization function
 const sanitizeUserId = (userId: any): string | null => {
@@ -68,7 +69,6 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       
       // Try to get fresh user
       try {
-        const { getCurrentUserValidated } = await import('@/services/auth/core/authentication');
         const freshUser = await getCurrentUserValidated();
         const freshUserId = sanitizeUserId(freshUser.id);
         

@@ -8,7 +8,6 @@ import { MobileLayout } from "./MobileLayout";
 import { DesktopLayout } from "./DesktopLayout";
 import { AppLoader } from "@/components/loaders";
 import { AutoLinkingPopup } from "@/components/popups";
-import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
 
 export const AppLayout = () => {
@@ -32,6 +31,9 @@ export const AppLayout = () => {
     autoLinkCount,
   } = usePaymentContext();
   
+  // Lazy-loaded Supabase client for popup
+  const [supabaseClient, setSupabaseClient] = useState<any>(null);
+  
   // ✅ SIMPLIFIED: Auto-show AutoLinkingPopup when needed
   useEffect(() => {
     // Show popup if there are unlinked payments OR user needs order linking
@@ -42,13 +44,22 @@ export const AppLayout = () => {
         currentUser: currentUser.email
       });
       
-      const timer = setTimeout(() => {
-        setShowAutoLinkPopup(true);
+      const timer = setTimeout(async () => {
+        try {
+          // Dynamically import supabase client only when needed
+          if (!supabaseClient) {
+            const mod = await import('@/integrations/supabase/client');
+            setSupabaseClient(mod.supabase);
+          }
+          setShowAutoLinkPopup(true);
+        } catch (e) {
+          logger.error('Failed to load Supabase client for AutoLinkingPopup', e);
+        }
       }, 1500); // Small delay to let page load
       
       return () => clearTimeout(timer);
     }
-  }, [unlinkedPayments.length, needsOrderLinking, showAutoLinkPopup, currentUser, setShowAutoLinkPopup]);
+  }, [unlinkedPayments.length, needsOrderLinking, showAutoLinkPopup, currentUser, setShowAutoLinkPopup, supabaseClient]);
   
   // ✅ Handle successful auto-linking
   const handleAutoLinked = (linkedPayments: any[]) => {
@@ -157,7 +168,7 @@ export const AppLayout = () => {
         onClose={() => setShowAutoLinkPopup(false)}
         unlinkedPayments={unlinkedPayments}
         currentUser={currentUser}
-        supabaseClient={supabase}
+        supabaseClient={supabaseClient}
         onSuccess={handleAutoLinked}
       />
     </>

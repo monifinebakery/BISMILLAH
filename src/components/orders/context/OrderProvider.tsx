@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrderData } from '../hooks/useOrderData';
 import type { Order } from '../types';
 import { safeParseDate, isValidDate } from '../utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OrderProviderProps {
   children: ReactNode;
@@ -68,7 +69,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
     
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
+      // supabase client is statically imported above
       const { error } = await supabase.from('activities').insert({
         user_id: userId,
         title: activity.title,
@@ -105,7 +106,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
     
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
+      // supabase client is statically imported above
       const { error } = await supabase.from('financial_transactions').insert({
         user_id: userId,
         type: transaction.type || 'income',
@@ -146,7 +147,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
     
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
+      // supabase client is statically imported above
       const { error } = await supabase.from('notifications').insert({
         user_id: userId,
         title: notification.title || '',

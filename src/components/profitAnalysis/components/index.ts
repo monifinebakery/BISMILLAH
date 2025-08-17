@@ -3,9 +3,9 @@
 
 // HANYA ini yang digunakan - tidak perlu bagian bawah
 export { default as ProfitSummaryCards } from './ProfitSummaryCards';
-export { default as ProfitBreakdownChart } from './ProfitBreakdownChart';
-export { default as ProfitTrendChart } from './ProfitTrendChart';
-export { default as DetailedBreakdownTable } from './DetailedBreakdownTable';
+export { default as ProfitBreakdownChart } from './lazy/LazyProfitBreakdownChart';
+export { default as ProfitTrendChart } from './lazy/LazyProfitTrendChart';
+export { default as DetailedBreakdownTable } from './lazy/LazyDetailedBreakdownTable';
 export { default as ProfitDashboard } from './ProfitDashboard';
 
 // Export types

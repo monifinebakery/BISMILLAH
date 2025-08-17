@@ -1,328 +1,185 @@
-// src/utils/logger.ts — environment-aware logger (production-silent unless forced)
+// src/utils/logger.ts — minimal, parser-safe, production-silent unless forced
 
-/** =========================
- *  Early DEV diagnostics
- *  ========================= */
-if (import.meta.env.DEV) {
-  // tampilkan sekali saat dev saja
-  console.log('🔍 Environment Check:', {
-    VITE_DEBUG_LEVEL: import.meta.env.VITE_DEBUG_LEVEL,
-    VITE_FORCE_LOGS: import.meta.env.VITE_FORCE_LOGS,
-    MODE: import.meta.env.MODE,
-    PROD: import.meta.env.PROD,
-    DEV: import.meta.env.DEV,
-    NODE_ENV: import.meta.env.NODE_ENV,
-    hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time',
-  });
-}
+// ---------- ENV ----------
+const env = (import.meta as unknown as { env: Record<string, any> }).env;
+const IS_DEV = !!env?.DEV;
+const FORCE_LOGS = String(env?.VITE_FORCE_LOGS || '').toLowerCase() === 'true';
 
-/** =========================
- *  Config & helpers
- *  ========================= */
-type Level = 'debug' | 'warn' | 'error';
-
-const normalizeLevel = (raw?: string): Level => {
-  const v = String(raw || 'error').toLowerCase().trim();
+// ---------- LEVEL ----------
+function normalizeLevel(raw: unknown): 'debug' | 'warn' | 'error' {
+  const v = String(raw ?? 'error').toLowerCase().trim();
   if (v === 'debug' || v === 'warn' || v === 'error') return v;
-  // fallback yg benar: 'error'
   return 'error';
-};
-
-const forceLogsEnabled = String(import.meta.env.VITE_FORCE_LOGS || '').toLowerCase() === 'true';
-const debugLevel: Level = normalizeLevel(import.meta.env.VITE_DEBUG_LEVEL);
-
-// Rank untuk gating info/debug/warn
-const levelRank: Record<Level, number> = { debug: 0, warn: 1, error: 2 };
-const allowInfoLike = levelRank[debugLevel] <= levelRank.debug;
-const allowWarnLike = levelRank[debugLevel] <= levelRank.warn;
-
-/** Apakah kita tetap ingin error/warn TETAP muncul di production?
- *  Set ke true jika ya, false jika ingin sunyi total.
- */
-const ALWAYS_EMIT_ERRORS = false;
-
-/** =========================
- *  Host guards
- *  ========================= */
-const PROD_HOSTS = new Set<string>([
-  'kalkulator.monifine.my.id',
-  'www.kalkulator.monifine.my.id',
-]);
-
-const isProductionHostname = (hostname: string): boolean => PROD_HOSTS.has(hostname);
-
-// Netlify preview/dev detection (non-prod)
-const isNetlifyDev = (hostname: string): boolean =>
-  hostname.includes('netlify.app') && !isProductionHostname(hostname);
-
-// Optional: daftar host dev/preview dari env
-const ENV_DEV_HOSTS = String(import.meta.env.VITE_DEV_HOSTS || '')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-const isPreviewHostname = (hostname: string): boolean => {
-  if (ENV_DEV_HOSTS.length > 0) return ENV_DEV_HOSTS.includes(hostname);
-  return isNetlifyDev(hostname);
-};
-
-const disableLogsHosts = String(import.meta.env.VITE_DISABLE_LOGS_ON_HOSTS || '')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-/** =========================
- *  Final decision
- *  ========================= */
-const getShouldLog = () => {
-  // 1) Selalu nyalakan log di Vite DEV
-  if (import.meta.env.DEV) return true;
-
-  // 2) Force via env
-  if (forceLogsEnabled) return true;
-
-  // 3) Browser host checks
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-
-    // host yang dipaksa disable
-    if (disableLogsHosts.includes(hostname)) return false;
-
-    // preview/dev host
-    if (isPreviewHostname(hostname)) return true;
-
-    // host production resmi
-    if (isProductionHostname(hostname)) return false;
-  }
-
-  // 4) default: disable di production unknown host
-  return false;
-};
-
-const SHOULD_LOG = getShouldLog();
-const hasConsole = typeof console !== 'undefined';
-
-// DEV banner (hanya jika memang boleh log)
-if (import.meta.env.DEV && SHOULD_LOG) {
-  console.log('🔧 Logger Config:', {
-    isDevelopmentMode: import.meta.env.DEV,
-    forceLogsEnabled,
-    debugLevel,
-    SHOULD_LOG,
-    hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time',
-  });
 }
+const DEBUG_LEVEL = normalizeLevel(env?.VITE_DEBUG_LEVEL);
+const levelRank = { debug: 0, warn: 1, error: 2 } as const;
+const allowInfoLike = levelRank[DEBUG_LEVEL] <= levelRank.debug;
+const allowWarnLike = levelRank[DEBUG_LEVEL] <= levelRank.warn;
 
-/** =========================
- *  Emit guards
- *  ========================= */
-const canInfo = () => hasConsole && SHOULD_LOG && allowInfoLike;
-const canWarn = () => hasConsole && (ALWAYS_EMIT_ERRORS || (SHOULD_LOG && allowWarnLike));
-const canError = () => hasConsole && (ALWAYS_EMIT_ERRORS || SHOULD_LOG);
-const canAny = () => hasConsole && SHOULD_LOG;
+// ---------- HOST GUARDS ----------
+const PROD_HOSTS = new Set<string>(['kalkulator.monifine.my.id', 'www.kalkulator.monifine.my.id']);
+function isProductionHostname(h: string) { return PROD_HOSTS.has(h); }
+function isNetlifyPreview(h: string) { return h.includes('netlify.app') && !isProductionHostname(h); }
 
-/** =========================
- *  Public logger API
- *  ========================= */
+const ENV_DEV_HOSTS = String(env?.VITE_DEV_HOSTS || '').split(',').map(s => s.trim()).filter(Boolean);
+const DISABLE_LOGS_HOSTS = String(env?.VITE_DISABLE_LOGS_ON_HOSTS || '').split(',').map(s => s.trim()).filter(Boolean);
+
+// ---------- SHOULD_LOG ----------
+function getShouldLog(): boolean {
+  if (IS_DEV) return true;
+  if (FORCE_LOGS) return true;
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (DISABLE_LOGS_HOSTS.includes(host)) return false;
+    if (ENV_DEV_HOSTS.length > 0) {
+      if (ENV_DEV_HOSTS.includes(host)) return true;
+    } else {
+      if (isNetlifyPreview(host)) return true;
+    }
+    if (isProductionHostname(host)) return false;
+  }
+  return false; // default: silent in prod
+}
+const SHOULD_LOG = getShouldLog();
+
+// ---------- GUARDS ----------
+const hasConsole = typeof console !== 'undefined';
+function canInfo()  { return hasConsole && SHOULD_LOG && allowInfoLike; }
+function canWarn()  { return hasConsole && SHOULD_LOG && allowWarnLike; }
+function canError() { return hasConsole && SHOULD_LOG; }
+function canAny()   { return hasConsole && SHOULD_LOG; }
+
+// ---------- API ----------
 export const logger = {
-  test: () => {
-    if (canAny()) {
-      console.log('🧪 Logger Test:', {
-        timestamp: new Date().toISOString(),
-        shouldLog: SHOULD_LOG,
-        isDevelopmentMode: import.meta.env.DEV,
-        forceLogsEnabled,
-        debugLevel,
-        hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time',
-      });
-    }
+  test(): void {
+    if (!canAny()) return;
+    const payload = {
+      isDev: IS_DEV,
+      forceLogs: FORCE_LOGS,
+      level: DEBUG_LEVEL,
+      shouldLog: SHOULD_LOG
+    };
+    console.log('Logger test', payload);
   },
 
-  context: (contextName: string, message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🔄 [${t}] [${contextName}]`, message, data)
-        : console.log(`🔄 [${t}] [${contextName}]`, message);
-    }
+  info(message: string, data?: unknown): void {
+    if (!canInfo()) return;
+    if (typeof data !== 'undefined') { console.log(message, data); } else { console.log(message); }
   },
 
-  component: (componentName: string, message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🧩 [${t}] [${componentName}]`, message, data)
-        : console.log(`🧩 [${t}] [${componentName}]`, message);
-    }
+  debug(message: string, data?: unknown): void {
+    if (!canInfo()) return;
+    if (typeof data !== 'undefined') { console.debug(message, data); } else { console.debug(message); }
   },
 
-  hook: (hookName: string, message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🪝 [${t}] [${hookName}]`, message, data)
-        : console.log(`🪝 [${t}] [${hookName}]`, message);
-    }
+  warn(message: string, data?: unknown): void {
+    if (!canWarn()) return;
+    if (typeof data !== 'undefined') { console.warn(message, data); } else { console.warn(message); }
   },
 
-  info: (message: string, data?: unknown) => {
-    if (canInfo()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined ? console.log(`ℹ️ [${t}]`, message, data) : console.log(`ℹ️ [${t}]`, message);
-    }
+  error(message: string, err?: unknown): void {
+    if (!canError()) return;
+    if (typeof err !== 'undefined') { console.error(message, err); } else { console.error(message); }
   },
 
-  warn: (message: string, data?: unknown) => {
-    if (canWarn()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined ? console.warn(`⚠️ [${t}]`, message, data) : console.warn(`⚠️ [${t}]`, message);
-    }
+  success(message: string, data?: unknown): void {
+    if (!canAny()) return;
+    if (typeof data !== 'undefined') { console.log(message, data); } else { console.log(message); }
   },
 
-  error: (message: string, error?: unknown) => {
-    if (canError()) {
-      const t = new Date().toISOString().slice(11, 23);
-      error !== undefined ? console.error(`🚨 [${t}]`, message, error) : console.error(`🚨 [${t}]`, message);
-    }
+  perf(operation: string, durationMs: number, data?: unknown): void {
+    if (!canAny()) return;
+    const msg = 'PERF ' + operation + ': ' + String(durationMs) + 'ms';
+    if (typeof data !== 'undefined') { console.log(msg, data); } else { console.log(msg); }
   },
 
-  debug: (message: string, data?: unknown) => {
-    if (canInfo()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined ? console.debug(`🔍 [${t}]`, message, data) : console.debug(`🔍 [${t}]`, message);
-    }
+  context(ctx: string, message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[' + ctx + ']';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  success: (message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined ? console.log(`✅ [${t}]`, message, data) : console.log(`✅ [${t}]`, message);
-    }
+  component(name: string, message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[C:' + name + ']';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  api: (endpoint: string, message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🌐 [${t}] [API:${endpoint}]`, message, data)
-        : console.log(`🌐 [${t}] [API:${endpoint}]`, message);
-    }
+  hook(name: string, message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[H:' + name + ']';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  perf: (operation: string, duration: number, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      const icon = duration > 1000 ? '🐌' : duration > 500 ? '⏱️' : '⚡';
-      data !== undefined
-        ? console.log(`${icon} [${t}] [PERF:${operation}] ${duration}ms`, data)
-        : console.log(`${icon} [${t}] [PERF:${operation}] ${duration}ms`);
-    }
+  api(endpoint: string, message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[API:' + endpoint + ']';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  criticalError: (message: string, error?: unknown) => {
-    if (canError()) {
-      const t = new Date().toISOString().slice(11, 23);
-      error !== undefined
-        ? console.error(`🚨 [${t}] CRITICAL:`, message, error)
-        : console.error(`🚨 [${t}] CRITICAL:`, message);
-    }
+  criticalError(message: string, err?: unknown): void {
+    if (!canError()) return;
+    const head = 'CRITICAL ' + message;
+    if (typeof err !== 'undefined') { console.error(head, err); } else { console.error(head); }
   },
 
-  payment: (stage: string, message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`💳 [${t}] [PAYMENT:${stage}]`, message, data)
-        : console.log(`💳 [${t}] [PAYMENT:${stage}]`, message);
-    }
+  payment(stage: string, message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[PAY:' + stage + ']';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  orderVerification: (message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🎫 [${t}] [ORDER-VERIFY]`, message, data)
-        : console.log(`🎫 [${t}] [ORDER-VERIFY]`, message);
-    }
+  orderVerification(message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[ORDER-VERIFY]';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  accessCheck: (message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🔐 [${t}] [ACCESS-CHECK]`, message, data)
-        : console.log(`🔐 [${t}] [ACCESS-CHECK]`, message);
-    }
+  accessCheck(message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[ACCESS-CHECK]';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  linking: (message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🔗 [${t}] [LINKING]`, message, data)
-        : console.log(`🔗 [${t}] [LINKING]`, message);
-    }
+  linking(message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[LINKING]';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  cache: (operation: string, message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🗄️ [${t}] [CACHE:${operation}]`, message, data)
-        : console.log(`🗄️ [${t}] [CACHE:${operation}]`, message);
-    }
+  cache(op: string, message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[CACHE:' + op + ']';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
   },
 
-  flow: (step: number, stage: string, message: string, data?: unknown) => {
-    if (canAny()) {
-      const t = new Date().toISOString().slice(11, 23);
-      data !== undefined
-        ? console.log(`🔄 [${t}] [FLOW-${step}:${stage}]`, message, data)
-        : console.log(`🔄 [${t}] [FLOW-${step}:${stage}]`, message);
-    }
-  },
+  flow(step: number, stage: string, message: string, data?: unknown): void {
+    if (!canAny()) return;
+    const head = '[FLOW ' + String(step) + ':' + stage + ']';
+    if (typeof data !== 'undefined') { console.log(head, message, data); } else { console.log(head, message); }
+  }
 };
 
-/** =========================
- *  Global helpers (prod-safe)
- *  ========================= */
-if (typeof window !== 'undefined') {
+// ---------- Optional expose (dev/preview only) ----------
+if (typeof window !== 'undefined' && SHOULD_LOG) {
   (window as any).__LOGGER__ = logger;
-
-  if (import.meta.env.DEV && SHOULD_LOG) {
-    console.log('🚀 Logger loaded! Environment:', {
-      isDevelopmentMode: import.meta.env.DEV,
-      SHOULD_LOG,
-      level: debugLevel,
-      hostname: window.location.hostname,
-    });
-    logger.test();
-  }
-
   (window as any).__DEBUG_PAYMENT__ = {
-    test: () => {
-      if (SHOULD_LOG) {
-        console.log('🧪 Payment debug test');
-        logger.orderVerification('Test order verification log');
-        logger.payment('TEST', 'Test payment log');
-        logger.linking('Test linking log');
-      }
+    test: function () {
+      logger.orderVerification('test log');
+      logger.payment('TEST', 'payment log');
+      logger.linking('linking log');
     },
-    status: () => {
-      if (SHOULD_LOG) {
-        console.log('🔧 Current logger status:', {
-          SHOULD_LOG,
-          isDevelopmentMode: import.meta.env.DEV,
-          forceLogsEnabled,
-          level: debugLevel,
-          hostname: window.location.hostname,
-        });
-      }
+    status: function () {
+      logger.info('Logger status', {
+        shouldLog: SHOULD_LOG,
+        isDev: IS_DEV,
+        forceLogs: FORCE_LOGS,
+        level: DEBUG_LEVEL,
+        host: window.location.hostname
+      });
     },
-    forceEnableHint: () => {
-      if (import.meta.env.DEV || SHOULD_LOG) {
-        console.log('🔧 To force enable logs, set VITE_FORCE_LOGS=true (or build with custom mode).');
-      }
-    },
+    forceEnableHint: function () {
+      logger.info('Set VITE_FORCE_LOGS=true to enable logs in production');
+    }
   };
 }

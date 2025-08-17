@@ -3,10 +3,9 @@
 import React from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 
-// Import chart components that should exist
-// Note: These imports might need to be adjusted based on actual component locations
-const ProfitBreakdownChart = React.lazy(() => import('../ProfitBreakdownChart'));
-const ProfitTrendChart = React.lazy(() => import('../ProfitTrendChart'));
+// Use lazy wrappers to keep code-splitting without mixing imports
+import ProfitBreakdownChart from '../lazy/LazyProfitBreakdownChart';
+import ProfitTrendChart from '../lazy/LazyProfitTrendChart';
 
 // ==============================================
 // TYPES

@@ -4,17 +4,21 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --mode development",
-    "build": "vite build --mode production",
+    "dev": "vite --port 5173",
+    "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:debug": "vite build --mode development --minify false",
     "build:simple": "vite build --no-minify",
+    "preview": "vite preview --port 5500",
+
+    "analyze": "cross-env VITE_ANALYZE=true vite build",
+
     "lint": "eslint .",
-    "preview": "vite preview",
     "clean": "rm -rf node_modules/.vite dist",
-    "clean:all": "rm -rf node_modules .vite dist package-lock.json",
-    "check-deps": "npm ls react react-dom",
-    "check-react": "npm ls | grep react",
+    "clean:all": "rm -rf node_modules .vite dist package-lock.json pnpm-lock.yaml",
+    "check-deps": "npm ls react react-dom || pnpm ls react react-dom",
+    "check-react": "npm ls | grep react || pnpm ls | grep react",
+
     "push": "./auto-push.sh",
     "push:quick": "git add -A && git commit -m '🚀 Quick update' && git push",
     "push:msg": "./auto-push.sh"
@@ -88,6 +92,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",

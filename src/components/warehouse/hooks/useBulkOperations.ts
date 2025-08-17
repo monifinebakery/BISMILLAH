@@ -1,14 +1,26 @@
 // src/components/warehouse/hooks/useBulkOperations.ts
+// ✅ FIXED: Updated to match useWarehouseCore interface and BahanBakuFrontend types
 import { useState, useCallback } from 'react';
-import { BahanBaku, BulkEditData } from '../types/warehouse';
+import type { BahanBakuFrontend } from '../types'; // ✅ Updated import
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
+// ✅ FIXED: Updated interface to match WarehouseContextType from useWarehouseCore
 interface UseBulkOperationsProps {
-  updateBahanBaku: (id: string, updates: Partial<BahanBaku>) => Promise<boolean>;
-  bulkDeleteBahanBaku: (ids: string[]) => Promise<boolean>;
+  updateBahanBaku: (id: string, updates: Partial<BahanBakuFrontend>) => Promise<boolean>; // ✅ Updated type
+  deleteBahanBaku: (id: string) => Promise<boolean>; // ✅ Match exact method name
+  bulkDeleteBahanBaku?: (ids: string[]) => Promise<boolean>; // ✅ Optional, match useWarehouseCore
   selectedItems: string[];
   clearSelection: () => void;
+}
+
+// ✅ FIXED: Updated BulkEditData to match BahanBakuFrontend field names (camelCase)
+interface BulkEditData {
+  kategori?: string;
+  supplier?: string;
+  minimum?: number;
+  harga?: number; // ✅ Changed from hargaSatuan to harga
+  expiry?: string; // ✅ Changed from tanggalKadaluwarsa to expiry
 }
 
 interface UseBulkOperationsReturn {
@@ -16,7 +28,7 @@ interface UseBulkOperationsReturn {
   isBulkDeleting: boolean;
   bulkEditData: BulkEditData;
   setBulkEditData: (data: Partial<BulkEditData>) => void;
-  handleBulkEdit: (selectedItemsData: BahanBaku[]) => Promise<boolean>;
+  handleBulkEdit: (selectedItemsData: BahanBakuFrontend[]) => Promise<boolean>; // ✅ Updated type
   handleBulkDelete: () => Promise<boolean>;
   resetBulkEditData: () => void;
   validateBulkEditData: () => { isValid: boolean; errors: string[] };
@@ -26,13 +38,24 @@ const defaultBulkEditData: BulkEditData = {
   kategori: undefined,
   supplier: undefined,
   minimum: undefined,
-  hargaSatuan: undefined,
-  tanggalKadaluwarsa: undefined,
+  harga: undefined, // ✅ Updated field name
+  expiry: undefined, // ✅ Updated field name
 };
 
+/**
+ * ✅ FIXED: Bulk Operations Hook
+ * 
+ * FIXES:
+ * - Updated to use BahanBakuFrontend instead of BahanBaku
+ * - Fixed method names to match useWarehouseCore interface
+ * - Updated field names to camelCase (harga, expiry)
+ * - Added fallback for missing bulkDeleteBahanBaku method
+ * - Enhanced error handling and logging
+ */
 export const useBulkOperations = ({
   updateBahanBaku,
-  bulkDeleteBahanBaku,
+  deleteBahanBaku, // ✅ Now matches the actual method name
+  bulkDeleteBahanBaku, // ✅ Optional method
   selectedItems,
   clearSelection,
 }: UseBulkOperationsProps): UseBulkOperationsReturn => {
@@ -65,16 +88,16 @@ export const useBulkOperations = ({
       errors.push('Stok minimum tidak boleh negatif');
     }
 
-    // Validate price
-    if (bulkEditData.hargaSatuan !== undefined && bulkEditData.hargaSatuan < 0) {
+    // ✅ FIXED: Validate harga (not hargaSatuan)
+    if (bulkEditData.harga !== undefined && bulkEditData.harga < 0) {
       errors.push('Harga satuan tidak boleh negatif');
     }
 
-    // Validate expiry date
-    if (bulkEditData.tanggalKadaluwarsa !== undefined && bulkEditData.tanggalKadaluwarsa !== null) {
+    // ✅ FIXED: Validate expiry (not tanggalKadaluwarsa)
+    if (bulkEditData.expiry !== undefined && bulkEditData.expiry !== null) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const expiryDate = new Date(bulkEditData.tanggalKadaluwarsa);
+      const expiryDate = new Date(bulkEditData.expiry);
       expiryDate.setHours(0, 0, 0, 0);
       
       if (expiryDate <= today) {
@@ -88,7 +111,7 @@ export const useBulkOperations = ({
     };
   }, [bulkEditData]);
 
-  const handleBulkEdit = useCallback(async (selectedItemsData: BahanBaku[]): Promise<boolean> => {
+  const handleBulkEdit = useCallback(async (selectedItemsData: BahanBakuFrontend[]): Promise<boolean> => {
     if (selectedItems.length === 0) {
       toast.error('Pilih item yang ingin diedit terlebih dahulu');
       return false;
@@ -101,10 +124,11 @@ export const useBulkOperations = ({
     }
 
     setIsBulkEditing(true);
+    logger.info(`🔄 Starting bulk edit for ${selectedItems.length} items`);
 
     try {
-      // Prepare updates object - only include fields that have values
-      const updates: Partial<BahanBaku> = {};
+      // ✅ FIXED: Prepare updates object with correct field names
+      const updates: Partial<BahanBakuFrontend> = {};
       
       if (bulkEditData.kategori !== undefined && bulkEditData.kategori !== '') {
         updates.kategori = bulkEditData.kategori;
@@ -118,16 +142,24 @@ export const useBulkOperations = ({
         updates.minimum = bulkEditData.minimum;
       }
       
-      if (bulkEditData.hargaSatuan !== undefined) {
-        updates.hargaSatuan = bulkEditData.hargaSatuan;
+      // ✅ FIXED: Use 'harga' field name
+      if (bulkEditData.harga !== undefined) {
+        updates.harga = bulkEditData.harga;
       }
       
-      if (bulkEditData.tanggalKadaluwarsa !== undefined) {
-        updates.tanggalKadaluwarsa = bulkEditData.tanggalKadaluwarsa;
+      // ✅ FIXED: Use 'expiry' field name
+      if (bulkEditData.expiry !== undefined) {
+        updates.expiry = bulkEditData.expiry;
       }
 
+      logger.debug('📝 Bulk edit updates:', updates);
+
       // Apply updates to all selected items
-      const updatePromises = selectedItems.map(id => updateBahanBaku(id, updates));
+      const updatePromises = selectedItems.map(id => {
+        logger.debug(`🔄 Updating item: ${id}`);
+        return updateBahanBaku(id, updates);
+      });
+      
       const results = await Promise.allSettled(updatePromises);
 
       // Count successful and failed updates
@@ -135,6 +167,8 @@ export const useBulkOperations = ({
         result.status === 'fulfilled' && result.value === true
       ).length;
       const failed = results.length - successful;
+
+      logger.info(`📊 Bulk edit results: ${successful} success, ${failed} failed`);
 
       if (successful > 0) {
         toast.success(`${successful} item berhasil diperbarui${failed > 0 ? `, ${failed} gagal` : ''}`);
@@ -148,11 +182,17 @@ export const useBulkOperations = ({
 
       if (failed > 0) {
         toast.error(`${failed} item gagal diperbarui`);
+        // Log failed items for debugging
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            logger.error(`❌ Failed to update item ${selectedItems[index]}:`, result.reason);
+          }
+        });
       }
 
       return successful > 0;
     } catch (error) {
-      logger.error('Bulk edit error:', error);
+      logger.error('❌ Bulk edit error:', error);
       toast.error('Terjadi kesalahan saat melakukan bulk edit');
       return false;
     } finally {
@@ -160,6 +200,7 @@ export const useBulkOperations = ({
     }
   }, [selectedItems, bulkEditData, validateBulkEditData, updateBahanBaku, clearSelection, resetBulkEditData]);
 
+  // ✅ FIXED: Enhanced handleBulkDelete with fallback logic
   const handleBulkDelete = useCallback(async (): Promise<boolean> => {
     if (selectedItems.length === 0) {
       toast.error('Pilih item yang ingin dihapus terlebih dahulu');
@@ -167,9 +208,43 @@ export const useBulkOperations = ({
     }
 
     setIsBulkDeleting(true);
+    logger.info(`🗑️ Starting bulk delete for ${selectedItems.length} items`);
 
     try {
-      const success = await bulkDeleteBahanBaku(selectedItems);
+      let success = false;
+
+      // ✅ Try bulk delete first if available
+      if (bulkDeleteBahanBaku) {
+        logger.debug('🚀 Using bulk delete API');
+        success = await bulkDeleteBahanBaku(selectedItems);
+        logger.debug(`📊 Bulk delete API result: ${success}`);
+      } else {
+        // ✅ Fallback to individual deletes
+        logger.debug('🔄 Fallback to individual deletes');
+        
+        let successCount = 0;
+        for (const id of selectedItems) {
+          try {
+            logger.debug(`🗑️ Deleting individual item: ${id}`);
+            const itemSuccess = await deleteBahanBaku(id);
+            if (itemSuccess) {
+              successCount++;
+            } else {
+              logger.warn(`❌ Failed to delete item: ${id}`);
+            }
+          } catch (error) {
+            logger.error(`❌ Exception during individual delete for item ${id}:`, error);
+          }
+        }
+        
+        success = successCount > 0;
+        logger.info(`📊 Individual deletes: ${successCount}/${selectedItems.length} successful`);
+        
+        if (successCount < selectedItems.length) {
+          const failedCount = selectedItems.length - successCount;
+          toast.error(`${failedCount} item gagal dihapus`);
+        }
+      }
       
       if (success) {
         toast.success(`${selectedItems.length} item berhasil dihapus`);
@@ -180,13 +255,13 @@ export const useBulkOperations = ({
         return false;
       }
     } catch (error) {
-      logger.error('Bulk delete error:', error);
+      logger.error('❌ Bulk delete error:', error);
       toast.error('Terjadi kesalahan saat menghapus item');
       return false;
     } finally {
       setIsBulkDeleting(false);
     }
-  }, [selectedItems, bulkDeleteBahanBaku, clearSelection]);
+  }, [selectedItems, bulkDeleteBahanBaku, deleteBahanBaku, clearSelection]);
 
   return {
     isBulkEditing,

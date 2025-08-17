@@ -18,14 +18,9 @@ import profitAnalysisApi from '../services/profitAnalysisApi';
 
 // ✅ IMPORT WAC HELPERS (termasuk calculatePemakaianValue)
 import { fetchBahanMap, fetchPemakaianByPeriode, calculatePemakaianValue } from '../services/profitAnalysisApi';
-import { calcHPP, calculateInventoryValue, getEffectiveUnitPrice } from '../utils/profitCalculations';
+import { calcHPP } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';
-// ✅ ADD: Import contexts untuk real-time sync
-import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
-import { useOrder } from '@/components/orders/context/OrderContext';
-import { useRecipe } from '@/contexts/RecipeContext';
-import { filterByDateRange } from '@/components/financial/utils/financialCalculations';
 
 // Query Keys
 export const PROFIT_QUERY_KEYS = {
@@ -102,11 +97,6 @@ export const useProfitAnalysis = (
   } = options;
 
   const queryClient = useQueryClient();
-  
-  // ✅ ADD: Use contexts for real-time data
-  const { bahanBaku: warehouseMaterials, loading: warehouseLoading, refreshData: refreshWarehouse } = useWarehouseContext();
-  const { orders = [] } = useOrder() || {};
-  const { recipes = [] } = useRecipe() || {};
   
   // Local state
   const [currentPeriod, setCurrentPeriodState] = useState(defaultPeriod);
@@ -195,116 +185,28 @@ export const useProfitAnalysis = (
   const opex = currentData?.opex_data?.total ?? 0;
   const calculatedAt = currentData?.calculated_at ?? null;
 
-  // ✅ IMPROVED WAC CALCULATION with real-time warehouse sync
-  const { totalHPP, hppBreakdown, inventoryValue } = useMemo(() => {
-    // Method 1: Use pemakaian data (most accurate for actual usage)
+  // ✅ WAC CALCULATION
+  const { totalHPP, hppBreakdown } = useMemo(() => {
     if (bahanMapQuery.data && pemakaianQuery.data) {
       try {
         const res = calcHPP(pemakaianQuery.data, bahanMapQuery.data);
-        const inventoryResult = calculateInventoryValue(warehouseMaterials || []);
-        
-        logger.info('✅ Using actual material usage (pemakaian) for COGS:', {
-          totalHPP: res.totalHPP,
-          itemsUsed: res.breakdown.length,
-          inventoryValue: inventoryResult.totalValue
-        });
-        
         return {
           totalHPP: res.totalHPP,
-          hppBreakdown: res.breakdown,
-          inventoryValue: inventoryResult.totalValue
+          hppBreakdown: res.breakdown
         };
       } catch (err) {
-        logger.error('Error calculating HPP from pemakaian:', err);
-      }
-    }
-    
-    // ⚠️ Method 2: FALLBACK - Estimate COGS from recipe usage (not inventory value)
-    if (warehouseMaterials && warehouseMaterials.length > 0) {
-      try {
-        // Filter orders by current period
-        const periodStart = new Date(currentPeriod + '-01');
-        const periodEnd = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 0);
-        
-        const dateRange = {
-          from: periodStart.toISOString().split('T')[0],
-          to: periodEnd.toISOString().split('T')[0]
-        };
-        
-        const filteredOrders = filterByDateRange(orders, dateRange, 'tanggal');
-        
-        let estimatedCOGS = 0;
-        const usageBreakdown: Array<{ id: string; nama: string; qty: number; price: number; hpp: number }> = [];
-        const materialUsage: Record<string, number> = {};
-        
-        // Calculate material usage from orders and recipes
-        filteredOrders.forEach(order => {
-          order?.items?.forEach(item => {
-            if (!item?.namaBarang) return;
-            
-            const recipe = recipes.find(r => r?.namaResep === item.namaBarang);
-            if (!recipe?.bahanBaku) return;
-            
-            const quantity = Number(item.quantity) || 0;
-            
-            recipe.bahanBaku.forEach(ingredient => {
-              if (!ingredient?.namaBahan) return;
-              
-              const usage = (Number(ingredient.jumlah) || 0) * quantity;
-              if (!materialUsage[ingredient.namaBahan]) {
-                materialUsage[ingredient.namaBahan] = 0;
-              }
-              materialUsage[ingredient.namaBahan] += usage;
-            });
-          });
-        });
-        
-        // Calculate COGS based on actual usage
-        Object.entries(materialUsage).forEach(([materialName, totalUsage]) => {
-          const material = warehouseMaterials.find(m => 
-            m.nama?.toLowerCase() === materialName.toLowerCase()
-          );
-          
-          if (material && totalUsage > 0) {
-            const price = getEffectiveUnitPrice(material);
-            const cost = totalUsage * price;
-            estimatedCOGS += cost;
-            
-            usageBreakdown.push({
-              id: material.id,
-              nama: material.nama || materialName,
-              qty: totalUsage,
-              price,
-              hpp: Math.round(cost)
-            });
-          }
-        });
-        
-        logger.info('⚠️ Using estimated COGS from recipe usage (fallback):', {
-          estimatedCOGS,
-          materialsUsed: usageBreakdown.length,
-          totalOrders: filteredOrders.length,
-          period: currentPeriod
-        });
-        
-        const inventoryResult = calculateInventoryValue(warehouseMaterials);
-        
+        logger.error('Error calculating HPP:', err);
         return {
-          totalHPP: Math.round(estimatedCOGS),
-          hppBreakdown: usageBreakdown,
-          inventoryValue: inventoryResult.totalValue
+          totalHPP: 0,
+          hppBreakdown: []
         };
-      } catch (err) {
-        logger.error('Error calculating estimated COGS from recipe usage:', err);
       }
     }
-    
     return {
       totalHPP: 0,
-      hppBreakdown: [],
-      inventoryValue: 0
+      hppBreakdown: []
     };
-  }, [bahanMapQuery.data, pemakaianQuery.data, warehouseMaterials, currentData, recipes, orders, currentPeriod]);
+  }, [bahanMapQuery.data, pemakaianQuery.data]);
 
   // 🍽️ F&B LABELS - User-friendly terminology
   const labels: FNBLabels = useMemo(() => {
@@ -451,21 +353,20 @@ export const useProfitAnalysis = (
     }
   }, [currentAnalysisQuery]);
 
-  // ✅ IMPROVED WAC ACTION: Refresh both WAC and warehouse data
+  // ✅ WAC ACTION: Refresh WAC data
   const refreshWACData = useCallback(async () => {
-    logger.info('🔄 Refreshing WAC and warehouse data');
+    logger.info('🔄 Refreshing WAC data');
     try {
       await Promise.all([
         bahanMapQuery.refetch(),
-        pemakaianQuery.refetch(),
-        refreshWarehouse() // Real-time warehouse sync
+        pemakaianQuery.refetch()
       ]);
-      toast.success('Data modal bahan baku berhasil diperbarui');
+      toast.success('Data WAC berhasil diperbarui');
     } catch (error) {
-      logger.error('❌ Refresh WAC and warehouse failed:', error);
-      toast.error('Gagal memperbarui data modal bahan baku');
+      logger.error('❌ Refresh WAC failed:', error);
+      toast.error('Gagal memperbarui data WAC');
     }
-  }, [bahanMapQuery, pemakaianQuery, refreshWarehouse]);
+  }, [bahanMapQuery, pemakaianQuery]);
 
   // ✅ UTILITIES
   const getProfitByPeriod = useCallback((period: string) => {
@@ -515,7 +416,7 @@ export const useProfitAnalysis = (
     currentAnalysis: currentData || null,
     profitHistory,
     loading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending || 
-             bahanMapQuery.isLoading || pemakaianQuery.isLoading || warehouseLoading,
+             bahanMapQuery.isLoading || pemakaianQuery.isLoading,
     error: error || currentAnalysisQuery.error?.message || 
            bahanMapQuery.error?.message || pemakaianQuery.error?.message || null,
     

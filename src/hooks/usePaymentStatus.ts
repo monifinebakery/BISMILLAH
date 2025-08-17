@@ -148,16 +148,10 @@ export const usePaymentStatus = () => {
   const debouncedInvalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
     
-    // Optional immediate refetch after slight delay - use requestIdleCallback
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(() => {
-        queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
-      }, { timeout: 500 });
-    } else {
-      setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
-      }, 100); // Reduced timeout
-    }
+    // Optional immediate refetch after slight delay
+    setTimeout(() => {
+      queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
+    }, 500);
   }, [queryClient]);
 
   // ✅ Fixed real-time subscription - no more spam!
@@ -243,7 +237,7 @@ export const usePaymentStatus = () => {
                 logger.error('Realtime subscription failed');
               }
             });
-        }, 50); // Reduced delay to prevent blocking
+        }, 200);
 
       } catch (error) {
         logger.error('Error setting up payment subscription:', error);

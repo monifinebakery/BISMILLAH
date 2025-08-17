@@ -6,6 +6,7 @@ import { useUserSettings } from '@/contexts/UserSettingsContext';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 // 🚀 Lazy load heavy components
 const StatsGrid = lazy(() => import('@/components/dashboard/StatsGrid'));
@@ -79,7 +80,7 @@ const Dashboard = () => {
   // 🛡️ Safe date range handler
   const handleDateRangeChange = (newRange: { from: string; to: string }) => {
     if (!newRange || !newRange.from || !newRange.to) {
-      console.error('Invalid date range provided:', newRange);
+      logger.error('Dashboard - Invalid date range provided:', newRange);
       return;
     }
 
@@ -87,7 +88,7 @@ const Dashboard = () => {
     const toDate = new Date(newRange.to);
     
     if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-      console.error('Invalid date format:', newRange);
+      logger.error('Dashboard - Invalid date format:', newRange);
       return;
     }
 

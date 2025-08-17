@@ -1,15 +1,17 @@
 // src/utils/logger.ts — environment-aware logger (Netlify dev fixed)
 
-// ✅ Early environment snapshot
-console.log('🔍 Environment Check:', {
-  VITE_DEBUG_LEVEL: import.meta.env.VITE_DEBUG_LEVEL,
-  VITE_FORCE_LOGS: import.meta.env.VITE_FORCE_LOGS,
-  MODE: import.meta.env.MODE,
-  PROD: import.meta.env.PROD,
-  DEV: import.meta.env.DEV,
-  NODE_ENV: import.meta.env.NODE_ENV,
-  hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
-});
+// ✅ Early environment snapshot - ONLY IN DEV
+if (import.meta.env.DEV) {
+  console.log('🔍 Environment Check:', {
+    VITE_DEBUG_LEVEL: import.meta.env.VITE_DEBUG_LEVEL,
+    VITE_FORCE_LOGS: import.meta.env.VITE_FORCE_LOGS,
+    MODE: import.meta.env.MODE,
+    PROD: import.meta.env.PROD,
+    DEV: import.meta.env.DEV,
+    NODE_ENV: import.meta.env.NODE_ENV,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
+  });
+}
 
 // ----------------------
 // Config & helpers
@@ -69,59 +71,54 @@ const disableLogsHosts = String(import.meta.env.VITE_DISABLE_LOGS_ON_HOSTS || ''
 const getShouldLog = () => {
   // 1) ✅ ALWAYS log in Vite dev mode (regardless of hostname)
   if (import.meta.env.DEV) {
-    console.log('✅ Logger: DEV mode detected, enabling logs');
     return true;
   }
 
   // 2) ✅ Force logs via env
   if (forceLogsEnabled) {
-    console.log('✅ Logger: FORCE_LOGS enabled');
     return true;
   }
 
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    console.log('🌐 Logger: Checking hostname:', hostname);
 
     // 3) Disabled hosts
     if (disableLogsHosts.includes(hostname)) {
-      console.log('❌ Logger: Host in disable list');
       return false;
     }
 
     // 4) Preview/dev host (Netlify etc)
     if (isPreviewHostname(hostname)) {
-      console.log('✅ Logger: Preview/dev hostname detected');
       return true;
     }
 
     // 5) Production host
     if (isProductionHostname(hostname)) {
-      console.log('❌ Logger: Production hostname detected');
       return false;
     }
 
     // 6) ✅ FALLBACK: Unknown hostnames in dev mode should log
     if (import.meta.env.DEV) {
-      console.log('✅ Logger: DEV mode fallback for unknown hostname');
       return true;
     }
   }
 
-  // 7) Default
-  console.log('❌ Logger: Default disable');
+  // 7) Default - disable in production
   return false;
 };
 
 const SHOULD_LOG = getShouldLog();
 
-console.log('🔧 Logger Config:', {
-  isDevelopmentMode: import.meta.env.DEV,
-  forceLogsEnabled,
-  debugLevel,
-  SHOULD_LOG,
-  hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
-});
+// Only log config in DEV mode
+if (import.meta.env.DEV && SHOULD_LOG) {
+  console.log('🔧 Logger Config:', {
+    isDevelopmentMode: import.meta.env.DEV,
+    forceLogsEnabled,
+    debugLevel,
+    SHOULD_LOG,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'build-time'
+  });
+}
 
 const hasConsole = typeof console !== 'undefined';
 
@@ -298,38 +295,43 @@ export const logger = {
 };
 
 // ----------------------
-// Global debug helpers
+// Global debug helpers - PRODUCTION SAFE
 // ----------------------
 if (typeof window !== 'undefined') {
   (window as any).__LOGGER__ = logger;
 
-  // Test immediately when loaded
-  console.log('🚀 Logger loaded! Environment:', {
-    isDevelopmentMode: import.meta.env.DEV,
-    SHOULD_LOG,
-    level: debugLevel,
-    hostname: window.location.hostname
-  });
-  
-  if (SHOULD_LOG) {
+  // Test immediately when loaded - ONLY IN DEV
+  if (import.meta.env.DEV && SHOULD_LOG) {
+    console.log('🚀 Logger loaded! Environment:', {
+      isDevelopmentMode: import.meta.env.DEV,
+      SHOULD_LOG,
+      level: debugLevel,
+      hostname: window.location.hostname
+    });
+    
     logger.test();
   }
 
+  // Debug helpers - controlled by SHOULD_LOG
   (window as any).__DEBUG_PAYMENT__ = {
     test: () => {
-      console.log('🧪 Payment debug test');
-      logger.orderVerification('Test order verification log');
-      logger.payment('TEST', 'Test payment log');
-      logger.linking('Test linking log');
+      if (SHOULD_LOG) {
+        console.log('🧪 Payment debug test');
+        logger.orderVerification('Test order verification log');
+        logger.payment('TEST', 'Test payment log');
+        logger.linking('Test linking log');
+      }
     },
     status: () => {
-      console.log('🔧 Current logger status:', {
-        SHOULD_LOG,
-        isDevelopmentMode: import.meta.env.DEV,
-        forceLogsEnabled,
-        level: debugLevel,
-        hostname: window.location.hostname
-      });
+      if (SHOULD_LOG) {
+        console.log('🔧 Current logger status:', {
+          SHOULD_LOG,
+          isDevelopmentMode: import.meta.env.DEV,
+          forceLogsEnabled,
+          level: debugLevel,
+          hostname: window.location.hostname
+        });
+      }
     },
     forceEnableHint: () => {
       console.log('🔧 To force enable logs, set VITE_FORCE_LOGS=true (or build with custom mode).');

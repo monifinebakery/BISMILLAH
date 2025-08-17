@@ -13,9 +13,16 @@ import App from './App.tsx';
 import './index.css';
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from '@/utils/logger';
+import { performanceMonitor } from '@/utils/performanceMonitor';
 
 // Performance tracking
 const appStartTime = performance.now();
+
+// Initialize performance monitoring for setTimeout violations
+if (import.meta.env.DEV) {
+  performanceMonitor.enable();
+  logger.info('Performance monitoring enabled for setTimeout violations');
+}
 
 // Scheduler polyfill (if needed)
 if (typeof globalThis !== 'undefined' && !(globalThis as any).scheduler) {
@@ -89,6 +96,10 @@ if (import.meta.env.DEV) {
       initTime: appInitTime,
       getCurrentTime: () => performance.now(),
       getInitDuration: () => appInitTime,
+      monitor: performanceMonitor,
+      getTimeoutViolations: () => performanceMonitor.getViolations(),
+      getPerformanceReport: () => performanceMonitor.getReport(),
+      clearMetrics: () => performanceMonitor.clearMetrics(),
     },
     environment: {
       mode: import.meta.env.MODE,

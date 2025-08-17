@@ -209,16 +209,64 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
       let jsonData: any[] = [];
 
       if (file.name.endsWith('.csv')) {
-        // CSV processing (no XLSX needed)
+        // ✅ FIXED: Enhanced CSV processing with semicolon support
         const text = await file.text();
         const lines = text.split('\n').filter(l => l.trim());
         if (lines.length < 2) throw new Error('File kosong atau hanya berisi header');
         
-        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        // ✅ Auto-detect delimiter (comma vs semicolon)
+        const firstLine = lines[0];
+        const delimiter = firstLine.includes(';') && !firstLine.includes(',') ? ';' : ',';
+        
+        logger.info(`CSV delimiter detected: '${delimiter}'`);
+        toast.info(`Menggunakan delimiter: '${delimiter}'`, { duration: 1000 });
+        
+        // ✅ Enhanced CSV parsing with proper quote handling
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          let i = 0;
+          
+          while (i < line.length) {
+            const char = line[i];
+            
+            if (char === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                // Handle escaped quotes
+                current += '"';
+                i += 2;
+                continue;
+              } else {
+                inQuotes = !inQuotes;
+                i++;
+                continue;
+              }
+            }
+            
+            if (char === delimiter && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+              i++;
+              continue;
+            }
+            
+            current += char;
+            i++;
+          }
+          
+          result.push(current.trim());
+          return result;
+        };
+        
+        const headers = parseCSVLine(firstLine);
         jsonData = lines.slice(1).map((line, index) => {
-          const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+          const values = parseCSVLine(line);
           const row: any = { _rowIndex: index + 2 };
-          headers.forEach((h, i) => row[h] = values[i] || '');
+          headers.forEach((h, i) => {
+            const value = values[i] || '';
+            row[h] = value;
+          });
           return row;
         });
       } else {
@@ -412,6 +460,84 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
     }
   };
 
+  // ✅ NEW: Download CSV template with semicolon delimiter
+  const downloadCSVTemplate = () => {
+    try {
+      // ✅ Template data yang sama seperti Excel tapi format CSV
+      const template = [
+        {
+          nama: 'Tepung Terigu Premium',
+          kategori: 'Bahan Dasar',
+          supplier: 'PT Supplier Terpercaya',
+          satuan: 'gram',
+          expiry: '2024-12-31',
+          stok: 5000,
+          minimum: 1000,
+          jumlahBeliKemasan: 2,
+          isiPerKemasan: 25000,
+          satuanKemasan: 'sak',
+          hargaTotalBeliKemasan: 150000
+        },
+        {
+          nama: 'Gula Pasir Halus',
+          kategori: 'Pemanis',
+          supplier: 'CV Gula Manis',
+          satuan: 'gram',
+          expiry: '2024-11-30',
+          stok: 3000,
+          minimum: 500,
+          jumlahBeliKemasan: 1,
+          isiPerKemasan: 1000,
+          satuanKemasan: 'karton',
+          hargaTotalBeliKemasan: 18000
+        },
+        {
+          nama: 'Minyak Goreng',
+          kategori: 'Minyak',
+          supplier: 'PT Minyak Sehat',
+          satuan: 'ml',
+          expiry: '2025-06-15',
+          stok: 2000,
+          minimum: 300,
+          jumlahBeliKemasan: 4,
+          isiPerKemasan: 500,
+          satuanKemasan: 'botol',
+          hargaTotalBeliKemasan: 60000
+        }
+      ];
+      
+      // ✅ Create CSV with semicolon delimiter (untuk Excel Indonesia)
+      const headers = Object.keys(template[0]);
+      const csvContent = [
+        headers.join(';'), // Header dengan semicolon
+        ...template.map(row => 
+          headers.map(key => {
+            const value = row[key as keyof typeof row];
+            // Quote strings yang mengandung semicolon atau spasi
+            if (typeof value === 'string' && (value.includes(';') || value.includes(' '))) {
+              return `"${value}"`;
+            }
+            return value;
+          }).join(';')
+        )
+      ].join('\n');
+      
+      // ✅ Download CSV file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `template_bahan_baku_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      
+      toast.success('Template CSV berhasil di-download');
+      logger.info('CSV template downloaded with semicolon delimiter');
+      
+    } catch (error) {
+      logger.error('CSV template download error:', error);
+      toast.error('Gagal membuat template CSV');
+    }
+  };
+
   // Execute import
   const executeImport = async () => {
     if (!preview?.valid.length) return;
@@ -491,7 +617,11 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                   </Button>
                   <Button variant="outline" onClick={downloadTemplate} disabled={loading}>
                     <Download className="w-4 h-4 mr-2" />
-                    {loading ? 'Membuat...' : 'Download Template'}
+                    {loading ? 'Membuat...' : 'Template Excel'}
+                  </Button>
+                  <Button variant="outline" onClick={downloadCSVTemplate} disabled={loading}>
+                    <Download className="w-4 h-4 mr-2" />
+                    {loading ? 'Membuat...' : 'Template CSV'}
                   </Button>
                 </div>
                 <input
@@ -513,6 +643,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                       <div className="text-sm text-blue-700 mt-1 space-y-1">
                         <div>• <strong>CSV:</strong> Langsung diproses, sangat cepat</div>
                         <div>• <strong>Excel:</strong> .xlsx, .xls (butuh loading ~2-3 detik)</div>
+                        <div>• <strong>Delimiter:</strong> Koma (,) atau semicolon (;)</div>
                         <div>• <strong>Ukuran maksimal:</strong> 10MB</div>
                       </div>
                     </div>
@@ -529,6 +660,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({
                         <div>• Pastikan semua kolom wajib terisi</div>
                         <div>• Format tanggal: YYYY-MM-DD</div>
                         <div>• Angka jangan pakai titik/koma pemisah</div>
+                        <div>• <strong>CSV:</strong> Gunakan semicolon (;) jika Excel Indonesia</div>
                       </div>
                     </div>
                   </div>

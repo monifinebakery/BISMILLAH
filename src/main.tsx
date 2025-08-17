@@ -1,6 +1,8 @@
 // src/main.tsx - Single React Query provider lives in App.tsx
 
-// 🚀 FIRST: Disable console in production BEFORE any imports
+// 🚀 FIRST: Silence console in production IMMEDIATELY on import
+import '@/utils/immediateConsoleSilencer'; // This runs immediately, no function call needed
+// Backup: Also import and call the original override
 import { disableConsoleInProduction } from '@/utils/productionConsoleOverride';
 disableConsoleInProduction();
 

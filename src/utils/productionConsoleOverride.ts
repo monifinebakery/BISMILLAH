@@ -21,17 +21,33 @@ const originalConsole = {
 
 // Function to disable console in production
 export function disableConsoleInProduction() {
-  // Only disable if we're in production
-  const isProduction = import.meta.env.PROD || 
-                      import.meta.env.MODE === 'production' || 
-                      process.env.NODE_ENV === 'production';
+  // Check multiple conditions for production
+  const envProd = import.meta.env.PROD;
+  const envMode = import.meta.env.MODE === 'production';
+  const nodeEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
   
-  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  const isProductionHost = hostname === 'kalkulator.monifine.my.id' || 
-                          hostname === 'www.kalkulator.monifine.my.id';
+  // Check hostname if available
+  let hostProd = false;
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    hostProd = hostname === 'kalkulator.monifine.my.id' || 
+               hostname === 'www.kalkulator.monifine.my.id' ||
+               hostname.includes('netlify.app') || // Netlify production
+               hostname.includes('vercel.app');   // Vercel production
+  }
   
-  // If we're in production OR on production hostname, disable console
-  if (isProduction || isProductionHost) {
+  // More aggressive production detection
+  const isProduction = envProd || envMode || nodeEnv || hostProd;
+  
+  // Debug info (will be silenced once console is disabled)
+  originalConsole.log('🔍 Console Override Check:', {
+    envProd, envMode, nodeEnv, hostProd,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A',
+    willDisable: isProduction
+  });
+  
+  if (isProduction) {
+    // Disable all console methods immediately
     console.log = () => {};
     console.warn = () => {};
     console.debug = () => {};
@@ -50,8 +66,18 @@ export function disableConsoleInProduction() {
       }
     };
     
-    // Create a flag to indicate console is disabled
-    (window as any).__CONSOLE_DISABLED__ = true;
+    // Set global flags
+    if (typeof window !== 'undefined') {
+      (window as any).__CONSOLE_DISABLED__ = true;
+    }
+    if (typeof global !== 'undefined') {
+      (global as any).__CONSOLE_DISABLED__ = true;
+    }
+    
+    // Confirmation that console is disabled
+    originalConsole.log('🚫 Console disabled for production');
+  } else {
+    originalConsole.log('✅ Console active for development');
   }
 }
 
@@ -76,4 +102,27 @@ if (typeof window !== 'undefined') {
   (window as any).__RESTORE_CONSOLE__ = restoreConsole;
   (window as any).__DISABLE_CONSOLE__ = disableConsoleInProduction;
   (window as any).__ORIGINAL_CONSOLE__ = originalConsole;
+}
+
+// IMMEDIATE EXECUTION - Run as soon as this module is imported
+// This ensures console is disabled before any other code runs
+if (typeof window === 'undefined') {
+  // Server-side: disable immediately if in production build
+  if (import.meta.env.PROD || import.meta.env.MODE === 'production') {
+    console.log = () => {};
+    console.warn = () => {};
+    console.debug = () => {};
+    console.info = () => {};
+  }
+} else {
+  // Client-side: wait for DOM ready then disable
+  const checkAndDisable = () => {
+    disableConsoleInProduction();
+  };
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAndDisable);
+  } else {
+    checkAndDisable();
+  }
 }

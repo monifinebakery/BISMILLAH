@@ -4,8 +4,8 @@
 
 // Detect production environment
 let isProduction = 
-  (typeof import !== 'undefined' && import.meta?.env?.PROD) ||
-  (typeof import !== 'undefined' && import.meta?.env?.MODE === 'production') ||
+  import.meta.env.PROD ||
+  import.meta.env.MODE === 'production' ||
   (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production');
 
 // Also check hostname-based detection

@@ -2,15 +2,45 @@
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
 
 import { warehouseUtils } from '@/components/warehouse/services';
+import { logger } from '@/utils/logger';
 
-// Harga efektif: pakai WAC kalau ada, else harga input
+/**
+ * Get effective unit price using weighted average cost (WAC) if available
+ * 
+ * Priority:
+ * 1. WAC (hargaRataRata) - Most accurate, calculated from purchase history
+ * 2. Base unit price (harga) - User input/fallback
+ * 
+ * @param item Warehouse item
+ * @returns Effective unit price to use for calculations
+ */
 const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
+  if (!item) return 0;
+  
   const wac = Number(item.hargaRataRata ?? 0);
   const base = Number(item.harga ?? 0);
-  return wac > 0 ? wac : base;
+  const price = wac > 0 ? wac : base;
+  
+  if (wac > 0 && Math.abs(wac - base) > base * 0.2) {
+    // Log significant price difference for debugging (> 20% difference)
+    logger.debug(`WAC price differs significantly from base price for item ${item.nama}:`, {
+      wac,
+      base,
+      difference: Math.abs(wac - base),
+      percentDiff: Math.abs(wac - base) / base * 100
+    });
+  }
+  
+  return price;
 };
 
-const isUsingWac = (item: BahanBakuFrontend): boolean => Number(item.hargaRataRata ?? 0) > 0;
+/**
+ * Check if an item is using WAC pricing
+ * This helps UI components indicate which pricing model is active
+ */
+const isUsingWac = (item: BahanBakuFrontend): boolean => {
+  return item && Number(item.hargaRataRata ?? 0) > 0;
+};
 
 export const warehouseUtils = {
   getEffectiveUnitPrice,
@@ -99,22 +129,44 @@ export const warehouseUtils = {
     if (current <= minimum * 1.5) return { level: 'medium' as const, percentage, color: 'yellow' };
     return { level: 'high' as const, percentage, color: 'green' };
   },
+  
+  /**
+   * Calculates total value of stock using effective price
+   * This considers WAC when available for accurate valuation
+   */
+  calculateStockValue: (items: BahanBakuFrontend[]): number => {
+    if (!items || !Array.isArray(items)) return 0;
+    
+    return items.reduce((sum, item) => {
+      const price = getEffectiveUnitPrice(item);
+      const quantity = Number(item.stok || 0);
+      return sum + (price * quantity);
+    }, 0);
+  },
 
-  // Export (pakai harga efektif)
-  prepareExportData: (items: BahanBakuFrontend[]) => items.map(item => ({
-    'Nama': item.nama,
-    'Kategori': item.kategori,
-    'Supplier': item.supplier,
-    'Stok': item.stok,
-    'Minimum': item.minimum,
-    'Satuan': item.satuan,
-    'Harga Satuan (Input)': warehouseUtils.formatCurrency(item.harga || 0),
-    'Harga Rata-rata (WAC)': item.hargaRataRata != null ? warehouseUtils.formatCurrency(item.hargaRataRata) : '-',
-    'Harga Efektif': warehouseUtils.formatCurrency(getEffectiveUnitPrice(item)),
-    'Tanggal Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
-    'Dibuat': warehouseUtils.formatDate(item.createdAt),
-    'Diupdate': warehouseUtils.formatDate(item.updatedAt),
-  })),
+  /**
+   * Prepare data for export with clear distinction between price types
+   * This helps user understand which price is being used in calculations
+   */
+  prepareExportData: (items: BahanBakuFrontend[]) => items.map(item => {
+    const isUsingWacPrice = isUsingWac(item);
+    return {
+      'Nama': item.nama,
+      'Kategori': item.kategori,
+      'Supplier': item.supplier,
+      'Stok': item.stok,
+      'Minimum': item.minimum,
+      'Satuan': item.satuan,
+      'Harga Satuan (Input)': warehouseUtils.formatCurrency(item.harga || 0),
+      'Harga Rata-rata (WAC)': item.hargaRataRata != null ? warehouseUtils.formatCurrency(item.hargaRataRata) : '-',
+      'Harga Efektif': warehouseUtils.formatCurrency(getEffectiveUnitPrice(item)),
+      'Metode Harga': isUsingWacPrice ? 'Rata-rata Tertimbang (WAC)' : 'Harga Input',
+      'Nilai Total Stok': warehouseUtils.formatCurrency(getEffectiveUnitPrice(item) * (item.stok || 0)),
+      'Tanggal Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
+      'Dibuat': warehouseUtils.formatDate(item.createdAt),
+      'Diupdate': warehouseUtils.formatDate(item.updatedAt),
+    };
+  }),
 
   // Simple report (tanpa package efficiency)
   generateStockReport: (items: BahanBakuFrontend[]) => {

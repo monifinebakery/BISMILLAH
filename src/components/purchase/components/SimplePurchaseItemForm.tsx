@@ -1,7 +1,6 @@
 // src/components/purchase/components/SimplePurchaseItemForm.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,24 +28,39 @@ interface BahanBaku {
   satuan: string;
 }
 
-export interface FormData {
+// ✅ Internal form state - all strings for input handling
+interface FormData {
   bahanBakuId: string;
   nama: string;
   satuan: string;
-  kuantitas: number | '';
-  hargaSatuan: number | '';
+  kuantitas: string;
+  hargaSatuan: string;
   keterangan: string;
-  jumlahKemasan?: number | '';
-  isiPerKemasan?: number | '';
+  jumlahKemasan?: string;
+  isiPerKemasan?: string;
   satuanKemasan?: string;
-  hargaTotalBeliKemasan?: number | '';
+  hargaTotalBeliKemasan?: string;
+}
+
+// ✅ CLEANER: Output payload with proper numeric types
+export interface PurchaseItemPayload {
+  bahanBakuId: string;
+  nama: string;
+  satuan: string;
+  kuantitas: number;
+  hargaSatuan: number;
+  keterangan: string;
+  jumlahKemasan?: number;
+  isiPerKemasan?: number;
+  satuanKemasan?: string;
+  hargaTotalBeliKemasan?: number;
 }
 
 interface SimplePurchaseItemFormProps {
   bahanBaku: BahanBaku[];
   onCancel: () => void;
-  onAdd: (formData: FormData) => void;
-  initialMode?: 'quick' | 'packaging'; // NEW: Allow initial mode
+  onAdd: (formData: PurchaseItemPayload) => void; // ✅ Clean numeric payload
+  initialMode?: 'quick' | 'packaging';
 }
 
 const toNumber = (v: string | number | '' | undefined) => {
@@ -70,7 +84,6 @@ const toNumber = (v: string | number | '' | undefined) => {
 };
 
 // ---- Guards: block invalid numeric input before it reaches state ----
-// Allow digits and optionally a single decimal separator ('.' or ',')
 const makeBeforeInputGuard = (getValue: () => string, allowDecimal = true) =>
   (e: React.FormEvent<HTMLInputElement> & { nativeEvent: InputEvent }) => {
     const ch = (e.nativeEvent as any).data ?? '';
@@ -123,13 +136,15 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   bahanBaku,
   onCancel,
   onAdd,
-  initialMode = 'quick', // NEW: Default to quick mode
+  initialMode = 'quick',
 }) => {
   const [mode, setMode] = useState<'quick' | 'accurate' | 'packaging'>(
     initialMode === 'packaging' ? 'packaging' : 'quick'
   );
   
-  // ✅ FIXED: Always use strings for numeric inputs to prevent value switching
+  // ✅ NEW: Track if user has manually edited quantity
+  const qtyTouchedRef = useRef(false);
+  
   const [formData, setFormData] = useState<FormData>({
     bahanBakuId: '',
     nama: '',
@@ -150,6 +165,25 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   const accuratePrice = calculateAccuratePrice();
   const accuracyLevel = mode === 'packaging' ? 100 : mode === 'accurate' ? 85 : 70;
+
+  // ✅ NEW: Reset auto-sync when entering Packaging mode
+  useEffect(() => {
+    if (mode === 'packaging') {
+      qtyTouchedRef.current = false; // Reset touched flag for fresh auto-sync
+    }
+  }, [mode]);
+
+  // ✅ NEW: Auto-sync kuantitas saat Packaging jika user belum menyentuh field kuantitas
+  useEffect(() => {
+    if (mode !== 'packaging') return;
+    const totalContent = toNumber(formData.jumlahKemasan) * toNumber(formData.isiPerKemasan);
+    if (totalContent > 0 && !qtyTouchedRef.current) {
+      setFormData(prev => (prev.kuantitas === String(totalContent) ? prev : {
+        ...prev,
+        kuantitas: String(totalContent),
+      }));
+    }
+  }, [mode, formData.jumlahKemasan, formData.isiPerKemasan]);
 
   // Update accurate price when in packaging mode - prevent unnecessary updates
   useEffect(() => {
@@ -189,6 +223,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     });
   }, [setFormData]);
 
+  // ✅ NEW: Special handler for quantity changes that tracks user interaction
+  const onQtyChange = (v: string) => {
+    qtyTouchedRef.current = true;
+    handleNumericChange('kuantitas', v);
+  };
+
   // ✅ STABLE: Simple value getter without dependencies
   const getValue = useCallback((field: keyof FormData) => {
     const val = formData[field];
@@ -196,29 +236,51 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
     return String(val);
   }, [formData]);
 
-  // ✅ ULTRA OPTIMIZED: Use form's addItem directly for zero overhead
+  // ✅ CLEANER: Proper payload construction without type casting
   const handleSubmit = () => {
-    const qty = toNumber(formData.kuantitas);
-    const price = toNumber(formData.hargaSatuan);
+    const isPackaging = mode === 'packaging';
 
-    // Basic validation only
+    // ✅ NEW: For packaging, ensure we use the computed total if it's larger
+    const qty = isPackaging
+      ? Math.max(
+          toNumber(formData.kuantitas),
+          toNumber(formData.jumlahKemasan) * toNumber(formData.isiPerKemasan)
+        )
+      : toNumber(formData.kuantitas);
+
+    const price = isPackaging
+      ? calculateAccuratePrice()
+      : toNumber(formData.hargaSatuan);
 
     if (!formData.bahanBakuId) return toast.error('Pilih bahan baku');
     if (qty <= 0) return toast.error('Kuantitas harus > 0');
     if (price <= 0) return toast.error('Harga satuan harus > 0');
 
-    // Direct call to form's addItem - no intermediate handlers
-
+    // ✅ CLEAN: Send properly typed payload
     onAdd({
-      ...formData,
+      bahanBakuId: formData.bahanBakuId,
+      nama: formData.nama,
+      satuan: formData.satuan,
       kuantitas: qty,
       hargaSatuan: price,
+      keterangan: formData.keterangan,
       jumlahKemasan: formData.jumlahKemasan === '' ? undefined : toNumber(formData.jumlahKemasan),
       isiPerKemasan: formData.isiPerKemasan === '' ? undefined : toNumber(formData.isiPerKemasan),
       hargaTotalBeliKemasan: formData.hargaTotalBeliKemasan === '' ? undefined : toNumber(formData.hargaTotalBeliKemasan),
       satuanKemasan: formData.satuanKemasan?.trim() || undefined,
-    } as FormData);
+    });
   };
+
+  // ✅ NEW: Enhanced submit validation
+  const canSubmit =
+    mode !== 'accurate' && formData.bahanBakuId &&
+    (mode === 'packaging'
+      ? (toNumber(formData.jumlahKemasan) > 0 &&
+         toNumber(formData.isiPerKemasan) > 0 &&
+         toNumber(formData.hargaTotalBeliKemasan) > 0)
+      : (toNumber(formData.kuantitas) > 0 &&
+         toNumber(formData.hargaSatuan) > 0)
+    );
 
   // Refs for focus stability
   const qtyRef = useRef<HTMLInputElement>(null);
@@ -226,7 +288,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   // Memoized UI blocks to avoid subtree remounts on re-render
   const quickUI = React.useMemo(() => (
-
     <div className="space-y-6">
       {/* Input Fields - Responsive Grid */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -259,11 +320,9 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 onBeforeInput={makeBeforeInputGuard(() => String(formData.kuantitas ?? ''), true)}
                 onPaste={handlePasteGuard(true)}
                 onChange={(e) => {
-                  handleNumericChange('kuantitas', e.target.value);
-                  // Focus safety net
+                  onQtyChange(e.target.value);
                   requestAnimationFrame(() => qtyRef.current?.focus());
                 }}
-
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
               />
@@ -284,10 +343,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 onPaste={handlePasteGuard(true)}
                 onChange={(e) => {
                   handleNumericChange('hargaSatuan', e.target.value);
-                  // Focus safety net
                   requestAnimationFrame(() => priceRef.current?.focus());
                 }}
-
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
               />
@@ -324,10 +381,9 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </AlertDescription>
       </Alert>
     </div>
-  ), [formData, accuracyLevel, handleNumericChange, handleBahanBakuSelect]);
+  ), [formData, accuracyLevel, handleNumericChange, handleBahanBakuSelect, onQtyChange]);
 
   const accuratePromptUI = React.useMemo(() => (
-
     <div className="space-y-6">
       <div className="text-center py-8">
         {/* Icon */}
@@ -438,8 +494,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
               onBeforeInput={makeBeforeInputGuard(() => getValue('kuantitas'), true)}
               onPaste={handlePasteGuard(true)}
               onChange={(e) => {
-                handleNumericChange('kuantitas', e.target.value);
-                // 🔒 tahan fokus biar gak lepas setiap re-render
+                onQtyChange(e.target.value);
                 requestAnimationFrame(() => qtyPackRef.current?.focus());
               }}
               placeholder="0"
@@ -567,7 +622,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
         </AlertDescription>
       </Alert>
     </div>
-  ), [formData, accuracyLevel, accuratePrice, handleNumericChange, handleBahanBakuSelect]);
+  ), [formData, accuracyLevel, accuratePrice, handleNumericChange, handleBahanBakuSelect, onQtyChange]);
 
   return (
     <Card className="border-dashed border-orange-200 bg-orange-50/30 backdrop-blur-sm">
@@ -625,11 +680,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           </div>
         </div>
 
-        {/* Submit Button - Always in DOM, hidden when not needed */}
+        {/* ✅ ENHANCED: Submit Button with improved validation */}
         <Button
           type="button"
           onClick={handleSubmit}
-          disabled={!formData.bahanBakuId || toNumber(formData.kuantitas) <= 0 || toNumber(formData.hargaSatuan) <= 0}
+          disabled={!canSubmit}
           className={mode !== 'accurate' ? "w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 shadow-sm disabled:bg-gray-300 disabled:text-gray-500" : "hidden"}
         >
           <Plus className="h-4 w-4 mr-2" />

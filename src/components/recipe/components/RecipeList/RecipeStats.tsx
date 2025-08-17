@@ -255,14 +255,46 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
                 { title: 'Rata-rata Margin', value: formatPercentage(performanceMetrics.averageMargin), subtitle: 'Margin keuntungan', theme: 'blue' },
                 { title: 'Total Potensi Revenue', value: formatCurrency(performanceMetrics.totalPotentialRevenue), subtitle: 'Revenue maksimal', theme: 'purple' },
                 // PERBAIKAN: Pengecekan diubah ke totalPotentialRevenue > 0
-                { title: 'Efisiensi Biaya', value: performanceMetrics.totalPotentialRevenue > 0 ? formatPercentage((performanceMetrics.totalCost / performanceMetrics.totalPotentialRevenue) * 100) : 'N/A', subtitle: 'Rasio biaya ke revenue', theme: 'orange' },
-              ].map(metric => (
-                <div key={metric.title} className={`rounded-lg border border-${metric.theme}-200 bg-white p-4`}>
-                  <p className={`mb-1 text-sm font-medium text-${metric.theme}-600`}>{metric.title}</p>
-                  <p className={`text-2xl font-bold text-${metric.theme}-900`}>{metric.value}</p>
-                  <p className={`text-xs text-${metric.theme}-700`}>{metric.subtitle}</p>
-                </div>
-              ))}
+              { title: 'Efisiensi Biaya', value: performanceMetrics.totalPotentialRevenue > 0 ? formatPercentage((performanceMetrics.totalCost / performanceMetrics.totalPotentialRevenue) * 100) : 'N/A', subtitle: 'Rasio biaya ke revenue', theme: 'orange' },
+              ].map(metric => {
+                const getMetricClasses = (theme: string) => {
+                  const classMap = {
+                    green: {
+                      border: 'border-green-200',
+                      text: 'text-green-600',
+                      textBold: 'text-green-900',
+                      textSubtle: 'text-green-700'
+                    },
+                    blue: {
+                      border: 'border-blue-200', 
+                      text: 'text-blue-600',
+                      textBold: 'text-blue-900',
+                      textSubtle: 'text-blue-700'
+                    },
+                    purple: {
+                      border: 'border-purple-200',
+                      text: 'text-purple-600', 
+                      textBold: 'text-purple-900',
+                      textSubtle: 'text-purple-700'
+                    },
+                    orange: {
+                      border: 'border-orange-200',
+                      text: 'text-orange-600',
+                      textBold: 'text-orange-900', 
+                      textSubtle: 'text-orange-700'
+                    }
+                  };
+                  return classMap[theme as keyof typeof classMap] || classMap.green;
+                };
+                const classes = getMetricClasses(metric.theme);
+                return (
+                  <div key={metric.title} className={`rounded-lg border ${classes.border} bg-white p-4`}>
+                    <p className={`mb-1 text-sm font-medium ${classes.text}`}>{metric.title}</p>
+                    <p className={`text-2xl font-bold ${classes.textBold}`}>{metric.value}</p>
+                    <p className={`text-xs ${classes.textSubtle}`}>{metric.subtitle}</p>
+                  </div>
+                );
+              })
             </div>
           </CardContent>
         </Card>

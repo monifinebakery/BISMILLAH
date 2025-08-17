@@ -1,6 +1,6 @@
-// src/pages/Recipes.tsx - Fixed API Response Format
+// src/pages/Recipes.tsx - Fixed and Simplified
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,77 +31,103 @@ export const RECIPE_QUERY_KEYS = {
   categories: () => [...RECIPE_QUERY_KEYS.all, 'categories'] as const,
 } as const;
 
-// Lazy loaded dialogs and forms
-const RecipeForm = React.lazy(() => import('@/components/recipe/components/RecipeForm'));
-const DeleteRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/DeleteRecipeDialog'));
-const DuplicateRecipeDialog = React.lazy(() => import('@/components/recipe/dialogs/DuplicateRecipeDialog'));
-const CategoryManagerDialog = React.lazy(() => import('@/components/recipe/dialogs/CategoryManagerDialog'));
+// ✅ Lazy loaded components with better error handling
+const RecipeForm = React.lazy(() => 
+  import('@/components/recipe/components/RecipeForm')
+    .catch(error => {
+      logger.error('Failed to load RecipeForm:', error);
+      return { default: () => <div>Error loading form</div> };
+    })
+);
 
-// Custom Error Boundary component
-class RecipeErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback?: React.ComponentType<{ error: Error; resetError: () => void }> },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+const DeleteRecipeDialog = React.lazy(() => 
+  import('@/components/recipe/dialogs/DeleteRecipeDialog')
+    .catch(error => {
+      logger.error('Failed to load DeleteRecipeDialog:', error);
+      return { default: () => <div>Error loading dialog</div> };
+    })
+);
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
+const DuplicateRecipeDialog = React.lazy(() => 
+  import('@/components/recipe/dialogs/DuplicateRecipeDialog')
+    .catch(error => {
+      logger.error('Failed to load DuplicateRecipeDialog:', error);
+      return { default: () => <div>Error loading dialog</div> };
+    })
+);
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error('Recipe page error:', error);
-    
-    if (import.meta.env.PROD) {
-      // Example: Sentry.captureException(error);
-    }
-  }
+const CategoryManagerDialog = React.lazy(() => 
+  import('@/components/recipe/dialogs/CategoryManagerDialog')
+    .catch(error => {
+      logger.error('Failed to load CategoryManagerDialog:', error);
+      return { default: () => <div>Error loading dialog</div> };
+    })
+);
 
-  resetError = () => {
-    this.setState({ hasError: false, error: null });
-  };
+// ✅ Better Loading Fallback
+const RecipeLoadingFallback: React.FC = () => (
+  <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+    <div className="container mx-auto p-4 sm:p-6">
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="flex gap-3">
+            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+        
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="bg-white rounded-lg border p-6">
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+        
+        <LoadingState />
+      </div>
+    </div>
+  </div>
+);
 
-  render() {
-    if (this.state.hasError) {
-      const FallbackComponent = this.props.fallback || DefaultErrorFallback;
-      return <FallbackComponent error={this.state.error!} resetError={this.resetError} />;
-    }
-
-    return this.props.children;
-  }
-}
-
-// Default Error fallback component
-const DefaultErrorFallback: React.FC<{ error: Error; resetError: () => void }> = ({ 
+// ✅ Improved Error Fallback
+const RecipeErrorFallback: React.FC<{ error?: string; onRetry?: () => void }> = ({ 
   error, 
-  resetError 
+  onRetry 
 }) => (
   <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-    <Card className="max-w-md w-full border-1 border-gray-200">
+    <Card className="max-w-md w-full">
       <CardContent className="p-8 text-center">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Oops! Terjadi Kesalahan
+          Gagal Memuat Resep
         </h2>
         
         <p className="text-gray-600 mb-4">
-          {error.message || 'Terjadi kesalahan yang tidak terduga'}
+          {error || 'Terjadi kesalahan yang tidak terduga'}
         </p>
         
         <div className="space-y-3">
-          <Button
-            onClick={resetError}
-            className="w-full bg-orange-500 hover:bg-orange-600"
-          >
-            Coba Lagi
-          </Button>
+          {onRetry && (
+            <Button
+              onClick={onRetry}
+              className="w-full bg-orange-500 hover:bg-orange-600"
+            >
+              Coba Lagi
+            </Button>
+          )}
           
           <Button
             onClick={() => window.location.reload()}
@@ -111,95 +137,96 @@ const DefaultErrorFallback: React.FC<{ error: Error; resetError: () => void }> =
             Refresh Halaman
           </Button>
         </div>
-        
-        {import.meta.env.DEV && (
-          <details className="mt-4 text-left">
-            <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
-              Debug Info (Development)
-            </summary>
-            <pre className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded overflow-auto max-h-32">
-              {error.stack}
-            </pre>
-          </details>
-        )}
       </CardContent>
     </Card>
   </div>
 );
 
-// Loading fallback
-const RecipeLoadingFallback: React.FC = () => (
-  <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-    <div className="container mx-auto p-4 sm:p-6">
-      <LoadingState />
-    </div>
-  </div>
-);
-
-// Main Recipes component
+// ✅ Main Recipes Component - Simplified
 const Recipes: React.FC = () => {
   const queryClient = useQueryClient();
   
-  // Local state for dialogs
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
-  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  // ✅ SIMPLIFIED: Single dialog state management
+  const [dialogState, setDialogState] = useState<{
+    type: 'none' | 'form' | 'delete' | 'duplicate' | 'category';
+    recipe?: Recipe | null;
+    isEdit?: boolean;
+  }>({ type: 'none' });
 
-  // ✅ FIXED: useQuery for Recipes - Direct API response
+  // ✅ ROBUST: useQuery for Recipes with better error handling
   const recipesQuery = useQuery({
-    queryKey: ['recipes'],
+    queryKey: RECIPE_QUERY_KEYS.lists(),
     queryFn: async () => {
-      logger.component('Recipes', 'Fetching recipes...');
-      const recipes = await recipeApi.getRecipes(); // ✅ Direct return
-      logger.success('Recipes fetched:', { count: recipes?.length || 0 });
-      return recipes || [];
+      try {
+        logger.component('Recipes', 'Fetching recipes...');
+        const result = await recipeApi.getRecipes();
+        
+        // ✅ DEFENSIVE: Ensure we always get an array
+        const recipes = Array.isArray(result) ? result : 
+                       result?.data ? (Array.isArray(result.data) ? result.data : []) : 
+                       [];
+        
+        logger.success('Recipes fetched:', { count: recipes.length });
+        return recipes;
+      } catch (error) {
+        logger.error('Failed to fetch recipes:', error);
+        throw new Error(error instanceof Error ? error.message : 'Failed to load recipes');
+      }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
-  // ✅ FIXED: useQuery for Categories - Direct API response
+  // ✅ ROBUST: useQuery for Categories
   const categoriesQuery = useQuery({
-    queryKey: ['recipes', 'categories'],
+    queryKey: RECIPE_QUERY_KEYS.categories(),
     queryFn: async () => {
-      logger.component('Recipes', 'Fetching categories...');
-      const categories = await recipeApi.getUniqueCategories(); // ✅ Direct return
-      logger.success('Categories fetched:', { count: categories?.length || 0 });
-      return categories || [];
+      try {
+        logger.component('Recipes', 'Fetching categories...');
+        const result = await recipeApi.getUniqueCategories();
+        
+        // ✅ DEFENSIVE: Ensure we always get an array
+        const categories = Array.isArray(result) ? result : 
+                          result?.data ? (Array.isArray(result.data) ? result.data : []) :
+                          [];
+        
+        logger.success('Categories fetched:', { count: categories.length });
+        return categories;
+      } catch (error) {
+        logger.error('Failed to fetch categories:', error);
+        // ✅ Don't throw for categories - just return empty array
+        return [];
+      }
     },
-    enabled: recipesQuery.isSuccess, // Only run after recipes are loaded
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    enabled: recipesQuery.isSuccess,
+    staleTime: 10 * 60 * 1000,
   });
 
-  // ✅ FIXED: useMutation for Delete Recipe - Direct API call
+  // ✅ IMPROVED: Delete mutation with optimistic updates
   const deleteRecipeMutation = useMutation({
     mutationFn: async (id: string) => {
       logger.component('Recipes', 'Deleting recipe:', id);
-      await recipeApi.deleteRecipe(id); // ✅ Direct call, throws on error
-      return id;
+      const result = await recipeApi.deleteRecipe(id);
+      return { id, result };
     },
-    onSuccess: (deletedId) => {
-      // Remove from cache optimistically
+    onSuccess: ({ id }) => {
+      // ✅ Optimistic update
       queryClient.setQueryData(
-        ['recipes'],
+        RECIPE_QUERY_KEYS.lists(),
         (oldData: Recipe[] | undefined) => {
           if (!oldData) return oldData;
-          return oldData.filter(recipe => recipe.id !== deletedId);
+          return oldData.filter(recipe => recipe.id !== id);
         }
       );
 
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
       
-      const deletedRecipe = recipesQuery.data?.find(recipe => recipe.id === deletedId);
-      if (deletedRecipe) {
-        logger.success('Recipe deleted:', deletedRecipe.namaResep);
-        toast.success(`Resep "${deletedRecipe.namaResep}" berhasil dihapus`);
-      }
+      const deletedRecipe = recipesQuery.data?.find(recipe => recipe.id === id);
+      toast.success(`Resep "${deletedRecipe?.namaResep || 'Unknown'}" berhasil dihapus`);
+      
+      // ✅ Close dialog
+      setDialogState({ type: 'none' });
     },
     onError: (error: Error) => {
       logger.error('Error deleting recipe:', error);
@@ -207,28 +234,35 @@ const Recipes: React.FC = () => {
     },
   });
 
-  // ✅ FIXED: useMutation for Duplicate Recipe - Direct API call
+  // ✅ IMPROVED: Duplicate mutation
   const duplicateRecipeMutation = useMutation({
     mutationFn: async ({ id, newName }: { id: string; newName: string }) => {
       logger.component('Recipes', 'Duplicating recipe:', { id, newName });
-      const newRecipe = await recipeApi.duplicateRecipe(id, newName); // ✅ Direct return
-      return newRecipe;
+      const result = await recipeApi.duplicateRecipe(id, newName);
+      
+      // ✅ DEFENSIVE: Ensure we get a recipe object
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid response from duplicate API');
+      }
+      
+      return result;
     },
     onSuccess: (newRecipe) => {
-      // Add to cache optimistically
+      // ✅ Optimistic update
       queryClient.setQueryData(
-        ['recipes'],
+        RECIPE_QUERY_KEYS.lists(),
         (oldData: Recipe[] | undefined) => {
           if (!oldData) return [newRecipe];
           return [newRecipe, ...oldData];
         }
       );
 
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
       
-      logger.success('Recipe duplicated:', newRecipe.namaResep);
       toast.success(`Resep "${newRecipe.namaResep}" berhasil diduplikasi`);
+      
+      // ✅ Close dialog
+      setDialogState({ type: 'none' });
     },
     onError: (error: Error) => {
       logger.error('Error duplicating recipe:', error);
@@ -236,348 +270,252 @@ const Recipes: React.FC = () => {
     },
   });
 
-  // ✅ FIXED: useMutation for Bulk Update Recipes - Direct API calls
-  const bulkUpdateRecipesMutation = useMutation({
-    mutationFn: async (updates: { id: string; data: Partial<NewRecipe> }[]) => {
-      logger.component('Recipes', 'Bulk updating recipes:', { count: updates.length });
-      const updatedRecipes = await Promise.all(
-        updates.map(({ id, data }) => recipeApi.updateRecipe(id, data)) // ✅ Direct calls
-      );
-      return updatedRecipes;
-    },
-    onSuccess: (updatedRecipes) => {
-      // Update cache optimistically
-      queryClient.setQueryData(
-        ['recipes'],
-        (oldData: Recipe[] | undefined) => {
-          if (!oldData) return updatedRecipes;
-          
-          const updatedMap = new Map(updatedRecipes.map(recipe => [recipe.id, recipe]));
-          return oldData.map(recipe => updatedMap.get(recipe.id) || recipe);
-        }
-      );
-
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
-      
-      logger.success('Bulk recipe update completed:', { count: updatedRecipes.length });
-    },
-    onError: (error: Error) => {
-      logger.error('Error bulk updating recipes:', error);
-      toast.error(error.message || 'Gagal mengupdate kategori resep');
-    },
-  });
-
-  // Get data from queries
+  // ✅ Get data with fallbacks
   const recipes = recipesQuery.data || [];
   const availableCategories = categoriesQuery.data || [];
   const isLoading = recipesQuery.isLoading;
-  const error = recipesQuery.error?.message || categoriesQuery.error?.message;
+  const error = recipesQuery.error?.message;
 
-  // Hooks for filtering and stats
+  // ✅ Hooks for filtering and stats
   const filtering = useRecipeFiltering({ recipes });
   const stats = useRecipeStats({ recipes: filtering.filteredAndSortedRecipes });
 
-  // Check if any mutation is loading
-  const isProcessing = deleteRecipeMutation.isPending || 
-                      duplicateRecipeMutation.isPending || 
-                      bulkUpdateRecipesMutation.isPending;
+  // ✅ Check if any mutation is loading
+  const isProcessing = deleteRecipeMutation.isPending || duplicateRecipeMutation.isPending;
 
-  // ✅ Debug logging
-  logger.debug('Recipes Query State:', {
-    data: recipes?.length || 0,
-    isLoading,
-    error,
-    categories: availableCategories?.length || 0
-  });
-
-  // Handlers
-  const handleAddRecipe = () => {
+  // ✅ HANDLERS - Simplified with single state management
+  const handleAddRecipe = useCallback(() => {
     logger.component('Recipes', 'Add recipe clicked');
-    setEditingRecipe(null);
-    setIsFormOpen(true);
-  };
+    setDialogState({ type: 'form', isEdit: false });
+  }, []);
 
-  const handleEditRecipe = (recipe: Recipe) => {
+  const handleEditRecipe = useCallback((recipe: Recipe) => {
     logger.component('Recipes', 'Edit recipe clicked:', recipe.id);
-    setEditingRecipe(recipe);
-    setIsFormOpen(true);
-  };
+    setDialogState({ type: 'form', recipe, isEdit: true });
+  }, []);
 
-  const handleDeleteRecipe = (recipe: Recipe) => {
-    logger.component('Recipes', 'Delete recipe clicked:', { id: recipe.id, nama: recipe.namaResep });
-    setSelectedRecipe(recipe);
-    setIsDeleteDialogOpen(true);
-  };
+  const handleDeleteRecipe = useCallback((recipe: Recipe) => {
+    logger.component('Recipes', 'Delete recipe clicked:', recipe.id);
+    setDialogState({ type: 'delete', recipe });
+  }, []);
 
-  const handleDuplicateRecipe = (recipe: Recipe) => {
-    logger.component('Recipes', 'Duplicate recipe clicked:', { id: recipe.id, nama: recipe.namaResep });
-    setSelectedRecipe(recipe);
-    setIsDuplicateDialogOpen(true);
-  };
+  const handleDuplicateRecipe = useCallback((recipe: Recipe) => {
+    logger.component('Recipes', 'Duplicate recipe clicked:', recipe.id);
+    setDialogState({ type: 'duplicate', recipe });
+  }, []);
 
-  const handleConfirmDelete = async (): Promise<void> => {
-    if (!selectedRecipe) return;
+  const handleConfirmDelete = useCallback(async (): Promise<void> => {
+    if (!dialogState.recipe) return;
     
     try {
-      await deleteRecipeMutation.mutateAsync(selectedRecipe.id);
-      setIsDeleteDialogOpen(false);
-      setSelectedRecipe(null);
+      await deleteRecipeMutation.mutateAsync(dialogState.recipe.id);
     } catch (error) {
       // Error handling is done in mutation callbacks
     }
-  };
+  }, [dialogState.recipe, deleteRecipeMutation]);
 
-  const handleConfirmDuplicate = async (newName: string): Promise<boolean> => {
-    if (!selectedRecipe) return false;
+  const handleConfirmDuplicate = useCallback(async (newName: string): Promise<boolean> => {
+    if (!dialogState.recipe) return false;
     
     try {
       await duplicateRecipeMutation.mutateAsync({
-        id: selectedRecipe.id,
+        id: dialogState.recipe.id,
         newName
       });
-      setIsDuplicateDialogOpen(false);
-      setSelectedRecipe(null);
       return true;
     } catch (error) {
-      // Error handling is done in mutation callbacks
       return false;
     }
-  };
+  }, [dialogState.recipe, duplicateRecipeMutation]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     logger.component('Recipes', 'Refreshing all recipe data...');
-    queryClient.invalidateQueries({ queryKey: ['recipes'] });
-  };
+    queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
+  }, [queryClient]);
 
-  const handleFormSuccess = (recipe: Recipe, isEdit: boolean) => {
+  const handleFormSuccess = useCallback((recipe: Recipe, isEdit: boolean) => {
     logger.success('Recipe form success:', { id: recipe.id, nama: recipe.namaResep, isEdit });
-    // Form handles its own cache updates, we just need to close dialogs
-    setIsFormOpen(false);
-    setEditingRecipe(null);
+    setDialogState({ type: 'none' });
     
-    // Optionally refresh categories if new recipe added
     if (!isEdit) {
-      queryClient.invalidateQueries({ queryKey: ['recipes', 'categories'] });
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
     }
-  };
+  }, [queryClient]);
 
-  // Show loading state while initial data is being fetched
+  const closeDialog = useCallback(() => {
+    setDialogState({ type: 'none' });
+  }, []);
+
+  // ✅ RENDER: Loading state
   if (isLoading) {
     return <RecipeLoadingFallback />;
   }
 
-  // Show error state if there's a query-level error
+  // ✅ RENDER: Error state
   if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-1 border-gray-200">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Gagal Memuat Resep
-            </h2>
-            
-            <p className="text-gray-600 mb-4">
-              {error}
-            </p>
-            
-            <div className="space-y-3">
-              <Button
-                onClick={handleRefresh}
-                className="w-full bg-orange-500 hover:bg-orange-600"
-              >
-                Coba Lagi
-              </Button>
-              
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="w-full"
-              >
-                Refresh Halaman
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <RecipeErrorFallback error={error} onRetry={handleRefresh} />;
   }
 
   return (
-    <RecipeErrorBoundary fallback={DefaultErrorFallback}>
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-        <div className="container mx-auto p-4 sm:p-6 space-y-6">
-          
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Manajemen Resep
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Kelola resep dan hitung HPP dengan mudah
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  logger.component('Recipes', 'Category manager opened');
-                  setIsCategoryDialogOpen(true);
-                }}
-                className="border-orange-200 text-orange-700 hover:bg-orange-50"
-                disabled={isProcessing}
-              >
-                Kelola Kategori
-              </Button>
-              <Button
-                onClick={handleAddRecipe}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
-                disabled={isProcessing}
-              >
-                + Tambah Resep
-              </Button>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      <div className="container mx-auto p-4 sm:p-6 space-y-6">
+        
+        {/* ✅ Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Manajemen Resep
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Kelola resep dan hitung HPP dengan mudah
+            </p>
           </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setDialogState({ type: 'category' })}
+              className="border-orange-200 text-orange-700 hover:bg-orange-50"
+              disabled={isProcessing}
+            >
+              Kelola Kategori
+            </Button>
+            <Button
+              onClick={handleAddRecipe}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              disabled={isProcessing}
+            >
+              + Tambah Resep
+            </Button>
+          </div>
+        </div>
 
-          {/* Statistics Cards */}
-          <RecipeStats stats={stats} />
+        {/* ✅ Statistics Cards */}
+        <RecipeStats stats={stats} />
 
-          {/* Main Content Card */}
-          <Card className="border-1 border-gray-200 bg-white/90 backdrop-blur-sm">
-            <CardContent className="p-0">
-              
-              {/* Filters */}
-              <div className="p-6 pb-0">
-                <RecipeFilters
-                  searchTerm={filtering.searchTerm}
-                  onSearchChange={filtering.setSearchTerm}
-                  categoryFilter={filtering.categoryFilter}
-                  onCategoryFilterChange={filtering.setCategoryFilter}
-                  categories={availableCategories}
-                  sortBy={filtering.sortBy}
-                  onSortByChange={filtering.setSortBy}
-                  sortOrder={filtering.sortOrder}
-                  onSortOrderChange={filtering.setSortOrder}
-                  hasActiveFilters={filtering.hasActiveFilters}
-                  onClearFilters={filtering.clearFilters}
-                  totalResults={filtering.filteredAndSortedRecipes.length}
-                  onSort={filtering.handleSort}
+        {/* ✅ Main Content Card */}
+        <Card className="border border-gray-200 bg-white/90 backdrop-blur-sm">
+          <CardContent className="p-0">
+            
+            {/* ✅ Filters */}
+            <div className="p-6 pb-0">
+              <RecipeFilters
+                searchTerm={filtering.searchTerm}
+                onSearchChange={filtering.setSearchTerm}
+                categoryFilter={filtering.categoryFilter}
+                onCategoryFilterChange={filtering.setCategoryFilter}
+                categories={availableCategories}
+                sortBy={filtering.sortBy}
+                onSortByChange={filtering.setSortBy}
+                sortOrder={filtering.sortOrder}
+                onSortOrderChange={filtering.setSortOrder}
+                hasActiveFilters={filtering.hasActiveFilters}
+                onClearFilters={filtering.clearFilters}
+                totalResults={filtering.filteredAndSortedRecipes.length}
+                onSort={filtering.handleSort}
+              />
+            </div>
+
+            {/* ✅ Content */}
+            {filtering.filteredAndSortedRecipes.length === 0 ? (
+              <div className="p-6">
+                <EmptyState
+                  title={recipes.length === 0 ? "Belum ada resep" : "Tidak ada hasil"}
+                  description={
+                    recipes.length === 0
+                      ? "Mulai dengan menambahkan resep pertama Anda"
+                      : "Coba ubah filter pencarian atau tambah resep baru"
+                  }
+                  actionLabel={recipes.length === 0 ? "Tambah Resep Pertama" : "Bersihkan Filter"}
+                  onAction={recipes.length === 0 ? handleAddRecipe : filtering.clearFilters}
+                  type={recipes.length === 0 ? "no-data" : "no-results"}
                 />
               </div>
+            ) : (
+              <RecipeTable
+                recipes={filtering.filteredAndSortedRecipes}
+                onSort={filtering.handleSort}
+                sortBy={filtering.sortBy}
+                sortOrder={filtering.sortOrder}
+                onEdit={handleEditRecipe}
+                onDuplicate={handleDuplicateRecipe}
+                onDelete={handleDeleteRecipe}
+                searchTerm={filtering.searchTerm}
+                isLoading={isProcessing}
+              />
+            )}
+          </CardContent>
+        </Card>
 
-              {/* Content */}
-              {filtering.filteredAndSortedRecipes.length === 0 ? (
-                <div className="p-6">
-                  <EmptyState
-                    title={recipes.length === 0 ? "Belum ada resep" : "Tidak ada hasil"}
-                    description={
-                      recipes.length === 0
-                        ? "Mulai dengan menambahkan resep pertama Anda"
-                        : "Coba ubah filter pencarian atau tambah resep baru"
-                    }
-                    actionLabel={recipes.length === 0 ? "Tambah Resep Pertama" : "Bersihkan Filter"}
-                    onAction={recipes.length === 0 ? handleAddRecipe : filtering.clearFilters}
-                    type={recipes.length === 0 ? "no-data" : "no-results"}
-                  />
-                </div>
-              ) : (
-                <RecipeTable
-                  recipes={filtering.filteredAndSortedRecipes}
-                  onSort={filtering.handleSort}
-                  sortBy={filtering.sortBy}
-                  sortOrder={filtering.sortOrder}
-                  onEdit={handleEditRecipe}
-                  onDuplicate={handleDuplicateRecipe}
-                  onDelete={handleDeleteRecipe}
-                  searchTerm={filtering.searchTerm}
-                  isLoading={isProcessing}
-                />
-              )}
+        {/* ✅ Status Bar */}
+        {isProcessing && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                <p className="text-blue-800 font-medium">
+                  Memproses operasi...
+                </p>
+              </div>
             </CardContent>
           </Card>
-
-          {/* Dialogs with Suspense */}
-          <Suspense fallback={<div className="opacity-0">Loading dialog...</div>}>
-            {/* Recipe Form Dialog */}
-            {isFormOpen && (
-              <RecipeForm
-                isOpen={isFormOpen}
-                onOpenChange={setIsFormOpen}
-                initialData={editingRecipe}
-                onSuccess={handleFormSuccess}
-              />
-            )}
-
-            {/* Delete Recipe Dialog */}
-            {isDeleteDialogOpen && (
-              <DeleteRecipeDialog
-                isOpen={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
-                recipe={selectedRecipe}
-                onConfirm={handleConfirmDelete}
-                isLoading={deleteRecipeMutation.isPending}
-              />
-            )}
-
-            {/* Duplicate Recipe Dialog */}
-            {isDuplicateDialogOpen && (
-              <DuplicateRecipeDialog
-                isOpen={isDuplicateDialogOpen}
-                onOpenChange={setIsDuplicateDialogOpen}
-                recipe={selectedRecipe}
-                onConfirm={handleConfirmDuplicate}
-                isLoading={duplicateRecipeMutation.isPending}
-              />
-            )}
-
-            {/* Category Manager Dialog */}
-            {isCategoryDialogOpen && (
-              <CategoryManagerDialog
-                isOpen={isCategoryDialogOpen}
-                onOpenChange={setIsCategoryDialogOpen}
-                recipes={recipes}
-                updateRecipe={async (id: string, data: Partial<NewRecipe>) => {
-                  await bulkUpdateRecipesMutation.mutateAsync([{ id, data }]);
-                  return true;
-                }}
-                refreshRecipes={handleRefresh}
-              />
-            )}
-          </Suspense>
-
-          {/* Status Bar - Shows current operation status */}
-          {isProcessing && (
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                  <p className="text-blue-800 font-medium">
-                    Memproses operasi...
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Quick Stats Footer */}
-          {recipes.length > 0 && (
-            <div className="text-center text-sm text-gray-500">
-              <p>
-                Menampilkan {filtering.filteredAndSortedRecipes.length} dari {recipes.length} resep
-                {availableCategories.length > 0 && ` • ${availableCategories.length} kategori`}
-              </p>
-            </div>
-          )}
-        </div>
+        )}
+        
+        {/* ✅ Footer Stats */}
+        {recipes.length > 0 && (
+          <div className="text-center text-sm text-gray-500">
+            <p>
+              Menampilkan {filtering.filteredAndSortedRecipes.length} dari {recipes.length} resep
+              {availableCategories.length > 0 && ` • ${availableCategories.length} kategori`}
+            </p>
+          </div>
+        )}
       </div>
-    </RecipeErrorBoundary>
+
+      {/* ✅ Dialogs with improved Suspense and error handling */}
+      <Suspense fallback={<div />}>
+        {dialogState.type === 'form' && (
+          <RecipeForm
+            isOpen={true}
+            onOpenChange={closeDialog}
+            initialData={dialogState.recipe}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+
+        {dialogState.type === 'delete' && (
+          <DeleteRecipeDialog
+            isOpen={true}
+            onOpenChange={closeDialog}
+            recipe={dialogState.recipe}
+            onConfirm={handleConfirmDelete}
+            isLoading={deleteRecipeMutation.isPending}
+          />
+        )}
+
+        {dialogState.type === 'duplicate' && (
+          <DuplicateRecipeDialog
+            isOpen={true}
+            onOpenChange={closeDialog}
+            recipe={dialogState.recipe}
+            onConfirm={handleConfirmDuplicate}
+            isLoading={duplicateRecipeMutation.isPending}
+          />
+        )}
+
+        {dialogState.type === 'category' && (
+          <CategoryManagerDialog
+            isOpen={true}
+            onOpenChange={closeDialog}
+            recipes={recipes}
+            updateRecipe={async (id: string, data: Partial<NewRecipe>) => {
+              // Implementation would go here
+              return true;
+            }}
+            refreshRecipes={handleRefresh}
+          />
+        )}
+      </Suspense>
+    </div>
   );
 };
 

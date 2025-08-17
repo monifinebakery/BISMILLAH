@@ -199,18 +199,11 @@ const useRealtimeSubscription = (userId?: string) => {
         lastCall = now;
         invalidateQueries();
       } else {
-        // Debounce if called too frequently - use requestIdleCallback for better performance
-        if ('requestIdleCallback' in window) {
-          timeoutId = requestIdleCallback(() => {
-            lastCall = Date.now();
-            invalidateQueries();
-          }, { timeout: 1000 }) as any;
-        } else {
-          timeoutId = setTimeout(() => {
-            lastCall = Date.now();
-            invalidateQueries();
-          }, 1000);
-        }
+        // Debounce if called too frequently
+        timeoutId = setTimeout(() => {
+          lastCall = Date.now();
+          invalidateQueries();
+        }, 1000);
       }
     };
   }, [invalidateQueries]);
@@ -231,7 +224,7 @@ const useRealtimeSubscription = (userId?: string) => {
       return;
     }
 
-    // ✅ Delay subscription setup to prevent rapid re-creation - use shorter delay
+    // ✅ Delay subscription setup to prevent rapid re-creation
     setupTimeoutRef.current = setTimeout(() => {
       const channelName = `activities-${userId.slice(-8)}-${Date.now()}`;
       
@@ -267,7 +260,7 @@ const useRealtimeSubscription = (userId?: string) => {
         });
 
       channelRef.current = channel;
-    }, 50); // Reduced delay to prevent blocking
+    }, 100); // Small delay to prevent rapid re-creation
 
     return () => {
       if (setupTimeoutRef.current) {
@@ -351,19 +344,11 @@ export const ActivityProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     if (!userId || isRealtimeConnected) return;
 
-    // Simple fallback polling without complex retry logic - use lighter callback
+    // Simple fallback polling without complex retry logic
     const pollInterval = setInterval(() => {
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => {
-          queryClient.invalidateQueries({ 
-            queryKey: activityQueryKeys.list(userId) 
-          });
-        });
-      } else {
-        queryClient.invalidateQueries({ 
-          queryKey: activityQueryKeys.list(userId) 
-        });
-      }
+      queryClient.invalidateQueries({ 
+        queryKey: activityQueryKeys.list(userId) 
+      });
     }, 30000); // Poll every 30 seconds
 
     return () => clearInterval(pollInterval);

@@ -18,11 +18,14 @@ import profitAnalysisApi from '../services/profitAnalysisApi';
 
 // ✅ IMPORT WAC HELPERS (termasuk calculatePemakaianValue)
 import { fetchBahanMap, fetchPemakaianByPeriode, calculatePemakaianValue } from '../services/profitAnalysisApi';
-import { calcHPP, calculateInventoryValue } from '../utils/profitCalculations';
+import { calcHPP, calculateInventoryValue, getEffectiveUnitPrice } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';
-// ✅ ADD: Import warehouse context untuk real-time sync
+// ✅ ADD: Import contexts untuk real-time sync
 import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
+import { useOrder } from '@/components/orders/context/OrderContext';
+import { useRecipe } from '@/contexts/RecipeContext';
+import { filterByDateRange } from '@/components/financial/utils/financialCalculations';
 
 // Query Keys
 export const PROFIT_QUERY_KEYS = {
@@ -100,8 +103,10 @@ export const useProfitAnalysis = (
 
   const queryClient = useQueryClient();
   
-  // ✅ ADD: Use warehouse context for real-time data
+  // ✅ ADD: Use contexts for real-time data
   const { bahanBaku: warehouseMaterials, loading: warehouseLoading, refreshData: refreshWarehouse } = useWarehouseContext();
+  const { orders = [] } = useOrder() || {};
+  const { recipes = [] } = useRecipe() || {};
   
   // Local state
   const [currentPeriod, setCurrentPeriodState] = useState(defaultPeriod);
@@ -197,6 +202,13 @@ export const useProfitAnalysis = (
       try {
         const res = calcHPP(pemakaianQuery.data, bahanMapQuery.data);
         const inventoryResult = calculateInventoryValue(warehouseMaterials || []);
+        
+        logger.info('✅ Using actual material usage (pemakaian) for COGS:', {
+          totalHPP: res.totalHPP,
+          itemsUsed: res.breakdown.length,
+          inventoryValue: inventoryResult.totalValue
+        });
+        
         return {
           totalHPP: res.totalHPP,
           hppBreakdown: res.breakdown,
@@ -207,30 +219,83 @@ export const useProfitAnalysis = (
       }
     }
     
-    // Method 2: Fallback to current inventory value (real-time warehouse data)
+    // ⚠️ Method 2: FALLBACK - Estimate COGS from recipe usage (not inventory value)
     if (warehouseMaterials && warehouseMaterials.length > 0) {
       try {
-        const inventoryResult = calculateInventoryValue(warehouseMaterials);
+        // Filter orders by current period
+        const periodStart = new Date(currentPeriod + '-01');
+        const periodEnd = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 0);
         
-        logger.info('🔄 Using inventory value as COGS:', {
-          inventoryValue: inventoryResult.totalValue,
-          itemsWithStock: inventoryResult.summary.itemsWithStock,
-          totalItems: inventoryResult.summary.totalItems
+        const dateRange = {
+          from: periodStart.toISOString().split('T')[0],
+          to: periodEnd.toISOString().split('T')[0]
+        };
+        
+        const filteredOrders = filterByDateRange(orders, dateRange, 'tanggal');
+        
+        let estimatedCOGS = 0;
+        const usageBreakdown: Array<{ id: string; nama: string; qty: number; price: number; hpp: number }> = [];
+        const materialUsage: Record<string, number> = {};
+        
+        // Calculate material usage from orders and recipes
+        filteredOrders.forEach(order => {
+          order?.items?.forEach(item => {
+            if (!item?.namaBarang) return;
+            
+            const recipe = recipes.find(r => r?.namaResep === item.namaBarang);
+            if (!recipe?.bahanBaku) return;
+            
+            const quantity = Number(item.quantity) || 0;
+            
+            recipe.bahanBaku.forEach(ingredient => {
+              if (!ingredient?.namaBahan) return;
+              
+              const usage = (Number(ingredient.jumlah) || 0) * quantity;
+              if (!materialUsage[ingredient.namaBahan]) {
+                materialUsage[ingredient.namaBahan] = 0;
+              }
+              materialUsage[ingredient.namaBahan] += usage;
+            });
+          });
         });
         
+        // Calculate COGS based on actual usage
+        Object.entries(materialUsage).forEach(([materialName, totalUsage]) => {
+          const material = warehouseMaterials.find(m => 
+            m.nama?.toLowerCase() === materialName.toLowerCase()
+          );
+          
+          if (material && totalUsage > 0) {
+            const price = getEffectiveUnitPrice(material);
+            const cost = totalUsage * price;
+            estimatedCOGS += cost;
+            
+            usageBreakdown.push({
+              id: material.id,
+              nama: material.nama || materialName,
+              qty: totalUsage,
+              price,
+              hpp: Math.round(cost)
+            });
+          }
+        });
+        
+        logger.info('⚠️ Using estimated COGS from recipe usage (fallback):', {
+          estimatedCOGS,
+          materialsUsed: usageBreakdown.length,
+          totalOrders: filteredOrders.length,
+          period: currentPeriod
+        });
+        
+        const inventoryResult = calculateInventoryValue(warehouseMaterials);
+        
         return {
-          totalHPP: inventoryResult.totalValue,
-          hppBreakdown: inventoryResult.breakdown.map(item => ({
-            id: item.id,
-            nama: item.nama,
-            qty: item.stok,
-            price: item.price,
-            hpp: item.value
-          })),
+          totalHPP: Math.round(estimatedCOGS),
+          hppBreakdown: usageBreakdown,
           inventoryValue: inventoryResult.totalValue
         };
       } catch (err) {
-        logger.error('Error calculating inventory value:', err);
+        logger.error('Error calculating estimated COGS from recipe usage:', err);
       }
     }
     
@@ -239,7 +304,7 @@ export const useProfitAnalysis = (
       hppBreakdown: [],
       inventoryValue: 0
     };
-  }, [bahanMapQuery.data, pemakaianQuery.data, warehouseMaterials]);
+  }, [bahanMapQuery.data, pemakaianQuery.data, warehouseMaterials, currentData, recipes, orders, currentPeriod]);
 
   // 🍽️ F&B LABELS - User-friendly terminology
   const labels: FNBLabels = useMemo(() => {

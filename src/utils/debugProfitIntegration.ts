@@ -21,10 +21,12 @@ interface ProfitIntegrationDebugInfo {
 }
 
 /**
- * 🔍 Log integration status for debugging
+ * 🔍 Log integration status for debugging - PRODUCTION SAFE
  */
 export function debugProfitIntegration(info: ProfitIntegrationDebugInfo): void {
-  if (process.env.NODE_ENV !== 'development') return;
+  // ✅ STRICT: Only log in development mode
+  if (import.meta.env.PROD || process.env.NODE_ENV === 'production') return;
+  if (!import.meta.env.DEV) return;
   
   logger.info('🔄 Profit Integration Debug:', {
     period: info.period,

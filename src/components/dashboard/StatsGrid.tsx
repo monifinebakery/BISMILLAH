@@ -45,6 +45,15 @@ interface Stats {
     profit?: TrendData;
     mostUsedIngredient?: TrendData;
   };
+  // ✅ NEW: Sync status for enhanced accuracy display
+  isFromProfitAnalysis?: boolean;
+  profitAnalysisSync?: {
+    currentPeriod: string;
+    lastSynced: Date;
+    grossMargin: number;
+    netMargin: number;
+    cogsSource: 'wac' | 'inventory' | 'estimated';
+  };
 }
 
 interface Props {

@@ -37,23 +37,38 @@ if (import.meta.env.PROD === true || import.meta.env.MODE === 'production') {
 // Also check hostname-based detection
 if (typeof window !== 'undefined') {
   const hostname = window.location.hostname;
+  
+  // Production hosts - exact matches only
   const productionHosts = [
     'kalkulator.monifine.my.id',
     'www.kalkulator.monifine.my.id',
-    // Netlify production patterns (based on screenshot)
-    'gleaming-peony-f4a091.netlify.app', 
-    // General Netlify patterns
-    /.*--.*\.netlify\.app$/,
-    /.*\.netlify\.app$/
+    // Main Netlify production (no branch prefix)
+    'gleaming-peony-f4a091.netlify.app'
   ];
   
-  const isProductionHost = productionHosts.some(host => 
-    typeof host === 'string' ? hostname === host : host.test(hostname)
-  );
+  // Development hosts - anything with branch prefix
+  const developmentPatterns = [
+    /^dev\d*--.*\.netlify\.app$/, // dev3--..., dev--..., etc
+    /^main--.*\.netlify\.app$/,   // main branch deploys
+    /^staging--.*\.netlify\.app$/, // staging branch
+    /^preview--.*\.netlify\.app$/ // preview deploys
+  ];
   
-  if (isProductionHost) {
+  const isProductionHost = productionHosts.includes(hostname);
+  const isDevelopmentHost = developmentPatterns.some(pattern => pattern.test(hostname));
+  
+  __ORIGINAL_CONSOLE__.log('🔍 Hostname detection:', {
+    hostname,
+    isProductionHost,
+    isDevelopmentHost
+  });
+  
+  if (isProductionHost && !isDevelopmentHost) {
     isProduction = true;
     __ORIGINAL_CONSOLE__.log('🚫 Production environment detected via hostname:', hostname);
+  } else if (isDevelopmentHost) {
+    isProduction = false; // Explicitly set to false for dev branches
+    __ORIGINAL_CONSOLE__.log('🛠️ Development branch detected:', hostname);
   }
 }
 

@@ -12,11 +12,11 @@ import App from './App.tsx';
 import './index.css';
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from '@/utils/logger';
-import { performanceMonitor } from '@/utils/performanceMonitor';
 
 // Performance tracking
 const appStartTime = performance.now();
 
+<<<<<<< HEAD
 // ✅ CONDITIONAL: Only enable performance monitoring in DEV and disable in production
 if (import.meta.env.DEV) {
   performanceMonitor.enable();
@@ -28,6 +28,9 @@ if (import.meta.env.DEV) {
 }
 
 // ✅ LIGHTWEIGHT: Scheduler polyfill with non-blocking implementation
+=======
+// Scheduler polyfill (if needed)
+>>>>>>> parent of 9b04e241 (feat: optimize setTimeout performance to prevent Chrome violations)
 if (typeof globalThis !== 'undefined' && !(globalThis as any).scheduler) {
   logger.info('Adding scheduler polyfill');
   (globalThis as any).scheduler = {
@@ -140,6 +143,7 @@ if (import.meta.env.DEV) {
       initTime: appInitTime,
       getCurrentTime: () => performance.now(),
       getInitDuration: () => appInitTime,
+<<<<<<< HEAD
       monitor: performanceMonitor,
       getTimeoutViolations: () => performanceMonitor.getViolations(),
       getPerformanceReport: () => performanceMonitor.getReport(),
@@ -153,6 +157,8 @@ if (import.meta.env.DEV) {
         performanceMonitor.disable();
         logger.info('Performance monitoring disabled manually');
       },
+=======
+>>>>>>> parent of 9b04e241 (feat: optimize setTimeout performance to prevent Chrome violations)
     },
     environment: {
       mode: import.meta.env.MODE,

@@ -1,8 +1,6 @@
-// utils/immediateConsoleSilencer.ts - Aggressive immediate console silencing
+// utils/immediateConsoleSilencer.ts - FIXED dev detection
 
-// This runs IMMEDIATELY when imported - no function calls needed
-
-// Store original console FIRST before any logic
+// ✅ IMMEDIATE: Store original console FIRST
 const __ORIGINAL_CONSOLE__ = {
   log: console.log,
   warn: console.warn,
@@ -16,66 +14,101 @@ const __ORIGINAL_CONSOLE__ = {
   groupEnd: console.groupEnd,
 };
 
-// Debug environment detection
-__ORIGINAL_CONSOLE__.log('🔍 Console Silencer Debug:', {
-  'import.meta.env.PROD': import.meta.env.PROD,
-  'import.meta.env.MODE': import.meta.env.MODE,
-  'import.meta.env.DEV': import.meta.env.DEV,
-  'process.env.NODE_ENV': typeof process !== 'undefined' ? process.env?.NODE_ENV : 'undefined',
-  'window.location.hostname': typeof window !== 'undefined' ? window.location.hostname : 'N/A'
-});
-
-// Detect production environment
+// ✅ ROBUST: Multiple environment checks
 let isProduction = false;
+let isDevelopment = false;
 
-// Only enable in actual production builds
-if (import.meta.env.PROD === true || import.meta.env.MODE === 'production') {
+// ✅ DEVELOPMENT DETECTION: Check dev indicators first
+if (import.meta.env.DEV === true || 
+    import.meta.env.MODE === 'development' ||
+    import.meta.env.NODE_ENV === 'development') {
+  isDevelopment = true;
+  __ORIGINAL_CONSOLE__.log('🛠️ DEVELOPMENT mode detected - console will remain active');
+}
+
+// ✅ PRODUCTION DETECTION: Only if NOT development
+if (!isDevelopment && (
+    import.meta.env.PROD === true || 
+    import.meta.env.MODE === 'production' ||
+    import.meta.env.NODE_ENV === 'production'
+)) {
   isProduction = true;
-  __ORIGINAL_CONSOLE__.log('🚫 Production environment detected via import.meta.env');
+  __ORIGINAL_CONSOLE__.log('🚫 PRODUCTION mode detected - console will be silenced');
 }
 
-// Also check hostname-based detection
-if (typeof window !== 'undefined') {
-  const hostname = window.location.hostname;
+// ✅ HOSTNAME DETECTION: Additional checks (non-blocking)
+const checkHostname = () => {
+  if (typeof window === 'undefined') return;
   
-  // Production hosts - exact matches only
-  const productionHosts = [
-    'kalkulator.monifine.my.id',
-    'www.kalkulator.monifine.my.id',
-    // Main Netlify production (no branch prefix)
-    'gleaming-peony-f4a091.netlify.app'
-  ];
-  
-  // Development hosts - anything with branch prefix
-  const developmentPatterns = [
-    /^dev\d*--.*\.netlify\.app$/, // dev3--..., dev--..., etc
-    /^main--.*\.netlify\.app$/,   // main branch deploys
-    /^staging--.*\.netlify\.app$/, // staging branch
-    /^preview--.*\.netlify\.app$/ // preview deploys
-  ];
-  
-  const isProductionHost = productionHosts.includes(hostname);
-  const isDevelopmentHost = developmentPatterns.some(pattern => pattern.test(hostname));
-  
-  __ORIGINAL_CONSOLE__.log('🔍 Hostname detection:', {
-    hostname,
-    isProductionHost,
-    isDevelopmentHost
-  });
-  
-  if (isProductionHost && !isDevelopmentHost) {
-    isProduction = true;
-    __ORIGINAL_CONSOLE__.log('🚫 Production environment detected via hostname:', hostname);
-  } else if (isDevelopmentHost) {
-    isProduction = false; // Explicitly set to false for dev branches
-    __ORIGINAL_CONSOLE__.log('🛠️ Development branch detected:', hostname);
+  try {
+    const hostname = window.location.hostname;
+    
+    // ✅ EXPLICIT: Development hostnames (these should NEVER be silenced)
+    const developmentHosts = [
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '::1',
+      // Local IP ranges
+      /^192\.168\.\d+\.\d+$/,
+      /^10\.\d+\.\d+\.\d+$/,
+      /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/,
+      // Netlify dev branches
+      /^dev\d*--.*\.netlify\.app$/,
+      /^main--.*\.netlify\.app$/,
+      /^staging--.*\.netlify\.app$/,
+      /^preview--.*\.netlify\.app$/,
+      // Vite dev server
+      /^.*\.local$/,
+      /^.*\.test$/
+    ];
+    
+    // ✅ PRODUCTION: Only these exact hostnames
+    const productionHosts = [
+      'kalkulator.monifine.my.id',
+      'www.kalkulator.monifine.my.id',
+      'gleaming-peony-f4a091.netlify.app' // Main production deploy only
+    ];
+    
+    const isDevHost = developmentHosts.some(pattern => 
+      typeof pattern === 'string' ? hostname === pattern : pattern.test(hostname)
+    );
+    
+    const isProdHost = productionHosts.includes(hostname);
+    
+    __ORIGINAL_CONSOLE__.log('🔍 Hostname analysis:', {
+      hostname,
+      isDevHost,
+      isProdHost,
+      currentDecision: { isDevelopment, isProduction }
+    });
+    
+    // ✅ OVERRIDE: Force development if dev hostname detected
+    if (isDevHost && !isProdHost) {
+      if (isProduction) {
+        __ORIGINAL_CONSOLE__.log('🔄 OVERRIDE: Development hostname detected, restoring console...');
+        restoreConsole();
+        isDevelopment = true;
+        isProduction = false;
+      }
+      return;
+    }
+    
+    // ✅ ADDITIONAL: Silence if production hostname and not already silenced
+    if (isProdHost && !isDevHost && !isProduction && !isDevelopment) {
+      __ORIGINAL_CONSOLE__.log('🚫 Production hostname detected, silencing console...');
+      silenceConsole();
+      isProduction = true;
+      isDevelopment = false;
+    }
+    
+  } catch (error) {
+    __ORIGINAL_CONSOLE__.warn('Hostname check failed:', error);
   }
-}
+};
 
-__ORIGINAL_CONSOLE__.log('🎯 Final decision - isProduction:', isProduction);
-
-if (isProduction) {
-  // IMMEDIATE SILENT OVERRIDE - no debug messages
+// ✅ CONSOLE MANAGEMENT FUNCTIONS
+const silenceConsole = () => {
   console.log = () => {};
   console.warn = () => {};
   console.debug = () => {};
@@ -88,48 +121,108 @@ if (isProduction) {
   
   // Keep critical errors only
   console.error = (...args: any[]) => {
-    if (args.some(arg => typeof arg === 'string' && arg.includes('CRITICAL'))) {
+    if (args.length > 0 && typeof args[0] === 'string' && args[0].includes('CRITICAL')) {
       __ORIGINAL_CONSOLE__.error(...args);
     }
   };
   
-  // Set global flag
   if (typeof window !== 'undefined') {
     (window as any).__CONSOLE_SILENCED__ = true;
-    (window as any).__ORIGINAL_CONSOLE__ = __ORIGINAL_CONSOLE__;
   }
-  
-  __ORIGINAL_CONSOLE__.log('🚫 Console has been silenced for production');
-} else {
-  __ORIGINAL_CONSOLE__.log('✅ Console active for development - no silencing applied');
-}
-
-// Always expose recovery functions
-if (typeof window !== 'undefined') {
-  (window as any).__RESTORE_CONSOLE__ = () => {
-    console.log = __ORIGINAL_CONSOLE__.log;
-    console.warn = __ORIGINAL_CONSOLE__.warn;
-    console.error = __ORIGINAL_CONSOLE__.error;
-    console.debug = __ORIGINAL_CONSOLE__.debug;
-    console.info = __ORIGINAL_CONSOLE__.info;
-    console.trace = __ORIGINAL_CONSOLE__.trace;
-    console.table = __ORIGINAL_CONSOLE__.table;
-    console.group = __ORIGINAL_CONSOLE__.group;
-    console.groupCollapsed = __ORIGINAL_CONSOLE__.groupCollapsed;
-    console.groupEnd = __ORIGINAL_CONSOLE__.groupEnd;
-    console.log('✅ Console restored successfully!');
-  };
-}
-
-// Export for explicit calls if needed
-export const silenceConsole = () => {
-  console.log = () => {};
-  console.warn = () => {};
-  console.debug = () => {};
-  console.info = () => {};
-  console.trace = () => {};
-  console.table = () => {};
-  console.group = () => {};
-  console.groupCollapsed = () => {};
-  console.groupEnd = () => {};
 };
+
+const restoreConsole = () => {
+  console.log = __ORIGINAL_CONSOLE__.log;
+  console.warn = __ORIGINAL_CONSOLE__.warn;
+  console.error = __ORIGINAL_CONSOLE__.error;
+  console.debug = __ORIGINAL_CONSOLE__.debug;
+  console.info = __ORIGINAL_CONSOLE__.info;
+  console.trace = __ORIGINAL_CONSOLE__.trace;
+  console.table = __ORIGINAL_CONSOLE__.table;
+  console.group = __ORIGINAL_CONSOLE__.group;
+  console.groupCollapsed = __ORIGINAL_CONSOLE__.groupCollapsed;
+  console.groupEnd = __ORIGINAL_CONSOLE__.groupEnd;
+  
+  if (typeof window !== 'undefined') {
+    (window as any).__CONSOLE_SILENCED__ = false;
+  }
+};
+
+// ✅ APPLY INITIAL DECISION
+if (isDevelopment) {
+  // ✅ DEVELOPMENT: Keep console active
+  __ORIGINAL_CONSOLE__.log('✅ Console remains ACTIVE for development');
+} else if (isProduction) {
+  // ✅ PRODUCTION: Silence console
+  silenceConsole();
+  __ORIGINAL_CONSOLE__.log('🚫 Console SILENCED for production');
+} else {
+  // ✅ UNKNOWN: Default to development (safe choice)
+  __ORIGINAL_CONSOLE__.log('❓ Environment unclear, defaulting to DEVELOPMENT mode (console active)');
+  isDevelopment = true;
+}
+
+// ✅ DEFERRED: Hostname check (non-blocking)
+if (typeof window !== 'undefined') {
+  // Set global references
+  (window as any).__ORIGINAL_CONSOLE__ = __ORIGINAL_CONSOLE__;
+  (window as any).__CONSOLE_SILENCED__ = isProduction;
+  
+  // ✅ RECOVERY FUNCTIONS
+  (window as any).__RESTORE_CONSOLE__ = () => {
+    restoreConsole();
+    isDevelopment = true;
+    isProduction = false;
+    console.log('✅ Console restored manually!');
+  };
+  
+  (window as any).__SILENCE_CONSOLE__ = () => {
+    silenceConsole();
+    isDevelopment = false;
+    isProduction = true;
+    __ORIGINAL_CONSOLE__.log('🚫 Console silenced manually!');
+  };
+  
+  (window as any).__CONSOLE_STATUS__ = () => {
+    const logFunc = (window as any).__CONSOLE_SILENCED__ ? __ORIGINAL_CONSOLE__.log : console.log;
+    logFunc('📊 Console Status:', {
+      silenced: (window as any).__CONSOLE_SILENCED__ || false,
+      isDevelopment,
+      isProduction,
+      hostname: window.location.hostname,
+      'import.meta.env.DEV': import.meta.env.DEV,
+      'import.meta.env.PROD': import.meta.env.PROD,
+      'import.meta.env.MODE': import.meta.env.MODE,
+      canRestore: true,
+      canSilence: true
+    });
+    
+    if ((window as any).__CONSOLE_SILENCED__) {
+      logFunc('🔧 To restore: window.__RESTORE_CONSOLE__()');
+    } else {
+      logFunc('🔧 To silence: window.__SILENCE_CONSOLE__()');
+    }
+  };
+  
+  // ✅ DEFERRED: Non-blocking hostname check
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      checkHostname();
+    });
+  });
+}
+
+// ✅ EXPORTS
+export const silenceConsoleManually = silenceConsole;
+export const restoreConsoleManually = restoreConsole;
+export const isConsoleSilenced = () => isProduction;
+export const isConsoleDevelopment = () => isDevelopment;
+
+// ✅ DEBUG INFO (using original console to ensure it shows)
+__ORIGINAL_CONSOLE__.log('🎯 Console Silencer Initialized:', {
+  isDevelopment,
+  isProduction,
+  willBeSilenced: isProduction,
+  'import.meta.env.DEV': import.meta.env.DEV,
+  'import.meta.env.MODE': import.meta.env.MODE
+});

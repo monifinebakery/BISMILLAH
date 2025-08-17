@@ -137,13 +137,20 @@ export const useDashboardData = (dateRange: DateRange) => {
     autoCalculate: true
   });
 
-  // ⏳ Loading State Management
+  // ⏳ Loading State Management - Use requestIdleCallback to prevent blocking
   useEffect(() => {
-    const loadingTimeout = setTimeout(() => {
-      setIsLoading(activitiesLoading || profitLoading);
-    }, 500);
-
-    return () => clearTimeout(loadingTimeout);
+    if ('requestIdleCallback' in window) {
+      const idleCallback = requestIdleCallback(() => {
+        setIsLoading(activitiesLoading || profitLoading);
+      }, { timeout: 500 });
+      return () => cancelIdleCallback(idleCallback);
+    } else {
+      // Fallback for browsers without requestIdleCallback
+      const loadingTimeout = setTimeout(() => {
+        setIsLoading(activitiesLoading || profitLoading);
+      }, 100); // Reduced timeout to prevent blocking
+      return () => clearTimeout(loadingTimeout);
+    }
   }, [activitiesLoading, profitLoading]);
 
   // 📅 Previous Period Calculation

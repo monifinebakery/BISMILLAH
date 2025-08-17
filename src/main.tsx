@@ -7,8 +7,7 @@ import "./index.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
 
-// Vite will inject these via `define` in vite.config.ts.
-// Add TS decls so TypeScript doesn't complain.
+// Vite inject via define() (lihat vite.config.ts)
 declare const __DEV__: boolean;
 declare const __PROD__: boolean;
 declare const __CONSOLE_ENABLED__: boolean;
@@ -21,7 +20,9 @@ const isDevDomain = () => {
   const host = window.location.hostname;
   return (
     host === "localhost" ||
-    host.startsWith("dev3--gleaming-peony") && host.endsWith("netlify.app")
+    host.startsWith("127.") ||
+    host.endsWith(".local") ||
+    (host.startsWith("dev3--gleaming-peony") && host.endsWith("netlify.app"))
   );
 };
 
@@ -134,8 +135,8 @@ if (effectiveDev) {
     environment: {
       mode: import.meta.env.MODE,
       isDev: import.meta.env.DEV,
+      isProd: import.meta.env.PROD,
       effectiveDev,
-      nodeEnv: import.meta.env.NODE_ENV,
     },
   };
 
@@ -156,7 +157,6 @@ if (effectiveDev && "performance" in window) {
       if (nav) {
         logger.perf("Page Load", nav.loadEventEnd - nav.fetchStart, {
           domContentLoaded: nav.domContentLoadedEventEnd - nav.fetchStart,
-          firstPaint: nav.loadEventEnd - nav.fetchStart,
           type: "page-load",
         });
       }

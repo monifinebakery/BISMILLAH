@@ -1,4 +1,4 @@
-// vite.config.ts — safe dev logs, prod-only strip, Netlify preview keep-logs
+// vite.config.ts — safe dev logs, prod-only strip, Netlify non-prod keep-logs
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -10,13 +10,24 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   const isProd = mode === "production";
 
-  // ✅ Detect Netlify Deploy Preview at build time
-  // Netlify sets these automatically in CI
-  const isNetlifyPreview =
-    process.env.NETLIFY === "true" && process.env.CONTEXT === "deploy-preview";
+  // ✅ Netlify contexts: deploy-preview & branch-deploy (non-production)
+  const isNetlifyNonProd =
+    process.env.NETLIFY === "true" && process.env.CONTEXT !== "production";
 
-  // ✅ Keep logs if user forces OR we're building a Deploy Preview
-  const keepLogs = env.VITE_FORCE_LOGS === "true" || isNetlifyPreview;
+  // ✅ Keep logs jika user force ATAU build Netlify non-prod
+  const keepLogs = env.VITE_FORCE_LOGS === "true" || isNetlifyNonProd;
+
+  // 🔎 Build-time visibility (muncul di log Netlify)
+  // Hapus kalau sudah tidak perlu debug
+  // eslint-disable-next-line no-console
+  console.log("🐛 [VITE CONFIG]", {
+    mode,
+    isProd,
+    NETLIFY: process.env.NETLIFY,
+    CONTEXT: process.env.CONTEXT,
+    keepLogs,
+    VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
+  });
 
   return {
     plugins: [

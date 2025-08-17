@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
 
 // Base API URL for Supabase Edge Functions
 const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
@@ -27,7 +28,7 @@ export const protectedApi = {
       
       return await response.json();
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      logger.error('API Error - getUserData:', error);
       throw error;
     }
   },
@@ -45,7 +46,7 @@ export const protectedApi = {
       
       return await response.json();
     } catch (error) {
-      console.error('Error fetching premium data:', error);
+      logger.error('API Error - getPremiumData:', error);
       throw error;
     }
   }
@@ -66,7 +67,7 @@ export const adminApi = {
       
       return await response.json();
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('API Error - getUsers:', error);
       throw error;
     }
   },
@@ -84,7 +85,7 @@ export const adminApi = {
       
       return await response.json();
     } catch (error) {
-      console.error('Error fetching payments:', error);
+      logger.error('API Error - getPayments:', error);
       throw error;
     }
   },
@@ -106,7 +107,7 @@ export const adminApi = {
       
       return await response.json();
     } catch (error) {
-      console.error('Error updating payment status:', error);
+      logger.error('API Error - updatePaymentStatus:', error);
       throw error;
     }
   },
@@ -124,7 +125,7 @@ export const adminApi = {
       
       return await response.json();
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      logger.error('API Error - getStats:', error);
       throw error;
     }
   }

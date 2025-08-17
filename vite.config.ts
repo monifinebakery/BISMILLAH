@@ -12,26 +12,30 @@ export default defineConfig(({ mode }) => {
   const isDev = mode === 'development';
   const isProd = mode === 'production';
   
-  // ✅ Check if logs should be kept in production
+  // ✅ Console management - cleaner logic
   const shouldKeepLogs = env.VITE_FORCE_LOGS === 'true';
   const shouldDropConsole = isProd && !shouldKeepLogs;
 
   // ✅ Debug info (only in dev)
   if (isDev) {
     console.log(`🔍 Vite Mode: ${mode}`);
-    console.log(`🔍 Environment Variables:`, {
-      VITE_DEBUG_LEVEL: env.VITE_DEBUG_LEVEL,
+    console.log(`🔍 Console Policy:`, {
+      isDev,
+      isProd,
+      shouldKeepLogs,
+      willDropConsole: shouldDropConsole,
       VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
     });
   }
 
-  // ✅ Debug build environment (only during build)
+  // ✅ Build info (only during build)
   if (isProd) {
-    console.log('🔧 PRODUCTION BUILD - Environment Check:', {
+    console.log('🔧 PRODUCTION BUILD - Console Policy:', {
       mode,
       VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
       shouldKeepLogs,
-      willDropConsole: shouldDropConsole
+      willDropConsole: shouldDropConsole,
+      consoleWillBe: shouldDropConsole ? 'REMOVED' : 'KEPT'
     });
   }
 
@@ -39,6 +43,11 @@ export default defineConfig(({ mode }) => {
   const plugins = [
     react({
       fastRefresh: isDev,
+      // ✅ Optimize React refresh to prevent setInterval issues
+      plugins: isDev ? [
+        // Disable React DevTools in development if causing issues
+        // ["@swc/plugin-react-remove-properties", { properties: ["data-testid"] }]
+      ] : []
     })
   ];
 
@@ -46,13 +55,16 @@ export default defineConfig(({ mode }) => {
     plugins.push(componentTagger());
   }
 
-  // ✅ Define globals - UPDATED for import.meta.env compatibility
+  // ✅ Define globals for proper environment detection
   const define = {
     __DEV__: JSON.stringify(isDev),
     __PROD__: JSON.stringify(isProd),
     __MODE__: JSON.stringify(mode),
+    __CONSOLE_ENABLED__: JSON.stringify(!shouldDropConsole),
     global: 'globalThis',
-    // Biarkan import.meta.env yang pegang NODE_ENV/DEV/PROD
+    // ✅ Custom defines for performance monitoring
+    __ENABLE_PERFORMANCE_MONITOR__: JSON.stringify(isDev),
+    __ENABLE_TIMEOUT_MONITORING__: JSON.stringify(isDev && env.VITE_MONITOR_TIMEOUTS !== 'false'),
   };
 
   return {
@@ -65,6 +77,8 @@ export default defineConfig(({ mode }) => {
       strictPort: false,
       hmr: {
         overlay: true,
+        // ✅ Reduce HMR noise that might cause setInterval issues
+        timeout: 5000,
       },
     },
 
@@ -74,18 +88,18 @@ export default defineConfig(({ mode }) => {
       alias: {
         "@": path.resolve(__dirname, "./src"),
 
-        // ✅ Force single React instances
+        // ✅ Force single React instances to prevent duplicate intervals
         "react": path.resolve(__dirname, "./node_modules/react"),
         "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
         "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime"),
         "react/jsx-dev-runtime": path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime"),
 
-        // ✅ Single scheduler instance
+        // ✅ Single scheduler instance - CRITICAL for preventing setInterval duplication
         "scheduler": path.resolve(__dirname, "./node_modules/scheduler"),
         "scheduler/tracing": path.resolve(__dirname, "./node_modules/scheduler/tracing"),
       },
 
-      // ✅ Dedupe untuk modul duplikat
+      // ✅ Dedupe untuk prevent duplicate modules causing multiple intervals
       dedupe: [
         "react",
         "react-dom",
@@ -100,15 +114,11 @@ export default defineConfig(({ mode }) => {
 
       rollupOptions: {
         output: {
-          // ✅ Chunking terkontrol - OPTIMIZED
+          // ✅ Optimized chunking to prevent setTimeout violations
           manualChunks: (id) => {
-            // Core React
-            if (id.includes('/react/') && !id.includes('react-dom')&& !id.includes('scheduler')) {
-              return 'react';
-            }
-            // React DOM + Scheduler
-            if (id.includes('react-dom') || id.includes('scheduler')) {
-              return 'react-dom';
+            // ✅ CRITICAL: Keep React + Scheduler together to prevent timing issues
+            if (id.includes('/react/') || id.includes('react-dom') || id.includes('scheduler')) {
+              return 'react-core';
             }
             // Radix UI
             if (id.includes('@radix-ui')) {
@@ -118,11 +128,11 @@ export default defineConfig(({ mode }) => {
             if (id.includes('@tanstack/react-query')) {
               return 'react-query';
             }
-            // Supabase
+            // ✅ CRITICAL: Keep Supabase together to prevent realtime connection issues
             if (id.includes('@supabase')) {
               return 'supabase';
             }
-            // Charts - SPLIT BY TYPE
+            // Charts - split by type
             if (id.includes('chart.js') || id.includes('react-chartjs-2')) {
               return 'charts-chartjs';
             }
@@ -145,11 +155,10 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               return 'vendor';
             }
-            // App chunks - SPLIT COMPONENTS BY FEATURE
+            // App chunks
             if (id.includes('src/contexts')) {
               return 'contexts';
             }
-            // Split components by feature areas to reduce size
             if (id.includes('src/components/ui/')) {
               return 'ui-components';
             }
@@ -165,6 +174,9 @@ export default defineConfig(({ mode }) => {
             if (id.includes('src/components/dashboard/')) {
               return 'dashboard-components';
             }
+            if (id.includes('src/components/orders/')) {
+              return 'orders-components';
+            }
             if (id.includes('src/components')) {
               return 'shared-components';
             }
@@ -174,10 +186,17 @@ export default defineConfig(({ mode }) => {
             return 'main';
           },
 
-          // ✅ File naming + cache bust
+          // ✅ File naming with better cache control
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           assetFileNames: isProd ? "assets/[name]-[hash].[ext]" : "assets/[name].[ext]",
+
+          // ✅ CRITICAL: Ensure proper module loading order to prevent timing issues
+          ...(isProd && {
+            generatedCode: 'es2015',
+            interop: 'compat',
+            systemNullSetters: false,
+          }),
         },
 
         external: [],
@@ -231,15 +250,29 @@ export default defineConfig(({ mode }) => {
         cssCodeSplit: true,
         cssMinify: true,
         assetsInlineLimit: 4096,
+        // ✅ Optimize module preloading to prevent timing issues
+        modulePreload: {
+          polyfill: true,
+          resolveDependencies: (filename, deps) => {
+            // Preload critical chunks first to prevent race conditions
+            const criticalChunks = ['react-core', 'supabase'];
+            return deps.sort((a, b) => {
+              const aIsCritical = criticalChunks.some(chunk => a.includes(chunk));
+              const bIsCritical = criticalChunks.some(chunk => b.includes(chunk));
+              return bIsCritical - aIsCritical;
+            });
+          }
+        }
       }),
     },
 
     optimizeDeps: {
       include: [
-        // ✅ Core React
+        // ✅ Core React - include all to prevent duplication
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
         "react-dom/client",
+        "scheduler",
 
         // Router
         "react-router-dom",
@@ -253,8 +286,10 @@ export default defineConfig(({ mode }) => {
         "tailwind-merge",
         "class-variance-authority",
 
-        // Supabase
+        // ✅ Supabase - include all to prevent connection issues
         "@supabase/supabase-js",
+        "@supabase/gotrue-js",
+        "@supabase/realtime-js",
 
         // Charts
         "chart.js",
@@ -276,21 +311,28 @@ export default defineConfig(({ mode }) => {
         "react-day-picker",
       ],
 
-      // ✅ Exclude large libraries
+      // ✅ Exclude problematic libraries
       exclude: [
         "xlsx",
+        // Exclude if causing issues:
+        // "@supabase/functions-js",
       ],
 
-      // ✅ Dedupe & force rebuild
+      // ✅ Force single instances
       dedupe: ["react", "react-dom", "scheduler"],
       force: true,
 
-      // ✅ ESBuild options for pre-bundling
+      // ✅ ESBuild options optimized for performance
       esbuildOptions: {
         target: "es2020",
         define: {
           global: 'globalThis',
         },
+        // ✅ Prevent setTimeout violations during dev bundling
+        keepNames: isDev,
+        minifyIdentifiers: isProd,
+        minifySyntax: isProd,
+        treeShaking: isProd,
       },
     },
 
@@ -309,38 +351,58 @@ export default defineConfig(({ mode }) => {
       open: false,
     },
 
-    // ✅ Global esbuild config
+    // ✅ ESBuild config with PRECISE console management
     esbuild: {
       logOverride: {
         'this-is-undefined-in-esm': 'silent',
       },
-      // ⛳️ CONDITIONAL: only drop console if not forced to keep logs
-      ...(shouldDropConsole && {
-        drop: ["console", "debugger"],
-        legalComments: "none",
-        minifyIdentifiers: true,
-        minifySyntax: true,
-        minifyWhitespace: true,
+      
+      // ✅ DEVELOPMENT: Keep everything, no minification
+      ...(isDev && {
+        keepNames: true,
+        minifyIdentifiers: false,
+        minifySyntax: false,
+        minifyWhitespace: false,
+        // Keep console.* in development
       }),
-      // ✅ When keeping logs in production, still minify but preserve console
+      
+      // ✅ PRODUCTION with forced logs: Minify but keep console
       ...(isProd && shouldKeepLogs && {
         legalComments: "none",
         minifyIdentifiers: true,
         minifySyntax: true,
         minifyWhitespace: true,
-        // Don't drop console when VITE_FORCE_LOGS=true
+        // Console statements KEPT when VITE_FORCE_LOGS=true
+        keepNames: false,
       }),
+      
+      // ✅ PRODUCTION without forced logs: Remove console completely
+      ...(isProd && !shouldKeepLogs && {
+        drop: ["console", "debugger"],
+        legalComments: "none",
+        minifyIdentifiers: true,
+        minifySyntax: true,
+        minifyWhitespace: true,
+        keepNames: false,
+      }),
+      
       define: {
         global: 'globalThis',
       },
     },
 
+    // ✅ Development specific settings
     ...(isDev && {
       clearScreen: false,
+      // ✅ Optimize dev server to prevent timing issues
+      optimizeDeps: {
+        force: false, // Don't force rebuild every time in dev
+      },
     }),
 
+    // ✅ Production specific settings
     ...(isProd && {
-      logLevel: 'warn',
+      logLevel: shouldKeepLogs ? 'info' : 'warn',
     }),
   };
 });

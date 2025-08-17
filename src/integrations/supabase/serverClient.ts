@@ -12,9 +12,8 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Sangat penting: Pastikan kunci service role Anda aman dan tidak terekspos ke frontend.
 if (!supabaseUrl || !supabaseServiceRoleKey) {
-  console.error('ERROR: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not defined for server client.');
-  // Dalam produksi, mungkin lebih baik melempar error agar aplikasi tidak berjalan dengan konfigurasi salah
-  // throw new Error('Supabase URL and Service Role Key must be defined in environment variables.');
+  // Use error throwing instead of console.error for server environment
+  throw new Error('CRITICAL: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not defined for server client');
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseServiceRoleKey, {

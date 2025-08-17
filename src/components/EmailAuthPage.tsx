@@ -17,6 +17,8 @@ let HCaptcha: any = null;
 // ✅ Environment variables
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
 const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
+console.log("HCAPTCHA SITE KEY:", import.meta.env.VITE_HCAPTCHA_SITE_KEY);
+
 
 // ✅ Simplified Props Interface
 interface EmailAuthPageProps {

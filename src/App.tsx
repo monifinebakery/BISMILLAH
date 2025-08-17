@@ -9,7 +9,6 @@ import { queryClient } from "@/config/queryClient";
 import { AppLoader } from "@/components/loaders";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
-
 const App = () => {
   // ✅ SIMPLIFIED: Remove auth redirect logic (now handled in AuthContext)
   useEffect(() => {
@@ -35,7 +34,6 @@ const App = () => {
     
     handleInitialSetup();
   }, []);
-
   // ✅ Enhanced error handling for QueryClient
   useEffect(() => {
     const handleQueryError = (error: any) => {
@@ -49,14 +47,12 @@ const App = () => {
         // Let AuthContext handle the redirect
       }
     };
-
     // ✅ Set up global query error handler
     queryClient.getQueryCache().subscribe((event) => {
       if (event?.query?.state?.error) {
         handleQueryError(event.query.state.error);
       }
     });
-
     // ✅ Set up global mutation error handler  
     queryClient.getMutationCache().subscribe((event) => {
       if (event?.mutation?.state?.error) {
@@ -64,7 +60,6 @@ const App = () => {
       }
     });
   }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -93,5 +88,4 @@ const App = () => {
     </QueryClientProvider>
   );
 };
-
 export default App;

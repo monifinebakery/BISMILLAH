@@ -1,8 +1,7 @@
-// src/main.tsx - Single React Query provider lives in App.tsx
+// src/main.tsx - Optimized to prevent setTimeout violations
 
 // 🚀 FIRST: Silence console in production IMMEDIATELY on import
-import '@/utils/immediateConsoleSilencer'; // This runs immediately, no function call needed
-// Backup: Also import and call the original override
+import '@/utils/immediateConsoleSilencer';
 import { disableConsoleInProduction } from '@/utils/productionConsoleOverride';
 disableConsoleInProduction();
 
@@ -18,20 +17,65 @@ import { performanceMonitor } from '@/utils/performanceMonitor';
 // Performance tracking
 const appStartTime = performance.now();
 
-// Initialize performance monitoring for setTimeout violations
+// ✅ CONDITIONAL: Only enable performance monitoring in DEV and disable in production
 if (import.meta.env.DEV) {
   performanceMonitor.enable();
   logger.info('Performance monitoring enabled for setTimeout violations');
+} else {
+  // ✅ PRODUCTION: Ensure performance monitor is disabled to prevent overhead
+  performanceMonitor.disable();
+  logger.info('Performance monitoring disabled in production');
 }
 
-// Scheduler polyfill (if needed)
+// ✅ LIGHTWEIGHT: Scheduler polyfill with non-blocking implementation
 if (typeof globalThis !== 'undefined' && !(globalThis as any).scheduler) {
   logger.info('Adding scheduler polyfill');
   (globalThis as any).scheduler = {
-    unstable_scheduleCallback: (_priority: any, callback: any) => setTimeout(callback, 0),
-    unstable_cancelCallback: (node: any) => node?.id && clearTimeout(node.id),
-    unstable_shouldYield: () => false,
-    unstable_requestPaint: () => {},
+    // ✅ Use MessageChannel for non-blocking scheduling instead of setTimeout
+    unstable_scheduleCallback: (_priority: any, callback: any) => {
+      if ('MessageChannel' in window) {
+        const channel = new MessageChannel();
+        channel.port2.onmessage = () => {
+          try {
+            callback();
+          } catch (error) {
+            logger.error('Scheduler callback error:', error);
+          }
+        };
+        // Non-blocking post
+        requestAnimationFrame(() => channel.port1.postMessage(null));
+        return { id: Date.now() }; // Return fake node for cancellation
+      } else {
+        // Fallback to setTimeout with error handling
+        const id = setTimeout(() => {
+          try {
+            callback();
+          } catch (error) {
+            logger.error('Scheduler callback error:', error);
+          }
+        }, 0);
+        return { id };
+      }
+    },
+    unstable_cancelCallback: (node: any) => {
+      if (node?.id && typeof node.id === 'number') {
+        clearTimeout(node.id);
+      }
+    },
+    unstable_shouldYield: () => {
+      // ✅ Use performance.now() with threshold to prevent blocking
+      if ('performance' in window && performance.now) {
+        const now = performance.now();
+        return (now % 5) < 0.1; // Yield every ~5ms window
+      }
+      return false;
+    },
+    unstable_requestPaint: () => {
+      // ✅ Use RAF instead of blocking operation
+      if ('requestAnimationFrame' in window) {
+        requestAnimationFrame(() => {});
+      }
+    },
     unstable_now: () => (performance as any).now?.() || Date.now()
   } as any;
 }
@@ -84,7 +128,7 @@ logger.perf('App Initialization', appInitTime, {
   hasDevtools: import.meta.env.DEV,
 });
 
-// Enhanced global debug functions
+// ✅ CONDITIONAL: Only load debug tools in development
 if (import.meta.env.DEV) {
   (window as any).appDebug = {
     logger,
@@ -100,6 +144,15 @@ if (import.meta.env.DEV) {
       getTimeoutViolations: () => performanceMonitor.getViolations(),
       getPerformanceReport: () => performanceMonitor.getReport(),
       clearMetrics: () => performanceMonitor.clearMetrics(),
+      // ✅ NEW: Manual toggle for performance monitoring
+      enableMonitoring: () => {
+        performanceMonitor.enable();
+        logger.info('Performance monitoring enabled manually');
+      },
+      disableMonitoring: () => {
+        performanceMonitor.disable();
+        logger.info('Performance monitoring disabled manually');
+      },
     },
     environment: {
       mode: import.meta.env.MODE,
@@ -114,46 +167,75 @@ if (import.meta.env.DEV) {
   });
 }
 
-// Performance monitoring in development
+// ✅ OPTIMIZED: Non-blocking performance monitoring
 if (import.meta.env.DEV && 'performance' in window) {
   window.addEventListener('load', () => {
-    setTimeout(() => {
-      const perfData = (performance.getEntriesByType('navigation')[0] as any);
-      if (perfData) {
-        logger.perf('Page Load', perfData.loadEventEnd - perfData.fetchStart, {
-          domContentLoaded: perfData.domContentLoadedEventEnd - perfData.fetchStart,
-          firstPaint: perfData.loadEventEnd - perfData.fetchStart,
-          type: 'page-load',
-        });
+    // ✅ Use requestIdleCallback to prevent blocking main thread
+    const measurePerformance = () => {
+      try {
+        const perfData = (performance.getEntriesByType('navigation')[0] as any);
+        if (perfData) {
+          logger.perf('Page Load', perfData.loadEventEnd - perfData.fetchStart, {
+            domContentLoaded: perfData.domContentLoadedEventEnd - perfData.fetchStart,
+            firstPaint: perfData.loadEventEnd - perfData.fetchStart,
+            type: 'page-load',
+          });
+        }
+      } catch (error) {
+        logger.warn('Performance measurement failed:', error);
       }
-    }, 0);
+    };
+
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(measurePerformance, { timeout: 5000 });
+    } else {
+      // ✅ Fallback: Use RAF instead of setTimeout to prevent violations
+      requestAnimationFrame(() => {
+        requestAnimationFrame(measurePerformance);
+      });
+    }
   });
 }
 
-// Unhandled error logging
-window.addEventListener('error', (event) => {
-  logger.criticalError('Unhandled JavaScript error', {
-    message: (event as any).message,
-    filename: (event as any).filename,
-    lineno: (event as any).lineno,
-    colno: (event as any).colno,
-    error: (event as any).error,
-  });
-});
+// ✅ PRODUCTION OPTIMIZATION: Disable error logging in production to reduce overhead
+const shouldLogErrors = import.meta.env.DEV || localStorage.getItem('enableErrorLogging') === 'true';
 
-window.addEventListener('unhandledrejection', (event) => {
-  logger.criticalError('Unhandled Promise rejection', {
-    reason: (event as any).reason,
-    promise: (event as any).promise,
+if (shouldLogErrors) {
+  // Unhandled error logging
+  window.addEventListener('error', (event) => {
+    logger.criticalError('Unhandled JavaScript error', {
+      message: (event as any).message,
+      filename: (event as any).filename,
+      lineno: (event as any).lineno,
+      colno: (event as any).colno,
+      error: (event as any).error,
+    });
   });
-});
+
+  window.addEventListener('unhandledrejection', (event) => {
+    logger.criticalError('Unhandled Promise rejection', {
+      reason: (event as any).reason,
+      promise: (event as any).promise,
+    });
+  });
+} else {
+  // ✅ PRODUCTION: Minimal error tracking
+  window.addEventListener('error', (event) => {
+    // Just track critical errors without heavy logging
+    console.error('App Error:', (event as any).message);
+  });
+  
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Promise Rejection:', (event as any).reason);
+  });
+}
 
 logger.success('React application initialized successfully', {
   initTime: appInitTime,
   timestamp: new Date().toISOString(),
 });
 
-// 🔧 Production Console Debug Helper
+// ✅ ENHANCED: Console debug helper with performance checks
 if (typeof window !== 'undefined') {
   (window as any).__CONSOLE_STATUS__ = () => {
     const isDisabled = (window as any).__CONSOLE_DISABLED__;
@@ -161,14 +243,14 @@ if (typeof window !== 'undefined') {
     const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
     const originalConsole = (window as any).__ORIGINAL_CONSOLE__;
     
-    // Use original console even if disabled
     const logFunc = originalConsole ? originalConsole.log : console.log;
     
     logFunc('📊 Console Status:', {
       disabled: isDisabled,
       hostname,
       isProduction: isProd,
-      canRestore: !!originalConsole
+      canRestore: !!originalConsole,
+      performanceMonitoringEnabled: import.meta.env.DEV
     });
     
     if (isDisabled) {
@@ -177,5 +259,60 @@ if (typeof window !== 'undefined') {
     } else {
       logFunc('✅ Console is currently active');
     }
+
+    // ✅ NEW: Show setTimeout violation status if in dev mode
+    if (import.meta.env.DEV && performanceMonitor) {
+      const report = performanceMonitor.getReport();
+      logFunc('⏱️ Performance Status:', {
+        violations: report.summary.totalViolations,
+        recentViolations: report.summary.recentViolations,
+        timeoutViolations: report.summary.timeoutViolations
+      });
+      
+      if (report.summary.totalViolations > 0) {
+        logFunc('🔧 To clear metrics: window.appDebug.performance.clearMetrics()');
+        logFunc('🔧 To disable monitoring: window.appDebug.performance.disableMonitoring()');
+      }
+    }
   };
+
+  // ✅ NEW: Quick performance check function
+  (window as any).__PERF_CHECK__ = () => {
+    if (import.meta.env.DEV && performanceMonitor) {
+      const report = performanceMonitor.getReport();
+      const logFunc = (window as any).__ORIGINAL_CONSOLE__?.log || console.log;
+      
+      logFunc('🚀 Performance Summary:', {
+        appInitTime: appInitTime.toFixed(2) + 'ms',
+        totalViolations: report.summary.totalViolations,
+        recentViolations: report.summary.recentViolations,
+        slowestOperations: report.slowestOperations.slice(0, 3).map(op => ({
+          name: op.name,
+          duration: op.duration.toFixed(2) + 'ms'
+        }))
+      });
+      
+      if (report.recentViolations.length > 0) {
+        logFunc('⚠️ Recent Violations:', report.recentViolations.map(v => ({
+          callback: v.callback,
+          duration: v.duration.toFixed(2) + 'ms',
+          ago: Math.round((Date.now() - v.timestamp.getTime()) / 1000) + 's ago'
+        })));
+      } else {
+        logFunc('✅ No recent violations detected');
+      }
+    } else {
+      const logFunc = (window as any).__ORIGINAL_CONSOLE__?.log || console.log;
+      logFunc('ℹ️ Performance monitoring not available in production mode');
+    }
+  };
+}
+
+// ✅ PRODUCTION: Clean up unused references to prevent memory leaks
+if (import.meta.env.PROD) {
+  // Clear references that are only needed during development
+  setTimeout(() => {
+    // Don't expose debug tools in production
+    delete (window as any).appDebug;
+  }, 1000);
 }

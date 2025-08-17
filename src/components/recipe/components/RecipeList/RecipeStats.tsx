@@ -136,9 +136,9 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
       </div>
 
       {/* Wawasan Detail */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      		<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
         {/* Rincian Profitabilitas */}
-        <Card className="border-0 shadow-md">
+        	<Card className="border-0 shadow-md h-full">
           <CardContent className="p-6">
             <div className="mb-4 flex items-center gap-2">
               <Award className="h-5 w-5 text-yellow-500" />
@@ -173,7 +173,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
         </Card>
 
         {/* Tren Biaya */}
-        <Card className="border-0 shadow-md">
+        <Card className="border-0 shadow-md h-full">
           <CardContent className="p-6">
             <div className="mb-4 flex items-center gap-2">
               {(() => {
@@ -201,7 +201,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
         </Card>
 
         {/* Performa Resep */}
-        <Card className="border-0 shadow-md">
+        	<Card className="border-0 shadow-md h-full">
           <CardContent className="p-6">
             <div className="mb-4 flex items-center gap-2">
               <Target className="h-5 w-5 text-blue-500" />

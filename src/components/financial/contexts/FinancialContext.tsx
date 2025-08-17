@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, ReactNode, useCallback } f
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { getFinancialTransactions } from '../services/financialApi';
 
 // Type imports only (no circular deps)
 import { 
@@ -181,7 +182,7 @@ export const useFinancialQuery = () => {
     if (user?.id) {
       queryClient.prefetchQuery({
         queryKey: financialQueryKeys.transactions(user.id),
-        queryFn: () => import('../services/financialApi').then(api => api.getFinancialTransactions(user.id)),
+        queryFn: () => getFinancialTransactions(user.id),
         staleTime: 5 * 60 * 1000,
       });
     }

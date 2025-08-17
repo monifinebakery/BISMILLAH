@@ -47,9 +47,9 @@ export type {
 // ===== COMPONENTS =====
 // PERBAIKAN: Gunakan default export yang benar
 export { default as ProfitSummaryCards } from './components/ProfitSummaryCards';
-export { default as ProfitBreakdownChart } from './components/ProfitBreakdownChart';
-export { default as ProfitTrendChart } from './components/ProfitTrendChart';
-export { default as DetailedBreakdownTable } from './components/DetailedBreakdownTable';
+export { default as ProfitBreakdownChart } from './components/lazy/LazyProfitBreakdownChart';
+export { default as ProfitTrendChart } from './components/lazy/LazyProfitTrendChart';
+export { default as DetailedBreakdownTable } from './components/lazy/LazyDetailedBreakdownTable';
 export { default as ProfitDashboard } from './components/ProfitDashboard';
 
 // Export types dari components

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
   ShoppingCart,
-  Plus,
   Download,
   TrendingUp,
   Clock,
@@ -38,32 +37,22 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
                 Manajemen Pembelian Bahan Baku
               </h1>
               <p className="text-sm opacity-90 mt-1">
-                Kelola semua transaksi pembelian bahan baku Anda dengan mudah dan efisien.
+                Catat pembelian bahan baku langsung dari nota untuk hasil yang akurat.
               </p>
             </div>
           </div>
           
           {/* Right actions */}
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-            {/* Quick (perkiraan) */}
+            {/* Hanya 1 tombol: Tambah dari Nota */}
             <Button
-              onClick={() => onAddPurchase('quick')}
+              onClick={() => onAddPurchase('packaging')}
               className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200 hover:shadow-lg"
             >
-              <Plus className="h-5 w-5" />
+              <FileText className="h-5 w-5" />
               Tambah Pembelian
             </Button>
 
-            {/* Dari Nota (akurat) */}
-            <Button
-              onClick={() => onAddPurchase('packaging')}
-              variant="outline"
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-white bg-opacity-10 text-white border-white border-opacity-30 font-semibold rounded-lg backdrop-blur-sm hover:bg-opacity-20 transition-all duration-200"
-            >
-              <FileText className="h-5 w-5" />
-              Dari Nota (Akurat)
-            </Button>
-            
             {onExport && (
               <Button
                 onClick={onExport}

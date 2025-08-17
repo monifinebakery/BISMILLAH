@@ -1,12 +1,17 @@
-// hooks/useDashboardData.ts - Enhanced with Trend Calculation
+// hooks/useDashboardData.ts - Enhanced with Profit Analysis Sync
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useOrder } from '@/components/orders/context/OrderContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialCalculations';
+
+// ✅ NEW: Import Profit Analysis functionality for real data sync
+import { useProfitAnalysis } from '@/components/profitAnalysis/hooks/useProfitAnalysis';
+import { calculateMargins } from '@/components/profitAnalysis/utils/profitCalculations';
 import { formatCurrency } from '@/utils/formatUtils';
 import { logger } from '@/utils/logger';
 
@@ -36,6 +41,15 @@ interface DashboardStats {
     profit?: TrendData;
     mostUsedIngredient?: TrendData;
   };
+  // ✅ NEW: Add sync status to show if data is from profit analysis or estimates
+  isFromProfitAnalysis?: boolean;
+  profitAnalysisSync?: {
+    currentPeriod: string;
+    lastSynced: Date;
+    grossMargin: number;
+    netMargin: number;
+    cogsSource: 'wac' | 'inventory' | 'estimated';
+  };
 }
 
 interface ProductSale {
@@ -46,6 +60,12 @@ interface ProductSale {
   profit?: number;
   marginPercent?: number;
 }
+
+// ✅ Helper to convert date range to period for profit analysis
+const dateRangeToPeriod = (dateRange: DateRange): string => {
+  const fromDate = new Date(dateRange.from);
+  return fromDate.toISOString().slice(0, 7); // YYYY-MM format
+};
 
 // 📊 Helper function to calculate previous period
 const getPreviousPeriod = (dateRange: DateRange): DateRange => {
@@ -98,14 +118,29 @@ export const useDashboardData = (dateRange: DateRange) => {
   const { recipes = [] } = useRecipe() || {};
   const { settings = {} } = useUserSettings() || {};
 
+  // ✅ NEW: Profit Analysis Hook for accurate data sync
+  const currentPeriod = dateRangeToPeriod(dateRange);
+  const {
+    currentAnalysis,
+    profitMetrics,
+    loading: profitLoading,
+    error: profitError,
+    labels,
+    refreshAnalysis
+  } = useProfitAnalysis({
+    defaultPeriod: currentPeriod,
+    enableWAC: true,
+    autoCalculate: true
+  });
+
   // ⏳ Loading State Management
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
-      setIsLoading(activitiesLoading);
+      setIsLoading(activitiesLoading || profitLoading);
     }, 500);
 
     return () => clearTimeout(loadingTimeout);
-  }, [activitiesLoading]);
+  }, [activitiesLoading, profitLoading]);
 
   // 📅 Previous Period Calculation
   const previousPeriod = useMemo(() => {
@@ -226,20 +261,53 @@ export const useDashboardData = (dateRange: DateRange) => {
     }
   }, [previousData, recipes]);
 
-  // 📊 Current Stats Calculation
+  // ✅ NEW: Enhanced Stats Calculation with Profit Analysis Sync
   const currentStats = useMemo(() => {
     try {
       const { filteredOrders } = currentData;
-      
       const revenue = calculateGrossRevenue(filteredOrders, 'totalPesanan');
       const ordersCount = filteredOrders.length;
-      const profit = revenue * 0.3;
+      
+      // ✅ NEW: Use profit analysis data if available and current, otherwise fallback to estimate
+      let profit = 0;
+      let isFromProfitAnalysis = false;
+      let profitAnalysisSync = undefined;
+      
+      if (currentAnalysis && profitMetrics && currentAnalysis.period === currentPeriod) {
+        // Use accurate profit from profit analysis
+        profit = profitMetrics.netProfit;
+        isFromProfitAnalysis = true;
+        
+        const cogsSource = profitMetrics.totalHPP > 0 ? 'wac' : 
+                          (profitMetrics.cogs > revenue * 0.5 ? 'inventory' : 'estimated');
+        
+        profitAnalysisSync = {
+          currentPeriod: currentAnalysis.period,
+          lastSynced: new Date(),
+          grossMargin: profitMetrics.grossMargin,
+          netMargin: profitMetrics.netMargin,
+          cogsSource
+        };
+        
+        logger.info('📊 Dashboard using Profit Analysis data:', {
+          revenue: profitMetrics.revenue,
+          profit: profitMetrics.netProfit,
+          grossMargin: profitMetrics.grossMargin,
+          cogsSource
+        });
+      } else {
+        // Fallback to simple estimation
+        profit = revenue * 0.3;
+        logger.warn('📊 Dashboard using estimated profit (30%)', { revenue, profit });
+      }
 
       return {
         revenue,
         orders: ordersCount,
         profit,
-        mostUsedIngredient: currentMostUsedIngredient
+        mostUsedIngredient: currentMostUsedIngredient,
+        isFromProfitAnalysis,
+        profitAnalysisSync
       };
     } catch (err) {
       logger.error('Dashboard - Current stats calculation error:', err);
@@ -247,19 +315,20 @@ export const useDashboardData = (dateRange: DateRange) => {
         revenue: 0, 
         orders: 0, 
         profit: 0, 
-        mostUsedIngredient: { name: '', usageCount: 0 } 
+        mostUsedIngredient: { name: '', usageCount: 0 },
+        isFromProfitAnalysis: false
       };
     }
-  }, [currentData, currentMostUsedIngredient]);
+  }, [currentData, currentMostUsedIngredient, currentAnalysis, profitMetrics, currentPeriod]);
 
-  // 📊 Previous Stats Calculation
+  // 📊 Previous Stats Calculation (using simple estimation for comparison)
   const previousStats = useMemo(() => {
     try {
       const { filteredOrders } = previousData;
       
       const revenue = calculateGrossRevenue(filteredOrders, 'totalPesanan');
       const ordersCount = filteredOrders.length;
-      const profit = revenue * 0.3;
+      const profit = revenue * 0.3; // Use consistent estimation for trend comparison
 
       return {
         revenue,
@@ -306,6 +375,16 @@ export const useDashboardData = (dateRange: DateRange) => {
       trends
     };
   }, [currentStats, trends]);
+
+  // ✅ NEW: Sync function to refresh profit analysis data
+  const syncWithProfitAnalysis = useCallback(async () => {
+    try {
+      logger.info('🔄 Syncing dashboard with profit analysis...');
+      await refreshAnalysis();
+    } catch (err) {
+      logger.error('❌ Dashboard sync with profit analysis failed:', err);
+    }
+  }, [refreshAnalysis]);
 
   // 🏆 Best Selling Products
   const bestSellingProducts: ProductSale[] = useMemo(() => {
@@ -388,6 +467,9 @@ export const useDashboardData = (dateRange: DateRange) => {
     }
   }, [currentData]);
 
+  // ✅ Enhanced error handling with profit analysis errors
+  const combinedError = error || profitError;
+
   return {
     // Data
     stats,
@@ -398,7 +480,13 @@ export const useDashboardData = (dateRange: DateRange) => {
     
     // States
     isLoading,
-    error,
+    error: combinedError,
+    
+    // ✅ NEW: Profit analysis integration
+    profitAnalysisData: currentAnalysis,
+    profitMetrics,
+    labels,
+    syncWithProfitAnalysis,
     
     // Raw data (for components that need it)
     orders: currentData.filteredOrders,

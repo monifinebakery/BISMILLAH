@@ -16,7 +16,10 @@ import {
   Info,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  CheckCircle,
+  Clock,
+  AlertCircle
 } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 
@@ -95,6 +98,52 @@ const TrendIndicator: React.FC<{
   );
 };
 
+// ✅ NEW: Sync Status Indicator Component
+const SyncStatusIndicator: React.FC<{
+  syncStatus: {
+    isAccurate: boolean;
+    source: string;
+    lastUpdated?: Date;
+    cogsSource?: string;
+  } | null;
+  className?: string;
+}> = ({ syncStatus, className = "" }) => {
+  if (!syncStatus) return null;
+
+  const getStatusIcon = () => {
+    if (syncStatus.isAccurate) {
+      return <CheckCircle className="h-3 w-3" />;
+    } else {
+      return <AlertCircle className="h-3 w-3" />;
+    }
+  };
+
+  const getStatusColor = () => {
+    if (syncStatus.isAccurate) {
+      return 'text-green-600 bg-green-50 border-green-200';
+    } else {
+      return 'text-amber-600 bg-amber-50 border-amber-200';
+    }
+  };
+
+  const getStatusLabel = () => {
+    if (syncStatus.isAccurate) {
+      const cogsLabel = syncStatus.cogsSource === 'wac' ? 'WAC' : 
+                       syncStatus.cogsSource === 'inventory' ? 'Inv' : 'Akurat';
+      return cogsLabel;
+    } else {
+      return 'Est';
+    }
+  };
+
+  return (
+    <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${getStatusColor()} ${className}`}>
+      {getStatusIcon()}
+      <span>{getStatusLabel()}</span>
+    </div>
+  );
+};
+
 // 📊 Individual Stat Card Component  
 const StatCard: React.FC<{
   icon: React.ReactNode;
@@ -107,6 +156,12 @@ const StatCard: React.FC<{
   isLoading?: boolean;
   tooltip?: string;
   trend?: TrendData;
+  syncStatus?: {
+    isAccurate: boolean;
+    source: string;
+    lastUpdated?: Date;
+    cogsSource?: string;
+  } | null;
 }> = ({ 
   icon, 
   label, 
@@ -117,7 +172,8 @@ const StatCard: React.FC<{
   valueColor = "text-gray-900",
   isLoading = false,
   tooltip,
-  trend
+  trend,
+  syncStatus
 }) => {
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -144,12 +200,15 @@ const StatCard: React.FC<{
               </div>
             </div>
             
-            {/* 📊 Trend Indicator */}
-            {trend && (
-              <div className="flex-shrink-0">
+            {/* 📊 Trend and Sync Indicators */}
+            <div className="flex items-center gap-1.5">
+              {trend && (
                 <TrendIndicator trend={trend} />
-              </div>
-            )}
+              )}
+              {syncStatus && (
+                <SyncStatusIndicator syncStatus={syncStatus} />
+              )}
+            </div>
           </div>
 
           {/* 🏷️ Label - Full width */}
@@ -240,7 +299,11 @@ const StatCard: React.FC<{
 };
 
 const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
-  // 📊 Stats configuration dengan label yang sesuai untuk mobile
+  // ✅ NEW: Extract sync information for enhanced display
+  const isFromProfitAnalysis = stats.isFromProfitAnalysis;
+  const syncInfo = stats.profitAnalysisSync;
+  
+  // 📊 Enhanced stats configuration with sync-aware labels and descriptions
   const statsConfig = [
     {
       key: 'revenue',
@@ -250,7 +313,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       value: formatCurrency(stats.revenue),
       iconColor: 'text-orange-600',
       trend: stats.trends?.revenue,
-      tooltip: 'Total pendapatan kotor dari semua pesanan dalam periode yang dipilih. Ini adalah jumlah sebelum dikurangi biaya operasional dan HPP (Harga Pokok Penjualan).'
+      tooltip: 'Total pendapatan kotor dari semua pesanan dalam periode yang dipilih. Ini adalah jumlah sebelum dikurangi biaya operasional dan HPP (Harga Pokok Penjualan).',
+      syncStatus: null // Revenue is always from orders, no sync needed
     },
     {
       key: 'orders',
@@ -260,18 +324,29 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       value: stats.orders.toLocaleString('id-ID'),
       iconColor: 'text-orange-600',
       trend: stats.trends?.orders,
-      tooltip: 'Jumlah total pesanan yang telah dibuat dalam periode yang dipilih. Setiap pesanan dihitung sebagai satu transaksi terlepas dari jumlah item di dalamnya.'
+      tooltip: 'Jumlah total pesanan yang telah dibuat dalam periode yang dipilih. Setiap pesanan dihitung sebagai satu transaksi terlepas dari jumlah item di dalamnya.',
+      syncStatus: null // Orders count is always from orders, no sync needed
     },
     {
       key: 'profit',
       icon: <Calculator className="h-full w-full" />,
-      label: 'Estimasi Laba Bersih',
-      shortLabel: 'Estimasi Laba Bersih',
+      label: isFromProfitAnalysis ? 'Laba Bersih' : 'Estimasi Laba Bersih',
+      shortLabel: isFromProfitAnalysis ? 'Laba Bersih' : 'Est. Laba Bersih',
       value: formatCurrency(stats.profit),
-      description: '(Estimasi 30%)',
-      iconColor: 'text-orange-600',
+      description: isFromProfitAnalysis 
+        ? syncInfo ? `(Margin: ${syncInfo.netMargin.toFixed(1)}%)` : '(Data Akurat)'
+        : '(Estimasi 30%)',
+      iconColor: isFromProfitAnalysis ? 'text-green-600' : 'text-orange-600',
       trend: stats.trends?.profit,
-      tooltip: 'Perkiraan laba bersih berdasarkan asumsi margin keuntungan 30% dari omzet. Angka ini adalah estimasi dan dapat berbeda dengan laba aktual setelah dikurangi semua biaya operasional.'
+      tooltip: isFromProfitAnalysis 
+        ? `Laba bersih berdasarkan analisis profit akurat dengan data COGS dari ${syncInfo?.cogsSource === 'wac' ? 'WAC (Weighted Average Cost)' : syncInfo?.cogsSource === 'inventory' ? 'nilai stok gudang' : 'estimasi'}. Data ini dihitung berdasarkan pendapatan dikurangi COGS dan biaya operasional.`
+        : 'Perkiraan laba bersih berdasarkan asumsi margin keuntungan 30% dari omzet. Angka ini adalah estimasi dan dapat berbeda dengan laba aktual setelah dikurangi semua biaya operasional.',
+      syncStatus: {
+        isAccurate: isFromProfitAnalysis,
+        source: isFromProfitAnalysis ? 'Analisis Profit' : 'Estimasi',
+        lastUpdated: syncInfo?.lastSynced,
+        cogsSource: syncInfo?.cogsSource
+      }
     },
     {
       key: 'mostUsedIngredient',
@@ -285,7 +360,8 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       iconColor: 'text-orange-600',
       valueColor: stats.mostUsedIngredient?.name ? 'text-gray-900' : 'text-gray-500',
       trend: stats.trends?.mostUsedIngredient,
-      tooltip: 'Bahan baku yang paling sering digunakan dalam resep berdasarkan jumlah pesanan yang telah dibuat. Data ini membantu untuk perencanaan stok dan identifikasi bahan baku kritis.'
+      tooltip: 'Bahan baku yang paling sering digunakan dalam resep berdasarkan jumlah pesanan yang telah dibuat. Data ini membantu untuk perencanaan stok dan identifikasi bahan baku kritis.',
+      syncStatus: null // Ingredient usage is always from recipe analysis
     }
   ];
 
@@ -304,6 +380,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
           isLoading={isLoading}
           tooltip={stat.tooltip}
           trend={stat.trend}
+          syncStatus={stat.syncStatus}
         />
       ))}
     </div>

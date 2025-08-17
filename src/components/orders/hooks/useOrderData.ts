@@ -112,11 +112,20 @@ export const useOrderData = (
       fallbackModeRef.current = true;
       logger.warn('OrderData', `Circuit breaker opened. Switching to ultra-light fallback mode.`);
       
+<<<<<<< HEAD
       // ✅ ULTRA-LIGHT: Use timeout chain instead of setInterval
       if (!fallbackIntervalRef.current) {
         const lightPoll = () => {
           if (!isMountedRef.current || !fallbackModeRef.current) {
             return;
+=======
+      // Start fallback polling
+      if (!fallbackIntervalRef.current) {
+        fallbackIntervalRef.current = setInterval(() => {
+          if (isMountedRef.current) {
+            logger.debug('OrderData', 'Fallback mode: polling for updates');
+            fetchOrders(true);
+>>>>>>> parent of 9b04e241 (feat: optimize setTimeout performance to prevent Chrome violations)
           }
           
           // ✅ Super lightweight check - just schedule, don't execute immediately
@@ -368,7 +377,11 @@ export const useOrderData = (
     logger.context('OrderData', 'Setting up subscription', { userId: user.id });
 
     await cleanupSubscription();
+<<<<<<< HEAD
     await new Promise(resolve => setTimeout(resolve, 100));
+=======
+    await new Promise(resolve => setTimeout(resolve, 1000));
+>>>>>>> parent of 9b04e241 (feat: optimize setTimeout performance to prevent Chrome violations)
     
     if (!isMountedRef.current) {
       setupLockRef.current = false;
@@ -466,6 +479,7 @@ export const useOrderData = (
 
   // ===== CRUD OPERATIONS ===== (Keep same but add throttled refresh for fallback)
   const addOrder = useCallback(async (order: NewOrder): Promise<boolean> => {
+<<<<<<< HEAD
     // ... same implementation as before ...
     
     // At the end, add:
@@ -482,6 +496,96 @@ export const useOrderData = (
     // ... implementation ...
     if (fallbackModeRef.current) {
       setTimeout(() => throttledFetchOrders(), 1000);
+=======
+    if (!hasAllDependencies || !user) {
+      toast.error('Sistem belum siap, silakan tunggu...');
+      return false;
+    }
+
+    const validation = validateOrderData(order);
+    if (!validation.isValid) {
+      validation.errors.forEach(error => toast.error(error));
+      return false;
+    }
+
+    try {
+      const orderData = {
+        user_id: user.id,
+        tanggal: toSafeISOString(order.tanggal || new Date()),
+        status: order.status || 'pending',
+        nama_pelanggan: order.namaPelanggan.trim(),
+        telepon_pelanggan: order.teleponPelanggan || '',
+        email_pelanggan: order.emailPelanggan || '',
+        alamat_pengiriman: order.alamatPengiriman || '',
+        items: Array.isArray(order.items) ? order.items : [],
+        total_pesanan: Number(order.totalPesanan) || 0,
+        catatan: order.catatan || '',
+        subtotal: Number(order.subtotal) || 0,
+        pajak: Number(order.pajak) || 0,
+      };
+
+      const { data, error } = await supabase.rpc('create_new_order', {
+        order_data: orderData,
+      });
+
+      if (error) throw new Error(error.message);
+
+      const createdOrder = Array.isArray(data) ? data[0] : data;
+      if (createdOrder) {
+        if (typeof addActivity === 'function') {
+          try {
+            await addActivity({ 
+              title: 'Pesanan Baru Dibuat', 
+              description: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan} telah dibuat.`,
+              type: 'order'
+            });
+          } catch (activityError) {
+            logger.error('OrderData', 'Error adding activity:', activityError);
+          }
+        }
+
+        toast.success(`Pesanan #${createdOrder.nomor_pesanan} berhasil ditambahkan!`);
+
+        if (typeof addNotification === 'function') {
+          try {
+            await addNotification({
+              title: '🛍️ Pesanan Baru Dibuat!',
+              message: `Pesanan #${createdOrder.nomor_pesanan} dari ${createdOrder.nama_pelanggan} berhasil dibuat dengan total ${formatCurrency(createdOrder.total_pesanan)}`,
+              type: 'success',
+              icon: 'shopping-cart',
+              priority: 2,
+              related_type: 'order',
+              related_id: createdOrder.id,
+              action_url: '/orders',
+              is_read: false,
+              is_archived: false
+            });
+          } catch (notifError) {
+            logger.error('OrderData', 'Error adding notification:', notifError);
+          }
+        }
+        
+        // ✅ NEW: If in fallback mode, manually refresh
+        if (fallbackModeRef.current) {
+          setTimeout(() => fetchOrders(true), 1000);
+        }
+      }
+
+      return true;
+    } catch (error: any) {
+      logger.error('OrderData', 'Error adding order:', error);
+      toast.error(`Gagal menambahkan pesanan: ${error.message || 'Unknown error'}`);
+      return false;
+    }
+  }, [user, addActivity, addNotification, hasAllDependencies, fetchOrders]);
+
+  // ✅ Keep other CRUD operations same, just add fallback refresh
+  const updateOrder = useCallback(async (id: string, updatedData: Partial<Order>): Promise<boolean> => {
+    // ... implementation sama seperti sebelumnya
+    // Tambahkan di akhir:
+    if (fallbackModeRef.current) {
+      setTimeout(() => fetchOrders(true), 1000);
+>>>>>>> parent of 9b04e241 (feat: optimize setTimeout performance to prevent Chrome violations)
     }
     return true;
   }, [user, orders, addActivity, addFinancialTransaction, settings, addNotification, hasAllDependencies, throttledFetchOrders]);
@@ -489,7 +593,11 @@ export const useOrderData = (
   const deleteOrder = useCallback(async (id: string): Promise<boolean> => {
     // ... implementation ...
     if (fallbackModeRef.current) {
+<<<<<<< HEAD
       setTimeout(() => throttledFetchOrders(), 1000);
+=======
+      setTimeout(() => fetchOrders(true), 1000);
+>>>>>>> parent of 9b04e241 (feat: optimize setTimeout performance to prevent Chrome violations)
     }
     return true;
   }, [user, orders, addActivity, hasAllDependencies, throttledFetchOrders]);
@@ -572,7 +680,11 @@ export const useOrderData = (
         if (cancelled || !isMountedRef.current) return;
         
         logger.debug('OrderData', 'Attempting real-time setup');
+<<<<<<< HEAD
         await new Promise(resolve => setTimeout(resolve, 500));
+=======
+        await new Promise(resolve => setTimeout(resolve, 2000));
+>>>>>>> parent of 9b04e241 (feat: optimize setTimeout performance to prevent Chrome violations)
         
         if (cancelled || !isMountedRef.current) return;
         

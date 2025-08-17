@@ -90,12 +90,26 @@ export const useOrderData = (
       fallbackModeRef.current = true;
       logger.warn('OrderData', `Circuit breaker opened after ${cb.failures} failures. Switching to fallback mode.`);
       
-      // Start fallback polling
+      // Start fallback polling with lighter callback
       if (!fallbackIntervalRef.current) {
         fallbackIntervalRef.current = setInterval(() => {
           if (isMountedRef.current) {
             logger.debug('OrderData', 'Fallback mode: polling for updates');
-            fetchOrders(true);
+            // Use requestIdleCallback to prevent blocking the main thread
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(() => {
+                if (isMountedRef.current) {
+                  fetchOrders(true);
+                }
+              });
+            } else {
+              // Fallback for browsers without requestIdleCallback
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  fetchOrders(true);
+                }
+              }, 0);
+            }
           }
         }, 30000); // Poll every 30 seconds
       }
@@ -328,7 +342,8 @@ export const useOrderData = (
     logger.context('OrderData', 'Setting up subscription', { userId: user.id });
 
     await cleanupSubscription();
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Use shorter delay to reduce blocking time
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     if (!isMountedRef.current) {
       setupLockRef.current = false;
@@ -497,9 +512,13 @@ export const useOrderData = (
           }
         }
         
-        // ✅ NEW: If in fallback mode, manually refresh
+        // ✅ NEW: If in fallback mode, manually refresh with lighter callback
         if (fallbackModeRef.current) {
-          setTimeout(() => fetchOrders(true), 1000);
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => fetchOrders(true));
+          } else {
+            setTimeout(() => fetchOrders(true), 0);
+          }
         }
       }
 
@@ -516,7 +535,11 @@ export const useOrderData = (
     // ... implementation sama seperti sebelumnya
     // Tambahkan di akhir:
     if (fallbackModeRef.current) {
-      setTimeout(() => fetchOrders(true), 1000);
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => fetchOrders(true));
+      } else {
+        setTimeout(() => fetchOrders(true), 0);
+      }
     }
     return true;
   }, [user, orders, addActivity, addFinancialTransaction, settings, addNotification, hasAllDependencies, fetchOrders]);
@@ -525,7 +548,11 @@ export const useOrderData = (
     // ... implementation sama seperti sebelumnya  
     // Tambahkan di akhir:
     if (fallbackModeRef.current) {
-      setTimeout(() => fetchOrders(true), 1000);
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => fetchOrders(true));
+      } else {
+        setTimeout(() => fetchOrders(true), 0);
+      }
     }
     return true;
   }, [user, orders, addActivity, hasAllDependencies, fetchOrders]);
@@ -623,7 +650,8 @@ export const useOrderData = (
         
         // ✅ PRIORITY 2: Try real-time (but don't block if it fails)
         logger.debug('OrderData', 'Attempting real-time setup');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Reduce delay to prevent blocking
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         if (cancelled || !isMountedRef.current) return;
         

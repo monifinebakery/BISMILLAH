@@ -59,7 +59,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: (id) => {
             if (id.includes("/react/") || id.includes("react-dom") || id.includes("scheduler")) return "react-core";
-            if (id.includes("@radix-ui")) return "radix-ui";
             if (id.includes("@tanstack/react-query")) return "react-query";
             if (id.includes("@supabase")) return "supabase";
             if (id.includes("chart.js") || id.includes("react-chartjs-2")) return "charts-chartjs";

@@ -1,9 +1,5 @@
 // src/main.tsx - Single React Query provider lives in App.tsx
 
-// 🚀 FIRST: Silence console in production IMMEDIATELY on import
-import { disableConsoleInProduction } from '@/utils/productionConsoleOverride';
-disableConsoleInProduction();
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
@@ -140,30 +136,4 @@ logger.success('React application initialized successfully', {
   timestamp: new Date().toISOString(),
 });
 
-// 🔧 Production Console Debug Helper
-if (typeof window !== 'undefined') {
-  (window as any).__CONSOLE_STATUS__ = () => {
-    const isDisabled = (window as any).__CONSOLE_DISABLED__;
-    const hostname = window.location.hostname;
-    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
-    const originalConsole = (window as any).__ORIGINAL_CONSOLE__;
-    
-    // Use original console even if disabled
-    const logFunc = originalConsole ? originalConsole.log : console.log;
-    
-    logFunc('📊 Console Status:', {
-      disabled: isDisabled,
-      hostname,
-      isProduction: isProd,
-      canRestore: !!originalConsole
-    });
-    
-    if (isDisabled) {
-      logFunc('🔧 To restore console temporarily: window.__RESTORE_CONSOLE__()');
-      logFunc('🔧 To check this status again: window.__CONSOLE_STATUS__()');
-    } else {
-      logFunc('✅ Console is currently active');
-    }
-  };
-}
 

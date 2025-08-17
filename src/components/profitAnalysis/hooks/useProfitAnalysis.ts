@@ -18,9 +18,11 @@ import profitAnalysisApi from '../services/profitAnalysisApi';
 
 // ✅ IMPORT WAC HELPERS (termasuk calculatePemakaianValue)
 import { fetchBahanMap, fetchPemakaianByPeriode, calculatePemakaianValue } from '../services/profitAnalysisApi';
-import { calcHPP } from '../utils/profitCalculations';
+import { calcHPP, calculateInventoryValue } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';
+// ✅ ADD: Import warehouse context untuk real-time sync
+import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
 
 // Query Keys
 export const PROFIT_QUERY_KEYS = {
@@ -97,6 +99,9 @@ export const useProfitAnalysis = (
   } = options;
 
   const queryClient = useQueryClient();
+  
+  // ✅ ADD: Use warehouse context for real-time data
+  const { bahanBaku: warehouseMaterials, loading: warehouseLoading, refreshData: refreshWarehouse } = useWarehouseContext();
   
   // Local state
   const [currentPeriod, setCurrentPeriodState] = useState(defaultPeriod);
@@ -185,28 +190,56 @@ export const useProfitAnalysis = (
   const opex = currentData?.opex_data?.total ?? 0;
   const calculatedAt = currentData?.calculated_at ?? null;
 
-  // ✅ WAC CALCULATION
-  const { totalHPP, hppBreakdown } = useMemo(() => {
+  // ✅ IMPROVED WAC CALCULATION with real-time warehouse sync
+  const { totalHPP, hppBreakdown, inventoryValue } = useMemo(() => {
+    // Method 1: Use pemakaian data (most accurate for actual usage)
     if (bahanMapQuery.data && pemakaianQuery.data) {
       try {
         const res = calcHPP(pemakaianQuery.data, bahanMapQuery.data);
+        const inventoryResult = calculateInventoryValue(warehouseMaterials || []);
         return {
           totalHPP: res.totalHPP,
-          hppBreakdown: res.breakdown
+          hppBreakdown: res.breakdown,
+          inventoryValue: inventoryResult.totalValue
         };
       } catch (err) {
-        logger.error('Error calculating HPP:', err);
-        return {
-          totalHPP: 0,
-          hppBreakdown: []
-        };
+        logger.error('Error calculating HPP from pemakaian:', err);
       }
     }
+    
+    // Method 2: Fallback to current inventory value (real-time warehouse data)
+    if (warehouseMaterials && warehouseMaterials.length > 0) {
+      try {
+        const inventoryResult = calculateInventoryValue(warehouseMaterials);
+        
+        logger.info('🔄 Using inventory value as COGS:', {
+          inventoryValue: inventoryResult.totalValue,
+          itemsWithStock: inventoryResult.summary.itemsWithStock,
+          totalItems: inventoryResult.summary.totalItems
+        });
+        
+        return {
+          totalHPP: inventoryResult.totalValue,
+          hppBreakdown: inventoryResult.breakdown.map(item => ({
+            id: item.id,
+            nama: item.nama,
+            qty: item.stok,
+            price: item.price,
+            hpp: item.value
+          })),
+          inventoryValue: inventoryResult.totalValue
+        };
+      } catch (err) {
+        logger.error('Error calculating inventory value:', err);
+      }
+    }
+    
     return {
       totalHPP: 0,
-      hppBreakdown: []
+      hppBreakdown: [],
+      inventoryValue: 0
     };
-  }, [bahanMapQuery.data, pemakaianQuery.data]);
+  }, [bahanMapQuery.data, pemakaianQuery.data, warehouseMaterials]);
 
   // 🍽️ F&B LABELS - User-friendly terminology
   const labels: FNBLabels = useMemo(() => {
@@ -353,20 +386,21 @@ export const useProfitAnalysis = (
     }
   }, [currentAnalysisQuery]);
 
-  // ✅ WAC ACTION: Refresh WAC data
+  // ✅ IMPROVED WAC ACTION: Refresh both WAC and warehouse data
   const refreshWACData = useCallback(async () => {
-    logger.info('🔄 Refreshing WAC data');
+    logger.info('🔄 Refreshing WAC and warehouse data');
     try {
       await Promise.all([
         bahanMapQuery.refetch(),
-        pemakaianQuery.refetch()
+        pemakaianQuery.refetch(),
+        refreshWarehouse() // Real-time warehouse sync
       ]);
-      toast.success('Data WAC berhasil diperbarui');
+      toast.success('Data modal bahan baku berhasil diperbarui');
     } catch (error) {
-      logger.error('❌ Refresh WAC failed:', error);
-      toast.error('Gagal memperbarui data WAC');
+      logger.error('❌ Refresh WAC and warehouse failed:', error);
+      toast.error('Gagal memperbarui data modal bahan baku');
     }
-  }, [bahanMapQuery, pemakaianQuery]);
+  }, [bahanMapQuery, pemakaianQuery, refreshWarehouse]);
 
   // ✅ UTILITIES
   const getProfitByPeriod = useCallback((period: string) => {
@@ -416,7 +450,7 @@ export const useProfitAnalysis = (
     currentAnalysis: currentData || null,
     profitHistory,
     loading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending || 
-             bahanMapQuery.isLoading || pemakaianQuery.isLoading,
+             bahanMapQuery.isLoading || pemakaianQuery.isLoading || warehouseLoading,
     error: error || currentAnalysisQuery.error?.message || 
            bahanMapQuery.error?.message || pemakaianQuery.error?.message || null,
     

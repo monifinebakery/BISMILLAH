@@ -294,8 +294,8 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
                     <p className={`text-xs ${classes.textSubtle}`}>{metric.subtitle}</p>
                   </div>
                 );
-              })
-            </div>
+              })}
+            </div>
           </CardContent>
         </Card>
       )}

@@ -22,7 +22,10 @@ import financialApi from '@/components/financial/services/financialApi';
 import { warehouseApi } from '@/components/warehouse/services/warehouseApi';
 import { operationalCostApi } from '@/components/operational-costs/services/operationalCostApi';
 
-import { calculateRealTimeProfit, calculateMargins, generateExecutiveInsights, getCOGSEfficiencyRating } from '../utils/profitCalculations';
+// ✅ ADD: Import warehouse context untuk real-time sync
+import type { BahanBakuFrontend } from '@/components/warehouse/types';
+
+import { calculateRealTimeProfit, calculateMargins, generateExecutiveInsights, getCOGSEfficiencyRating, calculateInventoryValue } from '../utils/profitCalculations';
 import { transformToFNBCOGSBreakdown } from '../utils/profitTransformers';
 // 🍽️ Import F&B constants
 import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
@@ -384,15 +387,51 @@ const getRevenueBreakdownFallback = async (
 };
 
 /**
- * Get warehouse data helper (compatibility with existing API)
+ * ✅ IMPROVED: Get warehouse data with real-time inventory values
  */
 const getWarehouseData = async (userId: string) => {
   try {
     const service = await warehouseApi.createService('crud', { userId });
-    return await service.fetchBahanBaku();
+    const materials = await service.fetchBahanBaku();
+    
+    logger.info('📦 Warehouse data fetched:', {
+      itemCount: materials.length,
+      itemsWithStock: materials.filter((m: any) => Number(m.stok) > 0).length
+    });
+    
+    return materials;
   } catch (error) {
     logger.warn('⚠️ Failed to fetch warehouse data:', error);
     return [];
+  }
+};
+
+/**
+ * ✅ NEW: Calculate real-time inventory value for accurate COGS
+ */
+const calculateRealtimeInventoryValue = (materials: any[]): { total: number; breakdown: any[] } => {
+  try {
+    const result = calculateInventoryValue(materials);
+    
+    logger.info('💰 Inventory value calculated:', {
+      totalValue: result.totalValue,
+      itemsWithStock: result.summary.itemsWithStock,
+      totalItems: result.summary.totalItems
+    });
+    
+    return {
+      total: result.totalValue,
+      breakdown: result.breakdown.map(item => ({
+        name: item.nama,
+        cost: item.value,
+        category: 'Current Stock Value',
+        unit_price: item.price,
+        quantity: item.stok
+      }))
+    };
+  } catch (error) {
+    logger.error('❌ Failed to calculate inventory value:', error);
+    return { total: 0, breakdown: [] };
   }
 };
 

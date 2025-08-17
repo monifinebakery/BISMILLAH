@@ -9,11 +9,15 @@ import { useRecipe } from '@/contexts/RecipeContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialCalculations';
 
-// ✅ NEW: Import Profit Analysis functionality for real data sync
+  // ✅ NEW: Import Profit Analysis functionality for real data sync
 import { useProfitAnalysis } from '@/components/profitAnalysis/hooks/useProfitAnalysis';
 import { calculateMargins } from '@/components/profitAnalysis/utils/profitCalculations';
 import { formatCurrency } from '@/utils/formatUtils';
 import { logger } from '@/utils/logger';
+// ✅ ENHANCED: Ensure all dependencies are imported properly
+import type { ProfitAnalysisResult } from '@/components/profitAnalysis/types/profitAnalysis.types';
+// 🔍 DEBUG: Import debug utilities
+import { debugProfitIntegration } from '@/utils/debugProfitIntegration';
 
 interface DateRange {
   from: string;
@@ -295,10 +299,39 @@ export const useDashboardData = (dateRange: DateRange) => {
           grossMargin: profitMetrics.grossMargin,
           cogsSource
         });
+        
+        // 🔍 DEBUG: Log integration details
+        debugProfitIntegration({
+          timestamp: new Date(),
+          period: currentPeriod,
+          revenue,
+          profit,
+          isFromProfitAnalysis: true,
+          cogsSource,
+          margins: {
+            gross: profitMetrics.grossMargin,
+            net: profitMetrics.netMargin
+          },
+          rawData: {
+            cogs: profitMetrics.cogs,
+            opex: profitMetrics.opex,
+            totalHPP: profitMetrics.totalHPP
+          }
+        });
       } else {
         // Fallback to simple estimation
         profit = revenue * 0.3;
         logger.warn('📊 Dashboard using estimated profit (30%)', { revenue, profit });
+        
+        // 🔍 DEBUG: Log fallback usage
+        debugProfitIntegration({
+          timestamp: new Date(),
+          period: currentPeriod,
+          revenue,
+          profit,
+          isFromProfitAnalysis: false,
+          cogsSource: 'estimated'
+        });
       }
 
       return {

@@ -55,8 +55,9 @@ export const checkUserExists = async (email: string): Promise<boolean> => {
   return true; // Assume user exists for backward compatibility
 };
 
+import { getCurrentSession } from '@/services/auth/core/session';
+
 export const checkEmailVerificationStatus = async () => {
-  const { getCurrentSession } = await import('@/services/auth/core/session');
   const session = await getCurrentSession();
   if (!session?.user) return { isVerified: false, needsVerification: false };
   
@@ -64,10 +65,10 @@ export const checkEmailVerificationStatus = async () => {
   return { isVerified, needsVerification: !isVerified && !!session.user.email };
 };
 
+import { supabase } from '@/integrations/supabase/client';
+import { validateEmail, getErrorMessage } from '@/services/auth/utils';
+
 export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
-  const { supabase } = await import('@/integrations/supabase/client');
-  const { validateEmail, getErrorMessage } = await import('@/services/auth/utils');
-  const { logger } = await import('@/utils/logger');
   
   try {
     if (!validateEmail(email)) {

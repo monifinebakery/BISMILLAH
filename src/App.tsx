@@ -7,7 +7,6 @@ import { AppProviders } from "@/contexts/AppProviders";
 import { AppRouter } from "@/config/routes";
 import { queryClient } from "@/config/queryClient";
 import { AppLoader } from "@/components/loaders";
-import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
 const App = () => {
   // ✅ SIMPLIFIED: Remove auth redirect logic (now handled in AuthContext)

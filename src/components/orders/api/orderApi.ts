@@ -136,13 +136,55 @@ export const orderApi = {
   },
 
   /**
+   * Check if order can be completed (stock validation)
+   */
+  async canCompleteOrder(orderId: string): Promise<{
+    canComplete: boolean;
+    totalIngredients: number;
+    availableIngredients: number;
+    insufficientStock: any[];
+  }> {
+    try {
+      logger.debug('OrderAPI: Checking if order can be completed:', orderId);
+      
+      const { data, error } = await supabase.rpc('can_complete_order', {
+        order_id: orderId
+      });
+      
+      if (error) {
+        logger.error('OrderAPI: Error checking order completion:', error);
+        throw new Error(`Failed to check order completion: ${error.message}`);
+      }
+      
+      logger.debug('OrderAPI: Order completion check result:', data);
+      return {
+        canComplete: data?.can_complete || false,
+        totalIngredients: data?.total_ingredients || 0,
+        availableIngredients: data?.available_ingredients || 0,
+        insufficientStock: data?.insufficient_stock || []
+      };
+    } catch (error) {
+      logger.error('OrderAPI: canCompleteOrder failed:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Complete order dan deduct stock menggunakan stored procedure
    */
-  async completeOrder(orderId: string): Promise<{ success: boolean }> {
+  async completeOrder(orderId: string): Promise<{
+    success: boolean;
+    message?: string;
+    orderNumber?: string;
+    totalAmount?: number;
+    stockItemsUpdated?: number;
+    error?: string;
+    details?: string[];
+  }> {
     try {
       logger.debug('OrderAPI: Completing order:', orderId);
       
-      const { error } = await supabase.rpc('complete_order_and_deduct_stock', { 
+      const { data, error } = await supabase.rpc('complete_order_and_deduct_stock', { 
         order_id: orderId 
       });
       
@@ -150,11 +192,69 @@ export const orderApi = {
         logger.error('OrderAPI: Error completing order:', error);
         throw new Error(`Failed to complete order: ${error.message}`);
       }
+      
+      // Parse the JSON response from stored procedure
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      
+      logger.debug('OrderAPI: Order completion result:', result);
+      
+      if (!result.success) {
+        logger.warn('OrderAPI: Order completion failed:', result.error);
+        return {
+          success: false,
+          error: result.error,
+          details: result.details || []
+        };
+      }
 
       logger.debug('OrderAPI: Successfully completed order:', orderId);
-      return { success: true };
+      return {
+        success: true,
+        message: result.message,
+        orderNumber: result.order_number,
+        totalAmount: result.total_amount,
+        stockItemsUpdated: result.stock_items_updated
+      };
     } catch (error) {
       logger.error('OrderAPI: completeOrder failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Reverse order completion (restore stock)
+   */
+  async reverseOrderCompletion(orderId: string): Promise<{
+    success: boolean;
+    message?: string;
+    stockItemsRestored?: number;
+    error?: string;
+  }> {
+    try {
+      logger.debug('OrderAPI: Reversing order completion:', orderId);
+      
+      const { data, error } = await supabase.rpc('reverse_order_completion', {
+        order_id: orderId
+      });
+      
+      if (error) {
+        logger.error('OrderAPI: Error reversing order completion:', error);
+        throw new Error(`Failed to reverse order completion: ${error.message}`);
+      }
+      
+      // Parse the JSON response from stored procedure
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      
+      logger.debug('OrderAPI: Order reversal result:', result);
+      
+      return {
+        success: result.success,
+        message: result.message,
+        stockItemsRestored: result.stock_items_restored,
+        error: result.error
+      };
+    } catch (error) {
+      logger.error('OrderAPI: reverseOrderCompletion failed:', error);
       throw error;
     }
   },

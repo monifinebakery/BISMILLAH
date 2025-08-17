@@ -1,47 +1,45 @@
 // src/components/warehouse/dialogs/BulkOperationsDialog.tsx
+// ✅ FIXED: Complete compatibility with BahanBakuFrontend and useWarehouseCore
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
-import type { BahanBakuFrontend } from '../types'; // ✅ Updated import
+import { formatCurrency } from '@/utils/formatUtils'; // ✅ Fallback import
+import type { BahanBakuFrontend } from '../types';
 
 interface BulkOperationsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   operation: 'edit' | 'delete';
   selectedItems: string[];
-  selectedItemsData: BahanBakuFrontend[]; // ✅ Updated type
+  selectedItemsData: BahanBakuFrontend[];
   onConfirm: (data?: any) => Promise<void>;
   isProcessing: boolean;
   availableCategories: string[];
   availableSuppliers: string[];
 }
 
-// ✅ Updated BulkEditData to match BahanBakuFrontend field names
+// ✅ FIXED: BulkEditData interface matching BahanBakuFrontend exactly
 interface BulkEditData {
   kategori?: string;
   supplier?: string;
   minimum?: number;
-  harga?: number; // ✅ Changed from harga_satuan to harga
-  expiry?: string; // ✅ Changed from tanggal_kadaluwarsa to expiry
+  harga?: number; // ✅ Matches BahanBakuFrontend.harga
+  expiry?: string; // ✅ Matches BahanBakuFrontend.expiry
 }
 
 /**
- * Combined Bulk Operations Dialog Component
+ * ✅ FIXED: Bulk Operations Dialog Component
  * 
- * ✅ Updated to use BahanBakuFrontend interface
- * ✅ Fixed field naming consistency (camelCase)
- * ✅ Enhanced with updated warehouseUtils functions
+ * FIXES:
+ * - Updated BulkEditData to match BahanBakuFrontend field names exactly
+ * - Added fallback for warehouseUtils functions
+ * - Enhanced error handling for missing utility functions
+ * - Fixed calculation methods to work with BahanBakuFrontend structure
+ * - Added proper validation and type safety
  * 
- * Handles both bulk edit and bulk delete operations:
- * - Bulk Edit: Update multiple items with same values
- * - Bulk Delete: Delete multiple items with confirmation
- * - Progress indication
- * - Validation and error handling
- * - Compatible with updated type system
- * 
- * Size: ~6KB (loaded lazily)
+ * Compatible with useWarehouseCore and BahanBakuFrontend
  */
 const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   isOpen,
@@ -113,6 +111,57 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
     sup.toLowerCase().includes((bulkEditData.supplier || '').toLowerCase())
   );
 
+  // ✅ FIXED: Utility functions with fallbacks
+  const getStockLevel = (stok: number, minimum: number) => {
+    if (warehouseUtils?.formatStockLevel) {
+      return warehouseUtils.formatStockLevel(stok, minimum);
+    }
+    // Fallback implementation
+    if (stok === 0) return { level: 'out', color: 'bg-red-500' };
+    if (stok <= minimum) return { level: 'low', color: 'bg-yellow-500' };
+    if (stok <= minimum * 2) return { level: 'medium', color: 'bg-blue-500' };
+    return { level: 'good', color: 'bg-green-500' };
+  };
+
+  const formatCurrencyValue = (value: number) => {
+    if (warehouseUtils?.formatCurrency) {
+      return warehouseUtils.formatCurrency(value);
+    }
+    if (typeof formatCurrency === 'function') {
+      return formatCurrency(value);
+    }
+    // Fallback implementation
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const getLowStockCount = (items: BahanBakuFrontend[]) => {
+    if (warehouseUtils?.getLowStockItems) {
+      return warehouseUtils.getLowStockItems(items).length;
+    }
+    // Fallback implementation
+    return items.filter(item => Number(item.stok) <= Number(item.minimum)).length;
+  };
+
+  const getExpiringCount = (items: BahanBakuFrontend[], days: number = 30) => {
+    if (warehouseUtils?.getExpiringItems) {
+      return warehouseUtils.getExpiringItems(items, days).length;
+    }
+    // Fallback implementation
+    const threshold = new Date();
+    threshold.setDate(threshold.getDate() + days);
+    
+    return items.filter(item => {
+      if (!item.expiry) return false;
+      const expiryDate = new Date(item.expiry);
+      return expiryDate <= threshold && expiryDate > new Date();
+    }).length;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -163,16 +212,11 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {selectedItemsData.slice(0, 10).map((item) => {
-                  // ✅ Fixed: Use formatStockLevel instead of getStockLevel
-                  const stockLevel = warehouseUtils.formatStockLevel(item.stok, item.minimum);
+                  const stockLevel = getStockLevel(Number(item.stok), Number(item.minimum));
                   
                   return (
                     <div key={item.id} className="flex items-center gap-2 text-sm">
-                      <div className={`w-2 h-2 rounded-full ${
-                        stockLevel.level === 'out' ? 'bg-red-500' :
-                        stockLevel.level === 'low' ? 'bg-yellow-500' :
-                        stockLevel.level === 'medium' ? 'bg-blue-500' : 'bg-green-500'
-                      }`} />
+                      <div className={`w-2 h-2 rounded-full ${stockLevel.color}`} />
                       <span className="truncate">{item.nama}</span>
                       <span className="text-gray-500 text-xs">
                         ({item.stok} {item.satuan})
@@ -296,7 +340,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   />
                 </div>
 
-                {/* Price - ✅ Updated field name */}
+                {/* ✅ FIXED: Price field using 'harga' */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Harga per Satuan
@@ -317,7 +361,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   </div>
                 </div>
 
-                {/* Expiry Date - ✅ Updated field name */}
+                {/* ✅ FIXED: Expiry field using 'expiry' */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tanggal Kadaluarsa
@@ -357,7 +401,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                 </div>
               </div>
 
-              {/* ✅ Enhanced Items Summary with updated calculations */}
+              {/* ✅ FIXED: Items Summary with BahanBakuFrontend calculations */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-3">Ringkasan Item yang Akan Dihapus:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -368,22 +412,25 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   <div>
                     <span className="text-gray-600">Total Nilai Stok:</span>
                     <span className="font-medium ml-2">
-                      {warehouseUtils.formatCurrency(
-                        selectedItemsData.reduce((sum, item) => sum + (item.stok * item.harga), 0)
+                      {formatCurrencyValue(
+                        selectedItemsData.reduce((sum, item) => {
+                          const stok = Number(item.stok) || 0;
+                          const harga = Number(item.harga) || 0;
+                          return sum + (stok * harga);
+                        }, 0)
                       )}
                     </span>
                   </div>
-                  {/* ✅ Fixed: Use correct utility functions */}
                   <div>
                     <span className="text-gray-600">Item Stok Rendah:</span>
                     <span className="font-medium ml-2 text-yellow-600">
-                      {warehouseUtils.getLowStockItems(selectedItemsData).length}
+                      {getLowStockCount(selectedItemsData)}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-600">Item Akan Kadaluarsa:</span>
                     <span className="font-medium ml-2 text-red-600">
-                      {warehouseUtils.getExpiringItems(selectedItemsData, 30).length}
+                      {getExpiringCount(selectedItemsData, 30)}
                     </span>
                   </div>
                 </div>

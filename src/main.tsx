@@ -1,5 +1,3 @@
-// src/main.tsx - Single React Query provider lives in App.tsx
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
@@ -8,34 +6,37 @@ import './index.css';
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from '@/utils/logger';
 
-// Performance tracking
+// App start timer
 const appStartTime = performance.now();
 
-// Scheduler polyfill (if needed)
+// Scheduler polyfill (fallback)
 if (typeof globalThis !== 'undefined' && !(globalThis as any).scheduler) {
-  logger.info('Adding scheduler polyfill');
+  if (__CONSOLE_ENABLED__ && __DEV__) {
+    console.info('Adding scheduler polyfill');
+  }
   (globalThis as any).scheduler = {
     unstable_scheduleCallback: (_priority: any, callback: any) => setTimeout(callback, 0),
     unstable_cancelCallback: (node: any) => node?.id && clearTimeout(node.id),
     unstable_shouldYield: () => false,
     unstable_requestPaint: () => {},
-    unstable_now: () => (performance as any).now?.() || Date.now()
+    unstable_now: () => (performance as any).now?.() || Date.now(),
   } as any;
 }
 
-// Ensure root element exists
+// Root element check
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   logger.criticalError("Root element with id 'root' not found");
   throw new Error("Root element with id 'root' not found");
 }
 
+// App init logs
 logger.info('Initializing React application', {
   environment: import.meta.env.MODE,
   isDev: import.meta.env.DEV,
 });
 
-// Enhanced error boundary with logging
+// Error boundary wrapper
 const EnhancedErrorBoundary = ({ children }: { children: React.ReactNode }) => (
   <ErrorBoundary
     onError={(error, errorInfo) => {
@@ -50,7 +51,7 @@ const EnhancedErrorBoundary = ({ children }: { children: React.ReactNode }) => (
   </ErrorBoundary>
 );
 
-// Create and render app
+// React render
 const root = createRoot(rootElement);
 logger.debug('Starting React render process');
 
@@ -64,14 +65,14 @@ root.render(
   </React.StrictMode>
 );
 
-// App initialization complete
+// Init timing
 const appInitTime = performance.now() - appStartTime;
 logger.perf('App Initialization', appInitTime, {
   environment: import.meta.env.MODE,
   hasDevtools: import.meta.env.DEV,
 });
 
-// Enhanced global debug functions
+// Dev-only debug tools
 if (import.meta.env.DEV) {
   (window as any).appDebug = {
     logger,
@@ -97,7 +98,7 @@ if (import.meta.env.DEV) {
   });
 }
 
-// Performance monitoring in development
+// Perf monitoring (only in dev)
 if (import.meta.env.DEV && 'performance' in window) {
   window.addEventListener('load', () => {
     setTimeout(() => {
@@ -113,7 +114,7 @@ if (import.meta.env.DEV && 'performance' in window) {
   });
 }
 
-// Unhandled error logging
+// Global error handling
 window.addEventListener('error', (event) => {
   logger.criticalError('Unhandled JavaScript error', {
     message: (event as any).message,
@@ -131,9 +132,8 @@ window.addEventListener('unhandledrejection', (event) => {
   });
 });
 
+// Final success log
 logger.success('React application initialized successfully', {
   initTime: appInitTime,
   timestamp: new Date().toISOString(),
 });
-
-

@@ -21,14 +21,14 @@ const OperationalCostContent: React.FC = () => {
   // Auto-refresh data when component mounts
   useEffect(() => {
     if (state.isAuthenticated) {
-      actions.fetchCosts();
+      actions.loadCosts();
     }
   }, [state.isAuthenticated]);
 
   // Auto-refresh after CRUD operations
   useEffect(() => {
     if (state.isAuthenticated && !state.loading.costs) {
-      actions.fetchCosts();
+      actions.loadCosts();
     }
   }, [state.costs.length]); // Refresh when costs count changes
 

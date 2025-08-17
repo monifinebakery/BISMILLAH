@@ -449,11 +449,16 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                         purchase={purchase}
                         isEditing={editingStatusId === purchase.id}
                         onStartEdit={() => setEditingStatusId(purchase.id)}
+                        onStatusChange={handleStatusChange}
                       />
                     </TableCell>
 
                     <TableCell>
-                      <ActionButtons purchase={purchase} />
+                      <ActionButtons 
+                        purchase={purchase} 
+                        onEdit={actionHandlers.edit}
+                        onDelete={actionHandlers.delete}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

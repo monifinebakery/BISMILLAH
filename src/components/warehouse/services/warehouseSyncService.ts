@@ -1,0 +1,438 @@
+// src/components/warehouse/services/warehouseSyncService.ts
+// Manual warehouse synchronization and WAC recalculation service
+
+import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger';
+import type { BahanBakuFrontend } from '../types';
+
+export interface SyncResult {
+  itemId: string;
+  itemName: string;
+  oldWac?: number;
+  newWac?: number;
+  oldStock?: number;
+  newStock?: number;
+  status: 'success' | 'error' | 'skipped';
+  message: string;
+}
+
+export interface SyncSummary {
+  totalItems: number;
+  successful: number;
+  failed: number;
+  skipped: number;
+  results: SyncResult[];
+  duration: number;
+}
+
+export interface WarehouseConsistencyCheck {
+  itemId: string;
+  itemName: string;
+  issues: string[];
+  severity: 'low' | 'medium' | 'high';
+  suggestions: string[];
+}
+
+export class WarehouseSyncService {
+  private userId: string;
+
+  constructor(userId: string) {
+    this.userId = userId;
+  }
+
+  /**
+   * Manually recalculate WAC for all warehouse items
+   * This uses the database function we created in the trigger file
+   */
+  async recalculateAllWAC(): Promise<SyncSummary> {
+    const startTime = Date.now();
+    const results: SyncResult[] = [];
+
+    try {
+      logger.info('Starting WAC recalculation for user:', this.userId);
+
+      // Call the database function to recalculate WAC
+      const { data: dbResults, error } = await supabase
+        .rpc('sync_all_warehouse_wac', { p_user_id: this.userId });
+
+      if (error) {
+        throw error;
+      }
+
+      // Process results from database function
+      if (dbResults && Array.isArray(dbResults)) {
+        dbResults.forEach((row: any) => {
+          results.push({
+            itemId: row.bahan_id,
+            itemName: row.message?.includes('to') ? 
+              row.message.split(' ')[0] : 'Unknown',
+            oldWac: row.old_wac,
+            newWac: row.new_wac,
+            status: 'success',
+            message: row.message
+          });
+        });
+      }
+
+      const duration = Date.now() - startTime;
+      const summary: SyncSummary = {
+        totalItems: results.length,
+        successful: results.filter(r => r.status === 'success').length,
+        failed: results.filter(r => r.status === 'error').length,
+        skipped: results.filter(r => r.status === 'skipped').length,
+        results,
+        duration
+      };
+
+      logger.info('WAC recalculation completed', summary);
+      return summary;
+
+    } catch (error) {
+      logger.error('Error during WAC recalculation:', error);
+      
+      const duration = Date.now() - startTime;
+      return {
+        totalItems: 0,
+        successful: 0,
+        failed: 1,
+        skipped: 0,
+        results: [{
+          itemId: 'error',
+          itemName: 'System Error',
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Unknown error occurred'
+        }],
+        duration
+      };
+    }
+  }
+
+  /**
+   * Check warehouse data consistency and identify potential issues
+   */
+  async checkWarehouseConsistency(): Promise<WarehouseConsistencyCheck[]> {
+    const issues: WarehouseConsistencyCheck[] = [];
+
+    try {
+      // Get all warehouse items
+      const { data: warehouseItems, error: warehouseError } = await supabase
+        .from('bahan_baku')
+        .select('*')
+        .eq('user_id', this.userId);
+
+      if (warehouseError) throw warehouseError;
+
+      // Get all completed purchases
+      const { data: purchases, error: purchaseError } = await supabase
+        .from('purchases')
+        .select('id, items, total_nilai, status, applied_at')
+        .eq('user_id', this.userId)
+        .eq('status', 'completed');
+
+      if (purchaseError) throw purchaseError;
+
+      // Check each warehouse item for consistency issues
+      for (const item of warehouseItems || []) {
+        const itemIssues: string[] = [];
+        const suggestions: string[] = [];
+        let severity: 'low' | 'medium' | 'high' = 'low';
+
+        // Check for negative stock
+        if (item.stok < 0) {
+          itemIssues.push('Stok negatif');
+          suggestions.push('Periksa transaksi yang menyebabkan stok negatif');
+          severity = 'high';
+        }
+
+        // Check for missing WAC when there should be purchase history
+        const itemPurchases = purchases?.filter(p => 
+          p.items && Array.isArray(p.items) && 
+          p.items.some((i: any) => i.bahan_baku_id === item.id)
+        ) || [];
+
+        if (itemPurchases.length > 0 && !item.harga_rata_rata) {
+          itemIssues.push('Tidak memiliki harga rata-rata meski ada riwayat pembelian');
+          suggestions.push('Jalankan recalculate WAC untuk item ini');
+          severity = 'medium';
+        }
+
+        // Check for significant difference between WAC and unit price
+        if (item.harga_rata_rata && item.harga_satuan) {
+          const priceDiff = Math.abs(item.harga_rata_rata - item.harga_satuan);
+          const percentDiff = priceDiff / item.harga_satuan;
+          
+          if (percentDiff > 1.0) { // > 100% difference
+            itemIssues.push(`Harga rata-rata sangat berbeda dari harga satuan (${percentDiff * 100:.1f}%)`);
+            suggestions.push('Periksa data pembelian atau update harga satuan');
+            severity = 'medium';
+          }
+        }
+
+        // Check for items with stock but no minimum stock setting
+        if (item.stok > 0 && item.minimum === 0) {
+          itemIssues.push('Tidak memiliki minimum stock');
+          suggestions.push('Set minimum stock untuk kontrol inventory');
+          severity = 'low';
+        }
+
+        // Check for expired items
+        if (item.tanggal_kadaluwarsa) {
+          const expiryDate = new Date(item.tanggal_kadaluwarsa);
+          const now = new Date();
+          
+          if (expiryDate < now && item.stok > 0) {
+            itemIssues.push('Item sudah kadaluarsa tapi masih ada stock');
+            suggestions.push('Periksa dan buang stock yang kadaluarsa');
+            severity = 'high';
+          }
+        }
+
+        // Check for orphaned items (no purchase history but have stock)
+        if (item.stok > 0 && itemPurchases.length === 0) {
+          itemIssues.push('Memiliki stok tapi tidak ada riwayat pembelian');
+          suggestions.push('Periksa data manual atau buat adjustment entry');
+          severity = 'low';
+        }
+
+        if (itemIssues.length > 0) {
+          issues.push({
+            itemId: item.id,
+            itemName: item.nama,
+            issues: itemIssues,
+            severity,
+            suggestions
+          });
+        }
+      }
+
+      logger.info(`Warehouse consistency check completed. Found ${issues.length} items with issues.`);
+
+    } catch (error) {
+      logger.error('Error during consistency check:', error);
+      issues.push({
+        itemId: 'system-error',
+        itemName: 'System Error',
+        issues: ['Gagal melakukan consistency check'],
+        severity: 'high',
+        suggestions: ['Periksa koneksi database dan coba lagi']
+      });
+    }
+
+    return issues;
+  }
+
+  /**
+   * Fix specific warehouse item by recalculating its WAC
+   */
+  async fixWarehouseItem(itemId: string): Promise<SyncResult> {
+    try {
+      logger.info('Fixing warehouse item:', itemId);
+
+      // Get current item data
+      const { data: currentItem, error: itemError } = await supabase
+        .from('bahan_baku')
+        .select('*')
+        .eq('id', itemId)
+        .eq('user_id', this.userId)
+        .single();
+
+      if (itemError || !currentItem) {
+        return {
+          itemId,
+          itemName: 'Unknown',
+          status: 'error',
+          message: 'Item tidak ditemukan'
+        };
+      }
+
+      const oldWac = currentItem.harga_rata_rata;
+
+      // Calculate new WAC from purchase history
+      const { data: purchases, error: purchaseError } = await supabase
+        .from('purchases')
+        .select('items')
+        .eq('user_id', this.userId)
+        .eq('status', 'completed');
+
+      if (purchaseError) {
+        throw purchaseError;
+      }
+
+      let totalQuantity = 0;
+      let totalValue = 0;
+
+      // Process all purchases to find this item
+      purchases?.forEach(purchase => {
+        if (purchase.items && Array.isArray(purchase.items)) {
+          purchase.items.forEach((item: any) => {
+            if (item.bahan_baku_id === itemId) {
+              const qty = Number(item.jumlah || 0);
+              const price = Number(item.harga_per_satuan || 0);
+              totalQuantity += qty;
+              totalValue += qty * price;
+            }
+          });
+        }
+      });
+
+      const newWac = totalQuantity > 0 ? totalValue / totalQuantity : currentItem.harga_satuan;
+
+      // Update the item with new WAC
+      const { error: updateError } = await supabase
+        .from('bahan_baku')
+        .update({ 
+          harga_rata_rata: newWac,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', itemId)
+        .eq('user_id', this.userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      return {
+        itemId,
+        itemName: currentItem.nama,
+        oldWac,
+        newWac,
+        status: 'success',
+        message: `WAC updated from ${oldWac || 0} to ${newWac}`
+      };
+
+    } catch (error) {
+      logger.error('Error fixing warehouse item:', error);
+      return {
+        itemId,
+        itemName: 'Unknown',
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Validate warehouse data integrity
+   */
+  async validateWarehouseIntegrity(): Promise<{
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    recommendations: string[];
+  }> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const recommendations: string[] = [];
+
+    try {
+      // Check for basic data integrity issues
+      const { data: warehouseData, error } = await supabase
+        .from('bahan_baku')
+        .select('*')
+        .eq('user_id', this.userId);
+
+      if (error) {
+        errors.push(`Database error: ${error.message}`);
+        return { isValid: false, errors, warnings, recommendations };
+      }
+
+      if (!warehouseData || warehouseData.length === 0) {
+        warnings.push('Tidak ada data warehouse');
+        recommendations.push('Tambahkan bahan baku atau import data');
+        return { isValid: true, errors, warnings, recommendations };
+      }
+
+      // Check for duplicate names
+      const nameCount = new Map<string, number>();
+      warehouseData.forEach(item => {
+        const name = item.nama.toLowerCase().trim();
+        nameCount.set(name, (nameCount.get(name) || 0) + 1);
+      });
+
+      const duplicates = Array.from(nameCount.entries())
+        .filter(([name, count]) => count > 1)
+        .map(([name]) => name);
+
+      if (duplicates.length > 0) {
+        warnings.push(`Terdapat ${duplicates.length} nama bahan yang duplikat`);
+        recommendations.push('Gabungkan atau rename bahan yang duplikat');
+      }
+
+      // Check for items with unusual values
+      warehouseData.forEach(item => {
+        if (item.stok < 0) {
+          errors.push(`${item.nama}: Stok negatif (${item.stok})`);
+        }
+        
+        if (item.harga_satuan <= 0) {
+          warnings.push(`${item.nama}: Harga satuan tidak valid`);
+        }
+
+        if (item.harga_rata_rata && item.harga_rata_rata <= 0) {
+          warnings.push(`${item.nama}: WAC tidak valid`);
+        }
+      });
+
+      if (errors.length === 0) {
+        recommendations.push('Data warehouse dalam kondisi baik');
+      } else {
+        recommendations.push('Perbaiki error yang ditemukan sebelum melanjutkan');
+      }
+
+    } catch (error) {
+      errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+      recommendations
+    };
+  }
+
+  /**
+   * Generate detailed warehouse sync report
+   */
+  async generateSyncReport(): Promise<{
+    summary: SyncSummary;
+    consistencyIssues: WarehouseConsistencyCheck[];
+    integrityReport: Awaited<ReturnType<typeof this.validateWarehouseIntegrity>>;
+    timestamp: string;
+  }> {
+    const startTime = Date.now();
+
+    logger.info('Generating comprehensive warehouse sync report');
+
+    const [summary, consistencyIssues, integrityReport] = await Promise.all([
+      this.recalculateAllWAC(),
+      this.checkWarehouseConsistency(),
+      this.validateWarehouseIntegrity()
+    ]);
+
+    const report = {
+      summary,
+      consistencyIssues,
+      integrityReport,
+      timestamp: new Date().toISOString()
+    };
+
+    const totalTime = Date.now() - startTime;
+    logger.info(`Warehouse sync report generated in ${totalTime}ms`, {
+      wacUpdates: summary.successful,
+      consistencyIssues: consistencyIssues.length,
+      integrityErrors: integrityReport.errors.length
+    });
+
+    return report;
+  }
+}
+
+/**
+ * Factory function to create WarehouseSyncService instance
+ */
+export const createWarehouseSyncService = (userId: string): WarehouseSyncService => {
+  return new WarehouseSyncService(userId);
+};
+
+export default WarehouseSyncService;

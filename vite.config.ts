@@ -1,107 +1,134 @@
-// vite.config.ts
+// vite.config.ts — safe dev logs, prod-only strip, fixed
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import fs from "fs";
-import { componentTagger } from "lovable-tagger";
-import removeConsole from "vite-plugin-remove-console"; // ⬅️ tambahkan
-import { visualizer } from 'rollup-plugin-visualizer';
+import removeConsole from "vite-plugin-remove-console";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  const isDev = mode === "development";
+  // ✅ load hanya VITE_* (client-safe)
+  const env = loadEnv(mode, process.cwd());
   const isProd = mode === "production";
-  const shouldKeepLogs = env.VITE_FORCE_LOGS === "true";
-  const shouldDropConsole = isProd && !shouldKeepLogs;
-
-  const plugins = [
-    react({ fastRefresh: isDev }),
-    ...(isProd
-      ? [removeConsole({
-          // kamu bisa pilih: hapus ini saja (log, debug, info),
-          // atau sekalian warn juga. Error dibiarkan.
-          include: ["log", "debug", "info", "warn"],
-          // Hindari memodifikasi logger.ts agar tidak terjadi parsing error
-          exclude: [
-            'src/utils/logger.ts'
-          ],
-        })]
-      : []),
-    ...(env.VITE_ANALYZE === 'true' ? [
-      // Generate bundle analysis at dist/stats.html (no side effects in runtime)
-      visualizer({
-        filename: 'dist/stats.html',
-        template: 'treemap',
-        gzipSize: true,
-        brotliSize: true,
-        open: false,
-      })
-    ] : []),
-  ];
-  if (isDev) plugins.push(componentTagger());
+  const keepLogs = env.VITE_FORCE_LOGS === "true";
 
   return {
-    plugins,
+    plugins: [
+      react(),
+      // ✅ aktif HANYA saat build production & tidak force logs
+      ...(isProd && !keepLogs
+        ? [
+            removeConsole({
+              include: ["log", "debug", "info", "warn", "trace"],
+            }),
+          ]
+        : []),
+      ...(env.VITE_ANALYZE === "true"
+        ? [
+            visualizer({
+              filename: "dist/stats.html",
+              template: "treemap",
+              gzipSize: true,
+              brotliSize: true,
+              open: false,
+            }),
+          ]
+        : []),
+    ],
 
-    // Resolve aliases so @ maps to src
+    // 👇 konsisten dengan netlify.toml (targetPort=5173) & preview 5500
+    server: {
+      port: 5173,
+      strictPort: true,
+      // host: true, // uncomment kalau mau akses via LAN IP
+    },
+    preview: {
+      port: 5500,
+      strictPort: true,
+    },
+
+    define: {
+      __DEV__: JSON.stringify(!isProd),
+      __PROD__: JSON.stringify(isProd),
+      __CONSOLE_ENABLED__: JSON.stringify(!(isProd && !keepLogs)),
+    },
+
     resolve: {
       alias: {
-        '@': path.resolve(process.cwd(), 'src'),
+        "@": path.resolve(process.cwd(), "src"),
       },
     },
 
-    // ⬇️ seluruh konfigurasi chunking kamu biarkan apa adanya
     build: {
       target: "es2020",
       minify: isProd ? "esbuild" : false,
-      sourcemap: isDev,
+      sourcemap: !isProd,
       rollupOptions: {
         output: {
           manualChunks: (id) => {
             if (id.includes("@tanstack/react-query")) return "react-query";
             if (id.includes("@supabase")) return "supabase";
-            if (id.includes("chart.js") || id.includes("react-chartjs-2")) return "charts-chartjs";
+            if (id.includes("chart.js") || id.includes("react-chartjs-2"))
+              return "charts-chartjs";
             if (id.includes("recharts")) return "charts-recharts";
-            if (id.includes("lucide-react") || id.includes("react-icons") || id.includes("@radix-ui/react-icons")) return "icons";
+            if (
+              id.includes("lucide-react") ||
+              id.includes("react-icons") ||
+              id.includes("@radix-ui/react-icons")
+            )
+              return "icons";
             if (id.includes("date-fns")) return "date-utils";
-            if (id.includes("react-hook-form") || id.includes("@hookform")) return "forms";
+            if (id.includes("react-hook-form") || id.includes("@hookform"))
+              return "forms";
             if (id.includes("node_modules")) return "vendor";
             if (id.includes("src/contexts")) return "contexts";
             if (id.includes("src/components/ui/")) return "ui-components";
-            // Feature groups to avoid an oversized shared-components chunk
-            if (id.includes("src/components/financial/")) return "financial-components";
-            if (id.includes("src/components/promoCalculator/")) return "promo-components";
-            if (id.includes("src/components/profitAnalysis/")) return "profit-components";
-            if (id.includes("src/components/dashboard/")) return "dashboard-components";
-            if (id.includes("src/components/orders/")) return "orders-components";
-            if (id.includes("src/components/warehouse/")) return "warehouse-components";
-            if (id.includes("src/components/purchase/")) return "purchase-components";
-            if (id.includes("src/components/update/")) return "update-components";
-            if (id.includes("src/components/assets/")) return "assets-components";
-            if (id.includes("src/components/layout/")) return "layout-components";
-            if (id.includes("src/components/pages/")) return "pages-components";
-            if (id.includes("src/components/popups/")) return "popup-components";
-            if (id.includes("src/components/common/") || id.includes("src/components/shared/")) return "common-components";
+            if (id.includes("src/components/financial/"))
+              return "financial-components";
+            if (id.includes("src/components/promoCalculator/"))
+              return "promo-components";
+            if (id.includes("src/components/profitAnalysis/"))
+              return "profit-components";
+            if (id.includes("src/components/dashboard/"))
+              return "dashboard-components";
+            if (id.includes("src/components/orders/"))
+              return "orders-components";
+            if (id.includes("src/components/warehouse/"))
+              return "warehouse-components";
+            if (id.includes("src/components/purchase/"))
+              return "purchase-components";
+            if (id.includes("src/components/update/"))
+              return "update-components";
+            if (id.includes("src/components/assets/"))
+              return "assets-components";
+            if (id.includes("src/components/layout/"))
+              return "layout-components";
+            if (id.includes("src/components/pages/"))
+              return "pages-components";
+            if (id.includes("src/components/popups/"))
+              return "popup-components";
+            if (
+              id.includes("src/components/common/") ||
+              id.includes("src/components/shared/")
+            )
+              return "common-components";
             if (id.includes("src/components")) return "shared-components";
             if (id.includes("src/utils")) return "utils";
             return "main";
           },
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
-          assetFileNames: isProd ? "assets/[name]-[hash].[ext]" : "assets/[name].[ext]",
+          assetFileNames: isProd
+            ? "assets/[name]-[hash].[ext]"
+            : "assets/[name].[ext]",
         },
         onwarn(warning, warn) {
-          // … (biarkan logika onwarn kamu yang lama)
           warn(warning);
         },
       },
     },
 
-    // Tetap boleh: drop debugger agar bersih
-    esbuild: {
-      drop: isProd ? ["debugger"] : [],
-    },
-
-    // … sisanya (alias, optimizeDeps, server, dsb) tetap sesuai punyamu
+    // ❌ jangan drop console di esbuild global (biar dev aman 100%)
+    // Kalau mau, aktifkan HANYA untuk production:
+    // esbuild: { drop: isProd && !keepLogs ? ["debugger", "console"] : [] },
   };
 });

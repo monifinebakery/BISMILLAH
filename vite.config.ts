@@ -18,13 +18,8 @@ export default defineConfig(({ mode }) => {
     react({ fastRefresh: isDev }),
     ...(isProd
       ? [removeConsole({
-          // kamu bisa pilih: hapus ini saja (log, debug, info),
-          // atau sekalian warn juga. Error dibiarkan.
-          include: ["log", "debug", "info", "warn"],
-          // Hindari memodifikasi logger.ts agar tidak terjadi parsing error
-          exclude: [
-            'src/utils/logger.ts'
-          ],
+          // Hapus console.* umum saat production
+          include: ["log", "debug", "info", "warn", "trace"],
         })]
       : []),
     ...(env.VITE_ANALYZE === 'true' ? [
@@ -97,9 +92,9 @@ export default defineConfig(({ mode }) => {
       },
     },
 
-    // Tetap boleh: drop debugger agar bersih
+    // Drop debugger dan console agar tidak ada log di production
     esbuild: {
-      drop: isProd ? ["debugger"] : [],
+      drop: isProd ? ["debugger", "console"] : [],
     },
 
     // … sisanya (alias, optimizeDeps, server, dsb) tetap sesuai punyamu

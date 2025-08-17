@@ -46,7 +46,7 @@ import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
-import SimplePurchaseItemForm from './SimplePurchaseItemForm';
+import SimplePurchaseItemForm, { PurchaseItemPayload } from './SimplePurchaseItemForm'; // ✅ NEW: Import the payload type
 
 // ✅ OPTIMIZED: Move outside component to prevent recreation
 const toNumber = (v: string | number | '' | undefined | null): number => {
@@ -67,7 +67,6 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
 };
 
 // ✅ OPTIMIZED: Move outside component to prevent recreation  
-
 const SafeNumericInput = React.forwardRef<
   HTMLInputElement, 
   React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
@@ -90,14 +89,19 @@ const SafeNumericInput = React.forwardRef<
   );
 });
 
-const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
+// ✅ ENHANCED: Updated props interface
+interface EnhancedPurchaseDialogProps extends PurchaseDialogProps {
+  initialAddMode?: 'quick' | 'packaging'; // NEW: Added prop for auto-opening with specific mode
+}
+
+const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
   isOpen,
   mode,
   purchase,
   suppliers,
   bahanBaku,
   onClose,
-  initialAddMode, // <— NEW: Added prop for auto-opening with specific mode
+  initialAddMode, // ✅ NEW: Added prop for auto-opening with specific mode
 }) => {
   // ✅ ULTRA LIGHTWEIGHT: Zero validation during typing
   const {
@@ -182,6 +186,29 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
     await handleSubmit();
   }, [formData.items.length, handleSubmit]);
+
+  // ✅ ENHANCED: Handle payload from SimplePurchaseItemForm
+  const handleAddItemFromForm = useCallback((payload: PurchaseItemPayload) => {
+    // Convert payload to PurchaseItem format expected by the form
+    const purchaseItem: PurchaseItem = {
+      bahanBakuId: payload.bahanBakuId,
+      nama: payload.nama,
+      satuan: payload.satuan,
+      kuantitas: payload.kuantitas,
+      hargaSatuan: payload.hargaSatuan,
+      subtotal: payload.kuantitas * payload.hargaSatuan,
+      keterangan: payload.keterangan,
+      // ✅ NEW: Include packaging info if available
+      ...(payload.jumlahKemasan && { jumlahKemasan: payload.jumlahKemasan }),
+      ...(payload.isiPerKemasan && { isiPerKemasan: payload.isiPerKemasan }),
+      ...(payload.satuanKemasan && { satuanKemasan: payload.satuanKemasan }),
+      ...(payload.hargaTotalBeliKemasan && { hargaTotalBeliKemasan: payload.hargaTotalBeliKemasan }),
+    };
+
+    addItem(purchaseItem);
+    setShowAddItem(false);
+    toast.success(`${payload.nama} berhasil ditambahkan`);
+  }, [addItem, setShowAddItem]);
 
   // ✅ Check if purchase can be edited (not completed)
   const canEdit = !purchase || purchase.status !== 'completed';
@@ -397,19 +424,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* ✅ Smart Add New Item Form with initialMode support */}
+              {/* ✅ ENHANCED: Smart Add New Item Form with clean payload handling */}
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
                   bahanBaku={bahanBaku}
-                  initialMode={initialAddMode === 'packaging' ? 'packaging' : 'quick'} // <— NEW: Pass initial mode
+                  initialMode={initialAddMode === 'packaging' ? 'packaging' : 'quick'} // ✅ NEW: Pass initial mode
                   onCancel={() => setShowAddItem(false)}
-                  onAdd={(cleanData) => {
-                    // Ensure subtotal is calculated for UI consistency
-                    const subtotal = Number(cleanData.kuantitas) * Number(cleanData.hargaSatuan);
-                    addItem({ ...cleanData, subtotal }); // <— FIX: Use addItem from form hook
-                    setShowAddItem(false);
-                    toast.success(`${cleanData.nama} berhasil ditambahkan`);
-                  }}
+                  onAdd={handleAddItemFromForm} // ✅ CLEAN: Use the new handler
                 />
               )}
 
@@ -444,11 +465,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                               <div>
                                 <div className="font-medium">{item.nama}</div>
                                 <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
-                                {/* ✅ IMPROVED: Display packaging info with fallback unit */}
-                                {(item as any).jumlahKemasan > 0 && (item as any).isiPerKemasan > 0 && (
+                                {/* ✅ IMPROVED: Display packaging info with proper typing */}
+                                {item.jumlahKemasan && item.jumlahKemasan > 0 && item.isiPerKemasan && item.isiPerKemasan > 0 && (
                                   <div className="text-xs text-gray-500 mt-1">
-                                    Kemasan: {(item as any).jumlahKemasan} × {(item as any).isiPerKemasan} {item.satuan || 'unit'}
-                                    {(item as any).satuanKemasan ? ` (${(item as any).satuanKemasan})` : ''}
+                                    Kemasan: {item.jumlahKemasan} × {item.isiPerKemasan} {item.satuan || 'unit'}
+                                    {item.satuanKemasan ? ` (${item.satuanKemasan})` : ''}
                                   </div>
                                 )}
                               </div>
@@ -583,7 +604,6 @@ const EditItemForm: React.FC<{
   onCancel: () => void;
 }> = ({ item, onSave, onCancel }) => {
   // ✅ PURE STATE: No validation during typing
-
   const [editedItem, setEditedItem] = useState({
     kuantitas: String(item.kuantitas ?? ''),
     hargaSatuan: String(item.hargaSatuan ?? ''),
@@ -605,10 +625,18 @@ const EditItemForm: React.FC<{
 
   const handleSave = () => {
     // Convert strings to numbers when saving
-    onSave({
+    const updates = {
       kuantitas: toNumber(editedItem.kuantitas),
       hargaSatuan: toNumber(editedItem.hargaSatuan),
       keterangan: editedItem.keterangan,
+    };
+    
+    // Calculate new subtotal
+    const subtotal = updates.kuantitas * updates.hargaSatuan;
+    
+    onSave({
+      ...updates,
+      subtotal,
     });
   };
 
@@ -641,7 +669,6 @@ const EditItemForm: React.FC<{
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Quantity - ZERO OVERHEAD */}
-
         <div className="space-y-2">
           <Label>Kuantitas *</Label>
           <div className="flex gap-2">

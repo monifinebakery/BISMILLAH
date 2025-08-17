@@ -138,6 +138,59 @@ export function calcHPP(
 }
 
 /**
+ * ✅ NEW: Calculate total inventory value (modal bahan baku tersimpan)
+ * Menghitung modal bahan baku berdasarkan stok yang tersedia di warehouse
+ */
+export function calculateInventoryValue(
+  materials: BahanBakuActual[]
+): {
+  totalValue: number;
+  breakdown: Array<{ id: string; nama: string; stok: number; price: number; value: number }>;
+  summary: {
+    totalItems: number;
+    itemsWithStock: number;
+    averagePrice: number;
+  };
+} {
+  let totalValue = 0;
+  const breakdown: Array<{ id: string; nama: string; stok: number; price: number; value: number }> = [];
+  let totalQuantity = 0;
+  let totalPriceSum = 0;
+  let itemsWithStock = 0;
+
+  for (const material of materials || []) {
+    const stok = Number(material.stok) || 0;
+    const price = getEffectiveUnitPrice(material);
+    const value = stok * price;
+
+    if (stok > 0) {
+      itemsWithStock++;
+      totalQuantity += stok;
+      totalPriceSum += price;
+    }
+
+    totalValue += value;
+    breakdown.push({
+      id: material.id,
+      nama: material.nama || 'Unknown',
+      stok,
+      price,
+      value: Math.round(value)
+    });
+  }
+
+  return {
+    totalValue: Math.round(totalValue),
+    breakdown,
+    summary: {
+      totalItems: materials.length,
+      itemsWithStock,
+      averagePrice: itemsWithStock > 0 ? Math.round(totalPriceSum / itemsWithStock) : 0
+    }
+  };
+}
+
+/**
  * Calculate real-time profit analysis with actual schema
  */
 export const calculateRealTimeProfit = (
@@ -151,17 +204,29 @@ export const calculateRealTimeProfit = (
   const revenueTransactions = periodTransactions.filter(t => t.type === 'income');
   const totalRevenue = revenueTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   
-  // ✅ UPDATE: Calculate COGS using effective price (WAC)
-  const {
-    totalHPP: totalCOGS,
-    breakdown: materialBreakdown
-  } = calcHPP(
-    materials.map(m => ({ 
-      bahan_baku_id: m.id, 
-      qty_base: (Number(m.stok) || 0) * 0.1 // Estimasi pemakaian 10%
-    })),
-    Object.fromEntries(materials.map(m => [m.id, m]))
-  );
+  // ✅ IMPROVED: Calculate COGS using current stock value (modal tersimpan di gudang)
+  // Menggunakan total nilai stok yang tersedia di warehouse
+  const totalCOGS = materials.reduce((sum, m) => {
+    const stok = Number(m.stok) || 0;
+    const effectivePrice = getEffectiveUnitPrice(m);
+    return sum + (stok * effectivePrice);
+  }, 0);
+
+  // Create material breakdown for modal bahan baku saat ini
+  const materialBreakdown = materials
+    .filter(m => Number(m.stok) > 0) // Hanya yang ada stoknya
+    .map(m => {
+      const stok = Number(m.stok) || 0;
+      const price = getEffectiveUnitPrice(m);
+      const hpp = stok * price;
+      return {
+        id: m.id,
+        nama: m.nama || 'Unknown',
+        qty: stok,
+        price,
+        hpp: Math.round(hpp)
+      };
+    });
 
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
   const totalOpEx = activeCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);

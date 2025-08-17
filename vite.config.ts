@@ -100,10 +100,10 @@ export default defineConfig(({ mode }) => {
 
       rollupOptions: {
         output: {
-          // ✅ Chunking terkontrol
+          // ✅ Chunking terkontrol - OPTIMIZED
           manualChunks: (id) => {
             // Core React
-            if (id.includes('/react/') && !id.includes('react-dom') && !id.includes('scheduler')) {
+            if (id.includes('/react/') && !id.includes('react-dom')&& !id.includes('scheduler')) {
               return 'react';
             }
             // React DOM + Scheduler
@@ -122,9 +122,12 @@ export default defineConfig(({ mode }) => {
             if (id.includes('@supabase')) {
               return 'supabase';
             }
-            // Charts
-            if (id.includes('chart.js') || id.includes('react-chartjs-2') || id.includes('recharts')) {
-              return 'charts';
+            // Charts - SPLIT BY TYPE
+            if (id.includes('chart.js') || id.includes('react-chartjs-2')) {
+              return 'charts-chartjs';
+            }
+            if (id.includes('recharts')) {
+              return 'charts-recharts';
             }
             // Icons
             if (id.includes('lucide-react') || id.includes('react-icons') || id.includes('@radix-ui/react-icons')) {
@@ -142,12 +145,28 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               return 'vendor';
             }
-            // App chunks
+            // App chunks - SPLIT COMPONENTS BY FEATURE
             if (id.includes('src/contexts')) {
               return 'contexts';
             }
+            // Split components by feature areas to reduce size
+            if (id.includes('src/components/ui/')) {
+              return 'ui-components';
+            }
+            if (id.includes('src/components/financial/')) {
+              return 'financial-components';
+            }
+            if (id.includes('src/components/promoCalculator/')) {
+              return 'promo-components';
+            }
+            if (id.includes('src/components/profitAnalysis/')) {
+              return 'profit-components';
+            }
+            if (id.includes('src/components/dashboard/')) {
+              return 'dashboard-components';
+            }
             if (id.includes('src/components')) {
-              return 'components';
+              return 'shared-components';
             }
             if (id.includes('src/utils')) {
               return 'utils';

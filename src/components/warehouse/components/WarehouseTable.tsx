@@ -1,4 +1,3 @@
-// ===== 1. UPDATE WarehouseTable.tsx =====
 // src/components/warehouse/components/WarehouseTable.tsx
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -68,7 +67,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   const [showMobileActions, setShowMobileActions] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ✅ TAMBAH: Debug log untuk verifikasi WAC
   useEffect(() => {
     if (import.meta.env.DEV && items.length > 0) {
       console.debug('[WAC check]', items.slice(0,3).map(i => ({
@@ -94,49 +92,39 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   const toggleExpanded = (itemId: string) => {
     const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(itemId)) {
-      newExpanded.delete(itemId);
-    } else {
-      newExpanded.add(itemId);
-    }
+    if (newExpanded.has(itemId)) newExpanded.delete(itemId);
+    else newExpanded.add(itemId);
     setExpandedItems(newExpanded);
     logger.component('WarehouseTable', `Item ${itemId} ${newExpanded.has(itemId) ? 'expanded' : 'collapsed'}`);
   };
 
   const getSortIcon = (key: keyof BahanBakuFrontend) => {
-    if (sortConfig.key !== key) {
-      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
-    }
+    if (sortConfig.key !== key) return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
     return sortConfig.direction === 'asc' 
       ? <ArrowUp className="w-4 h-4 text-orange-500" />
       : <ArrowDown className="w-4 h-4 text-orange-500" />;
   };
 
-  const highlightText = (text: string, searchTerm: string) => {
-    if (!searchTerm) return text;
-    
-    const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
-    return parts.map((part, index) => 
-      part.toLowerCase() === searchTerm.toLowerCase() ? (
-        <mark key={index} className="bg-yellow-200 px-1 rounded">
-          {part}
-        </mark>
-      ) : part
+  const highlightText = (text: string, term: string) => {
+    if (!term) return text;
+    const parts = text.split(new RegExp(`(${term})`, 'gi'));
+    return parts.map((part, idx) =>
+      part.toLowerCase() === term.toLowerCase()
+        ? <mark key={idx} className="bg-yellow-200 px-1 rounded">{part}</mark>
+        : part
     );
   };
 
   const getStockLevel = (item: BahanBakuFrontend) => {
     const stok = Number(item.stok) || 0;
     const minimum = Number(item.minimum) || 0;
-    
     return warehouseUtils.formatStockLevel(stok, minimum);
   };
 
   const isExpiringItem = (item: BahanBakuFrontend): boolean => {
     if (!item.expiry) return false;
     const expiryDate = new Date(item.expiry);
-    const threshold = new Date();
-    threshold.setDate(threshold.getDate() + 7);
+    const threshold = new Date(); threshold.setDate(threshold.getDate() + 7);
     return expiryDate <= threshold && expiryDate > new Date();
   };
 
@@ -172,7 +160,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   if (!isLoading && items.length === 0) {
     logger.component('WarehouseTable', 'Displaying empty state', { hasSearchTerm: !!searchTerm });
-    
     return (
       <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center">
         <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mb-4" />
@@ -180,12 +167,9 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           {searchTerm ? 'Tidak ada hasil ditemukan' : 'Belum ada bahan baku'}
         </h3>
         <p className="text-sm md:text-base text-gray-500 mb-6 max-w-md px-4">
-          {searchTerm 
-            ? `Coba ubah kata kunci pencarian atau filter yang digunakan.`
-            : 'Mulai kelola inventori Anda dengan menambahkan bahan baku pertama.'
-          }
+          {searchTerm ? 'Coba ubah kata kunci pencarian atau filter yang digunakan.'
+                      : 'Mulai kelola inventori Anda dengan menambahkan bahan baku pertama.'}
         </p>
-        
         <div className="flex flex-col sm:flex-row gap-3">
           {!searchTerm && (
             <Button onClick={emptyStateAction} className="flex items-center gap-2">
@@ -193,20 +177,13 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
               Tambah Bahan Baku
             </Button>
           )}
-          
           {onRefresh && (
-            <Button 
-              variant="outline" 
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-2"
-            >
+            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="flex items-center gap-2">
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Memuat...' : 'Refresh Data'}
             </Button>
           )}
         </div>
-
         {lastUpdated && (
           <p className="text-xs text-gray-400 mt-4">
             Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
@@ -218,7 +195,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   if (isLoading) {
     logger.component('WarehouseTable', 'Displaying loading state', { lastUpdated: lastUpdated?.toISOString() });
-    
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-8">
         <div className="flex flex-col items-center justify-center">
@@ -241,9 +217,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     <div className="md:hidden space-y-3 p-4">
       <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-200">
         <div>
-          <span className="text-sm font-medium text-gray-700">
-            {items.length} item
-          </span>
+          <span className="text-sm font-medium text-gray-700">{items.length} item</span>
           {lastUpdated && (
             <div className="text-xs text-gray-400 mt-1">
               Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
@@ -251,13 +225,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           )}
         </div>
         {onRefresh && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-1"
-          >
+          <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="flex items-center gap-1">
             <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         )}
@@ -270,26 +238,18 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
             aria-label={allCurrentSelected ? 'Deselect all' : 'Select all'}
           >
-            {allCurrentSelected ? (
-              <CheckSquare className="w-5 h-5 text-orange-500" />
-            ) : someCurrentSelected ? (
-              <div className="w-3 h-3 bg-orange-500 rounded-sm" />
-            ) : (
-              <Square className="w-5 h-5 text-gray-400" />
-            )}
+            {allCurrentSelected ? <CheckSquare className="w-5 h-5 text-orange-500" /> :
+              someCurrentSelected ? <div className="w-3 h-3 bg-orange-500 rounded-sm" /> :
+              <Square className="w-5 h-5 text-gray-400" />}
           </button>
           <span className="text-sm font-medium text-gray-700">
-            {selectedItems.length > 0 
-              ? `${selectedItems.length} item dipilih`
-              : 'Pilih semua item'
-            }
+            {selectedItems.length > 0 ? `${selectedItems.length} item dipilih` : 'Pilih semua item'}
           </span>
         </div>
       )}
 
       {items.map((item) => {
         debugItem(item);
-
         const stockLevel = getStockLevel(item);
         const isExpiringSoon = isExpiringItem(item);
         const isLowStock = isLowStockItem(item);
@@ -319,11 +279,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors mt-1 flex-shrink-0"
                       aria-label={`${isItemSelected ? 'Deselect' : 'Select'} ${item.nama}`}
                     >
-                      {isItemSelected ? (
-                        <CheckSquare className="w-5 h-5 text-orange-500" />
-                      ) : (
-                        <Square className="w-5 h-5 text-gray-400" />
-                      )}
+                      {isItemSelected ? <CheckSquare className="w-5 h-5 text-orange-500" /> : <Square className="w-5 h-5 text-gray-400" />}
                     </button>
                   )}
 
@@ -374,11 +330,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                             className="p-1 rounded hover:bg-gray-100 transition-colors"
                             aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details`}
                           >
-                            {isExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-gray-500" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-gray-500" />
-                            )}
+                            {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
                           </button>
                           <button
                             onClick={() => {
@@ -408,7 +360,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                           <span className="text-gray-500 ml-1">{item.satuan}</span>
                         </div>
                         <div className="text-sm font-medium text-gray-900">
-                          {/* ✅ UPDATE: Gunakan helper harga efektif */}
                           {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                         </div>
                       </div>
@@ -465,10 +416,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   <div>
                     <span className="text-gray-500">Harga per {item.satuan}:</span>
                     <div className="font-medium text-gray-900">
-                      {/* ✅ UPDATE: Gunakan helper harga efektif */}
                       {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                     </div>
-                    {/* ✅ UPDATE: Gunakan helper isUsingWac untuk label */}
                     <div className="text-xs text-gray-500 mt-1">
                       per {item.satuan}{warehouseUtils.isUsingWac(item) ? ' · rata-rata' : ''}
                     </div>
@@ -519,13 +468,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           )}
         </div>
         {onRefresh && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2"
-          >
+          <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="flex items-center gap-2">
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? 'Memuat...' : 'Refresh'}
           </Button>
@@ -545,75 +488,48 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                   className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
                   aria-label={allCurrentSelected ? 'Deselect all' : 'Select all'}
                 >
-                  {allCurrentSelected ? (
-                    <CheckSquare className="w-4 h-4 text-orange-500" />
-                  ) : someCurrentSelected ? (
-                    <div className="w-2 h-2 bg-orange-500 rounded-sm" />
-                  ) : (
-                    <Square className="w-4 h-4 text-gray-400" />
-                  )}
+                  {allCurrentSelected ? <CheckSquare className="w-4 h-4 text-orange-500" /> :
+                    someCurrentSelected ? <div className="w-2 h-2 bg-orange-500 rounded-sm" /> :
+                    <Square className="w-4 h-4 text-gray-400" />}
                 </button>
               </th>
             )}
 
             <th className="px-4 py-3 text-left">
-              <button
-                onClick={() => {
-                  onSort('nama');
-                  logger.component('WarehouseTable', 'Sort by nama clicked');
-                }}
-                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
-              >
+              <button onClick={() => { onSort('nama'); logger.component('WarehouseTable', 'Sort by nama clicked'); }}
+                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors">
                 Nama Bahan
                 {getSortIcon('nama')}
               </button>
             </th>
 
             <th className="px-4 py-3 text-left">
-              <button
-                onClick={() => {
-                  onSort('kategori');
-                  logger.component('WarehouseTable', 'Sort by kategori clicked');
-                }}
-                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
-              >
+              <button onClick={() => { onSort('kategori'); logger.component('WarehouseTable', 'Sort by kategori clicked'); }}
+                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors">
                 Kategori
                 {getSortIcon('kategori')}
               </button>
             </th>
 
             <th className="px-4 py-3 text-left">
-              <button
-                onClick={() => {
-                  onSort('stok');
-                  logger.component('WarehouseTable', 'Sort by stok clicked');
-                }}
-                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
-              >
+              <button onClick={() => { onSort('stok'); logger.component('WarehouseTable', 'Sort by stok clicked'); }}
+                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors">
                 Stok
                 {getSortIcon('stok')}
               </button>
             </th>
 
             <th className="px-4 py-3 text-left">
-              {/* ✅ UPDATE: Sort "Harga" pakai harga efektif */}
-              <button
-                onClick={() => onSort('harga' as keyof BahanBakuFrontend)}
-                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
-              >
+              <button onClick={() => onSort('harga' as keyof BahanBakuFrontend)}
+                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors">
                 Harga
                 {getSortIcon('harga')}
               </button>
             </th>
 
             <th className="px-4 py-3 text-left">
-              <button
-                onClick={() => {
-                  onSort('expiry');
-                  logger.component('WarehouseTable', 'Sort by expiry clicked');
-                }}
-                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors"
-              >
+              <button onClick={() => { onSort('expiry'); logger.component('WarehouseTable', 'Sort by expiry clicked'); }}
+                className="flex items-center gap-2 font-medium text-gray-700 hover:text-orange-600 transition-colors">
                 Kadaluarsa
                 {getSortIcon('expiry')}
               </button>
@@ -657,11 +573,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
                       className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
                       aria-label={`${isItemSelected ? 'Deselect' : 'Select'} ${item.nama}`}
                     >
-                      {isItemSelected ? (
-                        <CheckSquare className="w-4 h-4 text-orange-500" />
-                      ) : (
-                        <Square className="w-4 h-4 text-gray-400" />
-                      )}
+                      {isItemSelected ? <CheckSquare className="w-4 h-4 text-orange-500" /> : <Square className="w-4 h-4 text-gray-400" />}
                     </button>
                   </td>
                 )}
@@ -736,11 +648,9 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
                 <td className="px-4 py-4">
                   <span className="text-sm font-medium text-gray-900">
-                    {/* ✅ UPDATE: Gunakan helper harga efektif */}
                     {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
                   </span>
                   <div className="text-xs text-gray-500">
-                    {/* ✅ UPDATE: Gunakan helper isUsingWac untuk label */}
                     per {item.satuan}{warehouseUtils.isUsingWac(item) ? ' · rata-rata' : ''}
                   </div>
                 </td>

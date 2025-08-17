@@ -342,13 +342,33 @@ const WarehousePageContent: React.FC = () => {
   // ✅ TAMBAH: Use warehouse data hook
   const warehouseData = useWarehouseData();
   
-  // ✅ UPDATE: Create context-like object untuk backward compatibility
+  // ✅ FIXED: Create context-like object with all required CRUD functions
   const context = {
     bahanBaku: warehouseData.bahanBaku,
     loading: warehouseData.loading,
     error: warehouseData.error,
     isConnected: navigator.onLine, // Simplified
     refetch: warehouseData.refetch,
+    // ✅ FIXED: Add missing CRUD functions for bulk operations
+    updateBahanBaku: async (id: string, updates: Partial<BahanBakuFrontend>) => {
+      try {
+        await warehouseData.updateItem({ id, item: updates });
+        return true;
+      } catch (error) {
+        logger.error('Context updateBahanBaku error:', error);
+        return false;
+      }
+    },
+    deleteBahanBaku: async (id: string) => {
+      try {
+        await warehouseData.deleteItem(id);
+        return true;
+      } catch (error) {
+        logger.error('Context deleteBahanBaku error:', error);
+        return false;
+      }
+    },
+    // Note: bulkDeleteBahanBaku will be handled by fallback to individual deletes
   };
   
   const core = useWarehouseCore(context);

@@ -4,12 +4,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 
-// ✅ ONLY Lazy Imports - Remove direct imports completely
+// ✅ ONLY Lazy Imports
 const AddEditDialog = lazy(() => import('../dialogs/AddEditDialog'));
 const BulkOperationsDialog = lazy(() => import('../dialogs/BulkOperationsDialog'));
 const ImportExportDialog = lazy(() => import('../dialogs/ImportExportDialog'));
 
-// Loading Components
 const DialogLoader = () => (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div className="bg-white rounded-lg p-8 flex flex-col items-center">
@@ -19,7 +18,6 @@ const DialogLoader = () => (
   </div>
 );
 
-// Error Fallback
 const DialogError = ({ error, retry }: { error: Error; retry: () => void }) => (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div className="bg-white rounded-lg p-6 max-w-md mx-4">
@@ -50,7 +48,6 @@ const DialogError = ({ error, retry }: { error: Error; retry: () => void }) => (
   </div>
 );
 
-// Error Boundary for Dialog Loading
 class DialogErrorBoundary extends React.Component<
   { children: React.ReactNode; onRetry: () => void },
   { hasError: boolean; error?: Error }
@@ -85,7 +82,6 @@ class DialogErrorBoundary extends React.Component<
   }
 }
 
-// ✅ UPDATED: Simplified Types without problematic bulk handlers
 interface DialogManagerProps {
   dialogs: {
     states: Record<string, boolean>;
@@ -99,30 +95,16 @@ interface DialogManagerProps {
     editSave: (updates: any) => Promise<void>;
     delete: (id: string, nama: string) => Promise<void>;
     sort: (key: string) => void;
-    // ✅ FIXED: Optional handlers with fallbacks
     create?: (item: any) => Promise<void>;
     update?: (id: string, item: any) => Promise<void>;
   };
   context: any;
   selection: any;
   filters: any;
-  bulk: any; // ✅ Use the bulk object from core hook
+  bulk: any;
   pageId: string;
 }
 
-/**
- * ✅ FIXED: Dialog Manager Component dengan proper handler fallbacks
- * 
- * Features:
- * - Graceful handling of missing handlers
- * - QueryClient integration untuk cache management
- * - Enhanced error handling dengan retry logic
- * - Performance monitoring untuk dialog loading
- * - Smart preloading untuk common dialogs
- * - Cache invalidation setelah operations
- * 
- * Size: ~4KB
- */
 const DialogManager: React.FC<DialogManagerProps> = ({
   dialogs,
   handlers,
@@ -134,11 +116,8 @@ const DialogManager: React.FC<DialogManagerProps> = ({
 }) => {
   const [loadedDialogs, setLoadedDialogs] = useState<Set<string>>(new Set());
   const [failedDialogs, setFailedDialogs] = useState<Set<string>>(new Set());
-  
-  // ✅ TAMBAH: QueryClient untuk cache management
   const queryClient = useQueryClient();
 
-  // Track which dialogs have been loaded for performance monitoring
   useEffect(() => {
     Object.entries(dialogs.states).forEach(([dialogName, isOpen]) => {
       if (isOpen && !loadedDialogs.has(dialogName)) {
@@ -148,19 +127,15 @@ const DialogManager: React.FC<DialogManagerProps> = ({
     });
   }, [dialogs.states, loadedDialogs, pageId]);
 
-  // ✅ TAMBAH: Preload critical dialogs untuk better performance
   useEffect(() => {
-    // Preload AddEditDialog saat component mount (dialog paling sering digunakan)
     const preloadTimer = setTimeout(() => {
       import('../dialogs/AddEditDialog').catch(() => {
         logger.debug(`[${pageId}] Failed to preload AddEditDialog`);
       });
     }, 1000);
-
     return () => clearTimeout(preloadTimer);
   }, [pageId]);
 
-  // Retry handler for failed dialog loads
   const retryDialog = (dialogName: string) => {
     setFailedDialogs(prev => {
       const newSet = new Set(prev);
@@ -169,15 +144,11 @@ const DialogManager: React.FC<DialogManagerProps> = ({
     });
   };
 
-  // ✅ FIXED: Enhanced handlers dengan proper fallbacks
   const enhancedHandlers = {
-    // Enhanced save handler dengan cache management
     handleSave: async (data: any, isEdit: boolean = false) => {
       try {
         logger.info('DialogManager.handleSave called', { data, isEdit, editingItem: dialogs.editingItem });
-        
         if (isEdit && dialogs.editingItem) {
-          // ✅ Use editSave if update is not available
           if (handlers.update) {
             logger.info('Using handlers.update');
             await handlers.update(dialogs.editingItem.id, data);
@@ -186,7 +157,6 @@ const DialogManager: React.FC<DialogManagerProps> = ({
             await handlers.editSave(data);
           }
         } else {
-          // ✅ Use create if available, otherwise throw error
           if (handlers.create) {
             logger.info('Using handlers.create');
             await handlers.create(data);
@@ -194,59 +164,43 @@ const DialogManager: React.FC<DialogManagerProps> = ({
             throw new Error('Create handler not available');
           }
         }
-        
-        // ✅ Smart cache invalidation
         queryClient.invalidateQueries({ queryKey: ['warehouse', 'list'] });
         queryClient.invalidateQueries({ queryKey: ['warehouse', 'categories'] });
         queryClient.invalidateQueries({ queryKey: ['warehouse', 'suppliers'] });
-        
         logger.debug(`[${pageId}] ✅ ${isEdit ? 'Updated' : 'Created'} item successfully`);
         toast.success(`${isEdit ? 'Diperbarui' : 'Ditambahkan'} item berhasil!`);
-        
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`[${pageId}] ❌ Failed to ${isEdit ? 'update' : 'create'} item:`, error);
         toast.error(`Gagal ${isEdit ? 'memperbarui' : 'menambah'} item: ${error.message || 'Unknown error'}`);
         throw error;
       }
     },
 
-    // ✅ FIXED: Use the bulk operations from the core hook
     handleBulkOperation: async (operation: 'edit' | 'delete', data?: any) => {
       try {
         let success = false;
-        
         if (operation === 'delete') {
-          // Use the built-in bulk delete from the core hook
           success = await bulk.bulkDelete();
           logger.debug(`[${pageId}] ✅ Bulk delete operation completed`);
-          
         } else if (operation === 'edit' && data) {
-          // Use the built-in bulk edit from the core hook
           success = await bulk.bulkEdit(data);
           logger.debug(`[${pageId}] ✅ Bulk edit operation completed`);
         }
-        
         if (success) {
-          // ✅ Comprehensive cache invalidation untuk bulk operations
           queryClient.invalidateQueries({ queryKey: ['warehouse'] });
         }
-        
         return success;
-        
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`[${pageId}] ❌ Bulk ${operation} operation failed:`, error);
         toast.error(`Operasi ${operation === 'edit' ? 'edit' : 'hapus'} massal gagal: ${error.message || 'Unknown error'}`);
         throw error;
       }
     },
 
-    // ✅ FIXED: Enhanced import handler dengan fallback
     handleImport: async (items: any[]) => {
       try {
-        // Import items satu per satu dengan progress tracking
         let successCount = 0;
         let errorCount = 0;
-        
         for (const item of items) {
           try {
             if (handlers.create) {
@@ -257,18 +211,14 @@ const DialogManager: React.FC<DialogManagerProps> = ({
             successCount++;
           } catch (error) {
             errorCount++;
-            logger.warn(`[${pageId}] Failed to import item:`, item.nama, error);
+            logger.warn(`[${pageId}] Failed to import item:`, item?.nama, error);
           }
         }
-        
-        // ✅ Full cache refresh setelah import
         await queryClient.refetchQueries({ queryKey: ['warehouse'] });
-        
         logger.info(`[${pageId}] ✅ Import completed: ${successCount} success, ${errorCount} errors`);
         toast.success(`Import selesai: ${successCount} berhasil, ${errorCount} gagal`);
-        
         return { successCount, errorCount };
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`[${pageId}] ❌ Import operation failed:`, error);
         toast.error(`Import gagal: ${error.message || 'Unknown error'}`);
         throw error;
@@ -278,7 +228,6 @@ const DialogManager: React.FC<DialogManagerProps> = ({
 
   return (
     <>
-      {/* Add/Edit Item Dialog */}
       {(dialogs.states.addItem || dialogs.states.editItem || dialogs.editingItem) && (
         <DialogErrorBoundary onRetry={() => retryDialog('addEdit')}>
           <Suspense fallback={<DialogLoader />}>
@@ -302,7 +251,6 @@ const DialogManager: React.FC<DialogManagerProps> = ({
         </DialogErrorBoundary>
       )}
 
-      {/* Bulk Operations Dialog */}
       {(dialogs.states.bulkEdit || dialogs.states.bulkDelete) && (
         <DialogErrorBoundary onRetry={() => retryDialog('bulkOps')}>
           <Suspense fallback={<DialogLoader />}>
@@ -311,18 +259,16 @@ const DialogManager: React.FC<DialogManagerProps> = ({
               onClose={() => {
                 dialogs.close('bulkEdit');
                 dialogs.close('bulkDelete');
-                selection.clearSelection?.(); // ✅ Clear selection after closing
+                selection.clearSelection?.();
               }}
               operation={dialogs.states.bulkEdit ? 'edit' : 'delete'}
-              selectedItems={Array.from(selection.selectedItems || [])} // ✅ Convert Set to Array
+              selectedItems={Array.from(selection.selectedItems || [])}
               selectedItemsData={Array.from(selection.selectedItems || []).map((id: string) => 
                 context.bahanBaku?.find((item: any) => item.id === id)
               ).filter(Boolean)}
               onConfirm={async (data) => {
                 const operation = dialogs.states.bulkEdit ? 'edit' : 'delete';
                 const success = await enhancedHandlers.handleBulkOperation(operation, data);
-                
-                // ✅ Close dialogs and clear selection after successful operation
                 if (success) {
                   dialogs.close('bulkEdit');
                   dialogs.close('bulkDelete');
@@ -337,7 +283,6 @@ const DialogManager: React.FC<DialogManagerProps> = ({
         </DialogErrorBoundary>
       )}
 
-      {/* Import/Export Dialog */}
       {(dialogs.states.import || dialogs.states.export) && (
         <DialogErrorBoundary onRetry={() => retryDialog('importExport')}>
           <Suspense fallback={<DialogLoader />}>
@@ -357,24 +302,14 @@ const DialogManager: React.FC<DialogManagerProps> = ({
                 return result;
               }}
               onExport={(data, format) => {
-                // ✅ Enhanced export dengan format options
                 logger.info(`[${pageId}] 📤 Exporting ${data.length} items as ${format}`);
-                
-                // Bisa ditambahkan logic export sesuai format
-                if (format === 'excel') {
-                  // Export to Excel logic
-                } else if (format === 'csv') {
-                  // Export to CSV logic
-                } else if (format === 'pdf') {
-                  // Export to PDF logic
-                }
+                // tambahkan logic export sesuai kebutuhan
               }}
             />
           </Suspense>
         </DialogErrorBoundary>
       )}
 
-      {/* ✅ TAMBAH: Debug info untuk development */}
       {import.meta.env.DEV && (
         <div className="fixed bottom-4 left-4 bg-black bg-opacity-75 text-white text-xs p-2 rounded z-[100] max-w-xs">
           <div>Loaded Dialogs: {loadedDialogs.size}</div>

@@ -1,55 +1,55 @@
-// vite.config.ts
+// vite.config.ts — safe dev logs, prod-only strip, fixed
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import fs from "fs";
-import { componentTagger } from "lovable-tagger";
 import removeConsole from "vite-plugin-remove-console";
 import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  const isDev = mode === "development";
+  // ✅ load hanya VITE_* (client-safe)
+  const env = loadEnv(mode, process.cwd());
   const isProd = mode === "production";
-
-  // Opsional: bisa kamu pakai kalau mau “force enable” log di prod
-  const shouldKeepLogs = env.VITE_FORCE_LOGS === "true";
-  const shouldDropConsole = isProd && !shouldKeepLogs;
-
-  const plugins = [
-    react({ fastRefresh: isDev }),
-    // Hanya aktif di production
-    ...(shouldDropConsole
-      ? [
-          removeConsole({
-            // hilangkan console.* umum (error tetap dibiarkan oleh plugin ini? -> plugin menghapus semua kecuali 'error' jika tidak dicantumkan)
-            include: ["log", "debug", "info", "warn", "trace"],
-          }),
-        ]
-      : []),
-    ...(env.VITE_ANALYZE === "true"
-      ? [
-          visualizer({
-            filename: "dist/stats.html",
-            template: "treemap",
-            gzipSize: true,
-            brotliSize: true,
-            open: false,
-          }),
-        ]
-      : []),
-  ];
-
-  if (isDev) plugins.push(componentTagger());
+  const keepLogs = env.VITE_FORCE_LOGS === "true";
 
   return {
-    plugins,
+    plugins: [
+      react(),
+      // ✅ aktif HANYA saat build production & tidak force logs
+      ...(isProd && !keepLogs
+        ? [
+            removeConsole({
+              include: ["log", "debug", "info", "warn", "trace"],
+            }),
+          ]
+        : []),
+      ...(env.VITE_ANALYZE === "true"
+        ? [
+            visualizer({
+              filename: "dist/stats.html",
+              template: "treemap",
+              gzipSize: true,
+              brotliSize: true,
+              open: false,
+            }),
+          ]
+        : []),
+    ],
+
+    // 👇 konsisten dengan netlify.toml (targetPort=5173) & preview 5500
+    server: {
+      port: 5173,
+      strictPort: true,
+      // host: true, // uncomment kalau mau akses via LAN IP
+    },
+    preview: {
+      port: 5500,
+      strictPort: true,
+    },
 
     define: {
-      // supaya __DEV__/__CONSOLE_ENABLED__ di main.tsx tidak ReferenceError
-      __DEV__: JSON.stringify(isDev),
+      __DEV__: JSON.stringify(!isProd),
       __PROD__: JSON.stringify(isProd),
-      __CONSOLE_ENABLED__: JSON.stringify(!shouldDropConsole),
+      __CONSOLE_ENABLED__: JSON.stringify(!(isProd && !keepLogs)),
     },
 
     resolve: {
@@ -61,7 +61,7 @@ export default defineConfig(({ mode }) => {
     build: {
       target: "es2020",
       minify: isProd ? "esbuild" : false,
-      sourcemap: isDev,
+      sourcemap: !isProd,
       rollupOptions: {
         output: {
           manualChunks: (id) => {
@@ -102,7 +102,8 @@ export default defineConfig(({ mode }) => {
               return "assets-components";
             if (id.includes("src/components/layout/"))
               return "layout-components";
-            if (id.includes("src/components/pages/")) return "pages-components";
+            if (id.includes("src/components/pages/"))
+              return "pages-components";
             if (id.includes("src/components/popups/"))
               return "popup-components";
             if (
@@ -121,15 +122,13 @@ export default defineConfig(({ mode }) => {
             : "assets/[name].[ext]",
         },
         onwarn(warning, warn) {
-          // biar aman, teruskan saja
           warn(warning);
         },
       },
     },
 
-    // Double safety: tetap drop di esbuild saat prod (plugin remove-console juga aktif)
-    esbuild: {
-      drop: shouldDropConsole ? ["debugger", "console"] : [],
-    },
+    // ❌ jangan drop console di esbuild global (biar dev aman 100%)
+    // Kalau mau, aktifkan HANYA untuk production:
+    // esbuild: { drop: isProd && !keepLogs ? ["debugger", "console"] : [] },
   };
 });

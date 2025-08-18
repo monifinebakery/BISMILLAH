@@ -414,9 +414,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                         <div className="font-medium">
                           {getSupplierName(purchase.supplier)}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {purchase.metodePerhitungan}
-                        </div>
                       </div>
                     </TableCell>
 

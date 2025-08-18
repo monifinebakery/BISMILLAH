@@ -26,7 +26,7 @@ export const validateSupplier = (supplier?: string): FieldValidation => {
  * (Optional; default aplikasi adalah 'AVERAGE' bila kosong)
  */
 export const validateCalculationMethod = (method?: string): FieldValidation => {
-  const validMethods = ['FIFO', 'LIFO', 'AVERAGE'];
+  const validMethods = ['AVERAGE'];
 
   if (!method) {
     // biarkan kosong: akan di-default-kan ke 'AVERAGE' di layer lain

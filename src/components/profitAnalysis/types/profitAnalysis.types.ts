@@ -74,7 +74,6 @@ export interface WACBreakdown {
   }[];
   wac_price: number;        // Calculated WAC
   total_value: number;      // Stock value at WAC
-  fifo_price?: number;      // FIFO untuk perbandingan
   last_purchase_price: number;
 }
 

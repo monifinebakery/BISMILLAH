@@ -137,7 +137,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const handleSaveEditedItem = useCallback((index: number, updatedItem: Partial<PurchaseItem>) => {
     const qty = toNumber(updatedItem.kuantitas);
     const price = toNumber(updatedItem.hargaSatuan);
-
     if (qty <= 0 || price <= 0) {
       toast.error('Kuantitas dan harga satuan harus > 0');
       return;
@@ -149,6 +148,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   }, [updateItem]);
 
   const handleCancelEditItem = useCallback(() => setEditingItemIndex(null), []);
+
   // ✅ Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
@@ -374,26 +374,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 </div>
               </div>
 
-              {/* Calculation Method */}
-              <div className="space-y-2">
-                <Label htmlFor="metodePerhitungan">Metode Perhitungan Stok</Label>
-                <Select
-                  value={formData.metodePerhitungan}
-                  onValueChange={(value: 'FIFO' | 'LIFO' | 'AVERAGE') =>
-                    updateFormField('metodePerhitungan', value) // ✅ FIXED: Use updateFormField
-                  }
-                  disabled={!canEdit}
-                >
-                  <SelectTrigger className={!canEdit ? 'opacity-50' : ''}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FIFO">FIFO (First In, First Out)</SelectItem>
-                    <SelectItem value="LIFO">LIFO (Last In, First Out)</SelectItem>
-                    <SelectItem value="AVERAGE">Average (Rata-rata)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </CardContent>
           </Card>
 
@@ -428,7 +408,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               {/* ✅ ENHANCED: Smart Add New Item Form with clean payload handling */}
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
-
                   onCancel={() => setShowAddItem(false)}
                   onAdd={handleAddItemFromForm}
                 />

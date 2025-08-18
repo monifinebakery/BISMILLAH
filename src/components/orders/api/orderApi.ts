@@ -1,13 +1,55 @@
-// src/components/orders/api/orderApi.ts - API Layer untuk Order Operations
+// src/components/orders/api/orderApi.ts - ENHANCED API Layer dengan Dedicated Status Update
+
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { Order, OrderDB, NewOrder, OrderStatus } from '../types';
 import { transformOrderFromDB, transformOrderToDB } from '../utils';
 
 /**
- * Order API - Centralized API operations untuk orders
+ * Order API - Centralized API operations untuk orders dengan enhanced status update
  */
 export const orderApi = {
+  /**
+   * ✅ NEW: Dedicated function untuk update status saja (optimized)
+   */
+  async updateOrderStatus(orderId: string, newStatus: OrderStatus, userId: string): Promise<Order> {
+    try {
+      logger.debug('OrderAPI: Updating order status only:', { orderId, newStatus, userId });
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .eq('user_id', userId)
+        .select('*')
+        .single();
+
+      if (error) {
+        logger.error('OrderAPI: Error updating order status:', error);
+        throw new Error(`Failed to update order status: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Order not found or access denied');
+      }
+
+      const updatedOrder = transformOrderFromDB(data);
+      logger.debug('OrderAPI: Successfully updated order status:', { 
+        orderId, 
+        newStatus, 
+        orderNumber: updatedOrder.nomorPesanan 
+      });
+      
+      return updatedOrder;
+    } catch (error) {
+      logger.error('OrderAPI: updateOrderStatus failed:', error);
+      throw error;
+    }
+  },
+
   /**
    * Fetch all orders untuk user tertentu
    */
@@ -107,19 +149,49 @@ export const orderApi = {
   },
 
   /**
-   * Update existing order
+   * ✅ ENHANCED: Update existing order dengan automatic status detection
    */
   async updateOrder(id: string, updateData: Partial<Order>, userId: string): Promise<OrderDB> {
     try {
       logger.debug('OrderAPI: Updating order:', id, updateData);
       
+      // ✅ CHECK: If only status is being updated, use dedicated function
+      if (Object.keys(updateData).length === 1 && updateData.status) {
+        logger.debug('OrderAPI: Delegating to updateOrderStatus for status-only update');
+        const updatedOrder = await this.updateOrderStatus(id, updateData.status, userId);
+        
+        // Return in DB format for consistency
+        return {
+          id: updatedOrder.id,
+          user_id: updatedOrder.userId,
+          nomor_pesanan: updatedOrder.nomorPesanan,
+          created_at: updatedOrder.createdAt.toISOString(),
+          updated_at: updatedOrder.updatedAt.toISOString(),
+          tanggal: updatedOrder.tanggal.toISOString(),
+          nama_pelanggan: updatedOrder.namaPelanggan,
+          telepon_pelanggan: updatedOrder.teleponPelanggan,
+          email_pelanggan: updatedOrder.emailPelanggan,
+          alamat_pengiriman: updatedOrder.alamatPengiriman,
+          items: updatedOrder.items,
+          status: updatedOrder.status,
+          catatan: updatedOrder.catatan,
+          subtotal: updatedOrder.subtotal,
+          pajak: updatedOrder.pajak,
+          total_pesanan: updatedOrder.totalPesanan
+        };
+      }
+      
+      // ✅ FULL UPDATE: For comprehensive updates
       const dbData = transformOrderToDB(updateData);
       const { data, error } = await supabase
         .from('orders')
-        .update(dbData)
+        .update({
+          ...dbData,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
         .eq('user_id', userId)
-        .select()
+        .select('*')
         .single();
       
       if (error) {
@@ -286,7 +358,7 @@ export const orderApi = {
   },
 
   /**
-   * Bulk update status untuk multiple orders
+   * ✅ ENHANCED: Bulk update status untuk multiple orders
    */
   async bulkUpdateStatus(orderIds: string[], newStatus: OrderStatus, userId: string): Promise<boolean> {
     try {
@@ -294,7 +366,10 @@ export const orderApi = {
       
       const { error } = await supabase
         .from('orders')
-        .update({ status: newStatus })
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
         .in('id', orderIds)
         .eq('user_id', userId);
 
@@ -362,11 +437,11 @@ export const orderApi = {
   },
 
   /**
-   * Search orders dengan filters
+   * ✅ ENHANCED: Search orders dengan filters dan status filtering
    */
   async searchOrders(userId: string, filters: {
     searchTerm?: string;
-    status?: OrderStatus;
+    status?: OrderStatus | 'all';
     dateFrom?: string;
     dateTo?: string;
   }): Promise<Order[]> {
@@ -392,7 +467,8 @@ export const orderApi = {
       }
 
       if (filters.searchTerm) {
-        query = query.or(`nama_pelanggan.ilike.%${filters.searchTerm}%,telepon_pelanggan.ilike.%${filters.searchTerm}%,email_pelanggan.ilike.%${filters.searchTerm}%`);
+        const searchTerm = filters.searchTerm.trim();
+        query = query.or(`nama_pelanggan.ilike.%${searchTerm}%,telepon_pelanggan.ilike.%${searchTerm}%,email_pelanggan.ilike.%${searchTerm}%,nomor_pesanan.ilike.%${searchTerm}%`);
       }
 
       const { data, error } = await query
@@ -419,6 +495,81 @@ export const orderApi = {
     } catch (error) {
       logger.error('OrderAPI: searchOrders failed:', error);
       throw error;
+    }
+  },
+
+  /**
+   * ✅ NEW: Test database connection dan basic operations
+   */
+  async testConnection(userId: string): Promise<{
+    success: boolean;
+    message: string;
+    canRead: boolean;
+    canWrite: boolean;
+    testResults: any;
+  }> {
+    try {
+      logger.debug('OrderAPI: Testing database connection for user:', userId);
+      
+      const testResults: any = {};
+      
+      // Test 1: Basic read
+      try {
+        const { data: readData, error: readError } = await supabase
+          .from('orders')
+          .select('id, status')
+          .eq('user_id', userId)
+          .limit(1);
+        
+        testResults.readTest = {
+          success: !readError,
+          error: readError?.message,
+          dataCount: readData?.length || 0
+        };
+      } catch (error) {
+        testResults.readTest = {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+      
+      // Test 2: Check user permissions
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        testResults.authTest = {
+          success: !!authData.user,
+          userId: authData.user?.id,
+          matches: authData.user?.id === userId
+        };
+      } catch (error) {
+        testResults.authTest = {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+      
+      const canRead = testResults.readTest?.success || false;
+      const canWrite = testResults.authTest?.success && testResults.authTest?.matches;
+      
+      return {
+        success: canRead && canWrite,
+        message: canRead && canWrite 
+          ? 'Database connection successful' 
+          : 'Database connection issues detected',
+        canRead,
+        canWrite,
+        testResults
+      };
+      
+    } catch (error) {
+      logger.error('OrderAPI: testConnection failed:', error);
+      return {
+        success: false,
+        message: `Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        canRead: false,
+        canWrite: false,
+        testResults: { error: error instanceof Error ? error.message : 'Unknown error' }
+      };
     }
   }
 };

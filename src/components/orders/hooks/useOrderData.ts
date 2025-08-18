@@ -1,4 +1,4 @@
-// src/components/orders/hooks/useOrderData.ts - OPTIMIZED INTERVALS (Clean)
+// src/components/orders/hooks/useOrderData.ts - FIXED STATUS UPDATE IMPLEMENTATION
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -216,7 +216,7 @@ export const useOrderData = (
     }
   }, [user?.id]);
 
-  // ✅ SAME: Keep fetch function as before but add throttling check
+  // ✅ FETCH ORDERS
   const fetchOrders = useCallback(async (forceRefresh = false) => {
     if (!hasAllDependencies || !user || !isMountedRef.current) {
       logger.debug('OrderData', 'Cannot fetch - dependencies not ready');
@@ -292,7 +292,7 @@ export const useOrderData = (
     }
   }, [user, hasAllDependencies]);
 
-  // ✅ SAME: Handle real-time events (keep as before)
+  // ✅ HANDLE REAL-TIME EVENTS
   const handleRealtimeEvent = useCallback((payload: any) => {
     if (!isMountedRef.current || !initialFetchDoneRef.current) {
       return;
@@ -347,7 +347,7 @@ export const useOrderData = (
     });
   }, []);
 
-  // ✅ SAME: Setup subscription (keep as before but stop fallback on success)
+  // ✅ SETUP SUBSCRIPTION
   const setupSubscription = useCallback(async () => {
     if (!hasAllDependencies || !user || !isMountedRef.current) {
       setupLockRef.current = false;
@@ -464,7 +464,223 @@ export const useOrderData = (
     }
   }, [user, hasAllDependencies, cleanupSubscription, handleRealtimeEvent, shouldAttemptConnection, recordConnectionFailure]);
 
-  // ===== CRUD OPERATIONS ===== (Keep same but add throttled refresh for fallback)
+  // ===== 🚀 FIXED: DEDICATED STATUS UPDATE FUNCTION =====
+  const updateOrderStatus = useCallback(async (orderId: string, newStatus: string): Promise<boolean> => {
+    if (!hasAllDependencies || !user) {
+      logger.warn('OrderData', 'Cannot update status - dependencies not ready');
+      toast.error('Sistem belum siap, silakan tunggu...');
+      return false;
+    }
+
+    if (!orderId || !newStatus) {
+      logger.warn('OrderData', 'Invalid parameters for status update:', { orderId, newStatus });
+      toast.error('Parameter tidak valid');
+      return false;
+    }
+
+    const existingOrder = orders.find(order => order.id === orderId);
+    if (!existingOrder) {
+      logger.warn('OrderData', 'Order not found for status update:', orderId);
+      toast.error('Pesanan tidak ditemukan');
+      return false;
+    }
+
+    try {
+      logger.info('OrderData', 'Updating order status:', { 
+        orderId, 
+        from: existingOrder.status, 
+        to: newStatus,
+        orderNumber: existingOrder.nomorPesanan
+      });
+
+      // ✅ OPTIMISTIC UPDATE: Update UI immediately
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus as Order['status'], updatedAt: new Date() }
+            : order
+        )
+      );
+
+      // ✅ DATABASE UPDATE: Update status in database
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .eq('user_id', user.id)
+        .select('*')
+        .single();
+
+      if (error) {
+        logger.error('OrderData', 'Database error updating status:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      if (!data) {
+        logger.error('OrderData', 'No data returned from status update');
+        throw new Error('Order not found or access denied');
+      }
+
+      // ✅ SYNC with actual database response
+      const updatedOrder = transformOrderFromDB(data);
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? updatedOrder : order
+        )
+      );
+
+      // ✅ ACTIVITY LOG for status change
+      if (typeof addActivity === 'function') {
+        try {
+          await addActivity({
+            title: 'Status Pesanan Diubah',
+            description: `Status pesanan #${existingOrder.nomorPesanan} diubah dari ${getStatusText(existingOrder.status)} menjadi ${getStatusText(newStatus as Order['status'])}`,
+            type: 'order'
+          });
+        } catch (activityError) {
+          logger.error('OrderData', 'Error adding activity for status change:', activityError);
+        }
+      }
+
+      // ✅ SUCCESS MESSAGE
+      toast.success(`Status pesanan #${existingOrder.nomorPesanan} berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
+      logger.success('OrderData', 'Order status updated successfully:', {
+        orderId,
+        oldStatus: existingOrder.status,
+        newStatus: updatedOrder.status,
+        orderNumber: updatedOrder.nomorPesanan
+      });
+
+      // ✅ FALLBACK MODE: Manual refresh if needed
+      if (fallbackModeRef.current) {
+        setTimeout(() => throttledFetchOrders(), 1000);
+      }
+
+      return true;
+
+    } catch (error: any) {
+      logger.error('OrderData', 'Error updating order status:', error);
+      
+      // ✅ REVERT OPTIMISTIC UPDATE on error
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? existingOrder : order
+        )
+      );
+      
+      toast.error(`Gagal mengubah status pesanan: ${error.message || 'Unknown error'}`);
+      return false;
+    }
+  }, [user, orders, addActivity, hasAllDependencies, throttledFetchOrders]);
+
+  // ===== 🚀 FIXED: COMPREHENSIVE UPDATE ORDER FUNCTION =====
+  const updateOrder = useCallback(async (id: string, updatedData: Partial<Order>): Promise<boolean> => {
+    if (!hasAllDependencies || !user) {
+      toast.error('Sistem belum siap, silakan tunggu...');
+      return false;
+    }
+
+    if (!id) {
+      toast.error('ID pesanan tidak valid');
+      return false;
+    }
+
+    const existingOrder = orders.find(order => order.id === id);
+    if (!existingOrder) {
+      toast.error('Pesanan tidak ditemukan');
+      return false;
+    }
+
+    try {
+      logger.info('OrderData', 'Updating order:', { id, updatedData });
+
+      // ✅ CHECK: If only status is being updated, use dedicated status function
+      if (Object.keys(updatedData).length === 1 && updatedData.status) {
+        logger.debug('OrderData', 'Delegating to updateOrderStatus for status-only update');
+        return await updateOrderStatus(id, updatedData.status);
+      }
+
+      // ✅ OPTIMISTIC UPDATE: Update UI immediately for full updates
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === id 
+            ? { ...order, ...updatedData, updatedAt: new Date() }
+            : order
+        )
+      );
+
+      // ✅ FULL UPDATE: For comprehensive order updates
+      logger.debug('OrderData', 'Performing full order update');
+      
+      const dbData = transformOrderToDB(updatedData);
+      const { data, error } = await supabase
+        .from('orders')
+        .update({
+          ...dbData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select('*')
+        .single();
+
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Order not found or access denied');
+      }
+
+      const updatedOrder = transformOrderFromDB(data);
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === id ? updatedOrder : order
+        )
+      );
+
+      // ✅ ACTIVITY LOG for full update
+      if (typeof addActivity === 'function') {
+        try {
+          await addActivity({
+            title: 'Pesanan Diperbarui',
+            description: `Pesanan #${existingOrder.nomorPesanan} telah diperbarui`,
+            type: 'order'
+          });
+        } catch (activityError) {
+          logger.error('OrderData', 'Error adding activity for order update:', activityError);
+        }
+      }
+
+      toast.success(`Pesanan #${existingOrder.nomorPesanan} berhasil diperbarui`);
+      logger.success('OrderData', 'Order updated successfully:', updatedOrder);
+
+      // ✅ FALLBACK MODE: Manual refresh if needed
+      if (fallbackModeRef.current) {
+        setTimeout(() => throttledFetchOrders(), 1000);
+      }
+
+      return true;
+
+    } catch (error: any) {
+      logger.error('OrderData', 'Error updating order:', error);
+      
+      // ✅ REVERT OPTIMISTIC UPDATE on error
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === id ? existingOrder : order
+        )
+      );
+      
+      toast.error(`Gagal memperbarui pesanan: ${error.message || 'Unknown error'}`);
+      return false;
+    }
+  }, [user, orders, addActivity, hasAllDependencies, throttledFetchOrders, updateOrderStatus]);
+
+  // ===== CRUD OPERATIONS - ADD ORDER =====
   const addOrder = useCallback(async (order: NewOrder): Promise<boolean> => {
     if (!hasAllDependencies || !user) {
       toast.error('Sistem belum siap, silakan tunggu...');
@@ -534,7 +750,7 @@ export const useOrderData = (
           }
         }
         
-        // ✅ NEW: If in fallback mode, manually refresh with throttled version
+        // ✅ FALLBACK MODE: Manual refresh if needed
         if (fallbackModeRef.current) {
           setTimeout(() => throttledFetchOrders(), 1000);
         }
@@ -548,36 +764,186 @@ export const useOrderData = (
     }
   }, [user, addActivity, addNotification, hasAllDependencies, throttledFetchOrders]);
 
-  // ✅ Keep other CRUD operations same, just add fallback refresh
-  const updateOrder = useCallback(async (id: string, updatedData: Partial<Order>): Promise<boolean> => {
-    // ... implementation sama seperti sebelumnya
-    // Tambahkan di akhir:
-    if (fallbackModeRef.current) {
-      setTimeout(() => throttledFetchOrders(), 1000);
-    }
-    return true;
-  }, [user, orders, addActivity, addFinancialTransaction, settings, addNotification, hasAllDependencies, throttledFetchOrders]);
-
+  // ===== CRUD OPERATIONS - DELETE ORDER =====
   const deleteOrder = useCallback(async (id: string): Promise<boolean> => {
-    // ... implementation sama seperti sebelumnya  
-    // Tambahkan di akhir:
-    if (fallbackModeRef.current) {
-      setTimeout(() => throttledFetchOrders(), 1000);
+    if (!hasAllDependencies || !user) {
+      toast.error('Sistem belum siap, silakan tunggu...');
+      return false;
     }
-    return true;
+
+    if (!id) {
+      toast.error('ID pesanan tidak valid');
+      return false;
+    }
+
+    const existingOrder = orders.find(order => order.id === id);
+    if (!existingOrder) {
+      toast.error('Pesanan tidak ditemukan');
+      return false;
+    }
+
+    try {
+      logger.info('OrderData', 'Deleting order:', { id, nomorPesanan: existingOrder.nomorPesanan });
+
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      // Remove from state
+      setOrders(prevOrders => prevOrders.filter(order => order.id !== id));
+
+      if (typeof addActivity === 'function') {
+        try {
+          await addActivity({
+            title: 'Pesanan Dihapus',
+            description: `Pesanan #${existingOrder.nomorPesanan} telah dihapus`,
+            type: 'order'
+          });
+        } catch (activityError) {
+          logger.error('OrderData', 'Error adding activity for deletion:', activityError);
+        }
+      }
+
+      toast.success(`Pesanan #${existingOrder.nomorPesanan} berhasil dihapus`);
+      logger.success('OrderData', 'Order deleted successfully:', id);
+
+      if (fallbackModeRef.current) {
+        setTimeout(() => throttledFetchOrders(), 1000);
+      }
+
+      return true;
+    } catch (error: any) {
+      logger.error('OrderData', 'Error deleting order:', error);
+      toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);
+      return false;
+    }
   }, [user, orders, addActivity, hasAllDependencies, throttledFetchOrders]);
 
+  // ===== BULK OPERATIONS =====
   const bulkUpdateStatus = useCallback(async (orderIds: string[], newStatus: string): Promise<boolean> => {
-    // ... implementation sama seperti sebelumnya
-    return true;
+    if (!hasAllDependencies || !user) {
+      toast.error('Sistem belum siap, silakan tunggu...');
+      return false;
+    }
+
+    if (!orderIds.length || !newStatus) {
+      toast.error('Parameter tidak valid');
+      return false;
+    }
+
+    try {
+      logger.info('OrderData', 'Bulk updating status:', { orderIds, newStatus, count: orderIds.length });
+
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .in('id', orderIds)
+        .eq('user_id', user.id);
+
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      // Update state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          orderIds.includes(order.id) 
+            ? { ...order, status: newStatus as Order['status'], updatedAt: new Date() }
+            : order
+        )
+      );
+
+      if (typeof addActivity === 'function') {
+        try {
+          await addActivity({
+            title: 'Status Pesanan Diperbarui Massal',
+            description: `${orderIds.length} pesanan telah diubah statusnya menjadi ${getStatusText(newStatus as Order['status'])}`,
+            type: 'order'
+          });
+        } catch (activityError) {
+          logger.error('OrderData', 'Error adding activity for bulk status update:', activityError);
+        }
+      }
+
+      toast.success(`Status ${orderIds.length} pesanan berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
+      logger.success('OrderData', 'Bulk status update successful:', { count: orderIds.length, newStatus });
+
+      if (fallbackModeRef.current) {
+        setTimeout(() => throttledFetchOrders(), 1000);
+      }
+
+      return true;
+    } catch (error: any) {
+      logger.error('OrderData', 'Error bulk updating status:', error);
+      toast.error(`Gagal mengubah status pesanan: ${error.message || 'Unknown error'}`);
+      return false;
+    }
   }, [user, hasAllDependencies, throttledFetchOrders]);
 
   const bulkDeleteOrders = useCallback(async (orderIds: string[]): Promise<boolean> => {
-    // ... implementation sama seperti sebelumnya
-    return true;
+    if (!hasAllDependencies || !user) {
+      toast.error('Sistem belum siap, silakan tunggu...');
+      return false;
+    }
+
+    if (!orderIds.length) {
+      toast.error('Tidak ada pesanan yang dipilih');
+      return false;
+    }
+
+    try {
+      logger.info('OrderData', 'Bulk deleting orders:', { orderIds, count: orderIds.length });
+
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .in('id', orderIds)
+        .eq('user_id', user.id);
+
+      if (error) {
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      // Remove from state
+      setOrders(prevOrders => prevOrders.filter(order => !orderIds.includes(order.id)));
+
+      if (typeof addActivity === 'function') {
+        try {
+          await addActivity({
+            title: 'Pesanan Dihapus Massal',
+            description: `${orderIds.length} pesanan telah dihapus`,
+            type: 'order'
+          });
+        } catch (activityError) {
+          logger.error('OrderData', 'Error adding activity for bulk deletion:', activityError);
+        }
+      }
+
+      toast.success(`${orderIds.length} pesanan berhasil dihapus`);
+      logger.success('OrderData', 'Bulk deletion successful:', { count: orderIds.length });
+
+      if (fallbackModeRef.current) {
+        setTimeout(() => throttledFetchOrders(), 1000);
+      }
+
+      return true;
+    } catch (error: any) {
+      logger.error('OrderData', 'Error bulk deleting orders:', error);
+      toast.error(`Gagal menghapus pesanan: ${error.message || 'Unknown error'}`);
+      return false;
+    }
   }, [user, hasAllDependencies, throttledFetchOrders]);
 
-  // ===== UTILITY FUNCTIONS ===== (Same as before)
+  // ===== UTILITY FUNCTIONS =====
   const getOrderById = useCallback((id: string): Order | undefined => {
     return orders.find(order => order.id === id);
   }, [orders]);
@@ -615,7 +981,7 @@ export const useOrderData = (
     }
   }, [fetchOrders, isConnected, shouldAttemptConnection, setupSubscription]);
 
-  // ===== EFFECTS ===== (Keep same)
+  // ===== EFFECTS =====
   useEffect(() => {
     isMountedRef.current = true;
     logger.context('OrderData', 'Component mounted');
@@ -688,6 +1054,7 @@ export const useOrderData = (
     isConnected: isConnected || fallbackModeRef.current,
     addOrder,
     updateOrder,
+    updateOrderStatus, // ✅ FIXED: Export dedicated status update function
     deleteOrder,
     refreshData,
     getOrderById,

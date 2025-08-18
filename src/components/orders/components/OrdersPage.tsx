@@ -1,4 +1,4 @@
-// src/components/orders/components/OrdersPage.tsx - Optimized Dependencies (8 → 6) + Logger + Context Debugger
+// src/components/orders/components/OrdersPage.tsx - FIXED STATUS UPDATE INTEGRATION
 
 import React, { useState, useCallback, Suspense, useMemo } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
@@ -86,9 +86,16 @@ const initialState: OrdersPageState = {
 const OrdersPage: React.FC = () => {
   logger.component('OrdersPage', 'Component mounted');
 
-  // ✅ CONTEXTS: Direct usage
+  // ✅ CONTEXTS: Direct usage with destructuring
   const contextValue = useOrder();
-  const { orders, loading, addOrder, updateOrder, deleteOrder } = contextValue;
+  const { 
+    orders, 
+    loading, 
+    addOrder, 
+    updateOrder, 
+    updateOrderStatus, // ✅ FIXED: Extract dedicated status update function
+    deleteOrder 
+  } = contextValue;
 
   // ✅ TEMPLATE INTEGRATION: Enhanced with error handling
   const { getTemplate } = useFollowUpTemplate();
@@ -139,7 +146,7 @@ const OrdersPage: React.FC = () => {
     }
   }), []);
 
-  // ✅ MEMOIZED: Business logic handlers
+  // ✅ 🚀 FIXED: Business logic handlers with proper status update
   const businessHandlers = useMemo(() => ({
     newOrder: () => {
       try {
@@ -185,7 +192,7 @@ const OrdersPage: React.FC = () => {
         const success = await deleteOrder(orderId);
         if (success) {
           logger.success('Order deleted successfully:', orderId);
-          toast.success('Pesanan berhasil dihapus');
+          // Success toast is handled in deleteOrder function
         }
       } catch (error) {
         logger.error('Error deleting order:', error);
@@ -193,6 +200,7 @@ const OrdersPage: React.FC = () => {
       }
     },
 
+    // ✅ 🚀 FIXED: Use dedicated updateOrderStatus function
     statusChange: async (orderId: string, newStatus: string) => {
       try {
         if (!orderId || !newStatus) {
@@ -203,11 +211,20 @@ const OrdersPage: React.FC = () => {
 
         logger.component('OrdersPage', 'Status change requested:', { orderId, newStatus });
 
-        const success = await updateOrder(orderId, { status: newStatus as Order['status'] });
+        // ✅ FIXED: Use the dedicated updateOrderStatus method instead of updateOrder
+        const success = await updateOrderStatus(orderId, newStatus);
+        
         if (success) {
           const order = orders.find(o => o.id === orderId);
-          logger.success('Order status updated:', { orderId, newStatus, orderNumber: order?.nomorPesanan });
-          toast.success(`Status pesanan #${order?.nomorPesanan || orderId} berhasil diubah.`);
+          logger.success('Order status updated via dedicated function:', { 
+            orderId, 
+            newStatus, 
+            orderNumber: order?.nomorPesanan 
+          });
+          // Success toast is already handled in updateOrderStatus function
+        } else {
+          logger.warn('Order status update returned false');
+          toast.error('Gagal mengubah status pesanan');
         }
       } catch (error) {
         logger.error('Error updating status:', error);
@@ -242,11 +259,7 @@ const OrdersPage: React.FC = () => {
             isEdit: isEditingMode, 
             orderId: pageState.editingOrder?.id 
           });
-          toast.success(
-            isEditingMode 
-              ? 'Pesanan berhasil diperbarui.' 
-              : 'Pesanan baru berhasil ditambahkan.'
-          );
+          // Success toast is handled in addOrder/updateOrder functions
           dialogHandlers.closeOrderForm();
         }
       } catch (error) {
@@ -258,7 +271,16 @@ const OrdersPage: React.FC = () => {
         );
       }
     }
-  }), [pageState.editingOrder, orders, updateOrder, addOrder, deleteOrder, uiState, dialogHandlers]);
+  }), [
+    pageState.editingOrder, 
+    orders, 
+    updateOrder, 
+    updateOrderStatus, // ✅ FIXED: Include updateOrderStatus dependency
+    addOrder, 
+    deleteOrder, 
+    uiState, 
+    dialogHandlers
+  ]);
 
   // ✅ ENHANCED: WhatsApp integration with template
   const handleFollowUp = useCallback((order: Order) => {
@@ -351,13 +373,46 @@ const OrdersPage: React.FC = () => {
     logger.debug('Order detail view - feature coming soon');
   }, []);
 
+  // ✅ DEBUG: Test function for status update (development only)
+  const debugStatusUpdate = useCallback(async () => {
+    if (!orders.length) {
+      toast.error('Tidak ada pesanan untuk testing');
+      return;
+    }
+
+    const testOrder = orders[0];
+    const currentStatus = testOrder.status;
+    const newStatus = currentStatus === 'pending' ? 'confirmed' : 'pending';
+    
+    logger.component('OrdersPage', 'Debug status update:', { 
+      orderId: testOrder.id, 
+      from: currentStatus, 
+      to: newStatus 
+    });
+    
+    try {
+      const result = await updateOrderStatus(testOrder.id, newStatus);
+      logger.debug('Debug status update result:', result);
+      
+      if (result) {
+        toast.success(`Debug: Status berhasil diubah dari ${currentStatus} ke ${newStatus}`);
+      } else {
+        toast.error('Debug: Status update gagal');
+      }
+    } catch (error) {
+      logger.error('Debug status update error:', error);
+      toast.error('Debug: Error saat update status');
+    }
+  }, [orders, updateOrderStatus]);
+
   // Log current state for debugging
   logger.debug('OrdersPage render state:', {
     ordersCount: orders.length,
     isLoading: loading,
     selectedOrdersCount: uiState.selectedOrderIds.length,
     dialogsOpen: pageState.dialogs,
-    isEditingOrder: !!pageState.editingOrder
+    isEditingOrder: !!pageState.editingOrder,
+    hasUpdateOrderStatus: typeof updateOrderStatus === 'function'
   });
 
   // ✅ EARLY RETURN: Loading state
@@ -371,7 +426,7 @@ const OrdersPage: React.FC = () => {
       {/* ✅ DEBUG: Context debugger - only in development */}
       {import.meta.env.DEV && <ContextDebugger />}
       
-      {/* ✅ ENHANCED: Header with template integration info */}
+      {/* ✅ ENHANCED: Header with template integration info and debug button */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
@@ -386,6 +441,17 @@ const OrdersPage: React.FC = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          {/* ✅ DEBUG: Debug button for development */}
+          {import.meta.env.DEV && (
+            <Button
+              onClick={debugStatusUpdate}
+              variant="outline"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition-all duration-200"
+            >
+              🐛 Debug Status
+            </Button>
+          )}
+          
           <Button
             onClick={() => {
               logger.component('OrdersPage', 'Template manager button clicked');
@@ -432,7 +498,7 @@ const OrdersPage: React.FC = () => {
           loading={loading}
           onEditOrder={businessHandlers.editOrder}
           onDeleteOrder={businessHandlers.deleteOrder}
-          onStatusChange={businessHandlers.statusChange}
+          onStatusChange={businessHandlers.statusChange} // ✅ FIXED: This now uses updateOrderStatus
           onNewOrder={businessHandlers.newOrder}
           onFollowUp={handleFollowUp}
           onViewDetail={handleViewDetail}

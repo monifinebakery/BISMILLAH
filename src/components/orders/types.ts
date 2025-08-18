@@ -1,4 +1,4 @@
-// src/components/orders/types.ts - Enhanced with Context Loading States
+// src/components/orders/types.ts - Enhanced with Fixed Status Update Support
 
 export interface OrderItem {
   id: string;
@@ -89,6 +89,7 @@ export interface EnhancedOrderContextType {
   // CRUD operations
   addOrder: (order: NewOrder) => Promise<boolean>;
   updateOrder: (id: string, updatedData: Partial<Order>) => Promise<boolean>;
+  updateOrderStatus: (id: string, newStatus: string) => Promise<boolean>; // ✅ FIXED: Added dedicated status update
   deleteOrder: (id: string) => Promise<boolean>;
   
   // Utility functions
@@ -102,13 +103,14 @@ export interface EnhancedOrderContextType {
   bulkDeleteOrders: (orderIds: string[]) => Promise<boolean>;
 }
 
-// ✅ ENHANCED: Hook return type
+// ✅ ENHANCED: Hook return type with dedicated status update
 export interface UseOrderDataReturn {
   orders: Order[];
   loading: boolean;
   isConnected: boolean;
   addOrder: (order: NewOrder) => Promise<boolean>;
   updateOrder: (id: string, updatedData: Partial<Order>) => Promise<boolean>;
+  updateOrderStatus: (id: string, newStatus: string) => Promise<boolean>; // ✅ FIXED: Added
   deleteOrder: (id: string) => Promise<boolean>;
   refreshData: () => Promise<void>;
   getOrderById: (id: string) => Order | undefined;

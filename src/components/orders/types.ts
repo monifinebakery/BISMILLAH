@@ -1,4 +1,4 @@
-// src/components/orders/types.ts - Enhanced with Fixed Status Update Support
+// src/components/orders/types.ts - FIXED EnhancedOrderContextType
 
 export interface OrderItem {
   id: string;
@@ -16,10 +16,10 @@ export interface OrderItem {
 export interface Order {
   id: string;
   userId: string;
-  nomorPesanan: string; // ✅ Added: Order number field
+  nomorPesanan: string;
   createdAt: Date;
   updatedAt: Date;
-  tanggal: Date; // ✅ Added: Order date field
+  tanggal: Date;
   
   // Customer Info
   namaPelanggan: string;
@@ -54,7 +54,7 @@ export interface NewOrder {
   subtotal?: number;
   pajak?: number;
   totalPesanan?: number;
-  tanggal?: Date; // ✅ Added: Optional order date
+  tanggal?: Date;
 }
 
 export type OrderStatus = 
@@ -75,7 +75,7 @@ export interface ContextLoadingStates {
   notification: boolean;
 }
 
-// ✅ ENHANCED: Order Context Type with loading states
+// ✅ FIXED: Enhanced Order Context Type with updateOrderStatus
 export interface EnhancedOrderContextType {
   // Core data
   orders: Order[];
@@ -84,12 +84,12 @@ export interface EnhancedOrderContextType {
   // Connection status
   isConnected: boolean;
   contextReady: boolean;
-  contextLoadingStates: ContextLoadingStates;
+  contextLoadingStates?: ContextLoadingStates; // Made optional since OrderProvider doesn't use it
   
-  // CRUD operations
+  // ✅ FIXED: CRUD operations with updateOrderStatus
   addOrder: (order: NewOrder) => Promise<boolean>;
   updateOrder: (id: string, updatedData: Partial<Order>) => Promise<boolean>;
-  updateOrderStatus: (id: string, newStatus: string) => Promise<boolean>; // ✅ FIXED: Added dedicated status update
+  updateOrderStatus: (id: string, newStatus: string) => Promise<boolean>; // ✅ MUST HAVE THIS!
   deleteOrder: (id: string) => Promise<boolean>;
   
   // Utility functions
@@ -101,6 +101,14 @@ export interface EnhancedOrderContextType {
   // Bulk operations
   bulkUpdateStatus: (orderIds: string[], newStatus: string) => Promise<boolean>;
   bulkDeleteOrders: (orderIds: string[]) => Promise<boolean>;
+  
+  // ✅ Additional utilities (that OrderProvider provides)
+  searchOrders: (searchTerm: string) => Order[];
+  getTotalRevenue: () => number;
+  getPendingOrdersCount: () => number;
+  getProcessingOrdersCount: () => number;
+  getCompletedOrdersCount: () => number;
+  getCancelledOrdersCount: () => number;
 }
 
 // ✅ ENHANCED: Hook return type with dedicated status update
@@ -110,7 +118,7 @@ export interface UseOrderDataReturn {
   isConnected: boolean;
   addOrder: (order: NewOrder) => Promise<boolean>;
   updateOrder: (id: string, updatedData: Partial<Order>) => Promise<boolean>;
-  updateOrderStatus: (id: string, newStatus: string) => Promise<boolean>; // ✅ FIXED: Added
+  updateOrderStatus: (id: string, newStatus: string) => Promise<boolean>; // ✅ MUST HAVE THIS!
   deleteOrder: (id: string) => Promise<boolean>;
   refreshData: () => Promise<void>;
   getOrderById: (id: string) => Order | undefined;
@@ -120,7 +128,7 @@ export interface UseOrderDataReturn {
   bulkDeleteOrders: (orderIds: string[]) => Promise<boolean>;
 }
 
-// ✅ UI State Types
+// ✅ UI State Types with filters
 export interface OrderFilters {
   search: string;
   status: string | 'all';
@@ -128,6 +136,8 @@ export interface OrderFilters {
   dateTo: Date | null;
   recipeFilter?: string;
   itemTypeFilter?: 'all' | 'recipe' | 'custom';
+  minAmount?: number | null; // ✅ Added for useOrderUI compatibility
+  maxAmount?: number | null; // ✅ Added for useOrderUI compatibility
 }
 
 export interface UseOrderUIReturn {
@@ -135,6 +145,7 @@ export interface UseOrderUIReturn {
   currentOrders: Order[];
   totalItems: number;
   totalPages: number;
+  filteredOrders: Order[]; // ✅ Added for useOrderUI compatibility
   
   // Pagination
   currentPage: number;
@@ -157,6 +168,7 @@ export interface UseOrderUIReturn {
   toggleSelectAll: (orders: Order[]) => void;
   clearSelection: () => void;
   toggleSelectionMode: () => void;
+  getSelectedOrders?: (allOrders: Order[]) => Order[]; // ✅ Added for useOrderUI compatibility
 }
 
 // Database format (snake_case)

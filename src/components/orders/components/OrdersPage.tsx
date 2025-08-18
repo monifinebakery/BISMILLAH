@@ -22,6 +22,10 @@ import { logger } from '@/utils/logger';
 // ✅ DEBUG: Context debugger for development
 import ContextDebugger from '@/components/debug/ContextDebugger';
 
+// ✅ TAMBAHKAN IMPORTS: Untuk fallback langsung ke Supabase dan getStatusText
+import { supabase } from '@/integrations/supabase/client';
+import { getStatusText } from '../constants'; // Pastikan path ini benar
+
 // ✅ OPTIMIZED: Lazy loading with better error boundaries
 const OrderTable = React.lazy(() => 
   import('./OrderTable').catch((error) => {
@@ -94,7 +98,8 @@ const OrdersPage: React.FC = () => {
     addOrder, 
     updateOrder, 
     updateOrderStatus, // ✅ FIXED: Extract dedicated status update function
-    deleteOrder 
+    deleteOrder,
+    refreshData // ✅ TAMBAHKAN: Untuk refresh manual jika diperlukan
   } = contextValue;
 
   // ✅ TEMPLATE INTEGRATION: Enhanced with error handling
@@ -200,7 +205,7 @@ const OrdersPage: React.FC = () => {
       }
     },
 
-    // ✅ 🚀 FIXED: Use dedicated updateOrderStatus function
+    // ✅ 🚀 FIXED: Use dedicated updateOrderStatus function with fallbacks
     statusChange: async (orderId: string, newStatus: string) => {
       try {
         if (!orderId || !newStatus) {
@@ -211,24 +216,93 @@ const OrdersPage: React.FC = () => {
 
         logger.component('OrdersPage', 'Status change requested:', { orderId, newStatus });
 
-        // ✅ FIXED: Use the dedicated updateOrderStatus method instead of updateOrder
-        const success = await updateOrderStatus(orderId, newStatus);
-        
-        if (success) {
-          const order = orders.find(o => o.id === orderId);
-          logger.success('Order status updated via dedicated function:', { 
-            orderId, 
-            newStatus, 
-            orderNumber: order?.nomorPesanan 
-          });
-          // Success toast is already handled in updateOrderStatus function
+        // ✅ STEP 1: Try updateOrderStatus if available
+        if (typeof contextValue.updateOrderStatus === 'function') {
+          logger.debug('Using contextValue.updateOrderStatus');
+          const success = await contextValue.updateOrderStatus(orderId, newStatus);
+          
+          if (success) {
+            const order = orders.find(o => o.id === orderId);
+            logger.success('Status updated via updateOrderStatus:', { 
+              orderId, 
+              newStatus, 
+              orderNumber: order?.nomorPesanan 
+            });
+            return; // Success toast handled by updateOrderStatus
+          } else {
+            logger.warn('updateOrderStatus returned false, trying fallback');
+          }
         } else {
-          logger.warn('Order status update returned false');
-          toast.error('Gagal mengubah status pesanan');
+          logger.warn('updateOrderStatus not available, trying fallback');
         }
+
+        // ✅ STEP 2: Try updateOrder fallback
+        if (typeof contextValue.updateOrder === 'function') {
+          logger.debug('Using contextValue.updateOrder fallback');
+          const success = await contextValue.updateOrder(orderId, { status: newStatus as Order['status'] });
+          
+          if (success) {
+            const order = orders.find(o => o.id === orderId);
+            logger.success('Status updated via updateOrder fallback:', { 
+              orderId, 
+              newStatus, 
+              orderNumber: order?.nomorPesanan 
+            });
+            toast.success(`Status pesanan berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
+            return;
+          } else {
+            logger.warn('updateOrder returned false, trying direct Supabase');
+          }
+        }
+
+        // ✅ STEP 3: Direct Supabase call (most reliable)
+        logger.debug('Using direct Supabase call');
+        
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user) {
+          throw new Error('User not authenticated');
+        }
+
+        const { data, error } = await supabase
+          .from('orders')
+          .update({ 
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId)
+          .eq('user_id', user.user.id)
+          .select('nomor_pesanan')
+          .single();
+
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        if (!data) {
+          throw new Error('Order not found or access denied');
+        }
+
+        logger.success('Status updated via direct Supabase:', { 
+          orderId, 
+          newStatus, 
+          orderNumber: data.nomor_pesanan 
+        });
+        
+        toast.success(`Status pesanan #${data.nomor_pesanan} berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
+        
+        // ✅ STEP 4: Trigger manual refresh
+        if (typeof contextValue.refreshData === 'function') {
+          logger.debug('Triggering manual refresh');
+          await contextValue.refreshData();
+        } else {
+          logger.warn('refreshData not available, page might need manual refresh');
+          // Fallback: reload page
+          setTimeout(() => window.location.reload(), 1000);
+        }
+
       } catch (error) {
         logger.error('Error updating status:', error);
-        toast.error('Gagal mengubah status pesanan');
+        toast.error(`Gagal mengubah status pesanan: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
 
@@ -279,7 +353,8 @@ const OrdersPage: React.FC = () => {
     addOrder, 
     deleteOrder, 
     uiState, 
-    dialogHandlers
+    dialogHandlers,
+    refreshData // ✅ TAMBAHKAN: Dependency untuk refreshData
   ]);
 
   // ✅ ENHANCED: WhatsApp integration with template
@@ -318,7 +393,7 @@ const OrdersPage: React.FC = () => {
       // Format phone number
       const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
       
-      // Create WhatsApp URL
+      // Create WhatsApp URL - Fix extra space in URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
       
       // Open WhatsApp
@@ -498,7 +573,7 @@ const OrdersPage: React.FC = () => {
           loading={loading}
           onEditOrder={businessHandlers.editOrder}
           onDeleteOrder={businessHandlers.deleteOrder}
-          onStatusChange={businessHandlers.statusChange} // ✅ FIXED: This now uses updateOrderStatus
+          onStatusChange={businessHandlers.statusChange} // ✅ FIXED: This now uses the enhanced updateOrderStatus
           onNewOrder={businessHandlers.newOrder}
           onFollowUp={handleFollowUp}
           onViewDetail={handleViewDetail}
@@ -516,5 +591,56 @@ const OrdersPage: React.FC = () => {
     </div>
   );
 };
+
+// ✅ CONSOLE TEST: Jalankan ini di browser console untuk test langsung
+// window.testOrderStatusUpdate = async () => {
+//   try {
+//     console.log('🔍 Testing order status update...');
+    
+//     // Get user
+//     const { data: user } = await supabase.auth.getUser();
+//     console.log('User ID:', user.user?.id);
+    
+//     // Get first order
+//     const { data: orders } = await supabase
+//       .from('orders')
+//       .select('id, status, nomor_pesanan')
+//       .eq('user_id', user.user.id)
+//       .limit(1);
+    
+//     if (!orders || orders.length === 0) {
+//       console.log('❌ No orders found');
+//       return;
+//     }
+    
+//     const order = orders[0];
+//     const newStatus = order.status === 'pending' ? 'confirmed' : 'pending';
+    
+//     console.log(`Testing: ${order.status} → ${newStatus} for order ${order.nomor_pesanan}`);
+    
+//     // Direct update
+//     const { data, error } = await supabase
+//       .from('orders')
+//       .update({ status: newStatus })
+//       .eq('id', order.id)
+//       .eq('user_id', user.user.id)
+//       .select()
+//       .single();
+    
+//     if (error) {
+//       console.log('❌ Update failed:', error);
+//       return;
+//     }
+    
+//     console.log('✅ Update successful:', data);
+//     console.log('🔄 Refreshing page...');
+    
+//     // Refresh page to see changes
+//     window.location.reload();
+    
+//   } catch (error) {
+//     console.log('❌ Test failed:', error);
+//   }
+// };
 
 export default OrdersPage;

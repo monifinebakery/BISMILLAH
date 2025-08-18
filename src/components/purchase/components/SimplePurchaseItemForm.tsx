@@ -331,7 +331,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 onPaste={handlePasteGuard(true)}
                 onChange={(e) => {
                   handleNumericChange('kuantitas', e.target.value);
-                  requestAnimationFrame(() => qtyRef.current?.focus());
+                  requestAnimationFrame(() => {
+                    if (qtyRef.current) {
+                      qtyRef.current.focus();
+                    }
+                  });
                 }}
                 placeholder="0"
                 className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -353,7 +357,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                 onPaste={handlePasteGuard(true)}
                 onChange={(e) => {
                   handleNumericChange('totalBayar', e.target.value);
-                  requestAnimationFrame(() => payRef.current?.focus());
+                  requestAnimationFrame(() => {
+                    if (payRef.current) {
+                      payRef.current.focus();
+                    }
+                  });
                 }}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
@@ -434,7 +442,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                       onPaste={handlePasteGuard(false)}
                       onChange={(e) => {
                         handleNumericChange('jumlahKemasan', e.target.value);
-                        requestAnimationFrame(() => packQtyRef.current?.focus());
+                        requestAnimationFrame(() => {
+                          if (packQtyRef.current) {
+                            packQtyRef.current.focus();
+                          }
+                        });
                       }}
                       placeholder="1"
                       className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -470,7 +482,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                         onPaste={handlePasteGuard(true)}
                         onChange={(e) => {
                           handleNumericChange('isiPerKemasan', e.target.value);
-                          requestAnimationFrame(() => perPackRef.current?.focus());
+                          requestAnimationFrame(() => {
+                            if (perPackRef.current) {
+                              perPackRef.current.focus();
+                            }
+                          });
                         }}
                         placeholder="500"
                         className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -492,7 +508,11 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
                         onPaste={handlePasteGuard(true)}
                         onChange={(e) => {
                           handleNumericChange('hargaTotalBeliKemasan', e.target.value);
-                          requestAnimationFrame(() => totalNotaRef.current?.focus());
+                          requestAnimationFrame(() => {
+                            if (totalNotaRef.current) {
+                              totalNotaRef.current.focus();
+                            }
+                          });
                         }}
                         className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                         placeholder="25000"

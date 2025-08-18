@@ -197,10 +197,14 @@ const StatCard: React.FC<{
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-1.5 border-gray-200 hover:border-orange-300 transition-colors duration-300 cursor-pointer relative group h-full">
-      <CardContent className="p-3 sm:p-4 lg:p-5 h-full">
-        {/* Layout berbeda untuk mobile vs desktop */}
-        <div className="h-full flex flex-col">
+    <Card className="bg-white border-0 relative group h-full">
+      <CardContent className="p-3 sm:p-4 lg:p-5 h-full relative">
+        {/* Inset Border Effect */}
+        <div className="absolute inset-0 rounded-lg border-2 border-orange-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+        <div className="absolute inset-0 rounded-lg border border-gray-200"></div>
+        
+        {/* Content */}
+        <div className="relative h-full flex flex-col">
           {/* 🎨 Icon dan Trend - Top row */}
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <div className="border-2 border-orange-200 p-2 sm:p-2.5 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
@@ -255,17 +259,14 @@ const StatCard: React.FC<{
           )}
         </div>
 
-        {/* Hover Accent */}
-        <div className="absolute inset-0 rounded-lg border-2 border-transparent group-hover:border-orange-100 transition-colors duration-300 pointer-events-none"></div>
+        {/* Mobile Tooltip */}
+        {tooltip && isMobile && (
+          <div className="absolute inset-x-0 top-full mt-2 mx-4 p-3 bg-gray-900 text-white text-sm rounded-lg border-2 border-gray-700 z-50 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-900 border-l-2 border-t-2 border-gray-700 rotate-45"></div>
+            <p className="leading-relaxed">{tooltip}</p>
+          </div>
+        )}
       </CardContent>
-
-      {/* Mobile Tooltip */}
-      {tooltip && isMobile && (
-        <div className="absolute inset-x-0 top-full mt-2 mx-4 p-3 bg-gray-900 text-white text-sm rounded-lg border-2 border-gray-700 z-50 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-900 border-l-2 border-t-2 border-gray-700 rotate-45"></div>
-          <p className="leading-relaxed">{tooltip}</p>
-        </div>
-      )}
     </Card>
   );
 

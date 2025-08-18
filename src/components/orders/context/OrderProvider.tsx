@@ -1,4 +1,4 @@
-// src/components/orders/context/OrderProvider.tsx - COMPLETE FIXED VERSION (No Hook Order Issues)
+// src/components/orders/context/OrderProvider.tsx - FIXED WITH updateOrderStatus
 
 import React, { ReactNode, useMemo, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@/utils/logger';
@@ -62,14 +62,12 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   
   // ✅ FIX: All useCallback hooks MUST be called regardless of conditions
   const addActivityDirect = useCallback(async (activity: { title: string; description: string; type: string }) => {
-    // Check conditions INSIDE the callback, not before creating it
     if (!userId) {
       logger.warn('OrderProvider', 'Cannot add activity - no user');
       return;
     }
     
     try {
-      // supabase client is statically imported above
       const { error } = await supabase.from('activities').insert({
         user_id: userId,
         title: activity.title,
@@ -96,17 +94,15 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         duration: 3000 
       });
     }
-  }, [userId]); // Stable dependency
+  }, [userId]);
 
   const addTransactionDirect = useCallback(async (transaction: any) => {
-    // Check conditions INSIDE the callback
     if (!userId) {
       logger.warn('OrderProvider', 'Cannot add transaction - no user');
       return;
     }
     
     try {
-      // supabase client is statically imported above
       const { error } = await supabase.from('financial_transactions').insert({
         user_id: userId,
         type: transaction.type || 'income',
@@ -139,7 +135,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   }, [userId]);
 
   const addNotificationDirect = useCallback(async (notification: any) => {
-    // Check conditions INSIDE the callback
     if (!userId) {
       logger.warn('OrderProvider', 'Cannot add notification - no user');
       showToastNotification(notification);
@@ -147,7 +142,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
     
     try {
-      // supabase client is statically imported above
       const { error } = await supabase.from('notifications').insert({
         user_id: userId,
         title: notification.title || '',
@@ -175,7 +169,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
   }, [userId]);
 
-  // ✅ FIX: useMemo must also be called unconditionally
   const settingsDirect = useMemo(() => ({
     financialCategories: {
       income: ['Penjualan Produk', 'Penjualan Jasa', 'Lainnya'],
@@ -184,7 +177,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     currency: 'IDR',
     taxRate: 0.11,
     timezone: 'Asia/Jakarta'
-  }), []); // Never changes
+  }), []);
 
   // ✅ FIX: useOrderData MUST always be called
   const orderData = useOrderData(
@@ -195,8 +188,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     addNotificationDirect
   );
 
-  // ✅ FIX: All useEffect hooks MUST be called in same order
-  // Effect 1: Track callbacks readiness
+  // ✅ Effects
   useEffect(() => {
     if (userId) {
       callbacksReadyRef.current = true;
@@ -207,7 +199,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
   }, [userId]);
 
-  // Effect 2: Component mount/unmount
   useEffect(() => {
     mountedRef.current = true;
     logger.context('OrderProvider', 'Component mounted');
@@ -218,7 +209,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // Effect 3: Debug logging
   useEffect(() => {
     logger.context('OrderProvider', 'State update', {
       hasUser: !!user,
@@ -226,14 +216,13 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       callbacksReady: callbacksReadyRef.current,
       orderCount: orderData.orders.length,
       loading: orderData.loading,
-      connected: orderData.isConnected
+      connected: orderData.isConnected,
+      hasUpdateOrderStatus: typeof orderData.updateOrderStatus === 'function' // ✅ DEBUG LOG
     });
-  }, [userId, orderData.orders.length, orderData.loading, orderData.isConnected]);
+  }, [userId, orderData.orders.length, orderData.loading, orderData.isConnected, orderData.updateOrderStatus]);
 
-  // ✅ Computed values (not hooks, safe to compute conditionally)
   const isReady = !!(user && callbacksReadyRef.current);
 
-  // ✅ FIX: useMemo for utility methods - must be called unconditionally
   const utilityMethods = useMemo(() => ({
     getOrdersByDateRange: (startDate: Date, endDate: Date): Order[] => {
       try {
@@ -297,7 +286,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     }
   }), [orderData.orders]);
 
-  // ✅ FIX: Create stable empty context functions
+  // ✅ FIXED: Create stable empty context methods WITH updateOrderStatus
   const emptyContextMethods = useMemo(() => ({
     addOrder: async () => {
       logger.warn('OrderProvider', 'addOrder called before ready');
@@ -306,6 +295,12 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     },
     updateOrder: async () => {
       logger.warn('OrderProvider', 'updateOrder called before ready');
+      toast.error('Sistem belum siap');
+      return false;
+    },
+    // ✅ FIXED: Add updateOrderStatus to empty methods
+    updateOrderStatus: async () => {
+      logger.warn('OrderProvider', 'updateOrderStatus called before ready');
       toast.error('Sistem belum siap');
       return false;
     },
@@ -338,10 +333,8 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     getCancelledOrdersCount: () => 0,
   }), []);
 
-  // ✅ FIX: Final context value - useMemo must be called unconditionally
+  // ✅ FIXED: Final context value with updateOrderStatus
   const contextValue = useMemo(() => {
-    // We can RETURN different values based on conditions
-    // but the useMemo itself must always be called
     if (!isReady) {
       logger.debug('OrderProvider', 'Context not ready, returning empty state');
       return {
@@ -353,16 +346,17 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       };
     }
 
-    // Return full context when ready
+    // ✅ FIXED: Return full context with updateOrderStatus
     const fullContext = {
       // Core data
       orders: orderData.orders,
       loading: orderData.loading,
       isConnected: orderData.isConnected,
       
-      // CRUD operations
+      // ✅ FIXED: CRUD operations including updateOrderStatus
       addOrder: orderData.addOrder,
       updateOrder: orderData.updateOrder,
+      updateOrderStatus: orderData.updateOrderStatus, // ✅ THIS WAS MISSING!
       deleteOrder: orderData.deleteOrder,
       
       // Bulk operations
@@ -392,18 +386,19 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       orderCount: orderData.orders.length,
       loading: fullContext.loading,
       connected: fullContext.isConnected,
+      hasUpdateOrderStatus: typeof fullContext.updateOrderStatus === 'function', // ✅ DEBUG
       timestamp: new Date().toISOString()
     });
 
     return fullContext;
   }, [
-    // ✅ FIX: Stable dependency list
     isReady,
     orderData.orders,
     orderData.loading,
     orderData.isConnected,
     orderData.addOrder,
     orderData.updateOrder,
+    orderData.updateOrderStatus, // ✅ FIXED: Add to dependencies
     orderData.deleteOrder,
     orderData.bulkUpdateStatus,
     orderData.bulkDeleteOrders,
@@ -415,7 +410,6 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     userId
   ]);
 
-  // ✅ ALWAYS return the same JSX structure
   return (
     <FollowUpTemplateProvider>
       <OrderContext.Provider value={contextValue}>

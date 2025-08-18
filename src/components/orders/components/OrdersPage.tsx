@@ -1,4 +1,4 @@
-// src/components/orders/components/OrdersPage.tsx - Optimized Dependencies (8 → 6) + Logger + Context Debugger
+// src/components/orders/components/OrdersPage.tsx - FIXED STATUS UPDATE INTEGRATION
 
 import React, { useState, useCallback, Suspense, useMemo } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
@@ -21,6 +21,10 @@ import { logger } from '@/utils/logger';
 
 // ✅ DEBUG: Context debugger for development
 import ContextDebugger from '@/components/debug/ContextDebugger';
+
+// ✅ TAMBAHKAN IMPORTS: Untuk fallback langsung ke Supabase dan getStatusText
+import { supabase } from '@/integrations/supabase/client';
+import { getStatusText } from '../constants'; // Pastikan path ini benar
 
 // ✅ OPTIMIZED: Lazy loading with better error boundaries
 const OrderTable = React.lazy(() => 
@@ -86,9 +90,17 @@ const initialState: OrdersPageState = {
 const OrdersPage: React.FC = () => {
   logger.component('OrdersPage', 'Component mounted');
 
-  // ✅ CONTEXTS: Direct usage
+  // ✅ CONTEXTS: Direct usage with destructuring
   const contextValue = useOrder();
-  const { orders, loading, addOrder, updateOrder, deleteOrder } = contextValue;
+  const { 
+    orders, 
+    loading, 
+    addOrder, 
+    updateOrder, 
+    updateOrderStatus, // ✅ FIXED: Extract dedicated status update function
+    deleteOrder,
+    refreshData // ✅ TAMBAHKAN: Untuk refresh manual jika diperlukan
+  } = contextValue;
 
   // ✅ TEMPLATE INTEGRATION: Enhanced with error handling
   const { getTemplate } = useFollowUpTemplate();
@@ -139,7 +151,7 @@ const OrdersPage: React.FC = () => {
     }
   }), []);
 
-  // ✅ MEMOIZED: Business logic handlers
+  // ✅ 🚀 FIXED: Business logic handlers with proper status update
   const businessHandlers = useMemo(() => ({
     newOrder: () => {
       try {
@@ -185,7 +197,7 @@ const OrdersPage: React.FC = () => {
         const success = await deleteOrder(orderId);
         if (success) {
           logger.success('Order deleted successfully:', orderId);
-          toast.success('Pesanan berhasil dihapus');
+          // Success toast is handled in deleteOrder function
         }
       } catch (error) {
         logger.error('Error deleting order:', error);
@@ -193,6 +205,7 @@ const OrdersPage: React.FC = () => {
       }
     },
 
+    // ✅ 🚀 FIXED: Use dedicated updateOrderStatus function with fallbacks
     statusChange: async (orderId: string, newStatus: string) => {
       try {
         if (!orderId || !newStatus) {
@@ -203,15 +216,93 @@ const OrdersPage: React.FC = () => {
 
         logger.component('OrdersPage', 'Status change requested:', { orderId, newStatus });
 
-        const success = await updateOrder(orderId, { status: newStatus as Order['status'] });
-        if (success) {
-          const order = orders.find(o => o.id === orderId);
-          logger.success('Order status updated:', { orderId, newStatus, orderNumber: order?.nomorPesanan });
-          toast.success(`Status pesanan #${order?.nomorPesanan || orderId} berhasil diubah.`);
+        // ✅ STEP 1: Try updateOrderStatus if available
+        if (typeof contextValue.updateOrderStatus === 'function') {
+          logger.debug('Using contextValue.updateOrderStatus');
+          const success = await contextValue.updateOrderStatus(orderId, newStatus);
+          
+          if (success) {
+            const order = orders.find(o => o.id === orderId);
+            logger.success('Status updated via updateOrderStatus:', { 
+              orderId, 
+              newStatus, 
+              orderNumber: order?.nomorPesanan 
+            });
+            return; // Success toast handled by updateOrderStatus
+          } else {
+            logger.warn('updateOrderStatus returned false, trying fallback');
+          }
+        } else {
+          logger.warn('updateOrderStatus not available, trying fallback');
         }
+
+        // ✅ STEP 2: Try updateOrder fallback
+        if (typeof contextValue.updateOrder === 'function') {
+          logger.debug('Using contextValue.updateOrder fallback');
+          const success = await contextValue.updateOrder(orderId, { status: newStatus as Order['status'] });
+          
+          if (success) {
+            const order = orders.find(o => o.id === orderId);
+            logger.success('Status updated via updateOrder fallback:', { 
+              orderId, 
+              newStatus, 
+              orderNumber: order?.nomorPesanan 
+            });
+            toast.success(`Status pesanan berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
+            return;
+          } else {
+            logger.warn('updateOrder returned false, trying direct Supabase');
+          }
+        }
+
+        // ✅ STEP 3: Direct Supabase call (most reliable)
+        logger.debug('Using direct Supabase call');
+        
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user) {
+          throw new Error('User not authenticated');
+        }
+
+        const { data, error } = await supabase
+          .from('orders')
+          .update({ 
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId)
+          .eq('user_id', user.user.id)
+          .select('nomor_pesanan')
+          .single();
+
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        if (!data) {
+          throw new Error('Order not found or access denied');
+        }
+
+        logger.success('Status updated via direct Supabase:', { 
+          orderId, 
+          newStatus, 
+          orderNumber: data.nomor_pesanan 
+        });
+        
+        toast.success(`Status pesanan #${data.nomor_pesanan} berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
+        
+        // ✅ STEP 4: Trigger manual refresh
+        if (typeof contextValue.refreshData === 'function') {
+          logger.debug('Triggering manual refresh');
+          await contextValue.refreshData();
+        } else {
+          logger.warn('refreshData not available, page might need manual refresh');
+          // Fallback: reload page
+          setTimeout(() => window.location.reload(), 1000);
+        }
+
       } catch (error) {
         logger.error('Error updating status:', error);
-        toast.error('Gagal mengubah status pesanan');
+        toast.error(`Gagal mengubah status pesanan: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     },
 
@@ -242,11 +333,7 @@ const OrdersPage: React.FC = () => {
             isEdit: isEditingMode, 
             orderId: pageState.editingOrder?.id 
           });
-          toast.success(
-            isEditingMode 
-              ? 'Pesanan berhasil diperbarui.' 
-              : 'Pesanan baru berhasil ditambahkan.'
-          );
+          // Success toast is handled in addOrder/updateOrder functions
           dialogHandlers.closeOrderForm();
         }
       } catch (error) {
@@ -258,7 +345,17 @@ const OrdersPage: React.FC = () => {
         );
       }
     }
-  }), [pageState.editingOrder, orders, updateOrder, addOrder, deleteOrder, uiState, dialogHandlers]);
+  }), [
+    pageState.editingOrder, 
+    orders, 
+    updateOrder, 
+    updateOrderStatus, // ✅ FIXED: Include updateOrderStatus dependency
+    addOrder, 
+    deleteOrder, 
+    uiState, 
+    dialogHandlers,
+    refreshData // ✅ TAMBAHKAN: Dependency untuk refreshData
+  ]);
 
   // ✅ ENHANCED: WhatsApp integration with template
   const handleFollowUp = useCallback((order: Order) => {
@@ -296,7 +393,7 @@ const OrdersPage: React.FC = () => {
       // Format phone number
       const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
       
-      // Create WhatsApp URL
+      // Create WhatsApp URL - Fix extra space in URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
       
       // Open WhatsApp
@@ -351,13 +448,46 @@ const OrdersPage: React.FC = () => {
     logger.debug('Order detail view - feature coming soon');
   }, []);
 
+  // ✅ DEBUG: Test function for status update (development only)
+  const debugStatusUpdate = useCallback(async () => {
+    if (!orders.length) {
+      toast.error('Tidak ada pesanan untuk testing');
+      return;
+    }
+
+    const testOrder = orders[0];
+    const currentStatus = testOrder.status;
+    const newStatus = currentStatus === 'pending' ? 'confirmed' : 'pending';
+    
+    logger.component('OrdersPage', 'Debug status update:', { 
+      orderId: testOrder.id, 
+      from: currentStatus, 
+      to: newStatus 
+    });
+    
+    try {
+      const result = await updateOrderStatus(testOrder.id, newStatus);
+      logger.debug('Debug status update result:', result);
+      
+      if (result) {
+        toast.success(`Debug: Status berhasil diubah dari ${currentStatus} ke ${newStatus}`);
+      } else {
+        toast.error('Debug: Status update gagal');
+      }
+    } catch (error) {
+      logger.error('Debug status update error:', error);
+      toast.error('Debug: Error saat update status');
+    }
+  }, [orders, updateOrderStatus]);
+
   // Log current state for debugging
   logger.debug('OrdersPage render state:', {
     ordersCount: orders.length,
     isLoading: loading,
     selectedOrdersCount: uiState.selectedOrderIds.length,
     dialogsOpen: pageState.dialogs,
-    isEditingOrder: !!pageState.editingOrder
+    isEditingOrder: !!pageState.editingOrder,
+    hasUpdateOrderStatus: typeof updateOrderStatus === 'function'
   });
 
   // ✅ EARLY RETURN: Loading state
@@ -371,7 +501,7 @@ const OrdersPage: React.FC = () => {
       {/* ✅ DEBUG: Context debugger - only in development */}
       {import.meta.env.DEV && <ContextDebugger />}
       
-      {/* ✅ ENHANCED: Header with template integration info */}
+      {/* ✅ ENHANCED: Header with template integration info and debug button */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
@@ -386,6 +516,17 @@ const OrdersPage: React.FC = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          {/* ✅ DEBUG: Debug button for development */}
+          {import.meta.env.DEV && (
+            <Button
+              onClick={debugStatusUpdate}
+              variant="outline"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition-all duration-200"
+            >
+              🐛 Debug Status
+            </Button>
+          )}
+          
           <Button
             onClick={() => {
               logger.component('OrdersPage', 'Template manager button clicked');
@@ -432,7 +573,7 @@ const OrdersPage: React.FC = () => {
           loading={loading}
           onEditOrder={businessHandlers.editOrder}
           onDeleteOrder={businessHandlers.deleteOrder}
-          onStatusChange={businessHandlers.statusChange}
+          onStatusChange={businessHandlers.statusChange} // ✅ FIXED: This now uses the enhanced updateOrderStatus
           onNewOrder={businessHandlers.newOrder}
           onFollowUp={handleFollowUp}
           onViewDetail={handleViewDetail}
@@ -450,5 +591,56 @@ const OrdersPage: React.FC = () => {
     </div>
   );
 };
+
+// ✅ CONSOLE TEST: Jalankan ini di browser console untuk test langsung
+// window.testOrderStatusUpdate = async () => {
+//   try {
+//     console.log('🔍 Testing order status update...');
+    
+//     // Get user
+//     const { data: user } = await supabase.auth.getUser();
+//     console.log('User ID:', user.user?.id);
+    
+//     // Get first order
+//     const { data: orders } = await supabase
+//       .from('orders')
+//       .select('id, status, nomor_pesanan')
+//       .eq('user_id', user.user.id)
+//       .limit(1);
+    
+//     if (!orders || orders.length === 0) {
+//       console.log('❌ No orders found');
+//       return;
+//     }
+    
+//     const order = orders[0];
+//     const newStatus = order.status === 'pending' ? 'confirmed' : 'pending';
+    
+//     console.log(`Testing: ${order.status} → ${newStatus} for order ${order.nomor_pesanan}`);
+    
+//     // Direct update
+//     const { data, error } = await supabase
+//       .from('orders')
+//       .update({ status: newStatus })
+//       .eq('id', order.id)
+//       .eq('user_id', user.user.id)
+//       .select()
+//       .single();
+    
+//     if (error) {
+//       console.log('❌ Update failed:', error);
+//       return;
+//     }
+    
+//     console.log('✅ Update successful:', data);
+//     console.log('🔄 Refreshing page...');
+    
+//     // Refresh page to see changes
+//     window.location.reload();
+    
+//   } catch (error) {
+//     console.log('❌ Test failed:', error);
+//   }
+// };
 
 export default OrdersPage;

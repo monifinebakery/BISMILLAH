@@ -33,7 +33,6 @@ export const PURCHASE_COMPONENTS_LAZY = {
   // Main components (heavy - load on demand)
   PurchaseDialog: () => import('./PurchaseDialog'),
   PurchaseTable: () => import('./PurchaseTable'),
-  SimplePurchaseItemForm: () => import('./SimplePurchaseItemForm'),
   
   // Action components (medium - load when needed)
   BulkActionsToolbar: () => import('./BulkActionsToolbar'),
@@ -62,8 +61,7 @@ export const PURCHASE_COMPONENTS_GROUPS = {
   
   // Form components - load together
   forms: () => Promise.all([
-    import('./PurchaseDialog'),
-    import('./SimplePurchaseItemForm')
+    import('./PurchaseDialog')
   ]),
   
   // All lazy components - for preloading
@@ -80,12 +78,10 @@ export const PURCHASE_COMPONENTS_MIGRATION = {
     // NEW (direct import - better code splitting):
     import PurchaseDialog from '@/components/purchase/components/PurchaseDialog';
     import PurchaseTable from '@/components/purchase/components/PurchaseTable';
-    import SimplePurchaseItemForm from '@/components/purchase/components/SimplePurchaseItemForm';
     
     // OR (lazy import - best performance):
     const PurchaseDialog = React.lazy(() => import('@/components/purchase/components/PurchaseDialog'));
     const PurchaseTable = React.lazy(() => import('@/components/purchase/components/PurchaseTable'));
-    const SimplePurchaseItemForm = React.lazy(() => import('@/components/purchase/components/SimplePurchaseItemForm'));
   `,
   
   // Quick migration function

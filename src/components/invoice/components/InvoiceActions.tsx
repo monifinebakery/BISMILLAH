@@ -9,7 +9,6 @@ interface InvoiceActionsProps {
   onReset: () => void;
   onDuplicate: () => void;
   onPrint: () => void;
-  onDownload: () => void;
   orderId?: string;
   orderNumber?: string;
   className?: string;
@@ -20,7 +19,6 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
   onReset,
   onDuplicate,
   onPrint,
-  onDownload,
   orderId,
   orderNumber,
   className = ''
@@ -79,14 +77,6 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
             >
               <Printer className="mr-2 h-4 w-4" />
               Print
-            </Button>
-            <Button 
-              onClick={onDownload}
-              variant="secondary"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Download
             </Button>
           </div>
         </div>

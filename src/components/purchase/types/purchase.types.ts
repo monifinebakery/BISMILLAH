@@ -216,10 +216,7 @@ export interface PurchaseHeaderProps {
   totalValue: number;
   pendingCount: number;
   onAddPurchase: (intent?: AddPurchaseIntent) => void; // <— ubah ke terima intent
-  onExport?: () => void;
-  onSettings?: () => void;
   className?: string;
-  isExporting?: boolean;
 }
 
 export interface DataWarningBannerProps {
@@ -310,7 +307,6 @@ export interface LoadingStates {
   isLoading: boolean;
   isUpdating: boolean;
   isDeleting: boolean;
-  isExporting: boolean;
 }
 
 // Empty state types

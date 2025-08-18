@@ -502,7 +502,7 @@ const OrdersPage: React.FC = () => {
       {import.meta.env.DEV && <ContextDebugger />}
       
       {/* ✅ ENHANCED: Header with template integration info and debug button */}
-      header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8"
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
             <FileText className="h-8 w-8 text-white" />
@@ -518,34 +518,34 @@ const OrdersPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           {/* ✅ DEBUG: Debug button for development */}
           {import.meta.env.DEV && (
-            Button
+            <Button
               onClick={debugStatusUpdate}
               variant="outline"
               className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-all duration-200"
-            
+            >
               🐛 Debug Status
             </Button>
           )}
           
-            Button
-            onClick={() => {
+            <Button
+            onClick={() =e {
               logger.component('OrdersPage', 'Template manager button clicked');
               dialogHandlers.openTemplateManager();
             }}
             variant="outline"
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300"
-          
+          >
             <MessageSquare className="h-5 w-5" />
             Kelola Template WhatsApp
           </Button>
           
-            Button
-            onClick={() => {
+            <Button
+            onClick={() =e {
               logger.component('OrdersPage', 'New order button clicked from header');
               businessHandlers.newOrder();
             }}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200"
-          
+          >
             <Plus className="h-5 w-5" />
             Pesanan Baru
           </Button>

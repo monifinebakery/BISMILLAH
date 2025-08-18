@@ -43,7 +43,7 @@ const PromoPerformanceCard = ({ promo }) => {
   const isMarginPositive = marginDiff >= 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-gray-200 rounded-lg p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">

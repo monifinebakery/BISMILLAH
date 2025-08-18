@@ -151,7 +151,7 @@ const AdminDashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          Card className="border-0 bg-white/80 backdrop-blur-sm"
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="bg-blue-100 rounded-full p-2 mr-3">
@@ -165,7 +165,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          Card className="border-0 bg-white/80 backdrop-blur-sm"
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="bg-green-100 rounded-full p-2 mr-3">
@@ -181,7 +181,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          Card className="border-0 bg-white/80 backdrop-blur-sm"
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="bg-purple-100 rounded-full p-2 mr-3">
@@ -202,7 +202,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Payments Management */}
-        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm mb-6">
+        Card className="border-0 bg-white/80 backdrop-blur-sm mb-6"
           <CardHeader>
             <CardTitle className="flex items-center">
               <DollarSign className="h-5 w-5 mr-2" />
@@ -288,7 +288,7 @@ const AdminDashboard = () => {
         </Card>
 
         {/* Users Management */}
-        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+        Card className="border-0 bg-white/80 backdrop-blur-sm"
           <CardHeader>
             <CardTitle className="flex items-center">
               <Users className="h-5 w-5 mr-2" />

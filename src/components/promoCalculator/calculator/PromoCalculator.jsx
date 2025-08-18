@@ -247,7 +247,7 @@ const PromoCalculator = () => {
   if (recipesQuery.isError && view === 'create') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full shadow-xl">
+        <Card className="max-w-md w-full border border-gray-200">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
@@ -397,7 +397,7 @@ const PromoCalculator = () => {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             {/* Form Section */}
             <div className="xl:col-span-2">
-              <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+              <Card className="border-0 bg-white/90 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calculator className="h-5 w-5 text-orange-600" />
@@ -469,7 +469,7 @@ const PromoCalculator = () => {
         </div>
 
         {/* Main Dashboard Card */}
-        <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+        <Card className="border-0 bg-white/90 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Promo Terbaru</span>
@@ -482,7 +482,7 @@ const PromoCalculator = () => {
             {promos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {promos.map(promo => (
-                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-200">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold text-gray-900">{promo.namaPromo}</h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

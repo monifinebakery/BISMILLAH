@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   RotateCw,
-  Download,
   CheckCircle,
   AlertTriangle,
   Target,
@@ -47,7 +46,6 @@ export interface DashboardHeaderSectionProps {
   statusIndicators?: StatusIndicator[];
   onPeriodChange: (period: string) => void;
   onRefresh: () => void;
-  onExportData: () => void;
   // 🆕 Daily/Monthly mode + date range presets
   mode?: 'daily' | 'monthly';
   onModeChange?: (mode: 'daily' | 'monthly') => void;
@@ -70,7 +68,6 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   statusIndicators = [],
   onPeriodChange,
   onRefresh,
-  onExportData,
   mode = 'monthly',
   onModeChange,
   dateRange,
@@ -157,14 +154,6 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
       >
         <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
         Refresh
-      </Button>
-      <Button
-        onClick={onExportData}
-        disabled={!hasValidData}
-        className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all w-full md:w-auto justify-center"
-      >
-        <Download className="w-4 h-4" />
-        Export
       </Button>
     </>
   );

@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -43,7 +42,6 @@ import { id } from 'date-fns/locale';
 
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
-import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import SimplePurchaseItemForm, { PurchaseItemPayload } from './SimplePurchaseItemForm'; // ✅ NEW: Import the payload type
@@ -95,7 +93,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   mode,
   purchase,
   suppliers,
-  bahanBaku,
   onClose,
 }) => {
   // ✅ ULTRA LIGHTWEIGHT: Zero validation during typing
@@ -129,20 +126,29 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   });
 
   // Item management
-  const {
-    showAddItem,
-    setShowAddItem,
-    editingItemIndex,
-    handleEditItem,
-    handleSaveEditedItem,
-    handleCancelEditItem,
-  } = usePurchaseItemManager({
-    bahanBaku,
-    items: formData.items,
-    addItem,
-    updateItem,
-  });
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
+  const handleEditItem = useCallback((index: number) => {
+    setEditingItemIndex(index);
+    toast.info('Mode edit item aktif');
+  }, []);
+
+  const handleSaveEditedItem = useCallback((index: number, updatedItem: Partial<PurchaseItem>) => {
+    const qty = toNumber(updatedItem.kuantitas);
+    const price = toNumber(updatedItem.hargaSatuan);
+
+    if (qty <= 0 || price <= 0) {
+      toast.error('Kuantitas dan harga satuan harus > 0');
+      return;
+    }
+
+    updateItem(index, { ...updatedItem, subtotal: qty * price });
+    setEditingItemIndex(null);
+    toast.success('Item berhasil diperbarui');
+  }, [updateItem]);
+
+  const handleCancelEditItem = useCallback(() => setEditingItemIndex(null), []);
   // ✅ Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
@@ -422,7 +428,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               {/* ✅ ENHANCED: Smart Add New Item Form with clean payload handling */}
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
-                  bahanBaku={bahanBaku}
+
                   onCancel={() => setShowAddItem(false)}
                   onAdd={handleAddItemFromForm}
                 />
@@ -458,7 +464,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div>
                                 <div className="font-medium">{item.nama}</div>
-                                <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
+                                {/* ID hidden since item creates new material */}
                                 {/* ✅ IMPROVED: Display packaging info with proper typing */}
                                 {item.jumlahKemasan && item.jumlahKemasan > 0 && item.isiPerKemasan && item.isiPerKemasan > 0 && (
                                   <div className="text-xs text-gray-500 mt-1">

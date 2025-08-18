@@ -189,27 +189,24 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   }, [formData.items.length, handleSubmit]);
 
   // ✅ ENHANCED: Handle payload from SimplePurchaseItemForm
-  const handleAddItemFromForm = useCallback((payload: PurchaseItemPayload) => {
-    // Convert payload to PurchaseItem format expected by the form
-    const purchaseItem: PurchaseItem = {
-      bahanBakuId: payload.bahanBakuId,
-      nama: payload.nama,
-      satuan: payload.satuan,
-      kuantitas: payload.kuantitas,
-      hargaSatuan: payload.hargaSatuan,
-      subtotal: payload.kuantitas * payload.hargaSatuan,
-      keterangan: payload.keterangan,
-      // ✅ NEW: Include packaging info if available
-      ...(payload.jumlahKemasan && { jumlahKemasan: payload.jumlahKemasan }),
-      ...(payload.isiPerKemasan && { isiPerKemasan: payload.isiPerKemasan }),
-      ...(payload.satuanKemasan && { satuanKemasan: payload.satuanKemasan }),
-      ...(payload.hargaTotalBeliKemasan && { hargaTotalBeliKemasan: payload.hargaTotalBeliKemasan }),
-    };
+  const handleAddItemFromForm = useCallback(
+    (payload: PurchaseItemPayload) => {
+      const purchaseItem: PurchaseItem = {
+        bahanBakuId: payload.bahanBakuId,
+        nama: payload.nama,
+        satuan: payload.satuan,
+        kuantitas: payload.kuantitas,
+        hargaSatuan: payload.hargaSatuan,
+        subtotal: payload.kuantitas * payload.hargaSatuan,
+        keterangan: payload.keterangan,
+      };
 
-    addItem(purchaseItem);
-    setShowAddItem(false);
-    toast.success(`${payload.nama} berhasil ditambahkan`);
-  }, [addItem, setShowAddItem]);
+      addItem(purchaseItem);
+      setShowAddItem(false);
+      toast.success(`${payload.nama} berhasil ditambahkan`);
+    },
+    [addItem, setShowAddItem]
+  );
 
   // ✅ Check if purchase can be edited (not completed)
   const canEdit = !purchase || purchase.status !== 'completed';

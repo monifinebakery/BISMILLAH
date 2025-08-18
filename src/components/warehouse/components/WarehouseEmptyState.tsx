@@ -27,7 +27,7 @@ const WarehouseEmptyState: React.FC<WarehouseEmptyStateProps> = ({
     <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center">
       <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mb-4" />
       <h3 className="text-base md:text-lg font-semibold text-gray-600 mb-2">
-        {searchTerm ? 'Tidak ada hasil ditemukan' : 'Belum ada bahan baku'}
+        {searchTerm ? 'Tidak ada hasil ditemukan' : 'Belum ada pembelian bahan baku'}
       </h3>
       <p className="text-sm md:text-base text-gray-500 mb-6 max-w-md px-4">
         {searchTerm

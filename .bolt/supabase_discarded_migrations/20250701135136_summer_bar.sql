@@ -137,8 +137,8 @@ BEGIN
     WHERE conname = 'purchases_metode_perhitungan_check' AND conrelid = 'purchases'::regclass
   ) THEN
     ALTER TABLE public.purchases 
-    ADD CONSTRAINT purchases_metode_perhitungan_check 
-    CHECK (metode_perhitungan IN ('FIFO', 'LIFO', 'Average'));
+    ADD CONSTRAINT purchases_metode_perhitungan_check
+    CHECK (metode_perhitungan IN ('FIFO', 'LIFO', 'AVERAGE'));
   END IF;
 END $$;
 

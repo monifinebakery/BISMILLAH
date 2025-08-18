@@ -186,19 +186,11 @@ export interface UsePurchaseStatusReturn {
 export type AddPurchaseIntent = 'quick' | 'accurate' | 'packaging' | 'normal';
 
 // ============ Component Props ============
-// Define BahanBaku interface
-interface BahanBaku {
-  id: string;
-  nama: string;
-  satuan: string;
-}
-
 export interface PurchaseDialogProps {
   isOpen: boolean;
   mode: 'create' | 'edit';
   purchase?: Purchase | null;
   suppliers: Array<{ id: string; nama: string }>;
-  bahanBaku?: BahanBaku[];
   onClose: () => void;
 }
 

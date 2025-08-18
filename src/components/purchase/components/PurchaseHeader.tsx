@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
   ShoppingCart,
-  Download,
   TrendingUp,
   Clock,
   CheckCircle,
@@ -18,8 +17,6 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   totalValue,
   pendingCount,
   onAddPurchase,
-  onExport,
-  onSettings,
   className = '',
 }) => {
   return (
@@ -53,16 +50,6 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
               Tambah Pembelian
             </Button>
 
-            {onExport && (
-              <Button
-                onClick={onExport}
-                variant="outline"
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-white bg-opacity-10 text-white border-white border-opacity-30 font-semibold rounded-lg backdrop-blur-sm hover:bg-opacity-20 transition-colors duration-200"
-              >
-                <Download className="h-5 w-5" />
-                Export
-              </Button>
-            )}
           </div>
         </div>
 

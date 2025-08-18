@@ -81,7 +81,7 @@ type DbPurchaseRow = {
   total_nilai: number;
   items: any; // jsonb array
   status: 'pending' | 'completed' | 'cancelled';
-  metode_perhitungan: 'FIFO' | 'LIFO' | 'AVERAGE';
+  metode_perhitungan: 'AVERAGE';
   created_at: string;
   updated_at: string;
   applied_at?: string | null;

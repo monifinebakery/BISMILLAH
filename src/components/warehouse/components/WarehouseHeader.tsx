@@ -8,6 +8,7 @@ import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { useNavigate } from 'react-router-dom';
 
 interface WarehouseHeaderProps {
   itemCount: number;
@@ -95,6 +96,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   lastUpdated,
   onRefresh
 }) => {
+  const navigate = useNavigate();
   const {
     data: stats,
     isLoading: statsLoading,
@@ -196,12 +198,12 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
               Import Data
             </Button>
             
-            <Button 
-              onClick={() => onOpenDialog('addItem')} 
+            <Button
+              onClick={() => navigate('/pembelian')}
               className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
             >
               <Plus className="h-4 w-4" />
-              Tambah Item Baru
+              Tambah via Pembelian
             </Button>
           </div>
         </div>
@@ -226,12 +228,12 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
             Import Data
           </Button>
           
-          <Button 
-            onClick={() => onOpenDialog('addItem')} 
+          <Button
+            onClick={() => navigate('/pembelian')}
             className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
           >
             <Plus className="h-4 w-4" />
-            Tambah Item Baru
+            Tambah via Pembelian
           </Button>
         </div>
 

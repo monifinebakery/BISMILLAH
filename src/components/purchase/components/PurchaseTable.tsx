@@ -264,10 +264,9 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   // ✅ Early return for empty state
   if (!paginationData.hasData && !searchQuery && statusFilter === 'all') {
     return (
-      <EmptyState 
+      <EmptyState
         onAddPurchase={() => {/* Will be handled by parent */}}
         hasSuppliers={true}
-        hasBahanBaku={true}
       />
     );
   }
@@ -413,9 +412,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
                       <div>
                         <div className="font-medium">
                           {getSupplierName(purchase.supplier)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {purchase.metodePerhitungan}
                         </div>
                       </div>
                     </TableCell>

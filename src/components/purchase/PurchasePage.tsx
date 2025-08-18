@@ -10,13 +10,11 @@ import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
 // ✅ DIRECT CONTEXT: No barrel imports
 import { useSupplier } from '@/contexts/SupplierContext';
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 // ✅ ESSENTIAL COMPONENTS: Direct imports (no barrel)
 import {
   LoadingState,
   EmptyState,
-  DataWarningBanner,
   PurchaseHeader,
 } from './components';
 
@@ -57,20 +55,13 @@ const PurchaseDialog = React.lazy(() =>
   }))
 );
 
-const PurchaseDetailDialog = React.lazy(() => 
-  import('./components/PurchaseDetailDialog').catch(() => ({
-    default: () => null
-  }))
-);
-
-const BulkDeleteDialog = React.lazy(() => 
+const BulkDeleteDialog = React.lazy(() =>
   import('./components/BulkDeleteDialog').catch(() => ({
     default: () => null
   }))
 );
 
 // ✅ UTILITY: Keep essential utility
-import { exportPurchasesToCSV } from './utils/purchaseHelpers';
 
 interface PurchasePageProps {
   className?: string;
@@ -80,14 +71,12 @@ interface PurchasePageProps {
 interface AppState {
   dialogs: {
     purchase: { isOpen: boolean; editing: any; mode: 'create' | 'edit' };
-    detail: { isOpen: boolean; purchase: any };
     bulkDelete: { isOpen: boolean; selectedIds: string[] };
   };
   warnings: {
     dataWarning: { isVisible: boolean; hasShownToast: boolean };
   };
   ui: {
-    isExporting: boolean;
     isDeleting: boolean; // ✅ NEW: Track delete state
   };
 }
@@ -95,14 +84,12 @@ interface AppState {
 const initialAppState: AppState = {
   dialogs: {
     purchase: { isOpen: false, editing: null, mode: 'create' },
-    detail: { isOpen: false, purchase: null },
     bulkDelete: { isOpen: false, selectedIds: [] }
   },
   warnings: {
     dataWarning: { isVisible: false, hasShownToast: false }
   },
   ui: {
-    isExporting: false,
     isDeleting: false // ✅ NEW: Track delete state
   }
 };
@@ -129,7 +116,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // ✅ CONTEXTS: Direct usage
   const purchaseContext = usePurchase();
   const { suppliers } = useSupplier();
-  const { bahanBaku } = useBahanBaku();
 
   // ✅ pakai API dari context langsung
   const {
@@ -148,9 +134,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // ✅ MEMOIZED: Data validation
   const dataStatus = useMemo(() => ({
     missingSuppliers: !suppliers?.length,
-    missingBahanBaku: !bahanBaku?.length,
-    hasMissingData: !suppliers?.length || !bahanBaku?.length
-  }), [suppliers, bahanBaku]);
+    hasMissingData: !suppliers?.length
+  }), [suppliers]);
 
   // ✅ CONSOLIDATED: All dialog actions
   const dialogActions = useMemo(() => ({
@@ -182,36 +167,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           dialogs: {
             ...prev.dialogs,
             purchase: { isOpen: false, editing: null, mode: 'create' }
-          }
-        }));
-      }
-    },
-    detail: {
-      open: (purchase: any) => {
-        setAppState(prev => ({
-          ...prev,
-          dialogs: {
-            ...prev.dialogs,
-            detail: { isOpen: true, purchase }
-          }
-        }));
-      },
-      close: () => {
-        setAppState(prev => ({
-          ...prev,
-          dialogs: {
-            ...prev.dialogs,
-            detail: { isOpen: false, purchase: null }
-          }
-        }));
-      },
-      editFromDetail: (purchase: any) => {
-        setAppState(prev => ({
-          ...prev,
-          dialogs: {
-            ...prev.dialogs,
-            detail: { isOpen: false, purchase: null },
-            purchase: { isOpen: true, editing: purchase, mode: 'edit' }
           }
         }));
       }
@@ -264,43 +219,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
       }
     },
-    
-    export: async () => {
-      if (!purchases.length) {
-        toast.info('Tidak ada data pembelian untuk di-export');
-        return;
-      }
 
-      setAppState(prev => ({ ...prev, ui: { ...prev.ui, isExporting: true } }));
-
-      try {
-        const csvContent = exportPurchasesToCSV(purchases);
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', `pembelian_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        toast.success('Data pembelian berhasil di-export');
-      } catch (error) {
-        logger.error('Export error:', error);
-        toast.error('Gagal export data pembelian');
-      } finally {
-        setAppState(prev => ({ ...prev, ui: { ...prev.ui, isExporting: false } }));
-      }
-    },
-
-    settings: () => {
-      toast.info('Pengaturan pembelian akan segera tersedia');
-    }
-  }), [deletePurchase, bulkDelete, purchaseContext, purchases]);
+  }), [deletePurchase, bulkDelete, purchaseContext]);
 
   // ✅ OPTIMIZED: Warning effect with cleanup
   useEffect(() => {
@@ -314,17 +234,11 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       }));
       
       // Consolidated warning messages
-      const warnings = [];
-      if (dataStatus.missingSuppliers) warnings.push('supplier');
-      if (dataStatus.missingBahanBaku) warnings.push('bahan baku');
-      
-      const warningMessage = warnings.length === 2 
-        ? 'Tambahkan data supplier dan bahan baku untuk fitur pembelian yang lengkap'
-        : `Tambahkan data ${warnings[0]} untuk ${warnings[0] === 'supplier' ? 'mencatat pembelian dari vendor' : 'mengelola stok yang dibeli'}`;
-      
-      toast.warning(warningMessage);
+        if (dataStatus.missingSuppliers) {
+          toast.warning('Tambahkan data supplier untuk mencatat pembelian dari vendor');
+        }
     }
-  }, [dataStatus.hasMissingData, dataStatus.missingSuppliers, dataStatus.missingBahanBaku, appState.warnings.dataWarning.hasShownToast]);
+  }, [dataStatus.hasMissingData, dataStatus.missingSuppliers, appState.warnings.dataWarning.hasShownToast]);
 
   // ✅ EARLY RETURNS: Optimized error and loading states
   if (purchaseContext.error) {
@@ -363,13 +277,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
       
       {/* Data warning banner */}
-      {appState.warnings.dataWarning.isVisible && dataStatus.hasMissingData && (
-        <DataWarningBanner
-          missingSuppliers={dataStatus.missingSuppliers}
-          missingBahanBaku={dataStatus.missingBahanBaku}
-          onDismiss={dialogActions.warning.dismiss}
-        />
-      )}
+
 
       {/* Header */}
       <PurchaseHeader
@@ -377,9 +285,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         totalValue={stats.totalValue}
         pendingCount={stats.byStatus.pending}
         onAddPurchase={dialogActions.purchase.openAdd}
-        onExport={businessHandlers.export}
-        onSettings={businessHandlers.settings}
-        isExporting={appState.ui.isExporting}
         className="mb-8"
       />
 
@@ -388,7 +293,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         <EmptyState
           onAddPurchase={dialogActions.purchase.openAdd}
           hasSuppliers={!dataStatus.missingSuppliers}
-          hasBahanBaku={!dataStatus.missingBahanBaku}
         />
       ) : (
         <PurchaseTableProvider purchases={purchases} suppliers={suppliers}>
@@ -397,12 +301,11 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           </Suspense>
 
           <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
-            <PurchaseTable 
+            <PurchaseTable
               onEdit={dialogActions.purchase.openEdit}
               onStatusChange={setStatus}
               onDelete={businessHandlers.delete}
               onBulkDelete={businessHandlers.bulkDelete}
-              onViewDetails={dialogActions.detail.open}
               validateStatusChange={async () => ({ canChange: true, warnings: [], errors: [] })}
             />
           </Suspense>
@@ -421,34 +324,17 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             mode={appState.dialogs.purchase.mode}
             purchase={appState.dialogs.purchase.editing}
             suppliers={suppliers}
-            bahanBaku={bahanBaku}
             onClose={dialogActions.purchase.close}
           />
         )}
       </Suspense>
-
-      {appState.dialogs.detail.purchase && (
-        <Suspense fallback={null}>
-          <PurchaseDetailDialog
-            isOpen={appState.dialogs.detail.isOpen}
-            purchase={appState.dialogs.detail.purchase}
-            suppliers={suppliers}
-            bahanBaku={bahanBaku}
-            onClose={dialogActions.detail.close}
-            onEdit={dialogActions.detail.editFromDetail}
-          />
-        </Suspense>
-      )}
-
       {/* ✅ ENHANCED: Processing overlay with delete state */}
-      {(purchaseContext.isProcessing || appState.ui.isDeleting || appState.ui.isExporting) && (
+      {(purchaseContext.isProcessing || appState.ui.isDeleting) && (
         <div className="fixed inset-0 bg-black bg-opacity-10 z-40 pointer-events-none">
           <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
             <span className="text-sm text-gray-700">
-              {appState.ui.isDeleting ? 'Menghapus pembelian...' :
-               appState.ui.isExporting ? 'Mengexport data...' : 
-               'Mengupdate status...'}
+              {appState.ui.isDeleting ? 'Menghapus pembelian...' : 'Mengupdate status...'}
             </span>
           </div>
         </div>

@@ -40,7 +40,7 @@ export interface Purchase {
   }[];
   totalNilai: number;
   status: 'pending' | 'completed' | 'cancelled';
-  metodePerhitungan: 'FIFO' | 'LIFO' | 'Average';
+  metodePerhitungan: 'Average';
   catatan: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;

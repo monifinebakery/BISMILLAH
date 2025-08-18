@@ -23,7 +23,7 @@ export const PageLoading: React.FC = () => {
       </div>
 
       {/* Table Skeleton */}
-      <div className="bg-white rounded-xl border border-gray-200/80 p-6">
+      <div className="bg-white rounded-xl border border-gray-200/80 p-6">
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
@@ -49,7 +49,7 @@ export const DialogLoader: React.FC = () => {
 // Table Skeleton Component
 export const TableSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
       <div className="p-6">
         <div className="space-y-4">
           {/* Header skeleton */}

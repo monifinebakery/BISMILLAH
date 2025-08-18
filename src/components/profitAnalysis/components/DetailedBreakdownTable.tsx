@@ -6,9 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
-import { 
-  DollarSign, ShoppingCart, Calculator, TrendingUp, 
-  Download, Filter, Search
+import {
+  DollarSign, ShoppingCart, Calculator, TrendingUp,
+  Filter, Search
 } from 'lucide-react';
 
 import { 
@@ -26,7 +26,6 @@ import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 export interface DetailedBreakdownTableProps {
   currentAnalysis: RealTimeProfitCalculation | null;
   isLoading: boolean;
-  showExport?: boolean;
   className?: string;
   /** ⬇️ COGS efektif (WAC) */
   effectiveCogs?: number;
@@ -178,7 +177,6 @@ const MemoizedSectionSummary = React.memo(({ section, sortedItems }: { section: 
 const DetailedBreakdownTable = ({
   currentAnalysis,
   isLoading,
-  showExport = true,
   className = '',
   effectiveCogs,
   hppBreakdown,
@@ -343,33 +341,6 @@ const DetailedBreakdownTable = ({
     });
   }, [sortBy, sortOrder]);
 
-  // ✅ OPTIMASI: useCallback untuk event handlers
-  const handleExport = useCallback(() => {
-    const exportData = breakdownSections.flatMap(section => 
-      section.items.map(item => ({
-        Kategori: section.title,
-        Item: item.name,
-        Jumlah: item.amount,
-        Persentase: item.percentage,
-        Tipe: item.type || 'N/A',
-        Jumlah_Transaksi: item.count || 1
-      }))
-    );
-
-    const csvContent = [
-      Object.keys(exportData[0] || {}).join(','),
-      ...exportData.map(row => Object.values(row).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `breakdown-profit-${currentAnalysis?.period || 'export'}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [breakdownSections, currentAnalysis?.period]);
-
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
   }, []);
@@ -450,13 +421,6 @@ const DetailedBreakdownTable = ({
             )}
           </div>
           
-          {/* Export Button */}
-          {showExport && (
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
-          )}
         </div>
 
         {/* Tab Navigation */}

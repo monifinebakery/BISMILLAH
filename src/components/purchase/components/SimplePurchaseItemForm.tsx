@@ -7,24 +7,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Plus,
   X,
   CheckCircle2,
   Package as PackageIcon,
-  Receipt,
+  Info,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-
-interface BahanBaku {
-  id: string;
-  nama: string;
-  satuan: string; // contoh: pcs, buah, gram, ml
-}
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
@@ -35,7 +30,7 @@ interface FormData {
   // input utama
   kuantitas: string;            // Total yang dibeli (unit dasar bahan baku)
   totalBayar: string;           // Total bayar (untuk hitung harga satuan otomatis)
-
+  
   // optional: detail kemasan (nota)
   jumlahKemasan?: string;
   isiPerKemasan?: string;
@@ -57,6 +52,12 @@ export interface PurchaseItemPayload {
   isiPerKemasan?: number;
   satuanKemasan?: string;
   hargaTotalBeliKemasan?: number;
+}
+
+interface BahanBaku {
+  id: string;
+  nama: string;
+  satuan: string; // contoh: pcs, buah, gram, ml
 }
 
 interface SimplePurchaseItemFormProps {
@@ -125,33 +126,12 @@ const SafeNumericInput = React.forwardRef<
 
 const PACK_UNITS = ['pak', 'dus', 'karung', 'botol'];
 const PCS_UNITS = ['pcs', 'buah', 'biji', 'butir', 'lembar'];
+const BASE_UNITS = ['gram', 'kilogram', 'miligram', 'liter', 'milliliter', 'pcs', 'buah', 'biji', 'butir', 'lembar'];
 
-const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
-  bahanBaku,
-  onCancel,
-  onAdd,
-}) => {
-  const [formData, setFormData] = useState<FormData>({
-    bahanBakuId: '',
-    nama: '',
-    satuan: '',
-    kuantitas: '',
-    totalBayar: '',
-    jumlahKemasan: '',
-    isiPerKemasan: '',
-    satuanKemasan: '',
-    hargaTotalBeliKemasan: '',
-    keterangan: '',
-  });
+const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ bahanBaku, onCancel, onAdd }) => {
+  const [formData, setFormData] = useState<FormData>({\n    bahanBakuId: '',\n    nama: '',\n    satuan: '',\n    kuantitas: '',\n    totalBayar: '',\n    jumlahKemasan: '',\n    isiPerKemasan: '',\n    satuanKemasan: '',\n    hargaTotalBeliKemasan: '',\n    keterangan: '',\n  });
 
-  // Toggle detail kemasan
-  const [showPackaging, setShowPackaging] = useState(false);
-
-  // Auto hide packaging for pcs/buah, etc
-  const hidePackagingByUnit = useMemo(
-    () => (formData.satuan ? PCS_UNITS.includes(formData.satuan.toLowerCase()) : false),
-    [formData.satuan]
-  );
+  // Toggle detail kemasan\n  const [showPackaging, setShowPackaging] = useState(false);\n\n  // Auto hide packaging for pcs/buah, etc\n  const hidePackagingByUnit = useMemo(\n    () => (formData.satuan ? PCS_UNITS.includes(formData.satuan.toLowerCase()) : false),\n    [formData.satuan]\n  );\n\n  // Derived from packaging (kalau lengkap)\n  const qtyFromPackaging = useMemo(() => {\n    const q = toNumber(formData.jumlahKemasan) * toNumber(formData.isiPerKemasan);\n    return q > 0 ? q : 0;\n  }, [formData.jumlahKemasan, formData.isiPerKemasan]);\n\n  const totalPayFromPackaging = useMemo(() => {\n    const v = toNumber(formData.hargaTotalBeliKemasan);\n    return v > 0 ? v : 0;\n  }, [formData.hargaTotalBeliKemasan]);\n\n  // Harga per unit – urutan prioritas:\n  // 1) Kalau packaging valid → harga dari nota / total isi\n  // 2) Kalau user isi Total yang Dibeli + Total Bayar → totalBayar / kuantitas\n  const computedUnitPrice = useMemo(() => {\n    if (qtyFromPackaging > 0 && totalPayFromPackaging > 0) {\n      return Math.round((totalPayFromPackaging / qtyFromPackaging) * 100) / 100;\n    }\n    const qty = toNumber(formData.kuantitas);\n    const pay = toNumber(formData.totalBayar);\n    if (qty > 0 && pay > 0) {\n      return Math.round((pay / qty) * 100) / 100;\n    }\n    return 0;\n  }, [qtyFromPackaging, totalPayFromPackaging, formData.kuantitas, formData.totalBayar]);\n\n  // Total qty yang dipakai untuk ringkasan\n  const effectiveQty = useMemo(() => {\n    if (qtyFromPackaging > 0) return qtyFromPackaging;\n    return toNumber(formData.kuantitas);\n  }, [qtyFromPackaging, formData.kuantitas]);\n\n  // Total bayar yang dipakai untuk ringkasan\n  const effectivePay = useMemo(() => {\n    if (totalPayFromPackaging > 0) return totalPayFromPackaging;\n    return toNumber(formData.totalBayar);\n  }, [totalPayFromPackaging, formData.totalBayar]);\n\n  const subtotal = useMemo(() => effectiveQty * computedUnitPrice, [effectiveQty, computedUnitPrice]);\n\n  // Select bahan baku → set nama, satuan, reset packaging toggle\n  const handleBahanBakuSelect = (id: string) => {\n    const selected = bahanBaku.find((b) => b.id === id);\n    if (!selected) return;\n    setFormData((prev) => ({\n      ...prev,\n      bahanBakuId: id,\n      nama: selected.nama,\n      satuan: selected.satuan,\n    }));\n    // kalau pcs/buah → auto-hide packaging\n    if (PCS_UNITS.includes(selected.satuan.toLowerCase())) {\n      setShowPackaging(false);\n    }\n  };\n\n  const handleNumericChange = useCallback((field: keyof FormData, value: string) => {\n    setFormData((prev) => (prev[field] === value ? prev : { ...prev, [field]: value }));\n  }, []);\n\n  // Kalau packaging valid, sync nilai utama secara halus (tanpa bikin user bingung)\n  useEffect(() => {\n    if (qtyFromPackaging > 0) {\n      setFormData((prev) =>\n        prev.kuantitas === String(qtyFromPackaging) ? prev : { ...prev, kuantitas: String(qtyFromPackaging) }\n      );\n    }\n    if (totalPayFromPackaging > 0) {\n      setFormData((prev) =>\n        prev.totalBayar === String(totalPayFromPackaging) ? prev : { ...prev, totalBayar: String(totalPayFromPackaging) }\n      );\n    }\n  }, [qtyFromPackaging, totalPayFromPackaging]);
 
   // Derived from packaging (kalau lengkap)
   const qtyFromPackaging = useMemo(() => {
@@ -168,64 +148,23 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   // 1) Kalau packaging valid → harga dari nota / total isi
   // 2) Kalau user isi Total yang Dibeli + Total Bayar → totalBayar / kuantitas
   const computedUnitPrice = useMemo(() => {
-    if (qtyFromPackaging > 0 && totalPayFromPackaging > 0) {
-      return Math.round((totalPayFromPackaging / qtyFromPackaging) * 100) / 100;
-    }
     const qty = toNumber(formData.kuantitas);
     const pay = toNumber(formData.totalBayar);
     if (qty > 0 && pay > 0) {
       return Math.round((pay / qty) * 100) / 100;
     }
     return 0;
-  }, [qtyFromPackaging, totalPayFromPackaging, formData.kuantitas, formData.totalBayar]);
+  }, [formData.kuantitas, formData.totalBayar]);
 
-  // Total qty yang dipakai untuk ringkasan
-  const effectiveQty = useMemo(() => {
-    if (qtyFromPackaging > 0) return qtyFromPackaging;
-    return toNumber(formData.kuantitas);
-  }, [qtyFromPackaging, formData.kuantitas]);
-
-  // Total bayar yang dipakai untuk ringkasan
-  const effectivePay = useMemo(() => {
-    if (totalPayFromPackaging > 0) return totalPayFromPackaging;
-    return toNumber(formData.totalBayar);
-  }, [totalPayFromPackaging, formData.totalBayar]);
+  const effectiveQty = useMemo(() => toNumber(formData.kuantitas), [formData.kuantitas]);
 
   const subtotal = useMemo(() => effectiveQty * computedUnitPrice, [effectiveQty, computedUnitPrice]);
 
-  // Select bahan baku → set nama, satuan, reset packaging toggle
-  const handleBahanBakuSelect = (id: string) => {
-    const selected = bahanBaku.find((b) => b.id === id);
-    if (!selected) return;
-    setFormData((prev) => ({
-      ...prev,
-      bahanBakuId: id,
-      nama: selected.nama,
-      satuan: selected.satuan,
-    }));
-    // kalau pcs/buah → auto-hide packaging
-    if (PCS_UNITS.includes(selected.satuan.toLowerCase())) {
-      setShowPackaging(false);
-    }
-  };
+  // No existing material selection; user inputs name and unit directly
 
   const handleNumericChange = useCallback((field: keyof FormData, value: string) => {
     setFormData((prev) => (prev[field] === value ? prev : { ...prev, [field]: value }));
   }, []);
-
-  // Kalau packaging valid, sync nilai utama secara halus (tanpa bikin user bingung)
-  useEffect(() => {
-    if (qtyFromPackaging > 0) {
-      setFormData((prev) =>
-        prev.kuantitas === String(qtyFromPackaging) ? prev : { ...prev, kuantitas: String(qtyFromPackaging) }
-      );
-    }
-    if (totalPayFromPackaging > 0) {
-      setFormData((prev) =>
-        prev.totalBayar === String(totalPayFromPackaging) ? prev : { ...prev, totalBayar: String(totalPayFromPackaging) }
-      );
-    }
-  }, [qtyFromPackaging, totalPayFromPackaging]);
 
   // Debug mount/unmount
   useEffect(() => {
@@ -395,168 +334,211 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           </Alert>
         )}
 
-        {/* Detail Kemasan (opsional) */}
-        {!hidePackagingByUnit && (
-          <div className="rounded-xl border border-gray-200 bg-white">
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-orange-100 rounded-md flex items-center justify-center">
-                  <PackageIcon className="h-3.5 w-3.5 text-orange-600" />
+        {/* Detail Kemasan (opsional) */}\n        {!hidePackagingByUnit && (\n          <div className=\"rounded-xl border border-gray-200 bg-white\">\n            <div className=\"flex items-center justify-between px-4 py-3\">\n              <div className=\"flex items-center gap-2\">\n                <div className=\"w-6 h-6 bg-orange-100 rounded-md flex items-center justify-center\">\n                  <PackageIcon className=\"h-3.5 w-3.5 text-orange-600\" />\n                </div>\n                <div className=\"font-medium text-gray-900\">Detail Kemasan (opsional)</div>\n                {qtyFromPackaging > 0 && totalPayFromPackaging > 0 && (\n                  <Badge className=\"bg-emerald-100 text-emerald-700 border-emerald-200\">Akurat 100%</Badge>\n                )}\n              </div>\n              <Button\n                type=\"button\"\n                variant=\"ghost\"\n                size=\"sm\"\n                onClick={() => setShowPackaging((v) => !v)}\n                className=\"text-gray-600 hover:bg-gray-50\"\n              >\n                {showPackaging ? (\n                  <>\n                    <ChevronUp className=\"h-4 w-4 mr-1\" />\n                    Sembunyikan\n                  </>\n                ) : (\n                  <>\n                    <ChevronDown className=\"h-4 w-4 mr-1\" />\n                    Tampilkan\n                  </>\n                )}\n              </Button>\n            </div>\n\n            {showPackaging && (
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm font-medium text-gray-700">Jumlah bungkus/dus</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">
+                        Berapa banyak kemasan yang dibeli. Boleh desimal (mis. 1,5).
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-                <div className="font-medium text-gray-900">Detail Kemasan (opsional)</div>
-                {qtyFromPackaging > 0 && totalPayFromPackaging > 0 && (
-                  <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Akurat 100%</Badge>
-                )}
+                <SafeNumericInput
+                  ref={packQtyRef}
+                  value={formData.jumlahKemasan ?? ''}
+                  inputMode="numeric"
+                  onBeforeInput={makeBeforeInputGuard(() => formData.jumlahKemasan ?? '', false)}
+                  onPaste={handlePasteGuard(false)}
+                  onChange={(e) => {
+                    handleNumericChange('jumlahKemasan', e.target.value);
+                    requestAnimationFrame(() => {
+                    if (packQtyRef.current) {
+                      packQtyRef.current.focus();
+                    }
+                  });
+                  }}
+                  placeholder="1"
+                  className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+                />
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPackaging((v) => !v)}
-                className="text-gray-600 hover:bg-gray-50"
-              >
-                {showPackaging ? (
-                  <>
-                    <ChevronUp className="h-4 w-4 mr-1" />
-                    Sembunyikan
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-1" />
-                    Tampilkan
-                  </>
-                )}
-              </Button>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Jenis Kemasan</Label>
+                <Select
+                  value={formData.satuanKemasan || ''}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, satuanKemasan: value }))}
+                >
+                  <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+                    <SelectValue placeholder="Pilih jenis" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PACK_UNITS.map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {u}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm font-medium text-gray-700">Isi per bungkus/dus</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">
+                        Isi satu bungkus dalam satuan dasar bahan (gram/ml/pcs) sesuai master. Contoh: 1 bungkus = 500 gram.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="flex gap-2">
+                  <SafeNumericInput
+                    ref={perPackRef}
+                    value={formData.isiPerKemasan ?? ''}
+                    onBeforeInput={makeBeforeInputGuard(() => formData.isiPerKemasan ?? '', true)}
+                    onPaste={handlePasteGuard(true)}
+                    onChange={(e) => {
+                      handleNumericChange('isiPerKemasan', e.target.value);
+                      requestAnimationFrame(() => {
+                        if (perPackRef.current) {
+                          perPackRef.current.focus();
+                        }
+                      });
+                    }}
+                    placeholder="500"
+                    className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+                  />
+                  <div className="flex items-center px-2 bg-white border border-gray-200 rounded-md text-xs text-gray-600 min-w-[45px] justify-center">
+                    {formData.satuan || 'unit'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-sm font-medium text-gray-700">Total bayar (dari nota)</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">
+                        Nominal yang dibayar untuk item ini setelah diskon. Sertakan ongkir/biaya lain jika ingin dihitung ke HPP.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                  <SafeNumericInput
+                    ref={totalNotaRef}
+                    value={formData.hargaTotalBeliKemasan ?? ''}
+                    onBeforeInput={makeBeforeInputGuard(() => formData.hargaTotalBeliKemasan ?? '', true)}
+                    onPaste={handlePasteGuard(true)}
+                    onChange={(e) => {
+                      handleNumericChange('hargaTotalBeliKemasan', e.target.value);
+                      requestAnimationFrame(() => {
+                        if (totalNotaRef.current) {
+                          totalNotaRef.current.focus();
+                        }
+                      });
+                    }}
+                    className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+                    placeholder="25000"
+                  />
+                </div>
+              </div>
             </div>
 
-            {showPackaging && (
-              <div className="px-4 pb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Jumlah bungkus/dus</Label>
-                    <SafeNumericInput
-                      ref={packQtyRef}
-                      value={formData.jumlahKemasan ?? ''}
-                      inputMode="numeric"
-                      onBeforeInput={makeBeforeInputGuard(() => formData.jumlahKemasan ?? '', false)}
-                      onPaste={handlePasteGuard(false)}
-                      onChange={(e) => {
-                        handleNumericChange('jumlahKemasan', e.target.value);
-                        requestAnimationFrame(() => {
-                          if (packQtyRef.current) {
-                            packQtyRef.current.focus();
-                          }
-                        });
-                      }}
-                      placeholder="1"
-                      className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Jenis Kemasan</Label>
-                    <Select
-                      value={formData.satuanKemasan || ''}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, satuanKemasan: value }))}
-                    >
-                      <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-                        <SelectValue placeholder="Pilih jenis" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PACK_UNITS.map((u) => (
-                          <SelectItem key={u} value={u}>
-                            {u}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Isi per bungkus/dus</Label>
-                    <div className="flex gap-2">
-                      <SafeNumericInput
-                        ref={perPackRef}
-                        value={formData.isiPerKemasan ?? ''}
-                        onBeforeInput={makeBeforeInputGuard(() => formData.isiPerKemasan ?? '', true)}
-                        onPaste={handlePasteGuard(true)}
-                        onChange={(e) => {
-                          handleNumericChange('isiPerKemasan', e.target.value);
-                          requestAnimationFrame(() => {
-                            if (perPackRef.current) {
-                              perPackRef.current.focus();
-                            }
-                          });
-                        }}
-                        placeholder="500"
-                        className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-                      />
-                      <div className="flex items-center px-2 bg-white border border-gray-200 rounded-md text-xs text-gray-600 min-w-[45px] justify-center">
-                        {formData.satuan || 'unit'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Total bayar (dari nota)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-                      <SafeNumericInput
-                        ref={totalNotaRef}
-                        value={formData.hargaTotalBeliKemasan ?? ''}
-                        onBeforeInput={makeBeforeInputGuard(() => formData.hargaTotalBeliKemasan ?? '', true)}
-                        onPaste={handlePasteGuard(true)}
-                        onChange={(e) => {
-                          handleNumericChange('hargaTotalBeliKemasan', e.target.value);
-                          requestAnimationFrame(() => {
-                            if (totalNotaRef.current) {
-                              totalNotaRef.current.focus();
-                            }
-                          });
-                        }}
-                        className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-                        placeholder="25000"
-                      />
-                    </div>
-                  </div>
+            {/* preview otomatis di dalam kartu */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <span>Total Item (otomatis)</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">
+                        Dihitung: jumlah bungkus × isi per bungkus.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-
-                {/* preview otomatis di dalam kartu */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                    <div className="text-sm text-gray-600">Total Item (otomatis)</div>
-                    <div className="text-lg font-semibold">
-                      {qtyFromPackaging} {formData.satuan || 'unit'}
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                    <div className="text-sm text-gray-600">
-                      Harga per {formData.satuan || 'unit'} (otomatis)
-                    </div>
-                    <div className="text-lg font-semibold text-orange-600">
-                      {formatCurrency(
-                        qtyFromPackaging > 0 && totalPayFromPackaging > 0
-                          ? totalPayFromPackaging / qtyFromPackaging
-                          : 0
-                      )}
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                    <div className="text-sm text-gray-600">Subtotal (otomatis)</div>
-                    <div className="text-lg font-semibold">
-                      {formatCurrency(
-                        qtyFromPackaging > 0 && totalPayFromPackaging > 0
-                          ? (totalPayFromPackaging / qtyFromPackaging) * qtyFromPackaging
-                          : 0
-                      )}
-                    </div>
-                  </div>
+                <div className="text-lg font-semibold">
+                  {qtyFromPackaging} {formData.satuan || 'unit'}
                 </div>
               </div>
-            )}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <span>Harga per {formData.satuan || 'unit'} (otomatis)</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">
+                        Dihitung: total bayar ÷ total item. Nilai ini dipakai untuk HPP.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="text-lg font-semibold text-orange-600">
+                  {formatCurrency(
+                    qtyFromPackaging > 0 && totalPayFromPackaging > 0
+                      ? totalPayFromPackaging / qtyFromPackaging
+                      : 0
+                  )}
+                </div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <span>Harga per bungkus (otomatis)</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs">
+                        Dihitung: total bayar ÷ jumlah bungkus.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="text-lg font-semibold">
+                  {formatCurrency(
+                    totalPayFromPackaging > 0 && toNumber(formData.jumlahKemasan) > 0
+                      ? totalPayFromPackaging / toNumber(formData.jumlahKemasan)
+                      : 0
+                  )}
+                </div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <div className="text-sm text-gray-600">Subtotal (otomatis)</div>
+                <div className="text-lg font-semibold">
+                  {formatCurrency(
+                    qtyFromPackaging > 0 && totalPayFromPackaging > 0
+                      ? (totalPayFromPackaging / qtyFromPackaging) * qtyFromPackaging
+                      : 0
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
-
         {/* Keterangan */}
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">Keterangan</Label>
@@ -579,6 +561,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           <Plus className="h-4 w-4 mr-2" />
           Tambah ke Daftar
         </Button>
+        <p className="mt-2 text-xs text-gray-500">HPP dihitung otomatis saat disimpan.</p>
       </CardContent>
     </Card>
   );

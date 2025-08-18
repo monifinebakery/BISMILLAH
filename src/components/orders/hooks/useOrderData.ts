@@ -554,29 +554,12 @@ export const useOrderData = (
         });
 
         try {
-          // ✅ AUTO-CREATE: Financial transaction untuk pemasukan
-          await addFinancialTransaction({
-            type: 'income',
-            category: 'Penjualan Produk',
-            amount: existingOrder.totalPesanan || 0,
-            description: `Pemasukan dari pesanan #${existingOrder.nomorPesanan} - ${existingOrder.namaPelanggan}`,
-            date: new Date(), // Tanggal selesai = hari ini
-            notes: `Auto-generated dari pesanan selesai. Items: ${existingOrder.items.map(item => item.nama).join(', ')}`,
-            relatedId: orderId // Link ke order ID
-          });
-
-          toast.success(`💰 Pemasukan ${formatCurrency(existingOrder.totalPesanan)} telah dicatat otomatis`);
-          logger.success('OrderData', 'Financial transaction created automatically:', {
-            orderId,
-            amount: existingOrder.totalPesanan,
-            orderNumber: existingOrder.nomorPesanan
-          });
-
-          // ✅ UPDATE: Set completion date
+          // ✅ UPDATE: Set completion date FIRST
+          const completionDate = new Date();
           const { error: completionError } = await supabase
             .from('orders')
             .update({ 
-              tanggal_selesai: new Date().toISOString() // Set tanggal selesai
+              tanggal_selesai: completionDate.toISOString() // Set tanggal selesai
             })
             .eq('id', orderId)
             .eq('user_id', user.id);
@@ -584,6 +567,17 @@ export const useOrderData = (
           if (completionError) {
             logger.warn('OrderData', 'Failed to set completion date:', completionError);
           }
+
+          // ✅ AUTO-CREATE: Financial transaction dengan tanggal selesai yang tepat
+          await addFinancialTransaction({
+            type: 'income',
+            category: 'Penjualan Produk',
+            amount: existingOrder.totalPesanan || 0,
+            description: `Pemasukan dari pesanan #${existingOrder.nomorPesanan} - ${existingOrder.namaPelanggan}`,
+            date: completionDate, // Gunakan tanggal selesai yang sama
+            notes: `Auto-generated dari pesanan selesai. Items: ${existingOrder.items.map(item => item.nama).join(', ')}`,
+            relatedId: orderId // Link ke order ID
+          });
 
         } catch (financialError: any) {
           logger.error('OrderData', 'Failed to create financial transaction:', financialError);

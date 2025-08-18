@@ -19,7 +19,6 @@ export { useSelection, useSimpleSelection, type UseSelectionReturn } from './use
 // ====================================================================
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { DEBOUNCE } from '@/utils/constants'; // Asumsi debounce ada di utils
 
 // 🔍 Search hook
 export const useSearch = <T>(
@@ -191,7 +190,12 @@ export const useIntersectionObserver = (
 };
 
 // ⏱️ Debounced value hook
-export const useDebounce = <T>(value: T, delay: number): T => {
+/**
+ * Returns a debounced copy of a value that only updates after the specified delay.
+ * Useful for delaying expensive operations like API calls or heavy computations
+ * that depend on rapidly changing values (e.g. search inputs).
+ */
+export const useDebounce = <T>(value: T, delay: number = 300): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {

@@ -72,19 +72,22 @@ const convertTemplatesToArray = (templates: { [key: string]: string }) => {
  * Mengekspor semua data aplikasi ke satu file Excel dengan beberapa sheet.
  * @param allData Objek yang berisi semua array data dari konteks (bahanBaku, suppliers, dll.).
  * @param businessName Nama bisnis pengguna untuk nama file kustom.
+ * @param format Format file yang diinginkan ('xlsx' | 'csv').
  */
-export const exportAllDataToExcel = async (allData: any, businessName?: string) => {
+export const exportAllDataToExcel = async (
+  allData: any,
+  businessName?: string,
+  format: 'xlsx' | 'csv' = 'xlsx'
+) => {
   // Show loading toast
   const loadingToast = toast.loading("Memuat library Excel...");
-  
+
   try {
     // Lazy load XLSX
     const XLSX = await loadXLSX();
-    
+
     // Update loading message
     toast.loading("Memproses data untuk ekspor...", { id: loadingToast });
-    
-    const wb = XLSX.utils.book_new(); // Buat workbook Excel baru
 
     // Definisikan struktur untuk setiap sheet
     const sheets = [
@@ -237,51 +240,80 @@ export const exportAllDataToExcel = async (allData: any, businessName?: string) 
       }
     ];
 
-    // Loop untuk membuat setiap sheet
-    sheets.forEach(sheetInfo => {
-      // Hanya proses jika ada data
-      if (sheetInfo.data && sheetInfo.data.length > 0) {
-        const cleanedData = cleanDataForExport(sheetInfo.data, sheetInfo.headers);
-        const worksheet = XLSX.utils.json_to_sheet(cleanedData);
-        
-        // Set column widths for better readability
-        if (sheetInfo.name === "Template WhatsApp") {
-          const colWidths = [
-            { wch: 15 }, // Status
-            { wch: 60 }, // Template (wider for long text)
-            { wch: 12 }, // Character Count
-            { wch: 10 }, // Line Count
-            { wch: 12 }  // Variable Count
-          ];
-          worksheet['!cols'] = colWidths;
-        }
-        
-        XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
-      } else {
-        // Jika tidak ada data, buat sheet kosong dengan header
-        const emptyData = [Object.keys(sheetInfo.headers).reduce((acc, key) => {
-          acc[sheetInfo.headers[key]] = '';
-          return acc;
-        }, {} as any)];
-        
-        const worksheet = XLSX.utils.json_to_sheet(emptyData);
-        XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
-      }
-    });
+    // Buat nama file dasar yang dinamis
+    const safeBusinessName = (businessName || 'Bisnis_Anda')
+      .replace(/[^a-z0-9]/gi, '_')
+      .toLowerCase();
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const baseFileName = `hpp_backup_${safeBusinessName}_${dateStr}`;
 
-    // Buat nama file yang dinamis
-    const safeBusinessName = (businessName || 'Bisnis_Anda').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const fileName = `hpp_backup_${safeBusinessName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-    
-    // Update loading message
-    toast.loading("Mengunduh file...", { id: loadingToast });
-    
-    // Trigger download file
-    XLSX.writeFile(wb, fileName);
-    
+    if (format === 'xlsx') {
+      const wb = XLSX.utils.book_new();
+
+      // Loop untuk membuat setiap sheet
+      sheets.forEach(sheetInfo => {
+        if (sheetInfo.data && sheetInfo.data.length > 0) {
+          const cleanedData = cleanDataForExport(sheetInfo.data, sheetInfo.headers);
+          const worksheet = XLSX.utils.json_to_sheet(cleanedData);
+
+          if (sheetInfo.name === "Template WhatsApp") {
+            const colWidths = [
+              { wch: 15 },
+              { wch: 60 },
+              { wch: 12 },
+              { wch: 10 },
+              { wch: 12 }
+            ];
+            worksheet['!cols'] = colWidths;
+          }
+
+          XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
+        } else {
+          const emptyData = [Object.keys(sheetInfo.headers).reduce((acc, key) => {
+            acc[sheetInfo.headers[key]] = '';
+            return acc;
+          }, {} as any)];
+
+          const worksheet = XLSX.utils.json_to_sheet(emptyData);
+          XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
+        }
+      });
+
+      // Update loading message
+      toast.loading("Mengunduh file...", { id: loadingToast });
+      XLSX.writeFile(wb, `${baseFileName}.xlsx`);
+    } else {
+      // Export tiap sheet sebagai CSV terpisah
+      toast.loading("Mengunduh file...", { id: loadingToast });
+      sheets.forEach(sheetInfo => {
+        let worksheet;
+        if (sheetInfo.data && sheetInfo.data.length > 0) {
+          const cleanedData = cleanDataForExport(sheetInfo.data, sheetInfo.headers);
+          worksheet = XLSX.utils.json_to_sheet(cleanedData);
+        } else {
+          const emptyData = [Object.keys(sheetInfo.headers).reduce((acc, key) => {
+            acc[sheetInfo.headers[key]] = '';
+            return acc;
+          }, {} as any)];
+          worksheet = XLSX.utils.json_to_sheet(emptyData);
+        }
+
+        const csv = XLSX.utils.sheet_to_csv(worksheet);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const safeSheetName = sheetInfo.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        link.href = URL.createObjectURL(blob);
+        link.download = `${baseFileName}_${safeSheetName}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      });
+    }
+
     // Dismiss loading and show success
     toast.dismiss(loadingToast);
-    toast.success("Semua data berhasil diekspor ke Excel!");
+    toast.success(`Semua data berhasil diekspor ke ${format.toUpperCase()}!`);
 
   } catch (error) {
     console.error("Gagal mengekspor data:", error);

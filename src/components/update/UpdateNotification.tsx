@@ -63,7 +63,7 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ update, 
   };
 
   return (
-    <div className={`max-w-md w-full ${config.bgColor} border ${config.borderColor} rounded-lg shadow-lg p-4 relative`}>
+    <div className={`max-w-md w-full ${config.bgColor} border ${config.borderColor} rounded-lg p-4 relative`}>
       {/* Close button */}
       <button
         onClick={onDismiss}

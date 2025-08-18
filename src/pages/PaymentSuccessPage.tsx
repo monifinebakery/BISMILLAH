@@ -41,7 +41,7 @@ const PaymentSuccessPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <Card className="border-2 border-green-200 shadow-lg">
+        <Card className="border-2 border-green-200">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="h-8 w-8 text-green-600" />

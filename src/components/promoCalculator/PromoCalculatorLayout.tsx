@@ -212,7 +212,7 @@ const PromoCalculatorLayout = () => {
     containerLayout: "min-h-screen bg-gray-50",
     mainContent: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8",
     loadingSpinner: "animate-spin rounded-full border-t-2 border-b-2 border-orange-500",
-    card: "bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+    card: "bg-white p-6 rounded-xl border border-gray-200"
   };
 
   const recentPromos = promos.slice(0, 3);
@@ -456,7 +456,7 @@ const PromoCalculatorLayout = () => {
             </button>
           </div>
           
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <LazyComponent 
               fallback={<LoadingFallback message="Memuat kalkulator promo..." />}
               onRetry={handleRetry}
@@ -476,7 +476,7 @@ const PromoCalculatorLayout = () => {
       <div className={styles.containerLayout}>
         <div className="max-w-7xl mx-auto">
           <ListHeader onCreateNew={() => setCurrentView('calculator')} />
-          <div className="bg-white rounded-t-xl shadow-sm border border-gray-200">
+          <div className="bg-white rounded-t-xl border border-gray-200">
             <LazyComponent 
               fallback={<LoadingFallback message="Memuat daftar promo..." />}
               onRetry={handleRetry}

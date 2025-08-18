@@ -113,7 +113,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const showUpdateNotification = useCallback((updates: AppUpdate[]) => {
     try {
       toast.custom((t) => (
-        <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+        <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg p-4">
           <h3 className="font-bold text-lg text-gray-900 mb-2">Pembaruan Baru Tersedia</h3>
           <div className="space-y-4 max-h-64 overflow-y-auto">
             {updates.map((update) => (

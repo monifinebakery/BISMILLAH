@@ -57,9 +57,9 @@ const PromoTypeSelector = ({ selectedType, onTypeChange, onFormSubmit, isCalcula
                 key={type.id}
                 onClick={() => onTypeChange(type.id)}
                 className={`
-                  p-4 rounded-lg border-2 text-left transition-all hover:shadow-md
+                  p-4 rounded-lg border-2 text-left transition-all
                   ${isSelected 
-                    ? type.color + ' shadow-md' 
+                    ? type.color 
                     : 'bg-white border-gray-200 hover:border-gray-300'
                   }
                 `}

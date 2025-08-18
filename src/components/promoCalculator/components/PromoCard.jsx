@@ -154,7 +154,7 @@ const PromoCard = ({
                 {/* Dropdown Menu */}
                 {/* ✅ Gunakan state isDropdownOpen untuk kontrol visibilitas */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg border border-gray-200 z-10">
                     <div className="py-1">
                       {onView && (
                         <button

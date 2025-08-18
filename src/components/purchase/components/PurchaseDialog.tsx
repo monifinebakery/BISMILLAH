@@ -46,7 +46,7 @@ import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
+import { generateUUID } from '@/utils/uuid';
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
@@ -292,8 +292,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     if (effectiveQty <= 0) return toast.error('Total yang dibeli harus > 0');
     if (computedUnitPrice <= 0) return toast.error('Tidak bisa menghitung harga per unit');
 
-    // Generate a temporary ID for new items
-    const tempId = `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a proper UUID for new items
+    const tempId = generateUUID();
 
     const purchaseItem: PurchaseItem = {
       bahanBakuId: tempId,

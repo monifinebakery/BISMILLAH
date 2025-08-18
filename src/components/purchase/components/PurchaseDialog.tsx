@@ -292,7 +292,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     if (effectiveQty <= 0) return toast.error('Total yang dibeli harus > 0');
     if (computedUnitPrice <= 0) return toast.error('Tidak bisa menghitung harga per unit');
 
+    // Generate a temporary ID for new items
+    const tempId = `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     const purchaseItem: PurchaseItem = {
+      bahanBakuId: tempId,
       nama: newItemFormData.nama,
       satuan: newItemFormData.satuan,
       kuantitas: effectiveQty,

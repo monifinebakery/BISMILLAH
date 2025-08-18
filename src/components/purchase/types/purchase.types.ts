@@ -191,7 +191,6 @@ export interface PurchaseDialogProps {
   mode: 'create' | 'edit';
   purchase?: Purchase | null;
   suppliers: Array<{ id: string; nama: string }>;
-  bahanBaku: Array<{ id: string; nama: string; satuan: string }>;
   onClose: () => void;
 }
 

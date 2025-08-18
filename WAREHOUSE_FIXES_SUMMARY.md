@@ -91,6 +91,9 @@ generateSyncReport()       // Full diagnostic report
 ```sql
 -- Run the database trigger file
 \i database_fixes/warehouse_wac_trigger.sql
+
+-- Ensure purchases index uses consistent name
+\i database_fixes/purchases_user_index.sql
 ```
 
 ### Step 2: Update Frontend Code

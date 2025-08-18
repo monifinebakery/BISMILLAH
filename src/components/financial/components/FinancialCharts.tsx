@@ -31,7 +31,7 @@ interface FinancialChartsProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      cdiv className="p-3 bg-white border border-gray-300 rounded text-sm"e
+      <div className="p-3 bg-white border border-gray-300 rounded text-sm">
         <p className="font-semibold mb-1">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.color }}>

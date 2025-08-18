@@ -1,95 +1,88 @@
 // src/components/warehouse/hooks/useWarehouseSelection.ts
-import { useState, useCallback, useMemo } from 'react';
-import { BahanBaku } from '../types/warehouse';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import type { BahanBakuFrontend } from '../types';
 
-interface UseWarehouseSelectionReturn {
+interface WarehouseSelectionResult {
   selectedItems: string[];
-  isSelectionMode: boolean;
   toggleSelection: (id: string) => void;
-  selectAll: (items: BahanBaku[]) => void;
-  clearSelection: () => void;
-  toggleSelectionMode: () => void;
+  selectAllCurrent: () => void;
   isSelected: (id: string) => boolean;
-  getSelectedItems: (allItems: BahanBaku[]) => BahanBaku[];
-  selectPage: (pageItems: BahanBaku[]) => void;
-  isPageSelected: (pageItems: BahanBaku[]) => boolean;
-  isPagePartiallySelected: (pageItems: BahanBaku[]) => boolean;
-  selectedCount: number;
+  allCurrentSelected: boolean;
+  someCurrentSelected: boolean;
+  isRefreshing: boolean;
+  handleRefresh: () => Promise<void> | void;
 }
 
-export const useWarehouseSelection = (): UseWarehouseSelectionReturn => {
+export function useWarehouseSelection(
+  items: BahanBakuFrontend[],
+  isSelectionMode: boolean,
+  onRefresh?: () => Promise<void>
+): WarehouseSelectionResult {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Clear selection when exiting selection mode
+  useEffect(() => {
+    if (!isSelectionMode) {
+      setSelectedItems([]);
+    }
+  }, [isSelectionMode]);
 
   const toggleSelection = useCallback((id: string) => {
+    setSelectedItems(prev =>
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+    );
+  }, []);
+
+  const selectAllCurrent = useCallback(() => {
+    const currentIds = items.map(item => item.id);
+    const allSelected = currentIds.every(id => selectedItems.includes(id));
     setSelectedItems(prev => {
-      const isCurrentlySelected = prev.includes(id);
-      if (isCurrentlySelected) {
-        return prev.filter(item => item !== id);
-      } else {
-        return [...prev, id];
+      if (allSelected) {
+        return prev.filter(id => !currentIds.includes(id));
       }
-    });
-  }, []);
-
-  const selectAll = useCallback((items: BahanBaku[]) => {
-    setSelectedItems(items.map(item => item.id));
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedItems([]);
-  }, []);
-
-  const toggleSelectionMode = useCallback(() => {
-    setIsSelectionMode(prev => {
-      if (prev) {
-        setSelectedItems([]);
-      }
-      return !prev;
-    });
-  }, []);
-
-  const isSelected = useCallback((id: string) => {
-    return selectedItems.includes(id);
-  }, [selectedItems]);
-
-  const getSelectedItems = useCallback((allItems: BahanBaku[]) => {
-    return allItems.filter(item => selectedItems.includes(item.id));
-  }, [selectedItems]);
-
-  const selectPage = useCallback((pageItems: BahanBaku[]) => {
-    const pageIds = pageItems.map(item => item.id);
-    setSelectedItems(prev => {
-      const newSelection = new Set([...prev, ...pageIds]);
+      const newSelection = new Set(prev);
+      currentIds.forEach(id => newSelection.add(id));
       return Array.from(newSelection);
     });
-  }, []);
+  }, [items, selectedItems]);
 
-  const isPageSelected = useCallback((pageItems: BahanBaku[]) => {
-    if (pageItems.length === 0) return false;
-    return pageItems.every(item => selectedItems.includes(item.id));
-  }, [selectedItems]);
+  const isSelected = useCallback(
+    (id: string) => selectedItems.includes(id),
+    [selectedItems]
+  );
 
-  const isPagePartiallySelected = useCallback((pageItems: BahanBaku[]) => {
-    if (pageItems.length === 0) return false;
-    const selectedInPage = pageItems.filter(item => selectedItems.includes(item.id));
-    return selectedInPage.length > 0 && selectedInPage.length < pageItems.length;
-  }, [selectedItems]);
+  const allCurrentSelected = useMemo(
+    () => items.length > 0 && items.every(item => selectedItems.includes(item.id)),
+    [items, selectedItems]
+  );
 
-  const selectedCount = useMemo(() => selectedItems.length, [selectedItems]);
+  const someCurrentSelected = useMemo(
+    () => !allCurrentSelected && items.some(item => selectedItems.includes(item.id)),
+    [items, selectedItems, allCurrentSelected]
+  );
+
+  const handleRefresh = useCallback(async () => {
+    if (!onRefresh) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [onRefresh]);
 
   return {
     selectedItems,
-    isSelectionMode,
     toggleSelection,
-    selectAll,
-    clearSelection,
-    toggleSelectionMode,
+    selectAllCurrent,
     isSelected,
-    getSelectedItems,
-    selectPage,
-    isPageSelected,
-    isPagePartiallySelected,
-    selectedCount,
+    allCurrentSelected,
+    someCurrentSelected,
+    isRefreshing,
+    handleRefresh,
   };
-};
+}
+
+export type { WarehouseSelectionResult };
+

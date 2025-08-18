@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -43,7 +42,6 @@ import { id } from 'date-fns/locale';
 
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
-import { usePurchaseItemManager } from '../hooks/usePurchaseItemManager';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import SimplePurchaseItemForm, { PurchaseItemPayload } from './SimplePurchaseItemForm'; // ✅ NEW: Import the payload type
@@ -90,18 +88,12 @@ const SafeNumericInput = React.forwardRef<
 });
 
 // ✅ ENHANCED: Updated props interface
-interface EnhancedPurchaseDialogProps extends PurchaseDialogProps {
-  initialAddMode?: 'quick' | 'packaging'; // NEW: Added prop for auto-opening with specific mode
-}
-
-const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
+const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,
   mode,
   purchase,
   suppliers,
-  bahanBaku,
   onClose,
-  initialAddMode, // ✅ NEW: Added prop for auto-opening with specific mode
 }) => {
   // ✅ ULTRA LIGHTWEIGHT: Zero validation during typing
   const {
@@ -134,29 +126,38 @@ const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
   });
 
   // Item management
-  const {
-    showAddItem,
-    setShowAddItem,
-    editingItemIndex,
-    handleEditItem,
-    handleSaveEditedItem,
-    handleCancelEditItem,
-  } = usePurchaseItemManager({
-    bahanBaku,
-    items: formData.items,
-    addItem,
-    updateItem,
-  });
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
-  // ✅ Reset form states when dialog opens/closes + handle initialAddMode
+  const handleEditItem = useCallback((index: number) => {
+    setEditingItemIndex(index);
+    toast.info('Mode edit item aktif');
+  }, []);
+
+  const handleSaveEditedItem = useCallback((index: number, updatedItem: Partial<PurchaseItem>) => {
+    const qty = toNumber(updatedItem.kuantitas);
+    const price = toNumber(updatedItem.hargaSatuan);
+
+    if (qty <= 0 || price <= 0) {
+      toast.error('Kuantitas dan harga satuan harus > 0');
+      return;
+    }
+
+    updateItem(index, { ...updatedItem, subtotal: qty * price });
+    setEditingItemIndex(null);
+    toast.success('Item berhasil diperbarui');
+  }, [updateItem]);
+
+  const handleCancelEditItem = useCallback(() => setEditingItemIndex(null), []);
+
+  // ✅ Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
-      // Auto-open add item form if initialAddMode is 'packaging'
-      setShowAddItem(initialAddMode === 'packaging');
+      setShowAddItem(false);
       handleCancelEditItem();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialAddMode]);
+  }, [isOpen]);
 
   // ✅ MEMOIZED HANDLERS: Prevent recreation on every render
   const handleCancel = useCallback(() => {
@@ -374,26 +375,6 @@ const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
                 </div>
               </div>
 
-              {/* Calculation Method */}
-              <div className="space-y-2">
-                <Label htmlFor="metodePerhitungan">Metode Perhitungan Stok</Label>
-                <Select
-                  value={formData.metodePerhitungan}
-                  onValueChange={(value: 'FIFO' | 'LIFO' | 'AVERAGE') =>
-                    updateFormField('metodePerhitungan', value) // ✅ FIXED: Use updateFormField
-                  }
-                  disabled={!canEdit}
-                >
-                  <SelectTrigger className={!canEdit ? 'opacity-50' : ''}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FIFO">FIFO (First In, First Out)</SelectItem>
-                    <SelectItem value="LIFO">LIFO (Last In, First Out)</SelectItem>
-                    <SelectItem value="AVERAGE">Average (Rata-rata)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </CardContent>
           </Card>
 
@@ -415,7 +396,8 @@ const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowAddItem(!showAddItem)}
+                    onClick={() => setShowAddItem(true)}
+                    disabled={showAddItem}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Tambah Item
@@ -427,10 +409,8 @@ const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
               {/* ✅ ENHANCED: Smart Add New Item Form with clean payload handling */}
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
-                  bahanBaku={bahanBaku}
-                  initialMode={initialAddMode === 'packaging' ? 'packaging' : 'quick'} // ✅ NEW: Pass initial mode
                   onCancel={() => setShowAddItem(false)}
-                  onAdd={handleAddItemFromForm} // ✅ CLEAN: Use the new handler
+                  onAdd={handleAddItemFromForm}
                 />
               )}
 
@@ -464,7 +444,7 @@ const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div>
                                 <div className="font-medium">{item.nama}</div>
-                                <div className="text-sm text-gray-600">ID: {item.bahanBakuId}</div>
+                                {/* ID hidden since item creates new material */}
                                 {/* ✅ IMPROVED: Display packaging info with proper typing */}
                                 {item.jumlahKemasan && item.jumlahKemasan > 0 && item.isiPerKemasan && item.isiPerKemasan > 0 && (
                                   <div className="text-xs text-gray-500 mt-1">

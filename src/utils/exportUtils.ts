@@ -70,6 +70,18 @@ const convertTemplatesToArray = (templates: { [key: string]: string }) => {
 
 /**
  * Mengekspor semua data aplikasi ke satu file Excel dengan beberapa sheet.
+ * Setiap dataset ditulis ke sheet terpisah dengan kolom sesuai mapping `headers`:
+ * - "Bahan Baku": Nama Bahan, Kategori, Stok, Satuan, Harga Satuan (Rp), Stok Minimum, Supplier, Kadaluwarsa
+ * - "Supplier": Nama Supplier, Kontak, Email, Telepon, Alamat
+ * - "Pembelian": Tanggal, Supplier, Nama Barang, Jumlah, Satuan, Harga Satuan (Rp), Total Harga (Rp), Status
+ * - "Resep": Nama Resep, Porsi, Nama Bahan, Jumlah, Satuan, Harga Satuan Bahan (Rp), Total Harga Bahan (Rp),
+ *            Biaya Tenaga Kerja (Rp), Biaya Overhead (Rp), Total HPP (Rp), HPP per Porsi (Rp),
+ *            Margin (%), Harga Jual per Porsi (Rp)
+ * - "Pesanan": Nomor Pesanan, Tanggal, Nama Pelanggan, Telepon Pelanggan, Alamat Pengiriman,
+ *              Nama Barang, Jumlah, Harga Satuan (Rp), Total Harga (Rp), Total Pesanan (Rp), Status, Catatan
+ * - "Template WhatsApp": Status Pesanan, Template Pesan, Jumlah Karakter, Jumlah Baris, Jumlah Variabel
+ * - "Aset": Nama Aset, Kategori, Nilai Awal (Rp), Nilai Saat Ini (Rp), Tanggal Pembelian, Kondisi, Lokasi
+ * - "Keuangan": Tanggal, Tipe, Kategori, Deskripsi, Jumlah (Rp)
  * @param allData Objek yang berisi semua array data dari konteks (bahanBaku, suppliers, dll.).
  * @param businessName Nama bisnis pengguna untuk nama file kustom.
  */
@@ -86,7 +98,8 @@ export const exportAllDataToExcel = async (allData: any, businessName?: string) 
     
     const wb = XLSX.utils.book_new(); // Buat workbook Excel baru
 
-    // Definisikan struktur untuk setiap sheet
+    // Definisikan struktur untuk setiap sheet dan kolom yang akan diekspor.
+    // Urutan objek `headers` menentukan urutan kolom di file Excel.
     const sheets = [
       {
         name: "Bahan Baku",
@@ -239,10 +252,11 @@ export const exportAllDataToExcel = async (allData: any, businessName?: string) 
 
     // Loop untuk membuat setiap sheet
     sheets.forEach(sheetInfo => {
+      const headerOrder = Object.values(sheetInfo.headers);
       // Hanya proses jika ada data
       if (sheetInfo.data && sheetInfo.data.length > 0) {
         const cleanedData = cleanDataForExport(sheetInfo.data, sheetInfo.headers);
-        const worksheet = XLSX.utils.json_to_sheet(cleanedData);
+        const worksheet = XLSX.utils.json_to_sheet(cleanedData, { header: headerOrder });
         
         // Set column widths for better readability
         if (sheetInfo.name === "Template WhatsApp") {
@@ -259,12 +273,11 @@ export const exportAllDataToExcel = async (allData: any, businessName?: string) 
         XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
       } else {
         // Jika tidak ada data, buat sheet kosong dengan header
-        const emptyData = [Object.keys(sheetInfo.headers).reduce((acc, key) => {
-          acc[sheetInfo.headers[key]] = '';
+        const emptyRow = headerOrder.reduce((acc, header) => {
+          acc[header] = '';
           return acc;
-        }, {} as any)];
-        
-        const worksheet = XLSX.utils.json_to_sheet(emptyData);
+        }, {} as any);
+        const worksheet = XLSX.utils.json_to_sheet([emptyRow], { header: headerOrder });
         XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
       }
     });

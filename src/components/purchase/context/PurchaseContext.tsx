@@ -97,7 +97,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { addFinancialTransaction, deleteFinancialTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
-  const { bahanBaku } = useBahanBaku();
+  const { bahanBaku, addBahanBaku } = useBahanBaku();
 
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
@@ -184,9 +184,29 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCacheList((old) => [temp, ...old]);
       return { prev, tempId: temp.id };
     },
-    onSuccess: (newRow, _payload, ctx) => {
+    onSuccess: async (newRow, _payload, ctx) => {
       // swap temp with real
       setCacheList((old) => [newRow, ...old.filter((p) => p.id !== ctx?.tempId)]);
+
+      // Tambahkan otomatis bahan baku baru jika belum ada di gudang
+      try {
+        for (const item of newRow.items || []) {
+          const exists = bahanBaku?.some((bb) => bb.id === item.bahanBakuId);
+          if (!exists) {
+            await addBahanBaku({
+              nama: item.nama,
+              kategori: 'Lainnya',
+              stok: 0,
+              minimum: 0,
+              satuan: item.satuan || '-',
+              harga: item.hargaSatuan || 0,
+              supplier: newRow.supplier,
+            });
+          }
+        }
+      } catch (e) {
+        logger.error('Gagal menambahkan bahan baku baru dari pembelian', e);
+      }
 
       // ✅ INVALIDATE WAREHOUSE: Trigger DB mungkin sudah update stok jika status=completed
       invalidateWarehouseData();

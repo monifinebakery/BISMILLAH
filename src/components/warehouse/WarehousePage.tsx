@@ -497,16 +497,10 @@ const WarehousePageContent: React.FC = () => {
             onSort={core.handlers?.sort}
             onEdit={core.handlers?.edit}
             onDelete={enhancedHandlers.delete}
-            selectedItems={core.selection?.selectedItems || new Set()}
-            onToggleSelection={core.selection?.toggle}
-            onSelectAllCurrent={core.selection?.selectPage}
-          isSelected={core.selection?.isSelected}
-          allCurrentSelected={core.selection?.isPageSelected || false}
-          someCurrentSelected={core.selection?.isPagePartiallySelected || false}
-          emptyStateAction={() => navigate('/pembelian')}
-          onRefresh={warehouseData.refetch}
-          lastUpdated={warehouseData.lastUpdated}
-        />
+            emptyStateAction={() => navigate('/pembelian')}
+            onRefresh={warehouseData.refetch}
+            lastUpdated={warehouseData.lastUpdated}
+          />
 
           {/* Pagination */}
           {(core.filters?.filteredItems?.length || 0) > 0 && (

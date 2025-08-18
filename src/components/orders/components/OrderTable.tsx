@@ -382,7 +382,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+      cdiv className="bg-white rounded-xl border border-gray-200/80 overflow-hidden"e
         <div className="p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Memuat pesanan...</p>
@@ -393,7 +393,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   if (uiState.currentOrders.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+      cdiv className="bg-white rounded-xl border border-gray-200/80 overflow-hidden"e
         <EmptyState
           hasFilters={uiState.hasActiveFilters}
           onAddFirst={onNewOrder}
@@ -404,7 +404,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+    cdiv className="bg-white rounded-xl border border-gray-200/80 overflow-hidden"e
       <div className="overflow-x-auto">
         <table className="min-w-full">
           {/* ✅ UPDATED: Table Header with Completion Date */}

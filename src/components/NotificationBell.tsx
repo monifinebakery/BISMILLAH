@@ -148,11 +148,11 @@ const NotificationBell = () => {
         </Button>
       </PopoverTrigger>
       
-      PopoverContent 
+      cPopoverContent 
         className="w-96 p-0 border-gray-200 rounded-lg" 
         align="end" 
         sideOffset={8}
-      
+      e
         <div className="bg-white rounded-lg overflow-hidden">
           {/* ✅ HEADER */}
           <div className="flex items-center justify-between p-4 bg-gray-50 border-b">

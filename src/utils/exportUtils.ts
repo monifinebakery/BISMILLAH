@@ -89,15 +89,15 @@ export const exportAllDataToExcel = async (allData: any, businessName?: string) 
     // Definisikan struktur untuk setiap sheet
     const sheets = [
       {
-        name: "Bahan Baku",
+        name: "Gudang Bahan Baku",
         data: allData.bahanBaku,
         headers: {
-          nama: "Nama Bahan", 
-          kategori: "Kategori", 
-          stok: "Stok", 
+          nama: "Nama Bahan",
+          kategori: "Kategori",
+          stok: "Stok",
           satuan: "Satuan",
-          hargaSatuan: "Harga Satuan (Rp)", 
-          minimum: "Stok Minimum", 
+          hargaSatuan: "Harga Satuan (Rp)",
+          minimum: "Stok Minimum",
           supplier: "Supplier",
           tanggalKadaluwarsa: "Kadaluwarsa"
         }
@@ -106,133 +106,281 @@ export const exportAllDataToExcel = async (allData: any, businessName?: string) 
         name: "Supplier",
         data: allData.suppliers,
         headers: {
-          nama: "Nama Supplier", 
-          kontak: "Kontak", 
+          nama: "Nama Supplier",
+          kontak: "Kontak",
           email: "Email",
-          telepon: "Telepon", 
+          telepon: "Telepon",
           alamat: "Alamat"
         }
       },
       {
         name: "Pembelian",
         data: (allData.purchases || []).flatMap((p: any) => {
-            const supplier = (allData.suppliers || []).find((s: any) => s.id === p.supplier);
-            return (p.items || []).map((item: any) => ({
-                ...item,
-                tanggal: p.tanggal,
-                supplierName: supplier?.nama || p.supplier,
-                status: p.status
-            }));
+          const supplier = (allData.suppliers || []).find((s: any) => s.id === p.supplier);
+          return (p.items || []).map((item: any) => ({
+            ...item,
+            tanggal: p.tanggal,
+            supplierName: supplier?.nama || p.supplier,
+            status: p.status
+          }));
         }),
         headers: {
-          tanggal: "Tanggal", 
-          supplierName: "Supplier", 
+          tanggal: "Tanggal",
+          supplierName: "Supplier",
           namaBarang: "Nama Barang",
-          jumlah: "Jumlah", 
-          satuan: "Satuan", 
+          jumlah: "Jumlah",
+          satuan: "Satuan",
           hargaSatuan: "Harga Satuan (Rp)",
-          totalHarga: "Total Harga (Rp)", 
+          totalHarga: "Total Harga (Rp)",
           status: "Status"
         }
       },
       {
-        name: "Resep",
-        data: (allData.recipes || []).flatMap((r: any) => 
-            (r.ingredients || []).map((ing: any) => ({
-                namaResep: r.namaResep, 
-                porsi: r.porsi, 
-                namaBahan: ing.nama, 
-                jumlah: ing.jumlah,
-                satuan: ing.satuan, 
-                hargaPerSatuan: ing.hargaPerSatuan, 
-                totalHargaBahan: ing.totalHarga,
-                biayaTenagaKerja: r.biayaTenagaKerja, 
-                biayaOverhead: r.biayaOverhead, 
-                totalHPP: r.totalHPP,
-                hppPerPorsi: r.hppPerPorsi, 
-                marginKeuntungan: r.marginKeuntungan, 
-                hargaJualPorsi: r.hargaJualPorsi
-            }))
+        name: "Pesanan",
+        data: (allData.orders || []).flatMap((o: any) =>
+          (o.items || []).map((item: any) => ({
+            ...item,
+            nomorPesanan: o.nomorPesanan,
+            tanggal: o.tanggal,
+            namaPelanggan: o.namaPelanggan,
+            teleponPelanggan: o.teleponPelanggan,
+            alamatPengiriman: o.alamatPengiriman,
+            totalPesanan: o.totalPesanan,
+            status: o.status,
+            catatan: o.catatan
+          }))
         ),
         headers: {
-            namaResep: "Nama Resep", 
-            porsi: "Porsi", 
-            namaBahan: "Nama Bahan", 
-            jumlah: "Jumlah",
-            satuan: "Satuan", 
-            hargaPerSatuan: "Harga Satuan Bahan (Rp)", 
-            totalHargaBahan: "Total Harga Bahan (Rp)",
-            biayaTenagaKerja: "Biaya Tenaga Kerja (Rp)", 
-            biayaOverhead: "Biaya Overhead (Rp)",
-            totalHPP: "Total HPP (Rp)", 
-            hppPerPorsi: "HPP per Porsi (Rp)",
-            marginKeuntungan: "Margin (%)", 
-            hargaJualPorsi: "Harga Jual per Porsi (Rp)"
+          nomorPesanan: "Nomor Pesanan",
+          tanggal: "Tanggal",
+          namaPelanggan: "Nama Pelanggan",
+          teleponPelanggan: "Telepon Pelanggan",
+          alamatPengiriman: "Alamat Pengiriman",
+          namaBarang: "Nama Barang",
+          quantity: "Jumlah",
+          hargaSatuan: "Harga Satuan (Rp)",
+          totalHarga: "Total Harga (Rp)",
+          totalPesanan: "Total Pesanan (Rp)",
+          status: "Status",
+          catatan: "Catatan"
         }
       },
       {
-        name: "Pesanan",
-        data: (allData.orders || []).flatMap((o: any) => 
-            (o.items || []).map((item: any) => ({
-                ...item,
-                nomorPesanan: o.nomorPesanan,
-                tanggal: o.tanggal,
-                namaPelanggan: o.namaPelanggan,
-                teleponPelanggan: o.teleponPelanggan,
-                alamatPengiriman: o.alamatPengiriman,
-                totalPesanan: o.totalPesanan,
-                status: o.status,
-                catatan: o.catatan
-            }))
-        ),
+        name: "Manajemen Resep",
+        data: allData.recipes,
         headers: {
-            nomorPesanan: "Nomor Pesanan", 
-            tanggal: "Tanggal", 
-            namaPelanggan: "Nama Pelanggan",
-            teleponPelanggan: "Telepon Pelanggan",
-            alamatPengiriman: "Alamat Pengiriman",
-            namaBarang: "Nama Barang", 
-            quantity: "Jumlah", 
-            hargaSatuan: "Harga Satuan (Rp)",
-            totalHarga: "Total Harga (Rp)", 
-            totalPesanan: "Total Pesanan (Rp)", 
-            status: "Status",
-            catatan: "Catatan"
+          namaResep: "Nama Resep",
+          jumlahPorsi: "Jumlah Porsi",
+          kategoriResep: "Kategori",
+          deskripsi: "Deskripsi",
+          bahanResep: "Bahan Resep",
+          biayaTenagaKerja: "Biaya Tenaga Kerja (Rp)",
+          biayaOverhead: "Biaya Overhead (Rp)",
+          marginKeuntunganPersen: "Margin (%)",
+          totalHpp: "Total HPP (Rp)",
+          hppPerPorsi: "HPP per Porsi (Rp)",
+          hargaJualPorsi: "Harga Jual per Porsi (Rp)",
+          jumlahPcsPerPorsi: "Jumlah Pcs per Porsi",
+          hppPerPcs: "HPP per Pcs (Rp)",
+          hargaJualPerPcs: "Harga Jual per Pcs (Rp)"
+        }
+      },
+      {
+        name: "Hitung HPP",
+        data: allData.hppResults,
+        headers: {
+          nama: "Nama",
+          ingredients: "Bahan",
+          biayaTenagaKerja: "Biaya Tenaga Kerja (Rp)",
+          biayaOverhead: "Biaya Overhead (Rp)",
+          marginKeuntungan: "Margin Keuntungan (%)",
+          totalHPP: "Total HPP (Rp)",
+          hppPerPorsi: "HPP per Porsi (Rp)",
+          hargaJualPorsi: "Harga Jual per Porsi (Rp)",
+          jumlahPorsi: "Jumlah Porsi"
+        }
+      },
+      {
+        name: "Kalkulator Promo",
+        data: allData.promos,
+        headers: {
+          namaPromo: "Nama Promo",
+          tipePromo: "Tipe Promo",
+          status: "Status",
+          dataPromo: "Data Promo",
+          calculationResult: "Hasil Kalkulasi",
+          tanggalMulai: "Tanggal Mulai",
+          tanggalSelesai: "Tanggal Selesai",
+          deskripsi: "Deskripsi",
+          createdAt: "Dibuat",
+          updatedAt: "Diperbarui"
+        }
+      },
+      {
+        name: "Biaya Operasional",
+        data: (() => {
+          const costs = (allData.operationalCosts || []).map((c: any) => ({
+            type: "Biaya",
+            namaBiaya: c.nama_biaya || c.namaBiaya,
+            jumlahPerBulan: c.jumlah_per_bulan || c.jumlahPerBulan,
+            jenis: c.jenis,
+            status: c.status,
+            metode: "",
+            nilai: "",
+            createdAt: c.created_at || c.createdAt,
+            updatedAt: c.updated_at || c.updatedAt
+          }));
+          const allocation = allData.allocationSettings
+            ? [{
+                type: "Pengaturan Alokasi",
+                namaBiaya: "",
+                jumlahPerBulan: "",
+                jenis: "",
+                status: "",
+                metode: allData.allocationSettings.metode,
+                nilai: allData.allocationSettings.nilai,
+                createdAt: allData.allocationSettings.created_at || allData.allocationSettings.createdAt,
+                updatedAt: allData.allocationSettings.updated_at || allData.allocationSettings.updatedAt
+              }]
+            : [];
+          return [...costs, ...allocation];
+        })(),
+        headers: {
+          type: "Tipe",
+          namaBiaya: "Nama Biaya",
+          jumlahPerBulan: "Jumlah per Bulan (Rp)",
+          jenis: "Jenis",
+          status: "Status",
+          metode: "Metode Alokasi",
+          nilai: "Nilai Alokasi",
+          createdAt: "Dibuat",
+          updatedAt: "Diperbarui"
+        }
+      },
+      {
+        name: "Bisnis",
+        data: allData.activities,
+        headers: {
+          title: "Judul",
+          description: "Deskripsi",
+          type: "Tipe",
+          value: "Nilai",
+          timestamp: "Timestamp",
+          createdAt: "Dibuat",
+          updatedAt: "Diperbarui"
+        }
+      },
+      {
+        name: "Laporan Keuangan",
+        data: allData.financialTransactions,
+        headers: {
+          date: "Tanggal",
+          type: "Tipe",
+          category: "Kategori",
+          description: "Deskripsi",
+          amount: "Jumlah (Rp)"
+        }
+      },
+      {
+        name: "Analisis Profit",
+        data: (() => {
+          const analyses: any[] = [];
+          if (allData.profitAnalysis) {
+            analyses.push(allData.profitAnalysis);
+          }
+          if (Array.isArray(allData.profitHistory)) {
+            analyses.push(...allData.profitHistory);
+          }
+          return analyses.map((p: any) => {
+            const revenue = p.total_revenue ?? p.revenue_data?.total ?? 0;
+            const cogs = p.total_cogs ?? p.cogs_data?.total ?? 0;
+            const opex = p.total_opex ?? p.opex_data?.total ?? 0;
+            const gross = p.gross_profit ?? (revenue - cogs);
+            const net = p.net_profit ?? (gross - opex);
+            const grossMargin = p.gross_margin ?? (revenue ? (gross / revenue) * 100 : 0);
+            const netMargin = p.net_margin ?? (revenue ? (net / revenue) * 100 : 0);
+            return {
+              period: p.period,
+              total_revenue: revenue,
+              total_cogs: cogs,
+              total_opex: opex,
+              gross_profit: gross,
+              net_profit: net,
+              gross_margin: grossMargin,
+              net_margin: netMargin,
+              calculation_date: p.calculation_date || p.calculated_at
+            };
+          });
+        })(),
+        headers: {
+          period: "Periode",
+          total_revenue: "Total Pendapatan (Rp)",
+          total_cogs: "Total HPP (Rp)",
+          total_opex: "Total Biaya Operasional (Rp)",
+          gross_profit: "Laba Kotor (Rp)",
+          net_profit: "Laba Bersih (Rp)",
+          gross_margin: "Margin Kotor (%)",
+          net_margin: "Margin Bersih (%)",
+          calculation_date: "Tanggal Perhitungan"
+        }
+      },
+      {
+        name: "Manajemen Aset",
+        data: allData.assets,
+        headers: {
+          nama: "Nama Aset",
+          kategori: "Kategori",
+          nilaiAwal: "Nilai Awal (Rp)",
+          nilaiSaatIni: "Nilai Saat Ini (Rp)",
+          tanggalPembelian: "Tanggal Pembelian",
+          kondisi: "Kondisi",
+          lokasi: "Lokasi"
+        }
+      },
+      {
+        name: "Invoice",
+        data: (allData.invoices || []).map((inv: any) => ({
+          invoiceNumber: inv.invoiceNumber,
+          issueDate: inv.issueDate,
+          dueDate: inv.dueDate,
+          status: inv.status,
+          customerName: inv.customer?.name,
+          customerAddress: inv.customer?.address,
+          customerPhone: inv.customer?.phone,
+          customerEmail: inv.customer?.email,
+          items: inv.items,
+          discount: inv.discount?.value,
+          tax: inv.tax?.value,
+          shipping: inv.shipping,
+          notes: inv.notes,
+          paymentInstructions: inv.paymentInstructions
+        })),
+        headers: {
+          invoiceNumber: "Nomor Invoice",
+          issueDate: "Tanggal Diterbitkan",
+          dueDate: "Jatuh Tempo",
+          status: "Status",
+          customerName: "Nama Pelanggan",
+          customerAddress: "Alamat Pelanggan",
+          customerPhone: "Telepon Pelanggan",
+          customerEmail: "Email Pelanggan",
+          items: "Item",
+          discount: "Diskon",
+          tax: "Pajak",
+          shipping: "Biaya Pengiriman",
+          notes: "Catatan",
+          paymentInstructions: "Instruksi Pembayaran"
         }
       },
       {
         name: "Template WhatsApp",
         data: convertTemplatesToArray(allData.whatsappTemplates || {}),
         headers: {
-            status: "Status Pesanan",
-            template: "Template Pesan",
-            characterCount: "Jumlah Karakter",
-            lineCount: "Jumlah Baris",
-            variableCount: "Jumlah Variabel"
-        }
-      },
-      {
-        name: "Aset",
-        data: allData.assets,
-        headers: {
-            nama: "Nama Aset", 
-            kategori: "Kategori", 
-            nilaiAwal: "Nilai Awal (Rp)",
-            nilaiSaatIni: "Nilai Saat Ini (Rp)", 
-            tanggalPembelian: "Tanggal Pembelian",
-            kondisi: "Kondisi", 
-            lokasi: "Lokasi"
-        }
-      },
-      {
-        name: "Keuangan",
-        data: allData.financialTransactions,
-        headers: {
-            date: "Tanggal", 
-            type: "Tipe", 
-            category: "Kategori",
-            description: "Deskripsi", 
-            amount: "Jumlah (Rp)"
+          status: "Status Pesanan",
+          template: "Template Pesan",
+          characterCount: "Jumlah Karakter",
+          lineCount: "Jumlah Baris",
+          variableCount: "Jumlah Variabel"
         }
       }
     ];

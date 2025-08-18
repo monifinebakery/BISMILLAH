@@ -355,7 +355,6 @@ export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
     'Status',
     'Jumlah Item',
     'Detail Kuantitas',
-    'Metode Perhitungan',
     'Dibuat'
   ];
 
@@ -366,7 +365,6 @@ export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
     getStatusDisplayText(purchase.status),
     (purchase.items?.length ?? 0).toString(),              // ✅ aman
     getFormattedTotalQuantities(purchase),
-    purchase.metodePerhitungan || '',
     new Date((purchase.createdAt ?? purchase.tanggal)).toLocaleDateString('id-ID') // ✅ fallback aman
   ]);
 

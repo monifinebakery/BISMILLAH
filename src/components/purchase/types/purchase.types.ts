@@ -30,7 +30,7 @@ export interface Purchase {
 }
 
 export type PurchaseStatus = 'pending' | 'completed' | 'cancelled';
-export type CalculationMethod = 'FIFO' | 'LIFO' | 'AVERAGE';
+export type CalculationMethod = 'AVERAGE';
 
 // Status option type for dropdowns
 export interface StatusOption {
@@ -191,7 +191,6 @@ export interface PurchaseDialogProps {
   mode: 'create' | 'edit';
   purchase?: Purchase | null;
   suppliers: Array<{ id: string; nama: string }>;
-  bahanBaku: Array<{ id: string; nama: string; satuan: string }>;
   onClose: () => void;
 }
 
@@ -200,7 +199,6 @@ export interface PurchaseTablePropsExtended {
   onStatusChange?: (purchaseId: string, newStatus: PurchaseStatus) => Promise<void>;
   onDelete?: (purchaseId: string) => Promise<void>;
   onBulkDelete?: (purchaseIds: string[]) => Promise<void>;
-  onViewDetails?: (purchase: Purchase) => void;
   validateStatusChange?: (
     purchaseId: string,
     newStatus: PurchaseStatus
@@ -226,15 +224,6 @@ export interface DataWarningBannerProps {
 }
 
 // Purchase detail dialog props
-export interface PurchaseDetailDialogProps {
-  isOpen: boolean;
-  purchase: Purchase | null;
-  suppliers: Array<{ id: string; nama: string; kontak?: string; alamat?: string }>;
-  bahanBaku: Array<{ id: string; nama: string; satuan: string }>;
-  onClose: () => void;
-  onEdit?: (purchase: Purchase) => void;
-}
-
 // Status dropdown component props
 export interface StatusDropdownProps {
   purchase: Purchase;
@@ -282,7 +271,6 @@ export interface PurchaseExportData {
   status: string;
   jumlahItem: string;
   totalKuantitas: string;
-  metodePerhitungan: string;
   dibuat: string;
 }
 

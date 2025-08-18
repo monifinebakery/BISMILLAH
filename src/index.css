@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global style override: disable all shadows across the app */
+.shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl,
+.shadow-inner, .shadow-none,
+.drop-shadow, .drop-shadow-sm, .drop-shadow-md, .drop-shadow-lg, .drop-shadow-xl, .drop-shadow-2xl {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

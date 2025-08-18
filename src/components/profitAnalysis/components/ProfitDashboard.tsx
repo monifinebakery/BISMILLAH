@@ -155,26 +155,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     setRange(r);
   };
 
-  const handleExportData = () => {
-    if (!currentAnalysis) return;
-    
-    try {
-      const revenue = currentAnalysis.revenue_data?.total || 0;
-      const cogs = profitMetrics?.cogs ?? (currentAnalysis.cogs_data?.total || 0);
-      const opex = currentAnalysis.opex_data?.total || 0;
-      const csvContent = `Period,Revenue,COGS,OPEX,Gross Profit,Net Profit\n${currentPeriod},${revenue},${cogs},${opex},${revenue - cogs},${revenue - cogs - opex}`;
-      
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `analisis-profit-${currentPeriod}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error exporting:', error);
-    }
-  };
 
   const safeRevenue = profitMetrics?.revenue ?? currentAnalysis?.revenue_data?.total ?? 0;
   const safeCogs = profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0;
@@ -200,7 +180,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         ]}
         onPeriodChange={handlePeriodChange}
         onRefresh={handleRefresh}
-        onExportData={handleExportData}
         mode={mode}
         onModeChange={handleModeChange}
         dateRange={range}

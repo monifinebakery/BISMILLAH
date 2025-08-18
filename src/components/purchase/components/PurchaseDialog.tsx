@@ -137,7 +137,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const handleSaveEditedItem = useCallback((index: number, updatedItem: Partial<PurchaseItem>) => {
     const qty = toNumber(updatedItem.kuantitas);
     const price = toNumber(updatedItem.hargaSatuan);
-
     if (qty <= 0 || price <= 0) {
       toast.error('Kuantitas dan harga satuan harus > 0');
       return;

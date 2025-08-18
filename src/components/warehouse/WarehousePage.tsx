@@ -384,6 +384,14 @@ const WarehousePageContent: React.FC = () => {
     };
   }, []);
 
+  // Redirect to purchase page if no warehouse items
+  useEffect(() => {
+    if (!warehouseData.loading && warehouseData.bahanBaku.length === 0) {
+      toast.info('Silakan tambahkan pembelian bahan baku terlebih dahulu');
+      navigate('/pembelian');
+    }
+  }, [warehouseData.loading, warehouseData.bahanBaku.length, navigate]);
+
   // ✅ UPDATE: Enhanced handlers dengan mutations
   const enhancedHandlers = {
     ...core.handlers,

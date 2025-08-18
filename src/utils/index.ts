@@ -329,3 +329,12 @@ export const formatRelativeTime = (date: Date): string => {
   
   return formatDate(date);
 };
+
+// 📱 WhatsApp utilities
+export {
+  sendWhatsApp,
+  sendWhatsAppForOrder,
+  formatWhatsAppNumber,
+  isValidWhatsAppNumber,
+  getWhatsAppChatURL,
+} from './whatsappHelpers';

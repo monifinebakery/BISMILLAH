@@ -39,7 +39,7 @@ const MobileExportButton = () => {
     enableRealtime: false // No need for realtime in export
   });
 
-  const handleExport = () => {
+  const handleExport = (format: 'xlsx' | 'csv' = 'xlsx') => {
     // Check if assets are still loading
     if (assetsLoading) {
       return; // Could show loading toast here
@@ -56,16 +56,16 @@ const MobileExportButton = () => {
       assets, // Will be empty array during debug
       financialTransactions,
     };
-    
+
     // Call export function with business name from settings
-    exportAllDataToExcel(allAppData, settings.businessName);
+    exportAllDataToExcel(allAppData, settings.businessName, format);
   };
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={handleExport}
+      onClick={() => handleExport('xlsx')}
       className="px-2 py-1"
       disabled={assetsLoading}
       title={assetsLoading ? "Memuat data aset..." : "Export semua data"}

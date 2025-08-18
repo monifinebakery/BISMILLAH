@@ -25,7 +25,7 @@ export const LoadingState: React.FC = () => {
         {/* Stats Cards Skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
-            cCard key={i} className="border-0"e
+            <Card key={i} className="border-0">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -41,7 +41,7 @@ export const LoadingState: React.FC = () => {
         </div>
 
         {/* Main Content Skeleton */}
-        cCard className="border-0 bg-white/90 backdrop-blur-sm"e
+        <Card className="border-0 bg-white/90 backdrop-blur-sm">
           <CardContent className="p-6 space-y-6">
             
             {/* Filter Skeleton */}

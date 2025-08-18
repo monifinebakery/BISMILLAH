@@ -129,7 +129,7 @@ const SettingsPage = () => {
       <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
+          <div className="bg-white rounded-2xl border overflow-hidden">
             <div className="bg-gradient-to-r from-orange-600 to-red-600 px-8 py-6 text-white">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-xl">
@@ -178,7 +178,7 @@ const SettingsPage = () => {
           <div className="xl:col-span-3 space-y-8">
             
             {/* ✅ BUSINESS INFORMATION SECTION */}
-            <Card className="shadow-lg border-0 overflow-hidden">
+            <Card className="border-0 overflow-hidden">
               <CardHeader className="bg-gray-50 border-b">
                 <div className="flex items-center gap-3">
                   <div className="bg-blue-100 p-2 rounded-lg">
@@ -315,7 +315,7 @@ const SettingsPage = () => {
           <div className="xl:col-span-1 space-y-6">
             
             {/* Quick Actions Card */}
-            <Card className="shadow-lg border-0 sticky top-6">
+            <Card className="border-0 sticky top-6">
               <CardHeader>
                 <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
@@ -372,7 +372,7 @@ const SettingsPage = () => {
             </Card>
 
             {/* ✅ UPDATED: Notification Tips Card */}
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-green-50 to-emerald-50">
+            <Card className="border-0 bg-gradient-to-br from-green-50 to-emerald-50">
               <CardContent className="p-6">
                 <div className="flex items-start gap-3">
                   <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
@@ -404,7 +404,7 @@ const SettingsPage = () => {
             </Card>
 
             {/* Tips Card */}
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-yellow-50 to-orange-50">
+            <Card className="border-0 bg-gradient-to-br from-yellow-50 to-orange-50">
               <CardContent className="p-6">
                 <div className="flex items-start gap-3">
                   <div className="bg-yellow-100 p-2 rounded-lg flex-shrink-0">
@@ -436,7 +436,7 @@ const SettingsPage = () => {
             </Card>
 
             {/* Version Info */}
-            <Card className="shadow-lg border-0">
+            <Card className="border-0">
               <CardContent className="p-4">
                 <div className="text-center text-xs text-gray-500 space-y-1">
                   <p className="font-medium">Bakery Management System</p>

@@ -149,7 +149,7 @@ const NotificationBell = () => {
       </PopoverTrigger>
       
       <PopoverContent 
-        className="w-96 p-0 shadow-xl border-gray-200 rounded-lg" 
+        className="w-96 p-0 border-gray-200 rounded-lg" 
         align="end" 
         sideOffset={8}
       >

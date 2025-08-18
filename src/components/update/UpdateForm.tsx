@@ -199,7 +199,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg border border-gray-200">
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg border border-gray-200">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           {initialData ? 'Edit Pembaruan' : 'Tambah Pembaruan Baru'}

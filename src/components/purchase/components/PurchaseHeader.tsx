@@ -23,7 +23,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   className = '',
 }) => {
   return (
-    <Card className={`bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl ${className}`}>
+    <Card className={`bg-gradient-to-r from-orange-500 to-red-500 text-white border ${className}`}>
       <div className="p-6">
         {/* Main header content */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
@@ -46,8 +46,8 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
             {/* Hanya 1 tombol: Tambah dari Nota */}
             <Button
-              onClick={() => onAddPurchase('packaging')}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200 hover:shadow-lg"
+              onClick={() => onAddPurchase('packaging')} // Pastikan tipe 'packaging' sesuai dengan yang diharapkan
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-100 transition-colors duration-200"
             >
               <FileText className="h-5 w-5" />
               Tambah Pembelian
@@ -57,7 +57,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
               <Button
                 onClick={onExport}
                 variant="outline"
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-white bg-opacity-10 text-white border-white border-opacity-30 font-semibold rounded-lg backdrop-blur-sm hover:bg-opacity-20 transition-all duration-200"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-white bg-opacity-10 text-white border-white border-opacity-30 font-semibold rounded-lg backdrop-blur-sm hover:bg-opacity-20 transition-colors duration-200"
               >
                 <Download className="h-5 w-5" />
                 Export

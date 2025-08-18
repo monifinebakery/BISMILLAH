@@ -47,6 +47,11 @@ export interface DashboardHeaderSectionProps {
   onPeriodChange: (period: string) => void;
   onRefresh: () => void;
   onExportData: () => void;
+  // 🆕 Daily/Monthly mode + date range presets
+  mode?: 'daily' | 'monthly';
+  onModeChange?: (mode: 'daily' | 'monthly') => void;
+  dateRange?: { from: Date; to: Date };
+  onDateRangeChange?: (range: { from: Date; to: Date }) => void;
 }
 
 // ==============================================
@@ -64,7 +69,11 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   statusIndicators = [],
   onPeriodChange,
   onRefresh,
-  onExportData
+  onExportData,
+  mode = 'monthly',
+  onModeChange,
+  dateRange,
+  onDateRangeChange
 }) => {
   return (
     <div>
@@ -94,18 +103,64 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
 
         {/* Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-4 lg:mt-0">
-          <Select value={currentPeriod} onValueChange={onPeriodChange}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Pilih periode" />
-            </SelectTrigger>
-            <SelectContent>
-              {periodOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Mode Toggle */}
+          <div className="flex items-center border rounded-lg overflow-hidden">
+            <button
+              className={`px-3 py-1 text-sm ${mode==='daily' ? 'bg-orange-100 text-orange-700' : 'bg-transparent text-gray-700'}`}
+              onClick={() => onModeChange?.('daily')}
+            >Harian</button>
+            <button
+              className={`px-3 py-1 text-sm ${mode==='monthly' ? 'bg-orange-100 text-orange-700' : 'bg-transparent text-gray-700'}`}
+              onClick={() => onModeChange?.('monthly')}
+            >Bulanan</button>
+          </div>
+
+          {/* Period or Date Range */}
+          {mode === 'monthly' ? (
+            <Select value={currentPeriod} onValueChange={onPeriodChange}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Pilih periode" />
+              </SelectTrigger>
+              <SelectContent>
+                {periodOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex items-center gap-2">
+              {/* Simple preset buttons */}
+              <Select onValueChange={(val) => {
+                const now = new Date();
+                const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+                const firstOfPrevMonth = new Date(lastOfPrevMonth.getFullYear(), lastOfPrevMonth.getMonth(), 1);
+                const last30 = new Date(); last30.setDate(now.getDate() - 29);
+                if (val==='this_month') onDateRangeChange?.({ from: firstOfThisMonth, to: now });
+                if (val==='last_month') onDateRangeChange?.({ from: firstOfPrevMonth, to: lastOfPrevMonth });
+                if (val==='last_30') onDateRangeChange?.({ from: last30, to: now });
+              }}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="this_month">Bulan ini</SelectItem>
+                  <SelectItem value="last_month">Bulan kemarin</SelectItem>
+                  <SelectItem value="last_30">30 hari terakhir</SelectItem>
+                </SelectContent>
+              </Select>
+              {/* Simple display of current range (custom picker can be added later) */}
+              <div className="text-xs text-gray-600">
+                {dateRange ? (
+                  <span>{dateRange.from.toLocaleDateString('id-ID')} — {dateRange.to.toLocaleDateString('id-ID')}</span>
+                ) : (
+                  <span>Pilih rentang</span>
+                )}
+              </div>
+            </div>
+          )}
           
           <div className="flex gap-2 w-full sm:w-auto">
             <Button

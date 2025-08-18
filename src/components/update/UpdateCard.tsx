@@ -81,14 +81,14 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
 
   return (
     <div
-      className={`relative bg-white rounded-lg border transition-all duration-200 hover:shadow-lg ${
-        isUnseen ? `${config.borderColor} border-l-4 shadow-md` : 'border-gray-200 hover:border-gray-300'
+      className={`relative bg-white rounded-lg border transition-all duration-200 ${
+        isUnseen ? `${config.borderColor} border-l-4` : 'border-gray-200 hover:border-gray-300'
       }`}
       onClick={handleMarkAsSeen} // Klik card untuk tandai sebagai sudah dibaca
     >
       {/* Latest badge */}
       {isLatest && (
-        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-lg">
+        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs px-3 py-1 rounded-full font-semibold">
           Terbaru
         </div>
       )}

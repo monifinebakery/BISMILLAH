@@ -326,7 +326,7 @@ const PromoList = () => {
         </div>
 
         {/* Search and Filters */}
-        <Card className="mb-6 border-0 sm:border shadow-sm">
+        <Card className="mb-6 border-0 sm:border">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">

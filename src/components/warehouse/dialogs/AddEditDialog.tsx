@@ -226,7 +226,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
       <div 
-        className="bg-white rounded-lg shadow-xl w-full max-w-4xl flex flex-col"
+        className="bg-white rounded-lg w-full max-w-4xl flex flex-col border"
         style={{ height: 'calc(100vh - 160px)', maxHeight: '90vh', minHeight: '500px' }}
       >
         <div className="flex items-center justify-between p-4 sm:p-6 border-b flex-shrink-0">
@@ -301,8 +301,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           required
                           className="text-sm"
                         />
-                        {showDropdown.categories && availableCategories.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-32 sm:max-h-40 overflow-y-auto">
+                          {showDropdown.categories && availableCategories.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-10 max-h-32 sm:max-h-40 overflow-y-auto">
                             {availableCategories
                               .filter(cat => cat.toLowerCase().includes(formData.kategori.toLowerCase()))
                               .map((category) => (
@@ -337,7 +337,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           className="text-sm"
                         />
                         {showDropdown.suppliers && availableSuppliers.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-32 sm:max-h-40 overflow-y-auto">
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-10 max-h-32 sm:max-h-40 overflow-y-auto">
                             {availableSuppliers
                               .filter(sup => sup.toLowerCase().includes(formData.supplier.toLowerCase()))
                               .map((supplier) => (
@@ -375,7 +375,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                         </div>
                         {showDropdown.units && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-48 sm:max-h-60 overflow-y-auto">
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-10 max-h-48 sm:max-h-60 overflow-y-auto">
                             {filteredUnits.length > 0 ? (
                               ['Berat', 'Volume', 'Satuan', 'Panjang'].map(category => {
                                 const categoryUnits = filteredUnits.filter(unit => unit.category === category);

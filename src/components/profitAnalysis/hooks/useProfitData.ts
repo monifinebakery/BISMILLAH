@@ -108,7 +108,7 @@ export const useProfitData = (
       console.error('Error processing chart data:', error);
       return [];
     }
-  }, [history]); // Only depend on history array
+  }, [history, effectiveCogs]); // Recompute when WAC-based COGS changes as well
 
   // ✅ TREND DATA - Fixed dependencies
   const trendData = useMemo((): ProfitTrendData => {

@@ -70,6 +70,18 @@ const convertTemplatesToArray = (templates: { [key: string]: string }) => {
 
 /**
  * Mengekspor semua data aplikasi ke satu file Excel dengan beberapa sheet.
+ * Setiap dataset ditulis ke sheet terpisah dengan kolom sesuai mapping `headers`:
+ * - "Bahan Baku": Nama Bahan, Kategori, Stok, Satuan, Harga Satuan (Rp), Stok Minimum, Supplier, Kadaluwarsa
+ * - "Supplier": Nama Supplier, Kontak, Email, Telepon, Alamat
+ * - "Pembelian": Tanggal, Supplier, Nama Barang, Jumlah, Satuan, Harga Satuan (Rp), Total Harga (Rp), Status
+ * - "Resep": Nama Resep, Porsi, Nama Bahan, Jumlah, Satuan, Harga Satuan Bahan (Rp), Total Harga Bahan (Rp),
+ *            Biaya Tenaga Kerja (Rp), Biaya Overhead (Rp), Total HPP (Rp), HPP per Porsi (Rp),
+ *            Margin (%), Harga Jual per Porsi (Rp)
+ * - "Pesanan": Nomor Pesanan, Tanggal, Nama Pelanggan, Telepon Pelanggan, Alamat Pengiriman,
+ *              Nama Barang, Jumlah, Harga Satuan (Rp), Total Harga (Rp), Total Pesanan (Rp), Status, Catatan
+ * - "Template WhatsApp": Status Pesanan, Template Pesan, Jumlah Karakter, Jumlah Baris, Jumlah Variabel
+ * - "Aset": Nama Aset, Kategori, Nilai Awal (Rp), Nilai Saat Ini (Rp), Tanggal Pembelian, Kondisi, Lokasi
+ * - "Keuangan": Tanggal, Tipe, Kategori, Deskripsi, Jumlah (Rp)
  * @param allData Objek yang berisi semua array data dari konteks (bahanBaku, suppliers, dll.).
  * @param businessName Nama bisnis pengguna untuk nama file kustom.
  * @param format Format file yang diinginkan ('xlsx' | 'csv').
@@ -89,7 +101,8 @@ export const exportAllDataToExcel = async (
     // Update loading message
     toast.loading("Memproses data untuk ekspor...", { id: loadingToast });
 
-    // Definisikan struktur untuk setiap sheet
+    // Definisikan struktur untuk setiap sheet dan kolom yang akan diekspor.
+    // Urutan objek `headers` menentukan urutan kolom di file Excel.
     const sheets = [
       {
         name: "Gudang Bahan Baku",
@@ -388,76 +401,38 @@ export const exportAllDataToExcel = async (
       }
     ];
 
-    // Buat nama file dasar yang dinamis
-    const safeBusinessName = (businessName || 'Bisnis_Anda')
-      .replace(/[^a-z0-9]/gi, '_')
-      .toLowerCase();
-    const dateStr = format(new Date(), 'yyyy-MM-dd');
-    const baseFileName = `hpp_backup_${safeBusinessName}_${dateStr}`;
-
-    if (format === 'xlsx') {
-      const wb = XLSX.utils.book_new();
-
-      // Loop untuk membuat setiap sheet
-      sheets.forEach(sheetInfo => {
-        if (sheetInfo.data && sheetInfo.data.length > 0) {
-          const cleanedData = cleanDataForExport(sheetInfo.data, sheetInfo.headers);
-          const worksheet = XLSX.utils.json_to_sheet(cleanedData);
-
-          if (sheetInfo.name === "Template WhatsApp") {
-            const colWidths = [
-              { wch: 15 },
-              { wch: 60 },
-              { wch: 12 },
-              { wch: 10 },
-              { wch: 12 }
-            ];
-            worksheet['!cols'] = colWidths;
-          }
-
-          XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
-        } else {
-          const emptyData = [Object.keys(sheetInfo.headers).reduce((acc, key) => {
-            acc[sheetInfo.headers[key]] = '';
-            return acc;
-          }, {} as any)];
-
-          const worksheet = XLSX.utils.json_to_sheet(emptyData);
-          XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
+    // Loop untuk membuat setiap sheet
+    sheets.forEach(sheetInfo => {
+      const headerOrder = Object.values(sheetInfo.headers);
+      // Hanya proses jika ada data
+      if (sheetInfo.data && sheetInfo.data.length > 0) {
+        const cleanedData = cleanDataForExport(sheetInfo.data, sheetInfo.headers);
+        const worksheet = XLSX.utils.json_to_sheet(cleanedData, { header: headerOrder });
+        
+        // Set column widths for better readability
+        if (sheetInfo.name === "Template WhatsApp") {
+          const colWidths = [
+            { wch: 15 }, // Status
+            { wch: 60 }, // Template (wider for long text)
+            { wch: 12 }, // Character Count
+            { wch: 10 }, // Line Count
+            { wch: 12 }  // Variable Count
+          ];
+          worksheet['!cols'] = colWidths;
         }
-      });
+        
+        XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
+      } else {
+        // Jika tidak ada data, buat sheet kosong dengan header
+        const emptyRow = headerOrder.reduce((acc, header) => {
+          acc[header] = '';
+          return acc;
+        }, {} as any);
+        const worksheet = XLSX.utils.json_to_sheet([emptyRow], { header: headerOrder });
+        XLSX.utils.book_append_sheet(wb, worksheet, sheetInfo.name);
+      }
+    });
 
-      // Update loading message
-      toast.loading("Mengunduh file...", { id: loadingToast });
-      XLSX.writeFile(wb, `${baseFileName}.xlsx`);
-    } else {
-      // Export tiap sheet sebagai CSV terpisah
-      toast.loading("Mengunduh file...", { id: loadingToast });
-      sheets.forEach(sheetInfo => {
-        let worksheet;
-        if (sheetInfo.data && sheetInfo.data.length > 0) {
-          const cleanedData = cleanDataForExport(sheetInfo.data, sheetInfo.headers);
-          worksheet = XLSX.utils.json_to_sheet(cleanedData);
-        } else {
-          const emptyData = [Object.keys(sheetInfo.headers).reduce((acc, key) => {
-            acc[sheetInfo.headers[key]] = '';
-            return acc;
-          }, {} as any)];
-          worksheet = XLSX.utils.json_to_sheet(emptyData);
-        }
-
-        const csv = XLSX.utils.sheet_to_csv(worksheet);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const safeSheetName = sheetInfo.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        link.href = URL.createObjectURL(blob);
-        link.download = `${baseFileName}_${safeSheetName}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-      });
-    }
 
     // Dismiss loading and show success
     toast.dismiss(loadingToast);

@@ -219,7 +219,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     queryKey: warehouseQueryKeys.list(),
     queryFn: () => fetchWarehouseData(user?.id),
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 0, // Always consider data stale so it refetches when invalidated
     // ✅ FIXED: Simplified retry logic for better error handling
     retry: (failureCount, err: any) => {
       const code = Number(err?.code || err?.status || 0);
@@ -244,6 +244,19 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         },
         (payload) => {
           // Invalidate and refetch warehouse data when changes occur
+          queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'purchases',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          // Invalidate warehouse data when purchases are updated (status changes)
           queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         }
       )

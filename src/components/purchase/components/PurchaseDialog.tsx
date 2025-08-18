@@ -149,7 +149,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   }, [updateItem]);
 
   const handleCancelEditItem = useCallback(() => setEditingItemIndex(null), []);
-
   // ✅ Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
@@ -429,6 +428,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               {/* ✅ ENHANCED: Smart Add New Item Form with clean payload handling */}
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
+
                   onCancel={() => setShowAddItem(false)}
                   onAdd={handleAddItemFromForm}
                 />

@@ -70,7 +70,6 @@ const BulkDeleteDialog = React.lazy(() =>
 );
 
 // ✅ UTILITY: Keep essential utility
-import { exportPurchasesToCSV } from './utils/purchaseHelpers';
 
 interface PurchasePageProps {
   className?: string;
@@ -87,7 +86,6 @@ interface AppState {
     dataWarning: { isVisible: boolean; hasShownToast: boolean };
   };
   ui: {
-    isExporting: boolean;
     isDeleting: boolean; // ✅ NEW: Track delete state
   };
 }
@@ -102,7 +100,6 @@ const initialAppState: AppState = {
     dataWarning: { isVisible: false, hasShownToast: false }
   },
   ui: {
-    isExporting: false,
     isDeleting: false // ✅ NEW: Track delete state
   }
 };
@@ -264,43 +261,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
       }
     },
-    
-    export: async () => {
-      if (!purchases.length) {
-        toast.info('Tidak ada data pembelian untuk di-export');
-        return;
-      }
 
-      setAppState(prev => ({ ...prev, ui: { ...prev.ui, isExporting: true } }));
-
-      try {
-        const csvContent = exportPurchasesToCSV(purchases);
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', `pembelian_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        toast.success('Data pembelian berhasil di-export');
-      } catch (error) {
-        logger.error('Export error:', error);
-        toast.error('Gagal export data pembelian');
-      } finally {
-        setAppState(prev => ({ ...prev, ui: { ...prev.ui, isExporting: false } }));
-      }
-    },
-
-    settings: () => {
-      toast.info('Pengaturan pembelian akan segera tersedia');
-    }
-  }), [deletePurchase, bulkDelete, purchaseContext, purchases]);
+  }), [deletePurchase, bulkDelete, purchaseContext]);
 
   // ✅ OPTIMIZED: Warning effect with cleanup
   useEffect(() => {
@@ -377,9 +339,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         totalValue={stats.totalValue}
         pendingCount={stats.byStatus.pending}
         onAddPurchase={dialogActions.purchase.openAdd}
-        onExport={businessHandlers.export}
-        onSettings={businessHandlers.settings}
-        isExporting={appState.ui.isExporting}
         className="mb-8"
       />
 
@@ -441,14 +400,12 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       )}
 
       {/* ✅ ENHANCED: Processing overlay with delete state */}
-      {(purchaseContext.isProcessing || appState.ui.isDeleting || appState.ui.isExporting) && (
+      {(purchaseContext.isProcessing || appState.ui.isDeleting) && (
         <div className="fixed inset-0 bg-black bg-opacity-10 z-40 pointer-events-none">
           <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
             <span className="text-sm text-gray-700">
-              {appState.ui.isDeleting ? 'Menghapus pembelian...' :
-               appState.ui.isExporting ? 'Mengexport data...' : 
-               'Mengupdate status...'}
+              {appState.ui.isDeleting ? 'Menghapus pembelian...' : 'Mengupdate status...'}
             </span>
           </div>
         </div>

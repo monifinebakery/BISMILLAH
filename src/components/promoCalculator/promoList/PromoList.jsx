@@ -10,7 +10,6 @@ import {
   Plus,
   Search,
   Filter,
-  Download,
   Trash2,
   AlertCircle,
   RefreshCw
@@ -406,14 +405,6 @@ const PromoList = () => {
                 >
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
-                </Button>
-                {/* Export Button */}
-                <Button
-                  variant="outline"
-                  className="border-gray-300"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
                 </Button>
               </div>
               {/* Quick Stats */}

@@ -3,22 +3,20 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ShoppingCart, Plus, FileText, Users } from 'lucide-react';
+import { ShoppingCart, Plus, Users } from 'lucide-react';
 
 interface EmptyStateProps {
   onAddPurchase: () => void;
   hasSuppliers: boolean;
-  hasBahanBaku: boolean;
   className?: string;
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({
   onAddPurchase,
   hasSuppliers,
-  hasBahanBaku,
   className = '',
 }) => {
-  const canCreatePurchase = hasSuppliers && hasBahanBaku;
+  const canCreatePurchase = hasSuppliers;
 
   return (
     <Card className={`p-12 text-center ${className}`}>
@@ -54,7 +52,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
               Siapkan Data Dasar Dulu
             </h3>
             <p className="text-gray-500 mb-6">
-              Untuk membuat pembelian, Anda perlu menyiapkan data supplier dan bahan baku terlebih dahulu.
+              Untuk membuat pembelian, Anda perlu menyiapkan data supplier terlebih dahulu.
             </p>
 
             {/* Missing data indicators */}
@@ -63,12 +61,6 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                 <div className="flex items-center justify-center gap-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
                   <Users className="h-4 w-4" />
                   <span>Data supplier belum ada</span>
-                </div>
-              )}
-              {!hasBahanBaku && (
-                <div className="flex items-center justify-center gap-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
-                  <FileText className="h-4 w-4" />
-                  <span>Data bahan baku belum ada</span>
                 </div>
               )}
             </div>
@@ -85,21 +77,11 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                   Tambah Supplier
                 </Button>
               )}
-              {!hasBahanBaku && (
-                <Button
-                  variant="outline"
-                  onClick={() => window.location.href = '/gudang'}
-                  className="inline-flex items-center gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  Tambah Bahan Baku
-                </Button>
-              )}
             </div>
 
             {/* Helper text */}
             <div className="mt-6 text-xs text-gray-400">
-              Setelah data supplier dan bahan baku siap, Anda bisa mulai membuat pembelian
+              Setelah data supplier siap, Anda bisa mulai membuat pembelian
             </div>
           </>
         )}

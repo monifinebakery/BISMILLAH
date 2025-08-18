@@ -9,13 +9,11 @@
 // ✅ STATIC COMPONENTS: Always loaded (critical rendering path)
 export { default as LoadingState } from './LoadingState';
 export { default as EmptyState } from './EmptyState';
-export { default as DataWarningBanner } from './DataWarningBanner';
 export { default as PurchaseHeader } from './PurchaseHeader';
 
 // ✅ TYPE-ONLY EXPORTS: Zero runtime cost
 export type {
   PurchaseHeaderProps,
-  DataWarningBannerProps,
   EmptyStateProps,
   LoadingStateProps
 } from '../types/purchase.types';

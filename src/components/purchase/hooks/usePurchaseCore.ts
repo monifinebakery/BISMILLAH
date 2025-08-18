@@ -8,13 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 interface UsePurchaseCoreProps {
   purchaseContext: any;   // tetap fleksibel
   suppliers: any[];
-  bahanBaku: any[];
 }
 
 export const usePurchaseCore = ({
   purchaseContext,
-  suppliers,
-  bahanBaku
+  suppliers
 }: UsePurchaseCoreProps) => {
   const { user } = useAuth();
   const { purchases, updatePurchase, deletePurchase } = purchaseContext;
@@ -52,26 +50,20 @@ export const usePurchaseCore = ({
   // ---------- Data prerequisites ----------
   const validation = useMemo(() => {
     const suppliersLength = suppliers?.length || 0;
-    const bahanBakuLength = bahanBaku?.length || 0;
     if (
       validationRef.current &&
-      validationRef.current.suppliersLength === suppliersLength &&
-      validationRef.current.bahanBakuLength === bahanBakuLength
+      validationRef.current.suppliersLength === suppliersLength
     ) {
       return validationRef.current.validation;
     }
     const calculated = {
       hasSuppliers: suppliersLength > 0,
-      hasBahanBaku: bahanBakuLength > 0,
-      hasMinimumData: suppliersLength > 0 && bahanBakuLength > 0,
-      missingDataTypes: [
-        ...(!suppliersLength ? ['suppliers'] : []),
-        ...(!bahanBakuLength ? ['bahanBaku'] : [])
-      ]
+      hasMinimumData: suppliersLength > 0,
+      missingDataTypes: !suppliersLength ? ['suppliers'] : []
     };
-    validationRef.current = { suppliersLength, bahanBakuLength, validation: calculated };
+    validationRef.current = { suppliersLength, validation: calculated };
     return calculated;
-  }, [suppliers?.length, bahanBaku?.length]);
+  }, [suppliers?.length]);
 
   // ---------- Processing helpers ----------
   const addProcessing = useCallback((id: string) => {
@@ -236,9 +228,8 @@ export const usePurchaseCore = ({
     validation,
     validatePrerequisites: useCallback((): boolean => {
       if (!validation.hasSuppliers) { toast.error('Mohon tambahkan data supplier terlebih dahulu'); return false; }
-      if (!validation.hasBahanBaku) { toast.warning('Data bahan baku kosong. Tambahkan bahan baku untuk hasil optimal'); }
       return true;
-    }, [validation]),
+    }, [validation.hasSuppliers]),
 
     // Status operations
     canEdit,

@@ -9,18 +9,26 @@ DO $$
 BEGIN
   -- Add applied_at column to track when purchase was applied to stock
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
+    SELECT 1 FROM information_schema.columns
     WHERE table_name = 'purchases' AND column_name = 'applied_at'
   ) THEN
     ALTER TABLE public.purchases ADD COLUMN applied_at TIMESTAMP WITH TIME ZONE;
   END IF;
-  
+
+  -- Remove duplicate harga_rata2 column if it exists
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'bahan_baku' AND column_name = 'harga_rata2'
+  ) THEN
+    ALTER TABLE public.bahan_baku DROP COLUMN harga_rata2;
+  END IF;
+
   -- Add harga_rata_rata column for WAC if it doesn't exist
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
+    SELECT 1 FROM information_schema.columns
     WHERE table_name = 'bahan_baku' AND column_name = 'harga_rata_rata'
   ) THEN
-    ALTER TABLE public.bahan_baku ADD COLUMN harga_rata_rata NUMERIC;
+    ALTER TABLE public.bahan_baku ADD COLUMN harga_rata_rata NUMERIC(15,2) NOT NULL DEFAULT 0;
   END IF;
 END $$;
 
@@ -333,7 +341,7 @@ $$;
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_purchases_status_applied ON purchases(status, applied_at);
 CREATE INDEX IF NOT EXISTS idx_purchases_user_status ON purchases(user_id, status);
-CREATE INDEX IF NOT EXISTS idx_bahan_baku_wac ON bahan_baku(user_id, harga_rata_rata);
+CREATE INDEX IF NOT EXISTS idx_bahan_baku_harga_rata_rata ON bahan_baku(user_id, harga_rata_rata);
 
 COMMENT ON FUNCTION calculate_warehouse_wac IS 'Calculates weighted average cost for warehouse items';
 COMMENT ON FUNCTION apply_purchase_to_warehouse IS 'Applies completed purchase to warehouse stock and WAC';

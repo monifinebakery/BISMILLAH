@@ -1,4 +1,4 @@
-// vite.config.ts — safe dev logs, prod-only strip, fixed
+// vite.config.ts — safe dev logs, prod-only strip, Netlify non-prod keep-logs
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -6,15 +6,33 @@ import removeConsole from "vite-plugin-remove-console";
 import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig(({ mode }) => {
-  // ✅ load hanya VITE_* (client-safe)
+  // ✅ hanya load VITE_* (client-safe)
   const env = loadEnv(mode, process.cwd());
   const isProd = mode === "production";
-  const keepLogs = env.VITE_FORCE_LOGS === "true";
+
+  // ✅ Netlify contexts: deploy-preview & branch-deploy (non-production)
+  const isNetlifyNonProd =
+    process.env.NETLIFY === "true" && process.env.CONTEXT !== "production";
+
+  // ✅ Keep logs jika user force ATAU build Netlify non-prod
+  const keepLogs = env.VITE_FORCE_LOGS === "true" || isNetlifyNonProd;
+
+  // 🔎 Build-time visibility (muncul di log Netlify)
+  // Hapus kalau sudah tidak perlu debug
+  // eslint-disable-next-line no-console
+  console.log("🐛 [VITE CONFIG]", {
+    mode,
+    isProd,
+    NETLIFY: process.env.NETLIFY,
+    CONTEXT: process.env.CONTEXT,
+    keepLogs,
+    VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
+  });
 
   return {
     plugins: [
       react(),
-      // ✅ aktif HANYA saat build production & tidak force logs
+      // ✅ strip console HANYA saat build production & tidak keepLogs
       ...(isProd && !keepLogs
         ? [
             removeConsole({
@@ -35,7 +53,7 @@ export default defineConfig(({ mode }) => {
         : []),
     ],
 
-    // 👇 konsisten dengan netlify.toml (targetPort=5173) & preview 5500
+    // konsisten dengan netlify.toml (targetPort=5173) & preview 5500
     server: {
       port: 5173,
       strictPort: true,
@@ -128,7 +146,6 @@ export default defineConfig(({ mode }) => {
     },
 
     // ❌ jangan drop console di esbuild global (biar dev aman 100%)
-    // Kalau mau, aktifkan HANYA untuk production:
     // esbuild: { drop: isProd && !keepLogs ? ["debugger", "console"] : [] },
   };
 });

@@ -128,7 +128,7 @@ const PACK_UNITS = ['pak', 'dus', 'karung', 'botol'];
 const PCS_UNITS = ['pcs', 'buah', 'biji', 'butir', 'lembar'];
 const BASE_UNITS = ['gram', 'kilogram', 'miligram', 'liter', 'milliliter', 'pcs', 'buah', 'biji', 'butir', 'lembar'];
 
-const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ bahanBaku, onCancel, onAdd }) => {
+const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ bahanBaku = [], onCancel, onAdd }) => {
   const [formData, setFormData] = useState<FormData>({
     bahanBakuId: '',
     nama: '',

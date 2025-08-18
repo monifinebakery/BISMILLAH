@@ -545,6 +545,53 @@ export const useOrderData = (
         }
       }
 
+      // ✅ FINANCIAL TRANSACTION: Auto-create when order completed
+      if (newStatus === 'completed' && existingOrder.status !== 'completed') {
+        logger.info('OrderData', 'Creating financial transaction for completed order:', {
+          orderId,
+          orderNumber: existingOrder.nomorPesanan,
+          amount: existingOrder.totalPesanan
+        });
+
+        try {
+          // ✅ AUTO-CREATE: Financial transaction untuk pemasukan
+          await addFinancialTransaction({
+            type: 'income',
+            category: 'Penjualan Produk',
+            amount: existingOrder.totalPesanan || 0,
+            description: `Pemasukan dari pesanan #${existingOrder.nomorPesanan} - ${existingOrder.namaPelanggan}`,
+            date: new Date(), // Tanggal selesai = hari ini
+            notes: `Auto-generated dari pesanan selesai. Items: ${existingOrder.items.map(item => item.nama).join(', ')}`,
+            relatedId: orderId // Link ke order ID
+          });
+
+          toast.success(`💰 Pemasukan ${formatCurrency(existingOrder.totalPesanan)} telah dicatat otomatis`);
+          logger.success('OrderData', 'Financial transaction created automatically:', {
+            orderId,
+            amount: existingOrder.totalPesanan,
+            orderNumber: existingOrder.nomorPesanan
+          });
+
+          // ✅ UPDATE: Set completion date
+          const { error: completionError } = await supabase
+            .from('orders')
+            .update({ 
+              tanggal_selesai: new Date().toISOString() // Set tanggal selesai
+            })
+            .eq('id', orderId)
+            .eq('user_id', user.id);
+
+          if (completionError) {
+            logger.warn('OrderData', 'Failed to set completion date:', completionError);
+          }
+
+        } catch (financialError: any) {
+          logger.error('OrderData', 'Failed to create financial transaction:', financialError);
+          // Jangan gagalkan update status, tapi beri warning
+          toast.warning(`Status pesanan berhasil diubah, tapi gagal mencatat pemasukan: ${financialError.message}`);
+        }
+      }
+
       // ✅ SUCCESS MESSAGE
       toast.success(`Status pesanan #${existingOrder.nomorPesanan} berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
       logger.success('OrderData', 'Order status updated successfully:', {
@@ -574,7 +621,7 @@ export const useOrderData = (
       toast.error(`Gagal mengubah status pesanan: ${error.message || 'Unknown error'}`);
       return false;
     }
-  }, [user, orders, addActivity, hasAllDependencies, throttledFetchOrders]);
+  }, [user, orders, addActivity, addFinancialTransaction, hasAllDependencies, throttledFetchOrders]);
 
   // ===== 🚀 FIXED: COMPREHENSIVE UPDATE ORDER FUNCTION =====
   const updateOrder = useCallback(async (id: string, updatedData: Partial<Order>): Promise<boolean> => {

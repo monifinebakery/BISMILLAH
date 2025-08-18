@@ -90,18 +90,13 @@ const SafeNumericInput = React.forwardRef<
 });
 
 // ✅ ENHANCED: Updated props interface
-interface EnhancedPurchaseDialogProps extends PurchaseDialogProps {
-  initialAddMode?: 'quick' | 'packaging'; // NEW: Added prop for auto-opening with specific mode
-}
-
-const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
+const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,
   mode,
   purchase,
   suppliers,
   bahanBaku,
   onClose,
-  initialAddMode, // ✅ NEW: Added prop for auto-opening with specific mode
 }) => {
   // ✅ ULTRA LIGHTWEIGHT: Zero validation during typing
   const {
@@ -148,15 +143,14 @@ const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
     updateItem,
   });
 
-  // ✅ Reset form states when dialog opens/closes + handle initialAddMode
+  // ✅ Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
-      // Auto-open add item form if initialAddMode is 'packaging'
-      setShowAddItem(initialAddMode === 'packaging');
+      setShowAddItem(false);
       handleCancelEditItem();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialAddMode]);
+  }, [isOpen]);
 
   // ✅ MEMOIZED HANDLERS: Prevent recreation on every render
   const handleCancel = useCallback(() => {
@@ -415,7 +409,8 @@ const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowAddItem(!showAddItem)}
+                    onClick={() => setShowAddItem(true)}
+                    disabled={showAddItem}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Tambah Item
@@ -428,9 +423,8 @@ const PurchaseDialog: React.FC<EnhancedPurchaseDialogProps> = ({
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
                   bahanBaku={bahanBaku}
-                  initialMode={initialAddMode === 'packaging' ? 'packaging' : 'quick'} // ✅ NEW: Pass initial mode
                   onCancel={() => setShowAddItem(false)}
-                  onAdd={handleAddItemFromForm} // ✅ CLEAN: Use the new handler
+                  onAdd={handleAddItemFromForm}
                 />
               )}
 

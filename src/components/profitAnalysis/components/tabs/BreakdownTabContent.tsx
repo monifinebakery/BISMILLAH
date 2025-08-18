@@ -32,10 +32,9 @@ const BreakdownTabContent: React.FC<BreakdownTabContentProps> = ({
   return (
     <TabsContent value="breakdown" className="space-y-4 sm:space-y-6 mt-6">
       <React.Suspense fallback={<div className="animate-pulse bg-gray-200 h-96 rounded-lg" />}>
-        <DetailedBreakdownTable 
-          currentAnalysis={currentAnalysis} 
-          isLoading={isLoading} 
-          showExport={true} 
+        <DetailedBreakdownTable
+          currentAnalysis={currentAnalysis}
+          isLoading={isLoading}
           // HPP total & breakdown WAC with fallback
           effectiveCogs={effectiveCogs ?? currentAnalysis?.cogs_data?.total ?? 0}
           hppBreakdown={hppBreakdown}

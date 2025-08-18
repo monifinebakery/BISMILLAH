@@ -197,7 +197,7 @@ const StatCard: React.FC<{
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-1.5 border-gray-200 hover:border-orange-300 hover:shadow-md transition-all duration-300 cursor-pointer relative group h-full">
+    <Card className="bg-white border-1.5 border-gray-200 hover:border-orange-300 transition-colors duration-300 cursor-pointer relative group h-full">
       <CardContent className="p-3 sm:p-4 lg:p-5 h-full">
         {/* Layout berbeda untuk mobile vs desktop */}
         <div className="h-full flex flex-col">

@@ -213,7 +213,7 @@ const RecentActivities: React.FC<Props> = ({
   const shouldShowPagination = !isLoading && (paginationInfo.totalPages > 1 || currentPage > 1);
 
   return (
-    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+    <Card className="bg-white border">
       {/* 📝 Header */}
       <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 p-4">
         <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">

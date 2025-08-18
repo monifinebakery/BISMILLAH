@@ -114,7 +114,7 @@ const PromoCard = ({
   };
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 ${className}`}>
+    cdiv className={`bg-white rounded-xl border border-gray-200 transition-colors duration-200 ${className}`}e
       {/* Card Header */}
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">

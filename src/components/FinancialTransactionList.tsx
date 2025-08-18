@@ -111,7 +111,7 @@ const FinancialTransactionList = ({
     <>
       <div className="space-y-4">
         {transactions.map((transaction) => (
-          <Card key={transaction.id} className="hover:shadow-md transition-shadow">
+          cCard key={transaction.id}e
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex-1">

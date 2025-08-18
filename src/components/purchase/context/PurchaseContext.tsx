@@ -17,7 +17,6 @@ import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 import type { Purchase, PurchaseContextType, PurchaseStatus } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -97,7 +96,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { addFinancialTransaction, deleteFinancialTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
-  const { bahanBaku } = useBahanBaku();
 
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
@@ -177,7 +175,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         totalNilai: payload.totalNilai,
         items: payload.items,
         status: payload.status ?? 'pending',
-        metodePerhitungan: payload.metodePerhitungan ?? 'FIFO',
+        metodePerhitungan: payload.metodePerhitungan ?? 'AVERAGE',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -430,11 +428,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Prasyarat data (buat tombol "Tambah")
   const validatePrerequisites = useCallback(() => {
     const hasSuppliers = (suppliers?.length || 0) > 0;
-    const hasBahanBaku = (bahanBaku?.length || 0) > 0;
     if (!hasSuppliers) { toast.error('Mohon tambahkan data supplier terlebih dahulu'); return false; }
-    if (!hasBahanBaku) { toast.warning('Data bahan baku kosong. Tambahkan bahan baku untuk hasil optimal'); }
     return true;
-  }, [suppliers?.length, bahanBaku?.length]);
+  }, [suppliers?.length]);
 
   const refreshPurchases = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user?.id) });

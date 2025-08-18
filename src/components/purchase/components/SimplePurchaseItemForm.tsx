@@ -107,7 +107,47 @@ const SafeNumericInput = React.forwardRef<
 const BASE_UNITS = ['gram', 'kilogram', 'miligram', 'liter', 'milliliter', 'pcs', 'buah', 'biji', 'butir', 'lembar'];
 
 const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCancel, onAdd }) => {
-  const [formData, setFormData] = useState<FormData>({\n    nama: '',\n    satuan: '',\n    kuantitas: '',\n    totalBayar: '',\n    keterangan: '',\n  });\n\n  // Harga per unit – calculated from kuantitas and totalBayar\n  const computedUnitPrice = useMemo(() => {\n    const qty = toNumber(formData.kuantitas);\n    const pay = toNumber(formData.totalBayar);\n    if (qty > 0 && pay > 0) {\n      return Math.round((pay / qty) * 100) / 100;\n    }\n    return 0;\n  }, [formData.kuantitas, formData.totalBayar]);\n\n  // Total qty yang dipakai untuk ringkasan\n  const effectiveQty = useMemo(() => {\n    return toNumber(formData.kuantitas);\n  }, [formData.kuantitas]);\n\n  // Total bayar yang dipakai untuk ringkasan\n  const effectivePay = useMemo(() => {\n    return toNumber(formData.totalBayar);\n  }, [formData.totalBayar]);\n\n  const subtotal = useMemo(() => effectiveQty * computedUnitPrice, [effectiveQty, computedUnitPrice]);\n\n  \n\n  const handleNumericChange = useCallback((field: keyof FormData, value: string) => {\n    setFormData((prev) => (prev[field] === value ? prev : { ...prev, [field]: value }));\n  }, []);\n\n  // Debug mount/unmount\n  useEffect(() => {\n    logger.debug('MOUNT <SimplePurchaseItemForm>');\n    return () => logger.debug('UNMOUNT <SimplePurchaseItemForm>');\n  }, []);
+  const [formData, setFormData] = useState<FormData>({
+    nama: '',
+    satuan: '',
+    kuantitas: '',
+    totalBayar: '',
+    keterangan: '',
+  });
+
+  // Harga per unit – calculated from kuantitas and totalBayar
+  const computedUnitPrice = useMemo(() => {
+    const qty = toNumber(formData.kuantitas);
+    const pay = toNumber(formData.totalBayar);
+    if (qty > 0 && pay > 0) {
+      return Math.round((pay / qty) * 100) / 100;
+    }
+    return 0;
+  }, [formData.kuantitas, formData.totalBayar]);
+
+  // Total qty yang dipakai untuk ringkasan
+  const effectiveQty = useMemo(() => {
+    return toNumber(formData.kuantitas);
+  }, [formData.kuantitas]);
+
+  // Total bayar yang dipakai untuk ringkasan
+  const effectivePay = useMemo(() => {
+    return toNumber(formData.totalBayar);
+  }, [formData.totalBayar]);
+
+  const subtotal = useMemo(() => effectiveQty * computedUnitPrice, [effectiveQty, computedUnitPrice]);
+
+  
+
+  const handleNumericChange = useCallback((field: keyof FormData, value: string) => {
+    setFormData((prev) => (prev[field] === value ? prev : { ...prev, [field]: value }));
+  }, []);
+
+  // Debug mount/unmount
+  useEffect(() => {
+    logger.debug('MOUNT <SimplePurchaseItemForm>');
+    return () => logger.debug('UNMOUNT <SimplePurchaseItemForm>');
+  }, []);
 
   // Submit
   const handleSubmit = () => {
@@ -147,12 +187,12 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCance
             <Badge
               variant="outline"
               className={
-                qtyFromPackaging > 0 && totalPayFromPackaging > 0
+                effectiveQty > 0 && computedUnitPrice > 0
                   ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                   : 'bg-blue-100 text-blue-700 border-blue-200'
               }
             >
-              {qtyFromPackaging > 0 && totalPayFromPackaging > 0 ? 'Akurat 100%' : 'Otomatis dihitung'}
+              {effectiveQty > 0 && computedUnitPrice > 0 ? 'Akurat 100%' : 'Otomatis dihitung'}
             </Badge>
           </CardTitle>
           <Button

@@ -358,46 +358,75 @@ const FinancialReportPage: React.FC = () => {
   return (
     <AuthGuard>
       <div className="p-4 sm:p-6 space-y-6">
-        {/* ✅ SIMPLIFIED Header */}
-        <div className="space-y-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Laporan Keuangan Arus Kas</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              Analisis pemasukan, pengeluaran, dan saldo bisnis Anda
-            </p>
-          </div>
-          
-          <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
-            <Button 
-              onClick={() => openTransactionDialog()}
-              disabled={isLoading}
-              className="w-full sm:w-auto"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Transaksi
-            </Button>
-            
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                variant="outline" 
-                onClick={openCategoryDialog}
-                className="w-full sm:w-auto"
+        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white shadow-lg">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+                <TrendingUp className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-1">Laporan Keuangan Arus Kas</h1>
+                <p className="text-white opacity-90 text-sm sm:text-base">
+                  Analisis pemasukan, pengeluaran, dan saldo bisnis Anda
+                </p>
+              </div>
+            </div>
+
+            <div className="hidden md:flex items-center gap-3">
+              <Button
+                onClick={() => openTransactionDialog()}
+                disabled={isLoading}
+                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
               >
-                <Settings className="mr-2 h-4 w-4" />
+                <Plus className="h-4 w-4" />
+                Tambah Transaksi
+              </Button>
+
+              <Button
+                onClick={openCategoryDialog}
+                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
+              >
+                <Settings className="h-4 w-4" />
                 {isMobile ? "Kategori" : "Kelola Kategori"}
               </Button>
-              
-              {/* ✅ USING EXISTING DateRangePicker */}
-              <div className="w-full sm:w-auto sm:min-w-[280px]">
+
+              <div className="min-w-[260px]">
                 <DateRangePicker
                   dateRange={dateRangeForPicker}
                   onDateRangeChange={handleDateRangeChange}
                   placeholder="Pilih periode laporan"
                   isMobile={isMobile}
-                  className="w-full"
+                  className="bg-white text-gray-900 border-none hover:bg-gray-100"
                 />
               </div>
             </div>
+          </div>
+
+          <div className="flex md:hidden flex-col gap-3 mt-6">
+            <Button
+              onClick={() => openTransactionDialog()}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Transaksi
+            </Button>
+
+            <Button
+              onClick={openCategoryDialog}
+              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
+            >
+              <Settings className="h-4 w-4" />
+              {isMobile ? "Kategori" : "Kelola Kategori"}
+            </Button>
+
+            <DateRangePicker
+              dateRange={dateRangeForPicker}
+              onDateRangeChange={handleDateRangeChange}
+              placeholder="Pilih periode laporan"
+              isMobile={isMobile}
+              className="bg-white text-gray-900 border-none hover:bg-gray-100 w-full"
+            />
           </div>
         </div>
 

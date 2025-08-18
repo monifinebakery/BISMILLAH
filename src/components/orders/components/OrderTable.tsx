@@ -1,4 +1,4 @@
-// 🎯 Fixed OrderTable.tsx - Rules of Hooks Compliant
+// 🎯 OrderTable.tsx - Proper Implementation using Types & Utils (No Direct DB Calls)
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -157,11 +157,11 @@ const OrderRowActions: React.FC<{
         <DropdownMenuItem 
           onClick={handleFollowUp}
           className="cursor-pointer"
-          disabled={!order.telefonPelanggan && !onFollowUp}
+          disabled={!order.teleponPelanggan && !onFollowUp}
         >
           <MessageSquare className="mr-2 h-4 w-4" />
           Follow Up WhatsApp
-          {(!order.telefonPelanggan && !onFollowUp) && (
+          {(!order.teleponPelanggan && !onFollowUp) && (
             <span className="text-xs text-gray-400 ml-2">(No WhatsApp)</span>
           )}
         </DropdownMenuItem>
@@ -238,7 +238,52 @@ const EmptyState: React.FC<{
   );
 };
 
-// ✅ FIXED: Main Table Component dengan hooks di top level
+// ✅ Completion Date Display Component
+const CompletionDateCell: React.FC<{ order: Order }> = ({ order }) => {
+  // ✅ Use tanggalSelesai from transformed order data (no direct DB calls)
+  if (order.tanggalSelesai) {
+    // Has completion date - show it
+    return (
+      <div className="flex flex-col">
+        <div className="text-sm text-green-700 font-medium">
+          {formatDateForDisplay(order.tanggalSelesai)}
+        </div>
+        <div className="text-xs text-green-600">
+          {order.tanggalSelesai.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </div>
+      </div>
+    );
+  } else if (order.status === 'completed' || order.status === 'delivered') {
+    // Completed but no completion date recorded
+    return (
+      <div className="flex flex-col">
+        <div className="text-sm text-green-700 font-medium">Hari ini</div>
+        <div className="text-xs text-green-600">Baru selesai</div>
+      </div>
+    );
+  } else if (order.status === 'cancelled') {
+    // Cancelled orders
+    return (
+      <div className="flex flex-col">
+        <div className="text-sm text-red-700">-</div>
+        <div className="text-xs text-red-600">Dibatalkan</div>
+      </div>
+    );
+  } else {
+    // Not completed yet
+    return (
+      <div className="flex flex-col">
+        <div className="text-sm text-gray-400">-</div>
+        <div className="text-xs text-gray-500">Belum selesai</div>
+      </div>
+    );
+  }
+};
+
+// ✅ MAIN: Table Component with proper completion date handling
 const OrderTable: React.FC<OrderTableProps> = ({
   uiState,
   loading,
@@ -252,7 +297,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
   // ✅ FIXED: Hooks dipanggil di top level component
   const { getTemplate } = useFollowUpTemplate();
   const { processTemplate } = useProcessTemplate();
-  
+
   // Handle row click logic (unchanged)
   const handleRowClick = (order: Order, e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -313,7 +358,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       const processedMessage = processTemplate(template, order);
       
       // Format nomor telepon
-      const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
+      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
       
       // Buat WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
@@ -362,7 +407,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
     <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full">
-          {/* Table Header */}
+          {/* ✅ UPDATED: Table Header with Completion Date */}
           <thead className="bg-gray-50">
             <tr>
               {uiState.isSelectionMode && (
@@ -385,7 +430,10 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 Pelanggan
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tanggal
+                Tanggal Order
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tanggal Selesai
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total
@@ -399,7 +447,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
             </tr>
           </thead>
 
-          {/* Table Body */}
+          {/* ✅ UPDATED: Table Body with Completion Date */}
           <tbody className="bg-white divide-y divide-gray-200">
             {uiState.currentOrders.map((order) => (
               <tr 
@@ -434,8 +482,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
-                    {order.telefonPelanggan && (
-                      <div className="text-xs text-gray-500">{order.telefonPelanggan}</div>
+                    {order.teleponPelanggan && (
+                      <div className="text-xs text-gray-500">{order.teleponPelanggan}</div>
                     )}
                     {order.emailPelanggan && (
                       <div className="text-xs text-gray-500">{order.emailPelanggan}</div>
@@ -443,7 +491,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   </div>
                 </td>
 
-                {/* Date */}
+                {/* Order Date */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
                     <div className="text-sm text-gray-900">{formatDateForDisplay(order.tanggal)}</div>
@@ -454,6 +502,11 @@ const OrderTable: React.FC<OrderTableProps> = ({
                       })}
                     </div>
                   </div>
+                </td>
+
+                {/* ✅ NEW: Completion Date using proper types/utils */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <CompletionDateCell order={order} />
                 </td>
 
                 {/* Total Amount */}

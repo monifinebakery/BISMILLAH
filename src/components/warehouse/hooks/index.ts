@@ -6,6 +6,7 @@
 
 // Core Hook (Always Available)
 export { useWarehouseCore } from './useWarehouseCore';
+export { useImportExport } from './useImportExport';
 
 // Dynamic Hook Loader
 export const useBulkOperations = () => import('./useWarehouseBulk').then(m => m.useWarehouseBulk);

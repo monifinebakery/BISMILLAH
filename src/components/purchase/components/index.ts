@@ -27,7 +27,6 @@ export type {
 // import PurchaseTable from './PurchaseTable';
 // import BulkActionsToolbar from './BulkActionsToolbar';
 // import BulkDeleteDialog from './BulkDeleteDialog';
-// import PurchaseDetailDialog from './PurchaseDetailDialog';
 // import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
 // import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
@@ -36,7 +35,6 @@ export const PURCHASE_COMPONENTS_LAZY = {
   // Main components (heavy - load on demand)
   PurchaseDialog: () => import('./PurchaseDialog'),
   PurchaseTable: () => import('./PurchaseTable'),
-  PurchaseDetailDialog: () => import('./PurchaseDetailDialog'),
   SimplePurchaseItemForm: () => import('./SimplePurchaseItemForm'),
   
   // Action components (medium - load when needed)
@@ -54,7 +52,6 @@ export const PURCHASE_COMPONENTS_GROUPS = {
   // Core dialogs - load together
   dialogs: () => Promise.all([
     import('./PurchaseDialog'),
-    import('./PurchaseDetailDialog'),
     import('./BulkDeleteDialog'),
     import('./StatusChangeConfirmationDialog')
   ]),

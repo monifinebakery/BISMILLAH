@@ -177,7 +177,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         totalNilai: payload.totalNilai,
         items: payload.items,
         status: payload.status ?? 'pending',
-        metodePerhitungan: payload.metodePerhitungan ?? 'FIFO',
+        metodePerhitungan: payload.metodePerhitungan ?? 'AVERAGE',
         createdAt: new Date(),
         updatedAt: new Date(),
       };

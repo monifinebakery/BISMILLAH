@@ -32,7 +32,7 @@ const WarehouseEmptyState: React.FC<WarehouseEmptyStateProps> = ({
       <p className="text-sm md:text-base text-gray-500 mb-6 max-w-md px-4">
         {searchTerm
           ? `Coba ubah kata kunci pencarian atau filter yang digunakan.`
-          : 'Tambahkan pembelian bahan baku pertama untuk mulai mengelola stok.'
+          : 'Silakan tambah bahan baku melalui menu Pembelian.'
         }
       </p>
       {!searchTerm && (

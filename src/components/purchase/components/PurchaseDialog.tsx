@@ -188,27 +188,24 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   }, [formData.items.length, handleSubmit]);
 
   // ✅ ENHANCED: Handle payload from SimplePurchaseItemForm
-  const handleAddItemFromForm = useCallback((payload: PurchaseItemPayload) => {
-    // Convert payload to PurchaseItem format expected by the form
-    const purchaseItem: PurchaseItem = {
-      bahanBakuId: payload.bahanBakuId,
-      nama: payload.nama,
-      satuan: payload.satuan,
-      kuantitas: payload.kuantitas,
-      hargaSatuan: payload.hargaSatuan,
-      subtotal: payload.kuantitas * payload.hargaSatuan,
-      keterangan: payload.keterangan,
-      // ✅ NEW: Include packaging info if available
-      ...(payload.jumlahKemasan && { jumlahKemasan: payload.jumlahKemasan }),
-      ...(payload.isiPerKemasan && { isiPerKemasan: payload.isiPerKemasan }),
-      ...(payload.satuanKemasan && { satuanKemasan: payload.satuanKemasan }),
-      ...(payload.hargaTotalBeliKemasan && { hargaTotalBeliKemasan: payload.hargaTotalBeliKemasan }),
-    };
+  const handleAddItemFromForm = useCallback(
+    (payload: PurchaseItemPayload) => {
+      const purchaseItem: PurchaseItem = {
+        bahanBakuId: payload.bahanBakuId,
+        nama: payload.nama,
+        satuan: payload.satuan,
+        kuantitas: payload.kuantitas,
+        hargaSatuan: payload.hargaSatuan,
+        subtotal: payload.kuantitas * payload.hargaSatuan,
+        keterangan: payload.keterangan,
+      };
 
-    addItem(purchaseItem);
-    setShowAddItem(false);
-    toast.success(`${payload.nama} berhasil ditambahkan`);
-  }, [addItem, setShowAddItem]);
+      addItem(purchaseItem);
+      setShowAddItem(false);
+      toast.success(`${payload.nama} berhasil ditambahkan`);
+    },
+    [addItem, setShowAddItem]
+  );
 
   // ✅ Check if purchase can be edited (not completed)
   const canEdit = !purchase || purchase.status !== 'completed';
@@ -442,16 +439,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                           <div className="flex items-start justify-between">
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div>
-                                <div className="font-medium">{item.nama}</div>
-                                {/* ID hidden since item creates new material */}
-                                {/* ✅ IMPROVED: Display packaging info with proper typing */}
-                                {item.jumlahKemasan && item.jumlahKemasan > 0 && item.isiPerKemasan && item.isiPerKemasan > 0 && (
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    Kemasan: {item.jumlahKemasan} × {item.isiPerKemasan} {item.satuan || 'unit'}
-                                    {item.satuanKemasan ? ` (${item.satuanKemasan})` : ''}
-                                  </div>
-                                )}
-                              </div>
+                              <div className="font-medium">{item.nama}</div>
+                              {/* ID hidden since item creates new material */}
+                            </div>
                               <div className="text-right">
                                 <div className="font-medium">{item.kuantitas} {item.satuan}</div>
                                 <div className="text-sm text-gray-600">Kuantitas</div>

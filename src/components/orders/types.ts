@@ -20,6 +20,7 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   tanggal: Date;
+  tanggalSelesai?: Date; // ✅ ADD THIS
   
   // Customer Info
   namaPelanggan: string;
@@ -189,6 +190,7 @@ export interface OrderDB {
   subtotal: number;
   pajak: number;
   total_pesanan: number;
+  tanggal_selesai?: string; // ✅ ADD THIS
 }
 
 // Validation

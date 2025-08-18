@@ -1,3 +1,4 @@
+// src/components/admin/AdminDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,14 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Users, DollarSign, Search, CheckCircle, XCircle } from 'lucide-react';
-// import { supabase } from '@/integrations/supabase/client'; // TIDAK DIPERLUKAN LAGI UNTUK DATA ADMIN
 import { toast } from 'sonner';
-import { getCurrentSession } from '@/services/auth'; // Untuk mendapatkan token auth
+import { getCurrentSession } from '@/services/auth';
 
 // URL Edge Function API Admin Anda
-// PASTIKAN INI ADALAH URL YANG BENAR UNTUK EDGE FUNCTION ADMIN ANDA!
-// Contoh: https://<project_ref>.supabase.co/functions/v1/admin-api
-const ADMIN_API_URL = 'https://kewhzkfvswbimmwtpymw.supabase.co/functions/v1/admin-api'; // GANTI DENGAN URL EDGE FUNCTION ASLI ANDA
+const ADMIN_API_URL = 'https://kewhzkfvswbimmwtpymw.supabase.co/functions/v1/admin-api';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -24,30 +22,12 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const session = await getCurrentSession(); // Dapatkan sesi untuk token otorisasi
+      const session = await getCurrentSession();
       if (!session) {
         toast.error('Anda tidak terautentikasi.');
         setLoading(false);
         return;
       }
-
-      const response = await fetch(ADMIN_API_URL + '/users', { // Panggil endpoint users di Edge Function
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Gagal mengambil data admin dari API.');
-      }
-
-      const { data: adminData } = await response.json(); // Data dari Edge Function
-
-      // Asumsi adminData.data berisi { users: [...], payments: [...] }
-      setUsers(adminData.users || []);
-      setPayments(adminData.payments || []); // Edge Function mungkin mengembalikan ini terpisah atau digabungkan
 
       // Jika Edge Function mengembalikan data users dan payments secara terpisah:
       const usersResponse = await fetch(ADMIN_API_URL + '/users', {
@@ -81,13 +61,13 @@ const AdminDashboard = () => {
 
   const handleTogglePaymentStatus = async (paymentId: string, currentStatus: boolean) => {
     try {
-      const session = await getCurrentSession(); // Dapatkan sesi untuk token otorisasi
+      const session = await getCurrentSession();
       if (!session) {
         toast.error('Anda tidak terautentikasi.');
         return;
       }
 
-      const response = await fetch(ADMIN_API_URL + '/payment-status', { // Panggil endpoint update di Edge Function
+      const response = await fetch(ADMIN_API_URL + '/payment-status', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -101,8 +81,7 @@ const AdminDashboard = () => {
         throw new Error(errorData.error || 'Gagal mengubah status pembayaran melalui API.');
       }
       
-      // Setelah berhasil update melalui API, refresh data lokal
-      await fetchData(); // Fetch ulang semua data untuk konsistensi
+      await fetchData();
       
       toast.success(`Status pembayaran berhasil ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
     } catch (error: any) {
@@ -131,7 +110,6 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* ... sisa kode JSX Anda ... */}
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center">
@@ -151,7 +129,7 @@ const AdminDashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <Card className="border-0 bg-white/80 backdrop-blur-sm"
+          <Card className="border-0 bg-white/80 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="bg-blue-100 rounded-full p-2 mr-3">
@@ -165,7 +143,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-0 bg-white/80 backdrop-blur-sm"
+          <Card className="border-0 bg-white/80 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="bg-green-100 rounded-full p-2 mr-3">
@@ -181,7 +159,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-0 bg-white/80 backdrop-blur-sm"
+          <Card className="border-0 bg-white/80 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="bg-purple-100 rounded-full p-2 mr-3">
@@ -202,7 +180,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Payments Management */}
-        <Card className="border-0 bg-white/80 backdrop-blur-sm mb-6"
+        <Card className="border-0 bg-white/80 backdrop-blur-sm mb-6">
           <CardHeader>
             <CardTitle className="flex items-center">
               <DollarSign className="h-5 w-5 mr-2" />
@@ -288,7 +266,7 @@ const AdminDashboard = () => {
         </Card>
 
         {/* Users Management */}
-        <Card className="border-0 bg-white/80 backdrop-blur-sm"
+        <Card className="border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Users className="h-5 w-5 mr-2" />

@@ -84,12 +84,12 @@ const convertTemplatesToArray = (templates: { [key: string]: string }) => {
  * - "Keuangan": Tanggal, Tipe, Kategori, Deskripsi, Jumlah (Rp)
  * @param allData Objek yang berisi semua array data dari konteks (bahanBaku, suppliers, dll.).
  * @param businessName Nama bisnis pengguna untuk nama file kustom.
- * @param format Format file yang diinginkan ('xlsx' | 'csv').
+ * @param fileFormat Format file yang diinginkan ('xlsx' | 'csv').
  */
 export const exportAllDataToExcel = async (
   allData: any,
   businessName?: string,
-  format: 'xlsx' | 'csv' = 'xlsx'
+  fileFormat: 'xlsx' | 'csv' = 'xlsx'
 ) => {
   // Show loading toast
   const loadingToast = toast.loading("Memuat library Excel...");
@@ -97,6 +97,15 @@ export const exportAllDataToExcel = async (
   try {
     // Lazy load XLSX
     const XLSX = await loadXLSX();
+
+    // Create new workbook
+    const wb = XLSX.utils.book_new();
+
+    // Generate safe filename
+    const safeBusinessName = (businessName || 'bisnis_anda')
+      .replace(/[^a-z0-9]/gi, '_')
+      .toLowerCase();
+    const fileName = `semua_data_${safeBusinessName}_${format(new Date(), 'yyyy-MM-dd')}.${fileFormat}`;
 
     // Update loading message
     toast.loading("Memproses data untuk ekspor...", { id: loadingToast });
@@ -433,10 +442,13 @@ export const exportAllDataToExcel = async (
       }
     });
 
+    // Write file
+    toast.loading("Mengunduh file...", { id: loadingToast });
+    XLSX.writeFile(wb, fileName, { bookType: fileFormat });
 
     // Dismiss loading and show success
     toast.dismiss(loadingToast);
-    toast.success(`Semua data berhasil diekspor ke ${format.toUpperCase()}!`);
+    toast.success(`Semua data berhasil diekspor ke ${fileFormat.toUpperCase()}!`);
 
   } catch (error) {
     console.error("Gagal mengekspor data:", error);

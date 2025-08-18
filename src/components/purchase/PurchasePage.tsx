@@ -10,7 +10,6 @@ import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
 // ✅ DIRECT CONTEXT: No barrel imports
 import { useSupplier } from '@/contexts/SupplierContext';
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 // ✅ ESSENTIAL COMPONENTS: Direct imports (no barrel)
 import {
@@ -117,7 +116,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // ✅ CONTEXTS: Direct usage
   const purchaseContext = usePurchase();
   const { suppliers } = useSupplier();
-  const { bahanBaku } = useBahanBaku();
 
   // ✅ pakai API dari context langsung
   const {
@@ -326,7 +324,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             mode={appState.dialogs.purchase.mode}
             purchase={appState.dialogs.purchase.editing}
             suppliers={suppliers}
-            bahanBaku={bahanBaku}
             onClose={dialogActions.purchase.close}
           />
         )}

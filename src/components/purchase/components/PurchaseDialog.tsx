@@ -93,7 +93,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   mode,
   purchase,
   suppliers,
-  bahanBaku = [],
   onClose,
 }) => {
   // ✅ ULTRA LIGHTWEIGHT: Zero validation during typing
@@ -407,7 +406,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               {/* ✅ ENHANCED: Smart Add New Item Form with clean payload handling */}
               {canEdit && showAddItem && (
                 <SimplePurchaseItemForm
-                  bahanBaku={bahanBaku}
                   onCancel={() => setShowAddItem(false)}
                   onAdd={handleAddItemFromForm}
                 />

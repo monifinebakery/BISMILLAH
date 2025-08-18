@@ -14,7 +14,7 @@ import {
   FNBCOGSBreakdown,
   FNBLabels
 } from '../types/profitAnalysis.types';
-import profitAnalysisApi from '../services/profitAnalysisApi';
+import profitAnalysisApi, { calculateProfitAnalysisDaily } from '../services/profitAnalysisApi';
 
 // ✅ IMPORT WAC HELPERS (termasuk calculatePemakaianValue)
 import { fetchBahanMap, fetchPemakaianByPeriode, calculatePemakaianValue } from '../services/profitAnalysisApi';
@@ -39,6 +39,9 @@ export interface UseProfitAnalysisOptions {
   enableRealTime?: boolean;
   // ✅ ADD WAC OPTIONS
   enableWAC?: boolean;
+  // 🆕 Mode harian/bulanan dan rentang tanggal
+  mode?: 'daily' | 'monthly';
+  dateRange?: { from: Date; to: Date };
 }
 
 export interface UseProfitAnalysisReturn {
@@ -93,7 +96,9 @@ export const useProfitAnalysis = (
     defaultPeriod = new Date().toISOString().slice(0, 7), // Safe default
     enableRealTime = true,
     // ✅ ADD WAC OPTION DEFAULT
-    enableWAC = true
+    enableWAC = true,
+    mode = 'monthly',
+    dateRange
   } = options;
 
   const queryClient = useQueryClient();
@@ -103,32 +108,42 @@ export const useProfitAnalysis = (
   const [profitHistory, setProfitHistory] = useState<RealTimeProfitCalculation[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ MAIN QUERY: Current period analysis
+  // ✅ MAIN QUERY: Current analysis (supports monthly or daily)
   const currentAnalysisQuery = useQuery({
-    queryKey: PROFIT_QUERY_KEYS.realTime(currentPeriod),
+    queryKey: mode === 'daily'
+      ? ['profit-analysis','daily', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]
+      : PROFIT_QUERY_KEYS.realTime(currentPeriod),
     queryFn: async () => {
       try {
+        if (mode === 'daily') {
+          const from = dateRange?.from ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+          const to = dateRange?.to ?? new Date();
+          logger.info('🔄 Fetching daily profit analysis:', { from, to });
+          const daily = await calculateProfitAnalysisDaily(from, to);
+          if (!daily.success) throw new Error(daily.error || 'Failed daily analysis');
+          // For currentAnalysis, pick the last day; keep full list in history state below
+          const last = (daily.data || []).slice(-1)[0] ?? null;
+          setProfitHistory(daily.data || []);
+          return last;
+        }
         logger.info('🔄 Fetching profit analysis for period:', currentPeriod);
         const response = await profitAnalysisApi.calculateProfitAnalysis(currentPeriod);
-        
         if (response.error) {
           throw new Error(response.error);
         }
-        
         logger.success('✅ Profit analysis completed:', {
           period: currentPeriod,
           revenue: response.data?.revenue_data?.total || 0,
           calculatedAt: response.data?.calculated_at
         });
-        
         return response.data;
       } catch (err) {
         logger.error('❌ Query error:', err);
         throw err;
       }
     },
-    enabled: Boolean(currentPeriod && autoCalculate),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: mode === 'daily' ? Boolean(autoCalculate) : Boolean(currentPeriod && autoCalculate),
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: enableRealTime,
     retry: 2,
   });
@@ -309,6 +324,14 @@ export const useProfitAnalysis = (
     
     try {
       setError(null);
+      if (mode === 'daily') {
+        const from = dateRange?.from ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        const to = dateRange?.to ?? new Date();
+        const res = await calculateProfitAnalysisDaily(from, to);
+        if (!res.success) throw new Error(res.error || 'Failed daily calculate');
+        setProfitHistory(res.data || []);
+        return true;
+      }
       await calculateProfitMutation.mutateAsync(targetPeriod);
       return true;
     } catch (error) {
@@ -406,10 +429,13 @@ export const useProfitAnalysis = (
 
   // ✅ AUTO-LOAD HISTORY on mount
   useEffect(() => {
-    if (autoCalculate) {
-      loadProfitHistory();
+    if (!autoCalculate) return;
+    if (mode === 'daily') {
+      // Profit history already set by daily fetch; no need to load trend
+      return;
     }
-  }, [autoCalculate, loadProfitHistory]);
+    loadProfitHistory();
+  }, [autoCalculate, loadProfitHistory, mode]);
 
   return {
     // State

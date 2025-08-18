@@ -67,6 +67,9 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
+  const [mode, setMode] = useState<'daily' | 'monthly'>('monthly');
+  const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
+
   const {
     currentAnalysis,
     profitHistory,
@@ -83,6 +86,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     autoCalculate: true,
     enableRealTime: true,
     enableWAC: true,
+    mode,
+    dateRange: range,
   });
 
   const { formatPeriodLabel, exportData } = useProfitData({
@@ -112,6 +117,10 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
 
   const handlePeriodChange = (period: string) => {
+    // Ensure monthly mode when picking a period
+    setMode('monthly');
+    // Clear any daily range
+    setRange(undefined);
     setCurrentPeriod(period);
   };
 
@@ -125,6 +134,25 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     } catch (error) {
       console.error('Error refreshing:', error);
     }
+  };
+
+  // Wire mode toggle: when switching to daily, set default date range (this month to today)
+  const handleModeChange = (m: 'daily' | 'monthly') => {
+    setMode(m);
+    if (m === 'daily') {
+      const now = new Date();
+      const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      setRange({ from: firstOfThisMonth, to: now });
+    } else {
+      // monthly mode: clear range so API uses period string
+      setRange(undefined);
+    }
+  };
+
+  // Wire date range changes: ensure we are in daily mode when user picks a preset
+  const handleDateRangeChange = (r: { from: Date; to: Date }) => {
+    if (mode !== 'daily') setMode('daily');
+    setRange(r);
   };
 
   const handleExportData = () => {
@@ -173,8 +201,12 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         onPeriodChange={handlePeriodChange}
         onRefresh={handleRefresh}
         onExportData={handleExportData}
+        mode={mode}
+        onModeChange={handleModeChange}
+        dateRange={range}
+        onDateRangeChange={handleDateRangeChange}
       />
-
+      
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />

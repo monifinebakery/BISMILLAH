@@ -1,8 +1,9 @@
-// src/components/orders/utils.ts - Optimized Dependencies & Performance
+// src/components/orders/utils.ts - Enhanced with Completion Date Support
 /**
  * Orders Utilities - Essential Functions Only
  * 
  * Core utilities optimized for performance and maintainability
+ * ✅ ENHANCED: Added completion date support
  */
 
 import { Order, NewOrder } from './types';
@@ -35,9 +36,12 @@ export const safeParseDate = (dateInput: any): Date | null => {
   }
 };
 
-export const toSafeISOString = (date: Date): string => {
+export const toSafeISOString = (date: Date | null): string => {
   try {
-    return isValidDate(date) ? date.toISOString() : new Date().toISOString();
+    if (!date || !isValidDate(date)) {
+      return new Date().toISOString();
+    }
+    return date.toISOString();
   } catch {
     return new Date().toISOString();
   }
@@ -58,7 +62,7 @@ export const formatDateForDisplay = (date: Date | string | null): string => {
   }
 };
 
-// ✅ DATA TRANSFORMERS: Optimized with better fallbacks
+// ✅ ENHANCED: Data transformers with completion date support
 export const transformOrderFromDB = (dbItem: any): Order => {
   if (!dbItem || typeof dbItem !== 'object') {
     logger.error('Invalid order data from database:', dbItem);
@@ -74,6 +78,7 @@ export const transformOrderFromDB = (dbItem: any): Order => {
       emailPelanggan: dbItem.email_pelanggan || '',
       alamatPengiriman: dbItem.alamat_pengiriman || '',
       tanggal: safeParseDate(dbItem.tanggal) || new Date(),
+      tanggalSelesai: safeParseDate(dbItem.tanggal_selesai), // ✅ ADDED: Completion date
       items: Array.isArray(dbItem.items) ? dbItem.items : [],
       totalPesanan: Number(dbItem.total_pesanan) || 0,
       status: dbItem.status || 'pending',
@@ -94,7 +99,7 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
   const dbData: Record<string, any> = {};
   
   try {
-    // ✅ OPTIMIZED: Direct property mapping with validation
+    // ✅ ENHANCED: Property mapping with completion date
     const propertyMap = [
       ['namaPelanggan', 'nama_pelanggan'],
       ['teleponPelanggan', 'telepon_pelanggan'],
@@ -114,10 +119,16 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
       }
     });
 
-    // ✅ ENHANCED: Date handling
+    // ✅ ENHANCED: Date handling for order date
     if (data.tanggal !== undefined) {
       const parsedDate = safeParseDate(data.tanggal);
       dbData.tanggal = toSafeISOString(parsedDate || new Date());
+    }
+    
+    // ✅ NEW: Date handling for completion date
+    if (data.tanggalSelesai !== undefined) {
+      const parsedCompletionDate = safeParseDate(data.tanggalSelesai);
+      dbData.tanggal_selesai = parsedCompletionDate ? toSafeISOString(parsedCompletionDate) : null;
     }
     
     return dbData;
@@ -129,7 +140,8 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
       nama_pelanggan: String(data.namaPelanggan || 'Error'),
       status: data.status || 'pending',
       total_pesanan: Number(data.totalPesanan) || 0,
-      tanggal: toSafeISOString(new Date())
+      tanggal: toSafeISOString(new Date()),
+      tanggal_selesai: null // ✅ ADDED: Default null for completion date
     };
   }
 };
@@ -207,7 +219,7 @@ export const validateOrderData = (data: Partial<NewOrder>): { isValid: boolean; 
   };
 };
 
-// ✅ ANALYTICS: Optimized statistics calculation
+// ✅ ENHANCED: Analytics with completion date consideration
 export const calculateOrderStats = (orders: Order[]) => {
   if (!orders.length) {
     return {
@@ -216,11 +228,18 @@ export const calculateOrderStats = (orders: Order[]) => {
       completed: 0,
       cancelled: 0,
       totalRevenue: 0,
-      averageOrderValue: 0
+      averageOrderValue: 0,
+      completedToday: 0,
+      revenueToday: 0
     };
   }
 
-  // ✅ SINGLE PASS: Calculate all stats in one iteration
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // ✅ ENHANCED: Single pass calculation with completion date metrics
   const stats = orders.reduce((acc, order) => {
     acc.total++;
     
@@ -232,6 +251,15 @@ export const calculateOrderStats = (orders: Order[]) => {
       case 'completed':
         acc.completed++;
         acc.totalRevenue += order.totalPesanan;
+        
+        // ✅ NEW: Count orders completed today
+        if (order.tanggalSelesai) {
+          const completionDate = new Date(order.tanggalSelesai);
+          if (completionDate >= today && completionDate < tomorrow) {
+            acc.completedToday++;
+            acc.revenueToday += order.totalPesanan;
+          }
+        }
         break;
       case 'cancelled':
         acc.cancelled++;
@@ -245,10 +273,12 @@ export const calculateOrderStats = (orders: Order[]) => {
     completed: 0,
     cancelled: 0,
     totalRevenue: 0,
-    averageOrderValue: 0
+    averageOrderValue: 0,
+    completedToday: 0,
+    revenueToday: 0
   });
 
-  // Calculate average
+  // Calculate averages
   stats.averageOrderValue = stats.completed > 0 ? stats.totalRevenue / stats.completed : 0;
   
   return stats;
@@ -265,6 +295,46 @@ export const groupOrdersByStatus = (orders: Order[]) => {
   }, {} as Record<string, Order[]>);
 };
 
+// ✅ NEW: Group orders by completion date for revenue reporting
+export const groupOrdersByCompletionDate = (orders: Order[]) => {
+  return orders
+    .filter(order => order.status === 'completed' && order.tanggalSelesai)
+    .reduce((groups, order) => {
+      const completionDate = formatDateForDisplay(order.tanggalSelesai!);
+      if (!groups[completionDate]) {
+        groups[completionDate] = {
+          date: completionDate,
+          orders: [],
+          totalRevenue: 0,
+          orderCount: 0
+        };
+      }
+      groups[completionDate].orders.push(order);
+      groups[completionDate].totalRevenue += order.totalPesanan;
+      groups[completionDate].orderCount++;
+      return groups;
+    }, {} as Record<string, {
+      date: string;
+      orders: Order[];
+      totalRevenue: number;
+      orderCount: number;
+    }>);
+};
+
+// ✅ NEW: Filter orders by completion date range
+export const filterOrdersByCompletionDate = (
+  orders: Order[], 
+  startDate: Date, 
+  endDate: Date
+): Order[] => {
+  return orders.filter(order => {
+    if (!order.tanggalSelesai) return false;
+    
+    const completionDate = new Date(order.tanggalSelesai);
+    return completionDate >= startDate && completionDate <= endDate;
+  });
+};
+
 // ✅ HELPER FUNCTIONS: Utility functions
 const createFallbackOrder = (id?: string): Order => ({
   id: id || 'error-' + Date.now(),
@@ -274,6 +344,7 @@ const createFallbackOrder = (id?: string): Order => ({
   emailPelanggan: '',
   alamatPengiriman: '',
   tanggal: new Date(),
+  tanggalSelesai: null, // ✅ ADDED: Default null for completion date
   items: [],
   totalPesanan: 0,
   status: 'pending',
@@ -301,7 +372,7 @@ export const searchOrders = (orders: Order[], searchTerm: string): Order[] => {
   return orders.filter(order => 
     order.namaPelanggan.toLowerCase().includes(lowerSearchTerm) ||
     order.nomorPesanan.toLowerCase().includes(lowerSearchTerm) ||
-    order.teleponPelanggan?.toLowerCase().includes(lowerSearchTerm) ||
+    order.telefonPelanggan?.toLowerCase().includes(lowerSearchTerm) ||
     order.emailPelanggan?.toLowerCase().includes(lowerSearchTerm)
   );
 };
@@ -311,7 +382,7 @@ export const filterOrdersByStatus = (orders: Order[], status: string): Order[] =
   return orders.filter(order => order.status === status);
 };
 
-// ✅ EXPORT: All utilities
+// ✅ ENHANCED: Export all utilities including new completion date functions
 export const OrderUtils = {
   // Date utilities
   isValidDate,
@@ -329,10 +400,12 @@ export const OrderUtils = {
   // Analytics
   calculateOrderStats,
   groupOrdersByStatus,
+  groupOrdersByCompletionDate, // ✅ NEW
   
   // Search & filter
   searchOrders,
   filterOrdersByStatus,
+  filterOrdersByCompletionDate, // ✅ NEW
   
   // Helpers
   generateOrderNumber

@@ -1,7 +1,7 @@
 // src/contexts/NotificationContext.tsx
 // ✅ CLEAN CONTEXT - No circular dependencies, simplified structure
 
-import React, { createContext, useContext, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -304,6 +304,26 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   } = useNotificationMutations(userId);
 
   // ===========================================
+  // ✅ DEDUPLICATION LOGIC
+  // ===========================================
+
+  const recentNotificationsRef = useRef<Map<string, number>>(new Map());
+  const DUPLICATE_THRESHOLD = 60 * 1000; // 1 minute
+
+  const generateNotificationKey = useCallback((data: CreateNotificationData): string => {
+    return [data.title, data.related_type || '', data.related_id || ''].join('|');
+  }, []);
+
+  const cleanupExpiredNotifications = useCallback(() => {
+    const now = Date.now();
+    recentNotificationsRef.current.forEach((timestamp, key) => {
+      if (now - timestamp > DUPLICATE_THRESHOLD) {
+        recentNotificationsRef.current.delete(key);
+      }
+    });
+  }, []);
+
+  // ===========================================
   // ✅ COMPUTED VALUES
   // ===========================================
 
@@ -376,13 +396,26 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const addNotificationFn = useCallback(async (data: CreateNotificationData): Promise<boolean> => {
     if (!userId) return false;
+
+    const notificationKey = generateNotificationKey(data);
+    const now = Date.now();
+
+    cleanupExpiredNotifications();
+
+    const lastSent = recentNotificationsRef.current.get(notificationKey);
+    if (lastSent && (now - lastSent) < DUPLICATE_THRESHOLD) {
+      logger.debug(`Duplicate notification prevented: ${data.title}`);
+      return false;
+    }
+
     try {
       await addMutation.mutateAsync(data);
+      recentNotificationsRef.current.set(notificationKey, now);
       return true;
     } catch (error) {
       return false;
     }
-  }, [userId, addMutation]);
+  }, [userId, addMutation, generateNotificationKey, cleanupExpiredNotifications]);
 
   const markAsReadFn = useCallback(async (notificationId: string): Promise<boolean> => {
     try {

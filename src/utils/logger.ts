@@ -10,7 +10,8 @@ const NETLIFY_CONTEXT = String(env?.VITE_NETLIFY_CONTEXT || "").trim(); // "prod
 type Level = "debug" | "warn" | "error";
 function normalizeLevel(raw: unknown): Level {
   const v = String(raw ?? "error").toLowerCase().trim();
-  return v === "debug" || v === "warn" || v === "error" ? v : "error";
+  if (v === "debug" || v === "warn" || v === "error") return v;
+  return "error";
 }
 const DEBUG_LEVEL: Level = normalizeLevel(env?.VITE_DEBUG_LEVEL);
 const levelRank = { debug: 0, warn: 1, error: 2 } as const;
@@ -49,7 +50,6 @@ function getShouldLog(): boolean {
   if (FORCE_LOGS) return true;
 
   // 2) Netlify context (dari build-time via VITE_NETLIFY_CONTEXT)
-  //    deploy-preview & branch-deploy => aktif; production => silent
   if (NETLIFY_CONTEXT === "deploy-preview" || NETLIFY_CONTEXT === "branch-deploy") {
     return true;
   }
@@ -68,8 +68,7 @@ function getShouldLog(): boolean {
     // 5) Host-explicit allow
     if (ENV_DEV_HOSTS.length > 0 && ENV_DEV_HOSTS.includes(host)) return true;
 
-    // 6) Netlify non-prod host (*.netlify.app) — tetap allow,
-    //    selama bukan production custom domain
+    // 6) Netlify non-prod host (*.netlify.app)
     if (isNetlifyHost(host) && !isProductionHostname(host)) return true;
 
     // 7) Production custom domain => silent
@@ -105,7 +104,11 @@ export const logger = {
 
   info(message: string, data?: unknown): void {
     if (!canInfo()) return;
-    typeof data !== "undefined" ? console.log(message, data) : console.log(message);
+    if (typeof data !== "undefined") {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
   },
 
   debug(message: string, data?: unknown): void {
@@ -114,94 +117,158 @@ export const logger = {
       SHOULD_LOG &&
       hasConsole;
     if (!canDebug) return;
-    typeof data !== "undefined" ? console.debug(message, data) : console.debug(message);
+    if (typeof data !== "undefined") {
+      console.debug(message, data);
+    } else {
+      console.debug(message);
+    }
   },
 
   warn(message: string, data?: unknown): void {
     if (!canWarn()) return;
-    typeof data !== "undefined" ? console.warn(message, data) : console.warn(message);
+    if (typeof data !== "undefined") {
+      console.warn(message, data);
+    } else {
+      console.warn(message);
+    }
   },
 
   error(message: string, err?: unknown): void {
     if (!canError()) return;
-    typeof err !== "undefined" ? console.error(message, err) : console.error(message);
+    if (typeof err !== "undefined") {
+      console.error(message, err);
+    } else {
+      console.error(message);
+    }
   },
 
   success(message: string, data?: unknown): void {
     if (!canAny()) return;
-    typeof data !== "undefined" ? console.log(message, data) : console.log(message);
+    if (typeof data !== "undefined") {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
   },
 
   perf(operation: string, durationMs: number, data?: unknown): void {
     if (!canAny()) return;
-    const msg = `PERF ${operation}: ${String(durationMs)}ms`;
-    typeof data !== "undefined" ? console.log(msg, data) : console.log(msg);
+    const msg = "PERF " + operation + ": " + String(durationMs) + "ms";
+    if (typeof data !== "undefined") {
+      console.log(msg, data);
+    } else {
+      console.log(msg);
+    }
   },
 
   context(ctx: string, message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[${ctx}]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[" + ctx + "]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   component(name: string, message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[C:${name}]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[C:" + name + "]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   hook(name: string, message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[H:${name}]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[H:" + name + "]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   api(endpoint: string, message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[API:${endpoint}]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[API:" + endpoint + "]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   criticalError(message: string, err?: unknown): void {
     if (!canError()) return;
-    const head = `CRITICAL ${message}`;
-    typeof err !== "undefined" ? console.error(head, err) : console.error(head);
+    const head = "CRITICAL " + message;
+    if (typeof err !== "undefined") {
+      console.error(head, err);
+    } else {
+      console.error(head);
+    }
   },
 
   payment(stage: string, message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[PAY:${stage}]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[PAY:" + stage + "]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   orderVerification(message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[ORDER-VERIFY]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[ORDER-VERIFY]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   accessCheck(message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[ACCESS-CHECK]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[ACCESS-CHECK]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   linking(message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[LINKING]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[LINKING]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   cache(op: string, message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[CACHE:${op}]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[CACHE:" + op + "]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 
   flow(step: number, stage: string, message: string, data?: unknown): void {
     if (!canAny()) return;
-    const head = `[FLOW ${String(step)}:${stage}]`;
-    typeof data !== "undefined" ? console.log(head, message, data) : console.log(head, message);
+    const head = "[FLOW " + String(step) + ":" + stage + "]";
+    if (typeof data !== "undefined") {
+      console.log(head, message, data);
+    } else {
+      console.log(head, message);
+    }
   },
 };
 

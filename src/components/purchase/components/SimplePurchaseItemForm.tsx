@@ -27,13 +27,6 @@ interface FormData {
   // input utama
   kuantitas: string;            // Total yang dibeli (unit dasar bahan baku)
   totalBayar: string;           // Total bayar (untuk hitung harga satuan otomatis)
-
-  // optional: detail kemasan (nota)
-  jumlahKemasan?: string;
-  isiPerKemasan?: string;
-  satuanKemasan?: string;
-  hargaTotalBeliKemasan?: string; // total bayar dari nota (kalau diisi, override totalBayar)
-
   keterangan: string;
 }
 
@@ -45,10 +38,6 @@ export interface PurchaseItemPayload {
   kuantitas: number;
   hargaSatuan: number;
   keterangan: string;
-  jumlahKemasan?: number;
-  isiPerKemasan?: number;
-  satuanKemasan?: string;
-  hargaTotalBeliKemasan?: number;
 }
 
 interface SimplePurchaseItemFormProps {
@@ -123,10 +112,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCance
     satuan: '',
     kuantitas: '',
     totalBayar: '',
-    jumlahKemasan: '',
-    isiPerKemasan: '',
-    satuanKemasan: '',
-    hargaTotalBeliKemasan: '',
     keterangan: '',
   });
 
@@ -147,28 +132,15 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCance
   // 1) Kalau packaging valid → harga dari nota / total isi
   // 2) Kalau user isi Total yang Dibeli + Total Bayar → totalBayar / kuantitas
   const computedUnitPrice = useMemo(() => {
-    if (qtyFromPackaging > 0 && totalPayFromPackaging > 0) {
-      return Math.round((totalPayFromPackaging / qtyFromPackaging) * 100) / 100;
-    }
     const qty = toNumber(formData.kuantitas);
     const pay = toNumber(formData.totalBayar);
     if (qty > 0 && pay > 0) {
       return Math.round((pay / qty) * 100) / 100;
     }
     return 0;
-  }, [qtyFromPackaging, totalPayFromPackaging, formData.kuantitas, formData.totalBayar]);
+  }, [formData.kuantitas, formData.totalBayar]);
 
-  // Total qty yang dipakai untuk ringkasan
-  const effectiveQty = useMemo(() => {
-    if (qtyFromPackaging > 0) return qtyFromPackaging;
-    return toNumber(formData.kuantitas);
-  }, [qtyFromPackaging, formData.kuantitas]);
-
-  // Total bayar yang dipakai untuk ringkasan
-  const effectivePay = useMemo(() => {
-    if (totalPayFromPackaging > 0) return totalPayFromPackaging;
-    return toNumber(formData.totalBayar);
-  }, [totalPayFromPackaging, formData.totalBayar]);
+  const effectiveQty = useMemo(() => toNumber(formData.kuantitas), [formData.kuantitas]);
 
   const subtotal = useMemo(() => effectiveQty * computedUnitPrice, [effectiveQty, computedUnitPrice]);
 
@@ -177,20 +149,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCance
   const handleNumericChange = useCallback((field: keyof FormData, value: string) => {
     setFormData((prev) => (prev[field] === value ? prev : { ...prev, [field]: value }));
   }, []);
-
-  // Kalau packaging valid, sync nilai utama secara halus (tanpa bikin user bingung)
-  useEffect(() => {
-    if (qtyFromPackaging > 0) {
-      setFormData((prev) =>
-        prev.kuantitas === String(qtyFromPackaging) ? prev : { ...prev, kuantitas: String(qtyFromPackaging) }
-      );
-    }
-    if (totalPayFromPackaging > 0) {
-      setFormData((prev) =>
-        prev.totalBayar === String(totalPayFromPackaging) ? prev : { ...prev, totalBayar: String(totalPayFromPackaging) }
-      );
-    }
-  }, [qtyFromPackaging, totalPayFromPackaging]);
 
   // Debug mount/unmount
   useEffect(() => {
@@ -212,13 +170,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCance
       kuantitas: effectiveQty,
       hargaSatuan: computedUnitPrice,
       keterangan: formData.keterangan,
-      jumlahKemasan:
-        formData.jumlahKemasan === '' ? undefined : toNumber(formData.jumlahKemasan),
-      isiPerKemasan:
-        formData.isiPerKemasan === '' ? undefined : toNumber(formData.isiPerKemasan),
-      hargaTotalBeliKemasan:
-        formData.hargaTotalBeliKemasan === '' ? undefined : toNumber(formData.hargaTotalBeliKemasan),
-      satuanKemasan: formData.satuanKemasan?.trim() || undefined,
     });
   };
 
@@ -231,9 +182,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCance
   // refs
   const qtyRef = useRef<HTMLInputElement>(null);
   const payRef = useRef<HTMLInputElement>(null);
-  const packQtyRef = useRef<HTMLInputElement>(null);
-  const perPackRef = useRef<HTMLInputElement>(null);
-  const totalNotaRef = useRef<HTMLInputElement>(null);
 
   return (
     <Card className="border-dashed border-orange-200 bg-orange-50/30 backdrop-blur-sm">
@@ -244,15 +192,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCance
               <Plus className="h-4 w-4 text-orange-600" />
             </div>
             <span className="text-lg">Tambah Item Baru</span>
-            <Badge
-              variant="outline"
-              className={
-                qtyFromPackaging > 0 && totalPayFromPackaging > 0
-                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                  : 'bg-blue-100 text-blue-700 border-blue-200'
-              }
-            >
-              {qtyFromPackaging > 0 && totalPayFromPackaging > 0 ? 'Akurat 100%' : 'Otomatis dihitung'}
+            <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
+              Otomatis dihitung
             </Badge>
           </CardTitle>
           <Button
@@ -571,7 +512,6 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCance
             </div>
           </div>
         </div>
-
         {/* Keterangan */}
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">Keterangan</Label>

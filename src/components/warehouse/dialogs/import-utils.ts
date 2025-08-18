@@ -1,0 +1,154 @@
+import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
+
+export interface BahanBakuImport {
+  nama: string;
+  kategori: string;
+  supplier: string;
+  satuan: string;
+  expiry?: string;
+  stok: number;
+  minimum: number;
+  jumlahBeliKemasan: number;
+  isiPerKemasan: number;
+  satuanKemasan: string;
+  hargaTotalBeliKemasan: number;
+}
+
+// Mapping of possible header names to our standard fields
+export const headerMap: Record<string, keyof BahanBakuImport> = {
+  // Name variations
+  'nama_bahan_baku': 'nama',
+  'nama bahan baku': 'nama',
+  'nama': 'nama',
+  'name': 'nama',
+  'item_name': 'nama',
+
+  // Category variations
+  'kategori': 'kategori',
+  'category': 'kategori',
+  'jenis': 'kategori',
+
+  // Supplier variations
+  'supplier': 'supplier',
+  'pemasok': 'supplier',
+  'vendor': 'supplier',
+
+  // Unit variations
+  'satuan': 'satuan',
+  'unit': 'satuan',
+  'uom': 'satuan',
+
+  // Expiry variations
+  'tanggal_kadaluwarsa': 'expiry',
+  'kadaluarsa': 'expiry',
+  'expiry': 'expiry',
+  'expiry_date': 'expiry',
+  'exp_date': 'expiry',
+
+  // Stock variations
+  'stok_saat_ini': 'stok',
+  'stok': 'stok',
+  'stock': 'stok',
+  'current_stock': 'stok',
+  'qty': 'stok',
+  'quantity': 'stok',
+
+  // Minimum stock variations
+  'minimum_stok': 'minimum',
+  'minimum': 'minimum',
+  'min_stock': 'minimum',
+  'min': 'minimum',
+  'reorder_point': 'minimum',
+
+  // Package quantity variations
+  'jumlah_beli_kemasan': 'jumlahBeliKemasan',
+  'qty_kemasan': 'jumlahBeliKemasan',
+  'package_qty': 'jumlahBeliKemasan',
+  'kemasan_qty': 'jumlahBeliKemasan',
+
+  // Package content variations
+  'isi_per_kemasan': 'isiPerKemasan',
+  'content_per_package': 'isiPerKemasan',
+  'package_content': 'isiPerKemasan',
+  'isi_kemasan': 'isiPerKemasan',
+
+  // Package unit variations
+  'satuan_kemasan': 'satuanKemasan',
+  'kemasan': 'satuanKemasan',
+  'package_unit': 'satuanKemasan',
+  'pack_unit': 'satuanKemasan',
+
+  // Total price variations
+  'harga_total_beli_kemasan': 'hargaTotalBeliKemasan',
+  'harga_total': 'hargaTotalBeliKemasan',
+  'total_price': 'hargaTotalBeliKemasan',
+  'package_price': 'hargaTotalBeliKemasan',
+  'total_cost': 'hargaTotalBeliKemasan'
+};
+
+export const requiredFields: (keyof BahanBakuImport)[] = [
+  'nama',
+  'kategori',
+  'supplier',
+  'satuan',
+  'stok',
+  'minimum',
+  'jumlahBeliKemasan',
+  'isiPerKemasan',
+  'satuanKemasan',
+  'hargaTotalBeliKemasan'
+];
+
+export const validate = (data: any): string[] => {
+  const errors: string[] = [];
+
+  if (!data.nama?.trim()) errors.push('Nama bahan baku kosong');
+  if (!data.kategori?.trim()) errors.push('Kategori kosong');
+  if (!data.supplier?.trim()) errors.push('Supplier kosong');
+  if (!data.satuan?.trim()) errors.push('Satuan kosong');
+  if (!data.satuanKemasan?.trim()) errors.push('Satuan kemasan kosong');
+
+  if (isNaN(data.stok) || data.stok < 0) {
+    errors.push('Stok tidak valid (harus angka ≥ 0)');
+  }
+  if (isNaN(data.minimum) || data.minimum < 0) {
+    errors.push('Minimum stok tidak valid (harus angka ≥ 0)');
+  }
+  if (isNaN(data.jumlahBeliKemasan) || data.jumlahBeliKemasan <= 0) {
+    errors.push('Jumlah kemasan tidak valid (harus angka > 0)');
+  }
+  if (isNaN(data.isiPerKemasan) || data.isiPerKemasan <= 0) {
+    errors.push('Isi per kemasan tidak valid (harus angka > 0)');
+  }
+  if (isNaN(data.hargaTotalBeliKemasan) || data.hargaTotalBeliKemasan <= 0) {
+    errors.push('Harga total tidak valid (harus angka > 0)');
+  }
+
+  if (data.expiry && data.expiry.trim()) {
+    const expiryDate = new Date(data.expiry);
+    if (isNaN(expiryDate.getTime())) {
+      errors.push('Format tanggal kadaluarsa tidak valid');
+    } else if (expiryDate < new Date()) {
+      errors.push('Tanggal kadaluarsa sudah lewat');
+    }
+  }
+
+  if (data.stok > 0 && data.minimum > 0 && data.stok < data.minimum) {
+    errors.push('Stok saat ini lebih rendah dari minimum (akan muncul alert)');
+  }
+
+  return errors;
+};
+
+export const loadXLSX = async () => {
+  try {
+    const XLSX = await import('xlsx');
+    return XLSX;
+  } catch (error) {
+    logger.error('Failed to load XLSX:', error);
+    toast.error('Gagal memuat library Excel. Silakan refresh halaman.');
+    throw error;
+  }
+};
+

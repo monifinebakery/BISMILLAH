@@ -94,7 +94,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const queryClient = useQueryClient();
 
   const { addActivity } = useActivity();
-  const { addTransaction } = useFinancial();
+  const { addFinancialTransaction, deleteFinancialTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
   const { bahanBaku } = useBahanBaku();
@@ -261,21 +261,37 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
       const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
-      if (prevPurchase && addTransaction) {
+      if (prevPurchase) {
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
-          // Tambahkan transaksi ketika status berubah ke completed
-          addTransaction({
-            type: 'pengeluaran',
+          // Tambahkan transaksi ketika status berubah ke completed (expense)
+          void addFinancialTransaction({
+            type: 'expense',
             amount: fresh.totalNilai,
             description: `Pembelian dari ${getSupplierName(fresh.supplier)}`,
-            category: 'pembelian',
+            category: 'Pembelian Bahan Baku',
             date: new Date(),
-            related_id: fresh.id,
-            related_type: 'purchase'
+            relatedId: fresh.id,
           });
         } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
-          // Hapus transaksi ketika status berubah dari completed
-          // Note: Ini memerlukan implementasi untuk menghapus transaksi berdasarkan related_id
+          // Hapus transaksi ketika status berubah dari completed (berdasarkan related_id)
+          // Cari transaksi terkait lalu hapus
+          (async () => {
+            try {
+              const { data, error } = await supabase
+                .from('financial_transactions')
+                .select('id')
+                .eq('user_id', user!.id)
+                .eq('related_id', fresh.id)
+                .eq('type', 'expense');
+              if (error) throw error;
+              const ids = (data || []).map((r: any) => r.id);
+              for (const id of ids) {
+                await deleteFinancialTransaction(id);
+              }
+            } catch (e) {
+              logger.warn('Gagal membersihkan transaksi keuangan saat revert purchase:', e);
+            }
+          })();
         }
       }
     },

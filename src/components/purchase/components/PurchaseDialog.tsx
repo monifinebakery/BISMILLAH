@@ -131,29 +131,6 @@ const SafeNumericInput = React.forwardRef<
   );
 });
 
-// ✅ OPTIMIZED: Move outside component to prevent recreation  
-const SafeNumericInput = React.forwardRef<
-  HTMLInputElement, 
-  React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
->(({ className = '', value, onChange, ...props }, ref) => {
-  const baseClasses = "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:cursor-not-allowed disabled:opacity-50";
-  
-  return (
-    <input
-      ref={ref}
-      type="text"
-      inputMode="decimal"
-      value={String(value ?? '')}
-      onChange={onChange}
-      className={`${baseClasses} ${className}`}
-      autoComplete="off"
-      autoCorrect="off"
-      spellCheck="false"
-      {...props}
-    />
-  );
-});
-
 // ✅ ENHANCED: Updated props interface
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isOpen,

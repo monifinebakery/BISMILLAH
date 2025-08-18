@@ -108,6 +108,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ✅ HELPER: Invalidate warehouse data after purchase changes
   const invalidateWarehouseData = useCallback(() => {
+    console.log('🔄 Invalidating warehouse data');
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
@@ -241,15 +242,19 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // SET STATUS (optimistic)
   const statusMutation = useMutation({
-    mutationFn: ({ id, newStatus }: { id: string; newStatus: PurchaseStatus }) =>
-      apiSetStatus(id, user!.id, newStatus),
+    mutationFn: ({ id, newStatus }: { id: string; newStatus: PurchaseStatus }) => {
+      console.log('🔄 Status mutation called with:', { id, newStatus });
+      return apiSetStatus(id, user!.id, newStatus);
+    },
     onMutate: async ({ id, newStatus }) => {
+      console.log('🔄 Status mutation onMutate with:', { id, newStatus });
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
       setCacheList((old) => old.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
       return { prev, id, newStatus };
     },
     onSuccess: (fresh, _vars, ctx) => {
+      console.log('✅ Status mutation onSuccess with:', fresh);
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
       // ✅ INVALIDATE WAREHOUSE: Apply/rollback WAC & stok terjadi di trigger DB

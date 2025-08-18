@@ -170,7 +170,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   });
 
   // Item management
-  const [showAddItem, setShowAddItem] = useState(false);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   
   // New item form state
@@ -251,7 +250,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   // ✅ Reset form states when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
-      setShowAddItem(false);
       handleCancelEditItem();
       resetNewItemForm();
     }
@@ -273,11 +271,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const handleResetForm = useCallback(() => {
     if (confirm('Reset semua perubahan ke kondisi awal?')) {
       handleReset();
-      setShowAddItem(false);
       if (handleCancelEditItem) handleCancelEditItem();
+      resetNewItemForm();
       toast.info('Form direset ke kondisi awal');
     }
-  }, [handleReset, setShowAddItem, handleCancelEditItem]);
+  }, [handleReset, handleCancelEditItem, resetNewItemForm]);
 
   const onSubmit = useCallback(async () => {
     if (formData.items.length === 0) {
@@ -304,10 +302,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     };
 
     addItem(purchaseItem);
-    setShowAddItem(false);
     resetNewItemForm();
     toast.success(`${newItemFormData.nama} berhasil ditambahkan`);
-  }, [addItem, setShowAddItem, resetNewItemForm, newItemFormData, effectiveQty, computedUnitPrice]);
+  }, [addItem, resetNewItemForm, newItemFormData, effectiveQty, computedUnitPrice]);
 
   // ✅ Check if purchase can be edited (not completed)
   const canEdit = !purchase || purchase.status !== 'completed';
@@ -489,55 +486,29 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     </Badge>
                   )}
                 </CardTitle>
-                {canEdit && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddItem(true)}
-                    disabled={showAddItem}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Tambah Item
-                  </Button>
-                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Add New Item Form */}
-              {canEdit && showAddItem && (
+              {/* Add New Item Form - Always visible */}
+              {canEdit && (
                 <Card className="border-dashed border-orange-200 bg-orange-50/30 backdrop-blur-sm">
                   <CardHeader className="pb-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <CardTitle className="flex items-center gap-2 text-gray-900">
-                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                          <Plus className="h-4 w-4 text-orange-600" />
-                        </div>
-                        <span className="text-lg">Tambah Item Baru</span>
-                        <Badge
-                          variant="outline"
-                          className={
-                            effectiveQty > 0 && computedUnitPrice > 0
-                              ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                              : 'bg-blue-100 text-blue-700 border-blue-200'
-                          }
-                        >
-                          {effectiveQty > 0 && computedUnitPrice > 0 ? 'Akurat 100%' : 'Otomatis dihitung'}
-                        </Badge>
-                      </CardTitle>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowAddItem(false);
-                          resetNewItemForm();
-                        }}
-                        className="self-start sm:self-center hover:bg-white/60"
+                    <CardTitle className="flex items-center gap-2 text-gray-900">
+                      <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <Plus className="h-4 w-4 text-orange-600" />
+                      </div>
+                      <span className="text-lg">Tambah Item Baru</span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          effectiveQty > 0 && computedUnitPrice > 0
+                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                            : 'bg-blue-100 text-blue-700 border-blue-200'
+                        }
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                        {effectiveQty > 0 && computedUnitPrice > 0 ? 'Akurat 100%' : 'Otomatis dihitung'}
+                      </Badge>
+                    </CardTitle>
                   </CardHeader>
 
                   <CardContent className="space-y-6">

@@ -114,7 +114,9 @@ const PromoCard = ({
   };
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 ${className}`}>
+<div
+  className={`bg-white rounded-xl border border-gray-200 transition-colors duration-200 ${className}`}
+>
       {/* Card Header */}
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
@@ -152,7 +154,7 @@ const PromoCard = ({
                 {/* Dropdown Menu */}
                 {/* ✅ Gunakan state isDropdownOpen untuk kontrol visibilitas */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg border border-gray-200 z-10">
                     <div className="py-1">
                       {onView && (
                         <button

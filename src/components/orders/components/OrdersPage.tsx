@@ -521,7 +521,7 @@ const OrdersPage: React.FC = () => {
             <Button
               onClick={debugStatusUpdate}
               variant="outline"
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition-all duration-200"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-all duration-200"
             >
               🐛 Debug Status
             </Button>
@@ -533,7 +533,7 @@ const OrdersPage: React.FC = () => {
               dialogHandlers.openTemplateManager();
             }}
             variant="outline"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg shadow-md hover:bg-blue-50 transition-all duration-200 hover:shadow-lg border-blue-300"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300"
           >
             <MessageSquare className="h-5 w-5" />
             Kelola Template WhatsApp
@@ -544,7 +544,7 @@ const OrdersPage: React.FC = () => {
               logger.component('OrdersPage', 'New order button clicked from header');
               businessHandlers.newOrder();
             }}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200 hover:shadow-lg"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200"
           >
             <Plus className="h-5 w-5" />
             Pesanan Baru

@@ -157,7 +157,7 @@ const CriticalStock: React.FC<Props> = ({ items, isLoading }) => {
   const showSummary = !isLoading && items.length > 0;
 
   return (
-    <Card className="bg-white border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
+    <Card className="bg-white border">
       {/* ⚠️ Header */}
       <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 border-b border-gray-100 p-4">
         <CardTitle className="flex items-center gap-2 text-red-600 text-lg">

@@ -299,7 +299,7 @@ const PromoList = () => {
   if (error && promos.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full shadow-xl">
+        <Card className="max-w-md w-full">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
@@ -365,7 +365,7 @@ const PromoList = () => {
         </div>
 
         {/* Main Content Card */}
-        <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+        <Card className="border-0 bg-white/90 backdrop-blur-sm">
           <CardContent className="p-0">
             {/* Filters & Search */}
             <div className="p-6 border-b border-gray-200">

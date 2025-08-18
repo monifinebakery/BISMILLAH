@@ -73,13 +73,16 @@ export function getEffectiveUnitPrice(item: any): number {
 }
 
 /**
- * Ambil pemakaian bahan dari view (ikut kolom harga_efektif / hpp_value)
+ * Ambil pemakaian bahan dari tabel (ikut kolom harga_efektif / hpp_value) untuk user saat ini
  */
 export async function fetchPemakaianByPeriode(start: string, end: string): Promise<any[]> {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
     const { data, error } = await supabase
-      .from('pemakaian_bahan_view')
+      .from('pemakaian_bahan')
       .select('bahan_baku_id, qty_base, tanggal, harga_efektif, hpp_value')
+      .eq('user_id', user.id)
       .gte('tanggal', start)
       .lte('tanggal', end);
     if (error) throw error;
@@ -88,6 +91,56 @@ export async function fetchPemakaianByPeriode(start: string, end: string): Promi
     logger.error('Failed to fetch pemakaian bahan:', e);
     return [];
   }
+}
+
+/**
+ * Ambil agregat harian HPP dari MV jika tersedia, fallback ke grouping tabel
+ * Return Map<YYYY-MM-DD, total_hpp>
+ */
+export async function fetchPemakaianDailyAggregates(start: string, end: string): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return result;
+
+    // Coba materialized view terlebih dahulu
+    const { data: mvData, error: mvErr } = await supabase
+      .from('pemakaian_bahan_daily_mv')
+      .select('date, total_hpp')
+      .eq('user_id', userId)
+      .gte('date', start)
+      .lte('date', end);
+
+    if (!mvErr && Array.isArray(mvData)) {
+      mvData.forEach((row: any) => {
+        const day = new Date(row.date).toISOString().slice(0, 10);
+        result.set(day, Number(row.total_hpp) || 0);
+      });
+      return result;
+    }
+  } catch (e) {
+    // fall through to table fallback
+    logger.warn('MV daily aggregates unavailable, using table fallback');
+  }
+
+  // Fallback: query tabel dan group di sisi aplikasi
+  try {
+    const pemakaian = await fetchPemakaianByPeriode(start, end);
+    pemakaian.forEach((row: any) => {
+      const day = (row.tanggal ? new Date(row.tanggal) : new Date()).toISOString().slice(0, 10);
+      const qty = Number(row.qty_base || 0);
+      const val = typeof row.hpp_value === 'number'
+        ? Number(row.hpp_value)
+        : typeof row.harga_efektif === 'number'
+          ? qty * Number(row.harga_efektif)
+          : 0;
+      result.set(day, (result.get(day) || 0) + val);
+    });
+  } catch (e) {
+    logger.error('Failed to build daily aggregates from table:', e);
+  }
+
+  return result;
 }
 
 /**
@@ -103,6 +156,82 @@ export function calculatePemakaianValue(p: any, bahanMap: Record<string, any>): 
 }
 
 // ===== HELPER FUNCTIONS (PISAHKAN DARI OBJECT LITERAL) =====
+
+/**
+ * Calculate daily profit analysis for a date range (inclusive)
+ */
+export async function calculateProfitAnalysisDaily(
+  from: Date,
+  to: Date
+): Promise<ProfitApiResponse<RealTimeProfitCalculation[]>> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return { data: [], success: false, error: 'Not authenticated' };
+
+    const fromISO = new Date(from).toISOString();
+    const toISO = new Date(to).toISOString();
+
+    // Fetch financial transactions in range
+    const { data: trx, error: trxErr } = await supabase
+      .from('financial_transactions')
+      .select('id, user_id, type, category, amount, description, date')
+      .eq('user_id', userId)
+      .gte('date', fromISO)
+      .lte('date', toISO);
+    if (trxErr) throw trxErr;
+
+    // Group income by day
+    const incomeByDay = new Map<string, number>();
+    (trx || [])
+      .filter((t: any) => t.type === 'income')
+      .forEach((t: any) => {
+        if (!t.date) return;
+        const d = new Date(t.date).toISOString().slice(0, 10);
+        incomeByDay.set(d, (incomeByDay.get(d) || 0) + (Number(t.amount) || 0));
+      });
+
+// WAC-based COGS from pemakaian (prefer MV daily aggregates)
+    const startYMD = new Date(fromISO).toISOString().slice(0, 10);
+    const endYMD = new Date(toISO).toISOString().slice(0, 10);
+    const cogsByDay = await fetchPemakaianDailyAggregates(startYMD, endYMD);
+
+    // OpEx daily pro-rata (sum aktif costs per month / daysInMonth for each day)
+    const { data: costs, error: costErr } = await supabase
+      .from('operational_costs')
+      .select('jumlah_per_bulan, jenis, status');
+    if (costErr) throw costErr;
+    const activeMonthly = (costs || []).filter((c: any) => c.status === 'aktif').reduce((s: number, c: any) => s + Number(c.jumlah_per_bulan || 0), 0);
+
+    // Build day list
+    const days: string[] = [];
+    const cur = new Date(startYMD);
+    const end = new Date(endYMD);
+    while (cur <= end) {
+      days.push(cur.toISOString().slice(0, 10));
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    const results: RealTimeProfitCalculation[] = days.map((d) => {
+      const revenue = incomeByDay.get(d) || 0;
+      const cogs = cogsByDay.get(d) || 0;
+      const dateObj = new Date(d + 'T00:00:00Z');
+      const daysInMonth = new Date(dateObj.getUTCFullYear(), dateObj.getUTCMonth() + 1, 0).getUTCDate();
+      const opex = daysInMonth > 0 ? activeMonthly / daysInMonth : 0;
+      return {
+        period: d, // use date as period for daily mode
+        revenue_data: { total: revenue, transactions: [] },
+        cogs_data: { total: Math.round(cogs), materials: [] },
+        opex_data: { total: Math.round(opex), costs: [] },
+        calculated_at: new Date().toISOString(),
+      };
+    });
+
+    return { data: results, success: true };
+  } catch (e: any) {
+    logger.error('calculateProfitAnalysisDaily error:', e);
+    return { data: [], success: false, error: e?.message || 'Failed to calculate daily profit' };
+  }
+}
 
 /**
  * 🍽️ Parse F&B revenue transactions from JSONB with category mapping

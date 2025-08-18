@@ -554,7 +554,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
           type="button"
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 shadow-sm disabled:bg-gray-300 disabled:text-gray-500"
+          className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
         >
           <Plus className="h-4 w-4 mr-2" />
           Tambah ke Daftar

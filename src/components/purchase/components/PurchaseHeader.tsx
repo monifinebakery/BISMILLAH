@@ -23,7 +23,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   className = '',
 }) => {
   return (
-    cCard className={`bg-gradient-to-r from-orange-500 to-red-500 text-white border ${className}`}e
+    <Card className={`bg-gradient-to-r from-orange-500 to-red-500 text-white border ${className}`}>
       <div className="p-6">
         {/* Main header content */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
@@ -46,7 +46,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
             {/* Hanya 1 tombol: Tambah dari Nota */}
             <Button
-              onClick={() => onAddPurchase('packaging')}
+              onClick={() => onAddPurchase('packaging')} // Pastikan tipe 'packaging' sesuai dengan yang diharapkan
               className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-100 transition-colors duration-200"
             >
               <FileText className="h-5 w-5" />

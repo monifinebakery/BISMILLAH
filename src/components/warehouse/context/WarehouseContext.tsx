@@ -73,6 +73,7 @@ interface WarehouseProviderProps {
 const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]> => {
   try {
     logger.debug('🔄 fetchWarehouseData called for userId:', userId);
+    console.log('🔄 fetchWarehouseData called for userId:', userId);
     
     const service = await warehouseApi.createService('crud', {
       userId,
@@ -81,6 +82,7 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     
     const items = await service.fetchBahanBaku();
     logger.debug('📊 fetchWarehouseData received items:', items.length);
+    console.log('📊 fetchWarehouseData received items:', items.length);
     
     // Transform to frontend format and ensure proper types
     const transformedItems = items.map((item: any) => ({
@@ -93,9 +95,11 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     }));
     
     logger.debug('✅ fetchWarehouseData transformed items:', transformedItems.length);
+    console.log('✅ fetchWarehouseData transformed items:', transformedItems.length);
     return transformedItems;
   } catch (error) {
     logger.error('❌ fetchWarehouseData failed:', error);
+    console.error('❌ fetchWarehouseData failed:', error);
     throw error;
   }
 };
@@ -222,7 +226,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     dataUpdatedAt,
   } = useQuery({
     queryKey: warehouseQueryKeys.list(),
-    queryFn: () => fetchWarehouseData(user?.id),
+    queryFn: () => {
+      console.log('🔄 Warehouse queryFn called');
+      return fetchWarehouseData(user?.id);
+    },
     enabled: !!user,
     staleTime: 0, // Always consider data stale so it refetches when invalidated
     // ✅ FIXED: Simplified retry logic for better error handling
@@ -237,6 +244,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   useEffect(() => {
     if (!user?.id) return;
 
+    console.log('🔄 Setting up real-time subscription for user:', user.id);
+
     const channel = supabase
       .channel('warehouse-changes')
       .on(
@@ -248,6 +257,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
+          console.log('🔄 Warehouse table changed:', payload);
           // Invalidate and refetch warehouse data when changes occur
           queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         }
@@ -261,13 +271,17 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
+          console.log('🔄 Purchase updated:', payload);
           // Invalidate warehouse data when purchases are updated (status changes)
           queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('🔄 Real-time subscription status:', status);
+      });
 
     return () => {
+      console.log('🔄 Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [user?.id, queryClient]);

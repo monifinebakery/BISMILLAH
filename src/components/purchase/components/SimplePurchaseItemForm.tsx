@@ -13,22 +13,14 @@ import {
   X,
   CheckCircle2,
   Package as PackageIcon,
-  Receipt,
   Info,
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-interface BahanBaku {
-  id: string;
-  nama: string;
-  satuan: string; // contoh: pcs, buah, gram, ml
-}
-
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
-  bahanBakuId: string;
   nama: string;
   satuan: string;
 
@@ -60,7 +52,6 @@ export interface PurchaseItemPayload {
 }
 
 interface SimplePurchaseItemFormProps {
-  bahanBaku: BahanBaku[];
   onCancel: () => void;
   onAdd: (formData: PurchaseItemPayload) => void;
 }
@@ -124,15 +115,10 @@ const SafeNumericInput = React.forwardRef<
 });
 
 const PACK_UNITS = ['pak', 'dus', 'karung', 'botol'];
-const PCS_UNITS = ['pcs', 'buah', 'biji', 'butir', 'lembar'];
+const BASE_UNITS = ['gram', 'kilogram', 'miligram', 'liter', 'milliliter', 'pcs', 'buah', 'biji', 'butir', 'lembar'];
 
-const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
-  bahanBaku,
-  onCancel,
-  onAdd,
-}) => {
+const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({ onCancel, onAdd }) => {
   const [formData, setFormData] = useState<FormData>({
-    bahanBakuId: '',
     nama: '',
     satuan: '',
     kuantitas: '',
@@ -186,17 +172,7 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   const subtotal = useMemo(() => effectiveQty * computedUnitPrice, [effectiveQty, computedUnitPrice]);
 
-  // Select bahan baku → set nama, satuan, reset packaging toggle
-  const handleBahanBakuSelect = (id: string) => {
-    const selected = bahanBaku.find((b) => b.id === id);
-    if (!selected) return;
-    setFormData((prev) => ({
-      ...prev,
-      bahanBakuId: id,
-      nama: selected.nama,
-      satuan: selected.satuan,
-    }));
-  };
+  // No existing material selection; user inputs name and unit directly
 
   const handleNumericChange = useCallback((field: keyof FormData, value: string) => {
     setFormData((prev) => (prev[field] === value ? prev : { ...prev, [field]: value }));
@@ -224,12 +200,13 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
 
   // Submit
   const handleSubmit = () => {
-    if (!formData.bahanBakuId) return toast.error('Pilih bahan baku');
+    if (!formData.nama.trim()) return toast.error('Nama bahan baku harus diisi');
+    if (!formData.satuan) return toast.error('Satuan harus dipilih');
     if (effectiveQty <= 0) return toast.error('Total yang dibeli harus > 0');
     if (computedUnitPrice <= 0) return toast.error('Tidak bisa menghitung harga per unit');
 
     onAdd({
-      bahanBakuId: formData.bahanBakuId,
+      bahanBakuId: crypto.randomUUID(),
       nama: formData.nama,
       satuan: formData.satuan,
       kuantitas: effectiveQty,
@@ -246,7 +223,8 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
   };
 
   const canSubmit =
-    !!formData.bahanBakuId &&
+    formData.nama.trim() !== '' &&
+    formData.satuan.trim() !== '' &&
     effectiveQty > 0 &&
     computedUnitPrice > 0;
 
@@ -290,22 +268,36 @@ const SimplePurchaseItemForm: React.FC<SimplePurchaseItemFormProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Pilih Bahan Baku */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-gray-700">Bahan Baku *</Label>
-          <Select value={formData.bahanBakuId} onValueChange={handleBahanBakuSelect}>
-            <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-              <SelectValue placeholder="Pilih bahan baku" className="text-gray-500" />
-            </SelectTrigger>
-            <SelectContent>
-              {bahanBaku.map((bahan) => (
-                <SelectItem key={bahan.id} value={bahan.id} className="focus:bg-orange-50">
-                  <span className="font-medium">{bahan.nama}</span>
-                  <span className="text-gray-500 ml-2">({bahan.satuan})</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Informasi bahan baku */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
+            <input
+              type="text"
+              value={formData.nama}
+              onChange={(e) => setFormData((prev) => ({ ...prev, nama: e.target.value }))}
+              placeholder="Contoh: Tepung Terigu"
+              className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
+            <Select
+              value={formData.satuan}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, satuan: value }))}
+            >
+              <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+                <SelectValue placeholder="Pilih satuan" />
+              </SelectTrigger>
+              <SelectContent>
+                {BASE_UNITS.map((u) => (
+                  <SelectItem key={u} value={u} className="focus:bg-orange-50">
+                    {u}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Input utama: Total yang dibeli + Total bayar */}

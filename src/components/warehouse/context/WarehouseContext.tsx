@@ -1,6 +1,6 @@
 // ===== FIXED WarehouseContext.tsx dengan proper mutation handling =====
 // src/components/warehouse/WarehouseContext.tsx
-import React, { createContext, useContext, useRef } from 'react';
+import React, { createContext, useContext, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -13,6 +13,7 @@ import { createNotificationHelper } from '@/utils/notificationHelpers';
 
 // Services
 import { warehouseApi } from '../services/warehouseApi';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types - ✅ FIXED: Remove unused BahanBaku import
 import type { BahanBakuFrontend } from '../types';
@@ -226,6 +227,32 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       return failureCount < 1; // Only 1 retry for other errors
     },
   });
+
+  // ✅ NEW: Real-time subscription for warehouse updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('warehouse-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bahan_baku',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          // Invalidate and refetch warehouse data when changes occur
+          queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   // ✅ FIXED: Mutations with proper error handling and return values
   const createMutation = useMutation({

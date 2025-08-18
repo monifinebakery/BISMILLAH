@@ -380,7 +380,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             mode={appState.dialogs.purchase.mode}
             purchase={appState.dialogs.purchase.editing}
             suppliers={suppliers}
-            bahanBaku={bahanBaku}
             onClose={dialogActions.purchase.close}
           />
         )}

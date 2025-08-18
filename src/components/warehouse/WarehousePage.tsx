@@ -1,5 +1,6 @@
 // src/components/warehouse/WarehousePage.tsx
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -338,6 +339,7 @@ const useWarehouseData = () => {
 const WarehousePageContent: React.FC = () => {
   const pageId = useRef(`warehouse-${Date.now()}`);
   const isMountedRef = useRef(true);
+  const navigate = useNavigate();
   
   // ✅ TAMBAH: Use warehouse data hook
   const warehouseData = useWarehouseData();
@@ -381,6 +383,14 @@ const WarehousePageContent: React.FC = () => {
       logger.debug(`[${pageId.current}] 🧹 WarehousePage unmounted`);
     };
   }, []);
+
+  // Redirect to purchase page if no warehouse items
+  useEffect(() => {
+    if (!warehouseData.loading && warehouseData.bahanBaku.length === 0) {
+      toast.info('Silakan tambahkan pembelian bahan baku terlebih dahulu');
+      navigate('/pembelian');
+    }
+  }, [warehouseData.loading, warehouseData.bahanBaku.length, navigate]);
 
   // ✅ UPDATE: Enhanced handlers dengan mutations
   const enhancedHandlers = {
@@ -498,13 +508,13 @@ const WarehousePageContent: React.FC = () => {
             selectedItems={core.selection?.selectedItems || new Set()}
             onToggleSelection={core.selection?.toggle}
             onSelectAllCurrent={core.selection?.selectPage}
-            isSelected={core.selection?.isSelected}
-            allCurrentSelected={core.selection?.isPageSelected || false}
-            someCurrentSelected={core.selection?.isPagePartiallySelected || false}
-            emptyStateAction={() => core.dialogs?.open?.('addItem')}
-            onRefresh={warehouseData.refetch}
-            lastUpdated={warehouseData.lastUpdated}
-          />
+          isSelected={core.selection?.isSelected}
+          allCurrentSelected={core.selection?.isPageSelected || false}
+          someCurrentSelected={core.selection?.isPagePartiallySelected || false}
+          emptyStateAction={() => navigate('/pembelian')}
+          onRefresh={warehouseData.refetch}
+          lastUpdated={warehouseData.lastUpdated}
+        />
 
           {/* Pagination */}
           {(core.filters?.filteredItems?.length || 0) > 0 && (

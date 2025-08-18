@@ -264,10 +264,9 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   // ✅ Early return for empty state
   if (!paginationData.hasData && !searchQuery && statusFilter === 'all') {
     return (
-      <EmptyState 
+      <EmptyState
         onAddPurchase={() => {/* Will be handled by parent */}}
         hasSuppliers={true}
-        hasBahanBaku={true}
       />
     );
   }

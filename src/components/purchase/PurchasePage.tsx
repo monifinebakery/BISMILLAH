@@ -10,13 +10,11 @@ import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
 // ✅ DIRECT CONTEXT: No barrel imports
 import { useSupplier } from '@/contexts/SupplierContext';
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 // ✅ ESSENTIAL COMPONENTS: Direct imports (no barrel)
 import {
   LoadingState,
   EmptyState,
-  DataWarningBanner,
   PurchaseHeader,
 } from './components';
 
@@ -118,7 +116,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // ✅ CONTEXTS: Direct usage
   const purchaseContext = usePurchase();
   const { suppliers } = useSupplier();
-  const { bahanBaku } = useBahanBaku();
 
   // ✅ pakai API dari context langsung
   const {
@@ -137,9 +134,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // ✅ MEMOIZED: Data validation
   const dataStatus = useMemo(() => ({
     missingSuppliers: !suppliers?.length,
-    missingBahanBaku: !bahanBaku?.length,
-    hasMissingData: !suppliers?.length || !bahanBaku?.length
-  }), [suppliers, bahanBaku]);
+    hasMissingData: !suppliers?.length
+  }), [suppliers]);
 
   // ✅ CONSOLIDATED: All dialog actions
   const dialogActions = useMemo(() => ({
@@ -238,17 +234,11 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       }));
       
       // Consolidated warning messages
-      const warnings = [];
-      if (dataStatus.missingSuppliers) warnings.push('supplier');
-      if (dataStatus.missingBahanBaku) warnings.push('bahan baku');
-      
-      const warningMessage = warnings.length === 2 
-        ? 'Tambahkan data supplier dan bahan baku untuk fitur pembelian yang lengkap'
-        : `Tambahkan data ${warnings[0]} untuk ${warnings[0] === 'supplier' ? 'mencatat pembelian dari vendor' : 'mengelola stok yang dibeli'}`;
-      
-      toast.warning(warningMessage);
+        if (dataStatus.missingSuppliers) {
+          toast.warning('Tambahkan data supplier untuk mencatat pembelian dari vendor');
+        }
     }
-  }, [dataStatus.hasMissingData, dataStatus.missingSuppliers, dataStatus.missingBahanBaku, appState.warnings.dataWarning.hasShownToast]);
+  }, [dataStatus.hasMissingData, dataStatus.missingSuppliers, appState.warnings.dataWarning.hasShownToast]);
 
   // ✅ EARLY RETURNS: Optimized error and loading states
   if (purchaseContext.error) {
@@ -287,13 +277,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
       
       {/* Data warning banner */}
-      {appState.warnings.dataWarning.isVisible && dataStatus.hasMissingData && (
-        <DataWarningBanner
-          missingSuppliers={dataStatus.missingSuppliers}
-          missingBahanBaku={dataStatus.missingBahanBaku}
-          onDismiss={dialogActions.warning.dismiss}
-        />
-      )}
+
 
       {/* Header */}
       <PurchaseHeader
@@ -309,7 +293,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         <EmptyState
           onAddPurchase={dialogActions.purchase.openAdd}
           hasSuppliers={!dataStatus.missingSuppliers}
-          hasBahanBaku={!dataStatus.missingBahanBaku}
         />
       ) : (
         <PurchaseTableProvider purchases={purchases} suppliers={suppliers}>

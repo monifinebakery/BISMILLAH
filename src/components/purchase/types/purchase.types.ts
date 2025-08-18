@@ -217,12 +217,6 @@ export interface PurchaseHeaderProps {
   className?: string;
 }
 
-export interface DataWarningBannerProps {
-  missingSuppliers: boolean;
-  missingBahanBaku: boolean;
-  onDismiss: () => void;
-}
-
 // Purchase detail dialog props
 // Status dropdown component props
 export interface StatusDropdownProps {
@@ -301,7 +295,6 @@ export interface LoadingStates {
 export interface EmptyStateProps {
   onAddPurchase: () => void;
   hasSuppliers: boolean;
-  hasBahanBaku: boolean;
   type?: 'no-data' | 'no-results' | 'error';
   title?: string;
   description?: string;

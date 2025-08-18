@@ -137,6 +137,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const handleSaveEditedItem = useCallback((index: number, updatedItem: Partial<PurchaseItem>) => {
     const qty = toNumber(updatedItem.kuantitas);
     const price = toNumber(updatedItem.hargaSatuan);
+
     if (qty <= 0 || price <= 0) {
       toast.error('Kuantitas dan harga satuan harus > 0');
       return;
@@ -439,9 +440,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                           <div className="flex items-start justify-between">
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div>
-                              <div className="font-medium">{item.nama}</div>
-                              {/* ID hidden since item creates new material */}
-                            </div>
+                                <div className="font-medium">{item.nama}</div>
+                                {/* ID hidden since item creates new material */}
+                                {/* ✅ IMPROVED: Display packaging info with proper typing */}
+                                {item.jumlahKemasan && item.jumlahKemasan > 0 && item.isiPerKemasan && item.isiPerKemasan > 0 && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Kemasan: {item.jumlahKemasan} × {item.isiPerKemasan} {item.satuan || 'unit'}
+                                    {item.satuanKemasan ? ` (${item.satuanKemasan})` : ''}
+                                  </div>
+                                )}
+                              </div>
                               <div className="text-right">
                                 <div className="font-medium">{item.kuantitas} {item.satuan}</div>
                                 <div className="text-sm text-gray-600">Kuantitas</div>

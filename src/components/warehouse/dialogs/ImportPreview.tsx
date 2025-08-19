@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import { BahanBakuImport } from './import-utils';
+import type { BahanBakuImport } from '../types';
 
 interface ImportPreviewProps {
   preview: { valid: BahanBakuImport[]; errors: string[] };

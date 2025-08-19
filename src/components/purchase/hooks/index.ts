@@ -41,6 +41,9 @@ export const PURCHASE_HOOKS_ADVANCED = {
   // Table context hook for internal use
   tableContext: () => import('../context/PurchaseTableContext').then(m => ({ usePurchaseTable: m.usePurchaseTable })),
   
+  // Import hook for purchase data
+  import: () => import('./usePurchaseImport').then(m => ({ usePurchaseImport: m.usePurchaseImport })),
+  
   // All types for advanced usage
   types: () => import('../types/purchase.types')
 } as const;

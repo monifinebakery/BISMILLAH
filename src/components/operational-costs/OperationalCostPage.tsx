@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { OperationalCostProvider, useOperationalCost } from './context';
-import { formatCurrency } from './utils/costHelpers';
+import { formatCurrency, formatDate } from './utils/costHelpers';
 import { OperationalCost } from './types';
 import { CostFormDialog } from './components/CostFormDialog';
 
@@ -312,6 +312,7 @@ const OperationalCostContent: React.FC = () => {
                     <th className="text-right py-3 px-2 font-medium text-gray-700">Jumlah/Bulan</th>
                     <th className="text-center py-3 px-2 font-medium text-gray-700">Jenis</th>
                     <th className="text-center py-3 px-2 font-medium text-gray-700">Kategori</th>
+                    <th className="text-center py-3 px-2 font-medium text-gray-700">Terakhir Diperbarui</th>
                     <th className="text-center py-3 px-2 font-medium text-gray-700">Aksi</th>
                   </tr>
                 </thead>
@@ -331,6 +332,7 @@ const OperationalCostContent: React.FC = () => {
                           {cost.cost_category || 'general'}
                         </Badge>
                       </td>
+                      <td className="py-3 px-2 text-center">{formatDate(cost.updated_at)}</td>
                       <td className="py-3 px-2 text-center">
                         <div className="flex justify-center gap-1">
                           <Button
@@ -357,7 +359,7 @@ const OperationalCostContent: React.FC = () => {
                   {/* Empty state */}
                   {state.costs.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-gray-500">
+                      <td colSpan={6} className="py-8 text-center text-gray-500">
                         <div className="space-y-2">
                           <p>Belum ada biaya operasional</p>
                           <Button
@@ -381,6 +383,7 @@ const OperationalCostContent: React.FC = () => {
                     <tr className="border-t-2 border-gray-300 font-semibold bg-gray-50">
                       <td className="py-3 px-2">Total:</td>
                       <td className="py-3 px-2 text-right text-lg">{formatCurrency(totalMonthlyCosts)}</td>
+                      <td className="py-3 px-2"></td>
                       <td className="py-3 px-2"></td>
                       <td className="py-3 px-2"></td>
                       <td className="py-3 px-2"></td>

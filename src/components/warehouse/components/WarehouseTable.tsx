@@ -274,6 +274,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             >
               <div className="flex items-center gap-1">Kadaluarsa {getSortIcon('expiry')}</div>
             </th>
+            <th
+              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer"
+              onClick={() => onSort('updatedAt')}
+            >
+              <div className="flex items-center gap-1">Terakhir Diperbarui {getSortIcon('updatedAt')}</div>
+            </th>
             {!isSelectionMode && <th className="w-24" />}
           </tr>
         </thead>

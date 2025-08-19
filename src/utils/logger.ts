@@ -80,6 +80,15 @@ function getShouldLog(): boolean {
 }
 const SHOULD_LOG = getShouldLog();
 
+// ---------- PERFORMANCE OPTIMIZATION ----------
+// Cache the console methods to avoid repeated property access
+const cachedConsole = {
+  log: console.log.bind(console),
+  debug: console.debug.bind(console),
+  warn: console.warn.bind(console),
+  error: console.error.bind(console),
+};
+
 // ---------- GUARDS ----------
 const hasConsole = typeof console !== "undefined";
 function canInfo()  { return hasConsole && SHOULD_LOG && allowInfoLike; }
@@ -99,15 +108,15 @@ export const logger = {
       netlifyContext: NETLIFY_CONTEXT || null,
       host: typeof window !== "undefined" ? window.location.hostname : null,
     };
-    console.log("Logger test", payload);
+    cachedConsole.log("Logger test", payload);
   },
 
   info(message: string, data?: unknown): void {
     if (!canInfo()) return;
     if (typeof data !== "undefined") {
-      console.log(message, data);
+      cachedConsole.log(message, data);
     } else {
-      console.log(message);
+      cachedConsole.log(message);
     }
   },
 
@@ -118,36 +127,36 @@ export const logger = {
       hasConsole;
     if (!canDebug) return;
     if (typeof data !== "undefined") {
-      console.debug(message, data);
+      cachedConsole.debug(message, data);
     } else {
-      console.debug(message);
+      cachedConsole.debug(message);
     }
   },
 
   warn(message: string, data?: unknown): void {
     if (!canWarn()) return;
     if (typeof data !== "undefined") {
-      console.warn(message, data);
+      cachedConsole.warn(message, data);
     } else {
-      console.warn(message);
+      cachedConsole.warn(message);
     }
   },
 
   error(message: string, err?: unknown): void {
     if (!canError()) return;
     if (typeof err !== "undefined") {
-      console.error(message, err);
+      cachedConsole.error(message, err);
     } else {
-      console.error(message);
+      cachedConsole.error(message);
     }
   },
 
   success(message: string, data?: unknown): void {
     if (!canAny()) return;
     if (typeof data !== "undefined") {
-      console.log(message, data);
+      cachedConsole.log(message, data);
     } else {
-      console.log(message);
+      cachedConsole.log(message);
     }
   },
 
@@ -155,9 +164,9 @@ export const logger = {
     if (!canAny()) return;
     const msg = "PERF " + operation + ": " + String(durationMs) + "ms";
     if (typeof data !== "undefined") {
-      console.log(msg, data);
+      cachedConsole.log(msg, data);
     } else {
-      console.log(msg);
+      cachedConsole.log(msg);
     }
   },
 
@@ -165,9 +174,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[" + ctx + "]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -175,9 +184,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[C:" + name + "]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -185,9 +194,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[H:" + name + "]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -195,9 +204,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[API:" + endpoint + "]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -205,9 +214,9 @@ export const logger = {
     if (!canError()) return;
     const head = "CRITICAL " + message;
     if (typeof err !== "undefined") {
-      console.error(head, err);
+      cachedConsole.error(head, err);
     } else {
-      console.error(head);
+      cachedConsole.error(head);
     }
   },
 
@@ -215,9 +224,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[PAY:" + stage + "]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -225,9 +234,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[ORDER-VERIFY]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -235,9 +244,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[ACCESS-CHECK]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -245,9 +254,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[LINKING]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -255,9 +264,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[CACHE:" + op + "]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 
@@ -265,9 +274,9 @@ export const logger = {
     if (!canAny()) return;
     const head = "[FLOW " + String(step) + ":" + stage + "]";
     if (typeof data !== "undefined") {
-      console.log(head, message, data);
+      cachedConsole.log(head, message, data);
     } else {
-      console.log(head, message);
+      cachedConsole.log(head, message);
     }
   },
 };

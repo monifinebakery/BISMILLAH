@@ -49,6 +49,8 @@ import { toast } from 'sonner';
 
 // Import warehouse context
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+import { SupplierDialog } from '@/components/supplier';
+import type { Supplier } from '@/types/supplier';
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
@@ -189,6 +191,14 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   // State for item selection mode
   const [isSelectingExistingItem, setIsSelectingExistingItem] = useState(false);
   const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
+
+  // Supplier dialog state
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+
+  const handleSupplierAdded = useCallback((newSupplier: Supplier) => {
+    updateFormField('supplier', newSupplier.id);
+    setIsSupplierDialogOpen(false);
+  }, [updateFormField]);
   
   // refs for new item form
   const qtyRef = useRef<HTMLInputElement>(null);
@@ -362,8 +372,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {mode === 'create' ? (
@@ -467,22 +478,35 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 {/* Supplier Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Supplier *</Label>
-                  <Select
-                    value={formData.supplier}
-                    onValueChange={(value) => updateFormField('supplier', value)} // ✅ FIXED: Use updateFormField
-                    disabled={!canEdit}
-                  >
-                    <SelectTrigger className={!canEdit ? 'opacity-50' : ''}>
-                      <SelectValue placeholder="Pilih supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      key={suppliers.length}
+                      value={formData.supplier}
+                      onValueChange={(value) => updateFormField('supplier', value)} // ✅ FIXED: Use updateFormField
+                      disabled={!canEdit}
+                    >
+                      <SelectTrigger className={!canEdit ? 'opacity-50' : ''}>
+                        <SelectValue placeholder="Pilih supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id}>
+                            {supplier.nama}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {canEdit && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsSupplierDialogOpen(true)}
+                        className="whitespace-nowrap"
+                      >
+                        Tambah Supplier
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Date Selection */}
@@ -891,8 +915,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             </Button>
           )}
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      <SupplierDialog
+        open={isSupplierDialogOpen}
+        onOpenChange={setIsSupplierDialogOpen}
+        supplier={null}
+        onSuccess={handleSupplierAdded}
+      />
+    </>
   );
 };
 

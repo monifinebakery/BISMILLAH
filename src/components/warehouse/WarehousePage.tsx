@@ -1,5 +1,6 @@
 // src/components/warehouse/WarehousePage.tsx
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -338,6 +339,7 @@ const useWarehouseData = () => {
 const WarehousePageContent: React.FC = () => {
   const pageId = useRef(`warehouse-${Date.now()}`);
   const isMountedRef = useRef(true);
+  const navigate = useNavigate();
   
   // ✅ TAMBAH: Use warehouse data hook
   const warehouseData = useWarehouseData();
@@ -495,13 +497,7 @@ const WarehousePageContent: React.FC = () => {
             onSort={core.handlers?.sort}
             onEdit={core.handlers?.edit}
             onDelete={enhancedHandlers.delete}
-            selectedItems={core.selection?.selectedItems || new Set()}
-            onToggleSelection={core.selection?.toggle}
-            onSelectAllCurrent={core.selection?.selectPage}
-            isSelected={core.selection?.isSelected}
-            allCurrentSelected={core.selection?.isPageSelected || false}
-            someCurrentSelected={core.selection?.isPagePartiallySelected || false}
-            emptyStateAction={() => core.dialogs?.open?.('addItem')}
+            emptyStateAction={() => navigate('/pembelian')}
             onRefresh={warehouseData.refetch}
             lastUpdated={warehouseData.lastUpdated}
           />

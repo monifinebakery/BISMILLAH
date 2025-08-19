@@ -292,7 +292,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
         const hasChange = card.change !== undefined && previousAnalysis;
         
         return (
-          <Card key={index} className="hover:shadow-md transition-shadow duration-200">
+          <Card key={index} className="hover:border-gray-300 transition-colors duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
                 {card.title}

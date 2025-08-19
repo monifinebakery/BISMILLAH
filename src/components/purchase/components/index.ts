@@ -9,13 +9,11 @@
 // ✅ STATIC COMPONENTS: Always loaded (critical rendering path)
 export { default as LoadingState } from './LoadingState';
 export { default as EmptyState } from './EmptyState';
-export { default as DataWarningBanner } from './DataWarningBanner';
 export { default as PurchaseHeader } from './PurchaseHeader';
 
 // ✅ TYPE-ONLY EXPORTS: Zero runtime cost
 export type {
   PurchaseHeaderProps,
-  DataWarningBannerProps,
   EmptyStateProps,
   LoadingStateProps
 } from '../types/purchase.types';
@@ -27,7 +25,6 @@ export type {
 // import PurchaseTable from './PurchaseTable';
 // import BulkActionsToolbar from './BulkActionsToolbar';
 // import BulkDeleteDialog from './BulkDeleteDialog';
-// import PurchaseDetailDialog from './PurchaseDetailDialog';
 // import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
 // import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
@@ -36,8 +33,6 @@ export const PURCHASE_COMPONENTS_LAZY = {
   // Main components (heavy - load on demand)
   PurchaseDialog: () => import('./PurchaseDialog'),
   PurchaseTable: () => import('./PurchaseTable'),
-  PurchaseDetailDialog: () => import('./PurchaseDetailDialog'),
-  SimplePurchaseItemForm: () => import('./SimplePurchaseItemForm'),
   
   // Action components (medium - load when needed)
   BulkActionsToolbar: () => import('./BulkActionsToolbar'),
@@ -54,7 +49,6 @@ export const PURCHASE_COMPONENTS_GROUPS = {
   // Core dialogs - load together
   dialogs: () => Promise.all([
     import('./PurchaseDialog'),
-    import('./PurchaseDetailDialog'),
     import('./BulkDeleteDialog'),
     import('./StatusChangeConfirmationDialog')
   ]),
@@ -67,8 +61,7 @@ export const PURCHASE_COMPONENTS_GROUPS = {
   
   // Form components - load together
   forms: () => Promise.all([
-    import('./PurchaseDialog'),
-    import('./SimplePurchaseItemForm')
+    import('./PurchaseDialog')
   ]),
   
   // All lazy components - for preloading
@@ -85,12 +78,10 @@ export const PURCHASE_COMPONENTS_MIGRATION = {
     // NEW (direct import - better code splitting):
     import PurchaseDialog from '@/components/purchase/components/PurchaseDialog';
     import PurchaseTable from '@/components/purchase/components/PurchaseTable';
-    import SimplePurchaseItemForm from '@/components/purchase/components/SimplePurchaseItemForm';
     
     // OR (lazy import - best performance):
     const PurchaseDialog = React.lazy(() => import('@/components/purchase/components/PurchaseDialog'));
     const PurchaseTable = React.lazy(() => import('@/components/purchase/components/PurchaseTable'));
-    const SimplePurchaseItemForm = React.lazy(() => import('@/components/purchase/components/SimplePurchaseItemForm'));
   `,
   
   // Quick migration function

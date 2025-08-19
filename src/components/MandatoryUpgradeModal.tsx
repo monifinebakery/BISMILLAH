@@ -92,7 +92,7 @@ const MandatoryUpgradeModal = () => {
   if (!showMandatoryUpgrade) {
     return (
       <div className="fixed top-4 right-4 z-50">
-        <div className="bg-orange-100 border border-orange-300 rounded-lg p-3 shadow-lg">
+        <div className="bg-orange-100 border border-orange-300 rounded-lg p-3">
           <div className="flex items-center gap-2 text-orange-800">
             <Clock className="h-4 w-4" />
             <span className="text-sm font-medium">

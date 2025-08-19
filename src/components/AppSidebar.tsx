@@ -149,7 +149,7 @@ export function AppSidebar() {
     }
   };
 
-  const handleExportAllData = () => {
+  const handleExportAllData = (format: 'xlsx' | 'csv' = 'xlsx') => {
     // Check if assets are still loading
     if (assetsLoading) {
       toast.info("Tunggu sebentar, sedang memuat data aset...");
@@ -175,8 +175,8 @@ export function AppSidebar() {
       profitAnalysis,
       profitHistory,
     };
-    
-    exportAllDataToExcel(allAppData, settings.businessName);
+
+    exportAllDataToExcel(allAppData, settings.businessName, format);
   };
 
   // ✅ Enhanced menu item rendering with Update Badge support
@@ -297,7 +297,7 @@ export function AppSidebar() {
           {/* Export Button */}
           <SidebarMenuItem className="transition-all duration-200 ease-in-out">
             {renderActionButton(
-              handleExportAllData,
+              () => handleExportAllData('xlsx'),
               Download,
               // ✅ NEW: Show loading state for both assets and profit data
               (assetsLoading || profitLoading) ? "Memuat Data..." : "Export Semua Data"

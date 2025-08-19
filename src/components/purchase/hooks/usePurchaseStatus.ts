@@ -184,6 +184,15 @@ export const usePurchaseStatus = ({
       // Stok & WAC otomatis diurus trigger database saat status = 'completed',
       // serta disesuaikan saat edit/hapus setelah completed.
 
+      // Setelah status berhasil diubah, refresh data gudang agar stok terbaru ter-fetch
+      try {
+        await warehouseContext.refreshData();
+      } catch (refreshError) {
+        if (enableDebugLogs) {
+          logger.warn('Gagal me-refresh data gudang:', refreshError);
+        }
+      }
+
       onSuccess?.(
         `Status berhasil diubah menjadi "${getStatusDisplayText(newStatus)}". Stok gudang akan tersinkron otomatis.`
       );

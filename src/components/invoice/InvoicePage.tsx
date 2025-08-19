@@ -113,7 +113,7 @@ const InvoicePage: React.FC = () => {
   const calculations = useInvoiceCalculations(items, discount, tax, shipping);
 
   // ✅ Print functionality
-  const { handlePrint, handleDownloadHTML, handleCopyToClipboard } = useInvoicePrint(invoiceNumber);
+  const { handlePrint } = useInvoicePrint(invoiceNumber);
 
   // ✅ Handle form data changes
   const handleDataChange = (changes: any) => {
@@ -223,7 +223,6 @@ const InvoicePage: React.FC = () => {
             onReset={resetForm}
             onDuplicate={duplicateInvoice}
             onPrint={handlePrint}
-            onDownload={handleDownloadHTML}
             orderId={orderId}
             orderNumber={orderData?.nomorPesanan}
           />

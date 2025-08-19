@@ -380,7 +380,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
-      <Card className="w-full max-w-md shadow-xl border-0 rounded-xl overflow-hidden">
+      <Card className="w-full max-w-md border rounded-xl overflow-hidden">
         {/* Header Accent */}
         <div className="h-2 bg-gradient-to-r from-orange-500 to-red-500"></div>
         
@@ -468,7 +468,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               
               <Button
                 onClick={handleSendOtp}
-                className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+                className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg border transition-all duration-200 disabled:opacity-50"
                 disabled={!canSend}
               >
                 {cooldownTime > 0 ? (
@@ -565,7 +565,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               <Button
                 onClick={handleVerifyOtp}
                 disabled={!canVerify}
-                className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+                className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg border transition-all duration-200 disabled:opacity-50"
               >
                 {authState === 'verifying' ? (
                   <>

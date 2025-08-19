@@ -37,7 +37,10 @@ export const PURCHASE_COMPONENTS_LAZY = {
   // Action components (medium - load when needed)
   BulkActionsToolbar: () => import('./BulkActionsToolbar'),
   BulkDeleteDialog: () => import('./BulkDeleteDialog'),
-  StatusChangeConfirmationDialog: () => import('./StatusChangeConfirmationDialog')
+  StatusChangeConfirmationDialog: () => import('./StatusChangeConfirmationDialog'),
+  
+  // Import dialog
+  PurchaseImportDialog: () => import('./dialogs/PurchaseImportDialog')
   
   // ❌ REMOVED: Components that don't exist yet
   // PurchaseFilters: () => import('./PurchaseFilters'), // TODO: Create this component
@@ -62,6 +65,11 @@ export const PURCHASE_COMPONENTS_GROUPS = {
   // Form components - load together
   forms: () => Promise.all([
     import('./PurchaseDialog')
+  ]),
+  
+  // Import dialog - load separately
+  import: () => Promise.all([
+    import('./dialogs/PurchaseImportDialog')
   ]),
   
   // All lazy components - for preloading

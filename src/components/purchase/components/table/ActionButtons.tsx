@@ -1,13 +1,13 @@
 // src/components/purchase/components/table/ActionButtons.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Edit3, Trash2, Eye } from 'lucide-react';
+import { Edit3, Trash2 } from 'lucide-react';
 import { Purchase } from '../../types/purchase.types';
 
 interface ActionButtonsProps {
   purchase: Purchase;
   onEdit: (purchase: Purchase) => void;
-  onDelete: (id: string) => void;
+  onDelete: (purchase: Purchase) => void;
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -29,7 +29,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => onDelete(purchase.id)}
+        onClick={() => onDelete(purchase)}
         className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
         title="Hapus"
       >

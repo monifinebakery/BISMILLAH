@@ -262,7 +262,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
           tickFormatter={(value) => viewType === 'margins' ? `${value}%` : formatLargeNumber(value)}
           axisLine={false}
         />
-        <Tooltip content={(props) => <CustomTooltip {...props} viewType={viewType} />} />
+        <Tooltip trigger="click" content={(props) => <CustomTooltip {...props} viewType={viewType} />} />
         <Legend 
           wrapperStyle={{ fontSize: '12px' }}
           iconType="circle"
@@ -305,7 +305,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
           tickFormatter={(value) => formatLargeNumber(value)}
           axisLine={false}
         />
-        <Tooltip content={(props) => <CustomTooltip {...props} viewType={viewType} />} />
+        <Tooltip trigger="click" content={(props) => <CustomTooltip {...props} viewType={viewType} />} />
         <Legend 
           wrapperStyle={{ fontSize: '12px' }}
           iconType="circle"

@@ -254,7 +254,7 @@ export function AppSidebar() {
       )}
     >
       {/* ✅ Header with smooth transitions */}
-      <SidebarHeader className="p-4 border-b">
+      <SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-0">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
             <TrendingUp className="h-6 w-6" />
@@ -266,7 +266,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       {/* ✅ Content with staggered animations */}
-      <SidebarContent className="flex-grow px-2 py-4">
+      <SidebarContent className="flex-grow px-2 py-4 group-data-[collapsible=icon]:px-0">
         {menuGroups.map((group, groupIndex) => (
           <SidebarGroup 
             key={group.label} 
@@ -301,7 +301,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* ✅ Footer with delayed animation */}
-      <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200">
+      <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200 group-data-[collapsible=icon]:px-0">
         <SidebarMenu className="space-y-1">
           {/* Export Button */}
           <SidebarMenuItem className="transition-all duration-200 ease-in-out">

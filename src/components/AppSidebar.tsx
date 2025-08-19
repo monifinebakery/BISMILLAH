@@ -245,8 +245,8 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar 
-      collapsible="offcanvas"
+    <Sidebar
+      collapsible="icon"
       className={cn(
         "border-r transition-all duration-300 ease-in-out",
         "data-[state=open]:animate-in data-[state=open]:slide-in-from-left-0",
@@ -259,7 +259,7 @@ export function AppSidebar() {
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
             <TrendingUp className="h-6 w-6" />
           </div>
-          <div className="ml-3 opacity-100 transition-opacity duration-300">
+          <div className="ml-3 opacity-100 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
             <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
           </div>
         </div>

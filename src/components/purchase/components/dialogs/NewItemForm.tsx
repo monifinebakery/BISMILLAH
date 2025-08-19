@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Package, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
+import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
@@ -122,6 +123,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       }
 
       const purchaseItem: PurchaseItem = {
+        bahanBakuId: generateUUID(),
         nama: formData.nama,
         satuan: formData.satuan,
         kuantitas: effectiveQty,

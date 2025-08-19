@@ -242,7 +242,7 @@ const ProfitBreakdownChart = ({
           tickFormatter={(value) => formatLargeNumber(value)}
           axisLine={false}
         />
-        <Tooltip content={<CustomBarTooltip />} />
+        <Tooltip trigger="click" content={<CustomBarTooltip />} />
         <Legend 
           wrapperStyle={{ fontSize: '12px' }}
           iconType="circle"
@@ -305,7 +305,7 @@ const ProfitBreakdownChart = ({
             <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Pie>
-        <Tooltip content={<CustomPieTooltip />} />
+        <Tooltip trigger="click" content={<CustomPieTooltip />} />
       </PieChart>
     </ResponsiveContainer>
   );

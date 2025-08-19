@@ -434,6 +434,12 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
         )}
       </td>
 
+      <td className="px-4 py-4">
+        <div className="text-sm text-gray-900">
+          {warehouseUtils.formatDate(item.updatedAt)}
+        </div>
+      </td>
+
       {!isSelectionMode && (
         <td className="px-4 py-4 text-right">
           <div className="flex items-center justify-end gap-2">

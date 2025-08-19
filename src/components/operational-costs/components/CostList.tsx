@@ -36,7 +36,13 @@ interface CostListProps {
   className?: string;
 }
 
-type SortField = 'nama_biaya' | 'jumlah_per_bulan' | 'jenis' | 'status' | 'created_at';
+type SortField =
+  | 'nama_biaya'
+  | 'jumlah_per_bulan'
+  | 'jenis'
+  | 'status'
+  | 'created_at'
+  | 'updated_at';
 type SortOrder = 'asc' | 'desc';
 
 const CostList: React.FC<CostListProps> = ({
@@ -82,6 +88,9 @@ const CostList: React.FC<CostListProps> = ({
         break;
       case 'created_at':
         comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
+      case 'updated_at':
+        comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
         break;
     }
     
@@ -283,6 +292,15 @@ const CostList: React.FC<CostListProps> = ({
               </th>
               <th className="px-4 py-3 text-left">
                 <button
+                  onClick={() => handleSort('updated_at')}
+                  className="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                >
+                  <span>Terakhir Diperbarui</span>
+                  {renderSortIcon('updated_at')}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
                   onClick={() => handleSort('created_at')}
                   className="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
                 >
@@ -325,6 +343,11 @@ const CostList: React.FC<CostListProps> = ({
                   }`}>
                     {getStatusLabel(cost.status)}
                   </span>
+                </td>
+                <td className="px-4 py-4">
+                  <div className="text-sm text-gray-500">
+                    {formatRelativeTime(cost.updated_at)}
+                  </div>
                 </td>
                 <td className="px-4 py-4">
                   <div className="text-sm text-gray-500">

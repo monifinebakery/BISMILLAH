@@ -7,7 +7,7 @@ import type { Supplier, SupplierFormData } from '@/types/supplier';
 
 export const useSupplierForm = (
   supplier: Supplier | null,
-  onSuccess?: () => void
+  onSuccess?: (supplier: Supplier) => void
 ) => {
   const { addSupplier, updateSupplier } = useSupplier();
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
@@ -46,32 +46,38 @@ export const useSupplierForm = (
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (): Promise<boolean> => {
+  const handleSubmit = async (): Promise<Supplier | null> => {
     if (!validateForm()) {
       toast.error('Mohon periksa kembali data yang diisi');
-      return false;
+      return null;
     }
 
     // Clean data before saving
-    const dataToSave = { 
-      ...formData, 
+    const dataToSave = {
+      ...formData,
       email: formData.email.trim() || null,
       telepon: formData.telepon.trim() || null,
       alamat: formData.alamat.trim() || null,
-      catatan: formData.catatan.trim() || null 
+      catatan: formData.catatan.trim() || null
     };
-    
-    const success = supplier 
-      ? await updateSupplier(supplier.id, dataToSave)
-      : await addSupplier(dataToSave);
 
-    if (success) {
-      setFormErrors({});
-      onSuccess?.();
-      return true;
+    let savedSupplier: Supplier | null = null;
+    if (supplier) {
+      const success = await updateSupplier(supplier.id, dataToSave);
+      if (success) {
+        savedSupplier = { ...supplier, ...dataToSave } as Supplier;
+      }
+    } else {
+      savedSupplier = await addSupplier(dataToSave);
     }
-    
-    return false;
+
+    if (savedSupplier) {
+      setFormErrors({});
+      onSuccess?.(savedSupplier);
+      return savedSupplier;
+    }
+
+    return null;
   };
 
   const resetForm = () => {

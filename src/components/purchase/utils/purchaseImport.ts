@@ -26,8 +26,8 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
   const headers = lines[0]
     .split(delimiter)
     .map((h) => h.trim().toLowerCase());
-  const getIndex = (name: string) => headers.indexOf(name);
 
+  const getIndex = (name: string) => headers.indexOf(name);
   const idxSupplier = getIndex('supplier');
   const idxTanggal = getIndex('tanggal');
   const idxNama = getIndex('nama');

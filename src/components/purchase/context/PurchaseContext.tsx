@@ -17,6 +17,7 @@ import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 import type { Purchase, PurchaseContextType, PurchaseStatus } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';

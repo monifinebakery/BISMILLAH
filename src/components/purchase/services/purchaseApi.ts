@@ -91,21 +91,6 @@ export class PurchaseApiService {
     }
   }
 
-  // Manual warehouse sync helpers
-  private static async applyPurchaseToWarehouse(purchase: any) {
-    const { error } = await supabase.rpc('apply_purchase_to_warehouse', {
-      purchase_record: purchase
-    });
-    if (error) throw new Error(error.message);
-  }
-
-  private static async reversePurchaseFromWarehouse(purchase: any) {
-    const { error } = await supabase.rpc('reverse_purchase_from_warehouse', {
-      purchase_record: purchase
-    });
-    if (error) throw new Error(error.message);
-  }
-
   /**
    * Set status (pending/completed/cancelled).
    * Saat set ke 'completed', trigger DB akan:
@@ -120,33 +105,14 @@ export class PurchaseApiService {
     newStatus: Purchase['status']
   ): Promise<{ success: boolean; error: string | null }> {
     try {
-      // Ambil status lama untuk menentukan apakah perlu apply/reverse
-      const { data: existing, error: fetchError } = await supabase
-        .from('purchases')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', userId)
-        .single();
-      if (fetchError) throw new Error(fetchError.message);
-      const oldStatus = existing.status as Purchase['status'];
-
-      // Update status dan kembalikan record terbaru
-      const { data: updated, error } = await supabase
+      // Update status
+      const { error } = await supabase
         .from('purchases')
         .update({ status: newStatus })
         .eq('id', id)
-        .eq('user_id', userId)
-        .select('*')
-        .single();
+        .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
-
-      // Sinkronkan ke warehouse secara manual
-      if (newStatus === 'completed') {
-        await this.applyPurchaseToWarehouse(updated);
-      } else if (oldStatus === 'completed' && newStatus !== 'completed') {
-        await this.reversePurchaseFromWarehouse(existing);
-      }
 
       return { success: true, error: null };
     } catch (err: any) {
@@ -167,20 +133,6 @@ export class PurchaseApiService {
   */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
-      // Ambil purchase terlebih dahulu untuk mengetahui status
-      const { data: purchase, error: fetchError } = await supabase
-        .from('purchases')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (fetchError) throw new Error(fetchError.message);
-
-      // Jika purchase sebelumnya completed, reverse stok gudang
-      if (purchase && purchase.status === 'completed') {
-        await this.reversePurchaseFromWarehouse(purchase);
-      }
-
       const { error } = await supabase
         .from('purchases')
         .delete()

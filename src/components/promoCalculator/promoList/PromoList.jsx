@@ -276,11 +276,11 @@ const PromoList = () => {
         setEditingPromo(null);
     }
     
-    toast.info('Membuka kalkulator promo...', {
+    toast.info('Membuka konfigurasi promo...', {
       description: 'Mengarahkan ke halaman pembuatan promo'
     });
-    
-    navigate('/promo');
+
+    navigate('/promo/create');
   };
 
   // Loading State

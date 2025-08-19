@@ -502,7 +502,7 @@ const OrdersPage: React.FC = () => {
       {import.meta.env.DEV && <ContextDebugger />}
       
       {/* ✅ ENHANCED: Header with template integration info and debug button */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
             <FileText className="h-8 w-8 text-white" />

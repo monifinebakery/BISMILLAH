@@ -120,7 +120,7 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) return null;
 
   return (
-    <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+    <div className="bg-white p-3 border border-gray-200 rounded-lg">
       <p className="font-semibold text-gray-800 mb-2">{label}</p>
       {payload.map((entry: any, index: number) => (
         <div key={index} className="flex items-center space-x-2 mb-1">
@@ -144,7 +144,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
   const data = payload[0].payload;
   
   return (
-    <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+    <div className="bg-white p-3 border border-gray-200 rounded-lg">
       <p className="font-semibold text-gray-800">{data.name}</p>
       <p className="text-sm text-gray-600">
         {formatCurrency(data.value)} ({data.percentage.toFixed(1)}%)

@@ -89,7 +89,7 @@ const SupplierFilters: React.FC<SupplierFiltersProps> = ({
             placeholder="Cari Nama Supplier / Kontak..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 border-gray-300 rounded-lg shadow-sm focus:border-orange-500 focus:ring-orange-500 w-full lg:w-80"
+            className="pl-10 border-gray-300 rounded-lg border focus:border-orange-500 focus:ring-orange-500 w-full lg:w-80"
           />
         </div>
       </div>

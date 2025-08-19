@@ -173,7 +173,7 @@ const CostForm: React.FC<CostFormProps> = ({
           
           {/* Suggestions dropdown */}
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md max-h-48 overflow-y-auto">
               <div className="p-2 text-xs text-gray-500 border-b">Saran nama biaya:</div>
               {filteredSuggestions.map((suggestion) => (
                 <button
@@ -370,7 +370,7 @@ const CostForm: React.FC<CostFormProps> = ({
       {/* ✅ Staff Type Selection Modal */}
       {showStaffTypeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white rounded-lg border max-w-md w-full p-6">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Jenis Staf untuk "{formData.nama_biaya}"

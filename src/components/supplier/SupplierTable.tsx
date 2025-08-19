@@ -145,7 +145,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
                   {!searchTerm && (
                     <Button
                       onClick={onAddFirst}
-                      className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-md transition-all duration-200"
+                      className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg border transition-all duration-200"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Tambah Supplier Pertama
@@ -282,7 +282,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
                 className={cn(
                   "h-9 w-9",
                   currentPage === page
-                    ? "bg-orange-500 text-white shadow-md hover:bg-orange-600"
+                    ? "bg-orange-500 text-white border hover:bg-orange-600"
                     : "hover:bg-gray-100"
                 )}
                 variant={currentPage === page ? "default" : "ghost"}

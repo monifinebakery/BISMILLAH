@@ -15,7 +15,7 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
   const { settings } = useUserSettings();
   
   return (
-    <div className={`bg-white shadow-2xl rounded-xl overflow-hidden max-w-5xl mx-auto border border-gray-200 ${className}`} id="invoice-to-print">
+    <div className={`bg-white rounded-xl overflow-hidden max-w-5xl mx-auto border border-gray-200 ${className}`} id="invoice-to-print">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 sm:px-12 py-8 text-white">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">

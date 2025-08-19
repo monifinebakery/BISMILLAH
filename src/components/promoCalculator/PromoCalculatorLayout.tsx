@@ -372,36 +372,57 @@ const PromoCalculatorLayout = () => {
     return (
       <div className={styles.containerLayout}>
         <div className={styles.mainContent}>
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-orange-100 rounded-xl">
-                  <Calculator className="h-8 w-8 text-orange-600" />
+          {/* Header - Updated to match warehouse design */}
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+                  <Calculator className="h-8 w-8 text-white" />
                 </div>
+                
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Kalkulator Promo</h1>
-                  <p className="text-gray-600 mt-1">
+                  <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+                    Kalkulator Promo
+                  </h1>
+                  <p className="text-white opacity-90">
                     Hitung profit margin dan dampak promo dengan akurat
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
+
+              <div className="hidden md:flex gap-3">
                 <button 
                   onClick={() => setCurrentView('list')} 
-                  className={styles.buttonSecondary}
+                  className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
                 >
                   <List className="h-4 w-4" />
-                  <span>Lihat Semua</span>
+                  Lihat Semua
                 </button>
                 <button 
                   onClick={() => setCurrentView('calculator')} 
-                  className={styles.buttonPrimary}
+                  className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Buat Promo</span>
+                  Buat Promo
                 </button>
               </div>
+            </div>
+
+            <div className="flex md:hidden flex-col gap-3 mt-6">
+              <button 
+                onClick={() => setCurrentView('list')} 
+                className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+              >
+                <List className="h-4 w-4" />
+                Lihat Semua
+              </button>
+              <button 
+                onClick={() => setCurrentView('calculator')} 
+                className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                Buat Promo
+              </button>
             </div>
           </div>
 

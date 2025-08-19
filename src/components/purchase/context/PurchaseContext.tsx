@@ -17,7 +17,6 @@ import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 import type { Purchase, PurchaseContextType, PurchaseStatus } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -98,7 +97,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
   const { bahanBaku, addBahanBaku } = useBahanBaku();
-
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
       const s = suppliers?.find((x: any) => x.id === supplierId);
@@ -110,6 +108,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ✅ HELPER: Invalidate warehouse data after purchase changes
   const invalidateWarehouseData = useCallback(() => {
+    console.log('🔄 Invalidating warehouse data');
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
@@ -177,7 +176,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         totalNilai: payload.totalNilai,
         items: payload.items,
         status: payload.status ?? 'pending',
-        metodePerhitungan: payload.metodePerhitungan ?? 'FIFO',
+        metodePerhitungan: payload.metodePerhitungan ?? 'AVERAGE',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -263,15 +262,19 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // SET STATUS (optimistic)
   const statusMutation = useMutation({
-    mutationFn: ({ id, newStatus }: { id: string; newStatus: PurchaseStatus }) =>
-      apiSetStatus(id, user!.id, newStatus),
+    mutationFn: ({ id, newStatus }: { id: string; newStatus: PurchaseStatus }) => {
+      console.log('🔄 Status mutation called with:', { id, newStatus });
+      return apiSetStatus(id, user!.id, newStatus);
+    },
     onMutate: async ({ id, newStatus }) => {
+      console.log('🔄 Status mutation onMutate with:', { id, newStatus });
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
       setCacheList((old) => old.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
       return { prev, id, newStatus };
     },
     onSuccess: (fresh, _vars, ctx) => {
+      console.log('✅ Status mutation onSuccess with:', fresh);
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
       // ✅ INVALIDATE WAREHOUSE: Apply/rollback WAC & stok terjadi di trigger DB
@@ -450,11 +453,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Prasyarat data (buat tombol "Tambah")
   const validatePrerequisites = useCallback(() => {
     const hasSuppliers = (suppliers?.length || 0) > 0;
-    const hasBahanBaku = (bahanBaku?.length || 0) > 0;
     if (!hasSuppliers) { toast.error('Mohon tambahkan data supplier terlebih dahulu'); return false; }
-    if (!hasBahanBaku) { toast.warning('Data bahan baku kosong. Tambahkan bahan baku untuk hasil optimal'); }
     return true;
-  }, [suppliers?.length, bahanBaku?.length]);
+  }, [suppliers?.length]);
 
   const refreshPurchases = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user?.id) });

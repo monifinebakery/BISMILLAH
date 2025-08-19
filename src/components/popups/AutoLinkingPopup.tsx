@@ -378,7 +378,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   // Show countdown when popup is closed but will retry
   if (!isOpen && autoRetryTimer > 0 && !isDismissed && unlinkedPayments.length > 0) {
     return (
-      <div className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 bg-white border border-orange-300 rounded-lg p-3 sm:p-4 shadow-lg max-w-xs sm:max-w-sm z-50">
+      <div className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 bg-white border border-orange-300 rounded-lg p-3 sm:p-4 max-w-xs sm:max-w-sm z-50">
         <div className="flex items-center gap-2 sm:gap-3 mb-3">
           <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0" />
           <div className="min-w-0">
@@ -414,7 +414,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-xl border w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         {/* Header with Enhanced Debug Info */}
         <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-200">
           <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">

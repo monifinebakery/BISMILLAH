@@ -1,6 +1,6 @@
 // ===== FIXED WarehouseContext.tsx dengan proper mutation handling =====
 // src/components/warehouse/WarehouseContext.tsx
-import React, { createContext, useContext, useRef } from 'react';
+import React, { createContext, useContext, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -13,9 +13,11 @@ import { createNotificationHelper } from '@/utils/notificationHelpers';
 
 // Services
 import { warehouseApi } from '../services/warehouseApi';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types - ✅ FIXED: Remove unused BahanBaku import
 import type { BahanBakuFrontend } from '../types';
+import type { RecipeIngredient } from '@/types/recipe';
 
 // Query keys
 const warehouseQueryKeys = {
@@ -45,6 +47,10 @@ interface WarehouseContextType {
   // Utilities
   getBahanBakuByName: (nama: string) => BahanBakuFrontend | undefined;
   reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
+  getIngredientPrice: (nama: string) => number;
+  validateIngredientAvailability: (ingredients: RecipeIngredient[]) => boolean;
+  consumeIngredients: (ingredients: RecipeIngredient[]) => Promise<boolean>;
+  updateIngredientPrices: (ingredients: RecipeIngredient[]) => RecipeIngredient[];
   
   // Analysis
   getLowStockItems: () => BahanBakuFrontend[];
@@ -175,12 +181,14 @@ const bulkDeleteWarehouseItems = async (ids: string[], userId?: string): Promise
 /**
  * ✅ FIXED: Warehouse Context Provider with proper mutation handling
  */
-export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({ 
-  children, 
-  enableDebugLogs = true 
+export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
+  children,
+  enableDebugLogs = true
 }) => {
   const providerId = useRef(`WarehouseProvider-${Date.now()}`);
   const queryClient = useQueryClient();
+
+  const isDebugMode = enableDebugLogs && import.meta.env.DEV;
 
   // Dependencies
   const { user } = useAuth();
@@ -188,21 +196,25 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   const { addNotification } = useNotification();
 
   // ✅ FIXED: Live connection status tracking
-  const [isConnected, setIsConnected] = React.useState(navigator.onLine);
+  const [isConnected, setIsConnected] = React.useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
   React.useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+
     const handleOnline = () => setIsConnected(true);
     const handleOffline = () => setIsConnected(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  if (enableDebugLogs) {
+  if (isDebugMode) {
     logger.debug(`[${providerId.current}] 🏗️ Context rendering with useQuery`);
   }
 
@@ -216,9 +228,12 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     dataUpdatedAt,
   } = useQuery({
     queryKey: warehouseQueryKeys.list(),
-    queryFn: () => fetchWarehouseData(user?.id),
+    queryFn: () => {
+      if (isDebugMode) logger.debug('🔄 Warehouse queryFn called');
+      return fetchWarehouseData(user?.id);
+    },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 0, // Always consider data stale so it refetches when invalidated
     // ✅ FIXED: Simplified retry logic for better error handling
     retry: (failureCount, err: any) => {
       const code = Number(err?.code || err?.status || 0);
@@ -226,6 +241,54 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       return failureCount < 1; // Only 1 retry for other errors
     },
   });
+
+  // ✅ NEW: Real-time subscription for warehouse updates
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+    if (!user?.id) return;
+
+    if (isDebugMode) logger.debug('🔄 Setting up real-time subscription for user:', user.id);
+
+    const channel = supabase
+      .channel('warehouse-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bahan_baku',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          if (isDebugMode) logger.debug('🔄 Warehouse table changed:', payload);
+          // Invalidate and refetch warehouse data when changes occur
+          queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          // Listen to all change events on purchases table to keep warehouse data in sync
+          event: '*',
+          schema: 'public',
+          table: 'purchases',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          if (isDebugMode) logger.debug('🔄 Purchase updated:', payload);
+          // Invalidate warehouse data when purchases are updated (status changes)
+          queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+        }
+      )
+      .subscribe((status) => {
+        if (isDebugMode) logger.debug('🔄 Real-time subscription status:', status);
+      });
+
+    return () => {
+      if (isDebugMode) logger.debug('🔄 Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   // ✅ FIXED: Mutations with proper error handling and return values
   const createMutation = useMutation({
@@ -381,6 +444,74 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     }
   }, [user?.id, enableDebugLogs, bahanBaku, refetch]);
 
+  const getIngredientPrice = React.useCallback(
+    (nama: string): number => {
+      const item = getBahanBakuByName(nama);
+      return item?.harga || 0;
+    },
+    [getBahanBakuByName]
+  );
+
+  const validateIngredientAvailability = React.useCallback(
+    (ingredients: RecipeIngredient[]): boolean => {
+      for (const ingredient of ingredients) {
+        const item = getBahanBakuByName(ingredient.nama);
+        if (!item) {
+          toast.error(`${ingredient.nama} tidak ditemukan di gudang.`);
+          return false;
+        }
+        if (item.stok < ingredient.jumlah) {
+          toast.error(
+            `Stok ${ingredient.nama} hanya ${item.stok} ${item.satuan}. Dibutuhkan ${ingredient.jumlah}.`
+          );
+          return false;
+        }
+      }
+      return true;
+    },
+    [getBahanBakuByName]
+  );
+
+  const consumeIngredients = React.useCallback(
+    async (ingredients: RecipeIngredient[]): Promise<boolean> => {
+      if (!validateIngredientAvailability(ingredients)) {
+        return false;
+      }
+      try {
+        await Promise.all(
+          ingredients.map(async ingredient => {
+            const success = await reduceStok(ingredient.nama, ingredient.jumlah);
+            if (!success) {
+              throw new Error(`Gagal mengurangi stok untuk ${ingredient.nama}`);
+            }
+          })
+        );
+        return true;
+      } catch (error) {
+        logger.error(error);
+        return false;
+      }
+    },
+    [validateIngredientAvailability, reduceStok]
+  );
+
+  const updateIngredientPrices = React.useCallback(
+    (ingredients: RecipeIngredient[]): RecipeIngredient[] => {
+      return ingredients.map(ingredient => {
+        const currentPrice = getIngredientPrice(ingredient.nama);
+        if (currentPrice > 0 && currentPrice !== ingredient.hargaPerSatuan) {
+          return {
+            ...ingredient,
+            hargaPerSatuan: currentPrice,
+            totalHarga: ingredient.jumlah * currentPrice,
+          };
+        }
+        return ingredient;
+      });
+    },
+    [getIngredientPrice]
+  );
+
   // Analysis functions
   const getLowStockItems = React.useCallback((): BahanBakuFrontend[] => {
     return bahanBaku.filter(item => Number(item.stok) <= Number(item.minimum));
@@ -420,6 +551,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     // Utilities
     getBahanBakuByName,
     reduceStok,
+    getIngredientPrice,
+    validateIngredientAvailability,
+    consumeIngredients,
+    updateIngredientPrices,
     
     // Analysis
     getLowStockItems,
@@ -443,6 +578,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     refreshData,
     getBahanBakuByName,
     reduceStok,
+    getIngredientPrice,
+    validateIngredientAvailability,
+    consumeIngredients,
+    updateIngredientPrices,
     getLowStockItems,
     getOutOfStockItems,
     getExpiringItems,
@@ -452,6 +591,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
   // ✅ DEBUG: Log context state changes
   React.useEffect(() => {
+    if (typeof navigator === 'undefined') return;
     logger.debug(`[${providerId.current}] 📊 Context state:`, {
       bahanBakuCount: bahanBaku.length,
       loading,

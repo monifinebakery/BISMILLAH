@@ -37,7 +37,7 @@ const ReadOnlyWrapper: React.FC<ReadOnlyWrapperProps> = ({
             <div className="absolute inset-0 bg-gray-100/20 backdrop-blur-[0.5px] rounded-md flex items-center justify-center">
               <div 
                 onClick={handleUpgradeClick}
-                className="bg-white shadow-lg rounded-lg p-3 cursor-pointer hover:shadow-xl transition-shadow border border-orange-200"
+                className="bg-white rounded-lg p-3 cursor-pointer hover:border-orange-300 transition-colors border border-orange-200"
               >
                 <div className="flex items-center gap-2 text-orange-600">
                   <Crown className="h-4 w-4" />

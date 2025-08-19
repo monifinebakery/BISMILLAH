@@ -49,7 +49,7 @@ const SelectionToolbar: React.FC<{
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
       {!uiState.isSelectionMode ? (
         // Show selection toggle button - Desktop
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -370,7 +370,7 @@ const OrderControls: React.FC<OrderControlsProps> = ({
         onBulkEditStatus={onBulkEditStatus}
         onBulkDelete={onBulkDelete}
       />
-      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden mb-4 sm:mb-6">
+      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden mb-4 sm:mb-6">
         <TableControls uiState={uiState} loading={loading} />
         {/* Table content will be rendered by OrderTable */}
         <PaginationControls uiState={uiState} loading={loading} />

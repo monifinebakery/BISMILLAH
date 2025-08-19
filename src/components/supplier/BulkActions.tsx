@@ -55,7 +55,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   return (
     <>
       {/* Bulk Actions Toolbar */}
-      <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg">
+      <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 border">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Left side - Status */}

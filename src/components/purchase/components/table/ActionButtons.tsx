@@ -38,7 +38,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
-        className="w-[140px] z-[9999] bg-white border border-gray-200 shadow-lg rounded-md"
+        className="w-[140px] z-[9999] bg-white border border-gray-200 rounded-md"
         side="bottom"
         sideOffset={4}
         avoidCollisions={true}

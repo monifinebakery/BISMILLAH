@@ -5,6 +5,8 @@
  * Updated to support proper package content calculation and unit price handling
  */
 
+import type { RecipeIngredient } from '@/types/recipe';
+
 // Core Data Types (Database format - snake_case)
 // ✅ VERIFIED: All field names match database schema exactly
 export interface BahanBaku {
@@ -112,6 +114,10 @@ export interface WarehouseContextType {
   // Utilities
   getBahanBakuByName: (nama: string) => BahanBakuFrontend | undefined;
   reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
+  getIngredientPrice: (nama: string) => number;
+  validateIngredientAvailability: (ingredients: RecipeIngredient[]) => boolean;
+  consumeIngredients: (ingredients: RecipeIngredient[]) => Promise<boolean>;
+  updateIngredientPrices: (ingredients: RecipeIngredient[]) => RecipeIngredient[];
   
   // ✅ ENHANCED: Package calculation utilities
   calculateUnitPrice: (jumlahKemasan: number, isiPerKemasan: number, hargaTotal: number) => number;

@@ -195,7 +195,7 @@ export const AssetManagement: React.FC = () => {
         />
 
         {/* Assets List */}
-        <Card className="shadow-lg border-orange-200 bg-white">
+        <Card className="border-orange-200 bg-white">
           <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
               <CardTitle className="text-lg">Daftar Aset</CardTitle>

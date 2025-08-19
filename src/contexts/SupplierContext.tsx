@@ -52,8 +52,8 @@ interface SupplierContextType {
   error: string | null;
   
   // Actions
-  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<boolean>;
-  updateSupplier: (id: string, supplier: Partial<Omit<Supplier, 'id' | 'userId'>>) => Promise<boolean>;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<Supplier | null>;
+  updateSupplier: (id: string, supplier: Partial<Omit<Supplier, 'id' | 'userId'>>) => Promise<Supplier | null>;
   deleteSupplier: (id: string) => Promise<boolean>;
   
   // Utility methods
@@ -476,40 +476,40 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const addSupplier = useCallback(async (
     supplierData: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>
-  ): Promise<boolean> => {
+  ): Promise<Supplier | null> => {
     if (!user) {
       toast.error('Anda harus login untuk menambahkan supplier');
-      return false;
+      return null;
     }
 
     try {
-      await addMutation.mutateAsync(supplierData);
-      return true;
+      const newSupplier = await addMutation.mutateAsync(supplierData);
+      return newSupplier;
     } catch (error) {
-      return false;
+      return null;
     }
   }, [user, addMutation]);
 
   const updateSupplierFn = useCallback(async (
     id: string,
     supplierData: Partial<Omit<Supplier, 'id' | 'userId'>>
-  ): Promise<boolean> => {
+  ): Promise<Supplier | null> => {
     if (!user) {
       toast.error('Anda harus login untuk memperbarui supplier');
-      return false;
+      return null;
     }
 
     const existingSupplier = suppliers.find(s => s.id === id);
     if (!existingSupplier) {
       toast.error('Supplier tidak ditemukan');
-      return false;
+      return null;
     }
 
     try {
-      await updateMutation.mutateAsync({ id, data: supplierData });
-      return true;
+      const updated = await updateMutation.mutateAsync({ id, data: supplierData });
+      return updated;
     } catch (error) {
-      return false;
+      return null;
     }
   }, [user, suppliers, updateMutation]);
 

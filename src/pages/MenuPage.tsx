@@ -172,7 +172,7 @@ const MenuPage = () => {
           {menuItems.map((item) => (
             <Card 
               key={item.path}
-              className="cursor-pointer hover:shadow-md transition-all duration-200 border-gray-200 bg-white rounded-xl hover:scale-[1.02] active:scale-[0.98]"
+              className="cursor-pointer hover:border-gray-300 transition-all duration-200 border-gray-200 bg-white rounded-xl hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate(item.path)}
             >
               <CardContent className="p-4 text-center">

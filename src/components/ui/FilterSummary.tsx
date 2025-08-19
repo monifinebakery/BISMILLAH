@@ -134,7 +134,7 @@ export const FilterSummary: React.FC<FilterSummaryProps> = ({
         };
       case 'card':
         return {
-          container: 'p-4 rounded-lg shadow-sm',
+          container: 'p-4 rounded-lg border',
           content: 'gap-3',
           text: 'text-sm'
         };

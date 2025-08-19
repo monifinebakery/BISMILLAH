@@ -211,7 +211,7 @@ export const ContextDebugger: React.FC = () => {
   const totalTime = Date.now() - startTime;
 
   return (
-    <div className="fixed top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-md z-50">
+    <div className="fixed top-4 right-4 bg-white border border-gray-200 rounded-lg p-4 max-w-md z-50">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-gray-900">Context Debugger</h3>
         <span className="text-sm text-gray-500">{Math.round(totalTime / 1000)}s</span>

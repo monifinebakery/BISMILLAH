@@ -522,7 +522,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           <div className="sm:hidden">
             {/* ✅ Fixed footer positioned above bottom navigation */}
             <div 
-              className="fixed left-0 right-0 bg-white border-t shadow-lg z-[60]"
+              className="fixed left-0 right-0 bg-white border-t border z-[60]"
               style={{
                 bottom: '80px', // ✅ Positioned 80px from bottom (above bottom nav)
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)'

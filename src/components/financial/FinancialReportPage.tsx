@@ -358,7 +358,7 @@ const FinancialReportPage: React.FC = () => {
   return (
     <AuthGuard>
       <div className="p-4 sm:p-6 space-y-6">
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white border">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">

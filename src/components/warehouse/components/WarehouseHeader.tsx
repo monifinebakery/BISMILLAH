@@ -161,7 +161,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">

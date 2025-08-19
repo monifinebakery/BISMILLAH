@@ -49,7 +49,6 @@ const ImportButton: React.FC = () => {
       'Format CSV: supplier,tanggal(YYYY-MM-DD),nama,kuantitas,satuan,harga. Pemisah kolom boleh koma atau titik koma.',
     );
   };
-
   return (
     <>
       <input
@@ -87,4 +86,3 @@ const ImportButton: React.FC = () => {
 };
 
 export default ImportButton;
-

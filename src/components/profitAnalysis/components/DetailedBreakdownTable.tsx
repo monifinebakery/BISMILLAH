@@ -426,7 +426,7 @@ const DetailedBreakdownTable = ({
         {/* Tab Navigation */}
         <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
         {[
-          { key: 'all', label: '📊 Semua' },
+          { key: 'all', label: 'Semua' },
           { key: 'revenue', label: '  Pemasukan' },
           { key: 'cogs', label: '🛍️ Belanja' },
           { key: 'opex', label: '🏠 Biaya' }

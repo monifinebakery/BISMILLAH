@@ -213,7 +213,7 @@ const ProfitBreakdownChart = ({
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-gray-400 text-lg mb-2">📊 Belum Ada Data Omset</div>
+              <div className="text-gray-400 text-lg mb-2">Belum Ada Data Omset</div>
               <div className="text-gray-500 text-sm">
                 Pilih periode yang sudah ada transaksi untuk melihat ringkasan keuangan warung
               </div>

@@ -13,9 +13,6 @@ export { usePagination, useSimplePagination, type UsePaginationReturn } from './
 // ✅ Selection hooks
 export { useSelection, useSimpleSelection, type UseSelectionReturn } from './useSelection';
 
-// 📱 Responsive tooltip hook
-export { useResponsiveTooltip, type UseResponsiveTooltipReturn } from './useResponsiveTooltip';
-
 
 // ====================================================================
 // 2. Definisi Hooks Utilitas Umum

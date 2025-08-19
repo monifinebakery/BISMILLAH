@@ -17,31 +17,19 @@ export default {
 			}
 		},
 		extend: {
-			backgroundColor: {
-				'hpp-primary': 'var(--hpp-primary, #181D31)',
-				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			},
-			textColor: {
-				'hpp-primary': 'var(--hpp-primary, #181D31)',
-				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			},
-			borderColor: {
-				'hpp-primary': 'var(--hpp-primary, #181D31)',
-				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			},
-			backgroundColor: {
-				'hpp-primary': 'var(--hpp-primary, #181D31)',
-				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			},
-			textColor: {
-				'hpp-primary': 'var(--hpp-primary, #181D31)',
-				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			},
-			borderColor: {
-				'hpp-primary': 'var(--hpp-primary, #181D31)',
-				'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
-			},
-			colors: {
+                        backgroundColor: {
+                                'hpp-primary': 'var(--hpp-primary, #181D31)',
+                                'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+                        },
+                        textColor: {
+                                'hpp-primary': 'var(--hpp-primary, #181D31)',
+                                'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+                        },
+                        borderColor: {
+                                'hpp-primary': 'var(--hpp-primary, #181D31)',
+                                'hpp-accent': 'var(--hpp-accent, #F0F0F0)',
+                        },
+                        colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

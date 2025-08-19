@@ -186,15 +186,15 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
 
   // ✅ METRIC CONFIGURATIONS - UPDATE dengan orange dominan
   const metricConfigs = {
-    revenue: { key: 'revenue', label: '💰 Omset', color: CHART_CONFIG.colors.revenue },
+    revenue: { key: 'revenue', label: 'Omset', color: CHART_CONFIG.colors.revenue },
     grossProfit: { key: 'grossProfit', label: '🎯 Untung Kotor', color: CHART_CONFIG.colors.primary },
     netProfit: { key: 'netProfit', label: '💎 Untung Bersih', color: '#dc2626' },
     cogs: { key: 'cogs', label: '🥘 Modal Bahan', color: CHART_CONFIG.colors.cogs },
     opex: { key: 'opex', label: '🏪 Biaya Tetap', color: CHART_CONFIG.colors.opex },
-    grossMargin: { key: 'grossMargin', label: '📈 Margin Kotor', color: CHART_CONFIG.colors.primary },
+    grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.primary },
     netMargin: { key: 'netMargin', label: '📊 Margin Bersih', color: '#dc2626' },
     // ✅ TAMBAH: Entry baru untuk stockValue
-    stockValue: { key: 'stockValue', label: '📦 Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning }
+    stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning }
   };
 
   // ✅ EVENT HANDLERS
@@ -211,7 +211,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>📈 Grafik Perkembangan Untung Warung</CardTitle>
+          <CardTitle>Grafik Perkembangan Untung Warung</CardTitle>
           <CardDescription>
             Lihat bagaimana omset dan keuntungan warung berkembang dari waktu ke waktu
           </CardDescription>
@@ -228,7 +228,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>📈 Grafik Perkembangan Untung Warung</CardTitle>
+          <CardTitle>Grafik Perkembangan Untung Warung</CardTitle>
           <CardDescription>
             Lihat bagaimana omset dan keuntungan warung berkembang dari waktu ke waktu
           </CardDescription>
@@ -320,7 +320,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             stroke={metricConfigs.revenue.color}
             fill={metricConfigs.revenue.color}
             fillOpacity={0.6}
-            name="💰 Omset"
+            name="Omset"
           />
         )}
         
@@ -359,7 +359,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             stroke={metricConfigs.stockValue.color}
             fill={metricConfigs.stockValue.color}
             fillOpacity={0.4}
-            name="📦 Nilai Stok (WAC)"
+            name="Nilai Stok (WAC)"
           />
         )}
       </AreaChart>
@@ -372,7 +372,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>📈 Grafik Perkembangan Untung Warung</CardTitle>
+            <CardTitle>Grafik Perkembangan Untung Warung</CardTitle>
             <CardDescription>
               Lihat bagaimana omset dan keuntungan warung berkembang dari waktu ke waktu ({trendData.length} periode)
             </CardDescription>
@@ -442,7 +442,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
                 ) : (
                   <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
                 )}
-                <span className="text-xs sm:text-sm text-gray-600">📈 Pertumbuhan Omset</span>
+                <span className="text-xs sm:text-sm text-gray-600">Pertumbuhan Omset</span>
               </div>
               <div className={`text-sm sm:text-lg font-bold ${
                 trendAnalysis.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'

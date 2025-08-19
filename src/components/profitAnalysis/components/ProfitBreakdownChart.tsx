@@ -62,7 +62,7 @@ const calculateMetrics = (revenue: number, cogs: number, opex: number) => {
 const generateBarChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
   return [
     {
-      category: '🍽️ Ringkasan Warung',
+      category: 'Ringkasan Warung',
       'Omset': metrics.revenue,
       'Modal Bahan': metrics.cogs,
       'Biaya Tetap': metrics.opex,
@@ -188,7 +188,7 @@ const ProfitBreakdownChart = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
+          <CardTitle>Ringkasan Keuangan Warung</CardTitle>
           <CardDescription>
             Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih
           </CardDescription>
@@ -205,7 +205,7 @@ const ProfitBreakdownChart = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
+          <CardTitle>Ringkasan Keuangan Warung</CardTitle>
           <CardDescription>
             Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih
           </CardDescription>
@@ -316,7 +316,7 @@ const ProfitBreakdownChart = ({
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
+            <CardTitle>Ringkasan Keuangan Warung</CardTitle>
             <CardDescription>
               {chartType === 'bar' 
                 ? 'Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih'
@@ -360,7 +360,7 @@ const ProfitBreakdownChart = ({
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 border-t">
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">💰 Total Omset</div>
+            <div className="text-xs sm:text-sm text-gray-600">Total Omset</div>
             <div className="text-sm sm:text-lg font-bold text-green-600">
               {formatCurrency(metrics.revenue)}
             </div>

@@ -1,46 +1,17 @@
-// index.ts - Clean profit utils export file
-// ==============================================
+// src/components/profitAnalysis/utils/index.ts
+// Barrel export for profit analysis utilities
 
-// Export profit calculations (core business logic)
-export {
-  calculateRealTimeProfit,
-  calculateMargins,
-  filterTransactionsByPeriod,
-  getMarginRating,
-  extractMaterialName,
-  calculateInventoryBasedCOGS,
-  analyzeCostStructure,
-  calculateBreakEvenAnalysis,
-  comparePeriods,
-  validateDataQuality,
-  generateExecutiveInsights,
-  formatCurrency,
-  formatPercentage
-} from './profitCalculations';
+// Calculations
+export * from './calculations/basicCalculations';
 
-// Export profit transformers (data transformation)
-export {
-  calculateRollingAverages, // TETAP ADA DI SINI - only in transformers
-  transformToRevenueBreakdown,
-  transformToCOGSBreakdown,
-  transformToOpExBreakdown,
-  transformToProfitAnalysis,
-  transformToChartData,
-  formatCurrency as formatCurrencyTrans, // Alias to avoid conflict
-  formatPercentage as formatPercentageTrans, // Alias to avoid conflict
-  formatLargeNumber,
-  formatPeriodLabel,
-  getShortPeriodLabel,
-  calculateGrowth,
-  getGrowthStatus,
-  generatePeriodOptions,
-  isValidPeriod,
-  getCurrentPeriod
-} from './profitTransformers';
+// Filters
+export * from './filters/dataFilters';
 
-// Export types
-export type {
-  FinancialTransactionActual,
-  BahanBakuActual,
-  OperationalCostActual
-} from './profitCalculations';
+// Ratings
+export * from './ratings/profitRatings';
+
+// Formatting
+export * from './formatting/displayFormatting';
+
+// Analysis
+export * from './analysis/complexAnalysis';

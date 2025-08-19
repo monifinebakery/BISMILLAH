@@ -218,7 +218,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   // New item form handlers
   const handleNewItemNumericChange = useCallback((field: keyof FormData, value: string) => {
-    setNewItemFormData((prev) => (prev[field] === value ? prev : { ...prev, [field]: value }));
+    // Clean the input value before setting
+    const cleanValue = value.replace(/[^\d.,]/g, '');
+    setNewItemFormData((prev) => (prev[field] === cleanValue ? prev : { ...prev, [field]: cleanValue }));
   }, []);
 
   const resetNewItemForm = useCallback(() => {
@@ -249,10 +251,17 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     return toNumber(newItemFormData.totalBayar);
   }, [newItemFormData.totalBayar]);
 
-  const subtotal = useMemo(() => effectiveQty * computedUnitPrice, [effectiveQty, computedUnitPrice]);
+  const subtotal = useMemo(() => {
+    const qty = effectiveQty;
+    const price = computedUnitPrice;
+    if (qty > 0 && price > 0) {
+      return qty * price;
+    }
+    return 0;
+  }, [effectiveQty, computedUnitPrice]);
 
   const canSubmitNewItem =
-    newItemFormData.nama.trim() !== '' &&
+    (isSelectingExistingItem ? selectedWarehouseItem : newItemFormData.nama.trim()) !== '' &&
     newItemFormData.satuan.trim() !== '' &&
     effectiveQty > 0 &&
     computedUnitPrice > 0;
@@ -325,12 +334,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       if (effectiveQty <= 0) return toast.error('Total yang dibeli harus > 0');
       if (computedUnitPrice <= 0) return toast.error('Tidak bisa menghitung harga per unit');
 
-      // For new items, we'll use a special identifier that the trigger can recognize
-      // We'll prefix with "new_" to indicate this is a new item
-      const newItemId = `new_${generateUUID()}`;
-
+      // For new items, we'll use null for bahanBakuId since it doesn't exist yet
       const purchaseItem: PurchaseItem = {
-        bahanBakuId: newItemId,
+        bahanBakuId: null,
         nama: newItemFormData.nama,
         satuan: newItemFormData.satuan,
         kuantitas: effectiveQty,
@@ -349,6 +355,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   // ✅ Check if purchase can be edited (not completed)
   const canEdit = !purchase || purchase.status !== 'completed';
 
+  // Status class mapping
+  const statusClassMap = {
+    completed: 'bg-green-100 text-green-800 border-green-200',
+    pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    cancelled: 'bg-red-100 text-red-800 border-red-200'
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
@@ -366,11 +379,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 {purchase && (
                   <Badge 
                     variant="outline" 
-                    className={`ml-2 ${
-                      purchase.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      purchase.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}
+                    className={statusClassMap[purchase.status] || 'bg-gray-100 text-gray-800 border-gray-200'}
                   >
                     {purchase.status}
                   </Badge>
@@ -521,7 +530,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <Package className="h-5 w-5" />
                   Item Pembelian ({formData.items.length})
                   {mode === 'edit' && isDirty && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                       Modified
                     </Badge>
                   )}
@@ -559,81 +568,80 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         onClick={() => setIsSelectingExistingItem(false)}
                         className="flex-1"
                       >
-                        {/* Toggle between new item and existing item */}
-<div className="flex gap-2">
-  <Button
-    variant={isSelectingExistingItem ? "outline" : "default"}
-    onClick={() => setIsSelectingExistingItem(false)}
-    className="flex-1"
-  >
-    Tambah Item Baru
-  </Button>
-  <Button
-    variant={isSelectingExistingItem ? "default" : "outline"}
-    onClick={() => setIsSelectingExistingItem(true)}
-    className="flex-1"
-  >
-    Pilih Item Gudang
-  </Button>
-</div>
+                        Tambah Item Baru
+                      </Button>
+                      <Button
+                        variant={isSelectingExistingItem ? "default" : "outline"}
+                        onClick={() => setIsSelectingExistingItem(true)}
+                        className="flex-1"
+                      >
+                        Pilih Item Gudang
+                      </Button>
+                    </div>
 
-{isSelectingExistingItem ? (
-  // Select existing warehouse item
-  <div className="space-y-4">
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-gray-700">Pilih Bahan Baku *</Label>
-      <Select
-        value={selectedWarehouseItem}
-        onValueChange={setSelectedWarehouseItem}
-      >
-        <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-          <SelectValue placeholder="Pilih bahan baku dari gudang" />
-        </SelectTrigger>
-        <SelectContent>
-          {warehouseItems.map((item) => (
-            <SelectItem key={item.id} value={item.id} className="focus:bg-orange-50">
-              {item.nama} ({item.stok} {item.satuan})
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  </div>
-) : (
-  // Add new item form
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
-      <input
-        type="text"
-        value={newItemFormData.nama}
-        onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
-        placeholder="Contoh: Tepung Terigu"
-        className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
-      />
-    </div>
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
-      <Select
-        value={newItemFormData.satuan}
-        onValueChange={(value) => setNewItemFormData((prev) => ({ ...prev, satuan: value }))}
-      >
-        <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-          <SelectValue placeholder="Pilih satuan" />
-        </SelectTrigger>
-        <SelectContent>
-          {['gram','kilogram','miligram','liter','milliliter','pcs','buah','biji','butir','lembar'].map((u) => (
-            <SelectItem key={u} value={u} className="focus:bg-orange-50">
-              {u}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  </div>
-)}
+                    {isSelectingExistingItem ? (
+                      // Select existing warehouse item
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Pilih Bahan Baku *</Label>
+                          <Select
+                            value={selectedWarehouseItem}
+                            onValueChange={setSelectedWarehouseItem}
+                          >
+                            <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+                              <SelectValue placeholder="Pilih bahan baku dari gudang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {warehouseItems.length === 0 ? (
+                                <SelectItem value="" disabled>
+                                  Tidak ada bahan baku tersedia
+                                </SelectItem>
+                              ) : (
+                                warehouseItems.map((item) => (
+                                  <SelectItem key={item.id} value={item.id} className="focus:bg-orange-50">
+                                    {item.nama} ({item.stok} {item.satuan})
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ) : (
+                      // Add new item form
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
+                          <input
+                            type="text"
+                            value={newItemFormData.nama}
+                            onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
+                            placeholder="Contoh: Tepung Terigu"
+                            className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
+                          <Select
+                            value={newItemFormData.satuan}
+                            onValueChange={(value) => setNewItemFormData((prev) => ({ ...prev, satuan: value }))}
+                          >
+                            <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+                              <SelectValue placeholder="Pilih satuan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {['gram','kilogram','miligram','liter','milliliter','pcs','buah','biji','butir','lembar'].map((u) => (
+                                <SelectItem key={u} value={u} className="focus:bg-orange-50">
+                                  {u}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
 
-                {/* Input utama: Total yang dibeli + Total bayar */}
+                    {/* Input utama: Total yang dibeli + Total bayar */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-700">Total yang Dibeli *</Label>
@@ -645,11 +653,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                             onPaste={handlePasteGuard(true)}
                             onChange={(e) => {
                               handleNewItemNumericChange('kuantitas', e.target.value);
-                              requestAnimationFrame(() => {
-                                if (qtyRef.current) {
-                                  qtyRef.current.focus();
-                                }
-                              });
                             }}
                             placeholder="0"
                             className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
@@ -671,11 +674,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                             onPaste={handlePasteGuard(true)}
                             onChange={(e) => {
                               handleNewItemNumericChange('totalBayar', e.target.value);
-                              requestAnimationFrame(() => {
-                                if (payRef.current) {
-                                  payRef.current.focus();
-                                }
-                              });
                             }}
                             className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                             placeholder="0"
@@ -914,9 +912,11 @@ const EditItemForm: React.FC<{
 
   // ✅ ZERO OVERHEAD: Direct state update
   const handleFieldChange = useCallback((field: string, value: string) => {
+    // Clean the input value before setting
+    const cleanValue = value.replace(/[^\d.,]/g, '');
     setEditedItem(prev => {
-      if (prev[field] === value) return prev; // Skip if same
-      return { ...prev, [field]: value };
+      if (prev[field] === cleanValue) return prev; // Skip if same
+      return { ...prev, [field]: cleanValue };
     });
   }, []);
 
@@ -999,7 +999,7 @@ const EditItemForm: React.FC<{
         <div className="space-y-2">
           <Label>Subtotal</Label>
           <div className="flex items-center h-10 px-3 bg-green-100 border border-green-300 rounded text-green-800 font-medium">
-            {formatCurrency(subtotal)}
+            {formatCurrency(subtotal || 0)}
           </div>
         </div>
       </div>
@@ -1028,8 +1028,8 @@ const EditItemForm: React.FC<{
             <div>
               <strong>Sesudah:</strong>
               <div>Qty: {toNumber(editedItem.kuantitas)} {item.satuan}</div>
-              <div>Harga: {formatCurrency(toNumber(editedItem.hargaSatuan))}</div>
-              <div>Subtotal: {formatCurrency(subtotal)}</div>
+              <div>Harga: {formatCurrency(toNumber(editedItem.hargaSatuan) || 0)}</div>
+              <div>Subtotal: {formatCurrency(subtotal || 0)}</div>
             </div>
           </div>
         </div>

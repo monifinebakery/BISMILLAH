@@ -196,14 +196,18 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   const { addNotification } = useNotification();
 
   // ✅ FIXED: Live connection status tracking
-  const [isConnected, setIsConnected] = React.useState(navigator.onLine);
+  const [isConnected, setIsConnected] = React.useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
   React.useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+
     const handleOnline = () => setIsConnected(true);
     const handleOffline = () => setIsConnected(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -240,6 +244,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
   // ✅ NEW: Real-time subscription for warehouse updates
   useEffect(() => {
+    if (typeof navigator === 'undefined') return;
     if (!user?.id) return;
 
     if (isDebugMode) logger.debug('🔄 Setting up real-time subscription for user:', user.id);
@@ -263,7 +268,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          // Listen to all change events on purchases table to keep warehouse data in sync
+          event: '*',
           schema: 'public',
           table: 'purchases',
           filter: `user_id=eq.${user.id}`
@@ -585,6 +591,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
   // ✅ DEBUG: Log context state changes
   React.useEffect(() => {
+    if (typeof navigator === 'undefined') return;
     logger.debug(`[${providerId.current}] 📊 Context state:`, {
       bahanBakuCount: bahanBaku.length,
       loading,

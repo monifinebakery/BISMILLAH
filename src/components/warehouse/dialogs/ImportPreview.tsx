@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import type { BahanBakuImport } from '../types';
+import { formatDate } from '@/utils/formatUtils';
 
 interface ImportPreviewProps {
   preview: { valid: BahanBakuImport[]; errors: string[] };
@@ -94,6 +95,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({ preview, onReset }) => {
                   <th className="px-3 py-2 text-left font-medium text-gray-500">Kemasan</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">Isi/Kemasan</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">Harga Total</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500">Terakhir Diperbarui</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -116,6 +118,9 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({ preview, onReset }) => {
                     </td>
                     <td className="px-3 py-2 text-gray-600">
                       Rp {item.hargaTotalBeliKemasan?.toLocaleString('id-ID')}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">
+                      {item.updatedAt ? formatDate(item.updatedAt) : '-'}
                     </td>
                   </tr>
                 ))}

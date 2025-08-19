@@ -81,6 +81,7 @@ export default defineConfig(({ mode }) => {
       minify: isProd ? "esbuild" : false,
       sourcemap: !isProd,
       rollupOptions: {
+        external: ["next-themes"],
         output: {
           manualChunks: (id) => {
             if (id.includes("@tanstack/react-query")) return "react-query";

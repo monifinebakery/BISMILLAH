@@ -45,11 +45,14 @@ import { id } from 'date-fns/locale';
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { formatCurrency } from '@/utils/formatUtils';
-import { toast } from 'sonner';
 import { generateUUID } from '@/utils/uuid';
+import { toast } from 'sonner';
 
 // Import warehouse context
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+import SupplierDialog from '@/components/supplier/SupplierDialog';
+import type { Supplier } from '@/types/supplier';
+import { SafeNumericInput } from './dialogs';
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
@@ -89,50 +92,6 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 };
-
-// ---- Guards: cegah input aneh sebelum ke state ----
-const makeBeforeInputGuard = (getValue: () => string, allowDecimal = true) =>
-  (e: React.FormEvent<HTMLInputElement> & { nativeEvent: InputEvent }) => {
-    const ch = (e.nativeEvent as { data?: string }).data ?? '';
-    if (!ch) return;
-    const el = e.currentTarget as HTMLInputElement;
-    const cur = getValue() ?? '';
-    const next =
-      cur.slice(0, el.selectionStart ?? cur.length) + ch + cur.slice(el.selectionEnd ?? cur.length);
-    if (!allowDecimal) {
-      if (!/^\d*$/.test(next)) e.preventDefault();
-      return;
-    }
-    if (!/^\d*(?:[.,]\d{0,6})?$/.test(next)) e.preventDefault();
-  };
-
-const handlePasteGuard = (allowDecimal = true) => (e: React.ClipboardEvent<HTMLInputElement>) => {
-  const text = e.clipboardData.getData('text').trim();
-  const ok = allowDecimal ? /^\d*(?:[.,]\d{0,6})?$/.test(text) : /^\d*$/.test(text);
-  if (!ok) e.preventDefault();
-};
-
-const SafeNumericInput = React.forwardRef<
-  HTMLInputElement,
-  React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
->(({ className = '', value, onChange, ...props }, ref) => {
-  const baseClasses =
-    'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:cursor-not-allowed disabled:opacity-50';
-  return (
-    <input
-      ref={ref}
-      type="text"
-      inputMode="decimal"
-      value={String(value ?? '')}
-      onChange={onChange}
-      className={`${baseClasses} ${className}`}
-      autoComplete="off"
-      autoCorrect="off"
-      spellCheck="false"
-      {...props}
-    />
-  );
-});
 
 // ✅ ENHANCED: Updated props interface
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
@@ -190,10 +149,17 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   // State for item selection mode
   const [isSelectingExistingItem, setIsSelectingExistingItem] = useState(false);
   const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
+
+  const [isSupplierDialogOpen, setSupplierDialogOpen] = useState(false);
   
   // refs for new item form
   const qtyRef = useRef<HTMLInputElement>(null);
   const payRef = useRef<HTMLInputElement>(null);
+
+  const handleSupplierAdded = useCallback((supplier: Supplier) => {
+    updateFormField('supplier', supplier.id);
+    setSupplierDialogOpen(false);
+  }, [updateFormField, setSupplierDialogOpen]);
 
   const handleEditItem = useCallback((index: number) => {
     setEditingItemIndex(index);
@@ -334,9 +300,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       if (effectiveQty <= 0) return toast.error('Total yang dibeli harus > 0');
       if (computedUnitPrice <= 0) return toast.error('Tidak bisa menghitung harga per unit');
 
-      // For new items, we'll use null for bahanBakuId since it doesn't exist yet
+      // For new items, generate a temporary ID since no warehouse item exists yet
       const purchaseItem: PurchaseItem = {
-        bahanBakuId: null,
+        bahanBakuId: generateUUID(),
         nama: newItemFormData.nama,
         satuan: newItemFormData.satuan,
         kuantitas: effectiveQty,
@@ -363,8 +329,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {mode === 'create' ? (
@@ -468,22 +435,34 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 {/* Supplier Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Supplier *</Label>
-                  <Select
-                    value={formData.supplier}
-                    onValueChange={(value) => updateFormField('supplier', value)} // ✅ FIXED: Use updateFormField
-                    disabled={!canEdit}
-                  >
-                    <SelectTrigger className={!canEdit ? 'opacity-50' : ''}>
-                      <SelectValue placeholder="Pilih supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={formData.supplier}
+                      onValueChange={(value) => updateFormField('supplier', value)}
+                      disabled={!canEdit}
+                    >
+                      <SelectTrigger className={`flex-1 ${!canEdit ? 'opacity-50' : ''}`}>
+                        <SelectValue placeholder="Pilih supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.id}>
+                            {supplier.nama}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {canEdit && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setSupplierDialogOpen(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Date Selection */}
@@ -892,8 +871,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             </Button>
           )}
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      <SupplierDialog
+        open={isSupplierDialogOpen}
+        onOpenChange={setSupplierDialogOpen}
+        supplier={null}
+        onSuccess={handleSupplierAdded}
+      />
+    </>
   );
 };
 

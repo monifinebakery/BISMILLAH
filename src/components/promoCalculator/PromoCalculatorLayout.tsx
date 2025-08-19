@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import PromoCard from './components/PromoCard';
 import { logger } from '@/utils/logger';
+import { Button } from '@/components/ui/button';
 
 // Import services
 import { promoService } from './services/promoService';
@@ -391,38 +392,38 @@ const PromoCalculatorLayout = () => {
               </div>
 
               <div className="hidden md:flex gap-3">
-                <button 
-                  onClick={() => setCurrentView('list')} 
+                <Button
+                  onClick={() => setCurrentView('list')}
                   className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
                 >
                   <List className="h-4 w-4" />
                   Lihat Semua
-                </button>
-                <button 
-                  onClick={() => setCurrentView('calculator')} 
+                </Button>
+                <Button
+                  onClick={() => setCurrentView('calculator')}
                   className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
                 >
                   <Plus className="h-4 w-4" />
                   Buat Promo
-                </button>
+                </Button>
               </div>
             </div>
 
             <div className="flex md:hidden flex-col gap-3 mt-6">
-              <button 
-                onClick={() => setCurrentView('list')} 
+              <Button
+                onClick={() => setCurrentView('list')}
                 className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
               >
                 <List className="h-4 w-4" />
                 Lihat Semua
-              </button>
-              <button 
-                onClick={() => setCurrentView('calculator')} 
+              </Button>
+              <Button
+                onClick={() => setCurrentView('calculator')}
                 className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"
               >
                 <Plus className="h-4 w-4" />
                 Buat Promo
-              </button>
+              </Button>
             </div>
           </div>
 

@@ -52,7 +52,7 @@ interface SupplierContextType {
   error: string | null;
   
   // Actions
-  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<boolean>;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<Supplier | null>;
   updateSupplier: (id: string, supplier: Partial<Omit<Supplier, 'id' | 'userId'>>) => Promise<boolean>;
   deleteSupplier: (id: string) => Promise<boolean>;
   
@@ -476,17 +476,17 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const addSupplier = useCallback(async (
     supplierData: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>
-  ): Promise<boolean> => {
+  ): Promise<Supplier | null> => {
     if (!user) {
       toast.error('Anda harus login untuk menambahkan supplier');
-      return false;
+      return null;
     }
 
     try {
-      await addMutation.mutateAsync(supplierData);
-      return true;
+      const newSupplier = await addMutation.mutateAsync(supplierData);
+      return newSupplier;
     } catch (error) {
-      return false;
+      return null;
     }
   }, [user, addMutation]);
 

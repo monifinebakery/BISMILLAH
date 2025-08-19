@@ -464,7 +464,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Prasyarat data (buat tombol "Tambah")
   const validatePrerequisites = useCallback(() => {
     const hasSuppliers = (suppliers?.length || 0) > 0;
-    if (!hasSuppliers) { toast.error('Mohon tambahkan data supplier terlebih dahulu'); return false; }
+    if (!hasSuppliers) {
+      toast.warning('Belum ada data supplier. Kamu bisa menambahkannya nanti.');
+    }
     return true;
   }, [suppliers?.length]);
 

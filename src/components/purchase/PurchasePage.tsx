@@ -141,15 +141,14 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   const dialogActions = useMemo(() => ({
     purchase: {
       openAdd: () => {
-        if (validatePrerequisites()) {
-          setAppState(prev => ({
-            ...prev,
-            dialogs: {
-              ...prev.dialogs,
-              purchase: { isOpen: true, editing: null, mode: 'create' }
-            }
-          }));
-        }
+        validatePrerequisites();
+        setAppState(prev => ({
+          ...prev,
+          dialogs: {
+            ...prev.dialogs,
+            purchase: { isOpen: true, editing: null, mode: 'create' }
+          }
+        }));
       },
       openEdit: (purchase: any) => {
         // edit selalu diperbolehkan (stok/WAC diurus trigger DB)

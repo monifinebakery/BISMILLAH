@@ -3,7 +3,7 @@ import PromoCalculatorIndex from '@/components/promoCalculator/index';
 
 const PromoCalculatorPage = () => {
   return (
-    <div className="w-full">
+    <div className="min-h-screen bg-gray-50">
       <PromoCalculatorIndex />
     </div>
   );

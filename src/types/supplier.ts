@@ -131,7 +131,7 @@ export interface BulkActionsProps {
 export interface UseSupplierFormReturn {
   formData: SupplierFormData;
   formErrors: Record<string, string>;
-  handleSubmit: () => Promise<boolean>;
+  handleSubmit: () => Promise<Supplier | null>;
   resetForm: () => void;
   updateField: (field: keyof SupplierFormData, value: string) => void;
   isEditing: boolean;

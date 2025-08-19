@@ -53,7 +53,7 @@ const StatusFooter: React.FC<StatusFooterProps> = ({
         
         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           <span className="flex items-center">
-            💰 Omset: <span className="font-medium ml-1 text-orange-700">{formatCurrency(data.revenue)}</span>
+            Omset: <span className="font-medium ml-1 text-orange-700">{formatCurrency(data.revenue)}</span>
           </span>
           <span className="hidden sm:inline text-gray-400">•</span>
           <span className="flex items-center">

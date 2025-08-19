@@ -37,9 +37,9 @@ interface MetricCard {
   subtitle?: string;
   change?: number;
   changeType: 'positive' | 'negative' | 'neutral';
-  helpText?: string; // 🍽️ Penjelasan dalam bahasa sederhana
-  alert?: string;    // 🚨 Alert khusus untuk F&B
-}
+  helpText?: string; // Penjelasan dalam bahasa sederhana
+  alert?: string;    // Alert khusus untuk F&B
+};
 
 // ==============================================
 // HELPER FUNCTIONS OUTSIDE COMPONENT
@@ -107,11 +107,11 @@ const calculateChanges = (
   };
 };
 
-// 🍽️ Helper untuk emoji kategori F&B
+// Helper untuk kategori F&B
 const getFoodCategoryEmoji = (percentage: number) => {
-  if (percentage > 60) return '🔴'; // Alert - terlalu tinggi
-  if (percentage > 40) return '🟡'; // Warning - perlu perhatian  
-  return '🟢'; // Good - sehat
+  if (percentage > 60) return ''; // Alert - terlalu tinggi
+  if (percentage > 40) return ''; // Warning - perlu perhatian  
+  return ''; // Good - sehat
 };
 
 const generateCards = (
@@ -125,7 +125,7 @@ const generateCards = (
   
   const cards = [
     {
-      title: '💰 Penjualan Bulan Ini',
+      title: 'Penjualan Bulan Ini',
       value: metrics.revenue,
       icon: DollarSign,
       color: 'text-green-600',
@@ -136,7 +136,7 @@ const generateCards = (
       helpText: 'Semua uang yang masuk dari jualan makanan & minuman'
     },
     {
-      title: '📈 Untung Kotor',
+      title: 'Untung Kotor',
       value: metrics.grossProfit,
       icon: TrendingUp,
       color: 'text-orange-600',
@@ -147,7 +147,7 @@ const generateCards = (
       helpText: 'Untung sebelum dipotong biaya operasional (listrik, sewa, gaji)'
     },
     {
-      title: '💵 Untung Bersih (Take Home)',
+      title: 'Untung Bersih (Take Home)',
       value: metrics.netProfit,
       icon: Calculator,
       color: metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600',
@@ -158,7 +158,7 @@ const generateCards = (
       helpText: 'Untung beneran yang bisa dibawa pulang setelah semua biaya'
     },
     {
-      title: `🛒 Modal Bahan Baku ${getFoodCategoryEmoji(cogsPercentage)}`,
+      title: `Modal Bahan Baku ${getFoodCategoryEmoji(cogsPercentage)}`,
       value: metrics.cogs,
       icon: ShoppingCart,
       color: cogsPercentage > 60 ? 'text-red-600' : cogsPercentage > 40 ? 'text-orange-600' : 'text-green-600',

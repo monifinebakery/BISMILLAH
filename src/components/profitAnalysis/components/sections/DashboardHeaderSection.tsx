@@ -58,7 +58,7 @@ export interface DashboardHeaderSectionProps {
 // ==============================================
 
 const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
-  title = '💰 Untung Rugi Warung',
+  title = 'Untung Rugi Warung',
   subtitle = 'Lihat untung-rugi bulan ini, modal bahan baku, dan perkiraan bulan depan - semua dalam bahasa yang mudah dimengerti',
   currentPeriod,
   periodOptions,
@@ -191,7 +191,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
                 : 'bg-red-100 text-red-800'
             }`}
           >
-            {quickStatus.netProfit >= 0 ? '📈 Untung' : '📉 Rugi'}
+            {quickStatus.netProfit >= 0 ? 'Untung' : 'Rugi'}
             {" "}
             {formatCurrency(Math.abs(quickStatus.netProfit))}
           </span>

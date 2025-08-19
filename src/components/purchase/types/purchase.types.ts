@@ -112,6 +112,7 @@ export interface PurchaseTableContextType {
 
   // Filtering and searching
   filteredPurchases: Purchase[];
+  suppliers: Array<{ id: string; nama: string }>;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   statusFilter: PurchaseStatus | 'all';

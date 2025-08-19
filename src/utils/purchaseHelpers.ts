@@ -274,8 +274,10 @@ export const getSupplierName = (
   supplierId: string,
   suppliers: Array<{ id: string; nama: string }>
 ): string => {
-  const supplier = suppliers.find(s => s.id === supplierId);
-  return supplier?.nama || 'Unknown Supplier';
+  const supplier = suppliers.find(
+    s => s.id === supplierId || s.nama === supplierId
+  );
+  return supplier?.nama || supplierId || 'Unknown Supplier';
 };
 
 export const formatItemsDisplay = (items: PurchaseItem[]): string => {

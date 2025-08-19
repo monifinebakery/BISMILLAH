@@ -52,6 +52,7 @@ import { toast } from 'sonner';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import SupplierDialog from '@/components/supplier/SupplierDialog';
 import type { Supplier } from '@/types/supplier';
+import { SafeNumericInput } from './dialogs';
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
@@ -91,50 +92,6 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 };
-
-// ---- Guards: cegah input aneh sebelum ke state ----
-const makeBeforeInputGuard = (getValue: () => string, allowDecimal = true) =>
-  (e: React.FormEvent<HTMLInputElement> & { nativeEvent: InputEvent }) => {
-    const ch = (e.nativeEvent as { data?: string }).data ?? '';
-    if (!ch) return;
-    const el = e.currentTarget as HTMLInputElement;
-    const cur = getValue() ?? '';
-    const next =
-      cur.slice(0, el.selectionStart ?? cur.length) + ch + cur.slice(el.selectionEnd ?? cur.length);
-    if (!allowDecimal) {
-      if (!/^\d*$/.test(next)) e.preventDefault();
-      return;
-    }
-    if (!/^\d*(?:[.,]\d{0,6})?$/.test(next)) e.preventDefault();
-  };
-
-const handlePasteGuard = (allowDecimal = true) => (e: React.ClipboardEvent<HTMLInputElement>) => {
-  const text = e.clipboardData.getData('text').trim();
-  const ok = allowDecimal ? /^\d*(?:[.,]\d{0,6})?$/.test(text) : /^\d*$/.test(text);
-  if (!ok) e.preventDefault();
-};
-
-const SafeNumericInput = React.forwardRef<
-  HTMLInputElement,
-  React.InputHTMLAttributes<HTMLInputElement> & { value: string | number }
->(({ className = '', value, onChange, ...props }, ref) => {
-  const baseClasses =
-    'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:cursor-not-allowed disabled:opacity-50';
-  return (
-    <input
-      ref={ref}
-      type="text"
-      inputMode="decimal"
-      value={String(value ?? '')}
-      onChange={onChange}
-      className={`${baseClasses} ${className}`}
-      autoComplete="off"
-      autoCorrect="off"
-      spellCheck="false"
-      {...props}
-    />
-  );
-});
 
 // ✅ ENHANCED: Updated props interface
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({

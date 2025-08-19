@@ -46,19 +46,19 @@ export const useSupplierForm = (
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (): Promise<boolean> => {
+  const handleSubmit = async (): Promise<Supplier | null> => {
     if (!validateForm()) {
       toast.error('Mohon periksa kembali data yang diisi');
-      return false;
+      return null;
     }
 
     // Clean data before saving
-    const dataToSave = { 
-      ...formData, 
+    const dataToSave = {
+      ...formData,
       email: formData.email.trim() || null,
       telepon: formData.telepon.trim() || null,
       alamat: formData.alamat.trim() || null,
-      catatan: formData.catatan.trim() || null 
+      catatan: formData.catatan.trim() || null
     };
     
     const result = supplier

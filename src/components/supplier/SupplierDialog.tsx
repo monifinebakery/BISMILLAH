@@ -27,6 +27,7 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
   const handleSuccess = (createdSupplier: Supplier) => {
     onOpenChange(false);
     onSuccess?.(createdSupplier);
+
   };
 
   const handleCancel = () => {

@@ -82,6 +82,8 @@ export default defineConfig(({ mode }) => {
       target: "es2020",
       minify: isProd ? "esbuild" : false,
       sourcemap: !isProd,
+      // Performance optimizations
+      chunkSizeWarningLimit: 1000, // Increase limit to reduce warnings
       rollupOptions: {
         external: ["next-themes"],
         output: {
@@ -143,6 +145,18 @@ export default defineConfig(({ mode }) => {
             : "assets/[name].[ext]",
         },
         onwarn(warning, warn) {
+          // Suppress circular dependency warnings for known safe cases
+          if (warning.code === 'CIRCULAR_DEPENDENCY') {
+            // Only warn about significant circular dependencies
+            if (!warning.ids?.some(id => 
+              id.includes('node_modules') || 
+              id.includes('react') || 
+              id.includes('react-dom')
+            )) {
+              warn(warning);
+            }
+            return;
+          }
           warn(warning);
         },
       },
@@ -150,5 +164,22 @@ export default defineConfig(({ mode }) => {
 
     // ❌ jangan drop console di esbuild global (biar dev aman 100%)
     // esbuild: { drop: isProd && !keepLogs ? ["debugger", "console"] : [] },
+    
+    // Performance optimization: Enable caching
+    cacheDir: "node_modules/.vite",
+    
+    // Optimization for dependencies
+    optimizeDeps: {
+      include: [
+        "react",
+        "react-dom",
+        "react-router-dom",
+        "@tanstack/react-query",
+        "@supabase/supabase-js",
+        "lucide-react",
+        "@radix-ui/react-icons"
+      ],
+      exclude: ["next-themes"]
+    }
   };
 });

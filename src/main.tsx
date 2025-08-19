@@ -165,6 +165,18 @@ if (effectiveDev && "performance" in window) {
       }
     }, 0);
   });
+  
+  // Add memory usage monitoring in dev
+  if ((window as any).performance.memory) {
+    setInterval(() => {
+      const memory = (window as any).performance.memory;
+      logger.debug("Memory Usage", {
+        used: Math.round(memory.usedJSHeapSize / 1048576) + " MB",
+        total: Math.round(memory.totalJSHeapSize / 1048576) + " MB",
+        limit: Math.round(memory.jsHeapSizeLimit / 1048576) + " MB",
+      });
+    }, 30000); // Log every 30 seconds
+  }
 }
 
 // ------------------------------

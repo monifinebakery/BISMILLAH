@@ -559,105 +559,79 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         onClick={() => setIsSelectingExistingItem(false)}
                         className="flex-1"
                       >
-                        Tambah Item Baru
-                      </Button>
-                      <Button
-                        variant={isSelectingExistingItem ? "default" : "outline"}
-                        onClick={() => setIsSelectingExistingItem(true)}
-                        className="flex-1"
-                      >
-                        Pilih Item Gudang
-                      </Button>
-                    </div>
+                        {/* Toggle between new item and existing item */}
+<div className="flex gap-2">
+  <Button
+    variant={isSelectingExistingItem ? "outline" : "default"}
+    onClick={() => setIsSelectingExistingItem(false)}
+    className="flex-1"
+  >
+    Tambah Item Baru
+  </Button>
+  <Button
+    variant={isSelectingExistingItem ? "default" : "outline"}
+    onClick={() => setIsSelectingExistingItem(true)}
+    className="flex-1"
+  >
+    Pilih Item Gudang
+  </Button>
+</div>
 
-                    {isSelectingExistingItem ? (
-                      // Select existing warehouse item
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">Pilih Bahan Baku *</Label>
-                          <Select
-                            value={selectedWarehouseItem}
-                            onValueChange={setSelectedWarehouseItem}
-                          >
-                            <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-                              <SelectValue placeholder="Pilih bahan baku dari gudang" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {warehouseItems.map((item) => (
-                                <SelectItem key={item.id} value={item.id} className="focus:bg-orange-50">
-                                  {item.nama} ({item.stok} {item.satuan})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    ) : (
-                      // Add new item form
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
-                          <input
-                            type="text"
-                            value={newItemFormData.nama}
-                            onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
-                            placeholder="Contoh: Tepung Terigu"
-                            className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
-                          />
-                        </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
-                        <Select
-                          value={newItemFormData.satuan}
-                          onValueChange={(value) => setNewItemFormData((prev) => ({ ...prev, satuan: value }))}
-                        >
-                          <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-                            <SelectValue placeholder="Pilih satuan" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {['gram', 'kilogram', 'miligram', 'liter', 'milliliter', 'pcs', 'buah', 'biji', 'butir', 'lembar'].map((u) => (
-                              <SelectItem key={u} value={u} className="focus:bg-orange-50">
-                                {u}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  // Add new item form
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
-                      <input
-                        type="text"
-                        value={newItemFormData.nama}
-                        onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
-                        placeholder="Contoh: Tepung Terigu"
-                        className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
-                      <Select
-                        value={newItemFormData.satuan}
-                        onValueChange={(value) => setNewItemFormData((prev) => ({ ...prev, satuan: value }))}
-                      >
-                        <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-                          <SelectValue placeholder="Pilih satuan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {['gram', 'kilogram', 'miligram', 'liter', 'milliliter', 'pcs', 'buah', 'biji', 'butir', 'lembar'].map((u) => (
-                            <SelectItem key={u} value={u} className="focus:bg-orange-50">
-                              {u}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
+{isSelectingExistingItem ? (
+  // Select existing warehouse item
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-gray-700">Pilih Bahan Baku *</Label>
+      <Select
+        value={selectedWarehouseItem}
+        onValueChange={setSelectedWarehouseItem}
+      >
+        <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+          <SelectValue placeholder="Pilih bahan baku dari gudang" />
+        </SelectTrigger>
+        <SelectContent>
+          {warehouseItems.map((item) => (
+            <SelectItem key={item.id} value={item.id} className="focus:bg-orange-50">
+              {item.nama} ({item.stok} {item.satuan})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  </div>
+) : (
+  // Add new item form
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
+      <input
+        type="text"
+        value={newItemFormData.nama}
+        onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
+        placeholder="Contoh: Tepung Terigu"
+        className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
+      />
+    </div>
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
+      <Select
+        value={newItemFormData.satuan}
+        onValueChange={(value) => setNewItemFormData((prev) => ({ ...prev, satuan: value }))}
+      >
+        <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+          <SelectValue placeholder="Pilih satuan" />
+        </SelectTrigger>
+        <SelectContent>
+          {['gram','kilogram','miligram','liter','milliliter','pcs','buah','biji','butir','lembar'].map((u) => (
+            <SelectItem key={u} value={u} className="focus:bg-orange-50">
+              {u}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  </div>
+)}
 
                 {/* Input utama: Total yang dibeli + Total bayar */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

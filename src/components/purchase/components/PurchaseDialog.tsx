@@ -45,6 +45,7 @@ import { id } from 'date-fns/locale';
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { formatCurrency } from '@/utils/formatUtils';
+import { generateUUID } from '@/utils/uuid';
 import { toast } from 'sonner';
 
 // Import warehouse context

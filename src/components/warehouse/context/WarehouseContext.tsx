@@ -265,14 +265,15 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          // Listen to all change events on purchases table to keep warehouse data in sync
+          event: '*',
           schema: 'public',
           table: 'purchases',
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🔄 Purchase updated:', payload);
-          // Invalidate warehouse data when purchases are updated (status changes)
+          console.log('🔄 Purchase changed:', payload);
+          // Invalidate warehouse data when purchases are inserted, updated, or deleted
           queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         }
       )

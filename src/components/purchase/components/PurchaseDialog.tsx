@@ -48,6 +48,9 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import { generateUUID } from '@/utils/uuid';
 
+// Import warehouse context
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
   nama: string;
@@ -169,6 +172,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     },
   });
 
+  // Warehouse context
+  const { bahanBaku: warehouseItems } = useBahanBaku();
+
   // Item management
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   
@@ -180,6 +186,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     totalBayar: '',
     keterangan: '',
   });
+  
+  // State for item selection mode
+  const [isSelectingExistingItem, setIsSelectingExistingItem] = useState(false);
+  const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
   
   // refs for new item form
   const qtyRef = useRef<HTMLInputElement>(null);
@@ -287,28 +297,54 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   // Handle adding new item from form
   const handleAddNewItem = useCallback(() => {
-    if (!newItemFormData.nama.trim()) return toast.error('Nama bahan baku harus diisi');
-    if (!newItemFormData.satuan) return toast.error('Satuan harus dipilih');
-    if (effectiveQty <= 0) return toast.error('Total yang dibeli harus > 0');
-    if (computedUnitPrice <= 0) return toast.error('Tidak bisa menghitung harga per unit');
+    if (isSelectingExistingItem) {
+      // Handle selecting existing warehouse item
+      if (!selectedWarehouseItem) return toast.error('Pilih bahan baku dari daftar');
+      
+      const warehouseItem = warehouseItems.find(item => item.id === selectedWarehouseItem);
+      if (!warehouseItem) return toast.error('Bahan baku tidak ditemukan');
+      
+      const purchaseItem: PurchaseItem = {
+        bahanBakuId: warehouseItem.id,
+        nama: warehouseItem.nama,
+        satuan: warehouseItem.satuan,
+        kuantitas: effectiveQty,
+        hargaSatuan: computedUnitPrice,
+        subtotal: effectiveQty * computedUnitPrice,
+        keterangan: newItemFormData.keterangan,
+      };
 
-    // Generate a proper UUID for new items
-    const tempId = generateUUID();
+      addItem(purchaseItem);
+      resetNewItemForm();
+      setSelectedWarehouseItem('');
+      toast.success(`${warehouseItem.nama} berhasil ditambahkan`);
+    } else {
+      // Handle adding new item
+      if (!newItemFormData.nama.trim()) return toast.error('Nama bahan baku harus diisi');
+      if (!newItemFormData.satuan) return toast.error('Satuan harus dipilih');
+      if (effectiveQty <= 0) return toast.error('Total yang dibeli harus > 0');
+      if (computedUnitPrice <= 0) return toast.error('Tidak bisa menghitung harga per unit');
 
-    const purchaseItem: PurchaseItem = {
-      bahanBakuId: tempId,
-      nama: newItemFormData.nama,
-      satuan: newItemFormData.satuan,
-      kuantitas: effectiveQty,
-      hargaSatuan: computedUnitPrice,
-      subtotal: effectiveQty * computedUnitPrice,
-      keterangan: newItemFormData.keterangan,
-    };
+      // For new items, we'll use a special identifier that the trigger can recognize
+      // We'll prefix with "new_" to indicate this is a new item
+      const newItemId = `new_${generateUUID()}`;
 
-    addItem(purchaseItem);
-    resetNewItemForm();
-    toast.success(`${newItemFormData.nama} berhasil ditambahkan`);
-  }, [addItem, resetNewItemForm, newItemFormData, effectiveQty, computedUnitPrice]);
+      const purchaseItem: PurchaseItem = {
+        bahanBakuId: newItemId,
+        nama: newItemFormData.nama,
+        satuan: newItemFormData.satuan,
+        kuantitas: effectiveQty,
+        hargaSatuan: computedUnitPrice,
+        subtotal: effectiveQty * computedUnitPrice,
+        keterangan: newItemFormData.keterangan,
+      };
+
+      addItem(purchaseItem);
+      resetNewItemForm();
+      toast.success(`${newItemFormData.nama} berhasil ditambahkan`);
+    }
+  }, [addItem, resetNewItemForm, newItemFormData, effectiveQty, computedUnitPrice, 
+      isSelectingExistingItem, selectedWarehouseItem, warehouseItems]);
 
   // ✅ Check if purchase can be edited (not completed)
   const canEdit = !purchase || purchase.status !== 'completed';
@@ -516,18 +552,59 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   </CardHeader>
 
                   <CardContent className="space-y-6">
-                    {/* Informasi Bahan Baku */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
-                        <input
-                          type="text"
-                          value={newItemFormData.nama}
-                          onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
-                          placeholder="Contoh: Tepung Terigu"
-                          className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
-                        />
+                    {/* Toggle between new item and existing item */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant={isSelectingExistingItem ? "outline" : "default"}
+                        onClick={() => setIsSelectingExistingItem(false)}
+                        className="flex-1"
+                      >
+                        Tambah Item Baru
+                      </Button>
+                      <Button
+                        variant={isSelectingExistingItem ? "default" : "outline"}
+                        onClick={() => setIsSelectingExistingItem(true)}
+                        className="flex-1"
+                      >
+                        Pilih Item Gudang
+                      </Button>
+                    </div>
+
+                    {isSelectingExistingItem ? (
+                      // Select existing warehouse item
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Pilih Bahan Baku *</Label>
+                          <Select
+                            value={selectedWarehouseItem}
+                            onValueChange={setSelectedWarehouseItem}
+                          >
+                            <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+                              <SelectValue placeholder="Pilih bahan baku dari gudang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {warehouseItems.map((item) => (
+                                <SelectItem key={item.id} value={item.id} className="focus:bg-orange-50">
+                                  {item.nama} ({item.stok} {item.satuan})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
+                    ) : (
+                      // Add new item form
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
+                          <input
+                            type="text"
+                            value={newItemFormData.nama}
+                            onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
+                            placeholder="Contoh: Tepung Terigu"
+                            className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
+                          />
+                        </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
                         <Select

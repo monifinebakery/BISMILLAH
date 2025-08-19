@@ -32,3 +32,6 @@ dist-ssr
 .env.test.local
 # Local Netlify folder
 .netlify
+
+# Database backups
+backup*.sql

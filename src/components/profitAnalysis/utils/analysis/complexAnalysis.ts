@@ -1,11 +1,82 @@
 // src/components/profitAnalysis/utils/analysis/complexAnalysis.ts
 // Complex profit analysis utilities
 
-import { FinancialTransactionActual, BahanBakuActual, OperationalCostActual } from '../../types/profitAnalysis.types';
+import { FinancialTransactionActual, BahanBakuActual, OperationalCostActual, RealTimeProfitCalculation } from '../../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS, FNB_THRESHOLDS, FNB_LABELS } from '../../constants/profitConstants';
-import { calculateMargins, getEffectiveUnitPrice } from '../calculations/basicCalculations';
+import { calculateMargins, getEffectiveUnitPrice, calcHPP } from '../calculations/basicCalculations';
 import { filterTransactionsByPeriod } from '../filters/dataFilters';
 import { getMarginRating, getCOGSEfficiencyRating } from '../ratings/profitRatings';
+
+/**
+ * Calculate real-time profit analysis with actual schema
+ */
+export const calculateRealTimeProfit = (
+  period: string,
+  transactions: FinancialTransactionActual[],
+  materials: BahanBakuActual[],
+  operationalCosts: OperationalCostActual[]
+): RealTimeProfitCalculation => {
+  const periodTransactions = filterTransactionsByPeriod(transactions, period);
+
+  const revenueTransactions = periodTransactions.filter(t => t.type === 'income');
+  const totalRevenue = revenueTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  
+  // Calculate COGS using effective price (WAC)
+  const {
+    totalHPP: totalCOGS,
+    breakdown: materialBreakdown
+  } = calcHPP(
+    materials.map(m => ({ 
+      bahan_baku_id: m.id, 
+      qty_base: (Number(m.stok) || 0) * 0.1 // Estimasi pemakaian 10%
+    })),
+    Object.fromEntries(materials.map(m => [m.id, m]))
+  );
+
+  const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
+  const totalOpEx = activeCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
+
+  const enhancedRevenueTransactions = revenueTransactions.map(t => ({
+    category: t.category || 'Uncategorized',
+    amount: Number(t.amount) || 0,
+    description: t.description || '',
+    date: t.date,
+    id: t.id
+  }));
+
+  const enhancedCOGSTransactions = materialBreakdown.map(item => ({
+    name: item.nama,
+    cost: item.hpp,
+    unit_price: item.price,
+    quantity: item.qty,
+    category: 'Direct Material'
+  }));
+
+  const enhancedOpExCosts = activeCosts.map(c => ({
+    nama_biaya: c.nama_biaya,
+    jumlah_per_bulan: Number(c.jumlah_per_bulan),
+    jenis: c.jenis,
+    cost_category: c.cost_category || 'general',
+    id: c.id
+  }));
+  
+  return {
+    period,
+    revenue_data: {
+      total: totalRevenue,
+      transactions: enhancedRevenueTransactions
+    },
+    cogs_data: {
+      total: totalCOGS,
+      materials: enhancedCOGSTransactions
+    },
+    opex_data: {
+      total: totalOpEx,
+      costs: enhancedOpExCosts
+    },
+    calculated_at: new Date().toISOString()
+  };
+};
 
 /**
  * Analyze cost structure

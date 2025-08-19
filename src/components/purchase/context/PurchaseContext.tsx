@@ -19,7 +19,7 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
-import type { Purchase, PurchaseContextType, PurchaseStatus } from '../types/purchase.types';
+import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
 import {
   transformPurchaseFromDB,
@@ -122,6 +122,30 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
+
+  // Pastikan setiap item memiliki ID bahan baku; jika belum, buat otomatis
+  const ensureBahanBakuIds = useCallback(
+    async (items: PurchaseItem[], supplierId: string): Promise<PurchaseItem[]> => {
+      return Promise.all(
+        items.map(async (item) => {
+          if (item.bahanBakuId?.trim()) return item;
+          const newId = crypto.randomUUID();
+          await addBahanBaku({
+            id: newId,
+            nama: item.nama,
+            kategori: 'Lainnya',
+            stok: item.kuantitas,
+            minimum: 0,
+            satuan: item.satuan || '-',
+            harga: item.hargaSatuan || 0,
+            supplier: supplierId,
+          });
+          return { ...item, bahanBakuId: newId };
+        })
+      );
+    },
+    [addBahanBaku]
+  );
 
   // ------------------- Query (list) -------------------
   const {
@@ -380,25 +404,31 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const errs = validatePurchaseData(purchase);
     if (errs.length) { toast.error(errs[0]); return false; }
     try {
-      await createMutation.mutateAsync(purchase);
+      const items = await ensureBahanBakuIds(purchase.items || [], purchase.supplier);
+      await createMutation.mutateAsync({ ...purchase, items });
       return true;
     } catch (e) {
       logger.error('Add purchase failed', e);
       return false;
     }
-  }, [user, createMutation]);
+  }, [user, createMutation, ensureBahanBakuIds]);
 
   // Edit diperbolehkan walau completed — trigger DB akan rekalkulasi stok jika perlu
   const updatePurchaseAction = useCallback(async (id: string, updated: Partial<Purchase>) => {
     if (!user) { toast.error('Anda harus login'); return false; }
     try {
-      await updateMutation.mutateAsync({ id, updates: updated });
+      let payload = { ...updated };
+      if (updated.items && updated.items.length > 0) {
+        const supplierId = updated.supplier || findPurchase(id)?.supplier || '';
+        payload.items = await ensureBahanBakuIds(updated.items, supplierId);
+      }
+      await updateMutation.mutateAsync({ id, updates: payload });
       return true;
     } catch (e) {
       logger.error('Update purchase failed', e);
       return false;
     }
-  }, [user, updateMutation]);
+  }, [user, updateMutation, ensureBahanBakuIds, findPurchase]);
 
   const setStatus = useCallback(async (id: string, newStatus: PurchaseStatus) => {
     if (!user) { toast.error('Anda harus login'); return false; }

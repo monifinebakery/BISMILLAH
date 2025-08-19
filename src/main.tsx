@@ -2,7 +2,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router } from "react-router-dom";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider } from "@/lib/theme";
 import App from "./App.tsx";
 import "./index.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";

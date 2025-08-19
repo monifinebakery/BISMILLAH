@@ -46,7 +46,6 @@ import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
-import { generateUUID } from '@/utils/uuid';
 
 // Import warehouse context
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';

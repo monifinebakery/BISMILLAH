@@ -25,7 +25,16 @@ const MobileExportButton = () => {
   
   // Call all hooks to get data for export
   const { settings } = useUserSettings();
-  const { bahanBaku } = useBahanBaku();
+  
+  // Add defensive check for useBahanBaku
+  let bahanBaku = [];
+  try {
+    const warehouseContext = useBahanBaku();
+    bahanBaku = warehouseContext?.bahanBaku || [];
+  } catch (error) {
+    console.warn('Failed to get warehouse data in MobileExportButton:', error);
+    bahanBaku = [];
+  }
   const { suppliers } = useSupplier();
   const { purchases } = usePurchase();
   const { recipes, hppResults } = useRecipe();

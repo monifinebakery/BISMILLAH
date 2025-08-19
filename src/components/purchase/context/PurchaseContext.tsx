@@ -96,7 +96,16 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { addFinancialTransaction, deleteFinancialTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
-  const { bahanBaku, addBahanBaku } = useBahanBaku();
+  // Add defensive check for useBahanBaku
+  let bahanBaku = [];
+  let addBahanBaku = async () => false;
+  try {
+    const warehouseContext = useBahanBaku();
+    bahanBaku = warehouseContext?.bahanBaku || [];
+    addBahanBaku = warehouseContext?.addBahanBaku || addBahanBaku;
+  } catch (error) {
+    console.warn('Failed to get warehouse data in PurchaseContext:', error);
+  }
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
       const s = suppliers?.find((x: any) => x.id === supplierId);

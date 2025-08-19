@@ -23,13 +23,24 @@
     "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] },
 
-    // QoL sesuai preferensi kamu
-    "skipLibCheck": true,
-    "strict": false,
-    "noImplicitAny": false,
+    // Improved type checking for better stability
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    
+    // Additional quality of life improvements
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "src",

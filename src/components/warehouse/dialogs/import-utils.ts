@@ -1,19 +1,6 @@
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-
-export interface BahanBakuImport {
-  nama: string;
-  kategori: string;
-  supplier: string;
-  satuan: string;
-  expiry?: string;
-  stok: number;
-  minimum: number;
-  jumlahBeliKemasan: number;
-  isiPerKemasan: number;
-  satuanKemasan: string;
-  hargaTotalBeliKemasan: number;
-}
+import type { BahanBakuImport } from '../types';
 
 // Mapping of possible header names to our standard fields
 export const headerMap: Record<string, keyof BahanBakuImport> = {

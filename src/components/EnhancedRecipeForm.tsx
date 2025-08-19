@@ -25,7 +25,15 @@ interface EnhancedRecipeFormProps {
 }
 
 const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFormProps) => {
-  const { bahanBaku } = useBahanBaku();
+  // Add defensive check for useBahanBaku
+  let bahanBaku = [];
+  try {
+    const warehouseContext = useBahanBaku();
+    bahanBaku = warehouseContext?.bahanBaku || [];
+  } catch (error) {
+    console.warn('Failed to get warehouse data in RecipeForm:', error);
+    bahanBaku = [];
+  }
   const { calculateHPP, validateRecipeData } = useRecipe();
   
   const [formData, setFormData] = useState<NewRecipe>({

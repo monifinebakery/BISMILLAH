@@ -10,15 +10,12 @@
     "build:debug": "vite build --mode development --minify false",
     "build:simple": "vite build --no-minify",
     "preview": "vite preview --port 5500",
-
     "analyze": "cross-env VITE_ANALYZE=true vite build",
-
     "lint": "eslint .",
     "clean": "rm -rf node_modules/.vite dist",
     "clean:all": "rm -rf node_modules .vite dist package-lock.json pnpm-lock.yaml",
     "check-deps": "npm ls react react-dom || pnpm ls react react-dom",
     "check-react": "npm ls | grep react || pnpm ls | grep react",
-
     "push": "./auto-push.sh",
     "push:quick": "git add -A && git commit -m '🚀 Quick update' && git push",
     "push:msg": "./auto-push.sh"
@@ -67,7 +64,6 @@
     "input-otp": "^1.2.4",
     "loglevel": "^1.9.2",
     "lucide-react": "^0.525.0",
-    "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.0",
     "react-day-picker": "^8.10.1",

@@ -59,7 +59,6 @@ import { useProfitAnalysis } from "@/components/profitAnalysis";
 
 // --- Import Fungsi Export ---
 import { exportAllDataToExcel } from "@/utils/exportUtils";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -304,15 +303,6 @@ export function AppSidebar() {
       {/* ✅ Footer with delayed animation */}
       <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200 group-data-[collapsible=icon]:px-0">
         <SidebarMenu className="space-y-1">
-          {/* Theme Toggle - only for desktop */}
-          <SidebarMenuItem className="hidden md:block transition-all duration-200 ease-in-out">
-            <SidebarMenuButton asChild>
-              <ThemeToggle className="w-full">
-                <span>Tema</span>
-              </ThemeToggle>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
           {/* Export Button */}
           <SidebarMenuItem className="transition-all duration-200 ease-in-out">
             {renderActionButton(

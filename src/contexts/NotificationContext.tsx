@@ -323,6 +323,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(cleanupExpiredNotifications, DUPLICATE_THRESHOLD);
+    return () => clearInterval(interval);
+  }, [cleanupExpiredNotifications, DUPLICATE_THRESHOLD]);
+
   // ===========================================
   // ✅ COMPUTED VALUES
   // ===========================================

@@ -67,10 +67,10 @@ const App = () => {
           <Suspense fallback={<AppLoader />}>
             <AppRouter />
           </Suspense>
-          
+
           {/* ✅ Dev tools only in development */}
           {import.meta.env.DEV && (
-            <ReactQueryDevtools 
+            <ReactQueryDevtools
               initialIsOpen={false} 
               position="bottom-right"
               toggleButtonProps={{

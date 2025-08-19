@@ -2,6 +2,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router } from "react-router-dom";
+import { ThemeProvider } from "@/lib/theme";
 import App from "./App.tsx";
 import "./index.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
@@ -100,9 +101,11 @@ logger.debug("Starting React render process");
 root.render(
   <React.StrictMode>
     <EnhancedErrorBoundary>
-      <Router>
-        <App />
-      </Router>
+      <ThemeProvider attribute="class" defaultTheme="light">
+        <Router>
+          <App />
+        </Router>
+      </ThemeProvider>
     </EnhancedErrorBoundary>
   </React.StrictMode>
 );

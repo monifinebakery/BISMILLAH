@@ -83,14 +83,14 @@ const AdvancedMetricsSection: React.FC<AdvancedMetricsSectionProps> = ({
             value={data.grossProfitMargin}
             color="text-orange-600"
             bgColor="bg-orange-50"
-            emoji="🎯"
+            emoji=""
           />
           <MetricCard
             title="Margin Bersih"
             value={data.netProfitMargin}
             color="text-green-600"
             bgColor="bg-green-50"
-            emoji="💎"
+            emoji=""
           />
           <MetricCard
             title="Pertumbuhan"

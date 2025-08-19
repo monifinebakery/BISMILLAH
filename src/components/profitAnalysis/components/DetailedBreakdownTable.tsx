@@ -562,7 +562,7 @@ const DetailedBreakdownTable = ({
                     (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-blue-600">💎 Untung Bersih</div>
+                <div className="text-sm text-blue-600">Untung Bersih</div>
                 <div className="text-xs text-gray-600 mt-1">
                   {formatPercentage(
                     breakdownSections[0]?.total > 0

@@ -57,7 +57,7 @@ const StatusFooter: React.FC<StatusFooterProps> = ({
           </span>
           <span className="hidden sm:inline text-gray-400">•</span>
           <span className="flex items-center">
-            💎 Untung: <span className={`font-medium ml-1 ${
+            Untung: <span className={`font-medium ml-1 ${
               data.netProfit >= 0 ? 'text-green-700' : 'text-red-600'
             }`}>{formatCurrency(data.netProfit)}</span>
           </span>

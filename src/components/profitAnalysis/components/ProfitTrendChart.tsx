@@ -187,10 +187,10 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
   // ✅ METRIC CONFIGURATIONS - UPDATE dengan orange dominan
   const metricConfigs = {
     revenue: { key: 'revenue', label: 'Omset', color: CHART_CONFIG.colors.revenue },
-    grossProfit: { key: 'grossProfit', label: '🎯 Untung Kotor', color: CHART_CONFIG.colors.primary },
-    netProfit: { key: 'netProfit', label: '💎 Untung Bersih', color: '#dc2626' },
-    cogs: { key: 'cogs', label: '🥘 Modal Bahan', color: CHART_CONFIG.colors.cogs },
-    opex: { key: 'opex', label: '🏪 Biaya Tetap', color: CHART_CONFIG.colors.opex },
+    grossProfit: { key: 'grossProfit', label: 'Untung Kotor', color: CHART_CONFIG.colors.primary },
+    netProfit: { key: 'netProfit', label: 'Untung Bersih', color: '#dc2626' },
+    cogs: { key: 'cogs', label: 'Modal Bahan', color: CHART_CONFIG.colors.cogs },
+    opex: { key: 'opex', label: 'Biaya Tetap', color: CHART_CONFIG.colors.opex },
     grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.primary },
     netMargin: { key: 'netMargin', label: 'Margin Bersih', color: '#dc2626' },
     // ✅ TAMBAH: Entry baru untuk stockValue
@@ -333,7 +333,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             stroke={metricConfigs.cogs.color}
             fill={metricConfigs.cogs.color}
             fillOpacity={0.6}
-            name="🥘 Modal Bahan"
+            name="Modal Bahan"
           />
         )}
         
@@ -346,7 +346,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             stroke={metricConfigs.opex.color}
             fill={metricConfigs.opex.color}
             fillOpacity={0.6}
-            name="🏪 Biaya Tetap"
+            name="Biaya Tetap"
           />
         )}
         
@@ -459,7 +459,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
                 ) : (
                   <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
                 )}
-                <span className="text-xs sm:text-sm text-gray-600">💎 Pertumbuhan Untung</span>
+                <span className="text-xs sm:text-sm text-gray-600">Pertumbuhan Untung</span>
               </div>
               <div className={`text-sm sm:text-lg font-bold ${
                 trendAnalysis.profitGrowth >= 0 ? 'text-orange-600' : 'text-red-600'

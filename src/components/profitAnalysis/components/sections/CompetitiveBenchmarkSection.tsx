@@ -94,7 +94,7 @@ const CompetitiveBenchmarkSection: React.FC<CompetitiveBenchmarkSectionProps> = 
           <BenchmarkCard
             title="Rata-rata Industri"
             value={data.industry.averageNetMargin}
-            subtitle="% Untung Bersih"
+            subtitle="Margin Bersih"
             formatter={formatPercentage}
             bgColor="bg-gray-50"
           />

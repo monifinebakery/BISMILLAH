@@ -152,13 +152,7 @@ const PromoCalculator = () => {
 
   // ✅ Handlers
   const handleStartCreate = () => {
-    setView('create');
-    setSelectedType('');
-    setFormData({});
-    setEditingPromo(null);
-    clearCalculation();
-    // Clear URL params if any
-    window.history.replaceState({}, '', '/promo');
+    navigate('/promo/create');
   };
 
   const handleBackToDashboard = () => {

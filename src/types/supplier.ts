@@ -96,7 +96,7 @@ export interface SupplierTableProps {
 
 export interface SupplierFormProps {
   supplier: Supplier | null;
-  onSuccess?: () => void;
+  onSuccess?: (supplier: Supplier) => void;
   onCancel?: () => void;
   className?: string;
 }
@@ -105,7 +105,7 @@ export interface SupplierDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   supplier: Supplier | null;
-  onSuccess?: () => void;
+  onSuccess?: (supplier: Supplier) => void;
 }
 
 export interface SupplierFiltersProps {
@@ -131,7 +131,7 @@ export interface BulkActionsProps {
 export interface UseSupplierFormReturn {
   formData: SupplierFormData;
   formErrors: Record<string, string>;
-  handleSubmit: () => Promise<boolean>;
+  handleSubmit: () => Promise<Supplier | null>;
   resetForm: () => void;
   updateField: (field: keyof SupplierFormData, value: string) => void;
   isEditing: boolean;

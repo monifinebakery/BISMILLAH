@@ -151,7 +151,7 @@ const SupplierManagement: React.FC = () => {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         supplier={editingSupplier}
-        onSuccess={handleDialogClose}
+        onSuccess={() => handleDialogClose()}
       />
     </div>
   );

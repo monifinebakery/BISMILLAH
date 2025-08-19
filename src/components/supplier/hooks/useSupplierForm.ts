@@ -60,24 +60,18 @@ export const useSupplierForm = (
       alamat: formData.alamat.trim() || null,
       catatan: formData.catatan.trim() || null
     };
+    
+    const result = supplier
+      ? await updateSupplier(supplier.id, dataToSave)
+      : await addSupplier(dataToSave);
 
-    let savedSupplier: Supplier | null = null;
-    if (supplier) {
-      const success = await updateSupplier(supplier.id, dataToSave);
-      if (success) {
-        savedSupplier = { ...supplier, ...dataToSave } as Supplier;
-      }
-    } else {
-      savedSupplier = await addSupplier(dataToSave);
-    }
-
-    if (savedSupplier) {
+    if (result) {
       setFormErrors({});
-      onSuccess?.(savedSupplier);
-      return savedSupplier;
+      onSuccess?.(result);
+      return true;
     }
 
-    return null;
+    return false;
   };
 
   const resetForm = () => {

@@ -1,78 +1,122 @@
 // src/components/purchase/components/table/StatusDropdown.tsx
-// Extracted status dropdown section from PurchaseTable
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
 } from '@/components/ui/select';
-import { ChevronDown } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, ChevronDown } from 'lucide-react';
+import { getStatusDisplayText } from '../../utils/purchaseHelpers';
 import { Purchase, PurchaseStatus } from '../../types/purchase.types';
-import { getStatusColor, getStatusDisplayText } from '../../utils/purchaseHelpers';
-
-// Constants
-const STATUS_OPTIONS: { value: PurchaseStatus; label: string; color: string }[] = [
-  { value: 'pending', label: 'Menunggu', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  { value: 'completed', label: 'Selesai', color: 'bg-green-100 text-green-800 border-green-200' },
-  { value: 'cancelled', label: 'Dibatalkan', color: 'bg-red-100 text-red-800 border-red-200' },
-];
 
 interface StatusDropdownProps {
   purchase: Purchase;
   isEditing: boolean;
   onStartEdit: () => void;
-  onStatusChange: (purchaseId: string, newStatus: PurchaseStatus) => Promise<void>;
+  onStatusChange: (purchaseId: string, newStatus: string) => Promise<void>;
 }
 
 export const StatusDropdown: React.FC<StatusDropdownProps> = ({
   purchase,
   isEditing,
   onStartEdit,
-  onStatusChange,
+  onStatusChange
 }) => {
-  if (!isEditing) {
+  const [tempStatus, setTempStatus] = useState<PurchaseStatus>(purchase.status);
+
+  const handleStatusSave = async () => {
+    if (tempStatus !== purchase.status) {
+      await onStatusChange(purchase.id, tempStatus);
+    }
+  };
+
+  const handleStatusCancel = () => {
+    setTempStatus(purchase.status);
+    onStartEdit(); // This will close the edit mode
+  };
+
+  if (isEditing) {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onStartEdit}
-        className="h-auto p-1 justify-start hover:bg-gray-50"
-      >
-        <Badge 
-          variant="outline" 
-          className={`${getStatusColor(purchase.status)} cursor-pointer hover:opacity-80`}
+      <div className="flex items-center gap-2">
+        <Select
+          value={tempStatus}
+          onValueChange={(value) => setTempStatus(value as PurchaseStatus)}
         >
-          {getStatusDisplayText(purchase.status)}
-          <ChevronDown className="h-3 w-3 ml-1" />
-        </Badge>
-      </Button>
+          <SelectTrigger className="h-8 w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-yellow-500" />
+                <span>{getStatusDisplayText('pending')}</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="completed">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span>{getStatusDisplayText('completed')}</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="cancelled">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-red-500" />
+                <span>{getStatusDisplayText('cancelled')}</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex gap-1">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={handleStatusSave}
+            className="h-8 px-2"
+          >
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={handleStatusCancel}
+            className="h-8 px-2"
+          >
+            <XCircle className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Select
-      value={purchase.status}
-      onValueChange={(value: PurchaseStatus) => onStatusChange(purchase.id, value)}
-      defaultOpen={true}
-    >
-      <SelectTrigger className="w-[120px] h-8">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {STATUS_OPTIONS.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${option.color.split(' ')[0]}`} />
-              {option.label}
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex items-center justify-between">
+      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        purchase.status === 'completed' 
+          ? 'bg-green-100 text-green-800' 
+          : purchase.status === 'pending' 
+            ? 'bg-yellow-100 text-yellow-800' 
+            : 'bg-red-100 text-red-800'
+      }`}>
+        {purchase.status === 'completed' ? (
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+        ) : purchase.status === 'pending' ? (
+          <Clock className="h-3 w-3 mr-1" />
+        ) : (
+          <XCircle className="h-3 w-3 mr-1" />
+        )}
+        {getStatusDisplayText(purchase.status)}
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onStartEdit}
+        className="h-8 w-8 p-0 ml-2"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </Button>
+    </div>
   );
 };

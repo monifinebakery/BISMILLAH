@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { PurchaseHeaderProps } from '../types/purchase.types';
+import ImportButton from './ImportButton';
 
 const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   totalPurchases,
@@ -41,7 +42,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
           
           {/* Right actions */}
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-            {/* Hanya 1 tombol: Tambah dari Nota */}
+            <ImportButton />
             <Button
               onClick={() => onAddPurchase('packaging')} // Pastikan tipe 'packaging' sesuai dengan yang diharapkan
               className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-100 transition-colors duration-200"
@@ -49,7 +50,6 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
               <FileText className="h-5 w-5" />
               Tambah Pembelian
             </Button>
-
           </div>
         </div>
 

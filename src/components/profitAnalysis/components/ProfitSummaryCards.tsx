@@ -2,11 +2,11 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
+import {
   DollarSign, TrendingUp, Calculator, ShoppingCart,
   ArrowUp, ArrowDown, Minus, Package, Info, AlertTriangle, HelpCircle
 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ResponsiveTooltip } from '@/components/recipe/components/RecipeForm/CostCalculationStep/components/shared/ResponsiveTooltip';
 
 import { formatCurrency, formatPercentage, calculateGrowth, getGrowthStatus } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
@@ -298,32 +298,26 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                 {card.title}
                 {/* ✅ TAMBAH: Tooltip untuk semua cards dengan helpText */}
                 {(card as any).helpText && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3 h-3 text-blue-400 ml-1 cursor-help hover:text-blue-600" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-sm">
-                        <p>{(card as any).helpText}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <ResponsiveTooltip
+                    content={<p>{(card as any).helpText}</p>}
+                    side="top"
+                  >
+                    <HelpCircle className="w-3 h-3 text-blue-400 ml-1 cursor-help hover:text-blue-600" />
+                  </ResponsiveTooltip>
                 )}
                 {/* ✅ TAMBAH: Tooltip untuk WAC stock value */}
                 {card.title === 'Nilai Stok Bahan Baku' && labels?.hppLabel && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-gray-400 ml-1 inline cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-sm">
-                        <p>
-                          Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost),
-                          yaitu rata-rata harga pembelian terakhir yang sudah termasuk semua pembelian sebelumnya.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <ResponsiveTooltip
+                    content={
+                      <p>
+                        Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost),
+                        yaitu rata-rata harga pembelian terakhir yang sudah termasuk semua pembelian sebelumnya.
+                      </p>
+                    }
+                    side="top"
+                  >
+                    <Info className="w-3 h-3 text-gray-400 ml-1 cursor-help" />
+                  </ResponsiveTooltip>
                 )}
               </CardTitle>
               <div className={`p-2 rounded-lg ${card.bgColor}`}>

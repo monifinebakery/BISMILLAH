@@ -72,78 +72,92 @@ const MenuPage = () => {
     }
   };
 
-  // ✅ Simplified menu structure with profit analysis
+  // ✅ Struktur menu dengan judul dan deskripsi
   const menuItems = [
     {
       title: 'Dashboard',
+      description: 'Ringkasan usaha',
       icon: BarChart3,
       path: '/',
     },
     {
       title: 'Kalkulator Promo',
+      description: 'Hitung harga promo',
       icon: Calculator,
       path: '/promo',
     },
     {
       title: 'Manajemen Resep',
+      description: 'Kelola resep menu',
       icon: ChefHat,
       path: '/resep',
     },
     {
       title: 'Gudang Bahan Baku',
+      description: 'Pantau stok bahan',
       icon: Package,
       path: '/gudang',
     },
     {
       title: 'Biaya Operasional',
+      description: 'Catat pengeluaran',
       icon: DollarSign,
       path: '/biaya-operasional',
     },
     {
       title: 'Supplier',
+      description: 'Data pemasok',
       icon: Users,
       path: '/supplier',
     },
     {
       title: 'Pembelian',
+      description: 'Kelola pembelian',
       icon: Truck,
       path: '/pembelian',
     },
     {
       title: 'Pesanan',
+      description: 'Kelola pesanan',
       icon: ShoppingCartIcon,
       path: '/pesanan',
     },
     {
       title: 'Laporan Keuangan',
+      description: 'Analisis keuangan',
       icon: BarChart3,
       path: '/laporan',
     },
-    // ✅ NEW: Add Profit Analysis menu
+    // ✅ Menu analisis profit
     {
       title: 'Analisis Profit',
+      description: 'Pantau profit',
       icon: TrendingUp,
       path: '/analisis-profit',
     },
     {
       title: 'Manajemen Aset',
+      description: 'Kelola aset',
       icon: Archive,
       path: '/aset',
     },
     {
       title: 'Invoice',
+      description: 'Kelola invoice',
       icon: Receipt,
       path: '/invoice',
     },
-    // ✅ Updates menu with special handling
+    // ✅ Menu pembaruan dengan penanda
     {
       title: 'Pembaruan',
+      description: 'Info versi terbaru',
       icon: Bell,
       path: '/updates',
-      isUpdates: true
+      isUpdates: true,
     },
     {
       title: 'Pengaturan',
+      description: 'Sesuaikan preferensi',
       icon: Settings,
       path: '/pengaturan',
     },
@@ -166,30 +180,31 @@ const MenuPage = () => {
         </div>
       </div>
 
-      {/* Menu Grid - Simplified */}
+      {/* Menu List - Simplified */}
       <div className="max-w-md mx-auto p-4 pb-20">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {menuItems.map((item) => (
-            <Card 
+            <Card
               key={item.path}
               className="cursor-pointer hover:border-gray-300 transition-all duration-200 border-gray-200 bg-white rounded-xl hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate(item.path)}
             >
-              <CardContent className="p-4 text-center">
-                <div className="flex flex-col items-center gap-2">
-                  {/* Icon with Update Badge Support */}
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center relative">
-                    {item.isUpdates ? (
-                      <UpdateBadge className="text-orange-600" showCount={false} />
-                    ) : (
-                      <item.icon className="h-5 w-5 text-orange-600" />
-                    )}
-                  </div>
-                  
-                  {/* Title */}
-                  <span className="text-sm font-medium text-gray-700 leading-tight text-center">
-                    {item.title}
-                  </span>
+              <CardContent className="p-4 flex items-start gap-4">
+                {/* Icon with Update Badge Support */}
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center relative">
+                  {item.isUpdates ? (
+                    <UpdateBadge className="text-orange-600" showCount={false} />
+                  ) : (
+                    <item.icon className="h-5 w-5 text-orange-600" />
+                  )}
+                </div>
+
+                {/* Title and Description */}
+                <div className="text-left">
+                  <h3 className="text-sm font-medium text-gray-700 leading-tight">{item.title}</h3>
+                  {item.description && (
+                    <p className="text-xs text-gray-500">{item.description}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

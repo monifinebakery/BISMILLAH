@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { X, Upload } from 'lucide-react';
 import ImportControls from './ImportControls';
 import ImportPreview from './ImportPreview';
-import { useImportExport } from '../hooks/useImportExport';
-import { BahanBakuImport } from './import-utils';
+import { useImportExport } from '../hooks';
+import type { BahanBakuImport } from '../types';
 
 interface ImportDialogProps {
   isOpen: boolean;

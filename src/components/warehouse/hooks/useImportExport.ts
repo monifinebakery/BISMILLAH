@@ -1,13 +1,8 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import {
-  BahanBakuImport,
-  headerMap,
-  requiredFields,
-  validate,
-  loadXLSX
-} from '../dialogs/import-utils';
+import type { BahanBakuImport } from '../types';
+import { headerMap, requiredFields, validate, loadXLSX } from '../dialogs/import-utils';
 
 interface UseImportExportProps {
   onImport: (data: BahanBakuImport[]) => Promise<boolean>;

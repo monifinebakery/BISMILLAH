@@ -152,7 +152,7 @@ const generateCards = (
       icon: Calculator,
       color: metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600',
       bgColor: metrics.netProfit >= 0 ? 'bg-orange-50' : 'bg-red-50',
-      subtitle: `${formatPercentage(metrics.netMargin)} margin akhir`,
+      subtitle: `${formatPercentage(metrics.netMargin)} dari penjualan`,
       change: changes.netProfitChange,
       changeType: getGrowthStatus(changes.netProfitChange).status,
       helpText: 'Untung beneran yang bisa dibawa pulang setelah semua biaya'

@@ -11,13 +11,8 @@ export interface ServiceConfig {
 
 // Transform DB -> FE (tetap boleh membaca field kemasan lama untuk kompatibilitas tampilan,
 // tapi TIDAK dipakai untuk menghitung/menulis apa pun di warehouse)
-const transformToFrontend = (dbItem: BahanBaku & { harga_rata2?: string | number }): BahanBakuFrontend => {
-  const wac =
-    dbItem.harga_rata_rata != null
-      ? Number(dbItem.harga_rata_rata)
-      : dbItem.harga_rata2 != null
-        ? Number(dbItem.harga_rata2)
-        : null;
+const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
+  const wac = dbItem.harga_rata_rata != null ? Number(dbItem.harga_rata_rata) : null;
 
   return {
     id: dbItem.id,
@@ -70,7 +65,7 @@ class CrudService {
       let query = supabase.from('bahan_baku').select(`
         id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
         tanggal_kadaluwarsa, created_at, updated_at,
-        harga_rata_rata, harga_rata2,
+        harga_rata_rata,
         jumlah_beli_kemasan, isi_per_kemasan, satuan_kemasan, harga_total_beli_kemasan
       `);
 

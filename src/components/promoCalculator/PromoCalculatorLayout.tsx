@@ -373,24 +373,20 @@ const PromoCalculatorLayout = () => {
     return (
       <div className={styles.containerLayout}>
         <div className={styles.mainContent}>
-          {/* Header - Updated to match warehouse design */}
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-                  <Calculator className="h-8 w-8 text-white" />
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-orange-100 rounded-xl">
+                  <Calculator className="h-8 w-8 text-orange-600" />
                 </div>
-                
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-                    Kalkulator Promo
-                  </h1>
-                  <p className="text-white opacity-90">
+                  <h1 className="text-3xl font-bold text-gray-900">Kalkulator Promo</h1>
+                  <p className="text-gray-600 mt-1">
                     Hitung profit margin dan dampak promo dengan akurat
                   </p>
                 </div>
               </div>
-
               <div className="hidden md:flex gap-3">
                 <Button
                   onClick={() => setCurrentView('list')}

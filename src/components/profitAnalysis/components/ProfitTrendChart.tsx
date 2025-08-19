@@ -3,22 +3,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
-  AreaChart,
-  Area,
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  Legend, AreaChart, Area
 } from 'recharts';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
 import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 
 import { formatCurrency, formatLargeNumber, getShortPeriodLabel } from '../utils/profitTransformers';
@@ -142,6 +130,39 @@ const analyzeTrend = (trendData: TrendData[]) => {
 };
 
 // ==============================================
+// TOOLTIP COMPONENT
+// ==============================================
+
+const CustomTooltip = ({ active, payload, label, viewType }: any) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-white p-4 border border-gray-200 rounded-lg min-w-48">
+      <p className="font-semibold text-gray-800 mb-3">{label}</p>
+      {payload.map((entry: any, index: number) => (
+        <div key={index} className="flex items-center justify-between space-x-4 mb-1">
+          <div className="flex items-center space-x-2">
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-sm text-gray-600">{entry.dataKey}:</span>
+          </div>
+          <span className="text-sm font-medium">
+            {viewType === 'margins' && entry.dataKey.includes('Margin')
+              ? `${entry.value.toFixed(1)}%`
+              : entry.dataKey === 'stockValue'
+              ? formatCurrency(entry.value)
+              : formatCurrency(entry.value)
+            }
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ==============================================
 // MAIN COMPONENT
 // ==============================================
 
@@ -170,21 +191,10 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     netProfit: { key: 'netProfit', label: '💎 Untung Bersih', color: '#dc2626' },
     cogs: { key: 'cogs', label: '🥘 Modal Bahan', color: CHART_CONFIG.colors.cogs },
     opex: { key: 'opex', label: '🏪 Biaya Tetap', color: CHART_CONFIG.colors.opex },
-    grossMargin: { key: 'grossMargin', label: '📈 % Untung Kotor', color: CHART_CONFIG.colors.primary },
-    netMargin: { key: 'netMargin', label: '📊 % Untung Bersih', color: '#dc2626' },
+    grossMargin: { key: 'grossMargin', label: '📈 Margin Kotor', color: CHART_CONFIG.colors.primary },
+    netMargin: { key: 'netMargin', label: '📊 Margin Bersih', color: '#dc2626' },
     // ✅ TAMBAH: Entry baru untuk stockValue
     stockValue: { key: 'stockValue', label: '📦 Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning }
-  };
-
-  const chartConfig: ChartConfig = {
-    revenue: { label: '💰 Omset', color: CHART_CONFIG.colors.revenue },
-    grossProfit: { label: '🎯 Untung Kotor', color: CHART_CONFIG.colors.primary },
-    netProfit: { label: '💎 Untung Bersih', color: '#dc2626' },
-    cogs: { label: '🥘 Modal Bahan', color: CHART_CONFIG.colors.cogs },
-    opex: { label: '🏪 Biaya Tetap', color: CHART_CONFIG.colors.opex },
-    grossMargin: { label: '📈 % Untung Kotor', color: CHART_CONFIG.colors.primary },
-    netMargin: { label: '📊 % Untung Bersih', color: '#dc2626' },
-    stockValue: { label: '📦 Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning },
   };
 
   // ✅ EVENT HANDLERS
@@ -239,117 +249,121 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
 
   // ✅ LINE CHART RENDER
   const renderLineChart = () => (
-    <ChartContainer config={chartConfig} className="h-[300px] w-full">
+    <ResponsiveContainer width="100%" height={300}>
       <LineChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-        <XAxis dataKey="periodLabel" tick={{ fontSize: 12 }} axisLine={false} />
-        <YAxis
+        <XAxis 
+          dataKey="periodLabel"
           tick={{ fontSize: 12 }}
-          tickFormatter={(value) =>
-            viewType === 'margins' ? `${value}%` : formatLargeNumber(value)
-          }
           axisLine={false}
         />
-        <ChartTooltip
-          content={
-            <ChartTooltipContent
-              formatter={(value: number) =>
-                viewType === 'margins'
-                  ? `${value.toFixed(1)}%`
-                  : formatCurrency(value)
-              }
-            />
-          }
+        <YAxis 
+          tick={{ fontSize: 12 }}
+          tickFormatter={(value) => viewType === 'margins' ? `${value}%` : formatLargeNumber(value)}
+          axisLine={false}
         />
-        <Legend wrapperStyle={{ fontSize: '12px' }} iconType="circle" />
-
-        {selectedMetrics.map((metric) => {
+        <Tooltip trigger="click" content={(props) => <CustomTooltip {...props} viewType={viewType} />} />
+        <Legend 
+          wrapperStyle={{ fontSize: '12px' }}
+          iconType="circle"
+        />
+        
+        {/* Render selected metrics */}
+        {selectedMetrics.map(metric => {
           const config = metricConfigs[metric as keyof typeof metricConfigs];
           if (!config) return null;
+          
           return (
             <Line
               key={metric}
               type="monotone"
               dataKey={config.key}
-              stroke={`var(--color-${config.key})`}
+              stroke={config.color}
               strokeWidth={2}
-              dot={{ fill: `var(--color-${config.key})`, strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, stroke: `var(--color-${config.key})`, strokeWidth: 2 }}
+              dot={{ fill: config.color, strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, stroke: config.color, strokeWidth: 2 }}
               name={config.label}
             />
           );
         })}
       </LineChart>
-    </ChartContainer>
+    </ResponsiveContainer>
   );
 
   // ✅ AREA CHART RENDER
   const renderAreaChart = () => (
-    <ChartContainer config={chartConfig} className="h-[300px] w-full">
+    <ResponsiveContainer width="100%" height={300}>
       <AreaChart data={trendData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-        <XAxis dataKey="periodLabel" tick={{ fontSize: 12 }} axisLine={false} />
-        <YAxis
+        <XAxis 
+          dataKey="periodLabel"
+          tick={{ fontSize: 12 }}
+          axisLine={false}
+        />
+        <YAxis 
           tick={{ fontSize: 12 }}
           tickFormatter={(value) => formatLargeNumber(value)}
           axisLine={false}
         />
-        <ChartTooltip
-          content={
-            <ChartTooltipContent formatter={(value: number) => formatCurrency(value)} />
-          }
+        <Tooltip trigger="click" content={(props) => <CustomTooltip {...props} viewType={viewType} />} />
+        <Legend 
+          wrapperStyle={{ fontSize: '12px' }}
+          iconType="circle"
         />
-        <Legend wrapperStyle={{ fontSize: '12px' }} iconType="circle" />
-
+        
+        {/* Revenue Area */}
         {selectedMetrics.includes('revenue') && (
           <Area
             type="monotone"
             dataKey="revenue"
             stackId="1"
-            stroke={`var(--color-revenue)`}
-            fill={`var(--color-revenue)`}
+            stroke={metricConfigs.revenue.color}
+            fill={metricConfigs.revenue.color}
             fillOpacity={0.6}
             name="💰 Omset"
           />
         )}
-
+        
+        {/* COGS Area */}
         {selectedMetrics.includes('cogs') && (
           <Area
             type="monotone"
             dataKey="cogs"
             stackId="1"
-            stroke={`var(--color-cogs)`}
-            fill={`var(--color-cogs)`}
+            stroke={metricConfigs.cogs.color}
+            fill={metricConfigs.cogs.color}
             fillOpacity={0.6}
             name="🥘 Modal Bahan"
           />
         )}
-
+        
+        {/* OPEX Area */}
         {selectedMetrics.includes('opex') && (
           <Area
             type="monotone"
             dataKey="opex"
             stackId="1"
-            stroke={`var(--color-opex)`}
-            fill={`var(--color-opex)`}
+            stroke={metricConfigs.opex.color}
+            fill={metricConfigs.opex.color}
             fillOpacity={0.6}
             name="🏪 Biaya Tetap"
           />
         )}
-
+        
+        {/* Stock Value Area */}
         {selectedMetrics.includes('stockValue') && (
           <Area
             type="monotone"
             dataKey="stockValue"
             stackId="2"
-            stroke={`var(--color-stockValue)`}
-            fill={`var(--color-stockValue)`}
+            stroke={metricConfigs.stockValue.color}
+            fill={metricConfigs.stockValue.color}
             fillOpacity={0.4}
             name="📦 Nilai Stok (WAC)"
           />
         )}
       </AreaChart>
-    </ChartContainer>
+    </ResponsiveContainer>
   );
 
   // ✅ MAIN RENDER
@@ -378,7 +392,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
               size="sm"
               onClick={() => setViewType('margins')}
             >
-              Persen
+              Margin
             </Button>
           </div>
         </div>

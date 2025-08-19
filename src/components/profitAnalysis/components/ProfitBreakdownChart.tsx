@@ -1,23 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
-  Cell,
-  PieChart,
-  Pie,
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  Cell, PieChart, Pie
 } from 'recharts';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
 
 import { formatCurrency, formatLargeNumber } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
@@ -39,20 +26,20 @@ export interface ProfitBreakdownChartProps {
   labels?: { hppLabel: string; hppHint: string };
 }
 
-interface PieData {
-  key: string;
-  label: string;
+interface ChartData {
+  name: string;
   value: number;
   percentage: number;
+  color: string;
 }
 
 interface BarChartData {
   category: string;
-  revenue: number;
-  cogs: number;
-  opex: number;
-  grossProfit: number;
-  netProfit: number;
+  'Omset': number;
+  'Modal Bahan': number;
+  'Biaya Tetap': number;
+  'Untung Kotor': number;
+  'Untung Bersih': number;
 }
 
 // ==============================================
@@ -76,44 +63,44 @@ const generateBarChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
   return [
     {
       category: '🍽️ Ringkasan Warung',
-      revenue: metrics.revenue,
-      cogs: metrics.cogs,
-      opex: metrics.opex,
-      grossProfit: metrics.grossProfit,
-      netProfit: metrics.netProfit,
-    },
+      'Omset': metrics.revenue,
+      'Modal Bahan': metrics.cogs,
+      'Biaya Tetap': metrics.opex,
+      'Untung Kotor': metrics.grossProfit,
+      'Untung Bersih': metrics.netProfit
+    }
   ];
 };
 
 const generatePieChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
   const totalRevenue = metrics.revenue;
-
+  
   if (totalRevenue === 0) {
     return [];
   }
 
-  const data: PieData[] = [
+  const data = [
     {
-      key: 'netProfit',
-      label: '💎 Untung Bersih',
+      name: '💎 Untung Bersih',
       value: metrics.netProfit,
       percentage: (metrics.netProfit / totalRevenue) * 100,
+      color: CHART_CONFIG.colors.net_profit
     },
     {
-      key: 'cogs',
-      label: '🥘 Modal Bahan Baku',
+      name: '🥘 Modal Bahan Baku',
       value: metrics.cogs,
       percentage: (metrics.cogs / totalRevenue) * 100,
+      color: CHART_CONFIG.colors.cogs
     },
     {
-      key: 'opex',
-      label: '🏪 Biaya Bulanan Tetap',
+      name: '🏪 Biaya Bulanan Tetap',
       value: metrics.opex,
       percentage: (metrics.opex / totalRevenue) * 100,
-    },
+      color: CHART_CONFIG.colors.opex
+    }
   ];
 
-  return data.filter((item) => item.value > 0);
+  return data.filter(item => item.value > 0);
 };
 
 const calculateSummaryStats = (metrics: ReturnType<typeof calculateMetrics>) => {
@@ -123,6 +110,47 @@ const calculateSummaryStats = (metrics: ReturnType<typeof calculateMetrics>) => 
   const opexRatio = metrics.revenue > 0 ? (metrics.opex / metrics.revenue) * 100 : 0;
 
   return { grossMargin, netMargin, cogsRatio, opexRatio };
+};
+
+// ==============================================
+// TOOLTIP COMPONENTS
+// ==============================================
+
+const CustomBarTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-white p-3 border border-gray-200 rounded-lg">
+      <p className="font-semibold text-gray-800 mb-2">{label}</p>
+      {payload.map((entry: any, index: number) => (
+        <div key={index} className="flex items-center space-x-2 mb-1">
+          <div 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-sm text-gray-600">{entry.dataKey}:</span>
+          <span className="text-sm font-medium">
+            {formatCurrency(entry.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const CustomPieTooltip = ({ active, payload }: any) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const data = payload[0].payload;
+  
+  return (
+    <div className="bg-white p-3 border border-gray-200 rounded-lg">
+      <p className="font-semibold text-gray-800">{data.name}</p>
+      <p className="text-sm text-gray-600">
+        {formatCurrency(data.value)} ({data.percentage.toFixed(1)}%)
+      </p>
+    </div>
+  );
 };
 
 // ==============================================
@@ -150,17 +178,9 @@ const ProfitBreakdownChart = ({
   const pieChartData = generatePieChartData(metrics);
   const summaryStats = calculateSummaryStats(metrics);
 
-  const chartConfig: ChartConfig = {
-    revenue: { label: 'Omset', color: CHART_CONFIG.colors.revenue },
-    cogs: { label: 'Modal Bahan', color: CHART_CONFIG.colors.cogs },
-    opex: { label: 'Biaya Tetap', color: CHART_CONFIG.colors.opex },
-    grossProfit: { label: 'Untung Kotor', color: CHART_CONFIG.colors.gross_profit },
-    netProfit: { label: 'Untung Bersih', color: CHART_CONFIG.colors.net_profit },
-  };
-
   // ✅ PIE LABEL FUNCTION
-  const renderPieLabel = (entry: PieData) => {
-    return `${entry.label}: ${entry.percentage.toFixed(1)}%`;
+  const renderPieLabel = (entry: any) => {
+    return `${entry.name}: ${entry.percentage.toFixed(1)}%`;
   };
 
   // ✅ LOADING STATE
@@ -206,39 +226,69 @@ const ProfitBreakdownChart = ({
 
   // ✅ BAR CHART RENDER
   const renderBarChart = () => (
-    <ChartContainer config={chartConfig} className="h-[300px] w-full">
-      <BarChart
-        data={barChartData}
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart 
+        data={barChartData} 
         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-        <XAxis dataKey="category" tick={{ fontSize: 12 }} axisLine={false} />
-        <YAxis
+        <XAxis 
+          dataKey="category" 
+          tick={{ fontSize: 12 }}
+          axisLine={false}
+        />
+        <YAxis 
           tick={{ fontSize: 12 }}
           tickFormatter={(value) => formatLargeNumber(value)}
           axisLine={false}
         />
-        <ChartTooltip
-          content={
-            <ChartTooltipContent
-              formatter={(value: number) => formatCurrency(value)}
-            />
-          }
+        <Tooltip trigger="click" content={<CustomBarTooltip />} />
+        <Legend 
+          wrapperStyle={{ fontSize: '12px' }}
+          iconType="circle"
         />
-        <Legend wrapperStyle={{ fontSize: '12px' }} iconType="circle" />
-
-        <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[2, 2, 0, 0]} name="Omset" />
-        <Bar dataKey="cogs" fill="var(--color-cogs)" radius={[2, 2, 0, 0]} name="Modal Bahan" />
-        <Bar dataKey="opex" fill="var(--color-opex)" radius={[2, 2, 0, 0]} name="Biaya Tetap" />
-        <Bar dataKey="grossProfit" fill="var(--color-grossProfit)" radius={[2, 2, 0, 0]} name="Untung Kotor" />
-        <Bar dataKey="netProfit" fill="var(--color-netProfit)" radius={[2, 2, 0, 0]} name="Untung Bersih" />
+        
+        {/* Bar Omset */}
+        <Bar 
+          dataKey="Omset" 
+          fill={CHART_CONFIG.colors.revenue}
+          radius={[2, 2, 0, 0]}
+        />
+        
+        {/* Bar Modal Bahan */}
+        <Bar 
+          dataKey="Modal Bahan" 
+          fill={CHART_CONFIG.colors.cogs}
+          radius={[2, 2, 0, 0]}
+        />
+        
+        {/* Bar Biaya Tetap */}
+        <Bar 
+          dataKey="Biaya Tetap" 
+          fill={CHART_CONFIG.colors.opex}
+          radius={[2, 2, 0, 0]}
+        />
+        
+        {/* Bar Untung Kotor */}
+        <Bar 
+          dataKey="Untung Kotor" 
+          fill={CHART_CONFIG.colors.gross_profit}
+          radius={[2, 2, 0, 0]}
+        />
+        
+        {/* Bar Untung Bersih */}
+        <Bar 
+          dataKey="Untung Bersih" 
+          fill={CHART_CONFIG.colors.net_profit}
+          radius={[2, 2, 0, 0]}
+        />
       </BarChart>
-    </ChartContainer>
+    </ResponsiveContainer>
   );
 
   // ✅ PIE CHART RENDER
   const renderPieChart = () => (
-    <ChartContainer config={chartConfig} className="h-[300px] w-full">
+    <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
           data={pieChartData}
@@ -247,24 +297,17 @@ const ProfitBreakdownChart = ({
           labelLine={false}
           label={renderPieLabel}
           outerRadius={120}
+          fill="#8884d8"
           dataKey="value"
-          nameKey="label"
           animationDuration={1000}
         >
-          {pieChartData.map((entry) => (
-            <Cell key={entry.key} fill={`var(--color-${entry.key})`} />
+          {pieChartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Pie>
-        <ChartTooltip
-          content={
-            <ChartTooltipContent
-              nameKey="key"
-              formatter={(value: number) => formatCurrency(value)}
-            />
-          }
-        />
+        <Tooltip trigger="click" content={<CustomPieTooltip />} />
       </PieChart>
-    </ChartContainer>
+    </ResponsiveContainer>
   );
 
   // ✅ MAIN RENDER

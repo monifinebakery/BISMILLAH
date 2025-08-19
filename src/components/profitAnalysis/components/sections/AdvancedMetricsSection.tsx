@@ -79,14 +79,14 @@ const AdvancedMetricsSection: React.FC<AdvancedMetricsSectionProps> = ({
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
-            title="% Untung Kotor"
+            title="Margin Kotor"
             value={data.grossProfitMargin}
             color="text-orange-600"
             bgColor="bg-orange-50"
             emoji="🎯"
           />
           <MetricCard
-            title="% Untung Bersih"
+            title="Margin Bersih"
             value={data.netProfitMargin}
             color="text-green-600"
             bgColor="bg-green-50"

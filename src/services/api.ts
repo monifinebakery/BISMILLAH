@@ -4,13 +4,41 @@ import { logger } from '@/utils/logger';
 // Base API URL for Supabase Edge Functions
 const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
-// Helper function to get auth headers
-const getAuthHeaders = async () => {
+// Cache for auth session token
+let cachedToken: string | null = null;
+let tokenExpiry: number | null = null;
+
+const refreshToken = async () => {
   const { data } = await supabase.auth.getSession();
+  cachedToken = data.session?.access_token ?? null;
+  tokenExpiry = data.session?.expires_at ?? null;
+};
+
+// Helper function to get auth headers with cached token
+const getAuthHeaders = async () => {
+  const now = Math.floor(Date.now() / 1000);
+  if (!cachedToken || !tokenExpiry || tokenExpiry <= now) {
+    await refreshToken();
+  }
   return {
-    'Authorization': `Bearer ${data.session?.access_token}`,
+    'Authorization': `Bearer ${cachedToken}`,
     'Content-Type': 'application/json'
   };
+};
+
+// Fetch wrapper that retries once on unauthorized
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const headers = await getAuthHeaders();
+  let response = await fetch(url, { ...options, headers: { ...headers, ...(options.headers || {}) } });
+
+  if (response.status === 401) {
+    cachedToken = null;
+    await refreshToken();
+    const retryHeaders = await getAuthHeaders();
+    response = await fetch(url, { ...options, headers: { ...retryHeaders, ...(options.headers || {}) } });
+  }
+
+  return response;
 };
 
 // API for protected endpoints (requires authentication)
@@ -18,8 +46,7 @@ export const protectedApi = {
   // Get user data
   getUserData: async () => {
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/protected-api/user-data`, { headers });
+      const response = await fetchWithAuth(`${API_URL}/protected-api/user-data`);
       
       if (!response.ok) {
         const error = await response.json();
@@ -36,8 +63,7 @@ export const protectedApi = {
   // Get premium data (requires payment)
   getPremiumData: async () => {
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/protected-api/premium-data`, { headers });
+      const response = await fetchWithAuth(`${API_URL}/protected-api/premium-data`);
       
       if (!response.ok) {
         const error = await response.json();
@@ -57,8 +83,7 @@ export const adminApi = {
   // Get all users
   getUsers: async () => {
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/admin-api/users`, { headers });
+      const response = await fetchWithAuth(`${API_URL}/admin-api/users`);
       
       if (!response.ok) {
         const error = await response.json();
@@ -75,8 +100,7 @@ export const adminApi = {
   // Get all payments
   getPayments: async () => {
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/admin-api/payments`, { headers });
+      const response = await fetchWithAuth(`${API_URL}/admin-api/payments`);
       
       if (!response.ok) {
         const error = await response.json();
@@ -93,10 +117,8 @@ export const adminApi = {
   // Update payment status
   updatePaymentStatus: async (paymentId: string, isPaid: boolean) => {
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/admin-api/payment-status`, {
+      const response = await fetchWithAuth(`${API_URL}/admin-api/payment-status`, {
         method: 'PUT',
-        headers,
         body: JSON.stringify({ paymentId, isPaid })
       });
       
@@ -115,8 +137,7 @@ export const adminApi = {
   // Get admin dashboard stats
   getStats: async () => {
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/admin-api/stats`, { headers });
+      const response = await fetchWithAuth(`${API_URL}/admin-api/stats`);
       
       if (!response.ok) {
         const error = await response.json();

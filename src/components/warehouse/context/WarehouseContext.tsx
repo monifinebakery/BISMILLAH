@@ -73,7 +73,6 @@ interface WarehouseProviderProps {
 const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]> => {
   try {
     logger.debug('🔄 fetchWarehouseData called for userId:', userId);
-    console.log('🔄 fetchWarehouseData called for userId:', userId);
     
     const service = await warehouseApi.createService('crud', {
       userId,
@@ -82,7 +81,6 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     
     const items = await service.fetchBahanBaku();
     logger.debug('📊 fetchWarehouseData received items:', items.length);
-    console.log('📊 fetchWarehouseData received items:', items.length);
     
     // Transform to frontend format and ensure proper types
     const transformedItems = items.map((item: any) => ({
@@ -95,11 +93,9 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     }));
     
     logger.debug('✅ fetchWarehouseData transformed items:', transformedItems.length);
-    console.log('✅ fetchWarehouseData transformed items:', transformedItems.length);
     return transformedItems;
   } catch (error) {
     logger.error('❌ fetchWarehouseData failed:', error);
-    console.error('❌ fetchWarehouseData failed:', error);
     throw error;
   }
 };
@@ -185,12 +181,14 @@ const bulkDeleteWarehouseItems = async (ids: string[], userId?: string): Promise
 /**
  * ✅ FIXED: Warehouse Context Provider with proper mutation handling
  */
-export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({ 
-  children, 
-  enableDebugLogs = true 
+export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
+  children,
+  enableDebugLogs = true
 }) => {
   const providerId = useRef(`WarehouseProvider-${Date.now()}`);
   const queryClient = useQueryClient();
+
+  const isDebugMode = enableDebugLogs && import.meta.env.DEV;
 
   // Dependencies
   const { user } = useAuth();
@@ -198,21 +196,25 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   const { addNotification } = useNotification();
 
   // ✅ FIXED: Live connection status tracking
-  const [isConnected, setIsConnected] = React.useState(navigator.onLine);
+  const [isConnected, setIsConnected] = React.useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
   React.useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+
     const handleOnline = () => setIsConnected(true);
     const handleOffline = () => setIsConnected(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  if (enableDebugLogs) {
+  if (isDebugMode) {
     logger.debug(`[${providerId.current}] 🏗️ Context rendering with useQuery`);
   }
 
@@ -227,7 +229,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   } = useQuery({
     queryKey: warehouseQueryKeys.list(),
     queryFn: () => {
-      console.log('🔄 Warehouse queryFn called');
+      if (isDebugMode) logger.debug('🔄 Warehouse queryFn called');
       return fetchWarehouseData(user?.id);
     },
     enabled: !!user,
@@ -242,9 +244,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
   // ✅ NEW: Real-time subscription for warehouse updates
   useEffect(() => {
+    if (typeof navigator === 'undefined') return;
     if (!user?.id) return;
 
-    console.log('🔄 Setting up real-time subscription for user:', user.id);
+    if (isDebugMode) logger.debug('🔄 Setting up real-time subscription for user:', user.id);
 
     const channel = supabase
       .channel('warehouse-changes')
@@ -257,7 +260,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🔄 Warehouse table changed:', payload);
+          if (isDebugMode) logger.debug('🔄 Warehouse table changed:', payload);
           // Invalidate and refetch warehouse data when changes occur
           queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         }
@@ -265,23 +268,24 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          // Listen to all change events on purchases table to keep warehouse data in sync
+          event: '*',
           schema: 'public',
           table: 'purchases',
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🔄 Purchase updated:', payload);
+          if (isDebugMode) logger.debug('🔄 Purchase updated:', payload);
           // Invalidate warehouse data when purchases are updated (status changes)
           queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
         }
       )
       .subscribe((status) => {
-        console.log('🔄 Real-time subscription status:', status);
+        if (isDebugMode) logger.debug('🔄 Real-time subscription status:', status);
       });
 
     return () => {
-      console.log('🔄 Cleaning up real-time subscription');
+      if (isDebugMode) logger.debug('🔄 Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [user?.id, queryClient]);
@@ -587,6 +591,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
   // ✅ DEBUG: Log context state changes
   React.useEffect(() => {
+    if (typeof navigator === 'undefined') return;
     logger.debug(`[${providerId.current}] 📊 Context state:`, {
       bahanBakuCount: bahanBaku.length,
       loading,

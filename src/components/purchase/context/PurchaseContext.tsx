@@ -109,10 +109,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
-      const s = suppliers?.find((x: any) => x.id === supplierId);
-      return s?.nama || 'Supplier';
+      const s = suppliers?.find(
+        (x: any) => x.id === supplierId || x.nama === supplierId
+      );
+      return s?.nama || supplierId || 'Supplier';
     } catch {
-      return 'Supplier';
+      return supplierId || 'Supplier';
     }
   }, [suppliers]);
 

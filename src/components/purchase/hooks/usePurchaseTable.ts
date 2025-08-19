@@ -193,7 +193,9 @@ export const usePurchaseTable = ({
 
   // Helper function to get supplier name
   const getSupplierName = useCallback((supplierId: string): string => {
-    const supplier = suppliers.find(s => s.id === supplierId);
+    const supplier = suppliers.find(
+      s => s.id === supplierId || s.nama === supplierId
+    );
     return supplier?.nama || supplierId;
   }, [suppliers]);
 

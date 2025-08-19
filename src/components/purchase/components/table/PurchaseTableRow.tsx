@@ -16,7 +16,7 @@ interface PurchaseTableRowProps {
   onEditStatus: (id: string) => void;
   onStatusChange: (purchaseId: string, newStatus: string) => Promise<void>;
   onEdit: (purchase: Purchase) => void;
-  onDelete: (id: string) => void;
+  onDelete: (purchase: Purchase) => void;
   getSupplierName: (id: string) => string;
 }
 
@@ -101,8 +101,8 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
       </TableCell>
 
       <TableCell>
-        <ActionButtons 
-          purchase={purchase} 
+        <ActionButtons
+          purchase={purchase}
           onEdit={onEdit}
           onDelete={onDelete}
         />

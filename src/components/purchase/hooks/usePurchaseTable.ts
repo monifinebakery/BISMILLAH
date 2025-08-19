@@ -19,6 +19,7 @@ interface UsePurchaseTableProps {
 interface UsePurchaseTableReturn {
   // Filtered and processed data
   filteredPurchases: Purchase[];
+  suppliers: Array<{ id: string; nama: string }>;
   
   // Selection state
   selectedItems: string[];
@@ -52,9 +53,9 @@ interface UsePurchaseTableReturn {
   getSupplierName: (supplierId: string) => string;
 }
 
-export const usePurchaseTable = ({ 
-  purchases, 
-  suppliers = [] 
+export const usePurchaseTable = ({
+  purchases,
+  suppliers = []
 }: UsePurchaseTableProps): UsePurchaseTableReturn => {
   // Get delete function from purchase context
   const { deletePurchase, updatePurchase } = usePurchase();
@@ -202,6 +203,7 @@ export const usePurchaseTable = ({
   return {
     // Filtered data
     filteredPurchases,
+    suppliers,
     
     // Selection state
     selectedItems,

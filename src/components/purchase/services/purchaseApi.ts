@@ -91,27 +91,63 @@ export class PurchaseApiService {
     }
   }
 
+  // Manual warehouse sync helpers
+  private static async applyPurchaseToWarehouse(purchase: any) {
+    const { error } = await supabase.rpc('apply_purchase_to_warehouse', {
+      purchase_record: purchase
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  private static async reversePurchaseFromWarehouse(purchase: any) {
+    const { error } = await supabase.rpc('reverse_purchase_from_warehouse', {
+      purchase_record: purchase
+    });
+    if (error) throw new Error(error.message);
+  }
+
   /**
    * Set status (pending/completed/cancelled).
    * Saat set ke 'completed', trigger DB akan:
    * - menambah stok,
-   * - hitung WAC (harga_rata_rata),
-   * - tandai applied_at,
-   * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
-   */
+  * - hitung WAC (harga_rata_rata),
+  * - tandai applied_at,
+  * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
+  */
   static async setPurchaseStatus(
     id: string,
     userId: string,
     newStatus: Purchase['status']
   ): Promise<{ success: boolean; error: string | null }> {
     try {
-      const { error } = await supabase
+      // Ambil status lama untuk menentukan apakah perlu apply/reverse
+      const { data: existing, error: fetchError } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      if (fetchError) throw new Error(fetchError.message);
+      const oldStatus = existing.status as Purchase['status'];
+
+      // Update status dan kembalikan record terbaru
+      const { data: updated, error } = await supabase
         .from('purchases')
         .update({ status: newStatus })
         .eq('id', id)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('*')
+        .single();
 
       if (error) throw new Error(error.message);
+
+      // Sinkronkan ke warehouse secara manual
+      if (newStatus === 'completed') {
+        await this.applyPurchaseToWarehouse(updated);
+      } else if (oldStatus === 'completed' && newStatus !== 'completed') {
+        await this.reversePurchaseFromWarehouse(existing);
+      }
+
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error updating status:', err);
@@ -125,12 +161,26 @@ export class PurchaseApiService {
   }
 
   /**
-   * Delete purchase.
-   * Jika purchase sudah pernah diaplikasikan (applied_at IS NOT NULL),
-   * trigger DB akan otomatis mengembalikan stok/WAC (reversal).
-   */
+  * Delete purchase.
+  * Jika purchase sudah pernah diaplikasikan (applied_at IS NOT NULL),
+  * trigger DB akan otomatis mengembalikan stok/WAC (reversal).
+  */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Ambil purchase terlebih dahulu untuk mengetahui status
+      const { data: purchase, error: fetchError } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (fetchError) throw new Error(fetchError.message);
+
+      // Jika purchase sebelumnya completed, reverse stok gudang
+      if (purchase && purchase.status === 'completed') {
+        await this.reversePurchaseFromWarehouse(purchase);
+      }
+
       const { error } = await supabase
         .from('purchases')
         .delete()

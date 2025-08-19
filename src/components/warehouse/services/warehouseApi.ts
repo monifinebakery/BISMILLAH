@@ -40,6 +40,7 @@ const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
 // Transform FE -> DB (❗️tanpa field kemasan)
 const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: string): Partial<BahanBaku> => {
   const dbItem: Partial<BahanBaku> = {
+    id: frontendItem.id,
     nama: frontendItem.nama,
     kategori: frontendItem.kategori,
     stok: frontendItem.stok,
@@ -81,7 +82,9 @@ class CrudService {
     }
   }
 
-  async addBahanBaku(bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> {
+  async addBahanBaku(
+    bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string }
+  ): Promise<boolean> {
     try {
       const dbData = transformToDatabase(bahan, this.config.userId);
       const { error } = await supabase.from('bahan_baku').insert(dbData);

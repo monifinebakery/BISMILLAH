@@ -99,7 +99,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { addNotification } = useNotification();
   // Add defensive check for useBahanBaku
   let bahanBaku = [];
-  let addBahanBaku = async () => false;
+  let addBahanBaku = async (_: any) => false;
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -203,9 +203,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const exists = bahanBaku?.some((bb) => bb.id === item.bahanBakuId);
           if (!exists) {
             await addBahanBaku({
+              id: item.bahanBakuId,
               nama: item.nama,
               kategori: 'Lainnya',
-              stok: 0,
+              stok: item.kuantitas,
               minimum: 0,
               satuan: item.satuan || '-',
               harga: item.hargaSatuan || 0,

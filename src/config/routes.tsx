@@ -40,12 +40,12 @@ const SupplierManagementPage = React.lazy(() =>
   }))
 );
 
-const PurchaseManagement = React.lazy(() => 
+const PurchaseManagement = React.lazy(() =>
   import(/* webpackChunkName: "purchase" */ "@/components/purchase/PurchasePage")
 );
 
-const PromoCalculator = React.lazy(() => 
-  import(/* webpackChunkName: "promo" */ "@/components/promoCalculator/calculator/PromoCalculator")
+const PromoCalculatorPage = React.lazy(() =>
+  import(/* webpackChunkName: "promo" */ "@/pages/PromoCalculatorPage")
 );
 
 const PromoList = React.lazy(() => 
@@ -483,13 +483,13 @@ export const AppRouter = () => (
       />
       
       {/* ✅ Promo routes */}
-      <Route 
-        path="promo" 
+      <Route
+        path="promo"
         element={
           <RouteWrapper title="Memuat Kalkulator Promo">
-            <PromoCalculator />
+            <PromoCalculatorPage />
           </RouteWrapper>
-        } 
+        }
       />
       
       <Route 

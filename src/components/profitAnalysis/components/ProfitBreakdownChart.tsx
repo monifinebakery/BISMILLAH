@@ -81,19 +81,19 @@ const generatePieChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
 
   const data = [
     {
-      name: '💎 Untung Bersih',
+      name: 'Untung Bersih',
       value: metrics.netProfit,
       percentage: (metrics.netProfit / totalRevenue) * 100,
       color: CHART_CONFIG.colors.net_profit
     },
     {
-      name: '🥘 Modal Bahan Baku',
+      name: 'Modal Bahan Baku',
       value: metrics.cogs,
       percentage: (metrics.cogs / totalRevenue) * 100,
       color: CHART_CONFIG.colors.cogs
     },
     {
-      name: '🏪 Biaya Bulanan Tetap',
+      name: 'Biaya Bulanan Tetap',
       value: metrics.opex,
       percentage: (metrics.opex / totalRevenue) * 100,
       color: CHART_CONFIG.colors.opex
@@ -339,11 +339,11 @@ const ProfitBreakdownChart = ({
           
           {/* Quick Stats */}
           <div className="text-right">
-            <div className="text-xs sm:text-sm text-gray-600">🎯 Untung Kotor</div>
+            <div className="text-xs sm:text-sm text-gray-600">Untung Kotor</div>
             <div className="text-sm sm:text-lg font-bold text-orange-600">
               {summaryStats.grossMargin.toFixed(1)}%
             </div>
-            <div className="text-xs sm:text-sm text-gray-600 mt-1">💎 Untung Bersih</div>
+            <div className="text-xs sm:text-sm text-gray-600 mt-1">Untung Bersih</div>
             <div className="text-sm sm:text-lg font-bold text-orange-700">
               {summaryStats.netMargin.toFixed(1)}%
             </div>
@@ -367,7 +367,7 @@ const ProfitBreakdownChart = ({
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">🥘 Modal Bahan</div>
+            <div className="text-xs sm:text-sm text-gray-600">Modal Bahan</div>
             <div className="text-sm sm:text-lg font-bold text-orange-600">
               {formatCurrency(metrics.cogs)}
             </div>
@@ -377,7 +377,7 @@ const ProfitBreakdownChart = ({
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">🏪 Biaya Tetap</div>
+            <div className="text-xs sm:text-sm text-gray-600">Biaya Tetap</div>
             <div className="text-sm sm:text-lg font-bold text-red-600">
               {formatCurrency(metrics.opex)}
             </div>
@@ -387,7 +387,7 @@ const ProfitBreakdownChart = ({
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">💎 Untung Bersih</div>
+            <div className="text-xs sm:text-sm text-gray-600">Untung Bersih</div>
             <div className={`text-sm sm:text-lg font-bold ${
               metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600'
             }`}>

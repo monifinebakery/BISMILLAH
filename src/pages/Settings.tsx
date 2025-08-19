@@ -33,6 +33,7 @@ import NotificationSettingsForm from '@/components/NotificationSettingsForm';
 
 // ✅ NEW: Import notification triggers for demo
 import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
@@ -170,6 +171,11 @@ const SettingsPage = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Theme toggle hanya muncul di mobile */}
+        <div className="md:hidden mb-6 flex justify-end">
+          <ThemeToggle />
         </div>
 
         {/* Main Content */}

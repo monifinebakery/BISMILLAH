@@ -4,6 +4,132 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { BahanBakuFrontend } from '../types';
+import type { Purchase } from '@/components/purchase/types/purchase.types';
+
+/**
+ * Calculate new Weighted Average Cost (WAC)
+ * Handles both addition and subtraction of stock (qty can be negative)
+ */
+export const calculateNewWac = (
+  oldWac: number = 0,
+  oldStock: number = 0,
+  qty: number = 0,
+  unitPrice: number = 0
+): number => {
+  const previousValue = (Number(oldStock) || 0) * (Number(oldWac) || 0);
+  const deltaValue = (Number(qty) || 0) * (Number(unitPrice) || 0);
+  const newStock = (Number(oldStock) || 0) + (Number(qty) || 0);
+
+  if (newStock <= 0) return 0;
+  return (previousValue + deltaValue) / newStock;
+};
+
+/**
+ * Apply a completed purchase to warehouse stock and WAC
+ */
+export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
+  if (!purchase || !Array.isArray(purchase.items)) return;
+
+  for (const item of purchase.items) {
+    const itemId =
+      (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
+    const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
+    const unitPrice = Number(
+      (item as any).hargaSatuan ??
+      (item as any).harga_per_satuan ??
+      (item as any).harga_satuan ??
+      0
+    );
+
+    if (!itemId || qty <= 0) continue;
+
+    const { data: existing } = await supabase
+      .from('bahan_baku')
+      .select('id, stok, harga_rata_rata, harga_satuan')
+      .eq('id', itemId)
+      .eq('user_id', purchase.userId)
+      .single();
+
+    const oldStock = existing?.stok ?? 0;
+    const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;
+    const newStock = oldStock + qty;
+    const newWac = calculateNewWac(oldWac, oldStock, qty, unitPrice);
+
+    if (existing) {
+      await supabase
+        .from('bahan_baku')
+        .update({
+          stok: newStock,
+          harga_rata_rata: newWac,
+          harga_satuan: unitPrice,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', itemId)
+        .eq('user_id', purchase.userId);
+    } else {
+      await supabase.from('bahan_baku').insert({
+        id: itemId,
+        user_id: purchase.userId,
+        nama: (item as any).nama ?? (item as any).namaBarang ?? '',
+        kategori: (item as any).kategori ?? '',
+        stok: qty,
+        satuan: (item as any).satuan ?? '',
+        minimum: 0,
+        harga_satuan: unitPrice,
+        harga_rata_rata: unitPrice,
+        supplier: (purchase as any).supplier ?? null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
+  }
+};
+
+/**
+ * Reverse a purchase from warehouse stock and WAC
+ * Used when a purchase is cancelled or deleted
+ */
+export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
+  if (!purchase || !Array.isArray(purchase.items)) return;
+
+  for (const item of purchase.items) {
+    const itemId =
+      (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
+    const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
+    const unitPrice = Number(
+      (item as any).hargaSatuan ??
+      (item as any).harga_per_satuan ??
+      (item as any).harga_satuan ??
+      0
+    );
+
+    if (!itemId || qty <= 0) continue;
+
+    const { data: existing, error } = await supabase
+      .from('bahan_baku')
+      .select('id, stok, harga_rata_rata, harga_satuan')
+      .eq('id', itemId)
+      .eq('user_id', purchase.userId)
+      .single();
+
+    if (error || !existing) continue;
+
+    const oldStock = existing.stok ?? 0;
+    const oldWac = existing.harga_rata_rata ?? existing.harga_satuan ?? 0;
+    const newStock = Math.max(0, oldStock - qty);
+    const newWac = newStock > 0 ? calculateNewWac(oldWac, oldStock, -qty, unitPrice) : 0;
+
+    await supabase
+      .from('bahan_baku')
+      .update({
+        stok: newStock,
+        harga_rata_rata: newWac,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', itemId)
+      .eq('user_id', purchase.userId);
+  }
+};
 
 export interface SyncResult {
   itemId: string;

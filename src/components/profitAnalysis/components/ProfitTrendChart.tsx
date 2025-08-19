@@ -192,7 +192,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     cogs: { key: 'cogs', label: '🥘 Modal Bahan', color: CHART_CONFIG.colors.cogs },
     opex: { key: 'opex', label: '🏪 Biaya Tetap', color: CHART_CONFIG.colors.opex },
     grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.primary },
-    netMargin: { key: 'netMargin', label: '📊 Margin Bersih', color: '#dc2626' },
+    netMargin: { key: 'netMargin', label: 'Margin Bersih', color: '#dc2626' },
     // ✅ TAMBAH: Entry baru untuk stockValue
     stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning }
   };
@@ -236,7 +236,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-gray-400 text-lg mb-2">📊 Belum Ada Riwayat Bulanan</div>
+              <div className="text-gray-400 text-lg mb-2">Belum Ada Riwayat Bulanan</div>
               <div className="text-gray-500 text-sm">
                 Grafik perkembangan warung akan muncul setelah ada data beberapa bulan
               </div>
@@ -472,7 +472,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1 mb-1">
                 <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
-                <span className="text-xs sm:text-sm text-gray-600">🏆 Bulan Terbaik</span>
+                <span className="text-xs sm:text-sm text-gray-600">Bulan Terbaik</span>
               </div>
               <div className="text-sm sm:text-lg font-bold text-orange-600">
                 {trendAnalysis.bestMonth?.periodLabel || 'N/A'}

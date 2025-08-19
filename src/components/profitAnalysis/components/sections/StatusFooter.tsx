@@ -63,7 +63,7 @@ const StatusFooter: React.FC<StatusFooterProps> = ({
           </span>
           <span className="hidden sm:inline text-gray-400">•</span>
           <span className="flex items-center">
-            📊 Margin: <span className="font-medium ml-1 text-blue-700">{formatPercentage(data.netMargin)}</span>
+            Margin: <span className="font-medium ml-1 text-blue-700">{formatPercentage(data.netMargin)}</span>
           </span>
           
           {/* WAC active badge */}

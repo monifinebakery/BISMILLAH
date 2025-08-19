@@ -64,7 +64,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
 const AdvancedMetricsSection: React.FC<AdvancedMetricsSectionProps> = ({
   data,
   isLoading = false,
-  title = '📊 Metrik Lanjutan',
+  title = 'Metrik Lanjutan',
   description = 'Data teknis untuk analisis mendalam'
 }) => {
   // Don't render if no data or loading

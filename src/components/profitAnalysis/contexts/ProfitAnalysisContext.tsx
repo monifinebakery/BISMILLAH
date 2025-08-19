@@ -22,18 +22,18 @@ export const PROFIT_ANALYSIS_QUERY_KEYS = {
   realTime: (period: string) => ['analisis-profit', 'realtime', period],
 } as const;
 
-// State Management - ✅ Fixed to use RealTimeProfitCalculation
+// State Management -  Fixed to use RealTimeProfitCalculation
 interface ProfitAnalysisState {
-  profitData: RealTimeProfitCalculation[]; // ✅ Changed from ProfitAnalysis[]
-  currentAnalysis: RealTimeProfitCalculation | null; // ✅ Changed from ProfitAnalysis
+  profitData: RealTimeProfitCalculation[]; //  Changed from ProfitAnalysis[]
+  currentAnalysis: RealTimeProfitCalculation | null; //  Changed from ProfitAnalysis
   error: string | null;
   lastUpdated: string | null;
 }
 
 type ProfitAnalysisAction =
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_CURRENT_ANALYSIS'; payload: RealTimeProfitCalculation | null } // ✅ Fixed type
-  | { type: 'SET_PROFIT_DATA'; payload: RealTimeProfitCalculation[] } // ✅ Fixed type
+  | { type: 'SET_CURRENT_ANALYSIS'; payload: RealTimeProfitCalculation | null } //  Fixed type
+  | { type: 'SET_PROFIT_DATA'; payload: RealTimeProfitCalculation[] } //  Fixed type
   | { type: 'SET_LAST_UPDATED'; payload: string }
   | { type: 'RESET_STATE' };
 
@@ -97,7 +97,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
         throw new Error(response.error);
       }
       
-      logger.success('✅ Analisis profit berhasil dimuat:', {
+      logger.success(' Analisis profit berhasil dimuat:', {
         revenue: response.data.revenue_data.total,
         calculatedAt: response.data.calculated_at
       });
@@ -113,7 +113,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       dispatch({ type: 'SET_ERROR', payload: null });
     },
     onError: (error: Error) => {
-      logger.error('❌ Gagal memuat analisis profit:', error);
+      logger.error(' Gagal memuat analisis profit:', error);
       dispatch({ type: 'SET_ERROR', payload: error.message });
     }
   });
@@ -135,7 +135,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       return response.data;
     },
     onSuccess: (data, variables) => {
-      logger.success('✅ Kalkulasi profit berhasil:', {
+      logger.success(' Kalkulasi profit berhasil:', {
         period: variables.period,
         revenue: data.revenue_data.total
       });
@@ -153,7 +153,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       });
     },
     onError: (error: Error) => {
-      logger.error('❌ Gagal menghitung profit:', error);
+      logger.error(' Gagal menghitung profit:', error);
       dispatch({ type: 'SET_ERROR', payload: `Gagal menghitung profit: ${error.message}` });
     },
   });
@@ -168,7 +168,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       await calculateProfitMutation.mutateAsync({ period, periodType });
       return true;
     } catch (error) {
-      logger.error('❌ Kalkulasi profit gagal:', error);
+      logger.error(' Kalkulasi profit gagal:', error);
       return false;
     }
   }, [calculateProfitMutation]);
@@ -192,10 +192,10 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       }
       
       dispatch({ type: 'SET_PROFIT_DATA', payload: response.data });
-      logger.success('✅ Riwayat profit berhasil dimuat:', response.data.length, 'periode');
+      logger.success(' Riwayat profit berhasil dimuat:', response.data.length, 'periode');
       
     } catch (error) {
-      logger.error('❌ Gagal memuat riwayat profit:', error);
+      logger.error(' Gagal memuat riwayat profit:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Gagal memuat riwayat profit' });
     }
   }, []);
@@ -209,7 +209,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
   const getProfitByPeriod = useCallback((period: string) => {
     const foundData = state.profitData.find(data => data.period === period);
     if (foundData) {
-      logger.info('📊 Data profit ditemukan untuk periode:', period);
+      logger.info('Data profit ditemukan untuk periode:', period);
     }
     return foundData;
   }, [state.profitData]);
@@ -220,7 +220,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     if (response.error) {
       throw new Error(response.error);
     }
-    logger.success('✅ Kalkulasi real-time selesai');
+    logger.success(' Kalkulasi real-time selesai');
     return response.data;
   }, []);
 
@@ -241,7 +241,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     }
   }, [user, autoRefresh, loadProfitHistory]);
 
-  // ✅ FIX: Memoize lastUpdated Date conversion to prevent re-creation
+  //  FIX: Memoize lastUpdated Date conversion to prevent re-creation
   const lastUpdatedDate = useMemo(() => {
     return state.lastUpdated ? new Date(state.lastUpdated) : null;
   }, [state.lastUpdated]); // Only depends on the string value
@@ -253,7 +253,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     currentAnalysis: state.currentAnalysis,
     isLoading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending,
     error: state.error || currentAnalysisQuery.error?.message || null,
-    lastUpdated: lastUpdatedDate, // ✅ Use memoized Date object
+    lastUpdated: lastUpdatedDate, //  Use memoized Date object
     
     // Actions
     calculateProfit,
@@ -285,7 +285,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     resetState,
     getProfitByPeriod,
     calculateRealTimeProfit
-  ]); // ✅ Properly memoized with all dependencies
+  ]); //  Properly memoized with all dependencies
 
   return (
     <ProfitAnalysisContext.Provider value={contextValue}>

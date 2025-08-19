@@ -57,9 +57,9 @@ export const usePurchaseCore = ({
       return validationRef.current.validation;
     }
     const calculated = {
-      hasSuppliers: suppliersLength > 0,
-      hasMinimumData: suppliersLength > 0,
-      missingDataTypes: !suppliersLength ? ['suppliers'] : []
+      hasSuppliers: true,
+      hasMinimumData: true,
+      missingDataTypes: suppliersLength > 0 ? [] : ['suppliers']
     };
     validationRef.current = { suppliersLength, validation: calculated };
     return calculated;
@@ -227,9 +227,11 @@ export const usePurchaseCore = ({
     // Validation / prerequisites
     validation,
     validatePrerequisites: useCallback((): boolean => {
-      if (!validation.hasSuppliers) { toast.error('Mohon tambahkan data supplier terlebih dahulu'); return false; }
+      if (!suppliers?.length) {
+        toast.warning('Belum ada data supplier. Kamu bisa menambahkannya nanti.');
+      }
       return true;
-    }, [validation.hasSuppliers]),
+    }, [suppliers?.length]),
 
     // Status operations
     canEdit,

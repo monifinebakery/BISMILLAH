@@ -17,16 +17,13 @@ import { calculateMargins } from '../utils/profitCalculations';
 import {
   DashboardHeaderSection,
   ExecutiveSummarySection,
-  AdvancedMetricsSection,
-  CompetitiveBenchmarkSection,
   StatusFooter,
   ForecastSection
 } from './sections';
 import {
   IkhtisarTabContent,
   TrenTabContent,
-  BreakdownTabContent,
-  WawasanTabContent
+  BreakdownTabContent
 } from './tabs';
 
 // Import helper functions
@@ -209,11 +206,10 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="w-full overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 gap-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 h-auto p-1 gap-1">
             <TabsTrigger value="ikhtisar">Ringkasan</TabsTrigger>
             <TabsTrigger value="tren">Grafik</TabsTrigger>
             <TabsTrigger value="breakdown">Detail</TabsTrigger>
-            <TabsTrigger value="wawasan">Tips</TabsTrigger>
           </TabsList>
         </div>
 
@@ -239,16 +235,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           effectiveCogs={profitMetrics?.cogs}
           hppBreakdown={profitMetrics?.hppBreakdown}
           labels={labels}
-        />
-
-        <WawasanTabContent
-          currentAnalysis={currentAnalysis}
-          previousAnalysis={previousAnalysis}
-          isLoading={loading}
-          effectiveCogs={profitMetrics?.cogs}
-          hppBreakdown={profitMetrics?.hppBreakdown}
-          advancedMetrics={advancedMetrics}
-          benchmark={benchmark}
         />
       </Tabs>
 

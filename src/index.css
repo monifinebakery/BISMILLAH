@@ -70,7 +70,6 @@ All colors MUST be HSL.
 
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
-
 }
 
 @layer base {
@@ -80,5 +79,26 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer base {
+  .dark [class*="bg-white"],
+  .dark [class*="bg-gray-50"],
+  .dark [class*="bg-gray-100"] {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  .dark [class*="text-black"],
+  .dark [class*="text-gray-800"],
+  .dark [class*="text-gray-900"],
+  .dark [class*="text-gray-700"] {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .dark [class*="border-gray-100"],
+  .dark [class*="border-gray-200"],
+  .dark [class*="border-gray-300"] {
+    border-color: hsl(var(--border)) !important;
   }
 }

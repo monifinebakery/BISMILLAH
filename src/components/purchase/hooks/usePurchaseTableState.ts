@@ -71,8 +71,10 @@ export const usePurchaseTableState = ({ initialPurchases, suppliers }: UsePurcha
 
   // Get supplier name
   const getSupplierName = useCallback((supplierId: string): string => {
-    const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier ? supplier.nama : 'Supplier Tidak Dikenal';
+    const supplier = suppliers.find(
+      s => s.id === supplierId || s.nama === supplierId
+    );
+    return supplier ? supplier.nama : supplierId || 'Supplier Tidak Dikenal';
   }, [suppliers]);
 
   return {

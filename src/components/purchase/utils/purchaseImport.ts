@@ -21,9 +21,13 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-  const getIndex = (name: string) => headers.indexOf(name);
+  // Deteksi pemisah kolom: dukung koma dan titik koma
+  const delimiter = lines[0].includes(';') ? ';' : ',';
+  const headers = lines[0]
+    .split(delimiter)
+    .map((h) => h.trim().toLowerCase());
 
+  const getIndex = (name: string) => headers.indexOf(name);
   const idxSupplier = getIndex('supplier');
   const idxTanggal = getIndex('tanggal');
   const idxNama = getIndex('nama');
@@ -36,7 +40,7 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
   }
 
   const rows: RawRow[] = lines.slice(1).map((line) => {
-    const values = line.split(',').map((v) => v.trim());
+    const values = line.split(delimiter).map((v) => v.trim());
     return {
       supplier: values[idxSupplier] || '',
       tanggal: values[idxTanggal] || '',

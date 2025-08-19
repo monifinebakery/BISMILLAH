@@ -46,7 +46,7 @@ const ImportButton: React.FC = () => {
 
   const showFormatInfo = () => {
     toast.info(
-      'Format CSV: supplier,tanggal(YYYY-MM-DD),nama,kuantitas,satuan,harga',
+      'Format CSV: supplier,tanggal(YYYY-MM-DD),nama,kuantitas,satuan,harga. Pemisah kolom boleh koma atau titik koma.',
     );
   };
   return (

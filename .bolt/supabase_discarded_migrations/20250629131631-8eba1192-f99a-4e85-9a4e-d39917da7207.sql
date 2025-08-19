@@ -38,7 +38,7 @@ CREATE TABLE public.purchases (
   items JSONB NOT NULL DEFAULT '[]',
   total_nilai NUMERIC NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
-  metode_perhitungan TEXT NOT NULL DEFAULT 'FIFO' CHECK (metode_perhitungan IN ('FIFO', 'LIFO', 'Average')),
+  metode_perhitungan TEXT NOT NULL DEFAULT 'FIFO',
   catatan TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()

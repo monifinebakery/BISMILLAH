@@ -635,7 +635,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         value={newItemFormData.nama}
                         onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
                         placeholder="Contoh: Tepung Terigu"
-                        className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
+                        className={`h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20`}
                       />
                     </div>
                     <div className="space-y-2">

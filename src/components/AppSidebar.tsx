@@ -72,7 +72,16 @@ export function AppSidebar() {
   // --- Panggil semua hook untuk mendapatkan data ---
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
-  const { bahanBaku } = useBahanBaku();
+  
+  // Add defensive check for useBahanBaku
+  let bahanBaku = [];
+  try {
+    const warehouseContext = useBahanBaku();
+    bahanBaku = warehouseContext?.bahanBaku || [];
+  } catch (error) {
+    console.warn('Failed to get warehouse data:', error);
+    bahanBaku = [];
+  }
   const { suppliers } = useSupplier();
   const { purchases } = usePurchase();
   const { recipes, hppResults } = useRecipe();

@@ -38,7 +38,9 @@ interface WarehouseContextType {
   lastUpdated?: Date;
   
   // Actions
-  addBahanBaku: (bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<boolean>;
+  addBahanBaku: (
+    bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string }
+  ) => Promise<boolean>;
   updateBahanBaku: (id: string, updates: Partial<BahanBakuFrontend>) => Promise<boolean>;
   deleteBahanBaku: (id: string) => Promise<boolean>;
   bulkDeleteBahanBaku: (ids: string[]) => Promise<boolean>;
@@ -100,7 +102,10 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
   }
 };
 
-const createWarehouseItem = async (item: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>, userId?: string): Promise<boolean> => {
+const createWarehouseItem = async (
+  item: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string },
+  userId?: string
+): Promise<boolean> => {
   try {
     logger.debug('🔄 createWarehouseItem called:', { item, userId });
     
@@ -292,8 +297,9 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
   // ✅ FIXED: Mutations with proper error handling and return values
   const createMutation = useMutation({
-    mutationFn: (item: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => 
-      createWarehouseItem(item, user?.id),
+    mutationFn: (
+      item: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string }
+    ) => createWarehouseItem(item, user?.id),
     onSuccess: (success, item) => {
       if (success) {
         queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
@@ -367,7 +373,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   });
 
   // ✅ FIXED: CRUD operations with proper async handling (stabilized with useCallback)
-  const addBahanBaku = React.useCallback(async (bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<boolean> => {
+  const addBahanBaku = React.useCallback(
+    async (
+      bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string }
+    ): Promise<boolean> => {
     try {
       logger.debug(`[${providerId.current}] 🎯 addBahanBaku called:`, bahan);
       const result = await createMutation.mutateAsync(bahan);

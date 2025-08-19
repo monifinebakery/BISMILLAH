@@ -439,6 +439,9 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 Total
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Terakhir Diperbarui
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -518,6 +521,19 @@ const OrderTable: React.FC<OrderTableProps> = ({
                         {order.items.length} item{order.items.length > 1 ? 's' : ''}
                       </div>
                     )}
+                  </div>
+                </td>
+
+                {/* Last Updated */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="text-sm text-gray-900">{formatDateForDisplay(order.updatedAt)}</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(order.updatedAt).toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
                   </div>
                 </td>
 

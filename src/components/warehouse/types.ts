@@ -144,6 +144,7 @@ export interface BahanBakuImport {
   isiPerKemasan?: number;              // ✅ VERIFIED: for import calculations
   satuanKemasan?: string;
   hargaTotalBeliKemasan?: number;
+  updatedAt?: string;
 }
 
 export interface ImportValidationResult {

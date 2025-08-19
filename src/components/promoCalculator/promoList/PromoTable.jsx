@@ -156,13 +156,22 @@ const PromoTable = ({
                   {getSortIcon('status')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('created_at')}
               >
                 <div className="flex items-center space-x-1">
                   <span>Dibuat</span>
                   {getSortIcon('created_at')}
+                </div>
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('updated_at')}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Terakhir Diperbarui</span>
+                  {getSortIcon('updated_at')}
                 </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -221,6 +230,9 @@ const PromoTable = ({
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {formatDate(promo.created_at)}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {formatDate(promo.updated_at)}
                 </td>
                 <td className="px-6 py-4 text-sm">
                   <div className="flex items-center space-x-2">

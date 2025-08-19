@@ -45,6 +45,8 @@ export const validatePurchaseItem = (
       message: 'ID bahan baku tidak boleh kosong',
       itemIndex: index
     });
+    // Tanpa ID bahan baku, validasi lain tidak relevan
+    return errors;
   }
 
   if (!item.nama?.trim()) {

@@ -71,7 +71,10 @@ const SettingsPage = () => {
     );
   }
 
-  const handleInputChange = (field: keyof UserSettings, value: any) => {
+  const handleInputChange = (
+    field: keyof UserSettings,
+    value: UserSettings[keyof UserSettings]
+  ) => {
     setFormState(prev => prev ? { ...prev, [field]: value } : null);
   };
 
@@ -171,7 +174,6 @@ const SettingsPage = () => {
             </div>
           </div>
         </div>
-
         {/* Main Content */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Kolom Utama: Forms */}

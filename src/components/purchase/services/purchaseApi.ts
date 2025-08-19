@@ -95,16 +95,17 @@ export class PurchaseApiService {
    * Set status (pending/completed/cancelled).
    * Saat set ke 'completed', trigger DB akan:
    * - menambah stok,
-   * - hitung WAC (harga_rata_rata),
-   * - tandai applied_at,
-   * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
-   */
+  * - hitung WAC (harga_rata_rata),
+  * - tandai applied_at,
+  * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
+  */
   static async setPurchaseStatus(
     id: string,
     userId: string,
     newStatus: Purchase['status']
   ): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Update status
       const { error } = await supabase
         .from('purchases')
         .update({ status: newStatus })
@@ -112,6 +113,7 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error updating status:', err);
@@ -125,10 +127,10 @@ export class PurchaseApiService {
   }
 
   /**
-   * Delete purchase.
-   * Jika purchase sudah pernah diaplikasikan (applied_at IS NOT NULL),
-   * trigger DB akan otomatis mengembalikan stok/WAC (reversal).
-   */
+  * Delete purchase.
+  * Jika purchase sudah pernah diaplikasikan (applied_at IS NOT NULL),
+  * trigger DB akan otomatis mengembalikan stok/WAC (reversal).
+  */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
       const { error } = await supabase

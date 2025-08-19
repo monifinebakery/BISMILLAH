@@ -60,7 +60,7 @@ const SupplierManagement: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDialogClose = () => {
+  const handleDialogClose = (newSupplier?: Supplier) => {
     setIsDialogOpen(false);
     setEditingSupplier(null);
     setSelectedSupplierIds(prev => prev.filter(id => id !== (editingSupplier?.id || '')));
@@ -151,7 +151,7 @@ const SupplierManagement: React.FC = () => {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         supplier={editingSupplier}
-        onSuccess={handleDialogClose}
+        onSuccess={() => handleDialogClose()}
       />
     </div>
   );

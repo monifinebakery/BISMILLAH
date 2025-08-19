@@ -624,42 +624,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         </Select>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  // Add new item form
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
-                      <input
-                        type="text"
-                        value={newItemFormData.nama}
-                        onChange={(e) => setNewItemFormData((prev) => ({ ...prev, nama: e.target.value }))}
-                        placeholder="Contoh: Tepung Terigu"
-                        className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
-                      <Select
-                        value={newItemFormData.satuan}
-                        onValueChange={(value) => setNewItemFormData((prev) => ({ ...prev, satuan: value }))}
-                      >
-                        <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-                          <SelectValue placeholder="Pilih satuan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {['gram', 'kilogram', 'miligram', 'liter', 'milliliter', 'pcs', 'buah', 'biji', 'butir', 'lembar'].map((u) => (
-                            <SelectItem key={u} value={u} className="focus:bg-orange-50">
-                              {u}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Input utama: Total yang dibeli + Total bayar */}
+                  {/* Input utama: Total yang dibeli + Total bayar */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-700">Total yang Dibeli *</Label>

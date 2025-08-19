@@ -48,7 +48,7 @@ export const AssetStatistics: React.FC<AssetStatisticsProps> = ({
     return (
       <div className={`grid gap-4 mb-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="shadow-lg border-orange-200 bg-white">
+          <Card key={i} className="border-orange-200 bg-white">
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="bg-gray-200 rounded-full p-2 mr-3 animate-pulse">
@@ -73,7 +73,7 @@ export const AssetStatistics: React.FC<AssetStatisticsProps> = ({
         const isRedCard = stat.color === 'red';
         
         return (
-          <Card key={index} className="shadow-lg border-orange-200 bg-white hover:shadow-xl transition-shadow duration-200">
+          <Card key={index} className="border-orange-200 bg-white hover:border-orange-300 transition-colors duration-200">
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className={`${isRedCard ? 'bg-red-100' : 'bg-orange-100'} rounded-full p-2 mr-3`}>

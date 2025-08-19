@@ -125,7 +125,7 @@ const NotificationSettingsForm = () => {
   }
 
   return (
-    <Card className="shadow-md border">
+    <Card className="border">
       <CardHeader>
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 bg-blue-100 p-3 rounded-lg">

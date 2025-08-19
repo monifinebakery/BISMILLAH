@@ -22,7 +22,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
   isDeleting = false,
 }) => {
   return (
-    <Card className="border border-orange-200 hover:shadow-md transition-shadow duration-200">
+    <Card className="border border-orange-200 hover:border-orange-300 transition-colors duration-200">
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">{asset.nama}</h3>

@@ -116,7 +116,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
           return (
             <Card
               key={card.title}
-              className="h-full border-0 shadow-md transition-shadow hover:shadow-lg"
+              className="h-full border transition-colors hover:border-gray-300"
             >
               <CardContent className="h-full p-6">
                 <div className="flex items-center justify-between">
@@ -140,7 +140,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
       {/* Wawasan Detail */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-stretch">
         {/* Rincian Profitabilitas */}
-        <Card className="h-full border-0 shadow-md">
+        <Card className="h-full border">
           <CardContent className="h-full p-6">
             <div className="mb-4 flex items-center gap-2">
               <Award className="h-5 w-5 text-yellow-500" />
@@ -175,7 +175,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
         </Card>
 
         {/* Tren Biaya */}
-        <Card className="h-full border-0 shadow-md">
+        <Card className="h-full border">
           <CardContent className="h-full p-6">
             <div className="mb-4 flex items-center gap-2">
               {(() => {
@@ -209,7 +209,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
         </Card>
 
         {/* Performa Resep */}
-        <Card className="h-full border-0 shadow-md">
+        <Card className="h-full border">
           <CardContent className="h-full p-6">
             <div className="mb-4 flex items-center gap-2">
               <Target className="h-5 w-5 text-blue-500" />
@@ -267,7 +267,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
 
       {/* Ringkasan Kinerja */}
       {performanceMetrics.profitableRecipes > 0 && (
-        <Card className="border-0 shadow-md">
+        <Card className="border">
           <CardContent className="rounded-xl bg-gradient-to-r from-green-50 to-blue-50 p-6">
             <div className="mb-4 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-green-600" />

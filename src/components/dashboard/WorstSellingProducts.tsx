@@ -338,7 +338,7 @@ const WorstSellingProducts: React.FC<Props> = ({
   const currentSortConfig = sortConfigs[sortBy];
 
   return (
-    <Card className="bg-white border-1.5 border-gray-200 hover:shadow-lg transition-shadow duration-300">
+    <Card className="bg-white border-1.5 border-gray-200 hover:border-gray-300 transition-colors duration-300">
       {/* 📉 Header with Sort Selector */}
       <CardHeader className="bg-gradient-to-r from-gray-50 to-red-50 border-b border-gray-100 p-4">
         <div className="flex items-center justify-between">

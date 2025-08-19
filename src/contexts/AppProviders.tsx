@@ -84,7 +84,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
         offset={isMobile ? 24 : 16}
         toastOptions={{
           classNames: {
-            toast: 'bg-white text-gray-900 border border-gray-200 shadow-lg',
+            toast: 'bg-white text-gray-900 border border-gray-200',
             title: 'text-gray-900 font-medium',
             description: 'text-gray-600',
             actionButton: 'bg-orange-500 text-white hover:bg-orange-600',

@@ -255,7 +255,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             <p className="text-gray-500 mb-4">{purchaseContext.error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               Muat Ulang
             </button>
@@ -331,7 +331,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* ✅ ENHANCED: Processing overlay with delete state */}
       {(purchaseContext.isProcessing || appState.ui.isDeleting) && (
         <div className="fixed inset-0 bg-black bg-opacity-10 z-40 pointer-events-none">
-          <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-2">
+          <div className="absolute top-4 right-4 bg-white rounded-lg border p-3 flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
             <span className="text-sm text-gray-700">
               {appState.ui.isDeleting ? 'Menghapus pembelian...' : 'Mengupdate status...'}

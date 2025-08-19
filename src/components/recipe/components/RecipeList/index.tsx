@@ -263,7 +263,7 @@ const RecipeList: React.FC = () => {
         <RecipeStats stats={stats} />
 
         {/* Main Content */}
-        <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+        <Card className="border bg-white/90 backdrop-blur-sm">
           <CardContent className="p-0">
             
             {/* Filters */}
@@ -318,7 +318,7 @@ const RecipeList: React.FC = () => {
         {/* ✅ OPTIMIZED: Conditional dialogs with Suspense */}
         <Suspense fallback={
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 shadow-lg">
+            <div className="bg-white rounded-lg p-4 border">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
               <p className="mt-2 text-sm text-gray-600">Memuat...</p>
             </div>

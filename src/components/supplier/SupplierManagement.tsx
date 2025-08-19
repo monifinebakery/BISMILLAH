@@ -69,7 +69,7 @@ const SupplierManagement: React.FC = () => {
   return (
     <div className="container mx-auto p-4 sm:p-8">
       {/* Header */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 shadow-xl">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
             <Users className="h-8 w-8 text-white" />
@@ -84,7 +84,7 @@ const SupplierManagement: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           <Button
             onClick={openAddDialog}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg shadow-md hover:bg-gray-100 transition-all duration-200 hover:shadow-lg"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-100 transition-all duration-200"
           >
             <Plus className="h-5 w-5" />
             Tambah Supplier
@@ -110,7 +110,7 @@ const SupplierManagement: React.FC = () => {
       />
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-xl shadow-xl border border-gray-200/80 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
         {/* Filters */}
         <SupplierFilters
           searchTerm={searchTerm}

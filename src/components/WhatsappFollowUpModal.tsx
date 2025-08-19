@@ -105,7 +105,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white rounded-lg shadow-xl">
+      <DialogContent className="max-w-md bg-white rounded-lg border">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-gray-800">Kirim Follow-up WhatsApp</DialogTitle>
         </DialogHeader>

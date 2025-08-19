@@ -53,7 +53,7 @@ interface SupplierContextType {
   
   // Actions
   addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<Supplier | null>;
-  updateSupplier: (id: string, supplier: Partial<Omit<Supplier, 'id' | 'userId'>>) => Promise<boolean>;
+  updateSupplier: (id: string, supplier: Partial<Omit<Supplier, 'id' | 'userId'>>) => Promise<Supplier | null>;
   deleteSupplier: (id: string) => Promise<boolean>;
   
   // Utility methods
@@ -493,23 +493,23 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
   const updateSupplierFn = useCallback(async (
     id: string,
     supplierData: Partial<Omit<Supplier, 'id' | 'userId'>>
-  ): Promise<boolean> => {
+  ): Promise<Supplier | null> => {
     if (!user) {
       toast.error('Anda harus login untuk memperbarui supplier');
-      return false;
+      return null;
     }
 
     const existingSupplier = suppliers.find(s => s.id === id);
     if (!existingSupplier) {
       toast.error('Supplier tidak ditemukan');
-      return false;
+      return null;
     }
 
     try {
-      await updateMutation.mutateAsync({ id, data: supplierData });
-      return true;
+      const updated = await updateMutation.mutateAsync({ id, data: supplierData });
+      return updated;
     } catch (error) {
-      return false;
+      return null;
     }
   }, [user, suppliers, updateMutation]);
 

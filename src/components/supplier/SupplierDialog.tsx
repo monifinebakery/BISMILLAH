@@ -15,7 +15,7 @@ interface SupplierDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   supplier: Supplier | null;
-  onSuccess?: () => void;
+  onSuccess?: (supplier: Supplier) => void;
 }
 
 const SupplierDialog: React.FC<SupplierDialogProps> = ({
@@ -24,9 +24,9 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
   supplier,
   onSuccess
 }) => {
-  const handleSuccess = () => {
+  const handleSuccess = (savedSupplier: Supplier) => {
     onOpenChange(false);
-    onSuccess?.();
+    onSuccess?.(savedSupplier);
   };
 
   const handleCancel = () => {

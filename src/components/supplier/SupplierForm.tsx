@@ -11,7 +11,7 @@ import type { Supplier } from '@/types/supplier';
 
 interface SupplierFormProps {
   supplier: Supplier | null;
-  onSuccess?: () => void;
+  onSuccess?: (supplier: Supplier) => void;
   onCancel?: () => void;
   className?: string;
 }

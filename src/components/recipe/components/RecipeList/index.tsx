@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'reac
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ChefHat, Plus } from 'lucide-react';
 
 // ✅ CONSOLIDATED: Auth and utilities (kept as needed)
 import { useAuth } from '@/contexts/AuthContext';
@@ -233,56 +232,29 @@ const RecipeList: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
       <div className="container mx-auto p-4 sm:p-6 space-y-6">
         
-        {/* Header - Updated to match warehouse design */}
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-                <ChefHat className="h-8 w-8 text-white" />
-              </div>
-              
-              <div>
-                <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-                  Manajemen Resep
-                </h1>
-                <p className="text-white opacity-90">
-                  Kelola resep dan hitung HPP dengan mudah
-                </p>
-              </div>
-            </div>
-
-            <div className="hidden md:flex gap-3">
-              <Button
-                variant="outline"
-                onClick={dialogHandlers.openCategory}
-                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
-              >
-                Kelola Kategori
-              </Button>
-              <Button
-                onClick={() => dialogHandlers.openForm()}
-                className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                Tambah Resep
-              </Button>
-            </div>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Manajemen Resep
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Kelola resep dan hitung HPP dengan mudah
+            </p>
           </div>
-
-          <div className="flex md:hidden flex-col gap-3 mt-6">
+          <div className="flex gap-3">
             <Button
               variant="outline"
               onClick={dialogHandlers.openCategory}
-              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+              className="border-orange-200 text-orange-700 hover:bg-orange-50"
             >
               Kelola Kategori
             </Button>
             <Button
               onClick={() => dialogHandlers.openForm()}
-              className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
             >
-              <Plus className="h-4 w-4" />
-              Tambah Resep
+              + Tambah Resep
             </Button>
           </div>
         </div>

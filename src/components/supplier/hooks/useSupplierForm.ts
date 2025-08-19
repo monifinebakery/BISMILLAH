@@ -7,7 +7,7 @@ import type { Supplier, SupplierFormData } from '@/types/supplier';
 
 export const useSupplierForm = (
   supplier: Supplier | null,
-  onSuccess?: () => void
+  onSuccess?: (supplier: Supplier) => void
 ) => {
   const { addSupplier, updateSupplier } = useSupplier();
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
@@ -61,16 +61,16 @@ export const useSupplierForm = (
       catatan: formData.catatan.trim() || null 
     };
     
-    const success = supplier 
+    const result = supplier
       ? await updateSupplier(supplier.id, dataToSave)
       : await addSupplier(dataToSave);
 
-    if (success) {
+    if (result) {
       setFormErrors({});
-      onSuccess?.();
+      onSuccess?.(result);
       return true;
     }
-    
+
     return false;
   };
 

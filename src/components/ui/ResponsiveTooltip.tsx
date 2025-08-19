@@ -1,4 +1,4 @@
-// src/components/recipe/components/RecipeForm/CostCalculationStep/components/shared/ResponsiveTooltip.tsx
+// src/components/ui/ResponsiveTooltip.tsx
 import React from 'react';
 import { useResponsiveTooltip } from '@/hooks/useResponsiveTooltip';
 import { logger } from '@/utils/logger';

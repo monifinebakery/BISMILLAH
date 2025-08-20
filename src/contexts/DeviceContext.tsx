@@ -1,5 +1,5 @@
 // src/contexts/DeviceContext.tsx
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
@@ -84,18 +84,9 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [currentDevice, setCurrentDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Debug ref to track render count
-  const renderCountRef = useRef(0);
-  const isMountedRef = useRef(true);
-  
-  renderCountRef.current += 1;
-  console.log('DeviceProvider render count:', renderCountRef.current);
 
   // Register current device
   const registerCurrentDevice = useCallback(async (userId: string) => {
-    if (!isMountedRef.current) return;
-    
     try {
       const deviceInfo = getDeviceInfo();
       const deviceId = deviceInfo.device_id as string;
@@ -141,9 +132,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (updateError) {
           logger.error('Error updating device:', updateError);
         } else {
-          if (isMountedRef.current) {
-            setCurrentDevice(data);
-          }
+          setCurrentDevice(data);
         }
       } else {
         // Insert new device
@@ -156,9 +145,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (insertError) {
           logger.error('Error inserting device:', insertError);
         } else {
-          if (isMountedRef.current) {
-            setCurrentDevice(data);
-          }
+          setCurrentDevice(data);
         }
       }
 
@@ -175,8 +162,6 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Fetch all devices for the user
   const fetchDevices = useCallback(async (userId: string) => {
-    if (!isMountedRef.current) return;
-    
     try {
       console.log('DeviceContext: fetchDevices called for user', userId);
       setLoading(true);
@@ -190,35 +175,25 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (fetchError) {
         logger.error('Error fetching devices:', fetchError);
-        if (isMountedRef.current) {
-          setError(fetchError.message);
-        }
+        setError(fetchError.message);
         return;
       }
 
-      if (isMountedRef.current) {
-        setDevices(data || []);
-        
-        // Find current device
-        const current = (data || []).find(device => device.is_current) || null;
-        setCurrentDevice(current);
-      }
+      setDevices(data || []);
+      
+      // Find current device
+      const current = (data || []).find(device => device.is_current) || null;
+      setCurrentDevice(current);
     } catch (err) {
       logger.error('Error in fetchDevices:', err);
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      }
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, []);
 
   // Refresh devices list
   const refreshDevices = useCallback(async () => {
-    if (!isMountedRef.current) return;
-    
     console.log('DeviceContext: refreshDevices called');
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -227,16 +202,12 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     } catch (err) {
       logger.error('Error refreshing devices:', err);
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      }
+      setError(err instanceof Error ? err.message : 'Unknown error');
     }
   }, [fetchDevices]);
 
   // Update device name
   const updateDeviceName = useCallback(async (deviceId: string, name: string): Promise<boolean> => {
-    if (!isMountedRef.current) return false;
-    
     try {
       const { error } = await supabase
         .from('devices')
@@ -245,9 +216,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (error) {
         logger.error('Error updating device name:', error);
-        if (isMountedRef.current) {
-          setError(error.message);
-        }
+        setError(error.message);
         return false;
       }
 
@@ -256,17 +225,13 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return true;
     } catch (err) {
       logger.error('Error in updateDeviceName:', err);
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      }
+      setError(err instanceof Error ? err.message : 'Unknown error');
       return false;
     }
   }, [refreshDevices]);
 
   // Remove a device (sign out from that device)
   const removeDevice = useCallback(async (deviceId: string): Promise<boolean> => {
-    if (!isMountedRef.current) return false;
-    
     try {
       // Check if this is the current device
       const isCurrent = currentDevice?.id === deviceId;
@@ -278,9 +243,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (error) {
         logger.error('Error removing device:', error);
-        if (isMountedRef.current) {
-          setError(error.message);
-        }
+        setError(error.message);
         return false;
       }
 
@@ -294,9 +257,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return true;
     } catch (err) {
       logger.error('Error in removeDevice:', err);
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      }
+      setError(err instanceof Error ? err.message : 'Unknown error');
       return false;
     }
   }, [currentDevice, refreshDevices]);
@@ -304,17 +265,11 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Get current device
   const getCurrentDevice = useCallback(() => currentDevice, [currentDevice]);
 
-  // Set up device tracking
+  // Set up device tracking - ONLY register current device, don't fetch devices automatically
   useEffect(() => {
     console.log('DeviceContext: device tracking useEffect running');
-    let isMounted = true;
     
     const setupDeviceTracking = async () => {
-      if (!isMounted || !isMountedRef.current) {
-        console.log('DeviceContext: Component unmounted, skipping setupDeviceTracking');
-        return;
-      }
-      
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -325,7 +280,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         if (session?.user?.id) {
           await registerCurrentDevice(session.user.id);
-          await fetchDevices(session.user.id);
+          // Don't automatically fetch devices here - let the component decide when to fetch
         }
       } catch (err) {
         logger.error('Error in setupDeviceTracking:', err);
@@ -336,7 +291,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Update last active time periodically
     const interval = setInterval(async () => {
-      if (currentDevice && isMounted && isMountedRef.current) {
+      if (currentDevice) {
         try {
           console.log('DeviceContext: Updating last active time for device', currentDevice.id);
           await supabase
@@ -351,56 +306,30 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return () => {
       console.log('DeviceContext: device tracking cleanup');
-      isMounted = false;
-      isMountedRef.current = false;
       clearInterval(interval);
     };
-  }, [currentDevice, registerCurrentDevice, fetchDevices]);
+  }, [currentDevice, registerCurrentDevice]);
 
-  // Listen for auth state changes
+  // Listen for auth state changes - ONLY register device, don't fetch automatically
   useEffect(() => {
     console.log('DeviceContext: auth state change useEffect running');
-    let isMounted = true;
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!isMounted || !isMountedRef.current) {
-        console.log('DeviceContext: Component unmounted, skipping auth state change');
-        return;
-      }
-      
       console.log('DeviceContext: Auth state changed:', event);
       if (event === 'SIGNED_IN' && session?.user?.id) {
         registerCurrentDevice(session.user.id);
-        fetchDevices(session.user.id);
+        // Don't automatically fetch devices here - let the component decide when to fetch
       } else if (event === 'SIGNED_OUT') {
-        if (isMountedRef.current) {
-          setDevices([]);
-          setCurrentDevice(null);
-        }
+        setDevices([]);
+        setCurrentDevice(null);
       }
     });
 
     return () => {
       console.log('DeviceContext: auth state change cleanup');
-      isMounted = false;
-      isMountedRef.current = false;
       subscription.unsubscribe();
     };
-  }, [registerCurrentDevice, fetchDevices]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  // Cleanup logging
-  useEffect(() => {
-    return () => {
-      console.log('DeviceContext final cleanup - render count was:', renderCountRef.current);
-    };
-  }, []);
+  }, [registerCurrentDevice]);
 
   const value = {
     devices,

@@ -1,7 +1,7 @@
 // src/components/financial/dialogs/CategoryManagementDialog.tsx
 // Optimized to prevent lag when typing in category inputs
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,7 @@ interface CategoryManagementDialogProps {
   onClose: () => void;
   settings: any;
   saveSettings: (settings: any) => Promise<boolean>;
+  refreshSettings?: () => void;
 }
 
 // Color palette for categories
@@ -160,12 +161,23 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
   isOpen,
   onClose,
   settings,
-  saveSettings
+  saveSettings,
+  refreshSettings
 }) => {
   const [newIncomeCategory, setNewIncomeCategory] = useState('');
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
   const [incomeColor, setIncomeColor] = useState(CATEGORY_COLORS[2]);
   const [expenseColor, setExpenseColor] = useState(CATEGORY_COLORS[0]);
+
+  // Reset form when dialog opens or settings change
+  useEffect(() => {
+    if (isOpen) {
+      setNewIncomeCategory('');
+      setNewExpenseCategory('');
+      setIncomeColor(CATEGORY_COLORS[2]);
+      setExpenseColor(CATEGORY_COLORS[0]);
+    }
+  }, [isOpen, settings]);
 
   const generateCategoryId = (name: string, type: string) => {
     const timestamp = Date.now();
@@ -214,9 +226,13 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
       if (success) {
         reset();
         toast.success('Kategori berhasil ditambahkan!');
+        // Refresh settings to ensure UI updates
+        if (refreshSettings) {
+          refreshSettings();
+        }
       }
     },
-    [settings, saveSettings]
+    [settings, saveSettings, refreshSettings]
   );
 
   const deleteCategory = useCallback(
@@ -235,9 +251,13 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
 
       if (success) {
         toast.success('Kategori berhasil dihapus!');
+        // Refresh settings to ensure UI updates
+        if (refreshSettings) {
+          refreshSettings();
+        }
       }
     },
-    [settings, saveSettings]
+    [settings, saveSettings, refreshSettings]
   );
 
   const handleAddIncomeCategory = useCallback(() => {
@@ -265,7 +285,16 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        // Reset form when closing
+        setNewIncomeCategory('');
+        setNewExpenseCategory('');
+        setIncomeColor(CATEGORY_COLORS[2]);
+        setExpenseColor(CATEGORY_COLORS[0]);
+      }
+      onClose();
+    }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

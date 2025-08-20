@@ -151,27 +151,36 @@ const CustomTooltip = ({ active, payload, label, viewType }: any) => {
   return (
     <div className="bg-white p-4 border border-gray-200 rounded-lg min-w-48">
       <p className="font-semibold text-gray-800 mb-3">{label}</p>
-      {payload.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center justify-between space-x-4 mb-1">
-          <div className="flex items-center space-x-2">
-            <div 
-              className="w-3 h-3 rounded-full" 
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-sm text-gray-600">{metricLabelMap[entry.dataKey as keyof typeof metricLabelMap] || entry.dataKey}:</span>
+      {payload && payload.length > 0 && payload.map((entry: any, index: number) => {
+        // Pastikan entry ada dan memiliki dataKey
+        if (!entry || !entry.dataKey) return null;
+        
+        const dataKey = entry.dataKey as keyof typeof metricLabelMap;
+        const label = metricLabelMap[dataKey] || entry.dataKey;
+        const value = entry.value !== undefined ? entry.value : 0;
+        
+        return (
+          <div key={index} className="flex items-center justify-between space-x-4 mb-1">
+            <div className="flex items-center space-x-2">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: entry.color || '#000000' }}
+              />
+              <span className="text-sm text-gray-600">{label}:</span>
+            </div>
+            <span className="text-sm font-medium">
+              {viewType === 'margins' && (dataKey === 'grossMargin' || dataKey === 'netMargin')
+                ? `${Number(value).toFixed(1)}%`
+                : dataKey === 'stockValue'
+                ? formatCurrency(Number(value))
+                : viewType === 'margins' 
+                ? `${Number(value).toFixed(1)}%`
+                : formatCurrency(Number(value))
+              }
+            </span>
           </div>
-          <span className="text-sm font-medium">
-            {viewType === 'margins' && entry.dataKey.includes('Margin')
-              ? `${entry.value.toFixed(1)}%`
-              : entry.dataKey === 'stockValue'
-              ? formatCurrency(entry.value)
-              : viewType === 'margins' 
-              ? `${entry.value.toFixed(1)}%`
-              : formatCurrency(entry.value)
-            }
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

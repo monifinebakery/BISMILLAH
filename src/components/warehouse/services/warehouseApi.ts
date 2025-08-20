@@ -75,28 +75,7 @@ class CrudService {
       const { data, error } = await query.order('nama', { ascending: true });
       if (error) throw error;
 
-      // Map supplier IDs to names for display
-      const supplierIds = Array.from(
-        new Set((data || []).map(item => item.supplier).filter(Boolean))
-      );
-      let supplierMap: Record<string, string> = {};
-      if (supplierIds.length > 0) {
-        const { data: supplierData } = await supabase
-          .from('suppliers')
-          .select('id, nama')
-          .in('id', supplierIds);
-        supplierMap = Object.fromEntries(
-          (supplierData || []).map((s: any) => [s.id, s.nama])
-        );
-      }
-
-      return (data || []).map((item: any) => {
-        const transformed = transformToFrontend(item);
-        return {
-          ...transformed,
-          supplier: supplierMap[item.supplier] || item.supplier,
-        };
-      });
+      return (data || []).map(transformToFrontend);
     } catch (error: any) {
       this.handleError('Fetch failed', error);
       return [];

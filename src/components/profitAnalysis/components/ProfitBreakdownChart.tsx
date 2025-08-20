@@ -131,18 +131,27 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-white p-3 border border-gray-200 rounded-lg">
       <p className="font-semibold text-gray-800 mb-2">{label}</p>
-      {payload.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center space-x-2 mb-1">
-          <div 
-            className="w-3 h-3 rounded-full" 
-            style={{ backgroundColor: entry.color }}
-          />
-          <span className="text-sm text-gray-600">{dataKeyLabelMap[entry.dataKey as keyof typeof dataKeyLabelMap] || entry.dataKey}:</span>
-          <span className="text-sm font-medium">
-            {formatCurrency(entry.value)}
-          </span>
-        </div>
-      ))}
+      {payload && payload.length > 0 && payload.map((entry: any, index: number) => {
+        // Pastikan entry ada dan memiliki dataKey
+        if (!entry || entry.value === undefined) return null;
+        
+        const dataKey = entry.dataKey as keyof typeof dataKeyLabelMap;
+        const label = dataKeyLabelMap[dataKey] || entry.dataKey;
+        const value = entry.value !== undefined ? entry.value : 0;
+        
+        return (
+          <div key={index} className="flex items-center space-x-2 mb-1">
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: entry.color || '#000000' }}
+            />
+            <span className="text-sm text-gray-600">{label}:</span>
+            <span className="text-sm font-medium">
+              {formatCurrency(Number(value))}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -150,13 +159,16 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (!active || !payload || !payload.length) return null;
 
-  const data = payload[0].payload;
+  const data = payload[0]?.payload;
+  
+  // Pastikan data ada dan memiliki value
+  if (!data || data.value === undefined) return null;
   
   return (
     <div className="bg-white p-3 border border-gray-200 rounded-lg">
-      <p className="font-semibold text-gray-800">{data.name}</p>
+      <p className="font-semibold text-gray-800">{data.name || 'Unknown'}</p>
       <p className="text-sm text-gray-600">
-        {formatCurrency(data.value)} ({data.percentage.toFixed(1)}%)
+        {formatCurrency(Number(data.value))} ({Number(data.percentage || 0).toFixed(1)}%)
       </p>
     </div>
   );

@@ -5,6 +5,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { logger } from '@/utils/logger';
+import {
+  DEFAULT_FINANCIAL_CATEGORIES,
+  FinancialCategories,
+} from '@/components/financial/types/financial';
 
 // ===== TYPES =====
 export interface UserSettings {
@@ -16,6 +20,10 @@ export interface UserSettings {
   notifications: {
     lowStock: boolean;
     newOrder: boolean;
+  };
+  financialCategories?: {
+    income: Array<{id: string; name: string; type: string; color: string; isDefault: boolean}>;
+    expense: Array<{id: string; name: string; type: string; color: string; isDefault: boolean}>;
   };
   updatedAt?: string;
 }
@@ -45,6 +53,10 @@ const defaultSettings: UserSettings = {
     lowStock: true,
     newOrder: true,
   },
+  financialCategories: {
+    income: [],
+    expense: []
+  }
 };
 
 // ===== API FUNCTIONS =====
@@ -91,6 +103,7 @@ const userSettingsApi = {
         lowStock: data.notifications?.lowStock ?? defaultSettings.notifications.lowStock,
         newOrder: data.notifications?.newOrder ?? defaultSettings.notifications.newOrder,
       },
+      financialCategories: data.financial_categories || data.financialCategories || defaultSettings.financialCategories,
       updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
     };
 
@@ -109,6 +122,7 @@ const userSettingsApi = {
       phone: settings.phone,
       address: settings.address,
       notifications: settings.notifications,
+      financial_categories: settings.financialCategories,
       updated_at: new Date().toISOString()
     };
 
@@ -140,6 +154,7 @@ const userSettingsApi = {
       phone: data.phone || '',
       address: data.address || '',
       notifications: data.notifications || defaultSettings.notifications,
+      financialCategories: data.financial_categories || defaultSettings.financialCategories,
       updatedAt: data.updated_at
     };
 

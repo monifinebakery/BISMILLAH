@@ -67,7 +67,7 @@ const SupplierManagement: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-8">
+    <div className="w-full p-4 sm:p-8">
       {/* Header */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">
         <div className="flex items-center gap-4 mb-4 lg:mb-0">

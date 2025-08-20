@@ -288,7 +288,8 @@ export class WarehouseSyncService {
           const percentDiff = priceDiff / item.harga_satuan;
           
           if (percentDiff > 1.0) { // > 100% difference
-            itemIssues.push(`Harga rata-rata sangat berbeda dari harga satuan (${percentDiff * 100:.1f}%)`);
+            const percentLabel = (percentDiff * 100).toFixed(1);
+            itemIssues.push(`Harga rata-rata sangat berbeda dari harga satuan (${percentLabel}%)`);
             suggestions.push('Periksa data pembelian atau update harga satuan');
             severity = 'medium';
           }

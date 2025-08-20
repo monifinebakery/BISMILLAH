@@ -293,7 +293,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Tanggal & Waktu</TableHead>
                   <TableHead>Deskripsi</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead>Tipe</TableHead>
@@ -307,7 +307,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     <TableRow key={transaction.id}>
                       <TableCell>
                         {transaction.date
-                          ? format(new Date(transaction.date), 'dd MMM yyyy', { locale: id })
+                          ? format(new Date(transaction.date), 'dd MMM yyyy HH:mm', { locale: id })
                           : '-'
                         }
                       </TableCell>

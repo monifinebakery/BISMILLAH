@@ -1,5 +1,5 @@
 // src/components/warehouse/components/WarehouseTableRow.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Edit2,
@@ -14,6 +14,7 @@ import {
 import { warehouseUtils } from '../services/warehouseUtils';
 import type { BahanBakuFrontend } from '../types';
 import { logger } from '@/utils/logger';
+import { useSupplier } from '@/contexts/SupplierContext';
 
 interface WarehouseTableRowProps {
   item: BahanBakuFrontend;
@@ -38,6 +39,12 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
+  const { getSupplierById } = useSupplier();
+  const supplierName = useMemo(() => {
+    if (!item.supplier) return '-';
+    const supplier = getSupplierById(item.supplier);
+    return supplier?.nama || item.supplier;
+  }, [item.supplier, getSupplierById]);
 
   const highlightText = (text: string, term: string) => {
     if (!term) return text;
@@ -266,7 +273,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Supplier:</span>
-                <div className="font-medium text-gray-900">{item.supplier}</div>
+                <div className="font-medium text-gray-900">{supplierName}</div>
               </div>
               <div>
                 <span className="text-gray-500">Stok Minimum:</span>
@@ -393,7 +400,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
         <span className="text-sm text-gray-900">
           {highlightText(item.kategori, searchTerm)}
         </span>
-        <div className="text-xs text-gray-500 mt-1">{item.supplier}</div>
+        <div className="text-xs text-gray-500 mt-1">{supplierName}</div>
       </td>
 
       <td className="px-4 py-4">

@@ -314,7 +314,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   }
 
   return (
-    <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
+    <div className={`w-full p-4 sm:p-8 ${className}`}>
       
       {/* Data warning banner */}
 

@@ -205,6 +205,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     toast.success(`${item.nama} berhasil ditambahkan`);
   }, [addItem]);
 
+  const handleUpdateExistingItem = useCallback((index: number, item: PurchaseItem) => {
+    updateItem(index, item);
+    toast.success(`${item.nama} berhasil diperbarui`);
+  }, [updateItem]);
+
   // Toggle between new item and existing item selection
   const toggleSelectionMode = useCallback(() => {
     setIsSelectingExistingItem(prev => !prev);
@@ -351,8 +356,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 isSelectingExistingItem={isSelectingExistingItem}
                 selectedWarehouseItem={selectedWarehouseItem}
                 onAddItem={handleAddNewItem}
+                onUpdateItem={handleUpdateExistingItem}
                 onToggleSelectionMode={toggleSelectionMode}
                 onSelectWarehouseItem={setSelectedWarehouseItem}
+                existingItems={formData.items}
+
               />
 
               {/* Items Table */}

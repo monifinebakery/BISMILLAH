@@ -192,12 +192,17 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       subtotal: combinedSubtotal,
       keterangan: formData.keterangan || prevItem.keterangan,
     };
+
     const currentValue = warehouseItem.stok * warehouseItem.harga;
     const newStock = warehouseItem.stok + additionalQty;
     const newValue = currentValue + additionalSubtotal;
     const newPrice = newStock > 0 ? Math.round((newValue / newStock) * 100) / 100 : 0;
 
-    await updateBahanBaku(warehouseItem.id, { stok: newStock, harga: newPrice });
+    await updateBahanBaku(warehouseItem.id, {
+      stok: newStock,
+      harga: newPrice,
+      hargaRataRata: newPrice,
+    });
 
     onUpdateItem(existingIndex, purchaseItem);
     onSelectWarehouseItem('');
@@ -209,17 +214,6 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       keterangan: '',
     });
   }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, updateBahanBaku, onUpdateItem, onSelectWarehouseItem, formData.keterangan]);
-
-  // Reset form
-  const handleReset = useCallback(() => {
-    setFormData({
-      nama: '',
-      satuan: '',
-      kuantitas: '',
-      totalBayar: '',
-      keterangan: '',
-    });
-  }, []);
 
   return (
     <Card className="border-gray-200">

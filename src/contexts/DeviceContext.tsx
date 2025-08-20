@@ -1,5 +1,5 @@
 // src/contexts/DeviceContext.tsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
@@ -85,6 +85,12 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const currentDeviceRef = useRef<Device | null>(null);
+
+  useEffect(() => {
+    currentDeviceRef.current = currentDevice;
+  }, [currentDevice]);
+
   // Register current device
   const registerCurrentDevice = useCallback(async (userId: string) => {
     try {
@@ -163,7 +169,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Fetch all devices for the user
   const fetchDevices = useCallback(async (userId: string) => {
     try {
-      console.log('DeviceContext: fetchDevices called for user', userId);
+      logger.debug('DeviceContext: fetchDevices called for user', userId);
       setLoading(true);
       setError(null);
       
@@ -194,7 +200,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Refresh devices list
   const refreshDevices = useCallback(async () => {
-    console.log('DeviceContext: refreshDevices called');
+    logger.debug('DeviceContext: refreshDevices called');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
@@ -267,7 +273,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Set up device tracking - ONLY register current device, don't fetch devices automatically
   useEffect(() => {
-    console.log('DeviceContext: device tracking useEffect running');
+    logger.debug('DeviceContext: device tracking useEffect running');
     
     const setupDeviceTracking = async () => {
       try {
@@ -291,13 +297,16 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Update last active time periodically
     const interval = setInterval(async () => {
-      if (currentDevice) {
+      if (currentDeviceRef.current) {
         try {
-          console.log('DeviceContext: Updating last active time for device', currentDevice.id);
+          logger.debug(
+            'DeviceContext: Updating last active time for device',
+            currentDeviceRef.current.id
+          );
           await supabase
             .from('devices')
             .update({ last_active: new Date().toISOString() })
-            .eq('id', currentDevice.id);
+            .eq('id', currentDeviceRef.current.id);
         } catch (err) {
           logger.error('Error updating device last active time:', err);
         }
@@ -305,17 +314,17 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, 5 * 60 * 1000); // Every 5 minutes
 
     return () => {
-      console.log('DeviceContext: device tracking cleanup');
+      logger.debug('DeviceContext: device tracking cleanup');
       clearInterval(interval);
     };
-  }, [currentDevice, registerCurrentDevice]);
+  }, [registerCurrentDevice]);
 
   // Listen for auth state changes - ONLY register device, don't fetch automatically
   useEffect(() => {
-    console.log('DeviceContext: auth state change useEffect running');
-    
+    logger.debug('DeviceContext: auth state change useEffect running');
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('DeviceContext: Auth state changed:', event);
+      logger.debug('DeviceContext: Auth state changed:', event);
       if (event === 'SIGNED_IN' && session?.user?.id) {
         registerCurrentDevice(session.user.id);
         // Don't automatically fetch devices here - let the component decide when to fetch
@@ -326,7 +335,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     return () => {
-      console.log('DeviceContext: auth state change cleanup');
+      logger.debug('DeviceContext: auth state change cleanup');
       subscription.unsubscribe();
     };
   }, [registerCurrentDevice]);

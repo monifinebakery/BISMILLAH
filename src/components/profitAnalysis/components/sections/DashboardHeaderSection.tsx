@@ -73,7 +73,8 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   dateRange,
   onDateRangeChange
 }) => {
-  const Controls = () => (
+  // Extract Controls as a separate component to avoid binding issues
+  const renderControls = () => (
     <>
       {/* Mode Toggle */}
       <div className="flex items-center bg-white bg-opacity-20 rounded-lg overflow-hidden border border-white border-opacity-30">
@@ -193,12 +194,12 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
             </div>
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <Controls />
+            {renderControls()}
           </div>
         </div>
 
         <div className="flex md:hidden flex-col gap-3 mt-6">
-          <Controls />
+          {renderControls()}
         </div>
       </div>
 

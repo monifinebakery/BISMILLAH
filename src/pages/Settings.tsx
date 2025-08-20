@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { toast } from 'sonner';
 import { 
@@ -21,10 +20,7 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  BellRing,
-  Shield,
-  Info,
-  RefreshCw
+  BellRing
 } from 'lucide-react';
 import { UserSettings } from '@/contexts/UserSettingsContext';
 
@@ -127,16 +123,6 @@ const SettingsPage = () => {
       setHasChanges(false);
       toast.info('Perubahan dibatalkan');
     }
-  };
-
-  // ✅ NEW: Test notification function
-  const handleTestNotification = async () => {
-    await triggerCustomNotification(
-      'Test Notifikasi',
-      'Ini adalah notifikasi test untuk memastikan sistem berjalan dengan baik',
-      'info',
-      2
-    );
   };
 
   return (
@@ -329,129 +315,8 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          {/* ✅ SIDEBAR: Quick Actions & Info */}
+          {/* ✅ SIDEBAR: Info */}
           <div className="space-y-6">
-            
-            {/* Quick Actions Card */}
-            <Card className="border-0 sticky top-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button 
-                  onClick={handleSaveChanges}
-                  disabled={!hasChanges || isSaving}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  size="lg"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save All
-                    </>
-                  )}
-                </Button>
-
-                {/* ✅ NEW: Test Notification Button */}
-                <Button 
-                  onClick={handleTestNotification}
-                  variant="outline"
-                  className="w-full border-green-300 text-green-700 hover:bg-green-50"
-                  size="lg"
-                >
-                  <BellRing className="mr-2 h-4 w-4" />
-                  Test Notifikasi
-                </Button>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-gray-700">Status</h4>
-                  <div className="flex items-center gap-2 text-sm">
-                    {hasChanges ? (
-                      <>
-                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                        <span className="text-orange-700">Unsaved changes</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-green-700">All saved</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* ✅ UPDATED: Notification Tips Card */}
-            <Card className="border-0 bg-gradient-to-br from-green-50 to-emerald-50">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
-                    <BellRing className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-green-800 mb-2">Tips Notifikasi</h4>
-                    <ul className="text-sm text-green-700 space-y-2">
-                      <li className="flex items-start gap-2">
-                        <span className="text-green-500 mt-1">•</span>
-                        <span>Aktifkan push notification untuk alert real-time</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-green-500 mt-1">•</span>
-                        <span>Set threshold stok rendah sesuai bisnis Anda</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-green-500 mt-1">•</span>
-                        <span>Enable laporan bulanan untuk insight bisnis</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-green-500 mt-1">•</span>
-                        <span>Test notifikasi secara berkala</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tips Card */}
-            <Card className="border-0 bg-gradient-to-br from-yellow-50 to-orange-50">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className="bg-yellow-100 p-2 rounded-lg flex-shrink-0">
-                    <Info className="h-5 w-5 text-yellow-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-yellow-800 mb-2">Tips Pengaturan</h4>
-                    <ul className="text-sm text-yellow-700 space-y-2">
-                      <li className="flex items-start gap-2">
-                        <span className="text-yellow-500 mt-1">•</span>
-                        <span>Informasi bisnis akan muncul di semua invoice</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-yellow-500 mt-1">•</span>
-                        <span>Update contact info secara berkala</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-yellow-500 mt-1">•</span>
-                        <span>Simpan perubahan sebelum keluar halaman</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-yellow-500 mt-1">•</span>
-                        <span>Backup data secara rutin</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Device Management Section */}
             <DeviceManagementSection />

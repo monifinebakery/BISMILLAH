@@ -122,7 +122,7 @@ const OperationalCostContent: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
@@ -162,7 +162,7 @@ const OperationalCostContent: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Top Section: Calculator */}
         <Card>

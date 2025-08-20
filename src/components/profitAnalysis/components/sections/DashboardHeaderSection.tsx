@@ -55,6 +55,8 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   quickStatus,
   statusIndicators = [],
   onRefresh,
+  mode,
+  onModeChange,
   dateRange,
   onDateRangeChange,
   mode = 'monthly',

@@ -3,11 +3,11 @@ import React, { Suspense, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { 
-  useOrderQuery, 
-  useInvoiceForm, 
+import {
+  useOrderQuery,
+  useInvoiceForm,
   useInvoiceCalculations,
-  useInvoicePrint 
+  useInvoicePdf
 } from './hooks';
 import { InvoiceActions } from './components';
 import { InvoiceTemplate } from './templates';
@@ -93,27 +93,24 @@ const InvoicePage: React.FC = () => {
     setPaymentInstructions,
     status,
     setStatus,
-    
+
     // Item handlers
     handleItemChange,
     addItem,
     removeItem,
-    
+
     // Form actions
-    resetForm,
-    duplicateInvoice,
     getFormData,
-    
+
     // Validation
-    errors,
-    isValid
+    errors
   } = useInvoiceForm({ orderData });
 
   // ✅ Calculations
   const calculations = useInvoiceCalculations(items, discount, tax, shipping);
 
-  // ✅ Print functionality
-  const { handlePrint } = useInvoicePrint(invoiceNumber);
+  // ✅ Download PDF functionality
+  const { handleDownloadPDF } = useInvoicePdf();
 
   // ✅ Handle form data changes
   const handleDataChange = (changes: any) => {
@@ -213,6 +210,10 @@ const InvoicePage: React.FC = () => {
           body { margin: 0; padding: 0; }
           .invoice-content { box-shadow: none !important; border: none !important; }
         }
+        @page {
+          size: A4;
+          margin: 16mm;
+        }
       `}</style>
 
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 p-4">
@@ -220,9 +221,7 @@ const InvoicePage: React.FC = () => {
           {/* Action Header */}
           <InvoiceActions
             onBack={handleBack}
-            onReset={resetForm}
-            onDuplicate={duplicateInvoice}
-            onPrint={handlePrint}
+            onDownload={handleDownloadPDF}
             orderId={orderId}
             orderNumber={orderData?.nomorPesanan}
           />

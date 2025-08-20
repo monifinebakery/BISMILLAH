@@ -121,10 +121,12 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
                   <span className="font-mono text-right">{formatCurrency(order.subtotal)}</span>
                 </div>
                 
-                <div className="flex justify-between items-center text-gray-600">
-                  <span className="font-medium">Pajak</span>
-                  <span className="font-mono text-right">{formatCurrency(order.pajak)}</span>
-                </div>
+                {order.pajak && order.pajak > 0 && (
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span className="font-medium">Pajak</span>
+                    <span className="font-mono text-right">{formatCurrency(order.pajak)}</span>
+                  </div>
+                )}
                 
                 <div className="border-t border-gray-300 my-4"></div>
                 

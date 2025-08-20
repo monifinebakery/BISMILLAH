@@ -57,18 +57,23 @@ export const useProfitData = (
   const formatPeriodLabel = useCallback((period: string): string => {
     try {
       if (!period || typeof period !== 'string') return period || '';
-      
+
+      // Jika hanya tahun, format sebagai "Tahun XXXX"
+      if (/^\d{4}$/.test(period)) {
+        return `Tahun ${period}`;
+      }
+
       const [year, month] = period.split('-');
       if (!year || !month) return period;
-      
+
       const monthNames = [
         'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
       ];
-      
+
       const monthIndex = parseInt(month) - 1;
       if (monthIndex < 0 || monthIndex >= monthNames.length) return period;
-      
+
       return `${monthNames[monthIndex]} ${year}`;
     } catch (error) {
       console.error('Error formatting period label:', error);

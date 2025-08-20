@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Calculator, RefreshCcw } from 'lucide-react';
+import { Plus, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateUUID } from '@/utils/uuid';
@@ -91,19 +91,15 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   }, [formData.kuantitas, formData.totalBayar]);
 
   const effectiveQty = useMemo(() => toNumber(formData.kuantitas), [formData.kuantitas]);
-  const effectivePay = useMemo(() => toNumber(formData.totalBayar), [formData.totalBayar]);
 
   const canSubmit = isSelectingExistingItem
     ? selectedWarehouseItem !== '' && effectiveQty > 0 && computedUnitPrice > 0
     : formData.nama.trim() !== '' && formData.satuan.trim() !== '' && effectiveQty > 0 && computedUnitPrice > 0;
 
-  const existingIndex = useMemo(
-    () => existingItems.findIndex((it) => it.bahanBakuId === selectedWarehouseItem),
-    [existingItems, selectedWarehouseItem]
-  );
+  const { updateBahanBaku } = useBahanBaku();
 
-  // Handle form submission
-  const handleSubmit = useCallback(() => {
+  // Handle form submission with automatic accumulation
+  const handleSubmit = useCallback(async () => {
     if (isSelectingExistingItem) {
       if (!selectedWarehouseItem) {
         toast.error('Pilih bahan baku dari daftar');
@@ -116,17 +112,57 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
         return;
       }
 
-      const purchaseItem: PurchaseItem = {
-        bahanBakuId: warehouseItem.id,
-        nama: warehouseItem.nama,
-        satuan: warehouseItem.satuan,
-        kuantitas: effectiveQty,
-        hargaSatuan: computedUnitPrice,
-        subtotal: effectiveQty * computedUnitPrice,
-        keterangan: formData.keterangan,
-      };
+      const additionalQty = effectiveQty;
+      const additionalSubtotal = additionalQty * computedUnitPrice;
+      const currentValue = warehouseItem.stok * warehouseItem.harga;
+      const newStock = warehouseItem.stok + additionalQty;
+      const newValue = currentValue + additionalSubtotal;
+      const newPrice = newStock > 0 ? Math.round((newValue / newStock) * 100) / 100 : 0;
 
-      onAddItem(purchaseItem);
+      const index = existingItems.findIndex(it => it.bahanBakuId === warehouseItem.id);
+      if (index >= 0) {
+        const prevItem = existingItems[index];
+        const prevSubtotal = prevItem.kuantitas * prevItem.hargaSatuan;
+        const combinedQty = prevItem.kuantitas + additionalQty;
+        const combinedSubtotal = prevSubtotal + additionalSubtotal;
+        const combinedPrice = combinedQty > 0 ? Math.round((combinedSubtotal / combinedQty) * 100) / 100 : 0;
+        const purchaseItem: PurchaseItem = {
+          bahanBakuId: warehouseItem.id,
+          nama: warehouseItem.nama,
+          satuan: warehouseItem.satuan,
+          kuantitas: combinedQty,
+          hargaSatuan: combinedPrice,
+          subtotal: combinedSubtotal,
+          keterangan: formData.keterangan || prevItem.keterangan,
+        };
+
+        await updateBahanBaku(warehouseItem.id, {
+          stok: newStock,
+          harga: newPrice,
+          hargaRataRata: newPrice,
+        });
+
+        onUpdateItem(index, purchaseItem);
+      } else {
+        const purchaseItem: PurchaseItem = {
+          bahanBakuId: warehouseItem.id,
+          nama: warehouseItem.nama,
+          satuan: warehouseItem.satuan,
+          kuantitas: additionalQty,
+          hargaSatuan: computedUnitPrice,
+          subtotal: additionalSubtotal,
+          keterangan: formData.keterangan,
+        };
+
+        await updateBahanBaku(warehouseItem.id, {
+          stok: newStock,
+          harga: newPrice,
+          hargaRataRata: newPrice,
+        });
+
+        onAddItem(purchaseItem);
+      }
+
       onSelectWarehouseItem('');
     } else {
       if (!formData.nama.trim()) {
@@ -134,17 +170,38 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
         return;
       }
 
-      const purchaseItem: PurchaseItem = {
-        bahanBakuId: generateUUID(),
-        nama: formData.nama,
-        satuan: formData.satuan,
-        kuantitas: effectiveQty,
-        hargaSatuan: computedUnitPrice,
-        subtotal: effectiveQty * computedUnitPrice,
-        keterangan: formData.keterangan,
-      };
+      const additionalQty = effectiveQty;
+      const additionalSubtotal = additionalQty * computedUnitPrice;
+      const index = existingItems.findIndex(
+        it => it.nama.toLowerCase() === formData.nama.trim().toLowerCase() && it.satuan === formData.satuan
+      );
 
-      onAddItem(purchaseItem);
+      if (index >= 0) {
+        const prevItem = existingItems[index];
+        const prevSubtotal = prevItem.kuantitas * prevItem.hargaSatuan;
+        const combinedQty = prevItem.kuantitas + additionalQty;
+        const combinedSubtotal = prevSubtotal + additionalSubtotal;
+        const combinedPrice = combinedQty > 0 ? Math.round((combinedSubtotal / combinedQty) * 100) / 100 : 0;
+        const purchaseItem: PurchaseItem = {
+          ...prevItem,
+          kuantitas: combinedQty,
+          hargaSatuan: combinedPrice,
+          subtotal: combinedSubtotal,
+          keterangan: formData.keterangan || prevItem.keterangan,
+        };
+        onUpdateItem(index, purchaseItem);
+      } else {
+        const purchaseItem: PurchaseItem = {
+          bahanBakuId: generateUUID(),
+          nama: formData.nama,
+          satuan: formData.satuan,
+          kuantitas: additionalQty,
+          hargaSatuan: computedUnitPrice,
+          subtotal: additionalSubtotal,
+          keterangan: formData.keterangan,
+        };
+        onAddItem(purchaseItem);
+      }
     }
 
     // Reset form
@@ -159,61 +216,15 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     isSelectingExistingItem,
     selectedWarehouseItem,
     warehouseItems,
+    existingItems,
     formData,
     effectiveQty,
     computedUnitPrice,
     onAddItem,
-    onSelectWarehouseItem
+    onUpdateItem,
+    onSelectWarehouseItem,
+    updateBahanBaku
   ]);
-
-  const { updateBahanBaku } = useBahanBaku();
-
-  const handleUpdate = useCallback(async () => {
-    if (existingIndex < 0) return;
-    const warehouseItem = warehouseItems.find(item => item.id === selectedWarehouseItem);
-    if (!warehouseItem) {
-      toast.error('Bahan baku tidak ditemukan');
-      return;
-    }
-
-    const prevItem = existingItems[existingIndex];
-    const additionalQty = effectiveQty;
-    const prevSubtotal = prevItem.kuantitas * prevItem.hargaSatuan;
-    const additionalSubtotal = additionalQty * computedUnitPrice;
-    const combinedQty = prevItem.kuantitas + additionalQty;
-    const combinedSubtotal = prevSubtotal + additionalSubtotal;
-    const combinedPrice = combinedQty > 0 ? Math.round((combinedSubtotal / combinedQty) * 100) / 100 : 0;
-    const purchaseItem: PurchaseItem = {
-      bahanBakuId: warehouseItem.id,
-      nama: warehouseItem.nama,
-      satuan: warehouseItem.satuan,
-      kuantitas: combinedQty,
-      hargaSatuan: combinedPrice,
-      subtotal: combinedSubtotal,
-      keterangan: formData.keterangan || prevItem.keterangan,
-    };
-
-    const currentValue = warehouseItem.stok * warehouseItem.harga;
-    const newStock = warehouseItem.stok + additionalQty;
-    const newValue = currentValue + additionalSubtotal;
-    const newPrice = newStock > 0 ? Math.round((newValue / newStock) * 100) / 100 : 0;
-
-    await updateBahanBaku(warehouseItem.id, {
-      stok: newStock,
-      harga: newPrice,
-      hargaRataRata: newPrice,
-    });
-
-    onUpdateItem(existingIndex, purchaseItem);
-    onSelectWarehouseItem('');
-    setFormData({
-      nama: '',
-      satuan: '',
-      kuantitas: '',
-      totalBayar: '',
-      keterangan: '',
-    });
-  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, updateBahanBaku, onUpdateItem, onSelectWarehouseItem, formData.keterangan]);
 
   return (
     <Card className="border-gray-200">
@@ -371,29 +382,15 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
         {/* Submit */}
         <div className="space-y-2">
-          {isSelectingExistingItem && existingIndex >= 0 ? (
-            <Button
-              type="button"
-              onClick={handleUpdate}
-              disabled={!canSubmit}
-              className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-            >
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              Update Bahan Baku
-            </Button>
-
-          ) : (
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah ke Daftar
-
-            </Button>
-          )}
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Tambah ke Daftar
+          </Button>
         </div>
         <p className="mt-2 text-xs text-gray-500">HPP dihitung otomatis saat disimpan.</p>
       </CardContent>

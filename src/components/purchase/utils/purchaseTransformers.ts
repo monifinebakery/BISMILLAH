@@ -169,6 +169,7 @@ export const transformPurchaseForDB = (
   p: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
   userId: string
 ) => {
+  console.log('Transforming for DB, supplier value:', p.supplier);
   return {
     user_id: userId,
     supplier: String(p.supplier || '').trim(),

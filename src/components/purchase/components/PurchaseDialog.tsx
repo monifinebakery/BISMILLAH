@@ -352,6 +352,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 selectedWarehouseItem={selectedWarehouseItem}
                 onAddItem={handleAddNewItem}
                 onToggleSelectionMode={toggleSelectionMode}
+                onSelectWarehouseItem={setSelectedWarehouseItem}
               />
 
               {/* Items Table */}

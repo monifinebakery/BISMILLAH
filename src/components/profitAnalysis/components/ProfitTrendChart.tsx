@@ -136,6 +136,18 @@ const analyzeTrend = (trendData: TrendData[]) => {
 const CustomTooltip = ({ active, payload, label, viewType }: any) => {
   if (!active || !payload || !payload.length) return null;
 
+  // Create a mapping from dataKey to friendly label
+  const metricLabelMap = {
+    revenue: 'Omset',
+    grossProfit: 'Untung Kotor',
+    netProfit: 'Untung Bersih',
+    cogs: 'Modal Bahan',
+    opex: 'Biaya Tetap',
+    grossMargin: 'Margin Kotor',
+    netMargin: 'Margin Bersih',
+    stockValue: 'Nilai Stok (WAC)'
+  };
+
   return (
     <div className="bg-white p-4 border border-gray-200 rounded-lg min-w-48">
       <p className="font-semibold text-gray-800 mb-3">{label}</p>
@@ -146,13 +158,15 @@ const CustomTooltip = ({ active, payload, label, viewType }: any) => {
               className="w-3 h-3 rounded-full" 
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-sm text-gray-600">{entry.dataKey}:</span>
+            <span className="text-sm text-gray-600">{metricLabelMap[entry.dataKey as keyof typeof metricLabelMap] || entry.dataKey}:</span>
           </div>
           <span className="text-sm font-medium">
             {viewType === 'margins' && entry.dataKey.includes('Margin')
               ? `${entry.value.toFixed(1)}%`
               : entry.dataKey === 'stockValue'
               ? formatCurrency(entry.value)
+              : viewType === 'margins' 
+              ? `${entry.value.toFixed(1)}%`
               : formatCurrency(entry.value)
             }
           </span>

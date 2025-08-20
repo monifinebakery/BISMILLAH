@@ -1,5 +1,5 @@
 // src/components/devices/DeviceManagementPage.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,17 +26,31 @@ const DeviceManagementPage: React.FC = () => {
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Debug ref to track render count
+  const renderCountRef = useRef(0);
+  const isMountedRef = useRef(true);
+  
+  renderCountRef.current += 1;
+  console.log('DeviceManagementPage render count:', renderCountRef.current);
 
   // Load devices only once when component mounts
   useEffect(() => {
+    console.log('DeviceManagementPage useEffect running');
     let isMounted = true;
     
     const loadDevices = async () => {
-      if (!isMounted) return;
+      if (!isMounted || !isMountedRef.current) {
+        console.log('Component unmounted, skipping loadDevices');
+        return;
+      }
       
+      console.log('Loading devices...');
       try {
         await refreshDevices();
+        console.log('Devices loaded successfully');
       } catch (err) {
+        console.error('Error loading devices:', err);
         logger.error('Error loading devices:', err);
       }
     };
@@ -44,9 +58,18 @@ const DeviceManagementPage: React.FC = () => {
     loadDevices();
 
     return () => {
+      console.log('DeviceManagementPage cleanup');
       isMounted = false;
+      isMountedRef.current = false;
     };
   }, []); // Empty dependency array - run only once
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleEditName = useCallback((deviceId: string, currentName: string) => {
     setEditingDeviceId(deviceId);
@@ -81,15 +104,20 @@ const DeviceManagementPage: React.FC = () => {
   }, [removeDevice]);
 
   const handleRefreshDevices = useCallback(async () => {
-    if (isRefreshing) return;
+    if (isRefreshing || !isMountedRef.current) return;
     
+    console.log('Refreshing devices...');
     setIsRefreshing(true);
     try {
       await refreshDevices();
+      console.log('Devices refreshed successfully');
     } catch (err) {
+      console.error('Error refreshing devices:', err);
       logger.error('Error refreshing devices:', err);
     } finally {
-      setIsRefreshing(false);
+      if (isMountedRef.current) {
+        setIsRefreshing(false);
+      }
     }
   }, [isRefreshing, refreshDevices]);
 
@@ -115,6 +143,13 @@ const DeviceManagementPage: React.FC = () => {
     } catch (err) {
       return 'Baru saja';
     }
+  }, []);
+
+  // Cleanup logging
+  useEffect(() => {
+    return () => {
+      console.log('DeviceManagementPage final cleanup - render count was:', renderCountRef.current);
+    };
   }, []);
 
   if (loading && !isRefreshing) {
@@ -294,7 +329,9 @@ const DeviceManagementPage: React.FC = () => {
                     } catch (err) {
                       logger.error('Error signing out from all devices:', err);
                     } finally {
-                      setIsRefreshing(false);
+                      if (isMountedRef.current) {
+                        setIsRefreshing(false);
+                      }
                     }
                   }
                 }}

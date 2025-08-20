@@ -53,17 +53,17 @@ const StatusFooter: React.FC<StatusFooterProps> = ({
         
         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           <span className="flex items-center">
-            💰 Omset: <span className="font-medium ml-1 text-orange-700">{formatCurrency(data.revenue)}</span>
+            Omset: <span className="font-medium ml-1 text-orange-700">{formatCurrency(data.revenue)}</span>
           </span>
           <span className="hidden sm:inline text-gray-400">•</span>
           <span className="flex items-center">
-            💎 Untung: <span className={`font-medium ml-1 ${
+            Untung: <span className={`font-medium ml-1 ${
               data.netProfit >= 0 ? 'text-green-700' : 'text-red-600'
             }`}>{formatCurrency(data.netProfit)}</span>
           </span>
           <span className="hidden sm:inline text-gray-400">•</span>
           <span className="flex items-center">
-            📊 Margin: <span className="font-medium ml-1 text-blue-700">{formatPercentage(data.netMargin)}</span>
+            Margin: <span className="font-medium ml-1 text-blue-700">{formatPercentage(data.netMargin)}</span>
           </span>
           
           {/* WAC active badge */}

@@ -1,5 +1,7 @@
 // utils/index.ts - Utils Exports
 
+import { DEVICE_BREAKPOINTS, INPUT_PATTERNS } from './constants';
+
 // 🔢 Calculation utilities
 export {
   calculatePromoResult,

@@ -62,7 +62,7 @@ const calculateMetrics = (revenue: number, cogs: number, opex: number) => {
 const generateBarChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
   return [
     {
-      category: '🍽️ Ringkasan Warung',
+      category: 'Ringkasan Warung',
       'Omset': metrics.revenue,
       'Modal Bahan': metrics.cogs,
       'Biaya Tetap': metrics.opex,
@@ -73,29 +73,29 @@ const generateBarChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
 };
 
 const generatePieChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
-  const totalRevenue = metrics.revenue;
+  const totalOmset = metrics.revenue;
   
-  if (totalRevenue === 0) {
+  if (totalOmset === 0) {
     return [];
   }
 
   const data = [
     {
-      name: '💎 Untung Bersih',
+      name: 'Untung Bersih',
       value: metrics.netProfit,
-      percentage: (metrics.netProfit / totalRevenue) * 100,
+      percentage: (metrics.netProfit / totalOmset) * 100,
       color: CHART_CONFIG.colors.net_profit
     },
     {
-      name: '🥘 Modal Bahan Baku',
+      name: 'Modal Bahan Baku',
       value: metrics.cogs,
-      percentage: (metrics.cogs / totalRevenue) * 100,
+      percentage: (metrics.cogs / totalOmset) * 100,
       color: CHART_CONFIG.colors.cogs
     },
     {
-      name: '🏪 Biaya Bulanan Tetap',
+      name: 'Biaya Bulanan Tetap',
       value: metrics.opex,
-      percentage: (metrics.opex / totalRevenue) * 100,
+      percentage: (metrics.opex / totalOmset) * 100,
       color: CHART_CONFIG.colors.opex
     }
   ];
@@ -119,6 +119,15 @@ const calculateSummaryStats = (metrics: ReturnType<typeof calculateMetrics>) => 
 const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) return null;
 
+  // Create a mapping from dataKey to friendly label
+  const dataKeyLabelMap = {
+    'Omset': 'Omset',
+    'Modal Bahan': 'Modal Bahan',
+    'Biaya Tetap': 'Biaya Tetap',
+    'Untung Kotor': 'Untung Kotor',
+    'Untung Bersih': 'Untung Bersih'
+  };
+
   return (
     <div className="bg-white p-3 border border-gray-200 rounded-lg">
       <p className="font-semibold text-gray-800 mb-2">{label}</p>
@@ -128,7 +137,7 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
             className="w-3 h-3 rounded-full" 
             style={{ backgroundColor: entry.color }}
           />
-          <span className="text-sm text-gray-600">{entry.dataKey}:</span>
+          <span className="text-sm text-gray-600">{dataKeyLabelMap[entry.dataKey as keyof typeof dataKeyLabelMap] || entry.dataKey}:</span>
           <span className="text-sm font-medium">
             {formatCurrency(entry.value)}
           </span>
@@ -188,7 +197,7 @@ const ProfitBreakdownChart = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
+          <CardTitle>Ringkasan Keuangan Warung</CardTitle>
           <CardDescription>
             Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih
           </CardDescription>
@@ -205,7 +214,7 @@ const ProfitBreakdownChart = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
+          <CardTitle>Ringkasan Keuangan Warung</CardTitle>
           <CardDescription>
             Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih
           </CardDescription>
@@ -213,7 +222,7 @@ const ProfitBreakdownChart = ({
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-gray-400 text-lg mb-2">📊 Belum Ada Data Omset</div>
+              <div className="text-gray-400 text-lg mb-2">Belum Ada Data Omset</div>
               <div className="text-gray-500 text-sm">
                 Pilih periode yang sudah ada transaksi untuk melihat ringkasan keuangan warung
               </div>
@@ -242,7 +251,7 @@ const ProfitBreakdownChart = ({
           tickFormatter={(value) => formatLargeNumber(value)}
           axisLine={false}
         />
-        <Tooltip content={<CustomBarTooltip />} />
+        <Tooltip trigger="click" content={<CustomBarTooltip />} />
         <Legend 
           wrapperStyle={{ fontSize: '12px' }}
           iconType="circle"
@@ -305,7 +314,7 @@ const ProfitBreakdownChart = ({
             <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Pie>
-        <Tooltip content={<CustomPieTooltip />} />
+        <Tooltip trigger="click" content={<CustomPieTooltip />} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -316,7 +325,7 @@ const ProfitBreakdownChart = ({
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>🍽️ Ringkasan Keuangan Warung</CardTitle>
+            <CardTitle>Ringkasan Keuangan Warung</CardTitle>
             <CardDescription>
               {chartType === 'bar' 
                 ? 'Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih'
@@ -339,11 +348,11 @@ const ProfitBreakdownChart = ({
           
           {/* Quick Stats */}
           <div className="text-right">
-            <div className="text-xs sm:text-sm text-gray-600">🎯 Untung Kotor</div>
+            <div className="text-xs sm:text-sm text-gray-600">Untung Kotor</div>
             <div className="text-sm sm:text-lg font-bold text-orange-600">
               {summaryStats.grossMargin.toFixed(1)}%
             </div>
-            <div className="text-xs sm:text-sm text-gray-600 mt-1">💎 Untung Bersih</div>
+            <div className="text-xs sm:text-sm text-gray-600 mt-1">Untung Bersih</div>
             <div className="text-sm sm:text-lg font-bold text-orange-700">
               {summaryStats.netMargin.toFixed(1)}%
             </div>
@@ -360,14 +369,14 @@ const ProfitBreakdownChart = ({
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 border-t">
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">💰 Total Omset</div>
+            <div className="text-xs sm:text-sm text-gray-600">Total Omset</div>
             <div className="text-sm sm:text-lg font-bold text-green-600">
               {formatCurrency(metrics.revenue)}
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">🥘 Modal Bahan</div>
+            <div className="text-xs sm:text-sm text-gray-600">Modal Bahan</div>
             <div className="text-sm sm:text-lg font-bold text-orange-600">
               {formatCurrency(metrics.cogs)}
             </div>
@@ -377,7 +386,7 @@ const ProfitBreakdownChart = ({
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">🏪 Biaya Tetap</div>
+            <div className="text-xs sm:text-sm text-gray-600">Biaya Tetap</div>
             <div className="text-sm sm:text-lg font-bold text-red-600">
               {formatCurrency(metrics.opex)}
             </div>
@@ -387,7 +396,7 @@ const ProfitBreakdownChart = ({
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">💎 Untung Bersih</div>
+            <div className="text-xs sm:text-sm text-gray-600">Untung Bersih</div>
             <div className={`text-sm sm:text-lg font-bold ${
               metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600'
             }`}>

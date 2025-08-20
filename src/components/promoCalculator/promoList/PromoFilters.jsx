@@ -267,8 +267,8 @@ const PromoList = () => {
       setIsEditDialogOpen(false);
       setEditingPromo(null);
     }
-    // ✅ Navigasi ke halaman utama kalkulator untuk membuat baru
-    navigate('/promo');
+    // ✅ Navigasi langsung ke halaman konfigurasi promo
+    navigate('/promo/create');
   };
 
   // Loading State

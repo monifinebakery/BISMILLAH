@@ -1,8 +1,8 @@
 // PromoCalculatorLayout.jsx - Updated with useQuery for promos data
 import React, { useState, Suspense } from 'react';
 import { Calculator, List, ArrowLeft, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useIsMobile } from '@/hooks/use-mobile';
 import PromoCard from './components/PromoCard';
 import { logger } from '@/utils/logger';
 import { Button } from '@/components/ui/button';
@@ -135,8 +135,8 @@ class ErrorBoundary extends React.Component {
 
 const PromoCalculatorLayout = () => {
   const [currentView, setCurrentView] = useState('dashboard');
-  const isMobile = useIsMobile(768);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // ✅ useQuery for promos data
   const { 
@@ -211,7 +211,7 @@ const PromoCalculatorLayout = () => {
     buttonPrimary: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2",
     buttonSecondary: "flex items-center space-x-2 border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors",
     containerLayout: "min-h-screen bg-gray-50",
-    mainContent: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8",
+    mainContent: "w-full px-4 sm:px-6 lg:px-8 py-8",
     loadingSpinner: "animate-spin rounded-full border-t-2 border-b-2 border-orange-500",
     card: "bg-white p-6 rounded-xl border border-gray-200"
   };
@@ -389,14 +389,14 @@ const PromoCalculatorLayout = () => {
               </div>
               <div className="hidden md:flex gap-3">
                 <Button
-                  onClick={() => setCurrentView('list')}
+              onClick={() => navigate('/promo/list')}
                   className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
                 >
                   <List className="h-4 w-4" />
                   Lihat Semua
                 </Button>
                 <Button
-                  onClick={() => setCurrentView('calculator')}
+              onClick={() => navigate('/promo/create')}
                   className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
                 >
                   <Plus className="h-4 w-4" />
@@ -407,14 +407,14 @@ const PromoCalculatorLayout = () => {
 
             <div className="flex md:hidden flex-col gap-3 mt-6">
               <Button
-                onClick={() => setCurrentView('list')}
+              onClick={() => navigate('/promo/list')}
                 className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
               >
                 <List className="h-4 w-4" />
                 Lihat Semua
               </Button>
               <Button
-                onClick={() => setCurrentView('calculator')}
+              onClick={() => navigate('/promo/create')}
                 className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"
               >
                 <Plus className="h-4 w-4" />
@@ -449,9 +449,9 @@ const PromoCalculatorLayout = () => {
               </div>
             </div>
           ) : (
-            <PromoGrid 
-              promos={recentPromos} 
-              onCreateNew={() => setCurrentView('calculator')}
+            <PromoGrid
+              promos={recentPromos}
+              onCreateNew={() => navigate('/promo/create')}
             />
           )}
         </div>
@@ -492,8 +492,8 @@ const PromoCalculatorLayout = () => {
   if (currentView === 'list') {
     return (
       <div className={styles.containerLayout}>
-        <div className="max-w-7xl mx-auto">
-          <ListHeader onCreateNew={() => setCurrentView('calculator')} />
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <ListHeader onCreateNew={() => navigate('/promo/create')} />
           <div className="bg-white rounded-t-xl border border-gray-200">
             <LazyComponent 
               fallback={<LoadingFallback message="Memuat daftar promo..." />}

@@ -424,7 +424,7 @@ const WarehousePageContent: React.FC = () => {
   // Early return for missing context
   if (!context) {
     return (
-      <div className="container mx-auto p-4 sm:p-8">
+      <div className="w-full p-4 sm:p-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="text-red-500 text-4xl mb-4">⚠️</div>
@@ -446,7 +446,7 @@ const WarehousePageContent: React.FC = () => {
   const hasDialogsOpen = Object.values(core.dialogs?.states || {}).some(Boolean) || !!core.dialogs?.editingItem;
 
   return (
-    <div className="container mx-auto p-4 sm:p-8" aria-live="polite">
+    <div className="w-full p-4 sm:p-8" aria-live="polite">
       
       {/* Header Section */}
       <WarehouseHeader

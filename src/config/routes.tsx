@@ -85,12 +85,13 @@ const AdminUpdatesPage = React.lazy(() =>
 );
 
 // ✅ Other misc components
-const [NotFound, Settings, MenuPage, PaymentSuccessPage, InvoicePage] = [
+const [NotFound, Settings, MenuPage, PaymentSuccessPage, InvoicePage, DeviceManagementPage] = [
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/NotFound")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/Settings")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/MenuPage")),
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/PaymentSuccessPage")),
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/invoice/InvoicePage"))
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/invoice/InvoicePage")),
+  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/devices/DeviceManagementPage"))
 ];
 
 // ✅ Route wrapper with error boundary
@@ -460,6 +461,15 @@ export const AppRouter = () => (
         element={
           <RouteWrapper title="Memuat Pengaturan">
             <Settings />
+          </RouteWrapper>
+        } 
+      />
+      
+      <Route 
+        path="devices" 
+        element={
+          <RouteWrapper title="Memuat Manajemen Perangkat">
+            <DeviceManagementPage />
           </RouteWrapper>
         } 
       />

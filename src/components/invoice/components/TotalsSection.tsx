@@ -2,6 +2,7 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency } from '@/utils/formatUtils';
 import type { Discount, Tax, InvoiceCalculations } from '../types';
@@ -78,13 +79,20 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
           {/* Tax */}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-1 sm:gap-2">
-              <Label className="text-gray-600 text-xs sm:text-sm">Pajak</Label>
-              <Input 
-                type="number" 
+              <Checkbox
+                id="tax-enabled"
+                checked={tax.value > 0}
+                onCheckedChange={(checked) => setTax({ ...tax, value: checked ? (tax.value || 11) : 0 })}
+                className="print:hidden"
+              />
+              <Label htmlFor="tax-enabled" className="text-gray-600 text-xs sm:text-sm">Pajak</Label>
+              <Input
+                type="number"
                 min="0"
                 max="100"
-                value={tax.value} 
-                onChange={e => setTax({...tax, value: Number(e.target.value) || 0})} 
+                value={tax.value > 0 ? tax.value : ''}
+                onChange={e => setTax({...tax, value: Number(e.target.value) || 0})}
+                disabled={tax.value <= 0}
                 className="w-16 sm:w-20 h-8 text-center text-xs sm:text-sm border-gray-300 print:hidden"
               />
               <span className="text-xs sm:text-sm text-gray-600">%</span>

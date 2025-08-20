@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useSupplier } from '@/contexts/SupplierContext';
 
 // Types - Updated to use BahanBakuFrontend consistently
 import type { BahanBakuFrontend, FilterState, SortConfig } from '../types';
@@ -83,6 +84,12 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
     export: false,
   });
   const [editingItem, setEditingItem] = useState<BahanBakuFrontend | null>(null);
+  const { getSupplierById } = useSupplier();
+  const resolveSupplierName = useCallback((supplierId?: string) => {
+    if (!supplierId) return '';
+    const supplier = getSupplierById(supplierId);
+    return supplier?.nama || supplierId;
+  }, [getSupplierById]);
 
   // ✅ ENHANCED: Log editing item changes
   useEffect(() => {
@@ -116,11 +123,13 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   }, [context.bahanBaku]);
 
   const availableSuppliers = useMemo(() => {
-    const suppliers = new Set(context.bahanBaku.map(item => item.supplier).filter(Boolean));
+    const suppliers = new Set(
+      context.bahanBaku.map(item => resolveSupplierName(item.supplier)).filter(Boolean)
+    );
     const result = Array.from(suppliers);
     logger.debug(`[${hookId.current}] 📊 Available suppliers:`, result);
     return result;
-  }, [context.bahanBaku]);
+  }, [context.bahanBaku, resolveSupplierName]);
 
   // Filtered and sorted items
   const filteredItems = useMemo(() => {
@@ -133,7 +142,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       items = items.filter(item => 
         item.nama.toLowerCase().includes(term) ||
         item.kategori?.toLowerCase().includes(term) ||
-        item.supplier?.toLowerCase().includes(term)
+        resolveSupplierName(item.supplier).toLowerCase().includes(term)
       );
       logger.debug(`[${hookId.current}] 🔍 Search "${searchTerm}" filtered: ${initialCount} -> ${items.length}`);
     }
@@ -148,7 +157,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
     // Supplier filter
     if (filters.supplier) {
       const beforeCount = items.length;
-      items = items.filter(item => item.supplier === filters.supplier);
+      items = items.filter(item => resolveSupplierName(item.supplier) === filters.supplier);
       logger.debug(`[${hookId.current}] 🏢 Supplier "${filters.supplier}" filtered: ${beforeCount} -> ${items.length}`);
     }
 

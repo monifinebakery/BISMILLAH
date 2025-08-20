@@ -24,6 +24,9 @@ import { UpdateProvider } from '@/components/update';
 // ✅ NEW: Import ProfitAnalysisProvider
 import { ProfitAnalysisProvider } from '@/components/profitAnalysis';
 
+// ✅ NEW: Import DeviceProvider
+import { DeviceProvider } from './DeviceContext';
+
 interface AppProvidersProps {
   children: ReactNode;
 }
@@ -52,16 +55,19 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                             <OperationalCostProvider>
                               <PromoProvider>
                                 <FollowUpTemplateProvider>
-                                  {/* ✅ NEW: Add ProfitAnalysisProvider */}
-                                  <ProfitAnalysisProvider>
-                                    {/* ✅ NEW: Add UpdateProvider at the end */}
-                                    <UpdateProvider>
-                                      
-                                      {/* ✅ APP CONTENT */}
-                                      {children}
-                                      
-                                    </UpdateProvider>
-                                  </ProfitAnalysisProvider>
+                                  {/* ✅ NEW: Add DeviceProvider */}
+                                  <DeviceProvider>
+                                    {/* ✅ NEW: Add ProfitAnalysisProvider */}
+                                    <ProfitAnalysisProvider>
+                                      {/* ✅ NEW: Add UpdateProvider at the end */}
+                                      <UpdateProvider>
+                                        
+                                        {/* ✅ APP CONTENT */}
+                                        {children}
+                                        
+                                      </UpdateProvider>
+                                    </ProfitAnalysisProvider>
+                                  </DeviceProvider>
                                 </FollowUpTemplateProvider>
                               </PromoProvider>
                             </OperationalCostProvider>

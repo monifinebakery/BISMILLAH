@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 
 type Theme = "light" | "dark";
 
@@ -25,6 +25,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 }) => {
   const [theme, setTheme] = useState<Theme>(defaultTheme);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    theme,
+    setTheme: (newTheme: Theme) => {
+      setTheme(newTheme);
+    }
+  }), [theme]);
+
   useEffect(() => {
     const root = window.document.documentElement;
     if (attribute === "class") {
@@ -32,10 +40,31 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     } else {
       root.setAttribute(attribute, theme);
     }
+    
+    // Store theme in localStorage
+    try {
+      localStorage.setItem("theme", theme);
+    } catch (e) {
+      // Handle localStorage errors silently
+      console.warn("Unable to save theme to localStorage", e);
+    }
   }, [theme, attribute]);
 
+  // Load theme from localStorage on initial render
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("theme") as Theme | null;
+      if (savedTheme && (savedTheme === "light" || savedTheme === "dark")) {
+        setTheme(savedTheme);
+      }
+    } catch (e) {
+      // Handle localStorage errors silently
+      console.warn("Unable to load theme from localStorage", e);
+    }
+  }, []);
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

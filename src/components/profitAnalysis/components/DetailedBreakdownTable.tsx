@@ -244,10 +244,10 @@ const DetailedBreakdownTable = ({
 
     // fallback F&B friendly
     return [
-      { name: '🍚 Bahan Makanan Utama', amount: cogs * 0.6, percentage: cogs > 0 ? 60 : 0, type: '🍽️ Bahan Pokok' },
+      { name: '  Bahan Makanan Utama', amount: cogs * 0.6, percentage: cogs > 0 ? 60 : 0, type: '  Bahan Pokok' },
       { name: '🧂 Bumbu & Pelengkap', amount: cogs * 0.2, percentage: cogs > 0 ? 20 : 0, type: '🌶️ Bumbu Dapur' },
       { name: '🥤 Minuman & Es', amount: cogs * 0.15, percentage: cogs > 0 ? 15 : 0, type: '🥤 Minuman' },
-      { name: '🍽️ Kemasan & Perlengkapan', amount: cogs * 0.05, percentage: cogs > 0 ? 5 : 0, type: '📦 Kemasan' }
+      { name: '  Kemasan & Perlengkapan', amount: cogs * 0.05, percentage: cogs > 0 ? 5 : 0, type: '  Kemasan' }
     ].filter(item => item.amount > 0);
   }, [hppBreakdown, cogs]);
 
@@ -265,7 +265,7 @@ const DetailedBreakdownTable = ({
   const breakdownSections = useMemo(() => {
     return [
       {
-        title: '💰 Sumber Pemasukan (Dari Mana Uang Masuk)',
+        title: '  Sumber Pemasukan (Dari Mana Uang Masuk)',
         icon: DollarSign,
         color: 'text-green-700',
         bgColor: 'bg-green-50',
@@ -274,7 +274,7 @@ const DetailedBreakdownTable = ({
         helpText: 'Semua uang yang masuk ke warung dari penjualan makanan, minuman, dan layanan lainnya'
       },
       {
-        title: '🛒 Modal Bahan Baku (Belanja Dapur)',
+        title: '  Modal Bahan Baku (Belanja Dapur)',
         icon: ShoppingCart,
         color: 'text-amber-700',
         bgColor: 'bg-amber-50',
@@ -426,8 +426,8 @@ const DetailedBreakdownTable = ({
         {/* Tab Navigation */}
         <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
         {[
-          { key: 'all', label: '📊 Semua' },
-          { key: 'revenue', label: '💰 Pemasukan' },
+          { key: 'all', label: 'Semua' },
+          { key: 'revenue', label: '  Pemasukan' },
           { key: 'cogs', label: '🛍️ Belanja' },
           { key: 'opex', label: '🏠 Biaya' }
         ].map(tab => (
@@ -534,7 +534,7 @@ const DetailedBreakdownTable = ({
                 <div className="text-2xl font-bold text-green-700 mb-1">
                   {formatCurrency(breakdownSections[0]?.total || 0)}
                 </div>
-                <div className="text-sm text-green-600">💰 Total Omset</div>
+                <div className="text-sm text-green-600">  Total Omset</div>
                 <div className="text-xs text-gray-600 mt-1">
                   Dari {breakdownSections[0]?.items.length || 0} sumber pemasukan
                 </div>
@@ -562,7 +562,7 @@ const DetailedBreakdownTable = ({
                     (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-blue-600">💎 Untung Bersih</div>
+                <div className="text-sm text-blue-600">Untung Bersih</div>
                 <div className="text-xs text-gray-600 mt-1">
                   {formatPercentage(
                     breakdownSections[0]?.total > 0

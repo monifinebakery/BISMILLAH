@@ -55,6 +55,25 @@ const PurchaseDialog = React.lazy(() =>
   }))
 );
 
+const PurchaseImportDialog = React.lazy(() => 
+  import('./components/dialogs/PurchaseImportDialog').catch(() => ({
+    default: () => (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg max-w-md">
+          <div className="text-red-500 text-lg mb-2">❌ Gagal memuat dialog import</div>
+          <p className="text-gray-600 mb-4">Dialog import tidak dapat dimuat. Silakan coba lagi.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      </div>
+    )
+  }))
+);
+
 const BulkDeleteDialog = React.lazy(() =>
   import('./components/BulkDeleteDialog').catch(() => ({
     default: () => null
@@ -71,6 +90,7 @@ interface PurchasePageProps {
 interface AppState {
   dialogs: {
     purchase: { isOpen: boolean; editing: any; mode: 'create' | 'edit' };
+    import: { isOpen: boolean }; // ✅ NEW: Import dialog state
     bulkDelete: { isOpen: boolean; selectedIds: string[] };
   };
   warnings: {
@@ -84,6 +104,7 @@ interface AppState {
 const initialAppState: AppState = {
   dialogs: {
     purchase: { isOpen: false, editing: null, mode: 'create' },
+    import: { isOpen: false }, // ✅ NEW: Import dialog state
     bulkDelete: { isOpen: false, selectedIds: [] }
   },
   warnings: {
@@ -166,6 +187,26 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           dialogs: {
             ...prev.dialogs,
             purchase: { isOpen: false, editing: null, mode: 'create' }
+          }
+        }));
+      }
+    },
+    import: {
+      open: () => {
+        setAppState(prev => ({
+          ...prev,
+          dialogs: {
+            ...prev.dialogs,
+            import: { isOpen: true }
+          }
+        }));
+      },
+      close: () => {
+        setAppState(prev => ({
+          ...prev,
+          dialogs: {
+            ...prev.dialogs,
+            import: { isOpen: false }
           }
         }));
       }
@@ -283,7 +324,13 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         totalPurchases={stats.total}
         totalValue={stats.totalValue}
         pendingCount={stats.byStatus.pending}
-        onAddPurchase={dialogActions.purchase.openAdd}
+        onAddPurchase={(intent) => {
+          if (intent === 'import') {
+            dialogActions.import.open();
+          } else {
+            dialogActions.purchase.openAdd();
+          }
+        }}
         className="mb-8"
       />
 
@@ -324,6 +371,20 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             purchase={appState.dialogs.purchase.editing}
             suppliers={suppliers}
             onClose={dialogActions.purchase.close}
+          />
+        )}
+      </Suspense>
+      
+      {/* ✅ NEW: Import dialog */}
+      <Suspense fallback={null}>
+        {appState.dialogs.import.isOpen && (
+          <PurchaseImportDialog
+            isOpen={appState.dialogs.import.isOpen}
+            onClose={dialogActions.import.close}
+            onImportComplete={() => {
+              // Refresh purchases after import
+              purchaseContext.refreshPurchases();
+            }}
           />
         )}
       </Suspense>

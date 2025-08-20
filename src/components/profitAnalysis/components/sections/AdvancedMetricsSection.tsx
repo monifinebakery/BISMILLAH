@@ -64,7 +64,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
 const AdvancedMetricsSection: React.FC<AdvancedMetricsSectionProps> = ({
   data,
   isLoading = false,
-  title = '📊 Metrik Lanjutan',
+  title = 'Metrik Lanjutan',
   description = 'Data teknis untuk analisis mendalam'
 }) => {
   // Don't render if no data or loading
@@ -83,21 +83,21 @@ const AdvancedMetricsSection: React.FC<AdvancedMetricsSectionProps> = ({
             value={data.grossProfitMargin}
             color="text-orange-600"
             bgColor="bg-orange-50"
-            emoji="🎯"
+            emoji=""
           />
           <MetricCard
             title="Margin Bersih"
             value={data.netProfitMargin}
             color="text-green-600"
             bgColor="bg-green-50"
-            emoji="💎"
+            emoji=""
           />
           <MetricCard
             title="Pertumbuhan"
             value={data.monthlyGrowthRate}
             color="text-purple-600"
             bgColor="bg-purple-50"
-            emoji="📈"
+            emoji=""
           />
           <MetricCard
             title="Keamanan"

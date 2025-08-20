@@ -22,8 +22,10 @@ export const queryClient = new QueryClient({
         }
         return false;
       },
+      // Performance optimizations
       refetchOnWindowFocus: false, // Disable auto refetch on window focus
       refetchOnReconnect: true, // Enable refetch on network reconnect
+      refetchOnMount: true, // Refetch on component mount if data is stale
     },
     mutations: {
       retry: 1, // Retry mutations once on failure

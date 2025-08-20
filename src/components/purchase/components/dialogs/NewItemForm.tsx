@@ -176,21 +176,25 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       return;
     }
 
+    const prevItem = existingItems[existingIndex];
+    const additionalQty = effectiveQty;
+    const prevSubtotal = prevItem.kuantitas * prevItem.hargaSatuan;
+    const additionalSubtotal = additionalQty * computedUnitPrice;
+    const combinedQty = prevItem.kuantitas + additionalQty;
+    const combinedSubtotal = prevSubtotal + additionalSubtotal;
+    const combinedPrice = combinedQty > 0 ? Math.round((combinedSubtotal / combinedQty) * 100) / 100 : 0;
     const purchaseItem: PurchaseItem = {
       bahanBakuId: warehouseItem.id,
       nama: warehouseItem.nama,
       satuan: warehouseItem.satuan,
-      kuantitas: effectiveQty,
-      hargaSatuan: computedUnitPrice,
-      subtotal: effectiveQty * computedUnitPrice,
-      keterangan: formData.keterangan,
+      kuantitas: combinedQty,
+      hargaSatuan: combinedPrice,
+      subtotal: combinedSubtotal,
+      keterangan: formData.keterangan || prevItem.keterangan,
     };
-
-    const prevItem = existingItems[existingIndex];
-    const diffQty = effectiveQty - prevItem.kuantitas;
     const currentValue = warehouseItem.stok * warehouseItem.harga;
-    const newStock = warehouseItem.stok + diffQty;
-    const newValue = currentValue + diffQty * computedUnitPrice;
+    const newStock = warehouseItem.stok + additionalQty;
+    const newValue = currentValue + additionalSubtotal;
     const newPrice = newStock > 0 ? Math.round((newValue / newStock) * 100) / 100 : 0;
 
     await updateBahanBaku(warehouseItem.id, { stok: newStock, harga: newPrice });
@@ -204,18 +208,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       totalBayar: '',
       keterangan: '',
     });
-  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, formData.keterangan, existingItems, updateBahanBaku, onUpdateItem, onSelectWarehouseItem]);
-
-  const handleCancelUpdate = useCallback(() => {
-    onSelectWarehouseItem('');
-    setFormData({
-      nama: '',
-      satuan: '',
-      kuantitas: '',
-      totalBayar: '',
-      keterangan: '',
-    });
-  }, [onSelectWarehouseItem]);
+  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, updateBahanBaku, onUpdateItem, onSelectWarehouseItem, formData.keterangan]);
 
   // Reset form
   const handleReset = useCallback(() => {
@@ -385,25 +378,16 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
         {/* Submit */}
         <div className="space-y-2">
           {isSelectingExistingItem && existingIndex >= 0 ? (
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancelUpdate}
-                className="flex-1 h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                Batal
-              </Button>
-              <Button
-                type="button"
-                onClick={handleUpdate}
-                disabled={!canSubmit}
-                className="flex-1 h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-              >
-                <RefreshCcw className="h-4 w-4 mr-2" />
-                Update Bahan Baku
-              </Button>
-            </div>
+            <Button
+              type="button"
+              onClick={handleUpdate}
+              disabled={!canSubmit}
+              className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Update Bahan Baku
+            </Button>
+
           ) : (
             <Button
               type="button"

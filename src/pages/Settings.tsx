@@ -31,6 +31,9 @@ import { UserSettings } from '@/contexts/UserSettingsContext';
 // ✅ UPDATED: Import from correct path
 import NotificationSettingsForm from '@/components/NotificationSettingsForm';
 
+// ✅ NEW: Import device management section
+import DeviceManagementSection from '@/components/settings/DeviceManagementSection';
+
 // ✅ NEW: Import notification triggers for demo
 import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 import { getDeviceType, getBrowserInfo } from '@/utils';
@@ -449,6 +452,9 @@ const SettingsPage = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Device Management Section */}
+            <DeviceManagementSection />
 
             {/* Version Info */}
             <Card className="border-0">

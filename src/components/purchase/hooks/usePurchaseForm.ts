@@ -6,7 +6,6 @@ import { validatePurchaseForm, ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
 import { usePurchase } from '../context/PurchaseContext';
 import { logger } from '@/utils/logger';
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 interface UsePurchaseFormProps {
   mode: 'create' | 'edit';
@@ -60,7 +59,6 @@ export const usePurchaseForm = ({
 }: UsePurchaseFormProps): UsePurchaseFormReturn => {
   // Dependencies
   const { addPurchase, updatePurchase } = usePurchase();
-  const { bahanBaku: warehouseItems, updateBahanBaku } = useBahanBaku();
 
   // Form state
   const [formData, setFormDataState] = useState<PurchaseFormData>(() => {
@@ -199,36 +197,6 @@ export const usePurchaseForm = ({
 
     setIsSubmitting(true);
 
-    // --- WAREHOUSE UPDATE LOGIC ---
-    if (newStatus === 'completed') {
-      try {
-        for (const item of formData.items) {
-          const warehouseItem = warehouseItems.find(wh => wh.id === item.bahanBakuId);
-          if (warehouseItem) {
-            const currentStock = warehouseItem.stok;
-            const currentAvgPrice = warehouseItem.hargaRataRata;
-            const newQty = item.kuantitas;
-            const newPrice = item.hargaSatuan;
-
-            const newStockTotal = currentStock + newQty;
-            const newAvgPrice = ((currentStock * currentAvgPrice) + (newQty * newPrice)) / newStockTotal;
-
-            await updateBahanBaku(warehouseItem.id, {
-              stok: newStockTotal,
-              hargaRataRata: newAvgPrice,
-              harga: newPrice, // Update last purchase price
-            });
-          }
-        }
-      } catch (error) {
-        logger.error('Warehouse update failed:', error);
-        onError?.('Gagal memperbarui stok gudang. Pembelian tidak disimpan.');
-        setIsSubmitting(false);
-        return;
-      }
-    }
-    // --- END WAREHOUSE UPDATE LOGIC ---
-
     try {
       const status = newStatus ?? (mode === 'edit' && initialData ? initialData.status : 'pending' as const);
 
@@ -266,9 +234,7 @@ export const usePurchaseForm = ({
     initialData, 
     onSuccess, 
     onError, 
-    validateForm,
-    warehouseItems,
-    updateBahanBaku
+    validateForm
   ]);
 
   // Reset form

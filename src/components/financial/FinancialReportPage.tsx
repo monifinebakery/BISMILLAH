@@ -94,24 +94,27 @@ const SummaryCards: React.FC<{
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
 
   const cards = [
-    { 
-      title: 'Total Pemasukan', 
-      value: totalIncome, 
+    {
+      title: 'Total Pemasukan',
+      value: totalIncome,
       color: 'green',
-      icon: TrendingUp
+      icon: TrendingUp,
+      description: 'Jumlah seluruh pemasukan yang tercatat'
     },
-    { 
-      title: 'Total Pengeluaran', 
-      value: totalExpense, 
+    {
+      title: 'Total Pengeluaran',
+      value: totalExpense,
       color: 'red',
       icon: TrendingUp,
-      iconRotate: true
+      iconRotate: true,
+      description: 'Jumlah seluruh pengeluaran yang tercatat'
     },
-    { 
-      title: 'Saldo Akhir', 
-      value: balance, 
+    {
+      title: 'Saldo Akhir',
+      value: balance,
       color: balance >= 0 ? 'green' : 'red',
-      icon: TrendingUp
+      icon: TrendingUp,
+      description: 'Selisih antara pemasukan dan pengeluaran'
     }
   ];
 
@@ -141,6 +144,9 @@ const SummaryCards: React.FC<{
               card.color === 'green' ? 'text-green-600' : 'text-red-600'
             )}>
               {isLoading ? <QuickSkeleton className="h-8 w-24" /> : formatCurrency(card.value)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {isLoading ? <QuickSkeleton className="h-4 w-32" /> : card.description}
             </p>
           </CardContent>
         </Card>

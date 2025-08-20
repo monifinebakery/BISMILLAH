@@ -4,23 +4,12 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  RotateCw,
-  CheckCircle,
-  AlertTriangle,
-  Target,
-  BarChart3
-} from 'lucide-react';
+import { RotateCw, CheckCircle, AlertTriangle, Target, BarChart3 } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
 
 // ==============================================
 // TYPES
 // ==============================================
-
-export interface PeriodOption {
-  value: string;
-  label: string;
-}
 
 export interface QuickStatusData {
   netProfit: number;
@@ -38,17 +27,18 @@ export interface StatusIndicator {
 export interface DashboardHeaderSectionProps {
   title?: string;
   subtitle?: string;
-  currentPeriod: string;
-  periodOptions: PeriodOption[];
   isLoading?: boolean;
   hasValidData?: boolean;
   quickStatus?: QuickStatusData;
   statusIndicators?: StatusIndicator[];
-  onPeriodChange: (period: string) => void;
   onRefresh: () => void;
   // 🆕 Mode harian/bulanan/tahunan + preset rentang tanggal
   mode?: 'daily' | 'monthly' | 'yearly';
   onModeChange?: (mode: 'daily' | 'monthly' | 'yearly') => void;
+  currentPeriod?: string;
+  onPeriodChange?: (period: string) => void;
+  periodOptions?: { value: string; label: string }[];
+
   dateRange?: { from: Date; to: Date };
   onDateRangeChange?: (range: { from: Date; to: Date }) => void;
 }
@@ -60,24 +50,25 @@ export interface DashboardHeaderSectionProps {
 const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   title = 'Untung Rugi Warung',
   subtitle = 'Lihat untung-rugi bulan ini, modal bahan baku, dan perkiraan bulan depan - semua dalam bahasa yang mudah dimengerti',
-  currentPeriod,
-  periodOptions,
   isLoading = false,
   hasValidData = false,
   quickStatus,
   statusIndicators = [],
-  onPeriodChange,
   onRefresh,
-  mode = 'monthly',
+  mode,
   onModeChange,
   dateRange,
-  onDateRangeChange
+  onDateRangeChange,
+  mode = 'monthly',
+  onModeChange,
+  currentPeriod,
+  onPeriodChange,
+  periodOptions = [],
 }) => {
   // Extract Controls as a separate component to avoid binding issues
   const renderControls = () => (
     <>
-      {/* Mode Toggle */}
-      <div className="flex items-center bg-white bg-opacity-20 rounded-lg overflow-hidden border border-white border-opacity-30">
+      <div className="flex items-center gap-2">
         <button
           className={`px-3 py-1 text-sm ${
             mode === 'daily' ? 'bg-white text-orange-600' : 'text-white opacity-75'
@@ -85,7 +76,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
           onClick={() => onModeChange?.('daily')}
         >
           Harian
-        </button>
+        </Select>
         <button
           className={`px-3 py-1 text-sm ${
             mode === 'monthly' ? 'bg-white text-orange-600' : 'text-white opacity-75'
@@ -111,11 +102,9 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
             <SelectValue placeholder="Pilih periode" />
           </SelectTrigger>
           <SelectContent>
-            {periodOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
+            <SelectItem value="this_month">Bulan ini</SelectItem>
+            <SelectItem value="last_month">Bulan kemarin</SelectItem>
+            <SelectItem value="last_30">30 hari terakhir</SelectItem>
           </SelectContent>
         </Select>
       ) : mode === 'daily' ? (
@@ -167,6 +156,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
           </SelectContent>
         </Select>
       )}
+
 
       {/* Action Buttons */}
       <Button

@@ -161,7 +161,8 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
   isOpen,
   onClose,
   settings,
-  saveSettings
+  saveSettings,
+  refreshSettings
 }) => {
   const [newIncomeCategory, setNewIncomeCategory] = useState('');
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
@@ -231,7 +232,7 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
         }
       }
     },
-    [settings, saveSettings]
+    [settings, saveSettings, refreshSettings]
   );
 
   const deleteCategory = useCallback(
@@ -256,7 +257,7 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
         }
       }
     },
-    [settings, saveSettings]
+    [settings, saveSettings, refreshSettings]
   );
 
   const handleAddIncomeCategory = useCallback(() => {

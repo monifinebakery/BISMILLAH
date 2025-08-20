@@ -30,7 +30,11 @@ export const SUCCESS_MESSAGES = {};
 export const DEFAULT_VALUES = {};
 export const CALCULATION_CONSTANTS = {};
 export const ANIMATION_DURATIONS = {};
-export const DEVICE_BREAKPOINTS = {};
+export const DEVICE_BREAKPOINTS = {
+  MOBILE: 768,
+  TABLET: 1024,
+};
+
 export const FILTER_OPTIONS = {};
 export const CONSTANTS = {};
 

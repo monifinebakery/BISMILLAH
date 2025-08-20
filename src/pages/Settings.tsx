@@ -33,14 +33,23 @@ import NotificationSettingsForm from '@/components/NotificationSettingsForm';
 
 // ✅ NEW: Import notification triggers for demo
 import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
+import { getDeviceType, getBrowserInfo } from '@/utils';
 
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
   const { triggerCustomNotification } = useNotificationTriggers();
-  
+
   const [formState, setFormState] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState({ device: '', browser: '' });
+
+  useEffect(() => {
+    setDeviceInfo({
+      device: getDeviceType(),
+      browser: getBrowserInfo().browser,
+    });
+  }, []);
 
   useEffect(() => {
     if (settings) {
@@ -130,6 +139,9 @@ const SettingsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
+        <p className="mb-4 text-sm text-gray-600">
+          Akun Anda sedang login di perangkat {deviceInfo.device} dengan browser {deviceInfo.browser}
+        </p>
         {/* Header Section */}
         <div className="mb-8">
           <div className="bg-white rounded-2xl border overflow-hidden">

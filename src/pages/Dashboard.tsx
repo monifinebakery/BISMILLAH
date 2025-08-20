@@ -42,10 +42,10 @@ const getDefaultDateRange = () => {
 const getGreeting = (ownerName?: string) => {
   const hour = new Date().getHours();
   const name = ownerName && ownerName !== 'Nama Anda' ? `kak ${ownerName}` : 'kak';
-  
-  if (hour < 12) return `Selamat pagi, ${name}! 🌅`;
-  if (hour < 17) return `Selamat siang, ${name}! ☀️`;
-  if (hour < 21) return `Selamat sore, ${name}! 🌇`;
+
+  if (hour >= 4 && hour < 11) return `Selamat pagi, ${name}! 🌅`;
+  if (hour >= 11 && hour < 15) return `Selamat siang, ${name}! ☀️`;
+  if (hour >= 15 && hour < 19) return `Selamat sore, ${name}! 🌇`;
   return `Selamat malam, ${name}! 🌙`;
 };
 

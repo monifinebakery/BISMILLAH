@@ -360,6 +360,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 onToggleSelectionMode={toggleSelectionMode}
                 onSelectWarehouseItem={setSelectedWarehouseItem}
                 existingItems={formData.items}
+
               />
 
               {/* Items Table */}

@@ -68,7 +68,7 @@ const CategoryManagerDialog = React.lazy(() =>
 // ✅ Better Loading Fallback
 const RecipeLoadingFallback: React.FC = () => (
   <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-    <div className="container mx-auto p-4 sm:p-6">
+    <div className="w-full p-4 sm:p-6">
       <div className="space-y-6">
         {/* Header Skeleton */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -359,7 +359,7 @@ const Recipes: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-      <div className="container mx-auto p-4 sm:p-6 space-y-6">
+      <div className="w-full p-4 sm:p-6 space-y-6">
         
         {/* ✅ Header - Matching Warehouse Design */}
         <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white border">

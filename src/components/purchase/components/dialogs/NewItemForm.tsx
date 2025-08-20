@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Package, Calculator, RefreshCcw } from 'lucide-react';
+import { Plus, Calculator, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
 
@@ -32,7 +33,6 @@ interface NewItemFormProps {
   onToggleSelectionMode: () => void;
   onSelectWarehouseItem: (id: string) => void;
   existingItems: PurchaseItem[];
-
 }
 
 // Helper function to convert string to number
@@ -62,7 +62,6 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   onToggleSelectionMode,
   onSelectWarehouseItem,
   existingItems
-
 }) => {
   const [formData, setFormData] = useState<FormData>({
     nama: '',
@@ -167,7 +166,9 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     onSelectWarehouseItem
   ]);
 
-  const handleUpdate = useCallback(() => {
+  const { updateBahanBaku } = useBahanBaku();
+
+  const handleUpdate = useCallback(async () => {
     if (existingIndex < 0) return;
     const warehouseItem = warehouseItems.find(item => item.id === selectedWarehouseItem);
     if (!warehouseItem) {
@@ -185,6 +186,15 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       keterangan: formData.keterangan,
     };
 
+    const prevItem = existingItems[existingIndex];
+    const diffQty = effectiveQty - prevItem.kuantitas;
+    const currentValue = warehouseItem.stok * warehouseItem.harga;
+    const newStock = warehouseItem.stok + diffQty;
+    const newValue = currentValue + diffQty * computedUnitPrice;
+    const newPrice = newStock > 0 ? Math.round((newValue / newStock) * 100) / 100 : 0;
+
+    await updateBahanBaku(warehouseItem.id, { stok: newStock, harga: newPrice });
+
     onUpdateItem(existingIndex, purchaseItem);
     onSelectWarehouseItem('');
     setFormData({
@@ -194,7 +204,18 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       totalBayar: '',
       keterangan: '',
     });
-  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, formData.keterangan, onUpdateItem, onSelectWarehouseItem]);
+  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, formData.keterangan, existingItems, updateBahanBaku, onUpdateItem, onSelectWarehouseItem]);
+
+  const handleCancelUpdate = useCallback(() => {
+    onSelectWarehouseItem('');
+    setFormData({
+      nama: '',
+      satuan: '',
+      kuantitas: '',
+      totalBayar: '',
+      keterangan: '',
+    });
+  }, [onSelectWarehouseItem]);
 
   // Reset form
   const handleReset = useCallback(() => {
@@ -363,25 +384,36 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
         {/* Submit */}
         <div className="space-y-2">
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah ke Daftar
-          </Button>
-          {isSelectingExistingItem && existingIndex >= 0 && (
+          {isSelectingExistingItem && existingIndex >= 0 ? (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancelUpdate}
+                className="flex-1 h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={handleUpdate}
+                disabled={!canSubmit}
+                className="flex-1 h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Update Bahan Baku
+              </Button>
+            </div>
+          ) : (
             <Button
               type="button"
-              onClick={handleUpdate}
+              onClick={handleSubmit}
               disabled={!canSubmit}
-              variant="outline"
-              className="w-full h-11 border-orange-500 text-orange-500 hover:bg-orange-50"
+              className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
             >
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              Update Bahan Baku
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah ke Daftar
+
             </Button>
           )}
         </div>

@@ -5,6 +5,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { logger } from '@/utils/logger';
+import {
+  DEFAULT_FINANCIAL_CATEGORIES,
+  FinancialCategories,
+} from '@/components/financial/types/financial';
 
 // ===== TYPES =====
 export interface UserSettings {
@@ -99,6 +103,7 @@ const userSettingsApi = {
         lowStock: data.notifications?.lowStock ?? defaultSettings.notifications.lowStock,
         newOrder: data.notifications?.newOrder ?? defaultSettings.notifications.newOrder,
       },
+      financialCategories: data.financial_categories || data.financialCategories || defaultSettings.financialCategories,
       updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
     };
 

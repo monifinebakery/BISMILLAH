@@ -205,6 +205,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     toast.success(`${item.nama} berhasil ditambahkan`);
   }, [addItem]);
 
+  const handleUpdateExistingItem = useCallback((index: number, item: PurchaseItem) => {
+    updateItem(index, item);
+    toast.success(`${item.nama} berhasil diperbarui`);
+  }, [updateItem]);
+
   // Toggle between new item and existing item selection
   const toggleSelectionMode = useCallback(() => {
     setIsSelectingExistingItem(prev => !prev);
@@ -351,7 +356,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 isSelectingExistingItem={isSelectingExistingItem}
                 selectedWarehouseItem={selectedWarehouseItem}
                 onAddItem={handleAddNewItem}
+                onUpdateItem={handleUpdateExistingItem}
                 onToggleSelectionMode={toggleSelectionMode}
+                onSelectWarehouseItem={setSelectedWarehouseItem}
+                existingItems={formData.items}
               />
 
               {/* Items Table */}
@@ -460,52 +468,52 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <DialogFooter className="gap-3 sm:space-x-0">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-            className="h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Batal
-          </Button>
-          
-          {mode !== 'view' && canEdit && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleResetForm}
-                disabled={isSubmitting || !isDirty}
-                className="h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset
-              </Button>
-              
-              <Button
-                type="button"
-                onClick={onSubmit}
-                disabled={isSubmitting || !isDirty}
-                className="h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {mode === 'create' ? 'Buat Pembelian' : 'Simpan Perubahan'}
-                  </>
-                )}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
+        {mode !== 'view' && canEdit && (
+          <DialogFooter className="gap-3 sm:space-x-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetForm}
+              disabled={isSubmitting || !isDirty}
+              className="h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+
+            <div className="flex-grow"></div>
+
+            <Button
+              type="button"
+              onClick={() => onSubmit()}
+              disabled={isSubmitting || !isDirty}
+              variant="outline"
+              className="h-11"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}
+            </Button>
+
+            <Button
+              type="button"
+              onClick={() => onSubmit('completed')}
+              disabled={isSubmitting || !isDirty}
+              className="h-11 bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Selesaikan & Update Gudang
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

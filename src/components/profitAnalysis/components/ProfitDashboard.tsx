@@ -60,7 +60,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
-  const [mode, setMode] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
   const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
 
   const {
@@ -88,12 +87,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     currentAnalysis,
   });
 
-  const periodOptions = generatePeriodOptions(
-    2023,
-    new Date().getFullYear(),
-    mode === 'yearly' ? 'yearly' : 'monthly'
-  );
-
   const advancedMetrics = showAdvancedMetrics
     ? calculateAdvancedMetricsHelper(profitHistory, currentAnalysis)
     : null;
@@ -113,12 +106,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const previousAnalysis = findPreviousAnalysis(currentPeriod, profitHistory);
   const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
 
-  const handlePeriodChange = (period: string) => {
-    // Clear any daily range when picking period
-    setRange(undefined);
-    setCurrentPeriod(period);
-  };
-
   const handleRefresh = async () => {
     try {
       await Promise.all([
@@ -131,22 +118,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     }
   };
 
-  // Wire mode toggle: atur rentang/period sesuai mode
-  const handleModeChange = (m: 'daily' | 'monthly' | 'yearly') => {
-    setMode(m);
-    if (m === 'daily') {
-      const now = new Date();
-      const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      setRange({ from: firstOfThisMonth, to: now });
-    } else {
-      setRange(undefined);
-      setCurrentPeriod(getCurrentPeriod(m === 'yearly' ? 'yearly' : 'monthly'));
-    }
-  };
-
-  // Wire date range changes: ensure we are in daily mode when user picks a preset
-
-  const handleDateRangeChange = (r: { from: Date; to: Date }) => {
+  // Wire date range changes
+  const handleDateRangeChange = (r: { from: Date; to: Date } | undefined) => {
     setRange(r);
   };
 
@@ -174,11 +147,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           onRefresh={handleRefresh}
           dateRange={range}
           onDateRangeChange={handleDateRangeChange}
-          mode={mode}
-          onModeChange={handleModeChange}
-          currentPeriod={currentPeriod}
-          onPeriodChange={handlePeriodChange}
-          periodOptions={periodOptions}
         />
       
       {error && (

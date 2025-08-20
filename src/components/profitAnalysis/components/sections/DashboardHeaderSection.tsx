@@ -1,11 +1,14 @@
 // src/components/profitAnalysis/components/sections/DashboardHeaderSection.tsx
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RotateCw, CheckCircle, AlertTriangle, Target, BarChart3 } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+// Lazy load DateRangePicker
+const DateRangePicker = lazy(() => import('@/components/ui/DateRangePicker'));
 
 // ==============================================
 // TYPES
@@ -32,15 +35,9 @@ export interface DashboardHeaderSectionProps {
   quickStatus?: QuickStatusData;
   statusIndicators?: StatusIndicator[];
   onRefresh: () => void;
-  // 🆕 Mode harian/bulanan/tahunan + preset rentang tanggal
-  mode?: 'daily' | 'monthly' | 'yearly';
-  onModeChange?: (mode: 'daily' | 'monthly' | 'yearly') => void;
-  currentPeriod?: string;
-  onPeriodChange?: (period: string) => void;
-  periodOptions?: { value: string; label: string }[];
-
+  
   dateRange?: { from: Date; to: Date };
-  onDateRangeChange?: (range: { from: Date; to: Date }) => void;
+  onDateRangeChange?: (range: { from: Date; to: Date } | undefined) => void;
 }
 
 // ==============================================
@@ -55,108 +52,33 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   quickStatus,
   statusIndicators = [],
   onRefresh,
-  mode = 'monthly',
-  onModeChange,
   dateRange,
   onDateRangeChange,
-  currentPeriod,
-  onPeriodChange,
-  periodOptions = [],
 }) => {
+  const isMobile = useIsMobile();
+  
+  // Convert dateRange format for DateRangePicker component
+  const dateRangeForPicker = dateRange && dateRange.from && dateRange.to ? {
+    from: dateRange.from,
+    to: dateRange.to
+  } : undefined;
+
   // Extract Controls as a separate component to avoid binding issues
   const renderControls = () => (
     <>
       <div className="flex items-center gap-2">
-        <button
-          className={`px-3 py-1 text-sm ${
-            mode === 'daily' ? 'bg-white text-orange-600' : 'text-white opacity-75'
-          }`}
-          onClick={() => onModeChange?.('daily')}
-        >
-          Harian
-        </button>
-        <button
-          className={`px-3 py-1 text-sm ${
-            mode === 'monthly' ? 'bg-white text-orange-600' : 'text-white opacity-75'
-          }`}
-          onClick={() => onModeChange?.('monthly')}
-        >
-          Bulanan
-        </button>
-        <button
-          className={`px-3 py-1 text-sm ${
-            mode === 'yearly' ? 'bg-white text-orange-600' : 'text-white opacity-75'
-          }`}
-          onClick={() => onModeChange?.('yearly')}
-        >
-          Tahunan
-        </button>
+        <Suspense fallback={
+          <div className="w-full md:w-64 h-11 bg-white bg-opacity-20 rounded-lg animate-pulse" />
+        }>
+          <DateRangePicker
+            dateRange={dateRangeForPicker}
+            onDateRangeChange={onDateRangeChange}
+            placeholder="Pilih periode laporan"
+            isMobile={isMobile}
+            className="bg-white text-gray-900 border-none hover:bg-gray-100 min-w-[200px] md:min-w-[260px]"
+          />
+        </Suspense>
       </div>
-
-      {/* Period or Date Range */}
-      {mode === 'monthly' ? (
-        <Select value={currentPeriod} onValueChange={onPeriodChange}>
-          <SelectTrigger className="w-full md:w-48 bg-white text-orange-600 border-none focus:ring-0">
-            <SelectValue placeholder="Pilih periode" />
-          </SelectTrigger>
-          <SelectContent>
-            {periodOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : mode === 'daily' ? (
-        <div className="flex items-center gap-2">
-          <Select
-            onValueChange={(val) => {
-              const now = new Date();
-              const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-              const lastOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-              const firstOfPrevMonth = new Date(lastOfPrevMonth.getFullYear(), lastOfPrevMonth.getMonth(), 1);
-              const last30 = new Date();
-              last30.setDate(now.getDate() - 29);
-              if (val === 'this_month') onDateRangeChange?.({ from: firstOfThisMonth, to: now });
-              if (val === 'last_month') onDateRangeChange?.({ from: firstOfPrevMonth, to: lastOfPrevMonth });
-              if (val === 'last_30') onDateRangeChange?.({ from: last30, to: now });
-            }}
-          >
-            <SelectTrigger className="w-full md:w-40 bg-white text-orange-600 border-none focus:ring-0">
-              <SelectValue placeholder="Preset" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this_month">Bulan ini</SelectItem>
-              <SelectItem value="last_month">Bulan kemarin</SelectItem>
-              <SelectItem value="last_30">30 hari terakhir</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="text-xs text-white">
-            {dateRange ? (
-              <span>
-                {dateRange.from.toLocaleDateString('id-ID')} —
-                {dateRange.to.toLocaleDateString('id-ID')}
-              </span>
-            ) : (
-              <span>Pilih rentang</span>
-            )}
-          </div>
-        </div>
-      ) : (
-        <Select value={currentPeriod} onValueChange={onPeriodChange}>
-          <SelectTrigger className="w-full md:w-40 bg-white text-orange-600 border-none focus:ring-0">
-            <SelectValue placeholder="Pilih tahun" />
-          </SelectTrigger>
-          <SelectContent>
-            {periodOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
 
       {/* Action Buttons */}
       <Button

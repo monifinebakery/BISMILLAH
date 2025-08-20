@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import DateRangePicker from '@/components/ui/DateRangePicker';
 import {
   RotateCw,
   CheckCircle,
@@ -46,7 +47,7 @@ export interface DashboardHeaderSectionProps {
   statusIndicators?: StatusIndicator[];
   onPeriodChange: (period: string) => void;
   onRefresh: () => void;
-  // 🆕 Mode harian/bulanan/tahunan + preset rentang tanggal
+  // 🆕 Mode harian/bulanan/tahunan + rentang tanggal kustom
   mode?: 'daily' | 'monthly' | 'yearly';
   onModeChange?: (mode: 'daily' | 'monthly' | 'yearly') => void;
   dateRange?: { from: Date; to: Date };
@@ -118,40 +119,11 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
           </SelectContent>
         </Select>
       ) : mode === 'daily' ? (
-        <div className="flex items-center gap-2">
-          <Select
-            onValueChange={(val) => {
-              const now = new Date();
-              const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-              const lastOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-              const firstOfPrevMonth = new Date(lastOfPrevMonth.getFullYear(), lastOfPrevMonth.getMonth(), 1);
-              const last30 = new Date();
-              last30.setDate(now.getDate() - 29);
-              if (val === 'this_month') onDateRangeChange?.({ from: firstOfThisMonth, to: now });
-              if (val === 'last_month') onDateRangeChange?.({ from: firstOfPrevMonth, to: lastOfPrevMonth });
-              if (val === 'last_30') onDateRangeChange?.({ from: last30, to: now });
-            }}
-          >
-            <SelectTrigger className="w-full md:w-40 bg-white text-orange-600 border-none focus:ring-0">
-              <SelectValue placeholder="Preset" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this_month">Bulan ini</SelectItem>
-              <SelectItem value="last_month">Bulan kemarin</SelectItem>
-              <SelectItem value="last_30">30 hari terakhir</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="text-xs text-white">
-            {dateRange ? (
-              <span>
-                {dateRange.from.toLocaleDateString('id-ID')} —
-                {dateRange.to.toLocaleDateString('id-ID')}
-              </span>
-            ) : (
-              <span>Pilih rentang</span>
-            )}
-          </div>
-        </div>
+        <DateRangePicker
+          dateRange={dateRange}
+          onDateRangeChange={onDateRangeChange}
+          className="w-full md:w-64 bg-white text-orange-600 border-none focus:ring-0"
+        />
       ) : (
         <Select value={currentPeriod} onValueChange={onPeriodChange}>
           <SelectTrigger className="w-full md:w-40 bg-white text-orange-600 border-none focus:ring-0">

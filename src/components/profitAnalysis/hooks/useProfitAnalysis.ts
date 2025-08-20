@@ -168,15 +168,27 @@ export const useProfitAnalysis = (
   });
 
   const pemakaianQuery = useQuery({
-    queryKey: PROFIT_QUERY_KEYS.pemakaian(currentPeriod, currentPeriod),
+    queryKey:
+      mode === 'daily' && dateRange
+        ? PROFIT_QUERY_KEYS.pemakaian(
+            dateRange.from.toISOString(),
+            dateRange.to.toISOString()
+          )
+        : PROFIT_QUERY_KEYS.pemakaian(currentPeriod, currentPeriod),
     queryFn: async () => {
-      const start = currentPeriod + '-01';
-      const end = new Date(new Date(currentPeriod + '-01').getFullYear(), 
-                          new Date(currentPeriod + '-01').getMonth() + 1, 0)
-                  .toISOString().split('T')[0];
+      if (mode === 'daily' && dateRange) {
+        const start = dateRange.from.toISOString().split('T')[0];
+        const end = dateRange.to.toISOString().split('T')[0];
+        return fetchPemakaianByPeriode(start, end);
+      }
+      const startDate = new Date(currentPeriod + '-01');
+      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+      const start = startDate.toISOString().split('T')[0];
+      const end = endDate.toISOString().split('T')[0];
       return fetchPemakaianByPeriode(start, end);
     },
-    enabled: enableWAC && Boolean(currentPeriod),
+    enabled:
+      enableWAC && (mode === 'daily' ? Boolean(dateRange) : Boolean(currentPeriod)),
     staleTime: 60 * 1000, // 1 minute
   });
 

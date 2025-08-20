@@ -72,6 +72,21 @@ export function getEffectiveUnitPrice(item: any): number {
   return wac > 0 ? wac : base;
 }
 
+// Pastikan string tanggal memiliki format YYYY-MM-DD
+function normalizeDateString(date: string, isEnd = false): string {
+  if (!date) return '';
+  const base = date.split('T')[0];
+  if (base.length === 7) {
+    if (isEnd) {
+      const [y, m] = base.split('-').map(Number);
+      const last = new Date(y, m, 0).getDate();
+      return `${base}-${String(last).padStart(2, '0')}`;
+    }
+    return `${base}-01`;
+  }
+  return base;
+}
+
 /**
  * Ambil pemakaian bahan dari tabel (ikut kolom harga_efektif / hpp_value) untuk user saat ini
  */
@@ -79,12 +94,14 @@ export async function fetchPemakaianByPeriode(start: string, end: string): Promi
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
+    const startDate = normalizeDateString(start);
+    const endDate = normalizeDateString(end, true);
     const { data, error } = await supabase
       .from('pemakaian_bahan')
       .select('bahan_baku_id, qty_base, tanggal, harga_efektif, hpp_value')
       .eq('user_id', user.id)
-      .gte('tanggal', start)
-      .lte('tanggal', end);
+      .gte('tanggal', startDate)
+      .lte('tanggal', endDate);
     if (error) throw error;
     return data ?? [];
   } catch (e) {

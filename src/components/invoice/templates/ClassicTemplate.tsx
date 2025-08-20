@@ -83,10 +83,12 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
                 <span>SUBTOTAL:</span>
                 <span className="font-mono">{formatCurrency(order.subtotal)}</span>
               </div>
-              <div className="flex justify-between p-3 border-b border-gray-300">
-                <span>PAJAK:</span>
-                <span className="font-mono">{formatCurrency(order.pajak)}</span>
-              </div>
+              {order.pajak && order.pajak > 0 && (
+                <div className="flex justify-between p-3 border-b border-gray-300">
+                  <span>PAJAK:</span>
+                  <span className="font-mono">{formatCurrency(order.pajak)}</span>
+                </div>
+              )}
               <div className="flex justify-between p-4 bg-gray-800 text-white text-xl font-bold">
                 <span>TOTAL:</span>
                 <span className="font-mono">{formatCurrency(order.totalPesanan)}</span>

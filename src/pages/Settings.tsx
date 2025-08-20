@@ -142,17 +142,18 @@ const SettingsPage = () => {
         <p className="mb-4 text-sm text-gray-600">
           Akun Anda sedang login di perangkat {deviceInfo.device} dengan browser {deviceInfo.browser}
         </p>
+
         {/* Header Section */}
         <div className="mb-8">
           <div className="bg-white rounded-2xl border overflow-hidden">
-            <div className="bg-gradient-to-r from-orange-600 to-red-600 px-8 py-6 text-white">
+            <div className="px-8 py-6 bg-gray-100">
               <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-3 rounded-xl">
-                  <SettingsIcon className="h-8 w-8" />
+                <div className="p-3 bg-white rounded-xl">
+                  <SettingsIcon className="h-8 w-8 text-gray-700" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold">Pengaturan Aplikasi</h1>
-                  <p className="text-orange-100 mt-1">
+                  <h1 className="text-3xl font-bold text-gray-800">Pengaturan Aplikasi</h1>
+                  <p className="text-gray-600 mt-1">
                     Kelola informasi bisnis, notifikasi, dan preferensi aplikasi Anda
                   </p>
                 </div>
@@ -160,7 +161,7 @@ const SettingsPage = () => {
             </div>
 
             {/* Status Bar */}
-            <div className="px-8 py-4 bg-gray-50 border-b">
+            <div className="px-8 py-4 bg-white border-t">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {hasChanges ? (
@@ -187,9 +188,9 @@ const SettingsPage = () => {
           </div>
         </div>
         {/* Main Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="space-y-8">
           {/* Kolom Utama: Forms */}
-          <div className="xl:col-span-3 space-y-8">
+          <div className="space-y-8">
             
             {/* ✅ BUSINESS INFORMATION SECTION */}
             <Card className="border-0 overflow-hidden">
@@ -326,7 +327,7 @@ const SettingsPage = () => {
           </div>
 
           {/* ✅ SIDEBAR: Quick Actions & Info */}
-          <div className="xl:col-span-1 space-y-6">
+          <div className="space-y-6">
             
             {/* Quick Actions Card */}
             <Card className="border-0 sticky top-6">

@@ -73,9 +73,9 @@ const generateBarChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
 };
 
 const generatePieChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
-  const totalRevenue = metrics.revenue;
+  const totalOmset = metrics.revenue;
   
-  if (totalRevenue === 0) {
+  if (totalOmset === 0) {
     return [];
   }
 
@@ -83,19 +83,19 @@ const generatePieChartData = (metrics: ReturnType<typeof calculateMetrics>) => {
     {
       name: 'Untung Bersih',
       value: metrics.netProfit,
-      percentage: (metrics.netProfit / totalRevenue) * 100,
+      percentage: (metrics.netProfit / totalOmset) * 100,
       color: CHART_CONFIG.colors.net_profit
     },
     {
       name: 'Modal Bahan Baku',
       value: metrics.cogs,
-      percentage: (metrics.cogs / totalRevenue) * 100,
+      percentage: (metrics.cogs / totalOmset) * 100,
       color: CHART_CONFIG.colors.cogs
     },
     {
       name: 'Biaya Bulanan Tetap',
       value: metrics.opex,
-      percentage: (metrics.opex / totalRevenue) * 100,
+      percentage: (metrics.opex / totalOmset) * 100,
       color: CHART_CONFIG.colors.opex
     }
   ];

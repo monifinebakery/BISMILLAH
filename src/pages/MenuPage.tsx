@@ -167,7 +167,7 @@ const MenuPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 py-4">
+        <div className="w-full px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
               <TrendingUp className="h-4 w-4 text-white" />
@@ -181,7 +181,7 @@ const MenuPage = () => {
       </div>
 
       {/* Menu List - Simplified */}
-      <div className="max-w-md mx-auto p-4 pb-20">
+      <div className="w-full p-4 pb-20">
         <div className="space-y-3">
           {menuItems.map((item) => (
             <Card

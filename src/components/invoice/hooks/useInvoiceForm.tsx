@@ -47,7 +47,7 @@ export const useInvoiceForm = ({ initialData, orderData }: UseInvoiceFormOptions
     initialData?.discount || { type: 'percent', value: 0 }
   );
   const [tax, setTax] = useState<Tax>(
-    initialData?.tax || { type: 'percent', value: 11 }
+    initialData?.tax || { type: 'percent', value: 0 }
   );
   const [shipping, setShipping] = useState(initialData?.shipping || 0);
   const [notes, setNotes] = useState(
@@ -133,7 +133,7 @@ export const useInvoiceForm = ({ initialData, orderData }: UseInvoiceFormOptions
     setCustomer({ name: '', address: '', phone: '', email: '' });
     setItems([{ id: Date.now(), description: '', quantity: 1, price: 0 }]);
     setDiscount({ type: 'percent', value: 0 });
-    setTax({ type: 'percent', value: 11 });
+    setTax({ type: 'percent', value: 0 });
     setShipping(0);
     setStatus('BELUM LUNAS');
     setNotes(getDefaultNotes());

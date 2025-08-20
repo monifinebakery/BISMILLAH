@@ -514,25 +514,33 @@ export const getGrowthStatus = (growthPercentage: number) => {
  */
 export const generatePeriodOptions = (
   startYear: number = 2023,
-  endYear: number = new Date().getFullYear()
+  endYear: number = new Date().getFullYear(),
+  type: 'monthly' | 'yearly' = 'monthly'
 ) => {
-  const options = [];
-  
+  const options = [] as Array<{ value: string; label: string }>;
+
   for (let year = endYear; year >= startYear; year--) {
+    if (type === 'yearly') {
+      const period = `${year}`;
+      const label = formatPeriodLabel(period, 'yearly');
+      options.push({ value: period, label });
+      continue;
+    }
+
     for (let month = 12; month >= 1; month--) {
       // Stop at current month for current year
       if (year === endYear && month > new Date().getMonth() + 1) {
         continue;
       }
-      
+
       const monthStr = month.toString().padStart(2, '0');
       const period = `${year}-${monthStr}`;
       const label = formatPeriodLabel(period);
-      
+
       options.push({ value: period, label });
     }
   }
-  
+
   return options;
 };
 

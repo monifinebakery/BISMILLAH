@@ -5,12 +5,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 // Import hooks dan utilities
-import { useProfitAnalysis, useProfitCalculation, useProfitData } from '../hooks';
-import { 
-  generatePeriodOptions, 
-  getCurrentPeriod,
-  formatPeriodLabel as formatPeriodLabelTransformer
-} from '../utils/profitTransformers';
+import { useProfitAnalysis } from '../hooks';
+import { getCurrentPeriod } from '../utils/profitTransformers';
 import { calculateMargins } from '../utils/profitCalculations';
 
 // Import dashboard sections and tabs
@@ -73,7 +69,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     loading,
     error,
     currentPeriod,
-    setCurrentPeriod,
     refreshAnalysis,
     profitMetrics,
     labels,
@@ -83,7 +78,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     autoCalculate: true,
     enableRealTime: true,
     enableWAC: true,
-    mode,
+    mode: 'daily',
     dateRange: range,
   });
 
@@ -149,8 +144,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   };
 
   // Wire date range changes: ensure we are in daily mode when user picks a preset
+
   const handleDateRangeChange = (r: { from: Date; to: Date }) => {
-    if (mode !== 'daily') setMode('daily');
     setRange(r);
   };
 
@@ -164,8 +159,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
       <DashboardHeaderSection
         hasValidData={hasValidData}
-        currentPeriod={currentPeriod}
-        periodOptions={periodOptions}
         isLoading={loading}
         quickStatus={{
           netProfit: footerCalc.netProfit,
@@ -177,10 +170,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
           ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
         ]}
-        onPeriodChange={handlePeriodChange}
         onRefresh={handleRefresh}
-        mode={mode}
-        onModeChange={handleModeChange}
         dateRange={range}
         onDateRangeChange={handleDateRangeChange}
       />
@@ -244,14 +234,13 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
       <StatusFooter
         data={{
-          currentPeriod,
+          dateRange: range,
           revenue: safeRevenue,
           netProfit: footerCalc.netProfit,
           netMargin: footerCalc.netMargin,
         }}
         hasValidData={hasValidData}
         isLoading={loading}
-        formatPeriodLabel={formatPeriodLabel}
         hppLabel={labels?.hppLabel}
         hppHint={labels?.hppHint}
       />

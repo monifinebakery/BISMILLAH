@@ -32,6 +32,7 @@ const warehouseQueryKeys = {
 // ✅ TAMBAH: Import existing warehouse service
 import { warehouseApi } from './services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
+import { warehouseUtils } from './services/warehouseUtils';
 
 // ✅ TAMBAH: API functions menggunakan existing service
 let crudService: any = null;
@@ -340,10 +341,11 @@ const WarehousePageContent: React.FC = () => {
   const pageId = useRef(`warehouse-${Date.now()}`);
   const isMountedRef = useRef(true);
   const navigate = useNavigate();
-  
+
   // ✅ TAMBAH: Use warehouse data hook
   const warehouseData = useWarehouseData();
-  
+  const lowStockCountRef = useRef(0);
+
   // ✅ FIXED: Create context-like object with all required CRUD functions
   const context = {
     bahanBaku: warehouseData.bahanBaku,
@@ -374,6 +376,16 @@ const WarehousePageContent: React.FC = () => {
   };
   
   const core = useWarehouseCore(context);
+
+  useEffect(() => {
+    if (warehouseData.bahanBaku) {
+      const lowStockCount = warehouseUtils.getLowStockItems(warehouseData.bahanBaku).length;
+      if (lowStockCount > 0 && lowStockCount !== lowStockCountRef.current) {
+        toast.warning(`${lowStockCount} item stok hampir habis`);
+      }
+      lowStockCountRef.current = lowStockCount;
+    }
+  }, [warehouseData.bahanBaku]);
 
   // OPTIMIZED: Simplified effect
   useEffect(() => {

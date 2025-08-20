@@ -152,7 +152,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
             <div className="flex-1">
               <span className="text-sm font-medium">Perhatian: </span>
               <span className="text-sm">
-                {stats.lowStockCount > 0 && `${stats.lowStockCount} item stok rendah`}
+                {stats.lowStockCount > 0 && `${stats.lowStockCount} item stok hampir habis`}
                 {stats.lowStockCount > 0 && stats.expiringCount > 0 && ', '}
                 {stats.expiringCount > 0 && `${stats.expiringCount} item akan kadaluarsa`}
               </span>

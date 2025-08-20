@@ -17,6 +17,10 @@ export interface UserSettings {
     lowStock: boolean;
     newOrder: boolean;
   };
+  financialCategories?: {
+    income: Array<{id: string; name: string; type: string; color: string; isDefault: boolean}>;
+    expense: Array<{id: string; name: string; type: string; color: string; isDefault: boolean}>;
+  };
   updatedAt?: string;
 }
 
@@ -45,6 +49,10 @@ const defaultSettings: UserSettings = {
     lowStock: true,
     newOrder: true,
   },
+  financialCategories: {
+    income: [],
+    expense: []
+  }
 };
 
 // ===== API FUNCTIONS =====
@@ -109,6 +117,7 @@ const userSettingsApi = {
       phone: settings.phone,
       address: settings.address,
       notifications: settings.notifications,
+      financial_categories: settings.financialCategories,
       updated_at: new Date().toISOString()
     };
 
@@ -140,6 +149,7 @@ const userSettingsApi = {
       phone: data.phone || '',
       address: data.address || '',
       notifications: data.notifications || defaultSettings.notifications,
+      financialCategories: data.financial_categories || defaultSettings.financialCategories,
       updatedAt: data.updated_at
     };
 

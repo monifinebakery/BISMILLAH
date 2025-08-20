@@ -111,14 +111,14 @@ export const useProfitAnalysis = (
   // ✅ MAIN QUERY: Current analysis (supports harian, bulanan, tahunan)
   const currentAnalysisQuery = useQuery({
     queryKey:
-      mode === 'daily'
-        ? ['profit-analysis', 'daily', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]
+      mode === 'daily' && dateRange
+        ? ['profit-analysis', 'daily', dateRange.from.toISOString(), dateRange.to.toISOString()]
         : ['profit-analysis', 'realtime', mode, currentPeriod],
     queryFn: async () => {
       try {
-        if (mode === 'daily') {
-          const from = dateRange?.from ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-          const to = dateRange?.to ?? new Date();
+        if (mode === 'daily' && dateRange) {
+          const from = dateRange.from;
+          const to = dateRange.to;
           logger.info('🔄 Fetching daily profit analysis:', { from, to });
           const daily = await calculateProfitAnalysisDaily(from, to);
           if (!daily.success) throw new Error(daily.error || 'Failed daily analysis');
@@ -153,7 +153,7 @@ export const useProfitAnalysis = (
         throw err;
       }
     },
-    enabled: mode === 'daily' ? Boolean(autoCalculate) : Boolean(currentPeriod && autoCalculate),
+    enabled: (mode === 'daily' && dateRange) ? Boolean(autoCalculate) : Boolean(currentPeriod && autoCalculate),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: enableRealTime,
     retry: 2,

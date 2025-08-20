@@ -234,7 +234,7 @@ export const groupPurchasesByDateRange = (
  * Check if purchase can be edited
  */
 export const canEditPurchase = (purchase: Purchase): boolean => {
-  return purchase.status === 'pending';
+  return purchase.status !== 'cancelled';
 };
 
 /**

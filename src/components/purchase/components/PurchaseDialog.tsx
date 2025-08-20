@@ -216,7 +216,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     setSelectedWarehouseItem('');
   }, []);
 
-  const canEdit = !purchase || purchase.status !== 'completed';
+  // Izinkan edit selama status tidak "Dibatalkan"
+  const canEdit = !purchase || purchase.status !== 'cancelled';
   const isViewOnly = mode === 'view' || !canEdit;
 
   const statusClassMap = {
@@ -494,24 +495,26 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               {mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}
             </Button>
 
-            <Button
-              type="button"
-              onClick={() => onSubmit('completed')}
-              disabled={isSubmitting || !isDirty}
-              className="h-11 bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Selesaikan & Update Gudang
-                </>
-              )}
-            </Button>
+            {purchase?.status !== 'completed' && (
+              <Button
+                type="button"
+                onClick={() => onSubmit('completed')}
+                disabled={isSubmitting || !isDirty}
+                className="h-11 bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Selesaikan & Update Gudang
+                  </>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         )}
       </DialogContent>

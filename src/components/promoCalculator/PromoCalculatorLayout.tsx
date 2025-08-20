@@ -211,7 +211,7 @@ const PromoCalculatorLayout = () => {
     buttonPrimary: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2",
     buttonSecondary: "flex items-center space-x-2 border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors",
     containerLayout: "min-h-screen bg-gray-50",
-    mainContent: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8",
+    mainContent: "w-full px-4 sm:px-6 lg:px-8 py-8",
     loadingSpinner: "animate-spin rounded-full border-t-2 border-b-2 border-orange-500",
     card: "bg-white p-6 rounded-xl border border-gray-200"
   };
@@ -492,7 +492,7 @@ const PromoCalculatorLayout = () => {
   if (currentView === 'list') {
     return (
       <div className={styles.containerLayout}>
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <ListHeader onCreateNew={() => navigate('/promo/create')} />
           <div className="bg-white rounded-t-xl border border-gray-200">
             <LazyComponent 

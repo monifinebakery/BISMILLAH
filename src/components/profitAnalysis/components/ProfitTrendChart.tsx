@@ -311,7 +311,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
           iconType="circle"
         />
         
-        {/* Revenue Area */}
+        {/* Omset Area */}
         {selectedMetrics.includes('revenue') && (
           <Area
             type="monotone"
@@ -434,7 +434,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
         {/* Trend Analysis */}
         {trendData.length >= 2 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-4 border-t">
-            {/* Revenue Growth */}
+            {/* Omset Growth */}
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1 mb-1">
                 {trendAnalysis.revenueGrowth >= 0 ? (

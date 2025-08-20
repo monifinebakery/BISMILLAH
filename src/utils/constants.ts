@@ -34,6 +34,7 @@ export const DEVICE_BREAKPOINTS = {
   MOBILE: 768,
   TABLET: 1024,
 };
+
 export const FILTER_OPTIONS = {};
 export const CONSTANTS = {};
 

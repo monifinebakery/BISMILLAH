@@ -37,7 +37,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   const calculations = useInvoiceCalculations(data.items, data.discount, data.tax, data.shipping);
 
   return (
-    <Card className={`border-1 border-gray-200 overflow-hidden invoice-content ${className}`} id="invoice-content">
+    <Card className={`border-2 border-gray-200 overflow-hidden invoice-content ${className}`} id="invoice-content">
       <div className="bg-white p-4 sm:p-8">
         {/* Invoice Header */}
         <InvoiceHeader

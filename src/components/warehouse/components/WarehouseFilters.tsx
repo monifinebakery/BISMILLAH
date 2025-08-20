@@ -65,6 +65,49 @@ const fetchSuppliers = async (): Promise<string[]> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
+    // First, try to get actual supplier names from suppliers table
+    if (user?.id) {
+      const { data: suppliersData, error: suppliersError } = await supabase
+        .from('suppliers')
+        .select('id, nama')
+        .eq('user_id', user.id)
+        .order('nama', { ascending: true });
+      
+      if (!suppliersError && suppliersData && suppliersData.length > 0) {
+        // Create a map of supplier ID to supplier name
+        const supplierMap = new Map<string, string>();
+        suppliersData.forEach(supplier => {
+          supplierMap.set(supplier.id, supplier.nama);
+          supplierMap.set(supplier.nama, supplier.nama); // Also map name to name for direct matches
+        });
+        
+        // Get bahan baku items and map supplier IDs to names
+        const service = await warehouseApi.createService('crud', {
+          userId: user.id,
+          enableDebugLogs: import.meta.env.DEV
+        });
+        
+        const items = await service.fetchBahanBaku();
+        const supplierNames = new Set<string>();
+        
+        items.forEach(item => {
+          if (item.supplier) {
+            // Check if supplier is an ID that maps to a name
+            const supplierName = supplierMap.get(item.supplier);
+            if (supplierName) {
+              supplierNames.add(supplierName);
+            } else {
+              // If no mapping, use the supplier field directly
+              supplierNames.add(item.supplier);
+            }
+          }
+        });
+        
+        return Array.from(supplierNames).sort();
+      }
+    }
+    
+    // Fallback to existing method if suppliers table is empty or unavailable
     const service = await warehouseApi.createService('crud', {
       userId: user?.id,
       enableDebugLogs: import.meta.env.DEV

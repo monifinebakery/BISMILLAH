@@ -106,9 +106,9 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .select('*')
         .eq('user_id', userId)
         .eq('device_id', deviceId)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
         logger.error('Error checking existing device:', fetchError);
         return;
       }

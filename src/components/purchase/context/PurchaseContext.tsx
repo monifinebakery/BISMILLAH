@@ -18,6 +18,10 @@ import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+import {
+  applyPurchaseToWarehouse,
+  reversePurchaseFromWarehouse
+} from '@/components/warehouse/services/warehouseSyncService';
 
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -246,6 +250,11 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         logger.error('Gagal menambahkan bahan baku baru dari pembelian', e);
       }
 
+      // Terapkan ke gudang jika langsung selesai
+      if (newRow.status === 'completed') {
+        void applyPurchaseToWarehouse(newRow);
+      }
+
       // ✅ INVALIDATE WAREHOUSE: Trigger DB mungkin sudah update stok jika status=completed
       invalidateWarehouseData();
 
@@ -316,13 +325,19 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.log('✅ Status mutation onSuccess with:', fresh);
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
+      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      if (prevPurchase?.status !== 'completed' && fresh.status === 'completed') {
+        void applyPurchaseToWarehouse(fresh);
+      } else if (prevPurchase?.status === 'completed' && fresh.status !== 'completed') {
+        void reversePurchaseFromWarehouse(prevPurchase);
+      }
+
       // ✅ INVALIDATE WAREHOUSE: Apply/rollback WAC & stok terjadi di trigger DB
       invalidateWarehouseData();
 
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
-      
+
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
-      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
       if (prevPurchase) {
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
           // Tambahkan transaksi ketika status berubah ke completed (expense)

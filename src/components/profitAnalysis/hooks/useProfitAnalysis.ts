@@ -159,10 +159,18 @@ export const useProfitAnalysis = (
   const pemakaianQuery = useQuery({
     queryKey: PROFIT_QUERY_KEYS.pemakaian(currentPeriod, currentPeriod),
     queryFn: async () => {
-      const start = currentPeriod + '-01';
-      const end = new Date(new Date(currentPeriod + '-01').getFullYear(), 
-                          new Date(currentPeriod + '-01').getMonth() + 1, 0)
-                  .toISOString().split('T')[0];
+      // Pastikan format periode valid (YYYY-MM), fallback ke bulan berjalan jika tidak
+      let period = currentPeriod;
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) {
+        const now = new Date();
+        period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      const start = `${period}-01`;
+      const endDate = new Date(`${period}-01`);
+      const end = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0)
+        .toISOString()
+        .split('T')[0];
       return fetchPemakaianByPeriode(start, end);
     },
     enabled: enableWAC && Boolean(currentPeriod),

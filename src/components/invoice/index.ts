@@ -6,7 +6,7 @@ export {
   useOrderQuery,
   useInvoiceForm,
   useInvoiceCalculations,
-  useInvoicePdf,
+  useInvoiceImage,
   useInvoiceQueryUtils
 } from './hooks';
 
@@ -45,7 +45,7 @@ export {
   calculateInvoiceTotals,
   validateInvoice,
   formatInvoiceNumber,
-  downloadInvoicePdf
+  downloadInvoiceImage
 } from './utils';
 
 // Re-export API for external use

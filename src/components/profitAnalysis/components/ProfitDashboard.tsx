@@ -148,7 +148,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     }
   };
 
-  // Wire date range changes: ensure we are in daily mode when user picks a preset
+  // Sinkronkan perubahan rentang tanggal: paksa mode harian saat pengguna memilih rentang
   const handleDateRangeChange = (r: { from: Date; to: Date }) => {
     if (mode !== 'daily') setMode('daily');
     setRange(r);

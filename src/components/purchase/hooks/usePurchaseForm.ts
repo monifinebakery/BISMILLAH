@@ -6,6 +6,7 @@ import { validatePurchaseForm, ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
 import { usePurchase } from '../context/PurchaseContext';
 import { logger } from '@/utils/logger';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 interface UsePurchaseFormProps {
   mode: 'create' | 'edit';
@@ -36,7 +37,7 @@ interface UsePurchaseFormReturn {
   removeItem: (index: number) => void;
 
   // Form actions
-  handleSubmit: () => Promise<void>;
+  handleSubmit: (newStatus?: 'completed') => Promise<void>;
   handleReset: () => void;
 
   // Calculations
@@ -59,6 +60,7 @@ export const usePurchaseForm = ({
 }: UsePurchaseFormProps): UsePurchaseFormReturn => {
   // Dependencies
   const { addPurchase, updatePurchase } = usePurchase();
+  const { bahanBaku: warehouseItems, updateBahanBaku } = useBahanBaku();
 
   // Form state
   const [formData, setFormDataState] = useState<PurchaseFormData>(() => {
@@ -188,10 +190,8 @@ export const usePurchaseForm = ({
   );
 
   // Form submission
-  const handleSubmit = useCallback(async () => {
-    // Final validation (tidak di-debounce)
+  const handleSubmit = useCallback(async (newStatus?: 'completed') => {
     const validationResult = validateForm();
-    
     if (!validationResult.isValid) {
       onError?.(validationResult.errors[0]);
       return;
@@ -199,11 +199,38 @@ export const usePurchaseForm = ({
 
     setIsSubmitting(true);
 
+    // --- WAREHOUSE UPDATE LOGIC ---
+    if (newStatus === 'completed') {
+      try {
+        for (const item of formData.items) {
+          const warehouseItem = warehouseItems.find(wh => wh.id === item.bahanBakuId);
+          if (warehouseItem) {
+            const currentStock = warehouseItem.stok;
+            const currentAvgPrice = warehouseItem.hargaRataRata;
+            const newQty = item.kuantitas;
+            const newPrice = item.hargaSatuan;
+
+            const newStockTotal = currentStock + newQty;
+            const newAvgPrice = ((currentStock * currentAvgPrice) + (newQty * newPrice)) / newStockTotal;
+
+            await updateBahanBaku(warehouseItem.id, {
+              stok: newStockTotal,
+              hargaRataRata: newAvgPrice,
+              harga: newPrice, // Update last purchase price
+            });
+          }
+        }
+      } catch (error) {
+        logger.error('Warehouse update failed:', error);
+        onError?.('Gagal memperbarui stok gudang. Pembelian tidak disimpan.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+    // --- END WAREHOUSE UPDATE LOGIC ---
+
     try {
-      // ✅ Saat create: status 'pending', saat edit: pertahankan status lama
-      const status = mode === 'edit' && initialData
-        ? initialData.status
-        : ('pending' as const);
+      const status = newStatus ?? (mode === 'edit' && initialData ? initialData.status : 'pending' as const);
 
       const purchaseData = {
         ...formData,
@@ -212,7 +239,6 @@ export const usePurchaseForm = ({
       };
 
       let success = false;
-
       if (mode === 'create') {
         success = await addPurchase(purchaseData);
       } else if (mode === 'edit' && initialData) {
@@ -231,7 +257,19 @@ export const usePurchaseForm = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, totalValue, mode, addPurchase, updatePurchase, initialData, onSuccess, onError, validateForm]);
+  }, [
+    formData, 
+    totalValue, 
+    mode, 
+    addPurchase, 
+    updatePurchase, 
+    initialData, 
+    onSuccess, 
+    onError, 
+    validateForm,
+    warehouseItems,
+    updateBahanBaku
+  ]);
 
   // Reset form
   const handleReset = useCallback(() => {
@@ -254,13 +292,6 @@ export const usePurchaseForm = ({
     });
   }, [mode, initialData]);
 
-  // ✅ DISABLED: Skip initial validation for better performance
-  // useEffect(() => {
-  //   const validationResult = validatePurchaseForm(formData);
-  //   setValidation(validationResult);
-  // }, []);
-
-  // Initial validation hanya saat submit - lebih performant
   // Cleanup pending validation timeout on unmount
   useEffect(() => {
     return () => {
@@ -274,7 +305,7 @@ export const usePurchaseForm = ({
     // Form data
     formData,
     setFormData,
-    updateFormField, // ✅ NEW: Stable field updater
+    updateFormField,
 
 
     // Form state

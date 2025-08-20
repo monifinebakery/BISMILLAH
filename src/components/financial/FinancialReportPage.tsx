@@ -235,7 +235,9 @@ const FinancialReportPage: React.FC = () => {
     setDateRange,
     
     // Settings
-    settings
+    settings,
+    saveSettings,
+    refreshSettings
   } = useFinancialCore();
 
   // ✅ CHART DATA - Single hook
@@ -247,6 +249,13 @@ const FinancialReportPage: React.FC = () => {
     transaction: { isOpen: false, editing: null as any },
     category: { isOpen: false }
   });
+
+  // ✅ EFFECT - Reset form fields when category dialog opens
+  React.useEffect(() => {
+    if (dialogs.category.isOpen) {
+      // Dialog just opened, ensure we have fresh data
+    }
+  }, [dialogs.category.isOpen]);
 
   // ✅ DIALOG HANDLERS
   const openTransactionDialog = (transaction: any = null) => {
@@ -505,10 +514,25 @@ const FinancialReportPage: React.FC = () => {
             isOpen={dialogs.category.isOpen}
             onClose={closeCategoryDialog}
             settings={settings}
-            saveSettings={(newSettings) => {
-              toast.success('Kategori berhasil disimpan');
-              logger.info('Categories saved successfully');
+            saveSettings={async (newSettings) => {
+              try {
+                // Save the settings
+                const result = await saveSettings(newSettings);
+                if (result) {
+                  toast.success('Kategori berhasil disimpan');
+                  logger.info('Categories saved successfully');
+                  return true;
+                } else {
+                  toast.error('Gagal menyimpan kategori');
+                  return false;
+                }
+              } catch (error) {
+                toast.error('Terjadi kesalahan saat menyimpan kategori');
+                logger.error('Failed to save categories:', error);
+                return false;
+              }
             }}
+            refreshSettings={refreshSettings}
           />
         </Suspense>
       </div>

@@ -39,8 +39,8 @@ export interface UseProfitAnalysisOptions {
   enableRealTime?: boolean;
   // ✅ ADD WAC OPTIONS
   enableWAC?: boolean;
-  // 🆕 Mode harian/bulanan dan rentang tanggal
-  mode?: 'daily' | 'monthly';
+  // 🆕 Mode harian/bulanan/tahunan dan rentang tanggal
+  mode?: 'daily' | 'monthly' | 'yearly';
   dateRange?: { from: Date; to: Date };
 }
 
@@ -108,11 +108,12 @@ export const useProfitAnalysis = (
   const [profitHistory, setProfitHistory] = useState<RealTimeProfitCalculation[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ MAIN QUERY: Current analysis (supports monthly or daily)
+  // ✅ MAIN QUERY: Current analysis (supports harian, bulanan, tahunan)
   const currentAnalysisQuery = useQuery({
-    queryKey: mode === 'daily'
-      ? ['profit-analysis','daily', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]
-      : PROFIT_QUERY_KEYS.realTime(currentPeriod),
+    queryKey:
+      mode === 'daily'
+        ? ['profit-analysis', 'daily', dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]
+        : ['profit-analysis', 'realtime', mode, currentPeriod],
     queryFn: async () => {
       try {
         if (mode === 'daily') {
@@ -126,6 +127,16 @@ export const useProfitAnalysis = (
           setProfitHistory(daily.data || []);
           return last;
         }
+
+        if (mode === 'yearly') {
+          logger.info('🔄 Fetching yearly profit analysis:', { period: currentPeriod });
+          const response = await profitAnalysisApi.calculateProfitAnalysis(currentPeriod, 'yearly');
+          if (response.error) {
+            throw new Error(response.error);
+          }
+          return response.data;
+        }
+
         logger.info('🔄 Fetching profit analysis for period:', currentPeriod);
         const response = await profitAnalysisApi.calculateProfitAnalysis(currentPeriod);
         if (response.error) {
@@ -134,7 +145,7 @@ export const useProfitAnalysis = (
         logger.success('✅ Profit analysis completed:', {
           period: currentPeriod,
           revenue: response.data?.revenue_data?.total || 0,
-          calculatedAt: response.data?.calculated_at
+          calculatedAt: response.data?.calculated_at,
         });
         return response.data;
       } catch (err) {
@@ -327,26 +338,41 @@ export const useProfitAnalysis = (
   }, [revenue, cogs, opex, currentData, totalHPP, hppBreakdown]); // ✅ Sekarang menggunakan primitive value dan data WAC
 
   // ✅ ACTIONS
-  const calculateProfit = useCallback(async (period?: string): Promise<boolean> => {
-    const targetPeriod = period || currentPeriod;
-    
-    try {
-      setError(null);
-      if (mode === 'daily') {
-        const from = dateRange?.from ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const to = dateRange?.to ?? new Date();
-        const res = await calculateProfitAnalysisDaily(from, to);
-        if (!res.success) throw new Error(res.error || 'Failed daily calculate');
-        setProfitHistory(res.data || []);
+  const calculateProfit = useCallback(
+    async (period?: string): Promise<boolean> => {
+      const targetPeriod = period || currentPeriod;
+
+      try {
+        setError(null);
+        if (mode === 'daily') {
+          const from =
+            dateRange?.from ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+          const to = dateRange?.to ?? new Date();
+          const res = await calculateProfitAnalysisDaily(from, to);
+          if (!res.success) throw new Error(res.error || 'Failed daily calculate');
+          setProfitHistory(res.data || []);
+          return true;
+        }
+
+        if (mode === 'yearly') {
+          const res = await profitAnalysisApi.calculateProfitAnalysis(targetPeriod, 'yearly');
+          if (res.error) throw new Error(res.error);
+          queryClient.setQueryData(
+            ['profit-analysis', 'realtime', 'yearly', targetPeriod],
+            res.data
+          );
+          return true;
+        }
+
+        await calculateProfitMutation.mutateAsync(targetPeriod);
         return true;
+      } catch (error) {
+        logger.error('❌ Calculate profit failed:', error);
+        return false;
       }
-      await calculateProfitMutation.mutateAsync(targetPeriod);
-      return true;
-    } catch (error) {
-      logger.error('❌ Calculate profit failed:', error);
-      return false;
-    }
-  }, [currentPeriod, calculateProfitMutation]);
+    },
+    [currentPeriod, calculateProfitMutation, mode, dateRange, queryClient]
+  );
 
   const loadProfitHistory = useCallback(async (dateRange?: DateRangeFilter) => {
     try {

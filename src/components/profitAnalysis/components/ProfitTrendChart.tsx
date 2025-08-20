@@ -57,7 +57,16 @@ const processTrendData = (
   if (!profitHistory || profitHistory.length === 0) return [];
 
   // Create copy of array to avoid mutation
-  const sortedHistory = [...profitHistory].sort((a, b) => a.period.localeCompare(b.period));
+  const sortedHistory = [...profitHistory].sort((a, b) => {
+    // Handle both monthly format (YYYY-MM) and daily format (YYYY-MM-DD)
+    if (a.period.includes('-') && a.period.split('-').length === 3) {
+      // Daily format - convert to date for sorting
+      return new Date(a.period).getTime() - new Date(b.period).getTime();
+    } else {
+      // Monthly format - use existing sorting
+      return a.period.localeCompare(b.period);
+    }
+  });
   
   return sortedHistory.map(analysis => {
     const revenue = analysis.revenue_data?.total || 0;

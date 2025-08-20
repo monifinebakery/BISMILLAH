@@ -78,7 +78,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     autoCalculate: true,
     enableRealTime: true,
     enableWAC: true,
-    mode: 'daily',
+    mode: 'monthly',
     dateRange: range,
   });
 

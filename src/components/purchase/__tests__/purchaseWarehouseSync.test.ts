@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, beforeAll, mock } from 'bun:test';
 const purchaseId = 'p1';
 const userId = 'user1';
 
-const db = {
+const db: any = {
   purchases: {
     [purchaseId]: {
       id: purchaseId,
@@ -74,6 +74,20 @@ mock.module('@/integrations/supabase/client', () => {
           })
         }),
         insert: (payload: any) => {
+          if (table === 'purchases') {
+            const newId = `p${Object.keys(db.purchases).length + 1}`;
+            db.purchases[newId] = {
+              id: newId,
+              user_id: payload.user_id,
+              status: payload.status,
+              items: payload.items
+            };
+            return {
+              select: () => ({
+                single: () => Promise.resolve({ data: { id: newId }, error: null })
+              })
+            };
+          }
           if (table === 'bahan_baku') {
             (db.warehouse as any)[payload.id] = {
               id: payload.id,
@@ -81,6 +95,7 @@ mock.module('@/integrations/supabase/client', () => {
               hargaRataRata: payload.harga_rata_rata,
               hargaSatuan: payload.harga_satuan
             };
+            return Promise.resolve({ data: null, error: null });
           }
           return Promise.resolve({ data: null, error: null });
         }
@@ -97,7 +112,21 @@ beforeAll(async () => {
 
 describe('Purchase-Warehouse Sync', () => {
   beforeEach(() => {
-    db.purchases[purchaseId].status = 'pending';
+    db.purchases = {
+      [purchaseId]: {
+        id: purchaseId,
+        user_id: userId,
+        status: 'pending',
+        items: [
+          {
+            bahanBakuId: 'item1',
+            kuantitas: 100,
+            hargaSatuan: 2000,
+            subtotal: 200000
+          }
+        ]
+      }
+    };
     db.warehouse.item1.stok = 100;
     db.warehouse.item1.hargaRataRata = 1000;
   });
@@ -113,6 +142,31 @@ describe('Purchase-Warehouse Sync', () => {
     await PurchaseApiService.setPurchaseStatus(purchaseId, userId, 'pending');
     expect(db.warehouse.item1.stok).toBe(100);
     expect(db.warehouse.item1.hargaRataRata).toBe(1000);
+  });
+
+  it('multiple completed purchases should accumulate stock and WAC', async () => {
+    await PurchaseApiService.completePurchase(purchaseId, userId);
+    await PurchaseApiService.createPurchase(
+      {
+        supplier: '',
+        tanggal: new Date(),
+        totalNilai: 150000,
+        items: [
+          {
+            bahanBakuId: 'item1',
+            kuantitas: 50,
+            hargaSatuan: 3000,
+            subtotal: 150000
+          }
+        ],
+        status: 'completed',
+        metodePerhitungan: 'AVERAGE'
+      },
+      userId
+    );
+
+    expect(db.warehouse.item1.stok).toBe(250);
+    expect(db.warehouse.item1.hargaRataRata).toBe(1800);
   });
 });
 

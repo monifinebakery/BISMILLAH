@@ -4,15 +4,15 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Package, Calculator } from 'lucide-react';
+import { Plus, Calculator, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
 
@@ -29,7 +29,10 @@ interface NewItemFormProps {
   isSelectingExistingItem: boolean;
   selectedWarehouseItem: string;
   onAddItem: (item: PurchaseItem) => void;
+  onUpdateItem: (index: number, item: PurchaseItem) => void;
   onToggleSelectionMode: () => void;
+  onSelectWarehouseItem: (id: string) => void;
+  existingItems: PurchaseItem[];
 }
 
 // Helper function to convert string to number
@@ -55,7 +58,10 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   isSelectingExistingItem,
   selectedWarehouseItem,
   onAddItem,
-  onToggleSelectionMode
+  onUpdateItem,
+  onToggleSelectionMode,
+  onSelectWarehouseItem,
+  existingItems
 }) => {
   const [formData, setFormData] = useState<FormData>({
     nama: '',
@@ -88,8 +94,13 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   const effectivePay = useMemo(() => toNumber(formData.totalBayar), [formData.totalBayar]);
 
   const canSubmit = isSelectingExistingItem
-    ? selectedWarehouseItem !== '' && formData.satuan.trim() !== '' && effectiveQty > 0 && computedUnitPrice > 0
+    ? selectedWarehouseItem !== '' && effectiveQty > 0 && computedUnitPrice > 0
     : formData.nama.trim() !== '' && formData.satuan.trim() !== '' && effectiveQty > 0 && computedUnitPrice > 0;
+
+  const existingIndex = useMemo(
+    () => existingItems.findIndex((it) => it.bahanBakuId === selectedWarehouseItem),
+    [existingItems, selectedWarehouseItem]
+  );
 
   // Handle form submission
   const handleSubmit = useCallback(() => {
@@ -116,6 +127,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       };
 
       onAddItem(purchaseItem);
+      onSelectWarehouseItem('');
     } else {
       if (!formData.nama.trim()) {
         toast.error('Nama bahan baku harus diisi');
@@ -150,11 +162,51 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     formData,
     effectiveQty,
     computedUnitPrice,
-    onAddItem
+    onAddItem,
+    onSelectWarehouseItem
   ]);
 
-  // Reset form
-  const handleReset = useCallback(() => {
+  const { updateBahanBaku } = useBahanBaku();
+
+  const handleUpdate = useCallback(async () => {
+    if (existingIndex < 0) return;
+    const warehouseItem = warehouseItems.find(item => item.id === selectedWarehouseItem);
+    if (!warehouseItem) {
+      toast.error('Bahan baku tidak ditemukan');
+      return;
+    }
+
+    const prevItem = existingItems[existingIndex];
+    const additionalQty = effectiveQty;
+    const prevSubtotal = prevItem.kuantitas * prevItem.hargaSatuan;
+    const additionalSubtotal = additionalQty * computedUnitPrice;
+    const combinedQty = prevItem.kuantitas + additionalQty;
+    const combinedSubtotal = prevSubtotal + additionalSubtotal;
+    const combinedPrice = combinedQty > 0 ? Math.round((combinedSubtotal / combinedQty) * 100) / 100 : 0;
+
+    const purchaseItem: PurchaseItem = {
+      bahanBakuId: warehouseItem.id,
+      nama: warehouseItem.nama,
+      satuan: warehouseItem.satuan,
+      kuantitas: combinedQty,
+      hargaSatuan: combinedPrice,
+      subtotal: combinedSubtotal,
+      keterangan: formData.keterangan || prevItem.keterangan,
+    };
+
+    const currentValue = warehouseItem.stok * warehouseItem.harga;
+    const newStock = warehouseItem.stok + additionalQty;
+    const newValue = currentValue + additionalSubtotal;
+    const newPrice = newStock > 0 ? Math.round((newValue / newStock) * 100) / 100 : 0;
+
+    await updateBahanBaku(warehouseItem.id, {
+      stok: newStock,
+      harga: newPrice,
+      hargaRataRata: newPrice,
+    });
+
+    onUpdateItem(existingIndex, purchaseItem);
+    onSelectWarehouseItem('');
     setFormData({
       nama: '',
       satuan: '',
@@ -162,7 +214,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       totalBayar: '',
       keterangan: '',
     });
-  }, []);
+  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, updateBahanBaku, onUpdateItem, onSelectWarehouseItem, formData.keterangan]);
 
   return (
     <Card className="border-gray-200">
@@ -198,7 +250,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
               <Label className="text-sm font-medium text-gray-700">Pilih Bahan Baku *</Label>
               <Select
                 value={selectedWarehouseItem}
-                onValueChange={(value) => {/* Handled by parent */}}
+                onValueChange={onSelectWarehouseItem}
               >
                 <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
                   <SelectValue placeholder="Pilih bahan baku dari gudang" />
@@ -319,15 +371,29 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
         </div>
 
         {/* Submit */}
-        <Button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Tambah ke Daftar
-        </Button>
+        <div className="space-y-2">
+          {isSelectingExistingItem && existingIndex >= 0 ? (
+            <Button
+              type="button"
+              onClick={handleUpdate}
+              disabled={!canSubmit}
+              className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Update Bahan Baku
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah ke Daftar
+            </Button>
+          )}
+        </div>
         <p className="mt-2 text-xs text-gray-500">HPP dihitung otomatis saat disimpan.</p>
       </CardContent>
     </Card>

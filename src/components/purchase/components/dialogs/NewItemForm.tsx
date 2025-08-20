@@ -4,7 +4,6 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,6 +29,7 @@ interface NewItemFormProps {
   selectedWarehouseItem: string;
   onAddItem: (item: PurchaseItem) => void;
   onToggleSelectionMode: () => void;
+  onSelectWarehouseItem: (id: string) => void;
 }
 
 // Helper function to convert string to number
@@ -55,7 +55,8 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   isSelectingExistingItem,
   selectedWarehouseItem,
   onAddItem,
-  onToggleSelectionMode
+  onToggleSelectionMode,
+  onSelectWarehouseItem
 }) => {
   const [formData, setFormData] = useState<FormData>({
     nama: '',
@@ -88,7 +89,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   const effectivePay = useMemo(() => toNumber(formData.totalBayar), [formData.totalBayar]);
 
   const canSubmit = isSelectingExistingItem
-    ? selectedWarehouseItem !== '' && formData.satuan.trim() !== '' && effectiveQty > 0 && computedUnitPrice > 0
+    ? selectedWarehouseItem !== '' && effectiveQty > 0 && computedUnitPrice > 0
     : formData.nama.trim() !== '' && formData.satuan.trim() !== '' && effectiveQty > 0 && computedUnitPrice > 0;
 
   // Handle form submission
@@ -116,6 +117,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       };
 
       onAddItem(purchaseItem);
+      onSelectWarehouseItem('');
     } else {
       if (!formData.nama.trim()) {
         toast.error('Nama bahan baku harus diisi');
@@ -150,7 +152,8 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     formData,
     effectiveQty,
     computedUnitPrice,
-    onAddItem
+    onAddItem,
+    onSelectWarehouseItem
   ]);
 
   // Reset form
@@ -198,7 +201,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
               <Label className="text-sm font-medium text-gray-700">Pilih Bahan Baku *</Label>
               <Select
                 value={selectedWarehouseItem}
-                onValueChange={(value) => {/* Handled by parent */}}
+                onValueChange={onSelectWarehouseItem}
               >
                 <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
                   <SelectValue placeholder="Pilih bahan baku dari gudang" />

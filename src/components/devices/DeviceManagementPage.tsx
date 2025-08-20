@@ -1,5 +1,5 @@
 // src/components/devices/DeviceManagementPage.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,33 +26,34 @@ const DeviceManagementPage: React.FC = () => {
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const hasLoadedRef = useRef(false);
 
+  // Load devices only once when component mounts
   useEffect(() => {
-    // Only load devices once on component mount to prevent infinite loop
-    if (!hasLoadedRef.current) {
-      const loadDevices = async () => {
-        setIsRefreshing(true);
-        try {
-          await refreshDevices();
-          hasLoadedRef.current = true;
-        } catch (err) {
-          logger.error('Error loading devices:', err);
-        } finally {
-          setIsRefreshing(false);
-        }
-      };
+    let isMounted = true;
+    
+    const loadDevices = async () => {
+      if (!isMounted) return;
+      
+      try {
+        await refreshDevices();
+      } catch (err) {
+        logger.error('Error loading devices:', err);
+      }
+    };
 
-      loadDevices();
-    }
-  }, []); // Empty dependency array to run only once
+    loadDevices();
 
-  const handleEditName = (deviceId: string, currentName: string) => {
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array - run only once
+
+  const handleEditName = useCallback((deviceId: string, currentName: string) => {
     setEditingDeviceId(deviceId);
     setEditName(currentName || '');
-  };
+  }, []);
 
-  const handleSaveName = async (deviceId: string) => {
+  const handleSaveName = useCallback(async (deviceId: string) => {
     try {
       const success = await updateDeviceName(deviceId, editName.trim());
       if (success) {
@@ -62,14 +63,14 @@ const DeviceManagementPage: React.FC = () => {
     } catch (err) {
       logger.error('Error saving device name:', err);
     }
-  };
+  }, [editName, updateDeviceName]);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingDeviceId(null);
     setEditName('');
-  };
+  }, []);
 
-  const handleRemoveDevice = async (deviceId: string) => {
+  const handleRemoveDevice = useCallback(async (deviceId: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus perangkat ini? Jika ini adalah perangkat saat ini, Anda akan keluar dari akun.')) {
       try {
         await removeDevice(deviceId);
@@ -77,9 +78,22 @@ const DeviceManagementPage: React.FC = () => {
         logger.error('Error removing device:', err);
       }
     }
-  };
+  }, [removeDevice]);
 
-  const getDeviceIcon = (deviceType?: string) => {
+  const handleRefreshDevices = useCallback(async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      await refreshDevices();
+    } catch (err) {
+      logger.error('Error refreshing devices:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, refreshDevices]);
+
+  const getDeviceIcon = useCallback((deviceType?: string) => {
     switch (deviceType?.toLowerCase()) {
       case 'mobile':
         return <Smartphone className="h-5 w-5" />;
@@ -90,9 +104,9 @@ const DeviceManagementPage: React.FC = () => {
       default:
         return <Laptop className="h-5 w-5" />;
     }
-  };
+  }, []);
 
-  const formatLastActive = (dateString: string) => {
+  const formatLastActive = useCallback((dateString: string) => {
     try {
       return formatDistanceToNow(new Date(dateString), { 
         addSuffix: true,
@@ -101,7 +115,7 @@ const DeviceManagementPage: React.FC = () => {
     } catch (err) {
       return 'Baru saja';
     }
-  };
+  }, []);
 
   if (loading && !isRefreshing) {
     return (
@@ -122,16 +136,7 @@ const DeviceManagementPage: React.FC = () => {
           <CardDescription>{error}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={async () => {
-            setIsRefreshing(true);
-            try {
-              await refreshDevices();
-            } catch (err) {
-              logger.error('Error refreshing devices:', err);
-            } finally {
-              setIsRefreshing(false);
-            }
-          }}>Coba Lagi</Button>
+          <Button onClick={handleRefreshDevices}>Coba Lagi</Button>
         </CardContent>
       </Card>
     );
@@ -157,16 +162,7 @@ const DeviceManagementPage: React.FC = () => {
             </div>
             <Button 
               variant="outline" 
-              onClick={async () => {
-                setIsRefreshing(true);
-                try {
-                  await refreshDevices();
-                } catch (err) {
-                  logger.error('Error refreshing devices:', err);
-                } finally {
-                  setIsRefreshing(false);
-                }
-              }}
+              onClick={handleRefreshDevices}
               disabled={isRefreshing}
             >
               {isRefreshing ? (
@@ -207,6 +203,7 @@ const DeviceManagementPage: React.FC = () => {
                                 onChange={(e) => setEditName(e.target.value)}
                                 className="h-8 w-48"
                                 placeholder="Nama perangkat"
+                                autoFocus
                               />
                               <Button
                                 size="sm"
@@ -289,10 +286,10 @@ const DeviceManagementPage: React.FC = () => {
                 onClick={async () => {
                   if (window.confirm('Apakah Anda yakin ingin keluar dari semua perangkat?')) {
                     try {
+                      setIsRefreshing(true);
                       // This would be implemented in your auth context
                       // await performGlobalSignOut();
                       // For now, we'll just refresh the devices list
-                      setIsRefreshing(true);
                       await refreshDevices();
                     } catch (err) {
                       logger.error('Error signing out from all devices:', err);
@@ -301,6 +298,7 @@ const DeviceManagementPage: React.FC = () => {
                     }
                   }
                 }}
+                disabled={isRefreshing}
               >
                 Keluar dari Semua Perangkat
               </Button>

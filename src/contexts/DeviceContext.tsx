@@ -265,7 +265,11 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Set up device tracking
   useEffect(() => {
+    let isMounted = true;
+    
     const setupDeviceTracking = async () => {
+      if (!isMounted) return;
+      
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -287,7 +291,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Update last active time periodically
     const interval = setInterval(async () => {
-      if (currentDevice) {
+      if (currentDevice && isMounted) {
         try {
           await supabase
             .from('devices')
@@ -299,12 +303,19 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }, 5 * 60 * 1000); // Every 5 minutes
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [currentDevice, registerCurrentDevice, fetchDevices]);
 
   // Listen for auth state changes
   useEffect(() => {
+    let isMounted = true;
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      
       if (event === 'SIGNED_IN' && session?.user?.id) {
         registerCurrentDevice(session.user.id);
         fetchDevices(session.user.id);
@@ -314,7 +325,10 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [registerCurrentDevice, fetchDevices]);
 
   const value = {

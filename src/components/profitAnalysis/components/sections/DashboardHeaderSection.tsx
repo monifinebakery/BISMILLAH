@@ -55,12 +55,10 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   quickStatus,
   statusIndicators = [],
   onRefresh,
-  mode,
+  mode = 'monthly',
   onModeChange,
   dateRange,
   onDateRangeChange,
-  mode = 'monthly',
-  onModeChange,
   currentPeriod,
   onPeriodChange,
   periodOptions = [],
@@ -76,7 +74,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
           onClick={() => onModeChange?.('daily')}
         >
           Harian
-        </Select>
+        </button>
         <button
           className={`px-3 py-1 text-sm ${
             mode === 'monthly' ? 'bg-white text-orange-600' : 'text-white opacity-75'
@@ -102,9 +100,11 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
             <SelectValue placeholder="Pilih periode" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="this_month">Bulan ini</SelectItem>
-            <SelectItem value="last_month">Bulan kemarin</SelectItem>
-            <SelectItem value="last_30">30 hari terakhir</SelectItem>
+            {periodOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       ) : mode === 'daily' ? (

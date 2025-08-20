@@ -497,7 +497,7 @@ const OrdersPage: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-8">
+    <div className="w-full p-4 sm:p-8">
       {/* ✅ DEBUG: Context debugger - only in development */}
       {import.meta.env.DEV && <ContextDebugger />}
       

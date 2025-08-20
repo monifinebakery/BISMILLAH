@@ -18,9 +18,6 @@ let HCaptcha: any = null;
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
 const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
 
-// ✅ Check if hCaptcha failed to load due to CSP
-const [hCaptchaLoadError, setHCaptchaLoadError] = useState(false);
-
 
 // ✅ Simplified Props Interface
 interface EmailAuthPageProps {
@@ -59,6 +56,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   const [hCaptchaKey, setHCaptchaKey] = useState(0);
   const [hCaptchaLoaded, setHCaptchaLoaded] = useState(false);
+  const [hCaptchaLoadError, setHCaptchaLoadError] = useState(false);
   
   // ✅ Refs for OTP inputs, timer, and mounted state
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);

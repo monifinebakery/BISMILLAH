@@ -32,6 +32,7 @@ interface NewItemFormProps {
   onToggleSelectionMode: () => void;
   onSelectWarehouseItem: (id: string) => void;
   existingItems: PurchaseItem[];
+
 }
 
 // Helper function to convert string to number
@@ -61,6 +62,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   onToggleSelectionMode,
   onSelectWarehouseItem,
   existingItems
+
 }) => {
   const [formData, setFormData] = useState<FormData>({
     nama: '',

@@ -204,6 +204,7 @@ export function AppSidebar() {
         }}
         className={cn(
           "w-full justify-start px-3 py-2 gap-3 transition-all duration-200 relative group group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center",
+
           "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
           "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
           "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
@@ -248,6 +249,7 @@ export function AppSidebar() {
       <span className="group-data-[collapsible=icon]:hidden">{text}</span>
       {/* Tooltip untuk mode collapse */}
       <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 invisible transition-none z-50 whitespace-nowrap pointer-events-none group-data-[collapsible=icon]:group-hover:opacity-100 group-data-[collapsible=icon]:group-hover:visible">
+
         {text}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 -ml-1 w-2 h-2 bg-gray-800 rotate-45"></div>
       </div>

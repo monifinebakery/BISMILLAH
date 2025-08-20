@@ -9,11 +9,13 @@ import {
   ArrowUp,
   ArrowDown,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import type { BahanBakuFrontend, SortConfig } from '../types';
 import { logger } from '@/utils/logger';
 import WarehouseTableRow from './WarehouseTableRow';
 import { useWarehouseSelection } from '../hooks/useWarehouseSelection';
+import { warehouseUtils } from '../services/warehouseUtils';
 
 interface WarehouseTableProps {
   items: BahanBakuFrontend[];
@@ -52,6 +54,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     isRefreshing,
     handleRefresh,
   } = useWarehouseSelection(items, isSelectionMode, onRefresh);
+
+  const lowStockItems = warehouseUtils.getLowStockItems(items);
 
   useEffect(() => {
     if (import.meta.env.DEV && items.length > 0) {
@@ -304,6 +308,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
+      {lowStockItems.length > 0 && (
+        <div className="p-3 bg-red-50 border-b border-red-200 text-red-800 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
+          {lowStockItems.length} item stok hampir habis
+        </div>
+      )}
       <MobileCardView />
       <DesktopTableView />
     </div>

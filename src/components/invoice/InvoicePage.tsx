@@ -7,7 +7,7 @@ import {
   useOrderQuery,
   useInvoiceForm,
   useInvoiceCalculations,
-  useInvoicePdf
+  useInvoiceImage
 } from './hooks';
 import { InvoiceActions } from './components';
 import { InvoiceTemplate } from './templates';
@@ -109,8 +109,8 @@ const InvoicePage: React.FC = () => {
   // ✅ Calculations
   const calculations = useInvoiceCalculations(items, discount, tax, shipping);
 
-  // ✅ Download PDF functionality
-  const { handleDownloadPDF } = useInvoicePdf();
+  // ✅ Download image functionality
+  const { handleDownloadImage } = useInvoiceImage();
 
   // ✅ Handle form data changes
   const handleDataChange = (changes: any) => {
@@ -221,7 +221,7 @@ const InvoicePage: React.FC = () => {
           {/* Action Header */}
           <InvoiceActions
             onBack={handleBack}
-            onDownload={handleDownloadPDF}
+            onDownload={handleDownloadImage}
             orderId={orderId}
             orderNumber={orderData?.nomorPesanan}
           />

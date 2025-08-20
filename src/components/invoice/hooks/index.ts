@@ -2,4 +2,4 @@
 export * from './useInvoiceQuery';
 export * from './useInvoiceForm';
 export * from './useInvoiceCalculations';
-export * from './useInvoicePdf';
+export * from './useInvoiceImage';

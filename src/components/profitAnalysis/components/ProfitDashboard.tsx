@@ -64,7 +64,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
-  const [mode, setMode] = useState<'daily' | 'monthly'>('monthly');
+  const [mode, setMode] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
   const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
 
   const {
@@ -92,7 +92,11 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     currentAnalysis,
   });
 
-  const periodOptions = generatePeriodOptions(2023, new Date().getFullYear());
+  const periodOptions = generatePeriodOptions(
+    2023,
+    new Date().getFullYear(),
+    mode === 'yearly' ? 'yearly' : 'monthly'
+  );
 
   const advancedMetrics = showAdvancedMetrics
     ? calculateAdvancedMetricsHelper(profitHistory, currentAnalysis)
@@ -114,9 +118,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
 
   const handlePeriodChange = (period: string) => {
-    // Ensure monthly mode when picking a period
-    setMode('monthly');
-    // Clear any daily range
+    // Clear any daily range when picking period
     setRange(undefined);
     setCurrentPeriod(period);
   };
@@ -133,16 +135,16 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     }
   };
 
-  // Wire mode toggle: when switching to daily, set default date range (this month to today)
-  const handleModeChange = (m: 'daily' | 'monthly') => {
+  // Wire mode toggle: atur rentang/period sesuai mode
+  const handleModeChange = (m: 'daily' | 'monthly' | 'yearly') => {
     setMode(m);
     if (m === 'daily') {
       const now = new Date();
       const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       setRange({ from: firstOfThisMonth, to: now });
     } else {
-      // monthly mode: clear range so API uses period string
       setRange(undefined);
+      setCurrentPeriod(getCurrentPeriod(m === 'yearly' ? 'yearly' : 'monthly'));
     }
   };
 

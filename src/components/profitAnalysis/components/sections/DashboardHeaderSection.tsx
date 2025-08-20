@@ -46,9 +46,9 @@ export interface DashboardHeaderSectionProps {
   statusIndicators?: StatusIndicator[];
   onPeriodChange: (period: string) => void;
   onRefresh: () => void;
-  // 🆕 Daily/Monthly mode + date range presets
-  mode?: 'daily' | 'monthly';
-  onModeChange?: (mode: 'daily' | 'monthly') => void;
+  // 🆕 Mode harian/bulanan/tahunan + preset rentang tanggal
+  mode?: 'daily' | 'monthly' | 'yearly';
+  onModeChange?: (mode: 'daily' | 'monthly' | 'yearly') => void;
   dateRange?: { from: Date; to: Date };
   onDateRangeChange?: (range: { from: Date; to: Date }) => void;
 }
@@ -93,6 +93,14 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
         >
           Bulanan
         </button>
+        <button
+          className={`px-3 py-1 text-sm ${
+            mode === 'yearly' ? 'bg-white text-orange-600' : 'text-white opacity-75'
+          }`}
+          onClick={() => onModeChange?.('yearly')}
+        >
+          Tahunan
+        </button>
       </div>
 
       {/* Period or Date Range */}
@@ -109,7 +117,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
             ))}
           </SelectContent>
         </Select>
-      ) : (
+      ) : mode === 'daily' ? (
         <div className="flex items-center gap-2">
           <Select
             onValueChange={(val) => {
@@ -144,6 +152,19 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
             )}
           </div>
         </div>
+      ) : (
+        <Select value={currentPeriod} onValueChange={onPeriodChange}>
+          <SelectTrigger className="w-full md:w-40 bg-white text-orange-600 border-none focus:ring-0">
+            <SelectValue placeholder="Pilih tahun" />
+          </SelectTrigger>
+          <SelectContent>
+            {periodOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
 
       {/* Action Buttons */}

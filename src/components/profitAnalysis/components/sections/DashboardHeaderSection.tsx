@@ -35,6 +35,9 @@ export interface DashboardHeaderSectionProps {
   // 🆕 Mode harian/bulanan/tahunan + preset rentang tanggal
   mode?: 'daily' | 'monthly' | 'yearly';
   onModeChange?: (mode: 'daily' | 'monthly' | 'yearly') => void;
+  currentPeriod?: string;
+  onPeriodChange?: (period: string) => void;
+  periodOptions?: { value: string; label: string }[];
 
   dateRange?: { from: Date; to: Date };
   onDateRangeChange?: (range: { from: Date; to: Date }) => void;
@@ -53,23 +56,21 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   statusIndicators = [],
   onRefresh,
   dateRange,
-  onDateRangeChange
+  onDateRangeChange,
+  mode = 'monthly',
+  onModeChange,
+  currentPeriod,
+  onPeriodChange,
+  periodOptions = [],
 }) => {
   const Controls = () => (
     <>
       <div className="flex items-center gap-2">
-        <Select
-          onValueChange={(val) => {
-            const now = new Date();
-            const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const lastOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-            const firstOfPrevMonth = new Date(lastOfPrevMonth.getFullYear(), lastOfPrevMonth.getMonth(), 1);
-            const last30 = new Date();
-            last30.setDate(now.getDate() - 29);
-            if (val === 'this_month') onDateRangeChange?.({ from: firstOfThisMonth, to: now });
-            if (val === 'last_month') onDateRangeChange?.({ from: firstOfPrevMonth, to: lastOfPrevMonth });
-            if (val === 'last_30') onDateRangeChange?.({ from: last30, to: now });
-          }}
+        <button
+          className={`px-3 py-1 text-sm ${
+            mode === 'daily' ? 'bg-white text-orange-600' : 'text-white opacity-75'
+          }`}
+          onClick={() => onModeChange?.('daily')}
         >
           Harian
         </button>

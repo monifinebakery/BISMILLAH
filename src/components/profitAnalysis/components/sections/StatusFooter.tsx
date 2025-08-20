@@ -12,14 +12,13 @@ export interface StatusFooterData {
   revenue: number;
   netProfit: number;
   netMargin: number;
-  currentPeriod: string;
+  dateRange?: { from: Date; to: Date };
 }
 
 export interface StatusFooterProps {
   data: StatusFooterData;
   isLoading?: boolean;
   hasValidData?: boolean;
-  formatPeriodLabel?: (period: string) => string;
   hppLabel?: string;
   hppHint?: string;
 }
@@ -32,14 +31,14 @@ const StatusFooter: React.FC<StatusFooterProps> = ({
   data,
   isLoading = false,
   hasValidData = false,
-  formatPeriodLabel,
   hppLabel,
   hppHint
 }) => {
   // Don't render if no valid data or loading
   if (!hasValidData || isLoading) return null;
-
-  const periodLabel = formatPeriodLabel ? formatPeriodLabel(data.currentPeriod) : data.currentPeriod;
+  const periodLabel = data.dateRange
+    ? `${data.dateRange.from.toLocaleDateString('id-ID')} — ${data.dateRange.to.toLocaleDateString('id-ID')}`
+    : '';
 
   return (
     <div className="p-3 sm:p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-100">

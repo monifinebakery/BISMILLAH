@@ -5,12 +5,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 // Import hooks dan utilities
-import { useProfitAnalysis, useProfitCalculation, useProfitData } from '../hooks';
-import { 
-  generatePeriodOptions, 
-  getCurrentPeriod,
-  formatPeriodLabel as formatPeriodLabelTransformer
-} from '../utils/profitTransformers';
+import { useProfitAnalysis } from '../hooks';
+import { getCurrentPeriod } from '../utils/profitTransformers';
 import { calculateMargins } from '../utils/profitCalculations';
 
 // Import dashboard sections and tabs
@@ -64,8 +60,10 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
-  const [mode, setMode] = useState<'daily' | 'monthly'>('monthly');
-  const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
+  const [range, setRange] = useState<{ from: Date; to: Date }>(() => {
+    const now = new Date();
+    return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now };
+  });
 
   const {
     currentAnalysis,
@@ -73,7 +71,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     loading,
     error,
     currentPeriod,
-    setCurrentPeriod,
     refreshAnalysis,
     profitMetrics,
     labels,
@@ -83,16 +80,9 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     autoCalculate: true,
     enableRealTime: true,
     enableWAC: true,
-    mode,
+    mode: 'daily',
     dateRange: range,
   });
-
-  const { formatPeriodLabel, exportData } = useProfitData({
-    history: profitHistory,
-    currentAnalysis,
-  });
-
-  const periodOptions = generatePeriodOptions(2023, new Date().getFullYear());
 
   const advancedMetrics = showAdvancedMetrics
     ? calculateAdvancedMetricsHelper(profitHistory, currentAnalysis)
@@ -113,14 +103,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const previousAnalysis = findPreviousAnalysis(currentPeriod, profitHistory);
   const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
 
-  const handlePeriodChange = (period: string) => {
-    // Ensure monthly mode when picking a period
-    setMode('monthly');
-    // Clear any daily range
-    setRange(undefined);
-    setCurrentPeriod(period);
-  };
-
   const handleRefresh = async () => {
     try {
       await Promise.all([
@@ -132,23 +114,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
       console.error('Error refreshing:', error);
     }
   };
-
-  // Wire mode toggle: when switching to daily, set default date range (this month to today)
-  const handleModeChange = (m: 'daily' | 'monthly') => {
-    setMode(m);
-    if (m === 'daily') {
-      const now = new Date();
-      const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      setRange({ from: firstOfThisMonth, to: now });
-    } else {
-      // monthly mode: clear range so API uses period string
-      setRange(undefined);
-    }
-  };
-
-  // Wire date range changes: ensure we are in daily mode when user picks a preset
   const handleDateRangeChange = (r: { from: Date; to: Date }) => {
-    if (mode !== 'daily') setMode('daily');
     setRange(r);
   };
 
@@ -162,8 +128,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
       <DashboardHeaderSection
         hasValidData={hasValidData}
-        currentPeriod={currentPeriod}
-        periodOptions={periodOptions}
         isLoading={loading}
         quickStatus={{
           netProfit: footerCalc.netProfit,
@@ -175,10 +139,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
           ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
         ]}
-        onPeriodChange={handlePeriodChange}
         onRefresh={handleRefresh}
-        mode={mode}
-        onModeChange={handleModeChange}
         dateRange={range}
         onDateRangeChange={handleDateRangeChange}
       />
@@ -242,14 +203,13 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
       <StatusFooter
         data={{
-          currentPeriod,
+          dateRange: range,
           revenue: safeRevenue,
           netProfit: footerCalc.netProfit,
           netMargin: footerCalc.netMargin,
         }}
         hasValidData={hasValidData}
         isLoading={loading}
-        formatPeriodLabel={formatPeriodLabel}
         hppLabel={labels?.hppLabel}
         hppHint={labels?.hppHint}
       />

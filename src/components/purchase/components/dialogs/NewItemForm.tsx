@@ -413,6 +413,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
             >
               <Plus className="h-4 w-4 mr-2" />
               Tambah ke Daftar
+
             </Button>
           )}
         </div>

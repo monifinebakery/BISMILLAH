@@ -111,6 +111,9 @@ export const usePurchaseForm = ({
 
   // ✅ LIGHTWEIGHT: Direct field updater without validation
   const updateFormField = useCallback((field: keyof PurchaseFormData, value: any) => {
+    if (field === 'supplier') {
+      console.log('Updating supplier with value:', value);
+    }
     setFormDataState(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
     // NO validation during typing - only on submit

@@ -1,5 +1,5 @@
 // src/components/devices/DeviceManagementPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,21 +26,26 @@ const DeviceManagementPage: React.FC = () => {
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    const loadDevices = async () => {
-      setIsRefreshing(true);
-      try {
-        await refreshDevices();
-      } catch (err) {
-        logger.error('Error loading devices:', err);
-      } finally {
-        setIsRefreshing(false);
-      }
-    };
+    // Only load devices once on component mount to prevent infinite loop
+    if (!hasLoadedRef.current) {
+      const loadDevices = async () => {
+        setIsRefreshing(true);
+        try {
+          await refreshDevices();
+          hasLoadedRef.current = true;
+        } catch (err) {
+          logger.error('Error loading devices:', err);
+        } finally {
+          setIsRefreshing(false);
+        }
+      };
 
-    loadDevices();
-  }, [refreshDevices]);
+      loadDevices();
+    }
+  }, []); // Empty dependency array to run only once
 
   const handleEditName = (deviceId: string, currentName: string) => {
     setEditingDeviceId(deviceId);
@@ -117,7 +122,16 @@ const DeviceManagementPage: React.FC = () => {
           <CardDescription>{error}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => refreshDevices()}>Coba Lagi</Button>
+          <Button onClick={async () => {
+            setIsRefreshing(true);
+            try {
+              await refreshDevices();
+            } catch (err) {
+              logger.error('Error refreshing devices:', err);
+            } finally {
+              setIsRefreshing(false);
+            }
+          }}>Coba Lagi</Button>
         </CardContent>
       </Card>
     );
@@ -143,7 +157,16 @@ const DeviceManagementPage: React.FC = () => {
             </div>
             <Button 
               variant="outline" 
-              onClick={() => refreshDevices()}
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  await refreshDevices();
+                } catch (err) {
+                  logger.error('Error refreshing devices:', err);
+                } finally {
+                  setIsRefreshing(false);
+                }
+              }}
               disabled={isRefreshing}
             >
               {isRefreshing ? (
@@ -269,9 +292,12 @@ const DeviceManagementPage: React.FC = () => {
                       // This would be implemented in your auth context
                       // await performGlobalSignOut();
                       // For now, we'll just refresh the devices list
+                      setIsRefreshing(true);
                       await refreshDevices();
                     } catch (err) {
                       logger.error('Error signing out from all devices:', err);
+                    } finally {
+                      setIsRefreshing(false);
                     }
                   }
                 }}

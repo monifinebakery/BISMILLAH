@@ -8,6 +8,7 @@ import {
   transformPurchaseForDB,
   transformPurchaseUpdateForDB
 } from '../utils/purchaseTransformers';
+import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 
 export class PurchaseApiService {
   /** Get all purchases */
@@ -59,6 +60,17 @@ export class PurchaseApiService {
         .single();
 
       if (error) throw new Error(error.message);
+
+      // Jika langsung dibuat dengan status 'completed', sinkronkan stok & WAC
+      if (purchaseData.status === 'completed' && data?.id) {
+        await applyPurchaseToWarehouse({
+          ...purchaseData,
+          id: data.id,
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } as Purchase);
+      }
       return { success: true, error: null, purchaseId: data?.id };
     } catch (err: any) {
       logger.error('Error creating purchase:', err);
@@ -105,7 +117,20 @@ export class PurchaseApiService {
     newStatus: Purchase['status']
   ): Promise<{ success: boolean; error: string | null }> {
     try {
-      // Update status
+      // Ambil data pembelian saat ini untuk mengetahui status sebelumnya dan itemnya
+      const { data: existing, error: fetchError } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchError) throw new Error(fetchError.message);
+
+      const purchase = existing ? transformPurchaseFromDB(existing) : null;
+      const previousStatus = purchase?.status;
+
+      // Update status di database
       const { error } = await supabase
         .from('purchases')
         .update({ status: newStatus })
@@ -113,6 +138,15 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+
+      // Sinkronisasi manual stok dan WAC jika status berubah
+      if (purchase && previousStatus !== newStatus) {
+        if (newStatus === 'completed') {
+          await applyPurchaseToWarehouse(purchase);
+        } else if (previousStatus === 'completed') {
+          await reversePurchaseFromWarehouse(purchase);
+        }
+      }
 
       return { success: true, error: null };
     } catch (err: any) {

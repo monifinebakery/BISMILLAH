@@ -394,7 +394,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
               className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
             >
               <RefreshCcw className="h-4 w-4 mr-2" />
-              Update Bahan Baku
+              Update Stok Gudang
             </Button>
 
           ) : (

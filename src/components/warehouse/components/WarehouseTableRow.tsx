@@ -266,7 +266,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Supplier:</span>
-                <div className="font-medium text-gray-900">{item.supplier}</div>
+                <div className="font-medium text-gray-900">{item.supplier || '-'}</div>
               </div>
               <div>
                 <span className="text-gray-500">Stok Minimum:</span>
@@ -393,7 +393,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
         <span className="text-sm text-gray-900">
           {highlightText(item.kategori, searchTerm)}
         </span>
-        <div className="text-xs text-gray-500 mt-1">{item.supplier}</div>
+        <div className="text-xs text-gray-500 mt-1">{item.supplier || '-'}</div>
       </td>
 
       <td className="px-4 py-4">

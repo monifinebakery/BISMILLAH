@@ -183,7 +183,6 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     const combinedQty = prevItem.kuantitas + additionalQty;
     const combinedSubtotal = prevSubtotal + additionalSubtotal;
     const combinedPrice = combinedQty > 0 ? Math.round((combinedSubtotal / combinedQty) * 100) / 100 : 0;
-
     const purchaseItem: PurchaseItem = {
       bahanBakuId: warehouseItem.id,
       nama: warehouseItem.nama,
@@ -382,6 +381,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
               <RefreshCcw className="h-4 w-4 mr-2" />
               Update Bahan Baku
             </Button>
+
           ) : (
             <Button
               type="button"
@@ -391,6 +391,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
             >
               <Plus className="h-4 w-4 mr-2" />
               Tambah ke Daftar
+
             </Button>
           )}
         </div>

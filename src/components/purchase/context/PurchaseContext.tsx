@@ -136,7 +136,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             id: newId,
             nama: item.nama,
             kategori: 'Lainnya',
-            stok: item.kuantitas,
+            // Stok awal 0; penambahan stok dilakukan saat status purchase menjadi 'completed'
+            stok: 0,
             minimum: 0,
             satuan: item.satuan || '-',
             harga: item.hargaSatuan || 0,
@@ -232,7 +233,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               id: item.bahanBakuId,
               nama: item.nama,
               kategori: 'Lainnya',
-              stok: item.kuantitas,
+              // Jika purchase belum selesai, stok awal tetap 0 agar tidak double saat diselesaikan
+              stok: newRow.status === 'completed' ? item.kuantitas : 0,
               minimum: 0,
               satuan: item.satuan || '-',
               harga: item.hargaSatuan || 0,

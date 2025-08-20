@@ -349,7 +349,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!isActive) return;
       
       if (event === 'SIGNED_IN' && session?.user?.id) {
-        registerCurrentDevice(session.user..id);
+        registerCurrentDevice(session.user.id);
         // Don't automatically fetch devices here - let the component decide when to fetch
       } else if (event === 'SIGNED_OUT') {
         setDevices([]);

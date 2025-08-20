@@ -188,7 +188,7 @@ export function AppSidebar() {
     exportAllDataToExcel(allAppData, settings.businessName, format);
   };
 
-  // ✅ Enhanced menu item rendering with Update Badge support
+  // ✅ Enhanced menu item rendering with Update Badge support and tooltips
   const renderMenuItem = (item, isActive) => {
     const isUpdatesMenu = item.url === "/updates";
     
@@ -203,12 +203,13 @@ export function AppSidebar() {
           '--active-text': '#c2410c', // orange-700
         }}
         className={cn(
-          "w-full justify-start px-3 transition-all duration-200 relative",
+          "w-full justify-start px-3 py-2 transition-all duration-200 relative group",
           "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
           "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
           "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
           isActive && "!bg-orange-100 !text-orange-600 !border-orange-200"
         )}
+        title={item.title} // Native tooltip
       >
         {/* ✅ NEW: Use UpdateBadge for Updates menu */}
         {isUpdatesMenu ? (
@@ -216,7 +217,12 @@ export function AppSidebar() {
         ) : (
           <item.icon className="h-5 w-5 flex-shrink-0" />
         )}
-        <span className="ml-3">{item.title}</span>
+        <span className="ml-3 group-data-[collapsible=icon]:hidden">{item.title}</span>
+        {/* Tooltip for collapsed state */}
+        <div className="group-data-[collapsible=icon]:peer-hover:opacity-100 group-data-[collapsible=icon]:peer-hover:visible group-data-[collapsible=icon]:peer-hover:left-full group-data-[collapsible=icon]:peer-hover:ml-2 absolute left-0 ml-0 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 invisible transition-all duration-200 z-50 whitespace-nowrap pointer-events-none">
+          {item.title}
+          <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -ml-1 w-2 h-2 bg-gray-800 rotate-45"></div>
+        </div>
       </SidebarMenuButton>
     );
   };
@@ -232,15 +238,21 @@ export function AppSidebar() {
         '--active-text': '#c2410c', // orange-700
       }}
       className={cn(
-        "w-full justify-start px-3 transition-all duration-200",
+        "w-full justify-start px-3 py-2 transition-all duration-200 group",
         "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
         "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
         "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
         className
       )}
+      title={text} // Native tooltip
     >
       <IconComponent className="h-5 w-5 flex-shrink-0" />
-      <span className="ml-3">{text}</span>
+      <span className="ml-3 group-data-[collapsible=icon]:hidden">{text}</span>
+      {/* Tooltip for collapsed state */}
+      <div className="group-data-[collapsible=icon]:peer-hover:opacity-100 group-data-[collapsible=icon]:peer-hover:visible group-data-[collapsible=icon]:peer-hover:left-full group-data-[collapsible=icon]:peer-hover:ml-2 absolute left-0 ml-0 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 invisible transition-all duration-200 z-50 whitespace-nowrap pointer-events-none">
+        {text}
+        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -ml-1 w-2 h-2 bg-gray-800 rotate-45"></div>
+      </div>
     </SidebarMenuButton>
   );
 
@@ -253,8 +265,8 @@ export function AppSidebar() {
         "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left-0"
       )}
     >
-      {/* ✅ Header with smooth transitions */}
-      <SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-0">
+      {/* ✅ Header with smooth transitions and consistent padding */}
+      <SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-2">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
             <TrendingUp className="h-6 w-6" />
@@ -265,8 +277,8 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* ✅ Content with staggered animations */}
-      <SidebarContent className="flex-grow px-2 py-4 group-data-[collapsible=icon]:px-0">
+      {/* ✅ Content with staggered animations and consistent padding */}
+      <SidebarContent className="flex-grow px-2 py-4 group-data-[collapsible=icon]:px-2">
         {menuGroups.map((group, groupIndex) => (
           <SidebarGroup 
             key={group.label} 
@@ -276,7 +288,7 @@ export function AppSidebar() {
               `delay-[${groupIndex * 50}ms]`
             )}
           >
-            <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3 transition-opacity duration-300">
+            <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
               {group.label}
             </SidebarGroupLabel>
             
@@ -300,8 +312,8 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* ✅ Footer with delayed animation */}
-      <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200 group-data-[collapsible=icon]:px-0">
+      {/* ✅ Footer with delayed animation and consistent padding */}
+      <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200 group-data-[collapsible=icon]:px-2">
         <SidebarMenu className="space-y-1">
           {/* Export Button */}
           <SidebarMenuItem className="transition-all duration-200 ease-in-out">
@@ -324,7 +336,7 @@ export function AppSidebar() {
           ))}
 
           {/* Logout */}
-          <SidebarMenuItem className="transition-all duration-200 ease-in-out">
+          <SidebarMenuItem className="transition-all duration-200 ease-in-out mt-2">
             {renderActionButton(
               () => setShowLogoutConfirm(true),
               LogOut,

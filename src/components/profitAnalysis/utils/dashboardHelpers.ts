@@ -85,16 +85,15 @@ export const generateForecastHelper = (profitHistory: any[], currentAnalysis: an
     const grossProfit = revenue - cogs;
     const netProfit = grossProfit - opex;
     const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
     
     // Analyze trends from history (take last 3-6 periods)
     const recentHistory = profitHistory.slice(-6);
     let averageGrowthRate = 0;
-    let averageMargin = netMargin;
+    const cogsPercentages: number[] = [];
+    const opexPercentages: number[] = [];
     
     if (recentHistory.length >= 2) {
       const growthRates = [];
-      const margins = [];
       
       for (let i = 1; i < recentHistory.length; i++) {
         const prevRevenue = recentHistory[i-1].revenue_data?.total || 0;
@@ -107,19 +106,14 @@ export const generateForecastHelper = (profitHistory: any[], currentAnalysis: an
           // Calculate margin for this period
           const periodCogs = recentHistory[i].cogs_data?.total || 0;
           const periodOpex = recentHistory[i].opex_data?.total || 0;
-          const periodNetProfit = currRevenue - periodCogs - periodOpex;
-          const periodMargin = (periodNetProfit / currRevenue) * 100;
-          margins.push(periodMargin);
+          cogsPercentages.push(currRevenue > 0 ? periodCogs / currRevenue : 0);
+          opexPercentages.push(currRevenue > 0 ? periodOpex / currRevenue : 0);
         }
       }
-      
+
       // Average growth and margin
       if (growthRates.length > 0) {
         averageGrowthRate = growthRates.reduce((sum, rate) => sum + rate, 0) / growthRates.length;
-      }
-      
-      if (margins.length > 0) {
-        averageMargin = margins.reduce((sum, margin) => sum + margin, 0) / margins.length;
       }
     }
     
@@ -132,8 +126,16 @@ export const generateForecastHelper = (profitHistory: any[], currentAnalysis: an
     const nextYearRevenue = revenue * Math.pow(1 + monthlyGrowthRate, 12);
     
     // Assume COGS and OPEX as percentage of revenue (based on historical averages)
-    const cogsPercentage = revenue > 0 ? (cogs / revenue) : 0.6; // default 60%
-    const opexPercentage = revenue > 0 ? (opex / revenue) : 0.25; // default 25%
+    let cogsPercentage = revenue > 0 ? (cogs / revenue) : 0.6; // default 60%
+    let opexPercentage = revenue > 0 ? (opex / revenue) : 0.25; // default 25%
+
+    if (cogsPercentages.length > 0) {
+      cogsPercentage = cogsPercentages.reduce((sum, val) => sum + val, 0) / cogsPercentages.length;
+    }
+
+    if (opexPercentages.length > 0) {
+      opexPercentage = opexPercentages.reduce((sum, val) => sum + val, 0) / opexPercentages.length;
+    }
     
     // Calculate predicted profit
     const calculatePredictedProfit = (predictedRevenue: number) => {

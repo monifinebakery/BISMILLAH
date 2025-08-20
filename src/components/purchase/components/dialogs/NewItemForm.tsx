@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
 
@@ -91,7 +90,6 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   }, [formData.kuantitas, formData.totalBayar]);
 
   const effectiveQty = useMemo(() => toNumber(formData.kuantitas), [formData.kuantitas]);
-  const effectivePay = useMemo(() => toNumber(formData.totalBayar), [formData.totalBayar]);
 
   const canSubmit = isSelectingExistingItem
     ? selectedWarehouseItem !== '' && effectiveQty > 0 && computedUnitPrice > 0
@@ -166,9 +164,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     onSelectWarehouseItem
   ]);
 
-  const { updateBahanBaku } = useBahanBaku();
-
-  const handleUpdate = useCallback(async () => {
+  const handleUpdate = useCallback(() => {
     if (existingIndex < 0) return;
 
     const warehouseItem = warehouseItems.find(item => item.id === selectedWarehouseItem);
@@ -195,31 +191,6 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
     onUpdateItem(existingIndex, purchaseItem);
 
-    // Update stok dan harga rata-rata di gudang
-    const newStock = warehouseItem.stok + additionalQty;
-    const currentAvg = warehouseItem.hargaRataRata ?? 0;
-    const newAvgPrice =
-      newStock > 0
-        ? ((warehouseItem.stok * currentAvg) + (additionalQty * computedUnitPrice)) / newStock
-        : 0;
-
-    let success = false;
-    try {
-      success = await updateBahanBaku(warehouseItem.id, {
-        stok: newStock,
-        hargaRataRata: newAvgPrice,
-        harga: computedUnitPrice,
-      });
-    } catch (error) {
-      success = false;
-    }
-
-    if (success) {
-      toast.success('Stok dan harga rata-rata diperbarui');
-    } else {
-      toast.error('Gagal memperbarui stok gudang');
-    }
-
     onSelectWarehouseItem('');
     setFormData({
       nama: '',
@@ -228,7 +199,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       totalBayar: '',
       keterangan: '',
     });
-  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, onUpdateItem, updateBahanBaku, onSelectWarehouseItem, formData.keterangan]);
+  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, onUpdateItem, onSelectWarehouseItem, formData.keterangan]);
 
   return (
     <Card className="border-gray-200">

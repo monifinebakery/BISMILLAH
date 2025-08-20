@@ -119,6 +119,15 @@ const calculateSummaryStats = (metrics: ReturnType<typeof calculateMetrics>) => 
 const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) return null;
 
+  // Create a mapping from dataKey to friendly label
+  const dataKeyLabelMap = {
+    'Omset': 'Omset',
+    'Modal Bahan': 'Modal Bahan',
+    'Biaya Tetap': 'Biaya Tetap',
+    'Untung Kotor': 'Untung Kotor',
+    'Untung Bersih': 'Untung Bersih'
+  };
+
   return (
     <div className="bg-white p-3 border border-gray-200 rounded-lg">
       <p className="font-semibold text-gray-800 mb-2">{label}</p>
@@ -128,7 +137,7 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
             className="w-3 h-3 rounded-full" 
             style={{ backgroundColor: entry.color }}
           />
-          <span className="text-sm text-gray-600">{entry.dataKey}:</span>
+          <span className="text-sm text-gray-600">{dataKeyLabelMap[entry.dataKey as keyof typeof dataKeyLabelMap] || entry.dataKey}:</span>
           <span className="text-sm font-medium">
             {formatCurrency(entry.value)}
           </span>

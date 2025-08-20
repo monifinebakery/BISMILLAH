@@ -72,7 +72,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
           }}
         >
           Harian
-        </button>
+        </Select>
         <button
           className={`px-3 py-1 text-sm ${
             mode === 'monthly' ? 'bg-white text-orange-600' : 'text-white opacity-75'

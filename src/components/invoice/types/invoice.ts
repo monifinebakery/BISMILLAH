@@ -62,6 +62,6 @@ export interface OrderData {
     totalHarga: number;
   }>;
   subtotal: number;
-  pajak: number;
+  pajak?: number;
   totalPesanan: number;
 }

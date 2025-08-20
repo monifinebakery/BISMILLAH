@@ -168,8 +168,9 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
   const { updateBahanBaku } = useBahanBaku();
 
-  const handleUpdate = useCallback(async () => {
+  const handleUpdate = useCallback(() => {
     if (existingIndex < 0) return;
+
     const warehouseItem = warehouseItems.find(item => item.id === selectedWarehouseItem);
     if (!warehouseItem) {
       toast.error('Bahan baku tidak ditemukan');
@@ -178,31 +179,19 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
     const prevItem = existingItems[existingIndex];
     const additionalQty = effectiveQty;
-    const prevSubtotal = prevItem.kuantitas * prevItem.hargaSatuan;
     const additionalSubtotal = additionalQty * computedUnitPrice;
+
     const combinedQty = prevItem.kuantitas + additionalQty;
-    const combinedSubtotal = prevSubtotal + additionalSubtotal;
+    const combinedSubtotal = prevItem.subtotal + additionalSubtotal;
     const combinedPrice = combinedQty > 0 ? Math.round((combinedSubtotal / combinedQty) * 100) / 100 : 0;
+
     const purchaseItem: PurchaseItem = {
-      bahanBakuId: warehouseItem.id,
-      nama: warehouseItem.nama,
-      satuan: warehouseItem.satuan,
+      ...prevItem,
       kuantitas: combinedQty,
       hargaSatuan: combinedPrice,
       subtotal: combinedSubtotal,
       keterangan: formData.keterangan || prevItem.keterangan,
     };
-
-    const currentValue = warehouseItem.stok * warehouseItem.harga;
-    const newStock = warehouseItem.stok + additionalQty;
-    const newValue = currentValue + additionalSubtotal;
-    const newPrice = newStock > 0 ? Math.round((newValue / newStock) * 100) / 100 : 0;
-
-    await updateBahanBaku(warehouseItem.id, {
-      stok: newStock,
-      harga: newPrice,
-      hargaRataRata: newPrice,
-    });
 
     onUpdateItem(existingIndex, purchaseItem);
     onSelectWarehouseItem('');
@@ -213,7 +202,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       totalBayar: '',
       keterangan: '',
     });
-  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, updateBahanBaku, onUpdateItem, onSelectWarehouseItem, formData.keterangan]);
+  }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, onUpdateItem, onSelectWarehouseItem, formData.keterangan]);
 
   return (
     <Card className="border-gray-200">

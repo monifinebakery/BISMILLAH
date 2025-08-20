@@ -2,13 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Settings, Copy, Printer, FileText } from 'lucide-react';
+import { ArrowLeft, FileText, Download } from 'lucide-react';
 
 interface InvoiceActionsProps {
   onBack?: () => void;
-  onReset: () => void;
-  onDuplicate: () => void;
-  onPrint: () => void;
+  onDownload: () => void;
   orderId?: string;
   orderNumber?: string;
   className?: string;
@@ -16,15 +14,13 @@ interface InvoiceActionsProps {
 
 export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
   onBack,
-  onReset,
-  onDuplicate,
-  onPrint,
+  onDownload,
   orderId,
   orderNumber,
   className = ''
 }) => {
   return (
-    <Card className={`print:hidden border-1 border-gray-200 ${className}`}>
+    <Card className={`print:hidden border-2 border-gray-200 ${className}`}>
       <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
@@ -55,28 +51,12 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
           </div>
           
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <Button 
-              variant="secondary" 
-              onClick={onReset}
-              className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Reset
-            </Button>
-            <Button 
-              variant="secondary" 
-              onClick={onDuplicate}
-              className="bg-white/20 hover:bg-white/30 text-white border-white/20 text-sm"
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Duplikat
-            </Button>
-            <Button 
-              onClick={onPrint}
+            <Button
+              onClick={onDownload}
               className="bg-white text-orange-600 hover:bg-gray-100 text-sm"
             >
-              <Printer className="mr-2 h-4 w-4" />
-              Print
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
             </Button>
           </div>
         </div>

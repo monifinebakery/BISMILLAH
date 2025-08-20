@@ -60,6 +60,17 @@ export class PurchaseApiService {
         .single();
 
       if (error) throw new Error(error.message);
+
+      // Jika langsung dibuat dengan status 'completed', sinkronkan stok & WAC
+      if (purchaseData.status === 'completed' && data?.id) {
+        await applyPurchaseToWarehouse({
+          ...purchaseData,
+          id: data.id,
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } as Purchase);
+      }
       return { success: true, error: null, purchaseId: data?.id };
     } catch (err: any) {
       logger.error('Error creating purchase:', err);

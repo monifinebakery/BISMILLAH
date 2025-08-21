@@ -63,7 +63,7 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
         tanggal: new Date(r.tanggal),
         items: [],
         totalNilai: 0,
-        status: 'pending',
+        status: 'completed',
         metodePerhitungan: 'AVERAGE',
       };
       grouped.set(key, purchase);

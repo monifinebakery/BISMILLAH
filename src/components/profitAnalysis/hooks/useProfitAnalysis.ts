@@ -418,6 +418,7 @@ export const useProfitAnalysis = (
 
   // Muat ulang riwayat profit saat rentang tanggal berubah
   useEffect(() => {
+
     // Abaikan pemanggilan saat mode harian karena data sudah dimuat oleh query utama
     if (!dateRange?.from || !dateRange?.to || mode === 'daily') return;
 

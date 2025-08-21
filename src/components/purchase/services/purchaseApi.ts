@@ -1,7 +1,7 @@
 // src/components/purchase/services/purchaseApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import type { Purchase } from '../types/purchase.types';
+import type { Purchase, PurchaseItem } from '../types/purchase.types';
 import {
   transformPurchasesFromDB,
   transformPurchaseFromDB,
@@ -88,6 +88,16 @@ export class PurchaseApiService {
     userId: string
   ): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Ambil data pembelian lama untuk bandingkan status & item
+      const { data: oldPurchase, error: fetchError } = await this.fetchPurchaseById(id, userId);
+      if (fetchError) throw new Error(fetchError);
+      if (!oldPurchase) throw new Error('Pembelian tidak ditemukan');
+
+      const previousStatus = oldPurchase.status;
+      const newStatus = updatedData.status ?? previousStatus;
+      const newItems = updatedData.items ?? oldPurchase.items;
+
+      // Update data di Supabase
       const payload = transformPurchaseUpdateForDB(updatedData);
       const { error } = await supabase
         .from('purchases')
@@ -96,6 +106,25 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+
+      // Sinkronisasi stok dengan membalik pembelian lama lalu menerapkan pembelian baru
+      const newPurchase = {
+        ...oldPurchase,
+        ...updatedData,
+        status: newStatus,
+        items: newItems
+      } as Purchase;
+
+      // Jika sebelumnya sudah completed, kembalikan stok terlebih dahulu
+      if (previousStatus === 'completed') {
+        await reversePurchaseFromWarehouse(oldPurchase);
+      }
+
+      // Terapkan pembelian baru jika status sekarang completed
+      if (newStatus === 'completed') {
+        await applyPurchaseToWarehouse(newPurchase);
+      }
+
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error updating purchase:', err);

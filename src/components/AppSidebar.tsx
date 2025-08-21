@@ -154,7 +154,7 @@ export function AppSidebar() {
     "
   >
     <img
-      src="/monifine-logo-orange.svg"
+      src="https://i.imgur.com/6JYyON5.png"
       alt="Logo Monifine"
       className="w-10 h-10 flex-shrink-0 group-data-[collapsible=icon]:mx-auto"
     />

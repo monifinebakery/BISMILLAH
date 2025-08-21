@@ -1,7 +1,6 @@
 // src/components/warehouse/services/warehouseUtils.ts
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
-
-import { warehouseUtils } from '@/components/warehouse/services';
+// Note: Avoid importing the barrel (../services/index.ts) here to prevent circular dependencies
 import { logger } from '@/utils/logger';
 
 /**
@@ -40,6 +39,21 @@ const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
  */
 const isUsingWac = (item: BahanBakuFrontend): boolean => {
   return item && Number(item.hargaRataRata ?? 0) > 0;
+};
+
+// Helper functions defined upfront to avoid self-referencing within object literal
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+
+const formatDate = (date: string | Date) =>
+  new Intl.DateTimeFormat('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })
+    .format(typeof date === 'string' ? new Date(date) : date);
+
+const getLowStockItems = (items: BahanBakuFrontend[]) => items.filter(i => i.stok <= i.minimum);
+const getOutOfStockItems = (items: BahanBakuFrontend[]) => items.filter(i => i.stok === 0);
+const getExpiringItems = (items: BahanBakuFrontend[], days = 30) => {
+  const threshold = new Date(); threshold.setDate(threshold.getDate() + days);
+  return items.filter(i => i.expiry && new Date(i.expiry) <= threshold && new Date(i.expiry) > new Date());
 };
 
 export const warehouseUtils = {
@@ -91,12 +105,10 @@ export const warehouseUtils = {
   getUniqueCategories: (items: BahanBakuFrontend[]) => Array.from(new Set(items.map(i => i.kategori).filter(Boolean))).sort(),
   getUniqueSuppliers:  (items: BahanBakuFrontend[]) => Array.from(new Set(items.map(i => i.supplier).filter(Boolean))).sort(),
 
-  getLowStockItems: (items: BahanBakuFrontend[]) => items.filter(i => i.stok <= i.minimum),
-  getOutOfStockItems: (items: BahanBakuFrontend[]) => items.filter(i => i.stok === 0),
-  getExpiringItems: (items: BahanBakuFrontend[], days = 30) => {
-    const threshold = new Date(); threshold.setDate(threshold.getDate() + days);
-    return items.filter(i => i.expiry && new Date(i.expiry) <= threshold && new Date(i.expiry) > new Date());
-  },
+  // Expose helpers via object (no self-reference inside initializer)
+  getLowStockItems,
+  getOutOfStockItems,
+  getExpiringItems,
 
   // Validation (tanpa kemasan)
   validateBahanBaku: (data: Partial<BahanBakuFrontend>): ValidationResult => {
@@ -115,12 +127,8 @@ export const warehouseUtils = {
     return { isValid: errors.length === 0, errors };
   },
 
-  formatCurrency: (amount: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount),
-
-  formatDate: (date: string | Date) =>
-    new Intl.DateTimeFormat('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })
-      .format(typeof date === 'string' ? new Date(date) : date),
+  formatCurrency,
+  formatDate,
 
   formatStockLevel: (current: number, minimum: number) => {
     if (current === 0) return { level: 'out' as const, percentage: 0, color: 'red' };
@@ -157,23 +165,23 @@ export const warehouseUtils = {
       'Stok': item.stok,
       'Minimum': item.minimum,
       'Satuan': item.satuan,
-      'Harga Satuan (Input)': warehouseUtils.formatCurrency(item.harga || 0),
-      'Harga Rata-rata (WAC)': item.hargaRataRata != null ? warehouseUtils.formatCurrency(item.hargaRataRata) : '-',
-      'Harga Efektif': warehouseUtils.formatCurrency(getEffectiveUnitPrice(item)),
+      'Harga Satuan (Input)': formatCurrency(item.harga || 0),
+      'Harga Rata-rata (WAC)': item.hargaRataRata != null ? formatCurrency(item.hargaRataRata) : '-',
+      'Harga Efektif': formatCurrency(getEffectiveUnitPrice(item)),
       'Metode Harga': isUsingWacPrice ? 'Rata-rata Tertimbang (WAC)' : 'Harga Input',
-      'Nilai Total Stok': warehouseUtils.formatCurrency(getEffectiveUnitPrice(item) * (item.stok || 0)),
-      'Tanggal Kadaluarsa': item.expiry ? warehouseUtils.formatDate(item.expiry) : '-',
-      'Dibuat': warehouseUtils.formatDate(item.createdAt),
-      'Diupdate': warehouseUtils.formatDate(item.updatedAt),
+      'Nilai Total Stok': formatCurrency(getEffectiveUnitPrice(item) * (item.stok || 0)),
+      'Tanggal Kadaluarsa': item.expiry ? formatDate(item.expiry) : '-',
+      'Dibuat': formatDate(item.createdAt),
+      'Diupdate': formatDate(item.updatedAt),
     };
   }),
 
   // Simple report (tanpa package efficiency)
   generateStockReport: (items: BahanBakuFrontend[]) => {
     const totalItems = items.length;
-    const lowStockItems = warehouseUtils.getLowStockItems(items);
-    const outOfStockItems = warehouseUtils.getOutOfStockItems(items);
-    const expiringItems = warehouseUtils.getExpiringItems(items, 30);
+    const lowStockItems = getLowStockItems(items);
+    const outOfStockItems = getOutOfStockItems(items);
+    const expiringItems = getExpiringItems(items, 30);
     const totalValue = items.reduce((s, it) => s + it.stok * getEffectiveUnitPrice(it), 0);
     const averageStockLevel = totalItems ? Math.round(items.reduce((s, it) => s + it.stok, 0) / totalItems) : 0;
     const categories = items.reduce((acc, it) => { acc[it.kategori] = (acc[it.kategori] || 0) + 1; return acc; }, {} as Record<string, number>);

@@ -1,7 +1,7 @@
 // src/components/purchase/services/purchaseApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import type { Purchase } from '../types/purchase.types';
+import type { Purchase, PurchaseItem } from '../types/purchase.types';
 import {
   transformPurchasesFromDB,
   transformPurchaseFromDB,
@@ -88,6 +88,16 @@ export class PurchaseApiService {
     userId: string
   ): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Ambil data pembelian lama untuk bandingkan status & item
+      const { data: oldPurchase, error: fetchError } = await this.fetchPurchaseById(id, userId);
+      if (fetchError) throw new Error(fetchError);
+      if (!oldPurchase) throw new Error('Pembelian tidak ditemukan');
+
+      const previousStatus = oldPurchase.status;
+      const newStatus = updatedData.status ?? previousStatus;
+      const newItems = updatedData.items ?? oldPurchase.items;
+
+      // Update data di Supabase
       const payload = transformPurchaseUpdateForDB(updatedData);
       const { error } = await supabase
         .from('purchases')
@@ -96,6 +106,62 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+
+      // Sinkronisasi stok jika status lama/baru completed
+      if (previousStatus === 'completed' || newStatus === 'completed') {
+        // Status berubah dari non-completed -> completed
+        if (previousStatus !== 'completed' && newStatus === 'completed') {
+          await applyPurchaseToWarehouse({
+            ...oldPurchase,
+            ...updatedData,
+            status: 'completed',
+            items: newItems
+          } as Purchase);
+        }
+        // Status berubah dari completed -> non-completed
+        else if (previousStatus === 'completed' && newStatus !== 'completed') {
+          await reversePurchaseFromWarehouse(oldPurchase);
+        }
+        // Status tetap completed, hitung selisih item
+        else if (previousStatus === 'completed' && newStatus === 'completed') {
+          const oldMap = new Map<string, PurchaseItem>();
+          oldPurchase.items.forEach((it) => oldMap.set(it.bahanBakuId, it));
+          const newMap = new Map<string, PurchaseItem>();
+          newItems.forEach((it) => newMap.set(it.bahanBakuId, it));
+
+          const allIds = new Set([...oldMap.keys(), ...newMap.keys()]);
+          const toApply: PurchaseItem[] = [];
+          const toReverse: PurchaseItem[] = [];
+
+          allIds.forEach((itemId) => {
+            const oldItem = oldMap.get(itemId);
+            const newItem = newMap.get(itemId);
+            const diff = (newItem?.kuantitas ?? 0) - (oldItem?.kuantitas ?? 0);
+            if (diff > 0 && newItem) {
+              toApply.push({ ...newItem, kuantitas: diff });
+            } else if (diff < 0 && oldItem) {
+              toReverse.push({ ...oldItem, kuantitas: -diff });
+            }
+          });
+
+          if (toApply.length > 0) {
+            await applyPurchaseToWarehouse({
+              ...oldPurchase,
+              ...updatedData,
+              items: toApply,
+              status: 'completed'
+            } as Purchase);
+          }
+
+          if (toReverse.length > 0) {
+            await reversePurchaseFromWarehouse({
+              ...oldPurchase,
+              items: toReverse
+            } as Purchase);
+          }
+        }
+      }
+
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error updating purchase:', err);

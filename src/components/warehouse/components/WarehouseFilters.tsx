@@ -20,6 +20,8 @@ import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { FilterState } from '../types';
+// Kategori default sinkron dengan analisis profit
+import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
 interface WarehouseFiltersProps {
   searchTerm: string;
@@ -45,19 +47,10 @@ const filterQueryKeys = {
 // ✅ TAMBAH: API functions for filter data
 const fetchCategories = async (): Promise<string[]> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const service = await warehouseApi.createService('crud', {
-      userId: user?.id,
-      enableDebugLogs: import.meta.env.DEV
-    });
-    
-    const items = await service.fetchBahanBaku();
-    const categories = [...new Set(items.map(item => item.kategori).filter(Boolean))];
-    return categories.sort();
+    return [...FNB_COGS_CATEGORIES];
   } catch (error) {
     logger.error('Failed to fetch categories:', error);
-    return [];
+    return [...FNB_COGS_CATEGORIES];
   }
 };
 

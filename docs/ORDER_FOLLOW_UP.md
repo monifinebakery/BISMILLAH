@@ -32,3 +32,10 @@ Jika template atau nomor telepon tidak tersedia, fungsi akan mengembalikan `null
 - `cancelled`
 
 Setiap status memiliki template default yang dapat disesuaikan melalui **Template Manager** di halaman pesanan.
+
+## Tutorial Singkat Template Manager
+
+1. Buka halaman pesanan dan klik tombol **Template**.
+2. Pilih status pesanan yang ingin diubah kemudian klik ikon pensil.
+3. Ubah pesan sesuai kebutuhan dan tekan **Simpan Template**.
+4. Gunakan tab **Variabel** untuk melihat daftar variabel yang bisa dimasukkan ke dalam pesan.

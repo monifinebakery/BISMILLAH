@@ -90,8 +90,9 @@ export class PurchaseApiService {
   }
 
   /**
-   * Update purchase (BOLEH meski sudah completed).
-   * Perubahan items/total/status akan otomatis disinkronkan ke stok & WAC oleh trigger di DB.
+   * Update purchase (allowed even after completed).
+   * Manual warehouse synchronization: changes to items/total/status
+   * will be manually synchronized to warehouse stock and WAC.
    */
   static async updatePurchase(
     id: string,
@@ -145,7 +146,7 @@ export class PurchaseApiService {
 
   /**
    * Set status (pending/completed/cancelled).
-   * Saat set ke 'completed', trigger DB akan:
+   * Manual warehouse synchronization when status changes to 'completed':
    * - menambah stok,
   * - hitung WAC (harga_rata_rata),
   * - tandai applied_at,
@@ -211,8 +212,8 @@ export class PurchaseApiService {
 
   /**
   * Delete purchase.
-  * Jika purchase sudah pernah diaplikasikan (applied_at IS NOT NULL),
-  * trigger DB akan otomatis mengembalikan stok/WAC (reversal).
+  * Manual warehouse synchronization: if purchase was completed,
+  * manually reverse stock and WAC changes before deletion.
   */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {

@@ -4,35 +4,35 @@
 
 The warehouse system was experiencing miscalculations due to several issues:
 
-1. **Missing Database Triggers**: No automatic calculation of Weighted Average Cost (WAC) when purchases were completed
+1. **Conflicting Synchronization**: Database triggers and manual synchronization both running, causing double stock addition
 2. **Inconsistent Price Sources**: Different components using different price values (base price vs WAC)
 3. **Inadequate Validation**: Purchase completion allowed invalid data that could corrupt warehouse calculations
 4. **No Manual Recovery**: No mechanism to fix data inconsistencies when they occurred
 
 ## Solution Overview
 
-The fix implements a comprehensive approach to ensure accurate warehouse calculations:
+The fix implements manual synchronization approach to ensure accurate warehouse calculations:
 
-### 1. Database Trigger System (`database_fixes/warehouse_wac_trigger.sql`)
+### 1. Manual Synchronization System (`warehouseSyncService.ts`)
 
 **Features:**
-- Automatic WAC calculation when purchases are completed
+- Manual WAC calculation when purchases are completed
 - Stock adjustment when purchase status changes 
 - Proper handling of purchase modifications and deletions
 - Rollback capability for cancelled/deleted purchases
 
 **Key Functions:**
-- `calculate_warehouse_wac()` - Calculates weighted average cost
-- `apply_purchase_to_warehouse()` - Updates stock and WAC on completion
-- `reverse_purchase_from_warehouse()` - Reverses effects when needed
-- `handle_purchase_warehouse_sync()` - Main trigger function
-- `sync_all_warehouse_wac()` - Manual recalculation function
+- `calculateNewWac()` - Calculates weighted average cost
+- `applyPurchaseToWarehouse()` - Updates stock and WAC on completion
+- `reversePurchaseFromWarehouse()` - Reverses effects when needed
+- `recalculateAllWAC()` - Manual recalculation function
+- `checkWarehouseConsistency()` - Data consistency validation
 
-**Trigger Logic:**
-```sql
--- On purchase completion: Update stock and calculate new WAC
--- On purchase modification: Reverse old values, apply new values  
--- On purchase deletion: Reverse effects if purchase was applied
+**Manual Sync Logic:**
+```typescript
+// On purchase completion: Update stock and calculate new WAC
+// On purchase modification: Reverse old values, apply new values  
+// On purchase deletion: Reverse effects if purchase was applied
 ```
 
 ### 2. Enhanced Warehouse Utilities (`warehouseUtils.ts`)
@@ -114,8 +114,8 @@ npm test src/components/warehouse/__tests__/warehouseCalculations.test.ts
 1. User clicks "Complete Purchase" 
 2. Frontend validates purchase data
 3. API calls purchaseApi.setPurchaseStatus()
-4. Database trigger fires on status change
-5. Trigger calculates new WAC and updates stock
+4. Manual sync applies purchase to warehouse
+5. Stock and WAC updated via manual calculation
 6. Frontend reflects updated warehouse data
 ```
 
@@ -136,10 +136,10 @@ New WAC = (Current Stock × Current WAC + New Quantity × New Price) /
 
 ## Key Benefits
 
-### 1. **Automatic Accuracy**
-- All warehouse calculations update automatically when purchases are completed
-- No manual intervention needed for routine operations
-- Consistent pricing across all components
+### 1. **Manual Control**
+- All warehouse calculations handled manually in application code
+- Direct control over synchronization timing and logic
+- Easier debugging and troubleshooting of sync issues
 
 ### 2. **Data Integrity**
 - Comprehensive validation prevents bad data entry
@@ -182,18 +182,16 @@ The test suite covers:
 4. **Performance issues**: Check database indexes are in place
 
 ### Database Maintenance
-```sql
--- Check trigger status
-SELECT * FROM pg_trigger WHERE tgname = 'trigger_purchase_warehouse_sync';
+```typescript
+// Manual WAC recalculation via service
+const syncService = new WarehouseSyncService(userId);
+const summary = await syncService.recalculateAllWAC();
 
--- Manual WAC recalculation  
-SELECT * FROM sync_all_warehouse_wac('user-id-here');
+// Check data consistency  
+const issues = await syncService.checkWarehouseConsistency();
 
--- Verify data integrity
-SELECT COUNT(*) FROM bahan_baku WHERE harga_rata_rata IS NULL 
-  AND id IN (SELECT DISTINCT (item->>'bahan_baku_id')::UUID 
-             FROM purchases, jsonb_array_elements(items) item 
-             WHERE status = 'completed');
+// Verify manual sync is working
+const result = await purchaseApi.setPurchaseStatus(purchaseId, userId, 'completed');
 ```
 
 ## Migration Notes

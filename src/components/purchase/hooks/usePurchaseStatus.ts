@@ -9,7 +9,7 @@ import { logger } from '@/utils/logger';
 /**
  * Props
  * - onStatusUpdate: sebaiknya implementasinya memanggil purchaseApi.setPurchaseStatus(purchaseId, userId, newStatus)
- *   supaya trigger DB yang mengatur stok + WAC berjalan otomatis.
+ *   supaya manual warehouse sync yang mengatur stok + WAC berjalan.
  */
 export interface UsePurchaseStatusProps {
   purchases: Purchase[];
@@ -101,7 +101,7 @@ export const usePurchaseStatus = ({
 
     // Info kepada user: perubahan dari completed akan mengoreksi stok via trigger DB
     if (oldStatus === 'completed' && newStatus !== 'completed') {
-      warnings.push('Mengubah status dari "Selesai" akan mengoreksi stok di gudang (otomatis oleh sistem).');
+      warnings.push('Mengubah status dari "Selesai" akan mengoreksi stok di gudang (manual sync).');
     }
 
     if (newStatus === 'completed') {
@@ -180,9 +180,8 @@ export const usePurchaseStatus = ({
       const ok = await onStatusUpdate(purchaseId, newStatus);
       if (!ok) throw new Error('Gagal mengubah status purchase');
 
-      // ✅ Tidak ada pemanggilan PurchaseWarehouseService di sini.
-      // Stok & WAC otomatis diurus trigger database saat status = 'completed',
-      // serta disesuaikan saat edit/hapus setelah completed.
+      // ✅ Manual warehouse sync handles stock and WAC updates when status = 'completed',
+      // and adjusts stock when editing/deleting after completion.
 
       // Setelah status berhasil diubah, refresh data gudang agar stok terbaru ter-fetch
       try {

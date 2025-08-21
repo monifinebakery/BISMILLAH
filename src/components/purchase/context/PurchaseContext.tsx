@@ -2,7 +2,7 @@
 // ✅ PERFORMANCE & MERGED CORE: Context ini sudah menggabungkan fungsionalitas usePurchaseCore
 // - Optimistic updates untuk create/update/status/delete
 // - Stats, bulk ops, validate prerequisites
-// - Edit/Hapus setelah 'completed' diperbolehkan (stok & WAC diurus trigger DB)
+// - Edit/Hapus setelah 'completed' diperbolehkan (stok & WAC diurus manual sync)
 // - Realtime aman (hindari refetch berlebih)
 // ✅ TAMBAH: Invalidate warehouse data setiap ada perubahan purchase
 
@@ -429,7 +429,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user, createMutation, ensureBahanBakuIds]);
 
-  // Edit diperbolehkan walau completed — trigger DB akan rekalkulasi stok jika perlu
+  // Edit diperbolehkan walau completed — manual sync akan rekalkulasi stok jika perlu
   const updatePurchaseAction = useCallback(async (id: string, updated: Partial<Purchase>) => {
     if (!user) { toast.error('Anda harus login'); return false; }
     try {

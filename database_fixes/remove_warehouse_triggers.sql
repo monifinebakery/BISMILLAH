@@ -17,13 +17,17 @@ DROP FUNCTION IF EXISTS sync_all_warehouse_wac(UUID);
 -- 3. Remove trigger-specific indexes (keep basic ones)
 DROP INDEX IF EXISTS idx_purchases_status_applied;
 
--- 4. Remove applied_at column since we're using manual sync
+-- 4. Drop policies that depend on applied_at column
+DROP POLICY IF EXISTS purchase_items_update_own_unapplied ON purchase_items;
+DROP POLICY IF EXISTS purchase_items_delete_own_unapplied ON purchase_items;
+
+-- 5. Remove applied_at column since we're using manual sync
 ALTER TABLE purchases DROP COLUMN IF EXISTS applied_at;
 
--- 5. Keep the harga_rata_rata column as it's still needed for manual WAC calculation
+-- 6. Keep the harga_rata_rata column as it's still needed for manual WAC calculation
 -- (We don't drop this as it's still useful for storing WAC values)
 
--- 6. Verify trigger removal
+-- 7. Verify trigger removal
 SELECT 
   'Trigger Removal Complete' as status,
   (SELECT COUNT(*) FROM pg_trigger WHERE tgname = 'trigger_purchase_warehouse_sync') as remaining_triggers,

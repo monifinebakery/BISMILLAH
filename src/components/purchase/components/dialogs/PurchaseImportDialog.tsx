@@ -114,8 +114,8 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                       Format File yang Dibutuhkan
                     </h4>
                     <p className="text-sm text-blue-800">
-                      Pastikan file Anda memiliki kolom: Tanggal, Supplier, Nama Bahan, Jumlah, Satuan, 
-                      Harga Satuan, Total. Anda dapat mengunduh template di bawah ini.
+                      Pastikan file Anda memiliki kolom: Tanggal, Supplier, Nama Bahan, Jumlah, Satuan,
+                      Total. Anda dapat mengunduh template di bawah ini.
                     </p>
                   </div>
                 </div>
@@ -189,7 +189,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Supplier</th>
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Bahan Baku</th>
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Jumlah</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Harga Satuan</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Satuan</th>
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Total</th>
                       </tr>
                     </thead>
@@ -206,15 +206,10 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                             {purchase.items[0]?.nama || '-'}
                           </td>
                           <td className="px-4 py-2 border-b">
-                            {purchase.items[0]?.kuantitas || 0} {purchase.items[0]?.satuan || ''}
+                            {purchase.items[0]?.kuantitas || 0}
                           </td>
                           <td className="px-4 py-2 border-b">
-                            {new Intl.NumberFormat('id-ID', {
-                              style: 'currency',
-                              currency: 'IDR',
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0,
-                            }).format(purchase.items[0]?.hargaSatuan || 0)}
+                            {purchase.items[0]?.satuan || ''}
                           </td>
                           <td className="px-4 py-2 border-b">
                             {new Intl.NumberFormat('id-ID', {

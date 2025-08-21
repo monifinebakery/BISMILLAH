@@ -1,8 +1,7 @@
 // 🎯 Enhanced FollowUpTemplateManager dengan FollowUpTemplateContext Integration
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Edit, Trash2, Send, Eye, X, Copy, Info } from 'lucide-react';
+import { MessageSquare, Edit, Send, Eye, X, Copy, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -48,7 +47,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   onSendWhatsApp
 }) => {
   // ✅ INTEGRATED: Use FollowUpTemplateContext
-  const { templates: contextTemplates, getTemplate, saveTemplate, isLoading } = useFollowUpTemplate();
+  const { templates: contextTemplates, saveTemplate } = useFollowUpTemplate();
   const { processTemplate } = useProcessTemplate();
 
   // Convert context templates to Template array format
@@ -65,6 +64,18 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
     setTemplates(templateArray);
   }, [contextTemplates]);
 
+  // Pilih template sesuai status pesanan saat dialog dibuka
+  useEffect(() => {
+    if (order) {
+      const t = templates.find(tmp => tmp.id === order.status);
+      if (t) {
+        setSelectedTemplate(t);
+      }
+    } else if (!selectedTemplate && templates.length > 0) {
+      setSelectedTemplate(templates[0]);
+    }
+  }, [order, templates]);
+
   // Helper function to get display name for status
   const getStatusDisplayName = (status: string): string => {
     const statusNames: Record<string, string> = {
@@ -77,11 +88,10 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
     return statusNames[status] || status;
   };
 
-  // Form state untuk template baru/edit
-  const [isCreating, setIsCreating] = useState(false);
+  // Form state untuk edit template
+  const [isEditing, setIsEditing] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [templateForm, setTemplateForm] = useState({
-    name: '',
     message: ''
   });
 
@@ -130,58 +140,36 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
     }
   }, [selectedTemplate, order]);
 
-  // Handle template form
-  const handleCreateTemplate = () => {
-    setIsCreating(true);
-    setEditingTemplate(null);
-    setTemplateForm({ name: '', message: '' });
-  };
-
   const handleEditTemplate = (template: Template) => {
     setEditingTemplate(template);
-    setIsCreating(true);
+    setIsEditing(true);
     setTemplateForm({
-      name: template.name,
       message: template.message
     });
   };
 
-  const handleSaveTemplate = () => {
-    if (!templateForm.name.trim() || !templateForm.message.trim()) {
-      toast.error('Nama dan pesan template harus diisi');
+  const handleSaveTemplate = async () => {
+    if (!editingTemplate) return;
+    if (!templateForm.message.trim()) {
+      toast.error('Pesan template harus diisi');
       return;
     }
 
-    if (editingTemplate) {
-      // Update existing template
-      setTemplates(prev => prev.map(t => 
-        t.id === editingTemplate.id 
-          ? { ...t, name: templateForm.name, message: templateForm.message }
-          : t
-      ));
-      toast.success('Template berhasil diperbarui');
+    const success = await saveTemplate(editingTemplate.id, templateForm.message);
+    if (success) {
+      setTemplates(prev =>
+        prev.map(t =>
+          t.id === editingTemplate.id ? { ...t, message: templateForm.message } : t
+        )
+      );
+      toast.success('Template berhasil disimpan');
     } else {
-      // Create new template
-      const newTemplate: Template = {
-        id: Date.now().toString(),
-        name: templateForm.name,
-        message: templateForm.message,
-        createdAt: new Date()
-      };
-      setTemplates(prev => [...prev, newTemplate]);
-      toast.success('Template berhasil dibuat');
+      toast.error('Gagal menyimpan template');
     }
 
-    setIsCreating(false);
+    setIsEditing(false);
     setEditingTemplate(null);
-    setTemplateForm({ name: '', message: '' });
-  };
-
-  const handleDeleteTemplate = (templateId: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus template ini?')) {
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
-      toast.success('Template berhasil dihapus');
-    }
+    setTemplateForm({ message: '' });
   };
 
   const handleSendMessage = () => {
@@ -243,37 +231,29 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
           {/* Templates Tab */}
           <TabsContent value="templates" className="space-y-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Pilih salah satu status di bawah lalu klik tombol edit untuk menyesuaikan pesan.
+                Gunakan tab "Variabel" untuk melihat daftar variabel yang bisa dipakai.
+              </AlertDescription>
+            </Alert>
+
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Template Pesan</h3>
-              <Button onClick={handleCreateTemplate} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Buat Template Baru
-              </Button>
             </div>
 
-            {/* Template Form */}
-            {isCreating && (
+            {isEditing && editingTemplate && (
               <div className="border rounded-lg p-4 bg-gray-50">
-                <h4 className="font-semibold mb-3">
-                  {editingTemplate ? 'Edit Template' : 'Template Baru'}
-                </h4>
+                <h4 className="font-semibold mb-3">Edit Template - {editingTemplate.name}</h4>
                 <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="templateName">Nama Template</Label>
-                    <Input
-                      id="templateName"
-                      value={templateForm.name}
-                      onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Masukkan nama template"
-                    />
-                  </div>
                   <div>
                     <Label htmlFor="templateMessage">Pesan Template</Label>
                     <Textarea
                       id="templateMessage"
                       value={templateForm.message}
-                      onChange={(e) => setTemplateForm(prev => ({ ...prev, message: e.target.value }))}
-                      placeholder="Masukkan pesan template... Gunakan variabel seperti {nama_pelanggan}, {daftar_items}, dll."
+                      onChange={(e) => setTemplateForm({ message: e.target.value })}
+                      placeholder="Masukkan pesan template..."
                       rows={6}
                       className="font-mono text-sm"
                     />
@@ -282,15 +262,13 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={handleSaveTemplate}>
-                      {editingTemplate ? 'Update' : 'Simpan'} Template
-                    </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button onClick={handleSaveTemplate}>Simpan Template</Button>
+                    <Button
+                      variant="outline"
                       onClick={() => {
-                        setIsCreating(false);
+                        setIsEditing(false);
                         setEditingTemplate(null);
-                        setTemplateForm({ name: '', message: '' });
+                        setTemplateForm({ message: '' });
                       }}
                     >
                       Batal
@@ -322,17 +300,6 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                         }}
                       >
                         <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteTemplate(template.id);
-                        }}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>

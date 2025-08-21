@@ -26,9 +26,15 @@ const BulkActions: React.FC<BulkActionsProps> = ({
           <Settings className="h-4 w-4" />
           Edit Bulk
         </Button>
-        <Button onClick={onBulkDelete} variant="outline" size="sm" className="flex items-center gap-2 text-red-600 hover:text-red-700" disabled={isProcessing}>
+        <Button
+          onClick={onBulkDelete}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2 text-red-600 hover:text-red-700"
+          disabled={isProcessing}
+        >
           <AlertTriangle className="h-4 w-4" />
-          Hapus
+          Hapus Semua
         </Button>
         <Button onClick={onClearSelection} variant="ghost" size="sm" className="text-gray-600">
           Batal

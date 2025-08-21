@@ -75,6 +75,12 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🔄 BulkOperationsDialog handleSubmit called', { 
+      isEditMode, 
+      bulkEditData,
+      rawBulkEditData: JSON.stringify(bulkEditData)
+    });
+    
     if (isEditMode) {
       // Filter out empty values for bulk edit
       const cleanedData = Object.entries(bulkEditData).reduce((acc, [key, value]) => {
@@ -84,9 +90,17 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
         return acc;
       }, {} as BulkEditData);
 
+      console.log('📝 BulkOperationsDialog cleaned data:', {
+        original: bulkEditData,
+        cleaned: cleanedData,
+        cleanedKeys: Object.keys(cleanedData),
+        cleanedJSON: JSON.stringify(cleanedData)
+      });
+
       await onConfirm(cleanedData);
     } else {
       // For delete, no data needed
+      console.log('🗑️ BulkOperationsDialog calling delete');
       await onConfirm();
     }
   };

@@ -8,6 +8,7 @@ import {
   transformPurchaseForDB,
   transformPurchaseUpdateForDB
 } from '../utils/purchaseTransformers';
+import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 
 export class PurchaseApiService {
   /** Get all purchases */
@@ -59,6 +60,17 @@ export class PurchaseApiService {
         .single();
 
       if (error) throw new Error(error.message);
+
+      // Manual sync: apply to warehouse if created as completed
+      if (purchaseData.status === 'completed' && data?.id) {
+        await applyPurchaseToWarehouse({
+          ...purchaseData,
+          id: data.id,
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } as Purchase);
+      }
       return { success: true, error: null, purchaseId: data?.id };
     } catch (err: any) {
       logger.error('Error creating purchase:', err);
@@ -76,6 +88,21 @@ export class PurchaseApiService {
     userId: string
   ): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Fetch existing to know previous status/items
+      const { data: existingRow, error: fetchErr } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      if (fetchErr) throw new Error(fetchErr.message);
+      const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
+
+      // If existing was completed, reverse its effects first
+      if (existing && existing.status === 'completed') {
+        await reversePurchaseFromWarehouse(existing);
+      }
+
       const payload = transformPurchaseUpdateForDB(updatedData);
       const { error } = await supabase
         .from('purchases')
@@ -84,6 +111,20 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+
+      // Fetch updated row to apply new effects if still completed
+      const { data: updatedRow, error: fetchUpdatedErr } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      if (fetchUpdatedErr) throw new Error(fetchUpdatedErr.message);
+      const updated = updatedRow ? transformPurchaseFromDB(updatedRow) : null;
+
+      if (updated && updated.status === 'completed') {
+        await applyPurchaseToWarehouse(updated);
+      }
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error updating purchase:', err);
@@ -105,6 +146,16 @@ export class PurchaseApiService {
     newStatus: Purchase['status']
   ): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Fetch current
+      const { data: existingRow, error: fetchErr } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      if (fetchErr) throw new Error(fetchErr.message);
+      const prev = existingRow ? transformPurchaseFromDB(existingRow) : null;
+
       // Update status
       const { error } = await supabase
         .from('purchases')
@@ -113,6 +164,23 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+
+      // Manual apply/reverse after status change
+      if (prev && prev.status !== newStatus) {
+        if (newStatus === 'completed') {
+          // Fetch fresh row to reflect any concurrent changes
+          const { data: newRow } = await supabase
+            .from('purchases')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', userId)
+            .single();
+          const fresh = newRow ? transformPurchaseFromDB(newRow) : prev;
+          await applyPurchaseToWarehouse(fresh);
+        } else if (prev.status === 'completed') {
+          await reversePurchaseFromWarehouse(prev);
+        }
+      }
 
       return { success: true, error: null };
     } catch (err: any) {
@@ -133,6 +201,19 @@ export class PurchaseApiService {
   */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Fetch existing to reverse if needed
+      const { data: existingRow } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
+
+      if (existing && existing.status === 'completed') {
+        await reversePurchaseFromWarehouse(existing);
+      }
+
       const { error } = await supabase
         .from('purchases')
         .delete()

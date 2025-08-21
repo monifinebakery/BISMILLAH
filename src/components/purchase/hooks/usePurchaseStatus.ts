@@ -99,7 +99,7 @@ export const usePurchaseStatus = ({
       warnings.push('Purchase yang sudah dibatalkan sebaiknya tidak diubah statusnya');
     }
 
-    // Info kepada user: perubahan dari completed akan mengoreksi stok via trigger DB
+    // Info kepada user: perubahan dari completed akan mengoreksi stok via manual sync
     if (oldStatus === 'completed' && newStatus !== 'completed') {
       warnings.push('Mengubah status dari "Selesai" akan mengoreksi stok di gudang (manual sync).');
     }

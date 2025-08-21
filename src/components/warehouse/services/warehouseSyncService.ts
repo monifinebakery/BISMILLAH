@@ -168,7 +168,7 @@ export class WarehouseSyncService {
 
   /**
    * Manually recalculate WAC for all warehouse items
-   * This uses the database function we created in the trigger file
+   * This manually calculates warehouse consistency
    */
   async recalculateAllWAC(): Promise<SyncSummary> {
     const startTime = Date.now();

@@ -18,6 +18,7 @@ import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -233,8 +234,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               id: item.bahanBakuId,
               nama: item.nama,
               kategori: 'Lainnya',
-              // Jika purchase belum selesai, stok awal tetap 0 agar tidak double saat diselesaikan
-              stok: newRow.status === 'completed' ? item.kuantitas : 0,
+              // Manual sync: stok awal selalu 0. Akan dinaikkan saat status 'completed'.
+              stok: 0,
               minimum: 0,
               satuan: item.satuan || '-',
               harga: item.hargaSatuan || 0,
@@ -246,7 +247,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         logger.error('Gagal menambahkan bahan baku baru dari pembelian', e);
       }
 
-      // ✅ INVALIDATE WAREHOUSE: Trigger DB mungkin sudah update stok jika status=completed
+      // Terapkan ke gudang jika langsung selesai (manual sync, tanpa DB trigger)
+      if (newRow.status === 'completed') {
+        void applyPurchaseToWarehouse(newRow);
+      }
+
+      // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
 
       // Info
@@ -288,7 +294,22 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     onSuccess: (fresh, _vars, ctx) => {
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
-      // ✅ INVALIDATE WAREHOUSE: Trigger DB akan rekalkulasi stok/WAC jika diperlukan
+      // Manual sync saat edit pembelian yang sudah completed: reverse lama, apply baru
+      try {
+        const prev = ctx?.prev?.find((p) => p.id === ctx?.id);
+        if (prev && prev.status === 'completed') {
+          const itemsChanged = JSON.stringify(prev.items || []) !== JSON.stringify(fresh.items || []);
+          const totalChanged = Number(prev.totalNilai || 0) !== Number(fresh.totalNilai || 0);
+          if (itemsChanged || totalChanged) {
+            void reversePurchaseFromWarehouse(prev);
+            void applyPurchaseToWarehouse(fresh);
+          }
+        }
+      } catch (e) {
+        logger.warn('Gagal sinkron manual stok saat update purchase:', e);
+      }
+
+      // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
 
       toast.success('Pembelian diperbarui. (Stok akan disesuaikan otomatis bila diperlukan)');
@@ -316,7 +337,15 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.log('✅ Status mutation onSuccess with:', fresh);
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
-      // ✅ INVALIDATE WAREHOUSE: Apply/rollback WAC & stok terjadi di trigger DB
+      // Manual apply/reverse stok sesuai perubahan status
+      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      if (prevPurchase?.status !== 'completed' && fresh.status === 'completed') {
+        void applyPurchaseToWarehouse(fresh);
+      } else if (prevPurchase?.status === 'completed' && fresh.status !== 'completed') {
+        void reversePurchaseFromWarehouse(prevPurchase);
+      }
+
+      // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
 
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
@@ -373,10 +402,14 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { prev, id };
     },
     onSuccess: (_res, id, ctx) => {
-      // ✅ INVALIDATE WAREHOUSE: Trigger DB akan reversal stok/WAC jika pernah applied
-      invalidateWarehouseData();
-
+      // Lakukan reversal stok bila purchase yang dihapus sebelumnya completed
       const p = ctx?.prev?.find((x) => x.id === id);
+      if (p?.status === 'completed') {
+        void reversePurchaseFromWarehouse(p);
+      }
+
+      // ✅ INVALIDATE WAREHOUSE
+      invalidateWarehouseData();
       if (p) {
         const supplierName = getSupplierName(p.supplier);
         const totalValue = formatCurrency(p.totalNilai);

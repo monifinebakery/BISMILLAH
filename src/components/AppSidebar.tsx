@@ -144,16 +144,31 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r transition-all duration-300 ease-in-out">
       {/* Header */}
-      <SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-0">
-        <div className="flex items-center w-full">
-          <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
-            <TrendingUp className="h-6 w-6" />
-          </div>
-          <div className="ml-3 group-data-[collapsible=icon]:hidden">
-            <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
-          </div>
-        </div>
-      </SidebarHeader>
+<SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-0">
+  <div
+    className="
+      flex items-center w-full
+      group-data-[collapsible=icon]:w-auto
+      group-data-[collapsible=icon]:justify-center
+      group-data-[collapsible=icon]:mx-auto
+    "
+  >
+    <div
+      className="
+        w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg
+        flex items-center justify-center text-white flex-shrink-0
+        group-data-[collapsible=icon]:mx-auto
+      "
+    >
+      <TrendingUp className="h-6 w-6" />
+    </div>
+
+    <div className="ml-3 opacity-100 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
+      <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
+    </div>
+  </div>
+</SidebarHeader>
+
 
       {/* Content — hilangkan padding horizontal saat collapsed */}
       <SidebarContent className="flex flex-col flex-grow px-2 py-4 group-data-[collapsible=icon]:px-0">

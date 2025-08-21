@@ -4,6 +4,7 @@ import { logger } from '@/utils/logger';
 import { loadXLSX } from '@/components/warehouse/dialogs/import-utils';
 import { usePurchase } from '@/components/purchase/context/PurchaseContext';
 import { useSupplier } from '@/contexts/SupplierContext';
+import Papa from 'papaparse';
 
 // Define the import data structure
 export interface PurchaseImportData {
@@ -154,53 +155,17 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
         logger.info(`CSV delimiter detected: '${delimiter}'`);
         toast.info(`Menggunakan delimiter: '${delimiter}'`, { duration: 1000 });
 
-        const parseCSVLine = (line: string): string[] => {
-          const result: string[] = [];
-          let current = '';
-          let inQuotes = false;
-          let i = 0;
-
-          while (i < line.length) {
-            const char = line[i];
-
-            if (char === '"') {
-              if (inQuotes && line[i + 1] === '"') {
-                current += '"';
-                i += 2;
-                continue;
-              } else {
-                inQuotes = !inQuotes;
-                i++;
-                continue;
-              }
-            }
-
-            if (char === delimiter && !inQuotes) {
-              result.push(current.trim());
-              current = '';
-              i++;
-              continue;
-            }
-
-            current += char;
-            i++;
-          }
-
-          result.push(current.trim());
-          return result;
-        };
-
-        const headers = parseCSVLine(firstLine);
-        jsonData = lines.slice(1).map((line, index) => {
-          const values = parseCSVLine(line);
-          const row: any = { _rowIndex: index + 2 };
-          headers.forEach((h, i) => {
-            const mappedHeader = headerMap[h.toLowerCase().trim()] || h.toLowerCase().trim();
-            const value = values[i] || '';
-            row[mappedHeader] = value;
-          });
-          return row;
+        const parsed = Papa.parse(text, {
+          header: true,
+          skipEmptyLines: true,
+          delimiter,
+          quoteChar: '"'
         });
+
+        jsonData = parsed.data.map((row: any, index: number) => ({
+          ...row,
+          _rowIndex: index + 2
+        }));
       } else {
         toast.info('Memuat library Excel...', { duration: 1000 });
 

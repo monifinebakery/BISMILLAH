@@ -146,7 +146,7 @@ export interface PurchaseContextType {
   validatePrerequisites: () => boolean;
   getSupplierName: (id: string) => string;
 
-  // Status handling (pakai trigger DB untuk stok & WAC)
+  // Status handling (manual sync untuk stok & WAC)
   setStatus: (id: string, status: PurchaseStatus) => Promise<boolean>;
 
   // Bulk ops

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { useUserSettings, UserSettings } from '@/contexts/UserSettingsContext';
 import { toast } from 'sonner';
 import { 
   Settings as SettingsIcon, 
@@ -22,7 +22,6 @@ import {
   Loader2,
   BellRing
 } from 'lucide-react';
-import { UserSettings } from '@/contexts/UserSettingsContext';
 
 // ✅ UPDATED: Import from correct path
 import NotificationSettingsForm from '@/components/NotificationSettingsForm';

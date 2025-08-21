@@ -158,6 +158,23 @@ export function AppSidebar() {
     }
   };
 
+  // Kelas dasar agar semua tombol menu memiliki layout yang konsisten
+  const baseMenuButtonClass =
+    "w-full justify-start px-3 py-2 gap-3 transition-all duration-200 relative group " +
+    "group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 " +
+    "group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center " +
+    "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02] " +
+    "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98] " +
+    "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600";
+
+  // Style warna dasar untuk seluruh tombol menu
+  const baseMenuButtonStyle = {
+    "--hover-bg": "#fed7aa",
+    "--hover-text": "#ea580c",
+    "--active-bg": "#fdba74",
+    "--active-text": "#c2410c",
+  } as React.CSSProperties;
+
   const handleExportAllData = (format: 'xlsx' | 'csv' = 'xlsx') => {
     // Check if assets are still loading
     if (assetsLoading) {
@@ -191,23 +208,14 @@ export function AppSidebar() {
   // ✅ Enhanced menu item rendering with Update Badge support and tooltips
   const renderMenuItem = (item, isActive) => {
     const isUpdatesMenu = item.url === "/updates";
-    
+
     return (
       <SidebarMenuButton
         onClick={() => navigate(item.url)}
         isActive={isActive}
-        style={{
-          '--hover-bg': '#fed7aa', // orange-200
-          '--hover-text': '#ea580c', // orange-600
-          '--active-bg': '#fdba74', // orange-300
-          '--active-text': '#c2410c', // orange-700
-        }}
+        style={baseMenuButtonStyle}
         className={cn(
-          "w-full justify-start px-3 py-2 gap-3 transition-all duration-200 relative group group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center",
-
-          "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
-          "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
-          "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
+          baseMenuButtonClass,
           isActive && "!bg-orange-100 !text-orange-600 !border-orange-200"
         )}
       >
@@ -231,19 +239,8 @@ export function AppSidebar() {
   const renderActionButton = (onClick, IconComponent: React.ElementType, text: string, className = "") => (
     <SidebarMenuButton
       onClick={onClick}
-      style={{
-        '--hover-bg': '#fed7aa', // orange-200
-        '--hover-text': '#ea580c', // orange-600
-        '--active-bg': '#fdba74', // orange-300
-        '--active-text': '#c2410c', // orange-700
-      }}
-      className={cn(
-        "w-full justify-start px-3 py-2 gap-3 transition-all duration-200 relative group group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center",
-        "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02]",
-        "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98]",
-        "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600",
-        className
-      )}
+      style={baseMenuButtonStyle}
+      className={cn(baseMenuButtonClass, className)}
     >
       <IconComponent className="h-5 w-5 flex-shrink-0" />
       <span className="group-data-[collapsible=icon]:hidden">{text}</span>
@@ -335,8 +332,8 @@ export function AppSidebar() {
             </SidebarMenuItem>
           ))}
 
-          {/* Logout */}
-          <SidebarMenuItem className="transition-all duration-200 ease-in-out mt-2">
+      {/* Logout */}
+          <SidebarMenuItem className="transition-all duration-200 ease-in-out">
             {renderActionButton(
               () => setShowLogoutConfirm(true),
               LogOut,

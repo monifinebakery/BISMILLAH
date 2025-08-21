@@ -14,7 +14,7 @@ interface RawRow {
 /**
  * Parse CSV file menjadi array pembelian.
  * Format kolom yang didukung:
- * supplier,tanggal,nama,kuantitas,satuan,harga
+ * supplier,tanggal,nama,kuantitas,satuan,harga(total)
  */
 export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> {
   const text = await file.text();
@@ -74,8 +74,8 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
       nama: r.nama,
       kuantitas: r.kuantitas,
       satuan: r.satuan,
-      hargaSatuan: r.harga,
-      subtotal: r.kuantitas * r.harga,
+      hargaSatuan: r.kuantitas ? r.harga / r.kuantitas : 0,
+      subtotal: r.harga,
     };
     purchase.items.push(item);
     purchase.totalNilai += item.subtotal;

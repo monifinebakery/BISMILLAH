@@ -20,7 +20,7 @@ import {
   TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell,
   BarChart3
 } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
 import {
@@ -57,7 +57,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { state, open, setOpen } = useSidebar();
+  const { state } = useSidebar();
 
   const { user } = useAuth();
   const { settings } = useUserSettings();
@@ -144,9 +144,9 @@ export function AppSidebar() {
     }
   };
 
-  // === CENTERED base button style ===
+  // === LEFT-aligned buttons (expanded), centered only when icon-collapsed ===
   const baseMenuButtonClass =
-    "w-full justify-center text-center px-3 py-2 gap-3 transition-all duration-200 relative group " +
+    "w-full justify-start text-left px-3 py-2 gap-3 transition-all duration-200 relative group " +
     "group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 " +
     "group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center " +
     "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02] " +
@@ -241,9 +241,9 @@ export function AppSidebar() {
         "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left-0"
       )}
     >
-      {/* Header ditengah */}
+      {/* Header */}
       <SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-2">
-        <div className="flex items-center justify-center w-full">
+        <div className="flex items-center w-full">
           <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
             <TrendingUp className="h-6 w-6" />
           </div>
@@ -253,10 +253,10 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Content ditengah */}
+      {/* Content (no items-center) */}
       <SidebarContent
         className={cn(
-          "flex flex-col items-center flex-grow px-2 py-4",
+          "flex flex-col flex-grow px-2 py-4",
           "group-data-[collapsible=icon]:px-2"
         )}
       >
@@ -268,12 +268,14 @@ export function AppSidebar() {
               `delay-[${groupIndex * 50}ms]`
             )}
           >
-            <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3 text-center transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
+            {/* label tetap sejajar dengan item via px-3 */}
+            <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
               {group.label}
             </SidebarGroupLabel>
 
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1 flex flex-col items-center w-full">
+              {/* padding kiri–kanan seragam */}
+              <SidebarMenu className="space-y-1 flex flex-col w-full px-3">
                 {group.items.map((item, itemIndex) => (
                   <SidebarMenuItem 
                     key={item.title}
@@ -291,9 +293,9 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      {/* Footer ditengah */}
+      {/* Footer */}
       <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200 group-data-[collapsible=icon]:px-2">
-        <SidebarMenu className="space-y-1 flex flex-col items-center w-full">
+        <SidebarMenu className="space-y-1 flex flex-col w-full px-3">
           <SidebarMenuItem className="transition-all duration-200 ease-in-out w-full">
             {renderActionButton(
               () => handleExportAllData('xlsx'),

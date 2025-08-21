@@ -44,16 +44,21 @@ export const downloadInvoiceImage = async (
   });
 
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = width * scale;
+  canvas.height = height * scale;
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     throw new Error('Gagal membuat konteks canvas');
   }
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, 0, 0);
 
   const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
-  const dataUrl = canvas.toDataURL(mime);
+  const quality = format === 'jpg' ? 0.95 : undefined;
+  const dataUrl = canvas.toDataURL(mime, quality);
 
   const link = document.createElement('a');
   link.href = dataUrl;

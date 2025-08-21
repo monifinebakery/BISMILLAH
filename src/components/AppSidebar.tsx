@@ -145,11 +145,11 @@ export function AppSidebar() {
 
   // Expanded: rata kiri. Collapsed: center via data-collapsible util
   const baseMenuButtonClass =
-    "w-full justify-start text-left px-3 py-2 gap-3 transition-all duration-200 relative group " +
-    "group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 " +
-    "group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center " +
-    "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02] " +
-    "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98] " +
+    "w-full justify-start text-left px-3 py-2 gap-3 transition-all duration-200 relative group "
+    "group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 "
+    "group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center "
+    "[&:hover]:!bg-orange-50 [&:hover]:!text-orange-600 hover:scale-[1.02] "
+    "[&:active]:!bg-orange-200 [&:active]:!text-orange-700 active:scale-[0.98] "
     "[&:focus]:!bg-orange-100 [&:focus]:!text-orange-600";
 
   const baseMenuButtonStyle = {

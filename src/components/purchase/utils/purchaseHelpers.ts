@@ -263,6 +263,10 @@ export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
     errors.push('Minimal satu item harus ditambahkan');
   }
 
+  if (purchase.totalNilai === undefined || purchase.totalNilai <= 0) {
+    errors.push('Total nilai harus lebih dari 0');
+  }
+
   // Validate each item
   purchase.items?.forEach((item, index) => {
     if (!item.nama?.trim()) {
@@ -271,7 +275,7 @@ export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
     if (!item.kuantitas || item.kuantitas <= 0) {
       errors.push(`Item ${index + 1}: Kuantitas harus lebih dari 0`);
     }
-    if (item.hargaSatuan !== undefined && item.hargaSatuan < 0) {
+    if (!item.hargaSatuan || item.hargaSatuan < 0) {
       errors.push(`Item ${index + 1}: Harga satuan tidak valid`);
     }
     if (!item.satuan?.trim()) {

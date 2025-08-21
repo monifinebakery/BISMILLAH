@@ -310,7 +310,9 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
             tanggal: new Date(purchaseData.tanggal),
             items: purchaseData.items.map(item => ({
               ...item,
-              subtotal: item.kuantitas * item.hargaSatuan
+              subtotal: item.kuantitas * item.hargaSatuan,
+              // Tandai sebagai hasil import agar sinkron stok bisa dilewati saat perubahan status
+              keterangan: '[IMPORTED]'
             })),
             totalNilai: purchaseData.totalNilai,
             metodePerhitungan: 'AVERAGE' as const,

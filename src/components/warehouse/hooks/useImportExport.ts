@@ -3,6 +3,8 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import type { BahanBakuImport } from '../types';
 import { headerMap, requiredFields, validate, loadXLSX } from '../dialogs/import-utils';
+// Sinkronkan kategori dengan analisis profit
+import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
 interface UseImportExportProps {
   onImport: (data: BahanBakuImport[]) => Promise<boolean>;
@@ -186,7 +188,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
       const template = [
         {
           nama: 'Tepung Terigu Premium',
-          kategori: 'Bahan Dasar',
+          kategori: FNB_COGS_CATEGORIES[0],
           supplier: 'PT Supplier Terpercaya',
           satuan: 'gram',
           expiry: '2024-12-31',
@@ -199,7 +201,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
         },
         {
           nama: 'Gula Pasir Halus',
-          kategori: 'Pemanis',
+          kategori: FNB_COGS_CATEGORIES[1],
           supplier: 'CV Gula Manis',
           satuan: 'gram',
           expiry: '2024-11-30',
@@ -212,7 +214,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
         },
         {
           nama: 'Minyak Goreng',
-          kategori: 'Minyak',
+          kategori: FNB_COGS_CATEGORIES[2],
           supplier: 'PT Minyak Sehat',
           satuan: 'ml',
           expiry: '2025-06-15',
@@ -261,7 +263,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
       const template = [
         {
           nama: 'Tepung Terigu Premium',
-          kategori: 'Bahan Dasar',
+          kategori: FNB_COGS_CATEGORIES[0],
           supplier: 'PT Supplier Terpercaya',
           satuan: 'gram',
           expiry: '2024-12-31',
@@ -274,7 +276,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
         },
         {
           nama: 'Gula Pasir Halus',
-          kategori: 'Pemanis',
+          kategori: FNB_COGS_CATEGORIES[1],
           supplier: 'CV Gula Manis',
           satuan: 'gram',
           expiry: '2024-11-30',
@@ -287,7 +289,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
         },
         {
           nama: 'Minyak Goreng',
-          kategori: 'Minyak',
+          kategori: FNB_COGS_CATEGORIES[2],
           supplier: 'PT Minyak Sehat',
           satuan: 'ml',
           expiry: '2025-06-15',

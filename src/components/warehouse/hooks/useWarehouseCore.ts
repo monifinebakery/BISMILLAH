@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useSupplier } from '@/contexts/SupplierContext';
+// Gunakan kategori yang sama dengan analisis profit
+import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
 // Types - Updated to use BahanBakuFrontend consistently
 import type { BahanBakuFrontend, FilterState, SortConfig } from '../types';
@@ -118,6 +120,10 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   const availableCategories = useMemo(() => {
     const categories = new Set(context.bahanBaku.map(item => item.kategori).filter(Boolean));
     const result = Array.from(categories);
+    if (result.length === 0) {
+      logger.debug(`[${hookId.current}] 📊 Using default FNB categories`);
+      return [...FNB_COGS_CATEGORIES];
+    }
     logger.debug(`[${hookId.current}] 📊 Available categories:`, result);
     return result;
   }, [context.bahanBaku]);

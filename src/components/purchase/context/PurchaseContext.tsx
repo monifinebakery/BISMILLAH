@@ -389,6 +389,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     onSuccess: (_res, id, ctx) => {
       // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
+      const p = ctx?.prev?.find((x) => x.id === id);
       if (p) {
         const supplierName = getSupplierName(p.supplier);
         const totalValue = formatCurrency(p.totalNilai);

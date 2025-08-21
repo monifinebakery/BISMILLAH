@@ -60,7 +60,7 @@ export interface PurchaseStats {
 }
 
 // ============ API / DB Shapes ============
-// Baris item untuk disimpan ke DB (snake_case). Ini yang dibaca trigger WAC.
+// Baris item untuk disimpan ke DB (snake_case). Ini yang dibaca manual sync.
 export interface PurchaseItemDB {
   bahan_baku_id: string;
   jumlah: number;

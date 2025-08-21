@@ -87,10 +87,10 @@ generateSyncReport()       // Full diagnostic report
 
 ## Implementation Steps
 
-### Step 1: Apply Database Changes
+### Step 1: Execute SQL Cleanup
 ```sql
--- Run the database trigger file
-\i database_fixes/warehouse_wac_trigger.sql
+-- Run the remove triggers script
+\i database_fixes/remove_warehouse_triggers.sql
 
 -- Ensure purchases index uses consistent name
 \i database_fixes/purchases_user_index.sql
@@ -176,8 +176,8 @@ The test suite covers:
 4. Verify WAC calculations on key items
 
 ### Troubleshooting Checklist
-1. **Incorrect WAC values**: Run `sync_all_warehouse_wac()` function
-2. **Missing stock updates**: Check purchase trigger is active
+1. **Incorrect WAC values**: Run manual `recalculateAllWAC()` via sync service
+2. **Missing stock updates**: Check manual sync is working properly
 3. **Validation errors**: Review purchase data for inconsistencies
 4. **Performance issues**: Check database indexes are in place
 
@@ -197,13 +197,13 @@ const result = await purchaseApi.setPurchaseStatus(purchaseId, userId, 'complete
 ## Migration Notes
 
 ### For Existing Data
-1. Run the database trigger SQL file
-2. Execute `sync_all_warehouse_wac()` for all users to recalculate WAC
+1. Run the remove triggers SQL file to clean up database triggers
+2. Execute manual `recalculateAllWAC()` for all users via sync service
 3. Review and fix any consistency issues identified
 4. Update frontend components to use new utilities
 
 ### For New Installations  
-1. Include trigger SQL in initial schema setup
+1. Include manual synchronization setup in initial schema
 2. Ensure proper validation is enabled
 3. Configure monitoring and alerting as needed
 

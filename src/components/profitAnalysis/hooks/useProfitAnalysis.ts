@@ -429,6 +429,17 @@ export const useProfitAnalysis = (
     });
   }, [dateRange?.from, dateRange?.to, loadProfitHistory, mode]);
 
+  // Sinkronkan currentPeriod dengan rentang tanggal agar ringkasan mengikuti detail
+  useEffect(() => {
+    if (!dateRange?.from || mode === 'daily') return;
+
+    const newPeriod =
+      mode === 'yearly'
+        ? String(dateRange.from.getFullYear())
+        : `${dateRange.from.getFullYear()}-${String(dateRange.from.getMonth() + 1).padStart(2, '0')}`;
+
+    setCurrentPeriodState(newPeriod);
+  }, [dateRange?.from, mode]);
 
   const refreshAnalysis = useCallback(async () => {
     logger.info('🔄 Refreshing profit analysis');

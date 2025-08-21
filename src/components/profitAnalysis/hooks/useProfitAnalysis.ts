@@ -406,6 +406,7 @@ export const useProfitAnalysis = (
 
   // Muat ulang riwayat profit saat rentang tanggal berubah
   useEffect(() => {
+
     // Abaikan pemanggilan saat mode harian karena data sudah dimuat oleh query utama
     if (!dateRange?.from || !dateRange?.to || mode === 'daily') return;
 
@@ -415,6 +416,7 @@ export const useProfitAnalysis = (
       period_type: mode === 'yearly' ? 'yearly' : 'monthly'
     });
   }, [dateRange?.from, dateRange?.to, loadProfitHistory, mode]);
+
 
   const refreshAnalysis = useCallback(async () => {
     logger.info('🔄 Refreshing profit analysis');

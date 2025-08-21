@@ -189,6 +189,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Supplier</th>
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Bahan Baku</th>
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Jumlah</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Satuan</th>
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Harga Satuan</th>
                         <th className="px-4 py-2 text-left font-medium text-gray-900 border-b">Total</th>
                       </tr>
@@ -206,7 +207,10 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                             {purchase.items[0]?.nama || '-'}
                           </td>
                           <td className="px-4 py-2 border-b">
-                            {purchase.items[0]?.kuantitas || 0} {purchase.items[0]?.satuan || ''}
+                            {purchase.items[0]?.kuantitas || 0}
+                          </td>
+                          <td className="px-4 py-2 border-b">
+                            {purchase.items[0]?.satuan || ''}
                           </td>
                           <td className="px-4 py-2 border-b">
                             {new Intl.NumberFormat('id-ID', {
@@ -228,7 +232,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                       ))}
                       {preview.valid.length > 10 && (
                         <tr>
-                          <td colSpan={6} className="px-4 py-2 text-center text-gray-500 text-sm">
+                          <td colSpan={7} className="px-4 py-2 text-center text-gray-500 text-sm">
                             Menampilkan 10 dari {preview.valid.length} data
                           </td>
                         </tr>

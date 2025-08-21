@@ -491,7 +491,8 @@ const SidebarMenu = React.forwardRef<
   <ul
     ref={ref}
     data-sidebar="menu"
-    className={cn("flex w-full min-w-0 flex-col gap-1 items-center", className)}
+    // ↓↓↓ rata kiri dengan gutter kiri–kanan sama
+    className={cn("flex w-full min-w-0 flex-col gap-1 items-stretch px-3", className)}
     {...props}
   />
 ))
@@ -564,7 +565,7 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(
           sidebarMenuButtonVariants({ variant, size }),
           className,
-          // Center + hide text saat collapsed
+          // Center + hide text hanya saat collapsed
           state === "collapsed" && "justify-center text-center [&_span]:hidden"
         )}
         {...props}

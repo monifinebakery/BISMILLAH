@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { logger } from '@/utils/logger';
 import type { BahanBakuFrontend } from '../types';
+// Gunakan kategori HPP yang sama dengan analisis profit
+import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
 interface AddEditDialogProps {
   isOpen: boolean;
@@ -59,10 +61,14 @@ const fetchDialogData = async (type: 'categories' | 'suppliers'): Promise<string
     const service = await warehouseApi.createService('crud', { userId: user?.id });
     const items = await service.fetchBahanBaku();
     const field = type === 'categories' ? 'kategori' : 'supplier';
-    return [...new Set(items.map(item => item[field]).filter(Boolean))].sort();
+    let values = [...new Set(items.map(item => item[field]).filter(Boolean))];
+    if (type === 'categories' && values.length === 0) {
+      values = [...FNB_COGS_CATEGORIES];
+    }
+    return values.sort();
   } catch (error) {
     logger.error(`Failed to fetch ${type}:`, error);
-    return [];
+    return type === 'categories' ? [...FNB_COGS_CATEGORIES] : [];
   }
 };
 

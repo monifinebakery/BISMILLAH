@@ -6,8 +6,7 @@
  * Dependencies reduced from 5 to 3
  */
 
-import { lazy } from 'react';
-import React from 'react'; // ⚠️ HARUS DITAMBAHKAN
+import React, { lazy } from 'react'; // ⚠️ HARUS DITAMBAHKAN
 
 // ✅ CORE CALCULATOR COMPONENTS: Always needed
 export { default as PromoCalculator } from './PromoCalculator';

@@ -21,8 +21,13 @@ import CostCalculationStep from './CostCalculationStep/index';
 // Utils and types
 import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
 import { recipeApi } from '../../services/recipeApi';
-import { RECIPE_CATEGORIES } from '../../types';
-import type { Recipe, NewRecipe, RecipeFormStep, BahanResep } from '../../types';
+import {
+  RECIPE_CATEGORIES,
+  type Recipe,
+  type NewRecipe,
+  type RecipeFormStep,
+  type BahanResep,
+} from '../../types';
 
 // Query Keys
 export const RECIPE_QUERY_KEYS = {

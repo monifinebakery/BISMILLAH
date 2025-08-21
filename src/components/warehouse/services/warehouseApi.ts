@@ -47,6 +47,7 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     minimum: frontendItem.minimum,
     satuan: frontendItem.satuan,
     harga_satuan: frontendItem.harga,
+    harga_rata_rata: frontendItem.hargaRataRata,
     supplier: frontendItem.supplier,
     tanggal_kadaluwarsa: frontendItem.expiry || null,
   };

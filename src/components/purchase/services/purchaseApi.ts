@@ -1,7 +1,7 @@
 // src/components/purchase/services/purchaseApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import type { Purchase } from '../types/purchase.types';
+import type { Purchase, PurchaseItem } from '../types/purchase.types';
 import {
   transformPurchasesFromDB,
   transformPurchaseFromDB,
@@ -88,6 +88,16 @@ export class PurchaseApiService {
     userId: string
   ): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Ambil data pembelian lama untuk bandingkan status & item
+      const { data: oldPurchase, error: fetchError } = await this.fetchPurchaseById(id, userId);
+      if (fetchError) throw new Error(fetchError);
+      if (!oldPurchase) throw new Error('Pembelian tidak ditemukan');
+
+      const previousStatus = oldPurchase.status;
+      const newStatus = updatedData.status ?? previousStatus;
+      const newItems = updatedData.items ?? oldPurchase.items;
+
+      // Update data di Supabase
       const payload = transformPurchaseUpdateForDB(updatedData);
       const { error } = await supabase
         .from('purchases')
@@ -96,6 +106,59 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+
+      // Sinkronisasi stok gudang sesuai perubahan status & item
+      const newPurchase = {
+        ...oldPurchase,
+        ...updatedData,
+        status: newStatus,
+        items: newItems
+      } as Purchase;
+
+      if (previousStatus === 'completed' && newStatus === 'completed') {
+        // Hitung selisih kuantitas per item
+        const oldMap = new Map(
+          oldPurchase.items.map((i) => [i.bahanBakuId, i])
+        );
+        const newMap = new Map(
+          newItems.map((i) => [i.bahanBakuId, i])
+        );
+        const allIds = new Set([
+          ...Array.from(oldMap.keys()),
+          ...Array.from(newMap.keys())
+        ]);
+
+        const toApply: PurchaseItem[] = [];
+        const toReverse: PurchaseItem[] = [];
+
+        allIds.forEach((id) => {
+          const oldItem = oldMap.get(id);
+          const newItem = newMap.get(id);
+          const oldQty = oldItem?.kuantitas ?? 0;
+          const newQty = newItem?.kuantitas ?? 0;
+          const diff = newQty - oldQty;
+
+          if (diff > 0 && newItem) {
+            toApply.push({ ...newItem, kuantitas: diff });
+          } else if (diff < 0 && oldItem) {
+            toReverse.push({ ...oldItem, kuantitas: Math.abs(diff) });
+          }
+        });
+
+        if (toReverse.length) {
+          await reversePurchaseFromWarehouse({ ...newPurchase, items: toReverse });
+        }
+        if (toApply.length) {
+          await applyPurchaseToWarehouse({ ...newPurchase, items: toApply });
+        }
+      } else if (previousStatus === 'completed' && newStatus !== 'completed') {
+        // Dulu completed, sekarang tidak -> kembalikan stok lama
+        await reversePurchaseFromWarehouse(oldPurchase);
+      } else if (previousStatus !== 'completed' && newStatus === 'completed') {
+        // Dulu bukan completed, sekarang completed -> terapkan stok baru
+        await applyPurchaseToWarehouse(newPurchase);
+      }
+
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error updating purchase:', err);

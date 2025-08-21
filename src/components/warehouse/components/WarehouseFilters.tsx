@@ -20,6 +20,8 @@ import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { FilterState } from '../types';
+// Kategori default sinkron dengan analisis profit
+import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
 interface WarehouseFiltersProps {
   searchTerm: string;
@@ -53,11 +55,12 @@ const fetchCategories = async (): Promise<string[]> => {
     });
     
     const items = await service.fetchBahanBaku();
-    const categories = [...new Set(items.map(item => item.kategori).filter(Boolean))];
+    let categories = [...new Set(items.map(item => item.kategori).filter(Boolean))];
+    if (categories.length === 0) categories = [...FNB_COGS_CATEGORIES];
     return categories.sort();
   } catch (error) {
     logger.error('Failed to fetch categories:', error);
-    return [];
+    return [...FNB_COGS_CATEGORIES];
   }
 };
 

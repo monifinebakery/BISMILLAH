@@ -47,17 +47,7 @@ const filterQueryKeys = {
 // ✅ TAMBAH: API functions for filter data
 const fetchCategories = async (): Promise<string[]> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const service = await warehouseApi.createService('crud', {
-      userId: user?.id,
-      enableDebugLogs: import.meta.env.DEV
-    });
-    
-    const items = await service.fetchBahanBaku();
-    let categories = [...new Set(items.map(item => item.kategori).filter(Boolean))];
-    if (categories.length === 0) categories = [...FNB_COGS_CATEGORIES];
-    return categories.sort();
+    return [...FNB_COGS_CATEGORIES];
   } catch (error) {
     logger.error('Failed to fetch categories:', error);
     return [...FNB_COGS_CATEGORIES];

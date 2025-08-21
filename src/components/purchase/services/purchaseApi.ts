@@ -107,59 +107,22 @@ export class PurchaseApiService {
 
       if (error) throw new Error(error.message);
 
-      // Sinkronisasi stok jika status lama/baru completed
-      if (previousStatus === 'completed' || newStatus === 'completed') {
-        // Status berubah dari non-completed -> completed
-        if (previousStatus !== 'completed' && newStatus === 'completed') {
-          await applyPurchaseToWarehouse({
-            ...oldPurchase,
-            ...updatedData,
-            status: 'completed',
-            items: newItems
-          } as Purchase);
-        }
-        // Status berubah dari completed -> non-completed
-        else if (previousStatus === 'completed' && newStatus !== 'completed') {
-          await reversePurchaseFromWarehouse(oldPurchase);
-        }
-        // Status tetap completed, hitung selisih item
-        else if (previousStatus === 'completed' && newStatus === 'completed') {
-          const oldMap = new Map<string, PurchaseItem>();
-          oldPurchase.items.forEach((it) => oldMap.set(it.bahanBakuId, it));
-          const newMap = new Map<string, PurchaseItem>();
-          newItems.forEach((it) => newMap.set(it.bahanBakuId, it));
+      // Sinkronisasi stok dengan membalik pembelian lama lalu menerapkan pembelian baru
+      const newPurchase = {
+        ...oldPurchase,
+        ...updatedData,
+        status: newStatus,
+        items: newItems
+      } as Purchase;
 
-          const allIds = new Set([...oldMap.keys(), ...newMap.keys()]);
-          const toApply: PurchaseItem[] = [];
-          const toReverse: PurchaseItem[] = [];
+      // Jika sebelumnya sudah completed, kembalikan stok terlebih dahulu
+      if (previousStatus === 'completed') {
+        await reversePurchaseFromWarehouse(oldPurchase);
+      }
 
-          allIds.forEach((itemId) => {
-            const oldItem = oldMap.get(itemId);
-            const newItem = newMap.get(itemId);
-            const diff = (newItem?.kuantitas ?? 0) - (oldItem?.kuantitas ?? 0);
-            if (diff > 0 && newItem) {
-              toApply.push({ ...newItem, kuantitas: diff });
-            } else if (diff < 0 && oldItem) {
-              toReverse.push({ ...oldItem, kuantitas: -diff });
-            }
-          });
-
-          if (toApply.length > 0) {
-            await applyPurchaseToWarehouse({
-              ...oldPurchase,
-              ...updatedData,
-              items: toApply,
-              status: 'completed'
-            } as Purchase);
-          }
-
-          if (toReverse.length > 0) {
-            await reversePurchaseFromWarehouse({
-              ...oldPurchase,
-              items: toReverse
-            } as Purchase);
-          }
-        }
+      // Terapkan pembelian baru jika status sekarang completed
+      if (newStatus === 'completed') {
+        await applyPurchaseToWarehouse(newPurchase);
       }
 
       return { success: true, error: null };

@@ -129,14 +129,25 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
 
-  // Pastikan setiap item memiliki ID bahan baku; jika belum, buat otomatis
+  // Pastikan setiap item memiliki ID bahan baku; cari jika sudah ada, jika tidak buat baru
   const ensureBahanBakuIds = useCallback(
     async (items: PurchaseItem[], supplierId: string): Promise<PurchaseItem[]> => {
       return Promise.all(
         items.map(async (item) => {
           if (item.bahanBakuId?.trim()) return item;
+
+          // Cari bahan baku yang sudah ada berdasarkan nama + supplier
+          const existing = bahanBaku.find(
+            (b) =>
+              b.nama.toLowerCase() === item.nama.toLowerCase() &&
+              b.supplier === supplierId
+          );
+          if (existing) {
+            return { ...item, bahanBakuId: existing.id };
+          }
+
           const newId = crypto.randomUUID();
-          await addBahanBaku({
+          const payload = {
             id: newId,
             nama: item.nama,
             kategori: 'Lainnya',
@@ -146,12 +157,57 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             satuan: item.satuan || '-',
             harga: item.hargaSatuan || 0,
             supplier: supplierId,
-          });
-          return { ...item, bahanBakuId: newId };
+          };
+
+          let finalId = newId;
+          const success = await addBahanBaku(payload);
+
+          if (!success) {
+            try {
+              // Jika gagal (misal duplikat 409), coba ambil ID yang sudah ada atau upsert
+              const { data: existingDb } = await supabase
+                .from('bahan_baku')
+                .select('id')
+                .eq('user_id', user?.id)
+                .eq('nama', item.nama)
+                .eq('supplier', supplierId)
+                .maybeSingle();
+
+              if (existingDb?.id) {
+                finalId = existingDb.id;
+              } else {
+                const { data: upserted, error } = await supabase
+                  .from('bahan_baku')
+                  .upsert(
+                    {
+                      id: newId,
+                      user_id: user?.id,
+                      nama: item.nama,
+                      kategori: 'Lainnya',
+                      stok: 0,
+                      minimum: 0,
+                      satuan: item.satuan || '-',
+                      harga_satuan: item.hargaSatuan || 0,
+                      supplier: supplierId,
+                    },
+                    { onConflict: 'user_id,nama,supplier' }
+                  )
+                  .select('id')
+                  .single();
+
+                if (error) throw error;
+                finalId = upserted?.id || newId;
+              }
+            } catch (err) {
+              logger.error('Gagal memastikan ID bahan baku:', err);
+            }
+          }
+
+          return { ...item, bahanBakuId: finalId };
         })
       );
     },
-    [addBahanBaku]
+    [addBahanBaku, bahanBaku, user?.id]
   );
 
   // ------------------- Query (list) -------------------

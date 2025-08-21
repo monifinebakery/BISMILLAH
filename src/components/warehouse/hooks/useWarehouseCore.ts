@@ -118,15 +118,9 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   
   // Available filter options
   const availableCategories = useMemo(() => {
-    const categories = new Set(context.bahanBaku.map(item => item.kategori).filter(Boolean));
-    const result = Array.from(categories);
-    if (result.length === 0) {
-      logger.debug(`[${hookId.current}] 📊 Using default FNB categories`);
-      return [...FNB_COGS_CATEGORIES];
-    }
-    logger.debug(`[${hookId.current}] 📊 Available categories:`, result);
-    return result;
-  }, [context.bahanBaku]);
+    logger.debug(`[${hookId.current}] 📊 Using FNB categories`);
+    return [...FNB_COGS_CATEGORIES];
+  }, []);
 
   const availableSuppliers = useMemo(() => {
     const suppliers = new Set(

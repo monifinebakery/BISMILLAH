@@ -78,7 +78,8 @@ export const addCategory = async (
     }
     
     // Check if category already exists
-    if (categoryExists(trimmedName, recipes)) {
+    const existingCategories = getAllAvailableCategories(recipes);
+    if (categoryExists(trimmedName, existingCategories)) {
       return { success: false, message: 'Kategori dengan nama ini sudah ada' };
     }
     

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { 
   Sidebar, 
   SidebarHeader, 
@@ -57,7 +56,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { state } = useSidebar();
+  useSidebar(); // ensure inside provider
 
   const { user } = useAuth();
   const { settings } = useUserSettings();
@@ -144,7 +143,7 @@ export function AppSidebar() {
     }
   };
 
-  // === LEFT-aligned buttons (expanded), centered only when icon-collapsed ===
+  // Expanded: rata kiri. Collapsed: center via data-collapsible util
   const baseMenuButtonClass =
     "w-full justify-start text-left px-3 py-2 gap-3 transition-all duration-200 relative group " +
     "group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 " +
@@ -253,13 +252,8 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Content (no items-center) */}
-      <SidebarContent
-        className={cn(
-          "flex flex-col flex-grow px-2 py-4",
-          "group-data-[collapsible=icon]:px-2"
-        )}
-      >
+      {/* Content (expanded: rata kiri; collapsed: px dihapus oleh primitives) */}
+      <SidebarContent className={cn("flex flex-col flex-grow px-2 py-4")}>
         {menuGroups.map((group, groupIndex) => (
           <SidebarGroup 
             key={group.label} 
@@ -268,14 +262,12 @@ export function AppSidebar() {
               `delay-[${groupIndex * 50}ms]`
             )}
           >
-            {/* label tetap sejajar dengan item via px-3 */}
             <SidebarGroupLabel className="text-sm font-semibold text-muted-foreground mb-1 px-3 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
               {group.label}
             </SidebarGroupLabel>
 
             <SidebarGroupContent>
-              {/* padding kiri–kanan seragam */}
-              <SidebarMenu className="space-y-1 flex flex-col w-full px-3">
+              <SidebarMenu className="space-y-1 flex flex-col w-full">
                 {group.items.map((item, itemIndex) => (
                   <SidebarMenuItem 
                     key={item.title}
@@ -294,8 +286,8 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200 group-data-[collapsible=icon]:px-2">
-        <SidebarMenu className="space-y-1 flex flex-col w-full px-3">
+      <SidebarFooter className="p-2 border-t mt-auto opacity-100 transition-all duration-300 delay-200">
+        <SidebarMenu className="space-y-1 flex flex-col w-full">
           <SidebarMenuItem className="transition-all duration-200 ease-in-out w-full">
             {renderActionButton(
               () => handleExportAllData('xlsx'),

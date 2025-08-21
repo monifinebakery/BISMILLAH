@@ -153,15 +153,11 @@ export function AppSidebar() {
       group-data-[collapsible=icon]:mx-auto
     "
   >
-    <div
-      className="
-        w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg
-        flex items-center justify-center text-white flex-shrink-0
-        group-data-[collapsible=icon]:mx-auto
-      "
-    >
-      <TrendingUp className="h-6 w-6" />
-    </div>
+    <img
+      src="https://i.imgur.com/6JYyON5.png"
+      alt="Logo Monifine"
+      className="w-10 h-10 flex-shrink-0 group-data-[collapsible=icon]:mx-auto"
+    />
 
     <div className="ml-3 opacity-100 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
       <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>

@@ -404,6 +404,17 @@ export const useProfitAnalysis = (
     }
   }, []); // No dependencies needed
 
+  // Muat ulang riwayat profit saat rentang tanggal berubah
+  useEffect(() => {
+    if (!dateRange?.from || !dateRange?.to) return;
+
+    loadProfitHistory({
+      from: dateRange.from,
+      to: dateRange.to,
+      period_type: mode === 'yearly' ? 'yearly' : 'monthly'
+    });
+  }, [dateRange, loadProfitHistory, mode]);
+
   const refreshAnalysis = useCallback(async () => {
     logger.info('🔄 Refreshing profit analysis');
     try {

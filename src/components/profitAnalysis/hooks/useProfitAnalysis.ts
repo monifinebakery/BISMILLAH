@@ -14,10 +14,13 @@ import {
   FNBCOGSBreakdown,
   FNBLabels
 } from '../types/profitAnalysis.types';
-import profitAnalysisApi, { calculateProfitAnalysisDaily } from '../services/profitAnalysisApi';
-
-// ✅ IMPORT WAC HELPERS (termasuk calculatePemakaianValue)
-import { fetchBahanMap, fetchPemakaianByPeriode, calculatePemakaianValue } from '../services/profitAnalysisApi';
+// ✅ IMPORT PROFIT ANALYSIS SERVICES & WAC HELPERS
+import profitAnalysisApi, {
+  calculateProfitAnalysisDaily,
+  fetchBahanMap,
+  fetchPemakaianByPeriode,
+  calculatePemakaianValue,
+} from '../services/profitAnalysisApi';
 import { calcHPP } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';

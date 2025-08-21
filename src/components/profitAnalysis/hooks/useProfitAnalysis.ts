@@ -112,11 +112,13 @@ export const useProfitAnalysis = (
   const [error, setError] = useState<string | null>(null);
 
   // ✅ MAIN QUERY: Current analysis (supports harian, bulanan, tahunan)
+  const currentAnalysisKey =
+    mode === 'daily' && dateRange
+      ? ['profit-analysis', 'daily', dateRange.from.toISOString(), dateRange.to.toISOString()]
+      : ['profit-analysis', 'realtime', mode, currentPeriod];
+
   const currentAnalysisQuery = useQuery({
-    queryKey:
-      mode === 'daily' && dateRange
-        ? ['profit-analysis', 'daily', dateRange.from.toISOString(), dateRange.to.toISOString()]
-        : ['profit-analysis', 'realtime', mode, currentPeriod],
+    queryKey: currentAnalysisKey,
     queryFn: async () => {
       try {
         if (mode === 'daily' && dateRange) {
@@ -160,6 +162,12 @@ export const useProfitAnalysis = (
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: enableRealTime,
     retry: 2,
+    onError: (err) => {
+      // Bersihkan data agar UI menampilkan keadaan kosong
+      setProfitHistory([]);
+      queryClient.setQueryData(currentAnalysisKey, null);
+      setError(err instanceof Error ? err.message : 'Gagal memuat analisis profit');
+    }
   });
 
   // ✅ WAC QUERIES: Bahan map and pemakaian data
@@ -381,7 +389,9 @@ export const useProfitAnalysis = (
     try {
       setError(null);
       logger.info('🔄 Loading profit history:', dateRange);
-      
+      // Bersihkan data sebelumnya agar tidak menampilkan data lama
+      setProfitHistory([]);
+
       const response = await profitAnalysisApi.getProfitHistory(
         dateRange || {
           from: new Date(new Date().getFullYear(), 0, 1),
@@ -389,16 +399,18 @@ export const useProfitAnalysis = (
           period_type: 'monthly'
         }
       );
-      
+
       if (response.error) {
         throw new Error(response.error);
       }
-      
+
       setProfitHistory(response.data || []);
       logger.success('✅ Profit history loaded:', (response.data || []).length, 'periods');
-      
+
     } catch (error) {
       logger.error('❌ Load profit history failed:', error);
+      // Pastikan state dikosongkan saat gagal
+      setProfitHistory([]);
       setError(error instanceof Error ? error.message : 'Gagal memuat riwayat profit');
       toast.error('Gagal memuat riwayat profit');
     }

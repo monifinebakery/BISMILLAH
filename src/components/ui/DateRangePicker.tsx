@@ -166,6 +166,9 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <DialogContent className="w-[95vw] max-w-md p-0">
           <DialogHeader className="px-4 py-3 border-b">
             <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
+            <DialogDescription>
+              Pilih rentang tanggal untuk memfilter data.
+            </DialogDescription>
           </DialogHeader>
           <PresetButtons />
           <div className="p-4">

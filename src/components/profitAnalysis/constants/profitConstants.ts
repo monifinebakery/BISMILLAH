@@ -2,6 +2,14 @@
 // ==============================================
 // Konstanta untuk analisis profit dalam Bahasa Indonesia
 
+// Helper untuk mendapatkan periode bulan berjalan tanpa masalah zona waktu
+const getCurrentMonth = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+};
+
 export const PROFIT_CONSTANTS = {
   // Tipe periode analisis
   PERIOD_TYPES: {
@@ -38,7 +46,7 @@ export const PROFIT_CONSTANTS = {
   
   // Periode default
   DEFAULT_PERIODS: {
-    CURRENT_MONTH: new Date().toISOString().slice(0, 7), // "2024-12"
+    CURRENT_MONTH: getCurrentMonth(), // "2024-12"
     MONTHS_TO_ANALYZE: 12, // Analisis 12 bulan terakhir
   },
   

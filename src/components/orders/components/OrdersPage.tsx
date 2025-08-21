@@ -10,7 +10,7 @@ import { useOrder } from '../context/OrderContext';
 import { useOrderUI } from '../hooks/useOrderUI';
 
 // ✅ CONSOLIDATED: Template integration (enhanced)
-import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
+import { useOrderFollowUp } from '../hooks/useOrderFollowUp';
 
 // ✅ ESSENTIAL TYPES: Only what's needed for this component
 import type { Order, NewOrder } from '../types';
@@ -102,9 +102,8 @@ const OrdersPage: React.FC = () => {
     refreshData // ✅ TAMBAHKAN: Untuk refresh manual jika diperlukan
   } = contextValue;
 
-  // ✅ TEMPLATE INTEGRATION: Enhanced with error handling
-  const { getTemplate } = useFollowUpTemplate();
-  const { processTemplate } = useProcessTemplate();
+  // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
+  const { getWhatsappUrl } = useOrderFollowUp();
 
   // ✅ UI STATE: Optimized with memoization
   const uiState = useOrderUI(orders, 10);
@@ -358,75 +357,40 @@ const OrdersPage: React.FC = () => {
   ]);
 
   // ✅ ENHANCED: WhatsApp integration with template
-  const handleFollowUp = useCallback((order: Order) => {
-    logger.component('OrdersPage', 'Follow up initiated:', { 
-      orderId: order.id, 
-      nomorPesanan: order.nomorPesanan,
-      hasPhone: !!order.teleponPelanggan,
-      status: order.status
-    });
-    
-    if (!order.teleponPelanggan) {
-      logger.warn('No phone number for follow up:', order.id);
-      toast.error('Tidak ada nomor WhatsApp untuk follow up');
-      return;
-    }
+  const handleFollowUp = useCallback(
+    (order: Order) => {
+      logger.component('OrdersPage', 'Follow up initiated:', {
+        orderId: order.id,
+        nomorPesanan: order.nomorPesanan,
+        hasPhone: !!order.teleponPelanggan,
+        status: order.status
+      });
 
-    try {
-      // Get template based on order status
-      const template = getTemplate(order.status);
-      
-      if (!template) {
-        logger.warn('No template found for status:', order.status);
-        toast.error('Template untuk status ini belum tersedia');
+      const whatsappUrl = getWhatsappUrl(order);
+
+      if (!whatsappUrl) {
+        logger.warn('Cannot create WhatsApp URL for follow up:', order.id);
+        toast.error('Template atau nomor WhatsApp tidak tersedia');
         return;
       }
 
-      logger.debug('Processing follow up template:', { 
-        orderStatus: order.status, 
-        templateId: template.id 
-      });
-
-      // Process template with order data
-      const processedMessage = processTemplate(template, order);
-      
-      // Format phone number
-      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
-      
-      // Create WhatsApp URL - Fix extra space in URL
-      const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
-      
-      // Open WhatsApp
       window.open(whatsappUrl, '_blank');
-      
+
       logger.success('Follow up WhatsApp opened:', {
         customer: order.namaPelanggan,
-        orderNumber: order.nomorPesanan,
-        templateUsed: template.name
+        orderNumber: order.nomorPesanan
       });
-      
+
       toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
-      
+
       // Set selected order for template manager
       setPageState(prev => ({
         ...prev,
         selectedOrderForTemplate: order
       }));
-      
-    } catch (error) {
-      logger.error('Error processing follow up template:', error);
-      toast.error('Gagal memproses template follow up');
-      
-      // Fallback to simple message
-      logger.info('Using fallback follow up message for order:', order.id);
-      const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
-      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
-      const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
-      window.open(whatsappUrl, '_blank');
-      
-      logger.success('Fallback follow up opened:', order.nomorPesanan);
-    }
-  }, [getTemplate, processTemplate]);
+    },
+    [getWhatsappUrl]
+  );
 
   // ✅ ENHANCED: View detail handler
   const handleViewDetail = useCallback((order: Order) => {

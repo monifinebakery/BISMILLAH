@@ -175,29 +175,88 @@ export class WarehouseSyncService {
     const results: SyncResult[] = [];
 
     try {
-      logger.info('Starting WAC recalculation for user:', this.userId);
+      logger.info('Starting manual WAC recalculation for user:', this.userId);
 
-      // Call the database function to recalculate WAC
-      const { data: dbResults, error } = await supabase
-        .rpc('sync_all_warehouse_wac', { p_user_id: this.userId });
+      // Get all warehouse items
+      const { data: warehouseItems, error: warehouseError } = await supabase
+        .from('bahan_baku')
+        .select('*')
+        .eq('user_id', this.userId);
 
-      if (error) {
-        throw error;
-      }
+      if (warehouseError) throw warehouseError;
 
-      // Process results from database function
-      if (dbResults && Array.isArray(dbResults)) {
-        dbResults.forEach((row: any) => {
-          results.push({
-            itemId: row.bahan_id,
-            itemName: row.message?.includes('to') ? 
-              row.message.split(' ')[0] : 'Unknown',
-            oldWac: row.old_wac,
-            newWac: row.new_wac,
-            status: 'success',
-            message: row.message
+      // Get all completed purchases
+      const { data: purchases, error: purchaseError } = await supabase
+        .from('purchases')
+        .select('items')
+        .eq('user_id', this.userId)
+        .eq('status', 'completed');
+
+      if (purchaseError) throw purchaseError;
+
+      // Process each warehouse item
+      for (const item of warehouseItems || []) {
+        try {
+          const oldWac = item.harga_rata_rata || 0;
+          
+          // Calculate new WAC from purchase history
+          let totalQuantity = 0;
+          let totalValue = 0;
+
+          purchases?.forEach(purchase => {
+            if (purchase.items && Array.isArray(purchase.items)) {
+              purchase.items.forEach((purchaseItem: any) => {
+                if (purchaseItem.bahan_baku_id === item.id) {
+                  const qty = Number(purchaseItem.jumlah || 0);
+                  const price = Number(purchaseItem.harga_per_satuan || 0);
+                  totalQuantity += qty;
+                  totalValue += qty * price;
+                }
+              });
+            }
           });
-        });
+
+          const newWac = totalQuantity > 0 ? totalValue / totalQuantity : item.harga_satuan;
+
+          // Update the item with new WAC if it changed
+          if (Math.abs(newWac - oldWac) > 0.01) {
+            const { error: updateError } = await supabase
+              .from('bahan_baku')
+              .update({
+                harga_rata_rata: newWac,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', item.id)
+              .eq('user_id', this.userId);
+
+            if (updateError) throw updateError;
+
+            results.push({
+              itemId: item.id,
+              itemName: item.nama,
+              oldWac,
+              newWac,
+              status: 'success',
+              message: `WAC updated from ${oldWac} to ${newWac}`
+            });
+          } else {
+            results.push({
+              itemId: item.id,
+              itemName: item.nama,
+              oldWac,
+              newWac,
+              status: 'skipped',
+              message: 'WAC unchanged'
+            });
+          }
+        } catch (itemError) {
+          results.push({
+            itemId: item.id,
+            itemName: item.nama,
+            status: 'error',
+            message: itemError instanceof Error ? itemError.message : 'Unknown error'
+          });
+        }
       }
 
       const duration = Date.now() - startTime;
@@ -210,7 +269,7 @@ export class WarehouseSyncService {
         duration
       };
 
-      logger.info('WAC recalculation completed', summary);
+      logger.info('Manual WAC recalculation completed', summary);
       return summary;
 
     } catch (error) {
@@ -251,7 +310,7 @@ export class WarehouseSyncService {
       // Get all completed purchases
       const { data: purchases, error: purchaseError } = await supabase
         .from('purchases')
-        .select('id, items, total_nilai, status, applied_at')
+        .select('id, items, total_nilai, status')
         .eq('user_id', this.userId)
         .eq('status', 'completed');
 

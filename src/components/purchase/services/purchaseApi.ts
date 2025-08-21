@@ -148,10 +148,9 @@ export class PurchaseApiService {
    * Set status (pending/completed/cancelled).
    * Manual warehouse synchronization when status changes to 'completed':
    * - menambah stok,
-  * - hitung WAC (harga_rata_rata),
-  * - tandai applied_at,
-  * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
-  */
+   * - hitung WAC (harga_rata_rata),
+   * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
+   */
   static async setPurchaseStatus(
     id: string,
     userId: string,
@@ -266,26 +265,42 @@ export class PurchaseApiService {
     }
   }
 
-  /** Stats via RPC (optional, kalau sudah ada function-nya) */
+  /** Get basic purchase statistics manually */
   static async getPurchaseStats(userId: string) {
     try {
-      const { data, error } = await supabase.rpc('get_purchase_stats', { p_user_id: userId });
+      const { data: purchases, error } = await supabase
+        .from('purchases')
+        .select('status, total_nilai')
+        .eq('user_id', userId);
+
       if (error) throw new Error(error.message);
-      return { data: data?.[0] || null, error: null as string | null };
+
+      const stats = {
+        total: purchases?.length || 0,
+        pending: purchases?.filter(p => p.status === 'pending').length || 0,
+        completed: purchases?.filter(p => p.status === 'completed').length || 0,
+        cancelled: purchases?.filter(p => p.status === 'cancelled').length || 0,
+        total_value: purchases?.reduce((sum, p) => sum + (p.total_nilai || 0), 0) || 0
+      };
+
+      return { data: stats, error: null as string | null };
     } catch (err: any) {
       logger.error('Error getting purchase stats:', err);
       return { data: null, error: err.message || 'Gagal memuat statistik pembelian' };
     }
   }
 
-  /** Date range via RPC (optional, kalau sudah ada function-nya) */
+  /** Get purchases by date range manually */
   static async getPurchasesByDateRange(userId: string, startDate: Date, endDate: Date) {
     try {
-      const { data, error } = await supabase.rpc('get_purchases_by_date_range', {
-        p_user_id: userId,
-        p_start_date: startDate.toISOString().slice(0, 10),
-        p_end_date: endDate.toISOString().slice(0, 10)
-      });
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('tanggal', startDate.toISOString().slice(0, 10))
+        .lte('tanggal', endDate.toISOString().slice(0, 10))
+        .order('tanggal', { ascending: false });
+
       if (error) throw new Error(error.message);
       return { data: transformPurchasesFromDB(data ?? []), error: null };
     } catch (err: any) {

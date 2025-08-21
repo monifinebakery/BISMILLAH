@@ -26,30 +26,16 @@ BEGIN
   END IF;
 END $$;
 
--- 3. Ensure purchases table has applied_at column for warehouse sync
-DO $$
-BEGIN
-  -- Add applied_at column to track when purchase was applied to stock
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'purchases' AND column_name = 'applied_at'
-  ) THEN
-    ALTER TABLE public.purchases ADD COLUMN applied_at TIMESTAMP WITH TIME ZONE;
-  END IF;
-END $$;
-
--- 4. Create additional indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_purchases_status_applied ON purchases(status, applied_at);
+-- 3. Create additional indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_purchases_user_status ON purchases(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_bahan_baku_harga_rata_rata ON bahan_baku(user_id, harga_rata_rata);
 
--- 5. Ensure the update trigger exists for bahan_baku
+-- 4. Ensure the update trigger exists for bahan_baku
 DROP TRIGGER IF EXISTS update_bahan_baku_updated_at ON bahan_baku;
 CREATE TRIGGER update_bahan_baku_updated_at 
   BEFORE UPDATE ON bahan_baku 
   FOR EACH ROW 
   EXECUTE FUNCTION update_updated_at_column();
 
--- 6. Comments for documentation
-COMMENT ON COLUMN bahan_baku.harga_rata_rata IS 'Weighted Average Cost for inventory valuation';
-COMMENT ON COLUMN purchases.applied_at IS 'Timestamp when purchase was applied to warehouse stock';
+-- 5. Comments for documentation
+COMMENT ON COLUMN bahan_baku.harga_rata_rata IS 'Weighted Average Cost for inventory valuation - manual sync';

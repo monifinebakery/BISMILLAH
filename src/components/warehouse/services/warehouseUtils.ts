@@ -3,6 +3,8 @@ import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } fro
 
 import { warehouseUtils } from '@/components/warehouse/services';
 import { logger } from '@/utils/logger';
+// Default kategori untuk sinkron dengan analisis profit
+import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
 /**
  * Get effective unit price using weighted average cost (WAC) if available
@@ -88,7 +90,10 @@ export const warehouseUtils = {
     });
   },
 
-  getUniqueCategories: (items: BahanBakuFrontend[]) => Array.from(new Set(items.map(i => i.kategori).filter(Boolean))).sort(),
+  getUniqueCategories: (items: BahanBakuFrontend[]) => {
+    const categories = Array.from(new Set(items.map(i => i.kategori).filter(Boolean)));
+    return categories.length > 0 ? categories.sort() : [...FNB_COGS_CATEGORIES];
+  },
   getUniqueSuppliers:  (items: BahanBakuFrontend[]) => Array.from(new Set(items.map(i => i.supplier).filter(Boolean))).sort(),
 
   getLowStockItems: (items: BahanBakuFrontend[]) => items.filter(i => i.stok <= i.minimum),

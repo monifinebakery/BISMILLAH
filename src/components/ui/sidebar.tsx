@@ -209,7 +209,7 @@ const Sidebar = React.forwardRef<
         data-variant={variant}
         data-side={side}
       >
-        {/* gap spacer */}
+        {/* width spacer */}
         <div
           className={cn(
             "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
@@ -491,8 +491,11 @@ const SidebarMenu = React.forwardRef<
   <ul
     ref={ref}
     data-sidebar="menu"
-    // ↓↓↓ rata kiri dengan gutter kiri–kanan sama
-    className={cn("flex w-full min-w-0 flex-col gap-1 items-stretch px-3", className)}
+    // Expanded: px-3; Collapsed(icon): px-0 agar ikon tidak mepet tepi
+    className={cn(
+      "flex w-full min-w-0 flex-col gap-1 items-stretch px-3 group-data-[collapsible=icon]:px-0",
+      className
+    )}
     {...props}
   />
 ))
@@ -512,7 +515,8 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>svg]:size-4 [&>svg]:shrink-0",
+  // mx-auto saat collapsed agar tombol (size-8) tepat center di rel (3rem)
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:mx-auto [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -565,7 +569,7 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(
           sidebarMenuButtonVariants({ variant, size }),
           className,
-          // Center + hide text hanya saat collapsed
+          // Center isi & sembunyikan teks HANYA saat collapsed
           state === "collapsed" && "justify-center text-center [&_span]:hidden"
         )}
         {...props}

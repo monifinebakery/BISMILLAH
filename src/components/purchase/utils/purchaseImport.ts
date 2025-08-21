@@ -8,13 +8,12 @@ interface RawRow {
   nama: string;
   kuantitas: number;
   satuan: string;
-  harga: number;
 }
 
 /**
  * Parse CSV file menjadi array pembelian.
  * Format kolom yang didukung:
- * supplier,tanggal,nama,kuantitas,satuan,harga
+ * supplier,tanggal,nama,kuantitas,satuan
  */
 export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> {
   const text = await file.text();
@@ -33,9 +32,8 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
   const idxNama = getIndex('nama');
   const idxQty = getIndex('kuantitas');
   const idxSatuan = getIndex('satuan');
-  const idxHarga = getIndex('harga');
 
-  if ([idxSupplier, idxTanggal, idxNama, idxQty, idxSatuan, idxHarga].some((i) => i === -1)) {
+  if ([idxSupplier, idxTanggal, idxNama, idxQty, idxSatuan].some((i) => i === -1)) {
     throw new Error('Kolom wajib tidak lengkap');
   }
 
@@ -47,7 +45,6 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
       nama: values[idxNama] || '',
       kuantitas: parseFloat(values[idxQty] || '0'),
       satuan: values[idxSatuan] || '',
-      harga: parseFloat(values[idxHarga] || '0'),
     };
   });
 
@@ -63,7 +60,7 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
         tanggal: new Date(r.tanggal),
         items: [],
         totalNilai: 0,
-        status: 'pending',
+        status: 'completed',
         metodePerhitungan: 'AVERAGE',
       };
       grouped.set(key, purchase);
@@ -74,11 +71,10 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
       nama: r.nama,
       kuantitas: r.kuantitas,
       satuan: r.satuan,
-      hargaSatuan: r.harga,
-      subtotal: r.kuantitas * r.harga,
+      hargaSatuan: 0,
+      subtotal: 0,
     };
     purchase.items.push(item);
-    purchase.totalNilai += item.subtotal;
   });
 
   return Array.from(grouped.values());

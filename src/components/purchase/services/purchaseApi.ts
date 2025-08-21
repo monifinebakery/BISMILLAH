@@ -11,6 +11,17 @@ import {
 import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 
 export class PurchaseApiService {
+  private static shouldSkipWarehouseSync(purchase: Purchase | null | undefined): boolean {
+    if (!purchase || !Array.isArray(purchase.items)) return false;
+    try {
+      // Skip jika semua item bertanda [IMPORTED] di keterangan
+      return purchase.items.length > 0 && purchase.items.every((it: any) =>
+        typeof it?.keterangan === 'string' && it.keterangan.toUpperCase().includes('IMPORTED')
+      );
+    } catch {
+      return false;
+    }
+  }
   /** Get all purchases */
   static async fetchPurchases(userId: string): Promise<{ data: Purchase[] | null; error: string | null }> {
     try {
@@ -62,7 +73,7 @@ export class PurchaseApiService {
       if (error) throw new Error(error.message);
 
       // Manual sync: apply to warehouse if created as completed
-      if (purchaseData.status === 'completed' && data?.id) {
+      if (purchaseData.status === 'completed' && data?.id && !this.shouldSkipWarehouseSync(purchaseData as Purchase)) {
         await applyPurchaseToWarehouse({
           ...purchaseData,
           id: data.id,
@@ -99,7 +110,7 @@ export class PurchaseApiService {
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
       // If existing was completed, reverse its effects first
-      if (existing && existing.status === 'completed') {
+      if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing)) {
         await reversePurchaseFromWarehouse(existing);
       }
 
@@ -122,7 +133,7 @@ export class PurchaseApiService {
       if (fetchUpdatedErr) throw new Error(fetchUpdatedErr.message);
       const updated = updatedRow ? transformPurchaseFromDB(updatedRow) : null;
 
-      if (updated && updated.status === 'completed') {
+      if (updated && updated.status === 'completed' && !this.shouldSkipWarehouseSync(updated)) {
         await applyPurchaseToWarehouse(updated);
       }
       return { success: true, error: null };
@@ -176,9 +187,13 @@ export class PurchaseApiService {
             .eq('user_id', userId)
             .single();
           const fresh = newRow ? transformPurchaseFromDB(newRow) : prev;
-          await applyPurchaseToWarehouse(fresh);
+          if (!this.shouldSkipWarehouseSync(fresh)) {
+            await applyPurchaseToWarehouse(fresh);
+          }
         } else if (prev.status === 'completed') {
-          await reversePurchaseFromWarehouse(prev);
+          if (!this.shouldSkipWarehouseSync(prev)) {
+            await reversePurchaseFromWarehouse(prev);
+          }
         }
       }
 
@@ -210,7 +225,7 @@ export class PurchaseApiService {
         .single();
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
-      if (existing && existing.status === 'completed') {
+      if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing)) {
         await reversePurchaseFromWarehouse(existing);
       }
 

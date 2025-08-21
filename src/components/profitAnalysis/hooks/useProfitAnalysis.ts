@@ -86,8 +86,8 @@ export interface UseProfitAnalysisReturn {
   lastCalculated: Date | null;
   
   // 🍽️ F&B specific utilities
-  bahanMap: Record<string, any>;
-  pemakaian: any[];
+  bahanMap: Record<string, unknown>;
+  pemakaian: unknown[];
   labels: FNBLabels;
 }
 
@@ -403,6 +403,18 @@ export const useProfitAnalysis = (
       toast.error('Gagal memuat riwayat profit');
     }
   }, []); // No dependencies needed
+
+  // Muat ulang riwayat profit saat rentang tanggal berubah
+  useEffect(() => {
+    // Abaikan pemanggilan saat mode harian karena data sudah dimuat oleh query utama
+    if (!dateRange?.from || !dateRange?.to || mode === 'daily') return;
+
+    loadProfitHistory({
+      from: dateRange.from,
+      to: dateRange.to,
+      period_type: mode === 'yearly' ? 'yearly' : 'monthly'
+    });
+  }, [dateRange?.from, dateRange?.to, loadProfitHistory, mode]);
 
   const refreshAnalysis = useCallback(async () => {
     logger.info('🔄 Refreshing profit analysis');

@@ -540,6 +540,13 @@ const WarehousePageContent: React.FC = () => {
               await warehouseData.refetch();
             }}
             lastUpdated={warehouseData.lastUpdated}
+            // ✅ ADDED: Pass selection state from core
+            selectedItems={core.selection?.selectedItems || []}
+            onToggleSelection={core.selection?.toggle}
+            onSelectPage={core.selection?.selectPage}
+            isSelected={core.selection?.isSelected}
+            isPageSelected={core.selection?.isPageSelected}
+            isPagePartiallySelected={core.selection?.isPagePartiallySelected}
           />
 
           {/* Pagination */}

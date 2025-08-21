@@ -29,6 +29,13 @@ interface WarehouseTableProps {
   emptyStateAction: () => void;
   onRefresh?: () => Promise<void>;
   lastUpdated?: Date;
+  // ✅ ADDED: Selection props from core
+  selectedItems?: string[];
+  onToggleSelection?: (id: string) => void;
+  onSelectPage?: () => void;
+  isSelected?: (id: string) => boolean;
+  isPageSelected?: boolean;
+  isPagePartiallySelected?: boolean;
 }
 
 const WarehouseTable: React.FC<WarehouseTableProps> = ({
@@ -43,17 +50,28 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   emptyStateAction,
   onRefresh,
   lastUpdated,
+  // ✅ ADDED: Selection props from core
+  selectedItems = [],
+  onToggleSelection,
+  onSelectPage,
+  isSelected,
+  isPageSelected = false,
+  isPagePartiallySelected = false,
 }) => {
-  const {
-    selectedItems,
-    toggleSelection,
-    selectAllCurrent,
-    isSelected,
-    allCurrentSelected,
-    someCurrentSelected,
-    isRefreshing,
-    handleRefresh,
-  } = useWarehouseSelection(items, isSelectionMode, onRefresh);
+  // ✅ FIXED: Use selection from props if available, otherwise fallback to internal hook
+  const fallbackSelection = useWarehouseSelection(items, isSelectionMode, onRefresh);
+  
+  // Use props if provided, otherwise fallback to internal state
+  const selectionState = {
+    selectedItems: selectedItems,
+    toggleSelection: onToggleSelection || fallbackSelection.toggleSelection,
+    selectAllCurrent: onSelectPage || fallbackSelection.selectAllCurrent,
+    isSelected: isSelected || fallbackSelection.isSelected,
+    allCurrentSelected: isPageSelected,
+    someCurrentSelected: isPagePartiallySelected,
+    isRefreshing: fallbackSelection.isRefreshing,
+    handleRefresh: fallbackSelection.handleRefresh,
+  };
 
   const lowStockItems = warehouseUtils.getLowStockItems(items);
 
@@ -100,12 +118,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           {onRefresh && (
             <Button
               variant="outline"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
+              onClick={selectionState.handleRefresh}
+              disabled={selectionState.isRefreshing}
               className="flex items-center gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Memuat...' : 'Refresh Data'}
+              <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
+              {selectionState.isRefreshing ? 'Memuat...' : 'Refresh Data'}
             </Button>
           )}
         </div>
@@ -155,11 +173,11 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
+            onClick={selectionState.handleRefresh}
+            disabled={selectionState.isRefreshing}
             className="flex items-center gap-1"
           >
-            <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         )}
       </div>
@@ -167,21 +185,21 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       {isSelectionMode && (
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4">
           <button
-            onClick={selectAllCurrent}
+            onClick={selectionState.selectAllCurrent}
             className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
-            aria-label={allCurrentSelected ? 'Deselect all' : 'Select all'}
+            aria-label={selectionState.allCurrentSelected ? 'Deselect all' : 'Select all'}
           >
-            {allCurrentSelected ? (
+            {selectionState.allCurrentSelected ? (
               <CheckSquare className="w-5 h-5 text-orange-500" />
-            ) : someCurrentSelected ? (
+            ) : selectionState.someCurrentSelected ? (
               <div className="w-3 h-3 bg-orange-500 rounded-sm" />
             ) : (
               <Square className="w-5 h-5 text-gray-400" />
             )}
           </button>
           <span className="text-sm font-medium text-gray-700">
-            {selectedItems.length > 0
-              ? `${selectedItems.length} item dipilih`
+            {selectionState.selectedItems.length > 0
+              ? `${selectionState.selectedItems.length} item dipilih`
               : 'Pilih semua item'}
           </span>
         </div>
@@ -193,8 +211,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           variant="mobile"
           item={item}
           isSelectionMode={isSelectionMode}
-          isSelected={isSelected(item.id)}
-          onToggleSelection={toggleSelection}
+          isSelected={selectionState.isSelected(item.id)}
+          onToggleSelection={selectionState.toggleSelection}
           searchTerm={searchTerm}
           onEdit={onEdit}
           onDelete={onDelete}
@@ -218,12 +236,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
+            onClick={selectionState.handleRefresh}
+            disabled={selectionState.isRefreshing}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Memuat...' : 'Refresh'}
+            <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
+            {selectionState.isRefreshing ? 'Memuat...' : 'Refresh'}
           </Button>
         )}
       </div>
@@ -234,13 +252,13 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             {isSelectionMode && (
               <th className="w-12 px-4 py-3 text-left">
                 <button
-                  onClick={selectAllCurrent}
+                  onClick={selectionState.selectAllCurrent}
                   className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
-                  aria-label={allCurrentSelected ? 'Deselect all' : 'Select all'}
+                  aria-label={selectionState.allCurrentSelected ? 'Deselect all' : 'Select all'}
                 >
-                  {allCurrentSelected ? (
+                  {selectionState.allCurrentSelected ? (
                     <CheckSquare className="w-4 h-4 text-orange-500" />
-                  ) : someCurrentSelected ? (
+                  ) : selectionState.someCurrentSelected ? (
                     <div className="w-3 h-3 bg-orange-500 rounded-sm" />
                   ) : (
                     <Square className="w-4 h-4 text-gray-400" />
@@ -294,8 +312,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
               variant="desktop"
               item={item}
               isSelectionMode={isSelectionMode}
-              isSelected={isSelected(item.id)}
-              onToggleSelection={toggleSelection}
+              isSelected={selectionState.isSelected(item.id)}
+              onToggleSelection={selectionState.toggleSelection}
               searchTerm={searchTerm}
               onEdit={onEdit}
               onDelete={onDelete}

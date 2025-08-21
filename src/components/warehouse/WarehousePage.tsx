@@ -465,7 +465,6 @@ const WarehousePageContent: React.FC = () => {
         itemCount={context.bahanBaku?.length || 0}
         selectedCount={core.selection?.selectedCount || 0}
         isConnected={context.isConnected}
-        onOpenDialog={core.dialogs?.open}
       />
 
       {/* Bulk Actions */}

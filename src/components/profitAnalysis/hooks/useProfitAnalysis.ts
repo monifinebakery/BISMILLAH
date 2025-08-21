@@ -24,6 +24,8 @@ import profitAnalysisApi, {
 import { calcHPP } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';
+// 🔧 Helper untuk periode bulan berjalan tanpa masalah zona waktu
+import { getCurrentPeriod } from '../utils/profitTransformers';
 
 // Query Keys
 export const PROFIT_QUERY_KEYS = {
@@ -96,7 +98,7 @@ export const useProfitAnalysis = (
 ): UseProfitAnalysisReturn => {
   const {
     autoCalculate = true,
-    defaultPeriod = new Date().toISOString().slice(0, 7), // Safe default
+    defaultPeriod = getCurrentPeriod(), // Safe default
     enableRealTime = true,
     // ✅ ADD WAC OPTION DEFAULT
     enableWAC = true,

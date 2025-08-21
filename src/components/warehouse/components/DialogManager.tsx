@@ -420,18 +420,9 @@ const DialogManager: React.FC<DialogManagerProps> = ({
                 dialogs.close('import');
                 dialogs.close('export');
               }}
-              type={dialogs.states.import ? 'import' : 'export'}
-              data={filters.filteredItems || []}
-              selectedData={Array.from(selection.selectedItems || []).map((id) => 
-                context.bahanBaku?.find((item: any) => item.id === String(id))
-              ).filter(Boolean)}
               onImport={async (items: any[]) => {
                 const result = await enhancedHandlers.handleImport(items);
                 return result.successCount > 0;
-              }}
-              onExport={(data: any[], format: string) => {
-                logger.info(`[${pageId}] 📤 Exporting ${data.length} items as ${format}`);
-                // tambahkan logic export sesuai kebutuhan
               }}
             />
           </Suspense>

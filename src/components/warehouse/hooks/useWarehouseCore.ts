@@ -203,8 +203,8 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
         bValue = Number(bValue) || 0;
       }
       
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      if ((aValue ?? '') < (bValue ?? '')) return sortConfig.direction === 'asc' ? -1 : 1;
+      if ((aValue ?? '') > (bValue ?? '')) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
 

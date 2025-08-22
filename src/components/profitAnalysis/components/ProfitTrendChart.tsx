@@ -95,10 +95,10 @@ const processTrendData = (
     const margins = safeCalculateMargins(revenue, cogsResult.value, opex);
     
     // Log warnings from COGS calculation
-    if (cogsResult.warnings.length > 0) {
-      cogsResult.warnings.forEach(warning => 
-        console.warn(`Period ${analysis.period}: ${warning}`)
-      );
+    if (import.meta.env.DEV && cogsResult.warnings.length > 0) {
+      cogsResult.warnings.forEach(warning => {
+        console.warn(`Period ${analysis.period}: ${warning}`);
+      });
     }
 
     // ✅ IMPROVED: Period-specific stock value calculation
@@ -127,7 +127,7 @@ const processTrendData = (
   
   // ✅ IMPROVED: Validate COGS consistency across periods
   const consistencyCheck = validateCOGSConsistency(cogsCalculations);
-  if (!consistencyCheck.isConsistent) {
+  if (import.meta.env.DEV && !consistencyCheck.isConsistent) {
     console.warn('COGS calculation inconsistency detected:', consistencyCheck.issues);
   }
   

@@ -47,7 +47,7 @@ export const PriceAdjustmentDebug: React.FC = () => {
       // Fetch current warehouse items
       const { data: items, error: itemsError } = await supabase
         .from('bahan_baku')
-        .select('id, nama, kategori, harga_satuan, harga_rata_rata, stok, supplier')
+        .select('id, nama, kategori, harga_satuan, stok, supplier')
         .eq('user_id', user.id)
         .order('nama');
 
@@ -57,7 +57,7 @@ export const PriceAdjustmentDebug: React.FC = () => {
 
       // Find items needing price adjustment
       const itemsNeedingAdjustment = items.filter(item => 
-        (item.harga_satuan || 0) === 0 || (item.harga_rata_rata || 0) === 0
+        (item.harga_satuan || 0) === 0
       );
 
       logger.info(`⚠️ ${itemsNeedingAdjustment.length} items need price adjustment`);
@@ -81,16 +81,14 @@ export const PriceAdjustmentDebug: React.FC = () => {
       // Process each item needing adjustment
       for (const item of itemsNeedingAdjustment) {
         const oldHarga = item.harga_satuan || 0;
-        const oldWac = item.harga_rata_rata || 0;
         
         let newHarga = oldHarga;
-        let newWac = oldWac;
         let method: 'purchase_history' | 'category_default' = 'category_default';
         let purchaseRecords = 0;
         let totalQuantity = 0;
         let totalValue = 0;
 
-        // Calculate WAC from purchase history
+        // Calculate average price from purchase history
         purchases.forEach(purchase => {
           if (purchase.items && Array.isArray(purchase.items)) {
             purchase.items.forEach((purchaseItem: any) => {
@@ -126,9 +124,8 @@ export const PriceAdjustmentDebug: React.FC = () => {
         });
 
         if (totalQuantity > 0 && totalValue > 0) {
-          const calculatedWac = totalValue / totalQuantity;
-          newWac = calculatedWac;
-          newHarga = oldHarga === 0 ? calculatedWac : oldHarga;
+          const calculatedAvg = totalValue / totalQuantity;
+          newHarga = oldHarga === 0 ? calculatedAvg : oldHarga;
           method = 'purchase_history';
         } else {
           // Category-based defaults
@@ -155,9 +152,9 @@ export const PriceAdjustmentDebug: React.FC = () => {
           nama: item.nama,
           kategori: item.kategori,
           oldHarga,
-          oldWac,
+          oldWac: 0, // No WAC column available
           newHarga,
-          newWac,
+          newWac: method === 'purchase_history' ? newHarga : 0,
           method,
           purchaseRecords
         });
@@ -195,10 +192,6 @@ export const PriceAdjustmentDebug: React.FC = () => {
         if (adjustment.oldHarga === 0) {
           updateData.harga_satuan = adjustment.newHarga;
         }
-        
-        if (adjustment.method === 'purchase_history' && adjustment.oldWac === 0) {
-          updateData.harga_rata_rata = adjustment.newWac;
-        }
 
         const { error: updateError } = await supabase
           .from('bahan_baku')
@@ -209,7 +202,7 @@ export const PriceAdjustmentDebug: React.FC = () => {
         if (updateError) {
           logger.error(`Failed to update ${adjustment.nama}:`, updateError);
         } else {
-          logger.info(`✅ Updated ${adjustment.nama}: Harga: Rp ${adjustment.newHarga.toLocaleString()}, WAC: Rp ${adjustment.newWac.toLocaleString()}`);
+          logger.info(`✅ Updated ${adjustment.nama}: Harga: Rp ${adjustment.newHarga.toLocaleString()}`);
         }
       }
 
@@ -223,21 +216,21 @@ export const PriceAdjustmentDebug: React.FC = () => {
   };
 
   return (
-    <Card className=\"w-full max-w-4xl mx-auto\">
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle className=\"flex items-center gap-2\">
-          <AlertTriangle className=\"w-5 h-5 text-orange-500\" />
+        <CardTitle className="flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 text-orange-500" />
           Price Adjustment Debug Tool
         </CardTitle>
       </CardHeader>
-      <CardContent className=\"space-y-4\">
-        <div className=\"flex gap-2\">
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
           <Button 
             onClick={runPriceAdjustmentTest}
             disabled={isLoading}
-            variant=\"outline\"
+            variant="outline"
           >
-            {isLoading ? <Loader2 className=\"w-4 h-4 animate-spin mr-2\" /> : <RefreshCw className=\"w-4 h-4 mr-2\" />}
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
             Analyze Prices
           </Button>
           
@@ -245,7 +238,7 @@ export const PriceAdjustmentDebug: React.FC = () => {
             <Button 
               onClick={triggerActualAdjustment}
               disabled={isLoading}
-              variant=\"default\"
+              variant="default"
             >
               Apply Adjustments
             </Button>
@@ -253,42 +246,42 @@ export const PriceAdjustmentDebug: React.FC = () => {
         </div>
 
         {error && (
-          <div className=\"p-4 bg-red-50 border border-red-200 rounded-lg\">
-            <p className=\"text-red-800 font-medium\">Error:</p>
-            <p className=\"text-red-700\">{error}</p>
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800 font-medium">Error:</p>
+            <p className="text-red-700">{error}</p>
           </div>
         )}
 
         {result && (
-          <div className=\"space-y-4\">
-            <div className=\"grid grid-cols-1 md:grid-cols-3 gap-4\">
-              <div className=\"p-4 bg-blue-50 border border-blue-200 rounded-lg\">
-                <div className=\"text-2xl font-bold text-blue-700\">{result.totalItems}</div>
-                <div className=\"text-blue-600\">Total Items</div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="text-2xl font-bold text-blue-700">{result.totalItems}</div>
+                <div className="text-blue-600">Total Items</div>
               </div>
-              <div className=\"p-4 bg-yellow-50 border border-yellow-200 rounded-lg\">
-                <div className=\"text-2xl font-bold text-yellow-700\">{result.itemsNeedingAdjustment}</div>
-                <div className=\"text-yellow-600\">Need Adjustment</div>
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-700">{result.itemsNeedingAdjustment}</div>
+                <div className="text-yellow-600">Need Adjustment</div>
               </div>
-              <div className=\"p-4 bg-green-50 border border-green-200 rounded-lg\">
-                <div className=\"text-2xl font-bold text-green-700\">{result.itemsWithPurchaseHistory}</div>
-                <div className=\"text-green-600\">With Purchase History</div>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="text-2xl font-bold text-green-700">{result.itemsWithPurchaseHistory}</div>
+                <div className="text-green-600">With Purchase History</div>
               </div>
             </div>
 
             {result.adjustmentResults.length > 0 && (
-              <div className=\"space-y-2\">
-                <h3 className=\"font-semibold text-lg\">Items Requiring Price Adjustment:</h3>
-                <div className=\"space-y-2 max-h-96 overflow-y-auto\">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">Items Requiring Price Adjustment:</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
                   {result.adjustmentResults.map((adjustment, index) => (
-                    <div key={index} className=\"p-3 border border-gray-200 rounded-lg\">
-                      <div className=\"flex items-center justify-between mb-2\">
-                        <span className=\"font-medium\">{adjustment.nama}</span>
+                    <div key={index} className="p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">{adjustment.nama}</span>
                         <Badge variant={adjustment.method === 'purchase_history' ? 'default' : 'secondary'}>
                           {adjustment.method === 'purchase_history' ? 'WAC' : 'Category Default'}
                         </Badge>
                       </div>
-                      <div className=\"text-sm text-gray-600\">
+                      <div className="text-sm text-gray-600">
                         <div>Category: {adjustment.kategori}</div>
                         <div>Old: Harga Rp {adjustment.oldHarga.toLocaleString()}, WAC Rp {adjustment.oldWac.toLocaleString()}</div>
                         <div>New: Harga Rp {adjustment.newHarga.toLocaleString()}, WAC Rp {adjustment.newWac.toLocaleString()}</div>
@@ -303,9 +296,9 @@ export const PriceAdjustmentDebug: React.FC = () => {
             )}
 
             {result.itemsNeedingAdjustment === 0 && (
-              <div className=\"p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2\">
-                <CheckCircle className=\"w-5 h-5 text-green-600\" />
-                <span className=\"text-green-700 font-medium\">All items have valid prices! 🎉</span>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span className="text-green-700 font-medium">All items have valid prices! 🎉</span>
               </div>
             )}
           </div>

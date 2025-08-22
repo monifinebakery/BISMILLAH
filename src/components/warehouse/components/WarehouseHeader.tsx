@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
+import { ZeroPriceFixDialog } from './ZeroPriceFixDialog';
 
 interface WarehouseHeaderProps {
   itemCount: number;
@@ -177,6 +178,11 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
           </div>
 
           <div className="hidden md:flex gap-3">
+            <ZeroPriceFixDialog onFixComplete={() => {
+              refetchStats();
+              onRefresh?.();
+            }} />
+            
             {onRefresh && (
               <Button 
                 onClick={handleRefresh}
@@ -199,6 +205,11 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
         </div>
 
         <div className="flex md:hidden flex-col gap-3 mt-6">
+          <ZeroPriceFixDialog onFixComplete={() => {
+            refetchStats();
+            onRefresh?.();
+          }} />
+          
           {onRefresh && (
             <Button
               onClick={handleRefresh}

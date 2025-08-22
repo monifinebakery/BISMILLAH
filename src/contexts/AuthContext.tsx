@@ -217,24 +217,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       currentPath: window.location.pathname
     });
     
-    if (window.location.pathname === '/auth') {
-      // Langsung redirect ke halaman utama tanpa menunggu state
-      // Gunakan window.location.replace untuk menggantikan halaman saat ini dalam history browser
-      logger.info('AuthContext: Forcing immediate redirect from /auth');
-      window.location.replace('/');
-      
-      // Sebagai fallback, gunakan reload jika masih di halaman auth
-      setTimeout(() => {
-        if (window.location.pathname === '/auth') {
-          logger.warn('AuthContext: Still on auth page, forcing reload');
-          window.location.href = '/';
-          // Force reload halaman untuk memastikan redirect terjadi
-          setTimeout(() => window.location.reload(), 200);
-        }
-      }, 500);
-    } else if (!isReady || !user) {
-      // Jika belum ready atau belum ada user, coba refresh session
-      logger.info('AuthContext: Refreshing user session before redirect');
+    // ✅ SIMPLIFIED: Only refresh user, let AuthGuard handle redirect
+    if (!user && isReady) {
       refreshUser();
     }
   };
@@ -359,9 +343,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
 
-        if (event === 'SIGNED_IN' && validUser && window.location.pathname === '/auth') {
-          window.location.href = '/';
-        }
+        // ✅ SIMPLIFIED: Let AuthGuard handle redirects
+        // AuthGuard will automatically redirect when user state changes
       }
     );
 

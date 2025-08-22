@@ -331,7 +331,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ SIMPLIFIED: Verify OTP - Let AuthGuard handle redirection completely
+  // ✅ SIMPLIFIED: Verify OTP - Use single reliable redirect method
   const handleVerifyOtp = async () => {
     if (!mountedRef.current) return;
     
@@ -354,35 +354,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       if (result === true) {
         logger.debug('EmailAuth: OTP verification successful');
         
-        // ✅ SIMPLIFIED: Set success state and let AuthGuard handle redirect
+        // ✅ Set success state
         setAuthState('success');
         toast.success('Login berhasil! Mengarahkan ke dashboard...');
         
-        // ✅ Call triggerRedirectCheck from AuthContext to ensure proper redirect
-        triggerRedirectCheck();
+        // ✅ SIMPLIFIED: Use only one reliable redirect method
+        logger.info('EmailAuth: Executing successful login redirect');
         
-        // ✅ Force immediate redirect to dashboard after successful OTP verification
-        // This ensures redirect happens even if AuthGuard fails
-        logger.info('EmailAuth: Forcing immediate redirect to dashboard');
-        
-        // Gunakan window.location.replace langsung untuk memastikan redirect terjadi
-        // window.location.replace menggantikan halaman saat ini dalam history browser
-        // sehingga pengguna tidak bisa kembali ke halaman login dengan tombol back
-        logger.info('EmailAuth: Using direct window.location.replace redirect');
-        window.location.replace('/');
-        
-        // Sebagai fallback, jika masih di halaman yang sama setelah beberapa waktu
-        // Gunakan timeout yang lebih pendek untuk mempercepat redirect
+        // Wait a moment for AuthContext to update user state, then redirect
         setTimeout(() => {
-          if (window.location.pathname === '/auth') {
-            logger.warn('EmailAuth: Still on auth page after redirect, forcing again with reload');
+          if (mountedRef.current) {
+            logger.info('EmailAuth: Redirecting to dashboard');
             window.location.href = '/';
-            // Force reload halaman untuk memastikan redirect terjadi
-            setTimeout(() => window.location.reload(), 200);
           }
-        }, 500);
+        }, 100);
         
-        // ✅ Only call onLoginSuccess callback if provided (for custom logic)
+        // ✅ Call onLoginSuccess callback if provided
         if (onLoginSuccess) {
           onLoginSuccess();
         }

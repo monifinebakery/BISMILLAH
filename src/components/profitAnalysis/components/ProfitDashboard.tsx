@@ -62,6 +62,9 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
   const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
 
+  // Determine analysis mode based on date range selection
+  const analysisMode = range ? 'daily' : 'monthly';
+
   const {
     currentAnalysis,
     profitHistory,
@@ -78,7 +81,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     autoCalculate: true,
     enableRealTime: true,
     enableWAC: true,
-    mode: 'monthly',
+    mode: analysisMode,
     dateRange: range,
   });
 
@@ -121,6 +124,11 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   // Wire date range changes
   const handleDateRangeChange = (r: { from: Date; to: Date } | undefined) => {
     setRange(r);
+    
+    // If date range is cleared, reset to current month period for monthly mode
+    if (!r) {
+      setCurrentPeriod(getCurrentPeriod());
+    }
   };
 
 
@@ -166,7 +174,10 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           previousAnalysis={previousAnalysis} 
           isLoading={loading} 
           effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
-          labels={labels}
+          labels={{
+            hppLabel: labels?.hppLabel || 'Modal Bahan',
+            hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
+          }}
         />
       )}
 
@@ -180,27 +191,36 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         </div>
 
         <IkhtisarTabContent
-          currentAnalysis={currentAnalysis}
+          currentAnalysis={currentAnalysis || undefined}
           profitHistory={profitHistory}
           isLoading={loading}
           selectedChartType={selectedChartType}
           effectiveCogs={profitMetrics?.cogs}
-          labels={labels}
+          labels={{
+            hppLabel: labels?.hppLabel || 'Modal Bahan',
+            hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
+          }}
         />
 
         <TrenTabContent
           profitHistory={profitHistory}
           isLoading={loading}
           effectiveCogs={profitMetrics?.cogs}
-          labels={labels}
+          labels={{
+            hppLabel: labels?.hppLabel || 'Modal Bahan',
+            hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
+          }}
         />
 
         <BreakdownTabContent
-          currentAnalysis={currentAnalysis}
+          currentAnalysis={currentAnalysis || undefined}
           isLoading={loading}
           effectiveCogs={profitMetrics?.cogs}
           hppBreakdown={profitMetrics?.hppBreakdown}
-          labels={labels}
+          labels={{
+            hppLabel: labels?.hppLabel || 'Modal Bahan',
+            hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
+          }}
         />
       </Tabs>
 

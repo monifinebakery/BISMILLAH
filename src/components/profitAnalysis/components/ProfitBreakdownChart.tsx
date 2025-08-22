@@ -268,7 +268,7 @@ const ProfitBreakdownChart = ({
   }
 
   // ✅ NO DATA STATE
-  if (!currentAnalysis || metrics.revenue === 0) {
+  if (!currentAnalysis || finalMetrics.revenue === 0) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -429,14 +429,14 @@ const ProfitBreakdownChart = ({
           <div className="text-center">
             <div className="text-xs sm:text-sm text-gray-600">Total Omset</div>
             <div className="text-sm sm:text-lg font-bold text-green-600">
-              {formatCurrency(metrics.revenue)}
+              {formatCurrency(finalMetrics.revenue)}
             </div>
           </div>
           
           <div className="text-center">
             <div className="text-xs sm:text-sm text-gray-600">Modal Bahan</div>
             <div className="text-sm sm:text-lg font-bold text-orange-600">
-              {formatCurrency(metrics.cogs)}
+              {formatCurrency(finalMetrics.cogs)}
             </div>
             <div className="text-xs text-gray-500 hidden sm:block">
               {summaryStats.cogsRatio.toFixed(1)}%
@@ -446,7 +446,7 @@ const ProfitBreakdownChart = ({
           <div className="text-center">
             <div className="text-xs sm:text-sm text-gray-600">Biaya Tetap</div>
             <div className="text-sm sm:text-lg font-bold text-red-600">
-              {formatCurrency(metrics.opex)}
+              {formatCurrency(finalMetrics.opex)}
             </div>
             <div className="text-xs text-gray-500 hidden sm:block">
               {summaryStats.opexRatio.toFixed(1)}%
@@ -456,9 +456,9 @@ const ProfitBreakdownChart = ({
           <div className="text-center">
             <div className="text-xs sm:text-sm text-gray-600">Untung Bersih</div>
             <div className={`text-sm sm:text-lg font-bold ${
-              metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600'
+              finalMetrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600'
             }`}>
-              {formatCurrency(metrics.netProfit)}
+              {formatCurrency(finalMetrics.netProfit)}
             </div>
             <div className="text-xs text-gray-500 hidden sm:block">
               {summaryStats.netMargin.toFixed(1)}%

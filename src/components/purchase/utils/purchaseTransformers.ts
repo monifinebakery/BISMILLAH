@@ -3,6 +3,12 @@ import { Purchase, PurchaseItem } from '../types/purchase.types';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
 
+/** Helper: calculate unit price from subtotal and quantity */
+const calculateUnitPriceFromSubtotal = (subtotal: number, quantity: number): number => {
+  if (quantity <= 0) return 0;
+  return subtotal / quantity;
+};
+
 /** Helper: format ke 'YYYY-MM-DD' untuk kolom DATE di DB */
 const toYMD = (d: Date | string): string => {
   const date = typeof d === 'string' ? new Date(d) : d;
@@ -24,7 +30,16 @@ const mapItemForDB = (i: any) => {
     0
   );
 
-  const hargaPerSatuan = Number(i.hargaSatuan ?? i.harga_satuan ?? i.price_unit ?? 0);
+  // Calculate unit price from subtotal and quantity if unit price is not available
+  let hargaPerSatuan = Number(i.hargaSatuan ?? i.harga_satuan ?? i.price_unit ?? 0);
+  
+  // If unit price is 0 or not available, try to calculate it from subtotal and quantity
+  if (hargaPerSatuan <= 0 && jumlah > 0) {
+    const subtotal = Number(i.subtotal ?? 0);
+    if (subtotal > 0) {
+      hargaPerSatuan = calculateUnitPriceFromSubtotal(subtotal, jumlah);
+    }
+  }
 
   const satuan = String(
     i.satuan ??

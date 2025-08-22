@@ -40,12 +40,22 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     const itemId =
       (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
-    const unitPrice = Number(
+    
+    // Calculate unit price from subtotal and quantity if unit price is not available
+    let unitPrice = Number(
       (item as any).hargaSatuan ??
       (item as any).harga_per_satuan ??
       (item as any).harga_satuan ??
       0
     );
+    
+    // If unit price is 0 or not available, try to calculate it from subtotal and quantity
+    if (unitPrice <= 0 && qty > 0) {
+      const subtotal = Number((item as any).subtotal ?? 0);
+      if (subtotal > 0) {
+        unitPrice = subtotal / qty;
+      }
+    }
 
     console.log('🔄 [WAREHOUSE SYNC] Processing item:', { itemId, qty, unitPrice, rawItem: item });
 
@@ -249,7 +259,18 @@ export class WarehouseSyncService {
               purchase.items.forEach((purchaseItem: any) => {
                 if (purchaseItem.bahan_baku_id === item.id) {
                   const qty = Number(purchaseItem.jumlah || 0);
-                  const price = Number(purchaseItem.harga_satuan || 0);
+                  
+                  // Calculate unit price from subtotal and quantity if unit price is not available
+                  let price = Number(purchaseItem.harga_satuan || 0);
+                  
+                  // If unit price is 0 or not available, try to calculate it from subtotal and quantity
+                  if (price <= 0 && qty > 0) {
+                    const subtotal = Number(purchaseItem.subtotal || 0);
+                    if (subtotal > 0) {
+                      price = subtotal / qty;
+                    }
+                  }
+                  
                   totalQuantity += qty;
                   totalValue += qty * price;
                 }
@@ -495,8 +516,20 @@ export class WarehouseSyncService {
           purchase.items.forEach((item: any) => {
             if (item.bahan_baku_id === itemId) {
               const qty = Number(item.jumlah || 0);
-              const price = Number(item.harga_per_satuan || 0);
+              
+              // Calculate unit price from subtotal and quantity if unit price is not available
+              let price = Number(item.harga_per_satuan || item.harga_satuan || 0);
+              
+              // If unit price is 0 or not available, try to calculate it from subtotal and quantity
+              if (price <= 0 && qty > 0) {
+                const subtotal = Number(item.subtotal || 0);
+                if (subtotal > 0) {
+                  price = subtotal / qty;
+                }
+              }
+              
               totalQuantity += qty;
+              totalValue += qty * price;
               totalValue += qty * price;
             }
           });

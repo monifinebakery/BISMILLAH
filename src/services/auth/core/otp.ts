@@ -60,7 +60,7 @@ export const sendEmailOtp = async (
 export const verifyEmailOtp = async (
   email: string, 
   token: string
-): Promise<boolean | 'expired' | 'rate_limited'> => {
+): Promise<boolean | 'expired' | 'rate_limited' | 'invalid'> => {
   try {
     if (!email || !token) {
       toast.error('Email dan kode OTP harus diisi');
@@ -107,7 +107,7 @@ export const verifyEmailOtp = async (
       
       if (errorMsg.includes('invalid')) {
         toast.error('Kode OTP tidak valid. Silakan periksa kembali.');
-        return false;
+        return 'invalid';
       }
       
       const errorMessage = getErrorMessage(error);
@@ -129,8 +129,28 @@ export const verifyEmailOtp = async (
       logger.debug('[OTP] Verification successful, AuthContext will detect session change');
       
       toast.success('Login berhasil!');
-      // Tambahkan delay kecil sebelum mengembalikan hasil untuk memastikan sesi disetel
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Tambahkan delay lebih lama sebelum mengembalikan hasil untuk memastikan sesi disetel
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Verifikasi sekali lagi bahwa session benar-benar ada
+      try {
+        const { data: { session: verifySession } } = await supabase.auth.getSession();
+        if (!verifySession) {
+          logger.warn('[OTP] Session verification failed after successful OTP');
+          // Coba refresh session
+          const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+          if (!refreshedSession) {
+            logger.error('[OTP] Failed to get session after refresh');
+          } else {
+            logger.success('[OTP] Session refreshed successfully');
+          }
+        } else {
+          logger.success('[OTP] Session verified successfully');
+        }
+      } catch (e) {
+        logger.error('[OTP] Error verifying session:', e);
+      }
+      
       return true;
     } else {
       logger.warn('OTP verified but no session created');

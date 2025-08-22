@@ -13,6 +13,9 @@ import {
   PURCHASE_STATUS_CONFIG
 } from '../types';
 
+// 🔧 IMPROVED: Import centralized date normalization utilities
+import { isDateInRange, normalizeDateRange, normalizeDateForDatabase } from '@/utils/dateNormalization';
+
 // 🔍 Search & Filter Helpers
 export const filterPurchases = (
   purchases: Purchase[],
@@ -46,18 +49,29 @@ export const filterPurchases = (
       return false;
     }
 
-    // Date range filter
+    // Date range filter with improved accuracy using centralized normalization
     if (filters.dateRangeFilter.start || filters.dateRangeFilter.end) {
-      const purchaseDate = new Date(purchase.tanggal).getTime();
-      
-      if (filters.dateRangeFilter.start) {
-        const startDate = new Date(filters.dateRangeFilter.start).getTime();
-        if (purchaseDate < startDate) return false;
-      }
-      
-      if (filters.dateRangeFilter.end) {
-        const endDate = new Date(filters.dateRangeFilter.end).getTime();
-        if (purchaseDate > endDate) return false;
+      if (filters.dateRangeFilter.start && filters.dateRangeFilter.end) {
+        // 🔧 IMPROVED: Use centralized date range checking with proper normalization
+        const startDate = new Date(filters.dateRangeFilter.start);
+        const endDate = new Date(filters.dateRangeFilter.end);
+        
+        if (!isDateInRange(purchase.tanggal, startDate, endDate)) {
+          return false;
+        }
+      } else {
+        // Single date bounds using centralized normalization
+        const purchaseDate = normalizeDateForDatabase(new Date(purchase.tanggal));
+        
+        if (filters.dateRangeFilter.start) {
+          const startDate = normalizeDateForDatabase(new Date(filters.dateRangeFilter.start));
+          if (purchaseDate < startDate) return false;
+        }
+        
+        if (filters.dateRangeFilter.end) {
+          const endDate = normalizeDateForDatabase(new Date(filters.dateRangeFilter.end));
+          if (purchaseDate > endDate) return false;
+        }
       }
     }
 

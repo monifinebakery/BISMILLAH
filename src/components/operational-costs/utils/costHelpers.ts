@@ -1,6 +1,8 @@
 // src/components/operational-costs/utils/costHelpers.ts
 
 import { OperationalCost, CostFilters } from '../types';
+// 🔧 IMPROVED: Import centralized date utilities for consistency
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 /**
  * Format currency to Indonesian Rupiah
@@ -255,18 +257,14 @@ export const getAllocationMethodDescription = (method: 'per_unit' | 'persentase'
 };
 
 /**
- * Format date to Indonesian locale
+ * Format date to Indonesian locale using centralized utility
  */
 export const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return formatDateForDisplay(dateString);
 };
 
 /**
- * Format relative time
+ * Format relative time using centralized utility for consistency
  */
 export const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
@@ -282,5 +280,6 @@ export const formatRelativeTime = (dateString: string): string => {
   const diffInWeeks = Math.floor(diffInDays / 7);
   if (diffInWeeks < 4) return `${diffInWeeks} minggu yang lalu`;
   
+  // Use centralized date formatting for fallback
   return formatDate(dateString);
 };

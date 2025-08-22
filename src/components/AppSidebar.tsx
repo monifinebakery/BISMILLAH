@@ -123,6 +123,7 @@ export function AppSidebar() {
     const isUpdatesMenu = item.url === "/updates";
     return (
       <SidebarMenuButton
+        tooltip={item.title}
         onClick={() => navigate(item.url)}
         isActive={isActive}
         style={baseMenuButtonStyle}
@@ -135,7 +136,12 @@ export function AppSidebar() {
   };
 
   const renderActionButton = (onClick, Icon: React.ElementType, text: string, className = "") => (
-    <SidebarMenuButton onClick={onClick} style={baseMenuButtonStyle} className={cn(baseMenuButtonClass, "flex items-center", className)}>
+    <SidebarMenuButton
+      tooltip={text}
+      onClick={onClick}
+      style={baseMenuButtonStyle}
+      className={cn(baseMenuButtonClass, "flex items-center", className)}
+    >
       <Icon className="h-5 w-5 flex-shrink-0" />
       <span className="group-data-[collapsible=icon]:hidden">{text}</span>
     </SidebarMenuButton>

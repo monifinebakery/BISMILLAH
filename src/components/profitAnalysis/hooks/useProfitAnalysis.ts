@@ -27,6 +27,7 @@ import { FNB_LABELS } from '../constants/profitConstants';
 // ✅ ADD: Import centralized utilities
 import { getEffectiveCogs, shouldUseWAC } from '@/utils/cogsCalculation';
 import { safeCalculateMargins, monitorDataQuality } from '@/utils/profitValidation';
+import { getCurrentPeriod } from '../utils/profitTransformers';
 
 
 // Query Keys

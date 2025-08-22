@@ -22,10 +22,6 @@ export interface BahanBaku {
   tanggal_kadaluwarsa?: string;
   created_at: string;
   updated_at: string;
-  jumlah_beli_kemasan?: number;        // ✅ VERIFIED: matches DB column
-  isi_per_kemasan?: number;            // ✅ VERIFIED: matches DB column
-  satuan_kemasan?: string;             // ✅ VERIFIED: matches DB column
-  harga_total_beli_kemasan?: number;   // ✅ VERIFIED: matches DB column
   harga_rata_rata?: number;            // ✅ TAMBAH: WAC field from DB
 }
 
@@ -45,11 +41,6 @@ export interface BahanBakuFrontend {
   expiry?: string;                     // maps to tanggal_kadaluwarsa
   createdAt: string;                   // maps to created_at
   updatedAt: string;                   // maps to updated_at
-  // Enhanced package fields
-  jumlahBeliKemasan?: number;          // maps to jumlah_beli_kemasan
-  isiPerKemasan?: number;              // maps to isi_per_kemasan ✅
-  satuanKemasan?: string;              // maps to satuan_kemasan
-  hargaTotalBeliKemasan?: number;      // maps to harga_total_beli_kemasan
 }
 
 // ✅ ENHANCED: Package calculation helper types
@@ -278,10 +269,6 @@ export interface DatabaseFieldMapping {
   expiry: 'tanggal_kadaluwarsa';
   createdAt: 'created_at';
   updatedAt: 'updated_at';
-  jumlahBeliKemasan: 'jumlah_beli_kemasan';
-  isiPerKemasan: 'isi_per_kemasan';              // ✅ VERIFIED
-  satuanKemasan: 'satuan_kemasan';
-  hargaTotalBeliKemasan: 'harga_total_beli_kemasan';
 }
 
 // ✅ ENHANCED: Package parsing types
@@ -325,10 +312,6 @@ export const DB_COLUMNS = {
   TANGGAL_KADALUWARSA: 'tanggal_kadaluwarsa',
   CREATED_AT: 'created_at',
   UPDATED_AT: 'updated_at',
-  JUMLAH_BELI_KEMASAN: 'jumlah_beli_kemasan',
-  ISI_PER_KEMASAN: 'isi_per_kemasan',           // ✅ VERIFIED
-  SATUAN_KEMASAN: 'satuan_kemasan',
-  HARGA_TOTAL_BELI_KEMASAN: 'harga_total_beli_kemasan',
 } as const;
 
 // ✅ TYPE GUARD: Runtime validation helpers
@@ -387,10 +370,6 @@ export const FIELD_MAPPINGS = {
     expiry: 'tanggal_kadaluwarsa',
     createdAt: 'created_at',
     updatedAt: 'updated_at',
-    jumlahBeliKemasan: 'jumlah_beli_kemasan',
-    isiPerKemasan: 'isi_per_kemasan',                    // ✅ VERIFIED
-    satuanKemasan: 'satuan_kemasan',
-    hargaTotalBeliKemasan: 'harga_total_beli_kemasan',
   },
   database: {
     user_id: 'userId',
@@ -399,9 +378,5 @@ export const FIELD_MAPPINGS = {
     tanggal_kadaluwarsa: 'expiry',
     created_at: 'createdAt',
     updated_at: 'updatedAt',
-    jumlah_beli_kemasan: 'jumlahBeliKemasan',
-    isi_per_kemasan: 'isiPerKemasan',                    // ✅ VERIFIED
-    satuan_kemasan: 'satuanKemasan',
-    harga_total_beli_kemasan: 'hargaTotalBeliKemasan',
   }
 } as const;

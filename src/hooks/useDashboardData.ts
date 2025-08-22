@@ -65,10 +65,12 @@ interface ProductSale {
   marginPercent?: number;
 }
 
-// ✅ Helper to convert date range to period for profit analysis
+// ✅ Helper to convert date range to period for profit analysis (timezone-safe)
 const dateRangeToPeriod = (dateRange: DateRange): string => {
   const fromDate = new Date(dateRange.from);
-  return fromDate.toISOString().slice(0, 7); // YYYY-MM format
+  const year = fromDate.getFullYear();
+  const month = String(fromDate.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
 };
 
 // 📊 Helper function to calculate previous period
@@ -84,9 +86,16 @@ const getPreviousPeriod = (dateRange: DateRange): DateRange => {
   const previousFrom = new Date(previousTo);
   previousFrom.setDate(previousFrom.getDate() - diffDays + 1);
 
+  const format = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   return {
-    from: previousFrom.toISOString().split('T')[0],
-    to: previousTo.toISOString().split('T')[0]
+    from: format(previousFrom),
+    to: format(previousTo)
   };
 };
 

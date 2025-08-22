@@ -16,9 +16,6 @@ import { useRecipeFiltering } from '@/components/recipe/hooks/useRecipeFiltering
 import { useRecipeStats } from '@/components/recipe/hooks/useRecipeStats';
 
 // Components
-import RecipeTable from '@/components/recipe/components/RecipeList/RecipeTable';
-import RecipeFilters from '@/components/recipe/components/RecipeList/RecipeFilters';
-import RecipeStats from '@/components/recipe/components/RecipeList/RecipeStats';
 import { EmptyState } from '@/components/recipe/components/shared/EmptyState';
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
 
@@ -57,11 +54,35 @@ const DuplicateRecipeDialog = React.lazy(() =>
     })
 );
 
-const CategoryManagerDialog = React.lazy(() => 
+const CategoryManagerDialog = React.lazy(() =>
   import('@/components/recipe/dialogs/CategoryManagerDialog')
     .catch(error => {
       logger.error('Failed to load CategoryManagerDialog:', error);
       return { default: () => <div>Error loading dialog</div> };
+    })
+);
+
+const RecipeTable = React.lazy(() =>
+  import('@/components/recipe/components/RecipeList/RecipeTable')
+    .catch(error => {
+      logger.error('Failed to load RecipeTable:', error);
+      return { default: () => <div>Error loading table</div> };
+    })
+);
+
+const RecipeFilters = React.lazy(() =>
+  import('@/components/recipe/components/RecipeList/RecipeFilters')
+    .catch(error => {
+      logger.error('Failed to load RecipeFilters:', error);
+      return { default: () => <div>Error loading filters</div> };
+    })
+);
+
+const RecipeStats = React.lazy(() =>
+  import('@/components/recipe/components/RecipeList/RecipeStats')
+    .catch(error => {
+      logger.error('Failed to load RecipeStats:', error);
+      return { default: () => <div>Error loading stats</div> };
     })
 );
 
@@ -417,7 +438,9 @@ const Recipes: React.FC = () => {
         </div>
 
         {/* ✅ Statistics Cards */}
-        <RecipeStats stats={stats} />
+        <Suspense fallback={<div />}>
+          <RecipeStats stats={stats} />
+        </Suspense>
 
         {/* ✅ Main Content Card */}
         <Card className="border border-gray-200 bg-white/90 backdrop-blur-sm">
@@ -425,21 +448,23 @@ const Recipes: React.FC = () => {
             
             {/* ✅ Filters */}
             <div className="p-6 pb-0">
-              <RecipeFilters
-                searchTerm={filtering.searchTerm}
-                onSearchChange={filtering.setSearchTerm}
-                categoryFilter={filtering.categoryFilter}
-                onCategoryFilterChange={filtering.setCategoryFilter}
-                categories={availableCategories}
-                sortBy={filtering.sortBy}
-                onSortByChange={filtering.setSortBy}
-                sortOrder={filtering.sortOrder}
-                onSortOrderChange={filtering.setSortOrder}
-                hasActiveFilters={filtering.hasActiveFilters}
-                onClearFilters={filtering.clearFilters}
-                totalResults={filtering.filteredAndSortedRecipes.length}
-                onSort={filtering.handleSort}
-              />
+              <Suspense fallback={<div />}>
+                <RecipeFilters
+                  searchTerm={filtering.searchTerm}
+                  onSearchChange={filtering.setSearchTerm}
+                  categoryFilter={filtering.categoryFilter}
+                  onCategoryFilterChange={filtering.setCategoryFilter}
+                  categories={availableCategories}
+                  sortBy={filtering.sortBy}
+                  onSortByChange={filtering.setSortBy}
+                  sortOrder={filtering.sortOrder}
+                  onSortOrderChange={filtering.setSortOrder}
+                  hasActiveFilters={filtering.hasActiveFilters}
+                  onClearFilters={filtering.clearFilters}
+                  totalResults={filtering.filteredAndSortedRecipes.length}
+                  onSort={filtering.handleSort}
+                />
+              </Suspense>
             </div>
 
             {/* ✅ Content */}
@@ -458,17 +483,19 @@ const Recipes: React.FC = () => {
                 />
               </div>
             ) : (
-              <RecipeTable
-                recipes={filtering.filteredAndSortedRecipes}
-                onSort={filtering.handleSort}
-                sortBy={filtering.sortBy}
-                sortOrder={filtering.sortOrder}
-                onEdit={handleEditRecipe}
-                onDuplicate={handleDuplicateRecipe}
-                onDelete={handleDeleteRecipe}
-                searchTerm={filtering.searchTerm}
-                isLoading={isProcessing}
-              />
+              <Suspense fallback={<div />}>
+                <RecipeTable
+                  recipes={filtering.filteredAndSortedRecipes}
+                  onSort={filtering.handleSort}
+                  sortBy={filtering.sortBy}
+                  sortOrder={filtering.sortOrder}
+                  onEdit={handleEditRecipe}
+                  onDuplicate={handleDuplicateRecipe}
+                  onDelete={handleDeleteRecipe}
+                  searchTerm={filtering.searchTerm}
+                  isLoading={isProcessing}
+                />
+              </Suspense>
             )}
           </CardContent>
         </Card>

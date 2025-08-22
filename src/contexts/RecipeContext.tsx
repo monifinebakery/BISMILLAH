@@ -10,8 +10,13 @@ import { logger } from '@/utils/logger';
 // Import recipe services and types
 import { recipeApi } from '@/components/recipe/services/recipeApi';
 import { calculateHPP, validateRecipeData } from '@/components/recipe/services/recipeUtils';
-import { getAllAvailableCategories } from '@/components/recipe/types';
-import type { Recipe, NewRecipe, HPPCalculationResult, BahanResep } from '@/components/recipe/types';
+import {
+  getAllAvailableCategories,
+  type Recipe,
+  type NewRecipe,
+  type HPPCalculationResult,
+  type BahanResep,
+} from '@/components/recipe/types';
 
 // ===========================================
 // QUERY KEYS - Centralized for consistency

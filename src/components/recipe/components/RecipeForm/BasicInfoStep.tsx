@@ -22,10 +22,9 @@ import {
   Plus,
   Info
 } from 'lucide-react';
-import { RECIPE_CATEGORIES } from '../../types';
-import type { NewRecipe, RecipeFormStepProps } from '../../types';
+import { RECIPE_CATEGORIES, type NewRecipe, type RecipeFormStepProps } from '../../types';
 
-interface BasicInfoStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
+type BasicInfoStepProps = Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'>;
 
 const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   data,
@@ -39,7 +38,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   // Get available categories including existing ones from data
   const availableCategories = [
     ...RECIPE_CATEGORIES,
-    ...(data.kategoriResep && !RECIPE_CATEGORIES.includes(data.kategoriResep as any) 
+    ...(data.kategoriResep && !RECIPE_CATEGORIES.includes(data.kategoriResep as string)
       ? [data.kategoriResep] 
       : []
     )

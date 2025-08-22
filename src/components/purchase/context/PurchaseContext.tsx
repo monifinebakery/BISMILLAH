@@ -18,6 +18,7 @@ import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+import { BahanBakuFrontend } from '@/components/warehouse/types';
 import { PurchaseApiService } from '../services/purchaseApi';
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -111,7 +112,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
   // Add defensive check for useBahanBaku
-  let bahanBaku = [];
+  let bahanBaku: BahanBakuFrontend[] = [];
   let addBahanBaku = async (_: any) => false;
   try {
     const warehouseContext = useBahanBaku();
@@ -178,7 +179,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return code && code >= 400 && code < 500 ? false : count < 3;
     },
     retryDelay: (i) => Math.min(1000 * 2 ** i, 30000),
-    keepPreviousData: true,
   });
 
   // ------------------- Optimistic helpers -------------------
@@ -188,13 +188,14 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   }, [queryClient, user?.id]);
 
-  const findPurchase = useCallback((id: string) => purchases.find((p) => p.id === id), [purchases]);
+  const findPurchase = useCallback((id: string) => (purchases as Purchase[]).find((p) => p.id === id), [purchases]);
 
   // ------------------- Stats (memo) -------------------
   const stats = useMemo(() => {
-    const total = purchases.length;
-    const totalValue = purchases.reduce((sum, p) => sum + Number(p.totalNilai || 0), 0);
-    const statusCounts = purchases.reduce((acc: Record<string, number>, p) => {
+    const purchaseList = purchases as Purchase[];
+    const total = purchaseList.length;
+    const totalValue = purchaseList.reduce((sum, p) => sum + Number(p.totalNilai || 0), 0);
+    const statusCounts = purchaseList.reduce((acc: Record<string, number>, p) => {
       acc[p.status] = (acc[p.status] || 0) + 1;
       return acc;
     }, {});
@@ -240,9 +241,13 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Tambahkan otomatis bahan baku baru jika belum ada di gudang
       try {
         for (const item of newRow.items || []) {
-          const exists = bahanBaku?.some((bb) => bb.id === item.bahanBakuId);
-          if (!exists) {
-            await addBahanBaku({
+          // More robust check: check both by ID and by name to prevent duplicates
+          const existsById = bahanBaku?.some((bb) => bb.id === item.bahanBakuId);
+          const existsByName = bahanBaku?.some((bb) => bb.nama.toLowerCase() === item.nama.toLowerCase());
+          
+          if (!existsById && !existsByName) {
+            logger.debug(`Creating new warehouse item: ${item.nama} (ID: ${item.bahanBakuId})`);
+            const success = await addBahanBaku({
               id: item.bahanBakuId,
               nama: item.nama,
               kategori: 'Lainnya',
@@ -253,6 +258,14 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               harga: item.hargaSatuan || 0,
               supplier: newRow.supplier,
             });
+            
+            if (success) {
+              logger.debug(`Successfully created warehouse item: ${item.nama}`);
+            } else {
+              logger.warn(`Failed to create warehouse item: ${item.nama}`);
+            }
+          } else {
+            logger.debug(`Warehouse item already exists: ${item.nama} (existsById: ${existsById}, existsByName: ${existsByName})`);
           }
         }
       } catch (e) {
@@ -574,7 +587,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ------------------- Context value -------------------
   const contextValue: PurchaseContextType = useMemo(() => ({
     // from original type
-    purchases,
+    purchases: purchases as Purchase[],
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
     error: error ? (error as Error).message : null,
     isProcessing: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,

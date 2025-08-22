@@ -23,7 +23,7 @@ const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
     minimum: Number(dbItem.minimum) || 0,
     satuan: dbItem.satuan,
     harga: Number(dbItem.harga_satuan) || 0,
-    hargaRataRata: wac,
+    hargaRataRata: wac ?? undefined,
     supplier: dbItem.supplier,
     expiry: dbItem.tanggal_kadaluwarsa,
     createdAt: dbItem.created_at,
@@ -49,7 +49,7 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     harga_satuan: frontendItem.harga,
     harga_rata_rata: frontendItem.hargaRataRata,
     supplier: frontendItem.supplier,
-    tanggal_kadaluwarsa: frontendItem.expiry || null,
+    tanggal_kadaluwarsa: frontendItem.expiry || undefined,
   };
   if (userId) dbItem.user_id = userId;
 
@@ -88,11 +88,61 @@ class CrudService {
   ): Promise<boolean> {
     try {
       const dbData = transformToDatabase(bahan, this.config.userId);
-      const { error } = await supabase.from('bahan_baku').insert(dbData);
+      
+      // If ID is provided, check if item already exists to prevent duplicate key errors
+      if (dbData.id) {
+        const { data: existing } = await supabase
+          .from('bahan_baku')
+          .select('id')
+          .eq('id', dbData.id)
+          .eq('user_id', this.config.userId!)
+          .maybeSingle();
+        
+        if (existing) {
+          logger.debug(`Item with ID ${dbData.id} already exists, skipping creation`);
+          return true; // Item already exists, consider it a success
+        }
+      }
+      
+      // Ensure required fields are present for database insert
+      const insertData = {
+        ...dbData,
+        nama: dbData.nama || '',
+        kategori: dbData.kategori || 'Lainnya',
+        satuan: dbData.satuan || '',
+        user_id: this.config.userId!,
+      } as any; // Type assertion for database insert
+      
+      const { error } = await supabase.from('bahan_baku').insert(insertData);
       if (error) throw error;
       return true;
     } catch (error: any) {
       this.handleError('Add failed', error);
+      return false;
+    }
+  }
+
+  async upsertBahanBaku(
+    bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string }
+  ): Promise<boolean> {
+    try {
+      const dbData = transformToDatabase(bahan, this.config.userId);
+      // Ensure required fields are present for database upsert
+      const upsertData = {
+        ...dbData,
+        nama: dbData.nama || '',
+        kategori: dbData.kategori || 'Lainnya',
+        satuan: dbData.satuan || '',
+        user_id: this.config.userId!,
+      } as any; // Type assertion for database upsert
+      
+      const { error } = await supabase.from('bahan_baku').upsert(upsertData, {
+        onConflict: 'id'
+      });
+      if (error) throw error;
+      return true;
+    } catch (error: any) {
+      this.handleError('Upsert failed', error);
       return false;
     }
   }

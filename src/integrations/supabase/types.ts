@@ -91,6 +91,7 @@ export type Database = {
         Row: {
           created_at: string
           harga_satuan: number
+          harga_rata_rata: number | null
           id: string
           kategori: string
           minimum: number
@@ -105,6 +106,7 @@ export type Database = {
         Insert: {
           created_at?: string
           harga_satuan?: number
+          harga_rata_rata?: number | null
           id?: string
           kategori: string
           minimum?: number
@@ -119,6 +121,7 @@ export type Database = {
         Update: {
           created_at?: string
           harga_satuan?: number
+          harga_rata_rata?: number | null
           id?: string
           kategori?: string
           minimum?: number

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ Dynamic hCaptcha import
 let HCaptcha: any = null;
@@ -44,6 +45,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 }) => {
   // ✅ TAMBAHKAN NAVIGATE
   const navigate = useNavigate();
+  const { refreshUser, triggerRedirectCheck } = useAuth();
   
   // ✅ Simplified State Management
   const [email, setEmail] = useState('');
@@ -345,28 +347,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       
       if (!mountedRef.current) return;
       
-      if (result === true) {
-        logger.debug('EmailAuth: OTP verification successful');
-        
-        // ✅ SIMPLIFIED: Set success state and let AuthGuard handle redirect
-        setAuthState('success');
-        toast.success('Login berhasil! Mengarahkan ke dashboard...');
-        
-        // ✅ BACKUP REDIRECT: Jika AuthGuard gagal, lakukan manual redirect
-        setTimeout(() => {
-          console.log('🚀 [EmailAuth] Backup redirect check, current path:', window.location.pathname);
-          if (window.location.pathname === '/auth') {
-            console.log('🚀 [EmailAuth] AuthGuard failed, doing manual redirect');
-            navigate('/', { replace: true });
+        if (result === true) {
+          logger.debug('EmailAuth: OTP verification successful');
+
+          // 🔄 Perbarui user & cek redirect
+          await refreshUser();
+          triggerRedirectCheck();
+
+          setAuthState('success');
+          toast.success('Login berhasil! Mengarahkan ke dashboard...');
+          navigate('/', { replace: true });
+
+          if (onLoginSuccess) {
+            onLoginSuccess();
           }
-        }, 2000);
-        
-        // ✅ Only call onLoginSuccess callback if provided (for custom logic)
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        }
-        
-      } else if (result === 'expired') {
+
+        } else if (result === 'expired') {
         setAuthState('expired');
         setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
         setOtp(['', '', '', '', '', '']);

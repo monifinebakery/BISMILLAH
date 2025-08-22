@@ -47,31 +47,6 @@ export const headerMap: Record<string, keyof BahanBakuImport> = {
   'min_stock': 'minimum',
   'min': 'minimum',
   'reorder_point': 'minimum',
-
-  // Package quantity variations
-  'jumlah_beli_kemasan': 'jumlahBeliKemasan',
-  'qty_kemasan': 'jumlahBeliKemasan',
-  'package_qty': 'jumlahBeliKemasan',
-  'kemasan_qty': 'jumlahBeliKemasan',
-
-  // Package content variations
-  'isi_per_kemasan': 'isiPerKemasan',
-  'content_per_package': 'isiPerKemasan',
-  'package_content': 'isiPerKemasan',
-  'isi_kemasan': 'isiPerKemasan',
-
-  // Package unit variations
-  'satuan_kemasan': 'satuanKemasan',
-  'kemasan': 'satuanKemasan',
-  'package_unit': 'satuanKemasan',
-  'pack_unit': 'satuanKemasan',
-
-  // Total price variations
-  'harga_total_beli_kemasan': 'hargaTotalBeliKemasan',
-  'harga_total': 'hargaTotalBeliKemasan',
-  'total_price': 'hargaTotalBeliKemasan',
-  'package_price': 'hargaTotalBeliKemasan',
-  'total_cost': 'hargaTotalBeliKemasan'
 };
 
 export const requiredFields: (keyof BahanBakuImport)[] = [
@@ -81,10 +56,6 @@ export const requiredFields: (keyof BahanBakuImport)[] = [
   'satuan',
   'stok',
   'minimum',
-  'jumlahBeliKemasan',
-  'isiPerKemasan',
-  'satuanKemasan',
-  'hargaTotalBeliKemasan'
 ];
 
 export const validate = (data: any): string[] => {

@@ -124,27 +124,20 @@ logger.perf("App Initialization", appInitTime, {
 // Dev-only debug tools
 // ------------------------------
 if (effectiveDev) {
-  // Import debug utilities for development
-  import('@/utils/debugAppliedAt').then(({ debugAppliedAt }) => {
-    (window as any).debugAppliedAt = debugAppliedAt;
-    console.log('🔧 Applied_at debug utility loaded');
-  });
-  
   // Import warehouse sync test utility
   import('@/utils/testWarehouseSync').then(({ testWarehouseSync }) => {
     (window as any).testWarehouseSync = testWarehouseSync;
     console.log('🧪 Warehouse sync test utility loaded');
+  }).catch(error => {
+    console.warn('Could not load warehouse sync test:', error);
   });
   
   // Import imported purchase sync test utility
   import('@/utils/testImportedPurchaseSync').then(({ testImportedPurchaseSync }) => {
     (window as any).testImportedPurchaseSync = testImportedPurchaseSync;
     console.log('🧪 Imported purchase sync test utility loaded');
-  });
-  
-  // Auto-test applied_at fix
-  import('@/utils/testAppliedAtFix').catch(error => {
-    console.warn('Could not load applied_at test:', error);
+  }).catch(error => {
+    console.warn('Could not load imported purchase sync test:', error);
   });
   
   (window as any).appDebug = {

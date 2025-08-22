@@ -2,7 +2,7 @@
 // src/components/warehouse/components/WarehouseHeader.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, AlertTriangle, RefreshCw, TrendingDown, Info } from 'lucide-react';
+import { Plus, Package, AlertTriangle, RefreshCw, TrendingDown, Info, Bug } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
@@ -72,8 +72,8 @@ const fetchWarehouseStats = async () => {
 };
 
 /**
- * Auto-adjust prices for items with zero prices
- * This replaces the manual fix button with automatic adjustment
+ * Auto-adjust prices for items with zero prices (Header Stats Version)
+ * This version is used for header statistics calculation
  */
 const autoAdjustPrices = async (items: any[], userId?: string) => {
   if (!userId || !items) return;
@@ -86,14 +86,16 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
     
     if (zeroPriceItems.length === 0) return;
     
-    logger.info(`🔄 Auto-adjusting prices for ${zeroPriceItems.length} items`);
+    logger.info(`🔄 Header stats: Auto-adjusting prices for ${zeroPriceItems.length} items`);
     
     // Get purchase history for price calculation
     const { data: purchases, error: purchasesError } = await supabase
       .from('purchases')
-      .select('items')
+      .select('items, created_at, supplier')
       .eq('user_id', userId)
-      .eq('status', 'completed');
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(30); // Limit for header stats performance
     
     if (purchasesError) {
       logger.error('Failed to fetch purchase history for price adjustment:', purchasesError);
@@ -104,6 +106,7 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
     for (const item of zeroPriceItems) {
       try {
         let newPrice = 0;
+        let newWac = null;
         let totalQuantity = 0;
         let totalValue = 0;
         
@@ -112,9 +115,22 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
           purchases.forEach(purchase => {
             if (purchase.items && Array.isArray(purchase.items)) {
               purchase.items.forEach((purchaseItem: any) => {
-                if (purchaseItem.bahan_baku_id === item.id) {
-                  const qty = Number(purchaseItem.jumlah || 0);
-                  const price = Number(purchaseItem.harga_per_satuan || 0);
+                const itemMatches = (
+                  purchaseItem.bahan_baku_id === item.id || 
+                  purchaseItem.bahanBakuId === item.id ||
+                  purchaseItem.id === item.id
+                );
+                
+                if (itemMatches) {
+                  const qty = Number(purchaseItem.jumlah || purchaseItem.kuantitas || purchaseItem.quantity || 0);
+                  const price = Number(
+                    purchaseItem.harga_per_satuan || 
+                    purchaseItem.harga_satuan || 
+                    purchaseItem.hargaSatuan ||
+                    purchaseItem.unit_price ||
+                    purchaseItem.price || 0
+                  );
+                  
                   if (qty > 0 && price > 0) {
                     totalQuantity += qty;
                     totalValue += qty * price;
@@ -126,27 +142,60 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
         }
         
         if (totalQuantity > 0 && totalValue > 0) {
-          newPrice = totalValue / totalQuantity;
+          newWac = totalValue / totalQuantity;
+          newPrice = newWac;
         } else {
-          // Default price for items without purchase history
-          newPrice = 1000; // Rp 1,000 default
+          // Smart category-based default pricing
+          const categoryDefaults: { [key: string]: number } = {
+            'Daging': 50000,
+            'Seafood': 40000,
+            'Sayuran': 15000,
+            'Buah': 20000,
+            'Bumbu': 10000,
+            'Minyak': 25000,
+            'Tepung': 8000,
+            'Gula': 12000,
+            'Garam': 5000,
+            'Susu': 15000,
+            'Telur': 25000
+          };
+          
+          newPrice = categoryDefaults[item.kategori] || 5000;
+        }
+        
+        // Prepare update data
+        const updateData: any = {
+          updated_at: new Date().toISOString()
+        };
+        
+        if ((item.harga || 0) === 0) {
+          updateData.harga_satuan = newPrice;
+        }
+        
+        if (newWac !== null && (item.hargaRataRata || 0) === 0) {
+          updateData.harga_rata_rata = newWac;
         }
         
         // Update the item price
         const { error: updateError } = await supabase
           .from('bahan_baku')
-          .update({
-            harga_satuan: item.harga === 0 ? newPrice : item.harga,
-            harga_rata_rata: newPrice,
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', item.id)
           .eq('user_id', userId);
         
         if (updateError) {
           logger.error(`Failed to update price for ${item.nama}:`, updateError);
         } else {
-          logger.info(`✅ Auto-adjusted price for ${item.nama}: Rp ${newPrice.toLocaleString()}`);
+          const priceType = newWac !== null ? 'WAC' : 'category-default';
+          logger.info(`✅ Header stats: Auto-adjusted price for ${item.nama}: Rp ${newPrice.toLocaleString()} (${priceType})`);
+          
+          // Update the item in memory for immediate stats calculation
+          if ((item.harga || 0) === 0) {
+            item.harga = newPrice;
+          }
+          if (newWac !== null && (item.hargaRataRata || 0) === 0) {
+            item.hargaRataRata = newWac;
+          }
         }
         
       } catch (error) {
@@ -155,7 +204,7 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
     }
     
   } catch (error) {
-    logger.error('Error in auto price adjustment:', error);
+    logger.error('Error in header stats auto price adjustment:', error);
   }
 };
 
@@ -269,6 +318,28 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
           </div>
 
           <div className="hidden md:flex gap-3">
+            {/* 🐛 DEBUG: Price Adjustment Debug Tool (Development only) */}
+            {import.meta.env.DEV && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => navigate('/debug/price-adjustment')}
+                      className="flex items-center gap-2 bg-yellow-500 bg-opacity-90 text-white border border-yellow-400 hover:bg-yellow-600 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+                    >
+                      <Bug className="h-4 w-4" />
+                      Debug Harga
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-sm">
+                    <p>
+                      Debug tool untuk menganalisis dan memperbaiki harga otomatis di warehouse.
+                      Hanya tersedia di development mode.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
 
             
             {onRefresh && (

@@ -83,36 +83,49 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     const items = await service.fetchBahanBaku();
     logger.debug('📊 fetchWarehouseData received items:', items.length);
     
-    // Log current price status before adjustment
+    // Log detailed price status before adjustment
     const priceAnalysis = items.map((item: any) => ({
+      id: item.id,
       nama: item.nama,
       harga: item.harga || 0,
       hargaRataRata: item.hargaRataRata || 0,
-      hasZeroPrice: (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
+      hasZeroHarga: (item.harga || 0) === 0,
+      hasZeroWac: (item.hargaRataRata || 0) === 0,
+      needsAttention: (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
     }));
     
-    const zeroPriceCount = priceAnalysis.filter((p: any) => p.hasZeroPrice).length;
-    logger.info(`📈 Price analysis before adjustment: ${zeroPriceCount}/${items.length} items have zero prices`);
+    const itemsNeedingPriceAdjustment = priceAnalysis.filter((p: any) => p.needsAttention);
+    logger.info(`📈 Price analysis before adjustment: ${itemsNeedingPriceAdjustment.length}/${items.length} items need price adjustment`);
     
-    if (zeroPriceCount > 0) {
-      logger.debug('📊 Items with zero prices:', 
-        priceAnalysis.filter((p: any) => p.hasZeroPrice).map((p: any) => p.nama)
+    if (itemsNeedingPriceAdjustment.length > 0) {
+      logger.debug('📊 Items needing price adjustment:', 
+        itemsNeedingPriceAdjustment.map((p: any) => `${p.nama} (harga: ${p.harga}, WAC: ${p.hargaRataRata})`)
       );
+      
+      // ✅ AUTO PRICE ADJUSTMENT: Fix zero prices automatically
+      await autoAdjustPrices(items, userId);
+      
+      // Log price status after adjustment
+      const postAdjustmentAnalysis = items.map((item: any) => ({
+        nama: item.nama,
+        harga: item.harga || 0,
+        hargaRataRata: item.hargaRataRata || 0,
+        hasZeroPrice: (item.harga || 0) === 0 && (item.hargaRataRata || 0) === 0
+      }));
+      
+      const stillZeroCount = postAdjustmentAnalysis.filter((p: any) => p.hasZeroPrice).length;
+      const adjustedCount = itemsNeedingPriceAdjustment.length - stillZeroCount;
+      
+      logger.info(`📈 Price adjustment results: ${adjustedCount} items fixed, ${stillZeroCount} items still need attention`);
+      
+      if (stillZeroCount > 0) {
+        logger.warn('⚠️ Items still with zero prices:', 
+          postAdjustmentAnalysis.filter((p: any) => p.hasZeroPrice).map((p: any) => p.nama)
+        );
+      }
+    } else {
+      logger.info('✅ All items have proper pricing - no adjustment needed');
     }
-    
-    // ✅ AUTO PRICE ADJUSTMENT: Fix zero prices automatically
-    await autoAdjustPrices(items, userId);
-    
-    // Log price status after adjustment
-    const postAdjustmentAnalysis = items.map((item: any) => ({
-      nama: item.nama,
-      harga: item.harga || 0,
-      hargaRataRata: item.hargaRataRata || 0,
-      hasZeroPrice: (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
-    }));
-    
-    const remainingZeroCount = postAdjustmentAnalysis.filter((p: any) => p.hasZeroPrice).length;
-    logger.info(`📈 Price analysis after adjustment: ${remainingZeroCount}/${items.length} items still have zero prices`);
     
     // Transform to frontend format and ensure proper types
     const transformedItems = items.map((item: any) => ({
@@ -125,6 +138,20 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
       hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ? Number(item.hargaTotalBeliKemasan) : undefined,
     }));
     
+    // Final price validation log
+    const finalPriceCheck = transformedItems.filter((item: any) => {
+      const effectivePrice = item.hargaRataRata || item.harga || 0;
+      return effectivePrice === 0;
+    });
+    
+    if (finalPriceCheck.length === 0) {
+      logger.info(`✅ Success: All ${transformedItems.length} items now have valid prices`);
+    } else {
+      logger.warn(`⚠️ Warning: ${finalPriceCheck.length} items still have zero effective prices:`, 
+        finalPriceCheck.map((item: any) => item.nama)
+      );
+    }
+    
     logger.debug('✅ fetchWarehouseData transformed items:', transformedItems.length);
     return transformedItems;
   } catch (error) {
@@ -134,17 +161,19 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
 };
 
 /**
- * Auto-adjust prices for items with zero prices
- * This replaces the manual fix button with automatic adjustment
+ * Enhanced Auto-adjust prices for items with zero prices
+ * Now includes better purchase data matching and smarter default pricing
  */
 const autoAdjustPrices = async (items: any[], userId?: string) => {
   if (!userId || !items) return;
   
   try {
-    // Find items with zero prices (check both harga and hargaRataRata)
-    const zeroPriceItems = items.filter(item => 
-      (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
-    );
+    // Find items with zero prices (prioritize items that have never had prices set)
+    const zeroPriceItems = items.filter(item => {
+      const hasZeroHarga = (item.harga || 0) === 0;
+      const hasZeroWac = (item.hargaRataRata || 0) === 0;
+      return hasZeroHarga || hasZeroWac;
+    });
     
     if (zeroPriceItems.length === 0) {
       logger.debug('✅ No items with zero prices found');
@@ -152,16 +181,17 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
     }
     
     logger.info(`🔄 Auto-adjusting prices for ${zeroPriceItems.length} items:`, 
-      zeroPriceItems.map(item => item.nama)
+      zeroPriceItems.map(item => `${item.nama} (harga: ${item.harga || 0}, WAC: ${item.hargaRataRata || 0})`)
     );
     
     // Get purchase history for price calculation with more comprehensive query
     const { data: purchases, error: purchasesError } = await supabase
       .from('purchases')
-      .select('id, items, created_at, supplier')
+      .select('id, items, created_at, supplier, user_id')
       .eq('user_id', userId)
       .eq('status', 'completed')
-      .order('created_at', { ascending: false }); // Most recent first
+      .order('created_at', { ascending: false })
+      .limit(50); // Get more recent purchases for better accuracy
     
     if (purchasesError) {
       logger.error('Failed to fetch purchase history for price adjustment:', purchasesError);
@@ -174,29 +204,46 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
     for (const item of zeroPriceItems) {
       try {
         let newPrice = 0;
+        let newWac = null;
         let totalQuantity = 0;
         let totalValue = 0;
         const purchaseHistory: any[] = [];
         
-        // Calculate average price from purchase history with detailed logging
+        // Calculate average price from purchase history with enhanced matching
         if (purchases && purchases.length > 0) {
           purchases.forEach(purchase => {
             if (purchase.items && Array.isArray(purchase.items)) {
               purchase.items.forEach((purchaseItem: any) => {
-                // Check multiple possible field names for item ID
-                const itemMatches = purchaseItem.bahan_baku_id === item.id || 
-                                   purchaseItem.bahanBakuId === item.id ||
-                                   purchaseItem.id === item.id;
+                // Enhanced field matching for different purchase data structures
+                const itemMatches = (
+                  purchaseItem.bahan_baku_id === item.id || 
+                  purchaseItem.bahanBakuId === item.id ||
+                  purchaseItem.id === item.id ||
+                  purchaseItem.itemId === item.id ||
+                  purchaseItem.warehouse_id === item.id ||
+                  // Name-based matching as fallback
+                  (purchaseItem.nama && item.nama && purchaseItem.nama.toLowerCase() === item.nama.toLowerCase())
+                );
                 
                 if (itemMatches) {
-                  // Check multiple possible field names for quantity and price
-                  const qty = Number(purchaseItem.jumlah || purchaseItem.kuantitas || purchaseItem.quantity || 0);
+                  // Enhanced quantity field matching
+                  const qty = Number(
+                    purchaseItem.jumlah || 
+                    purchaseItem.kuantitas || 
+                    purchaseItem.quantity || 
+                    purchaseItem.qty ||
+                    purchaseItem.amount || 0
+                  );
+                  
+                  // Enhanced price field matching
                   const price = Number(
                     purchaseItem.harga_per_satuan || 
                     purchaseItem.harga_satuan || 
                     purchaseItem.hargaSatuan ||
                     purchaseItem.unit_price ||
-                    purchaseItem.price || 0
+                    purchaseItem.price ||
+                    purchaseItem.unitPrice ||
+                    purchaseItem.harga || 0
                   );
                   
                   if (qty > 0 && price > 0) {
@@ -207,7 +254,8 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
                       qty,
                       price,
                       date: purchase.created_at,
-                      supplier: purchase.supplier
+                      supplier: purchase.supplier,
+                      total: qty * price
                     });
                   }
                 }
@@ -221,41 +269,66 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
           totalQuantity,
           totalValue,
           calculatedWAC: totalQuantity > 0 ? totalValue / totalQuantity : 0,
-          purchaseHistory: purchaseHistory.slice(0, 3) // Show first 3 for debugging
+          recentPurchases: purchaseHistory.slice(0, 3) // Show first 3 for debugging
         });
         
+        // Determine the appropriate price strategy
         if (totalQuantity > 0 && totalValue > 0) {
-          newPrice = totalValue / totalQuantity;
-          logger.info(`✅ Calculated WAC for "${item.nama}": Rp ${newPrice.toLocaleString()} from ${purchaseHistory.length} purchase records`);
+          newWac = totalValue / totalQuantity;
+          newPrice = newWac; // Use WAC as the primary price
+          logger.info(`✅ Calculated WAC for "${item.nama}": Rp ${newWac.toLocaleString()} from ${purchaseHistory.length} purchase records`);
         } else {
-          // Set a more reasonable default price based on category or supplier
-          newPrice = 2500; // Increased default from 1000 to 2500
-          logger.info(`⚠️ No purchase history found for "${item.nama}", using default price: Rp ${newPrice.toLocaleString()}`);
+          // Smart default pricing based on category
+          const categoryDefaults: { [key: string]: number } = {
+            'Daging': 50000,
+            'Seafood': 40000,
+            'Sayuran': 15000,
+            'Buah': 20000,
+            'Bumbu': 10000,
+            'Minyak': 25000,
+            'Tepung': 8000,
+            'Gula': 12000,
+            'Garam': 5000,
+            'Susu': 15000,
+            'Telur': 25000
+          };
+          
+          newPrice = categoryDefaults[item.kategori] || 5000; // Better default than 2500
+          logger.info(`⚠️ No purchase history found for "${item.nama}", using category-based default: Rp ${newPrice.toLocaleString()} (${item.kategori})`);
+        }
+        
+        // Prepare database update - only update fields that are actually zero
+        const updateData: any = {
+          updated_at: new Date().toISOString()
+        };
+        
+        if ((item.harga || 0) === 0) {
+          updateData.harga_satuan = newPrice;
+        }
+        
+        if (newWac !== null && (item.hargaRataRata || 0) === 0) {
+          updateData.harga_rata_rata = newWac;
         }
         
         // Update the item price in database
         const { error: updateError } = await supabase
           .from('bahan_baku')
-          .update({
-            harga_satuan: item.harga === 0 ? newPrice : item.harga,
-            harga_rata_rata: totalQuantity > 0 ? newPrice : null, // Only set WAC if we have purchase data
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', item.id)
           .eq('user_id', userId);
         
         if (updateError) {
           logger.error(`Failed to update price for ${item.nama}:`, updateError);
         } else {
-          const priceType = totalQuantity > 0 ? 'WAC' : 'default';
+          const priceType = newWac !== null ? 'WAC' : 'category-default';
           logger.info(`✅ Auto-adjusted price for "${item.nama}": Rp ${newPrice.toLocaleString()} (${priceType})`);
           
           // Update the item in memory so the change is visible immediately
-          if (item.harga === 0) {
+          if ((item.harga || 0) === 0) {
             item.harga = newPrice;
           }
-          if (totalQuantity > 0) {
-            item.hargaRataRata = newPrice;
+          if (newWac !== null && (item.hargaRataRata || 0) === 0) {
+            item.hargaRataRata = newWac;
           }
         }
         
@@ -263,6 +336,8 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
         logger.error(`Error processing item ${item.nama}:`, error);
       }
     }
+    
+    logger.info(`✅ Completed auto price adjustment for ${zeroPriceItems.length} items`);
     
   } catch (error) {
     logger.error('Error in auto price adjustment:', error);

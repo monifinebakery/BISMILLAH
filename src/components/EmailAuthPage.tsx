@@ -13,7 +13,7 @@ import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ Dynamic hCaptcha import
-let HCaptcha: any = null;
+let HCaptchaComponent: any = null;
 
 // ✅ Environment variables
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
@@ -45,7 +45,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 }) => {
   // ✅ TAMBAHKAN NAVIGATE
   const navigate = useNavigate();
-  const { refreshUser, triggerRedirectCheck } = useAuth();
+  const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
   
   // ✅ Simplified State Management
   const [email, setEmail] = useState('');
@@ -69,7 +69,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    if (HCAPTCHA_ENABLED && !HCaptcha) {
+    if (HCAPTCHA_ENABLED && !HCaptchaComponent) {
       // Set a timeout to mark hCaptcha as loaded even if it fails (CSP workaround)
       timeoutId = setTimeout(() => {
         if (mountedRef.current && !hCaptchaLoaded) {
@@ -83,7 +83,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         .then((module) => {
           if (mountedRef.current) {
             clearTimeout(timeoutId);
-            HCaptcha = module.default;
+            HCaptchaComponent = module.default;
             setHCaptchaLoaded(true);
             setHCaptchaKey(1);
           }
@@ -352,7 +352,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
           // 🔄 Perbarui user & cek redirect
           await refreshUser();
-          triggerRedirectCheck();
+          redirectCheck();
 
           setAuthState('success');
           toast.success('Login berhasil! Mengarahkan ke dashboard...');
@@ -446,9 +446,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               </div>
 
               {/* ✅ hCaptcha Widget */}
-              {HCAPTCHA_ENABLED && hCaptchaLoaded && HCaptcha && hCaptchaKey > 0 && (
+              {HCAPTCHA_ENABLED && hCaptchaLoaded && HCaptchaComponent && hCaptchaKey > 0 && (
                 <div className="flex justify-center">
-                  <HCaptcha
+                  <HCaptchaComponent
                     key={hCaptchaKey}
                     sitekey={HCAPTCHA_SITE_KEY}
                     onVerify={(token: string) => {

@@ -200,6 +200,17 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
     
     logger.info(`📊 Found ${purchases?.length || 0} completed purchases for WAC calculation`);
     
+    // Debug: Log first purchase structure for analysis
+    if (purchases && purchases.length > 0 && purchases[0].items) {
+      const items = purchases[0].items as any[];
+      logger.debug('🔍 Purchase data structure analysis:', {
+        firstPurchase: purchases[0].id,
+        itemsCount: items.length,
+        firstItem: items[0],
+        fieldNames: Object.keys(items[0] || {})
+      });
+    }
+    
     // Process each item with zero price
     for (const item of zeroPriceItems) {
       try {
@@ -215,9 +226,10 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
             if (purchase.items && Array.isArray(purchase.items)) {
               purchase.items.forEach((purchaseItem: any) => {
                 // Enhanced field matching for different purchase data structures
+                // Based on actual PurchaseItem interface: bahanBakuId, hargaSatuan, kuantitas
                 const itemMatches = (
-                  purchaseItem.bahan_baku_id === item.id || 
-                  purchaseItem.bahanBakuId === item.id ||
+                  purchaseItem.bahanBakuId === item.id || 
+                  purchaseItem.bahan_baku_id === item.id ||
                   purchaseItem.id === item.id ||
                   purchaseItem.itemId === item.id ||
                   purchaseItem.warehouse_id === item.id ||
@@ -226,25 +238,41 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
                 );
                 
                 if (itemMatches) {
-                  // Enhanced quantity field matching
+                  // Enhanced quantity field matching - prioritize actual PurchaseItem fields
                   const qty = Number(
+                    purchaseItem.kuantitas ||  // PurchaseItem standard field
                     purchaseItem.jumlah || 
-                    purchaseItem.kuantitas || 
                     purchaseItem.quantity || 
                     purchaseItem.qty ||
                     purchaseItem.amount || 0
                   );
                   
-                  // Enhanced price field matching
+                  // Enhanced price field matching - prioritize actual PurchaseItem fields
                   const price = Number(
+                    purchaseItem.hargaSatuan ||  // PurchaseItem standard field
                     purchaseItem.harga_per_satuan || 
                     purchaseItem.harga_satuan || 
-                    purchaseItem.hargaSatuan ||
                     purchaseItem.unit_price ||
                     purchaseItem.price ||
                     purchaseItem.unitPrice ||
                     purchaseItem.harga || 0
                   );
+                  
+                  logger.debug(`🔍 Purchase item match found for "${item.nama}":`, {
+                    purchaseId: purchase.id,
+                    purchaseItem: {
+                      bahanBakuId: purchaseItem.bahanBakuId,
+                      nama: purchaseItem.nama,
+                      kuantitas: purchaseItem.kuantitas,
+                      hargaSatuan: purchaseItem.hargaSatuan,
+                      qty,
+                      price
+                    },
+                    warehouseItem: {
+                      id: item.id,
+                      nama: item.nama
+                    }
+                  });
                   
                   if (qty > 0 && price > 0) {
                     totalQuantity += qty;
@@ -257,6 +285,8 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
                       supplier: purchase.supplier,
                       total: qty * price
                     });
+                  } else {
+                    logger.warn(`⚠️ Invalid qty/price for "${item.nama}": qty=${qty}, price=${price}`);
                   }
                 }
               });
@@ -276,7 +306,7 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
         if (totalQuantity > 0 && totalValue > 0) {
           newWac = totalValue / totalQuantity;
           newPrice = newWac; // Use WAC as the primary price
-          logger.info(`✅ Calculated WAC for "${item.nama}": Rp ${newWac.toLocaleString()} from ${purchaseHistory.length} purchase records`);
+          logger.info(`✅ Calculated WAC for "${item.nama}" from ${purchaseHistory.length} purchase records: Rp ${newWac.toLocaleString()}`);
         } else {
           // Smart default pricing based on category
           const categoryDefaults: { [key: string]: number } = {

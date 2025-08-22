@@ -67,7 +67,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           console.log(`🚀 [AuthGuard] Executing delayed redirect`);
           window.location.href = '/';
         }
-      }, 100);
+      }, 500); // Reduced delay to 500ms
     }
   }, [user, isReady, isLoading, location.pathname]);
 

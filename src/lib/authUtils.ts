@@ -1,7 +1,7 @@
 // src/lib/authUtils.ts - CLEAN VERSION WITHOUT DUPLICATES
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { withTimeout, withSoftTimeout } from '@/utils/asyncUtils';
+import { withTimeout, withSoftTimeout, withExponentialBackoff } from '@/utils/asyncUtils';
 
 /**
  * ✅ Device capability detection
@@ -165,49 +165,22 @@ export const performGlobalSignOut = async () => {
  * - Prevents aggressive cleanup that destroys valid sessions
  */
 export const validateAuthSession = async (retryCount = 0) => {
-  const maxRetries = 2;
+  const maxRetries = 3;
   
   try {
     logger.debug(`🔍 Validating auth session (attempt ${retryCount + 1}/${maxRetries + 1})...`);
     
     // ✅ DEVICE B FIX: Adaptive timeout based on device capabilities
-    const adaptiveTimeout = getAdaptiveTimeout(15000);
+    const adaptiveTimeout = getAdaptiveTimeout(30000);
     logger.debug('Using adaptive timeout:', adaptiveTimeout);
     
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session validation timeout')), adaptiveTimeout)
+    // Use exponential backoff for session validation
+    const session = await withExponentialBackoff(
+      () => supabase.auth.getSession().then(res => res.data.session),
+      maxRetries,
+      1000, // base delay 1 second
+      adaptiveTimeout
     );
-    
-const { data: { session }, error } = await withTimeout(sessionPromise as any, adaptiveTimeout, 'Session validation timeout') as any;
-    
-    if (error) {
-      logger.error('⚠️ Error validating auth session:', error);
-      
-      // ✅ DEVICE B FIX: Retry on network errors for slow devices
-      if (retryCount < maxRetries && (
-        error.message?.includes('network') || 
-        error.message?.includes('fetch') ||
-        error.message?.includes('timeout') ||
-        error.message?.includes('Failed to fetch')
-      )) {
-        logger.warn(`🔄 Network error detected, retrying in ${(retryCount + 1) * 2} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
-        return validateAuthSession(retryCount + 1);
-      }
-      
-      // ✅ IMPROVED: Only cleanup on specific auth errors, not network errors
-      if (error.message?.includes('Invalid Refresh Token') || 
-          error.message?.includes('refresh_token_not_found') ||
-          error.message?.includes('invalid_grant')) {
-        logger.warn('🧹 Invalid token detected, cleaning up auth state');
-        cleanupAuthState();
-      } else {
-        logger.debug('⚠️ Network/temporary error, preserving auth state');
-      }
-      
-      return false;
-    }
     
     if (!session) {
       logger.debug('ℹ️ No session found during validation');
@@ -308,19 +281,15 @@ export const checkSessionExists = async () => {
     logger.debug('👀 Checking session existence (safe mode)...');
     
     // ✅ DEVICE B FIX: Use adaptive timeout
-    const adaptiveTimeout = getAdaptiveTimeout(5000);
+    const adaptiveTimeout = getAdaptiveTimeout(10000);
     
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((resolve) => 
-      setTimeout(() => resolve({ data: { session: null }, error: null }), adaptiveTimeout)
+    // Use exponential backoff for session check
+    const session = await withExponentialBackoff(
+      () => supabase.auth.getSession().then(res => res.data.session),
+      2, // max retries
+      1000, // base delay 1 second
+      adaptiveTimeout
     );
-    
-const { data: { session }, error } = await withSoftTimeout(sessionPromise as any, adaptiveTimeout, { data: { session: null }, error: null } as any) as any;
-    
-    if (error) {
-      logger.debug('⚠️ Error checking session (safe mode):', error.message);
-      return false;
-    }
     
     const exists = !!(session?.user?.id);
     logger.debug('👀 Session exists (safe mode):', exists);
@@ -341,19 +310,15 @@ export const refreshSessionSafely = async () => {
     logger.debug('🔄 Safely refreshing session...');
     
     // ✅ DEVICE B FIX: Add timeout for refresh operation
-    const adaptiveTimeout = getAdaptiveTimeout(10000);
+    const adaptiveTimeout = getAdaptiveTimeout(20000);
     
-    const refreshPromise = supabase.auth.refreshSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session refresh timeout')), adaptiveTimeout)
+    // Use exponential backoff for session refresh
+    const session = await withExponentialBackoff(
+      () => supabase.auth.refreshSession().then(res => res.data.session),
+      2, // max retries
+      1000, // base delay 1 second
+      adaptiveTimeout
     );
-    
-const { data: { session }, error } = await withTimeout(refreshPromise as any, adaptiveTimeout, 'Session refresh timeout') as any;
-    
-    if (error) {
-      logger.error('⚠️ Session refresh error:', error);
-      return false;
-    }
     
     if (session?.user?.id) {
       logger.success('✅ Session refreshed successfully:', session.user.email);
@@ -394,12 +359,13 @@ export const debugAuthState = async () => {
     try {
       const adaptiveTimeout = getAdaptiveTimeout(10000);
       
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ data: { session: null }, error: { message: 'Debug timeout' } }), adaptiveTimeout)
+      // Use exponential backoff for session debug
+      const session = await withExponentialBackoff(
+        () => supabase.auth.getSession().then(res => res.data.session),
+        1, // max retries
+        1000, // base delay 1 second
+        adaptiveTimeout
       );
-      
-const { data: { session }, error } = await withSoftTimeout(sessionPromise as any, adaptiveTimeout, { data: { session: null }, error: { message: 'Debug timeout' } } as any) as any;
       
       sessionInfo = {
         hasSession: !!session,
@@ -407,7 +373,7 @@ const { data: { session }, error } = await withSoftTimeout(sessionPromise as any
         userId: session?.user?.id || null,
         email: session?.user?.email || null,
         expiresAt: session?.expires_at || null,
-        error: error?.message || null,
+        error: null,
         userIdType: typeof session?.user?.id,
         userIdLength: session?.user?.id?.length || 0
       };
@@ -418,7 +384,7 @@ const { data: { session }, error } = await withSoftTimeout(sessionPromise as any
     const debugInfo = {
       timestamp: new Date().toISOString(),
       deviceCapabilities: capabilities,
-      adaptiveTimeout: getAdaptiveTimeout(15000),
+      adaptiveTimeout: getAdaptiveTimeout(30000),
       localStorageKeys,
       sessionStorageKeys,
       sessionInfo,
@@ -436,7 +402,7 @@ const { data: { session }, error } = await withSoftTimeout(sessionPromise as any
       'Has Session': sessionInfo?.hasSession || false,
       'Has User': sessionInfo?.hasUser || false,
       'User Email': sessionInfo?.email || 'none',
-      'Adaptive Timeout': getAdaptiveTimeout(15000) + 'ms'
+      'Adaptive Timeout': getAdaptiveTimeout(30000) + 'ms'
     });
     
     return debugInfo;

@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, Users, DollarSign, Search, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentSession } from '@/services/auth';
+import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger';
 
 // URL Edge Function API Admin Anda
 const ADMIN_API_URL = 'https://kewhzkfvswbimmwtpymw.supabase.co/functions/v1/admin-api';
@@ -19,7 +21,13 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fungsi untuk mengambil data admin dari Edge Function
+  const { isReady: authReady, user } = useAuth();
+
   const fetchData = async () => {
+    if (!authReady || !user) {
+      logger.debug('AdminDashboard: Auth not ready or user missing, skipping fetch', { authReady, hasUser: !!user });
+      return;
+    }
     setLoading(true);
     try {
       const session = await getCurrentSession();
@@ -56,8 +64,10 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (authReady && user) {
+      fetchData();
+    }
+  }, [authReady, user?.id]);
 
   const handleTogglePaymentStatus = async (paymentId: string, currentStatus: boolean) => {
     try {

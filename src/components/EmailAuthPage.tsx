@@ -16,6 +16,9 @@ import { useAuth } from '@/contexts/AuthContext'; // ✅ TAMBAHKAN INI
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
 const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
 
+// ✅ Komponen hCaptcha yang dimuat secara dinamis
+let HCaptcha: React.ComponentType<any> | null = null;
+
 
 // ✅ Simplified Props Interface
 interface EmailAuthPageProps {
@@ -42,9 +45,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 }) => {
   // ✅ Get triggerRedirectCheck from AuthContext
   const { triggerRedirectCheck } = useAuth();
+  const navigate = useNavigate();
   
   // ✅ State Management
   const [email, setEmail] = useState('');
+  // (removed duplicate state; see typed declaration below)
   const [authState, setAuthState] = useState<AuthState>('idle');
   const [error, setError] = useState('');
   const [cooldownTime, setCooldownTime] = useState(0);
@@ -355,14 +360,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // ✅ Call triggerRedirectCheck from AuthContext to ensure proper redirect
         triggerRedirectCheck();
         
-        // ✅ BACKUP REDIRECT: Jika AuthGuard gagal, lakukan manual redirect
+        // ✅ NEW: Force redirect to dashboard after successful OTP verification
+        // This ensures redirect even if AuthGuard fails
         setTimeout(() => {
-          console.log('🚀 [EmailAuth] Backup redirect check, current path:', window.location.pathname);
           if (window.location.pathname === '/auth') {
-            console.log('🚀 [EmailAuth] AuthGuard failed, doing manual redirect');
-            navigate('/', { replace: true });
+            logger.info('EmailAuth: Manual redirect to dashboard after OTP verification');
+            window.location.href = '/';
           }
-        }, 2000);
+        }, 500); // Reduced delay to 500ms
         
         // ✅ Only call onLoginSuccess callback if provided (for custom logic)
         if (onLoginSuccess) {

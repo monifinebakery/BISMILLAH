@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 import { getCurrentSession, clearSessionCache } from './session';
+import { withExponentialBackoff } from '@/utils/asyncUtils';
 
 // ✅ SIMPLIFIED: Check authentication using utility session
 export const isAuthenticated = async (): Promise<boolean> => {
@@ -36,24 +37,16 @@ export const getCurrentUser = async () => {
       return session.user;
     }
 
-    // Strategy 2: Fallback - Direct getUser() call with timeout
+    // Strategy 2: Fallback - Direct getUser() call with exponential backoff
     logger.warn('[Auth] No valid user in session, trying direct getUser()...');
     
-    const userPromise = supabase.auth.getUser();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('getUser timeout')), 5000)
+    const user = await withExponentialBackoff(
+      () => supabase.auth.getUser().then(res => res.data.user),
+      2, // max retries
+      1000, // base delay 1 second
+      10000 // timeout 10 seconds
     );
     
-    const { data: { user }, error } = await Promise.race([
-      userPromise,
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.error('[Auth] Direct getUser() error:', error);
-      return null;
-    }
-
     if (user?.id && user.id !== 'null') {
       logger.debug('[Auth] Current user from direct call:', { 
         id: user.id, 
@@ -95,7 +88,7 @@ export const getCurrentUserValidated = async () => {
   return user;
 };
 
-// ✅ ENHANCED: Force refresh with timeout and validation
+// ✅ ENHANCED: Force refresh with exponential backoff and validation
 export const refreshCurrentUser = async () => {
   try {
     logger.info('[Auth] Force refreshing user session...');
@@ -103,29 +96,21 @@ export const refreshCurrentUser = async () => {
     // Clear utility cache first
     clearSessionCache();
     
-    // Force refresh session with timeout
-    const refreshPromise = supabase.auth.refreshSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Refresh timeout')), 10000)
+    // Force refresh session with exponential backoff
+    const data = await withExponentialBackoff(
+      () => supabase.auth.refreshSession(),
+      2, // max retries
+      1000, // base delay 1 second
+      10000 // timeout 10 seconds
     );
     
-    const { data: { session }, error } = await Promise.race([
-      refreshPromise,
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.error('[Auth] Session refresh error:', error);
-      return null;
-    }
-    
-    if (session?.user?.id && session.user.id !== 'null') {
+    if (data.session?.user?.id && data.session.user.id !== 'null') {
       logger.success('[Auth] Session refreshed successfully:', {
-        userId: session.user.id,
-        email: session.user.email,
-        userIdType: typeof session.user.id
+        userId: data.session.user.id,
+        email: data.session.user.email,
+        userIdType: typeof data.session.user.id
       });
-      return session.user;
+      return data.session.user;
     }
     
     logger.warn('[Auth] Session refresh returned invalid user');
@@ -137,7 +122,7 @@ export const refreshCurrentUser = async () => {
   }
 };
 
-// ✅ ENHANCED: Sign out with proper cleanup
+// ✅ ENHANCED: Sign out with proper cleanup and exponential backoff
 export const signOut = async (): Promise<boolean> => {
   try {
     logger.info('[Auth] Signing out user...');
@@ -145,22 +130,13 @@ export const signOut = async (): Promise<boolean> => {
     // Clear utility session cache first
     clearSessionCache();
     
-    // Perform sign out with timeout
-    const signOutPromise = supabase.auth.signOut();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('SignOut timeout')), 5000)
+    // Perform sign out with exponential backoff
+    await withExponentialBackoff(
+      () => supabase.auth.signOut(),
+      2, // max retries
+      1000, // base delay 1 second
+      5000 // timeout 5 seconds
     );
-    
-    const { error } = await Promise.race([
-      signOutPromise,
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.error('[Auth] Sign out error:', error);
-      // Even if signOut fails, consider it success for local cleanup
-      return true;
-    }
     
     logger.success('[Auth] User signed out successfully');
     return true;
@@ -171,18 +147,22 @@ export const signOut = async (): Promise<boolean> => {
   }
 };
 
-// ✅ ENHANCED: Debug auth state with comprehensive info
+// ✅ ENHANCED: Debug auth state with comprehensive info and exponential backoff
 export const debugAuthState = async () => {
   try {
     const session = await getCurrentSession();
     const user = await getCurrentUser();
     const isAuth = await isAuthenticated();
     
-    // Get session info directly from Supabase
+    // Get session info directly from Supabase with exponential backoff
     let directSession = null;
     try {
-      const { data: { session: directSess } } = await supabase.auth.getSession();
-      directSession = directSess;
+      directSession = await withExponentialBackoff(
+        () => supabase.auth.getSession().then(res => res.data.session),
+        1, // max retries
+        1000, // base delay 1 second
+        10000 // timeout 10 seconds
+      );
     } catch (err) {
       logger.error('[Auth] Direct session check failed:', err);
     }

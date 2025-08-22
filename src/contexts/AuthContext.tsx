@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
-import { withTimeout, withSoftTimeout } from '@/utils/asyncUtils';
+import { withTimeout, withSoftTimeout, withExponentialBackoff } from '@/utils/asyncUtils';
 import { AuthErrorHandler, handleAuthError } from '@/utils/authErrorHandler';
 
 // ✅ Import from authUtils untuk konsistensi
@@ -54,7 +54,7 @@ const detectDeviceCapabilities = () => {
 };
 
 // ✅ Adaptive timeout - sama dengan authUtils
-const getAdaptiveTimeout = (baseTimeout = 15000) => {
+const getAdaptiveTimeout = (baseTimeout = 30000) => {
   const capabilities = detectDeviceCapabilities();
   let timeout = baseTimeout;
 
@@ -145,9 +145,9 @@ const validateSession = (session: Session | null): { session: Session | null; us
   return { session, user: sanitizedUser };
 };
 
-// ✅ Safe timeout wrapper yang konsisten dengan authUtils
+// ✅ Safe timeout wrapper that uses exponential backoff
 const safeWithTimeout = async <T,>(
-  promise: Promise<T>, 
+  promiseFn: () => Promise<T>, 
   timeoutMs: number, 
   timeoutMessage: string,
   retryCount = 0
@@ -155,7 +155,13 @@ const safeWithTimeout = async <T,>(
   const maxRetries = 2;
   
   try {
-    const result = await withTimeout(promise, timeoutMs, timeoutMessage);
+    // Use exponential backoff for the promise
+    const result = await withExponentialBackoff(
+      promiseFn,
+      maxRetries,
+      1000, // base delay 1 second
+      timeoutMs
+    );
     return { data: result, error: null };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -176,7 +182,7 @@ const safeWithTimeout = async <T,>(
     )) {
       logger.warn(`🔄 Network error detected, retrying in ${(retryCount + 1) * 2} seconds...`);
       await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
-      return safeWithTimeout(promise, timeoutMs, timeoutMessage, retryCount + 1);
+      return safeWithTimeout(promiseFn, timeoutMs, timeoutMessage, retryCount + 1);
     }
     
     return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
@@ -210,7 +216,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // ✅ FIX: Use safe timeout wrapper with retry
       const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
-        supabase.auth.getSession(),
+        () => supabase.auth.getSession(),
         adaptiveTimeout,
         'AuthContext refresh timeout'
       );
@@ -233,7 +239,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         // Retry setelah refresh
         const { data: retryResult } = await safeWithTimeout(
-          supabase.auth.getSession(),
+          () => supabase.auth.getSession(),
           adaptiveTimeout,
           'AuthContext refresh retry'
         );
@@ -310,7 +316,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // ✅ Enhanced initialization dengan fallback
         const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
-          supabase.auth.getSession(),
+          () => supabase.auth.getSession(),
           adaptiveTimeout,
           'Auth initialization timeout'
         );
@@ -457,6 +463,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         logger.context('AuthContext', 'Auth state updated, letting AuthGuard handle navigation');
+        
+        // ✅ NEW: Force redirect check when user becomes authenticated
+        if (event === 'SIGNED_IN' && user && window.location.pathname === '/auth') {
+          logger.info('AuthContext: User signed in on auth page, forcing redirect to dashboard');
+          window.location.href = '/';
+        }
       }
     );
 

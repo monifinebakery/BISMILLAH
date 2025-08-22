@@ -358,16 +358,31 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setAuthState('success');
         toast.success('Login berhasil! Mengarahkan ke dashboard...');
         
-        // ✅ SIMPLIFIED: Use only one reliable redirect method
-        logger.info('EmailAuth: Executing successful login redirect');
+        // ✅ AGGRESSIVE REDIRECT: Multiple fallback mechanisms
+        logger.info('EmailAuth: Executing aggressive redirect strategy');
         
-        // Wait a moment for AuthContext to update user state, then redirect
+        // Method 1: Immediate redirect
+        console.log('🚀 [REDIRECT] Method 1: Immediate redirect');
+        window.location.href = '/';
+        
+        // Method 2: Backup redirect after 1 second
         setTimeout(() => {
-          if (mountedRef.current) {
-            logger.info('EmailAuth: Redirecting to dashboard');
-            window.location.href = '/';
+          if (mountedRef.current && window.location.pathname === '/auth') {
+            console.log('🚀 [REDIRECT] Method 2: Backup redirect (1s)');
+            window.location.replace('/');
           }
-        }, 100);
+        }, 1000);
+        
+        // Method 3: Final fallback after 2 seconds
+        setTimeout(() => {
+          if (mountedRef.current && window.location.pathname === '/auth') {
+            console.log('🚀 [REDIRECT] Method 3: Final fallback (2s)');
+            console.log('🚀 [REDIRECT] Current location:', window.location.href);
+            console.log('🚀 [REDIRECT] Force reload and redirect');
+            window.location.href = '/';
+            setTimeout(() => window.location.reload(), 100);
+          }
+        }, 2000);
         
         // ✅ Call onLoginSuccess callback if provided
         if (onLoginSuccess) {
@@ -571,12 +586,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
               {/* Success Message */}
               {authState === 'success' && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-3">
                   <div className="flex items-center">
                     <RefreshCw className="w-4 h-4 mr-2 text-green-600 animate-spin" />
                     <span className="text-sm text-green-800">
                       Login berhasil! AuthGuard akan mengarahkan ke dashboard...
                     </span>
+                  </div>
+                  
+                  {/* Emergency redirect button */}
+                  <div className="pt-2">
+                    <Button
+                      onClick={() => {
+                        console.log('🚑 [EMERGENCY] Manual redirect clicked');
+                        window.location.href = '/';
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      🚑 Jika tidak redirect otomatis, klik di sini
+                    </Button>
                   </div>
                 </div>
               )}

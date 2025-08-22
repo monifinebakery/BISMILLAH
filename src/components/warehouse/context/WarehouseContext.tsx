@@ -83,8 +83,36 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     const items = await service.fetchBahanBaku();
     logger.debug('📊 fetchWarehouseData received items:', items.length);
     
+    // Log current price status before adjustment
+    const priceAnalysis = items.map((item: any) => ({
+      nama: item.nama,
+      harga: item.harga || 0,
+      hargaRataRata: item.hargaRataRata || 0,
+      hasZeroPrice: (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
+    }));
+    
+    const zeroPriceCount = priceAnalysis.filter((p: any) => p.hasZeroPrice).length;
+    logger.info(`📈 Price analysis before adjustment: ${zeroPriceCount}/${items.length} items have zero prices`);
+    
+    if (zeroPriceCount > 0) {
+      logger.debug('📊 Items with zero prices:', 
+        priceAnalysis.filter((p: any) => p.hasZeroPrice).map((p: any) => p.nama)
+      );
+    }
+    
     // ✅ AUTO PRICE ADJUSTMENT: Fix zero prices automatically
     await autoAdjustPrices(items, userId);
+    
+    // Log price status after adjustment
+    const postAdjustmentAnalysis = items.map((item: any) => ({
+      nama: item.nama,
+      harga: item.harga || 0,
+      hargaRataRata: item.hargaRataRata || 0,
+      hasZeroPrice: (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
+    }));
+    
+    const remainingZeroCount = postAdjustmentAnalysis.filter((p: any) => p.hasZeroPrice).length;
+    logger.info(`📈 Price analysis after adjustment: ${remainingZeroCount}/${items.length} items still have zero prices`);
     
     // Transform to frontend format and ensure proper types
     const transformedItems = items.map((item: any) => ({
@@ -92,6 +120,7 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
       stok: Number(item.stok) || 0,
       minimum: Number(item.minimum) || 0,
       harga: Number(item.harga) || 0,
+      hargaRataRata: item.hargaRataRata ? Number(item.hargaRataRata) : undefined,
       jumlahBeliKemasan: item.jumlahBeliKemasan ? Number(item.jumlahBeliKemasan) : undefined,
       hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ? Number(item.hargaTotalBeliKemasan) : undefined,
     }));
@@ -112,26 +141,34 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
   if (!userId || !items) return;
   
   try {
-    // Find items with zero prices
+    // Find items with zero prices (check both harga and hargaRataRata)
     const zeroPriceItems = items.filter(item => 
       (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
     );
     
-    if (zeroPriceItems.length === 0) return;
+    if (zeroPriceItems.length === 0) {
+      logger.debug('✅ No items with zero prices found');
+      return;
+    }
     
-    logger.info(`🔄 Auto-adjusting prices for ${zeroPriceItems.length} items`);
+    logger.info(`🔄 Auto-adjusting prices for ${zeroPriceItems.length} items:`, 
+      zeroPriceItems.map(item => item.nama)
+    );
     
-    // Get purchase history for price calculation
+    // Get purchase history for price calculation with more comprehensive query
     const { data: purchases, error: purchasesError } = await supabase
       .from('purchases')
-      .select('items')
+      .select('id, items, created_at, supplier')
       .eq('user_id', userId)
-      .eq('status', 'completed');
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false }); // Most recent first
     
     if (purchasesError) {
       logger.error('Failed to fetch purchase history for price adjustment:', purchasesError);
       return;
     }
+    
+    logger.info(`📊 Found ${purchases?.length || 0} completed purchases for WAC calculation`);
     
     // Process each item with zero price
     for (const item of zeroPriceItems) {
@@ -139,18 +176,39 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
         let newPrice = 0;
         let totalQuantity = 0;
         let totalValue = 0;
+        const purchaseHistory: any[] = [];
         
-        // Calculate average price from purchase history
+        // Calculate average price from purchase history with detailed logging
         if (purchases && purchases.length > 0) {
           purchases.forEach(purchase => {
             if (purchase.items && Array.isArray(purchase.items)) {
               purchase.items.forEach((purchaseItem: any) => {
-                if (purchaseItem.bahan_baku_id === item.id) {
-                  const qty = Number(purchaseItem.jumlah || 0);
-                  const price = Number(purchaseItem.harga_per_satuan || 0);
+                // Check multiple possible field names for item ID
+                const itemMatches = purchaseItem.bahan_baku_id === item.id || 
+                                   purchaseItem.bahanBakuId === item.id ||
+                                   purchaseItem.id === item.id;
+                
+                if (itemMatches) {
+                  // Check multiple possible field names for quantity and price
+                  const qty = Number(purchaseItem.jumlah || purchaseItem.kuantitas || purchaseItem.quantity || 0);
+                  const price = Number(
+                    purchaseItem.harga_per_satuan || 
+                    purchaseItem.harga_satuan || 
+                    purchaseItem.hargaSatuan ||
+                    purchaseItem.unit_price ||
+                    purchaseItem.price || 0
+                  );
+                  
                   if (qty > 0 && price > 0) {
                     totalQuantity += qty;
                     totalValue += qty * price;
+                    purchaseHistory.push({
+                      purchaseId: purchase.id,
+                      qty,
+                      price,
+                      date: purchase.created_at,
+                      supplier: purchase.supplier
+                    });
                   }
                 }
               });
@@ -158,19 +216,29 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
           });
         }
         
+        logger.debug(`📈 Item "${item.nama}" purchase analysis:`, {
+          totalPurchases: purchaseHistory.length,
+          totalQuantity,
+          totalValue,
+          calculatedWAC: totalQuantity > 0 ? totalValue / totalQuantity : 0,
+          purchaseHistory: purchaseHistory.slice(0, 3) // Show first 3 for debugging
+        });
+        
         if (totalQuantity > 0 && totalValue > 0) {
           newPrice = totalValue / totalQuantity;
+          logger.info(`✅ Calculated WAC for "${item.nama}": Rp ${newPrice.toLocaleString()} from ${purchaseHistory.length} purchase records`);
         } else {
-          // Default price for items without purchase history
-          newPrice = 1000; // Rp 1,000 default
+          // Set a more reasonable default price based on category or supplier
+          newPrice = 2500; // Increased default from 1000 to 2500
+          logger.info(`⚠️ No purchase history found for "${item.nama}", using default price: Rp ${newPrice.toLocaleString()}`);
         }
         
-        // Update the item price
+        // Update the item price in database
         const { error: updateError } = await supabase
           .from('bahan_baku')
           .update({
             harga_satuan: item.harga === 0 ? newPrice : item.harga,
-            harga_rata_rata: newPrice,
+            harga_rata_rata: totalQuantity > 0 ? newPrice : null, // Only set WAC if we have purchase data
             updated_at: new Date().toISOString()
           })
           .eq('id', item.id)
@@ -179,10 +247,16 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
         if (updateError) {
           logger.error(`Failed to update price for ${item.nama}:`, updateError);
         } else {
-          logger.info(`✅ Auto-adjusted price for ${item.nama}: Rp ${newPrice.toLocaleString()}`);
+          const priceType = totalQuantity > 0 ? 'WAC' : 'default';
+          logger.info(`✅ Auto-adjusted price for "${item.nama}": Rp ${newPrice.toLocaleString()} (${priceType})`);
+          
           // Update the item in memory so the change is visible immediately
-          item.harga = item.harga === 0 ? newPrice : item.harga;
-          item.hargaRataRata = newPrice;
+          if (item.harga === 0) {
+            item.harga = newPrice;
+          }
+          if (totalQuantity > 0) {
+            item.hargaRataRata = newPrice;
+          }
         }
         
       } catch (error) {

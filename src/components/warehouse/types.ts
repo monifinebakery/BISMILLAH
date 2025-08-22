@@ -5,7 +5,13 @@
  * Updated to support proper package content calculation and unit price handling
  */
 
-import type { RecipeIngredient } from '@/types/recipe';
+// Temporary RecipeIngredient interface until proper import is available
+interface RecipeIngredient {
+  bahanBakuId: string;
+  jumlah: number;
+  satuan: string;
+  harga: number;
+}
 
 // Core Data Types (Database format - snake_case)
 // ✅ VERIFIED: All field names match database schema exactly
@@ -18,6 +24,7 @@ export interface BahanBaku {
   satuan: string;
   minimum: number;
   harga_satuan: number;
+  harga_per_satuan?: number;           // ✅ NEW: unit price from purchases
   supplier: string;
   tanggal_kadaluwarsa?: string;
   created_at: string;
@@ -395,6 +402,7 @@ export const FIELD_MAPPINGS = {
   database: {
     user_id: 'userId',
     harga_satuan: 'harga',
+    harga_per_satuan: 'hargaPerSatuan',    // ✅ NEW: unit price mapping
     harga_rata_rata: 'hargaRataRata',    // ✅ TAMBAH: WAC mapping
     tanggal_kadaluwarsa: 'expiry',
     created_at: 'createdAt',

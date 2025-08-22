@@ -124,7 +124,6 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
                 if (itemMatches) {
                   const qty = Number(purchaseItem.jumlah || purchaseItem.kuantitas || purchaseItem.quantity || 0);
                   const price = Number(
-                    purchaseItem.harga_per_satuan || 
                     purchaseItem.harga_satuan || 
                     purchaseItem.hargaSatuan ||
                     purchaseItem.unit_price ||
@@ -147,20 +146,20 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
         } else {
           // Smart category-based default pricing
           const categoryDefaults: { [key: string]: number } = {
-            'Daging': 50000,
-            'Seafood': 40000,
-            'Sayuran': 15000,
-            'Buah': 20000,
-            'Bumbu': 10000,
-            'Minyak': 25000,
-            'Tepung': 8000,
-            'Gula': 12000,
-            'Garam': 5000,
-            'Susu': 15000,
-            'Telur': 25000
+            'Daging': 0,
+            'Seafood': 0,
+            'Sayuran': 0,
+            'Buah': 0,
+            'Bumbu': 0,
+            'Minyak': 0,
+            'Tepung': 0,
+            'Gula': 0,
+            'Garam': 0,
+            'Susu': 0,
+            'Telur': 0
           };
           
-          newPrice = categoryDefaults[item.kategori] || 5000;
+          newPrice = categoryDefaults[item.kategori] || 0;
         }
         
         // Prepare update data

@@ -64,7 +64,7 @@ export interface PurchaseStats {
 export interface PurchaseItemDB {
   bahan_baku_id: string;
   jumlah: number;
-  harga_per_satuan: number;
+  harga_satuan: number;
   // metadata tambahan (aman disimpan)
   nama?: string;
   satuan?: string;

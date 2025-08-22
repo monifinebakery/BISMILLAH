@@ -36,7 +36,7 @@ const mapItemForDB = (i: any) => {
 
   const hargaPerSatuan = Number(
     i.hargaSatuan ??
-    i.harga_per_satuan ??
+    i.harga_satuan ??
     i.price_unit ?? // kalau ada istilah lain
     deriveUnitPriceFromPackaging(i) ?? // hitung dari kemasan
     0
@@ -56,7 +56,7 @@ const mapItemForDB = (i: any) => {
     // ✅ KOLOM WAJIB: yang dibaca trigger WAC
     bahan_baku_id: String((i.bahanBakuId ?? i.bahan_baku_id) || ''),
     jumlah: Math.max(0, jumlah),
-    harga_per_satuan: Math.max(0, hargaPerSatuan),
+    harga_satuan: Math.max(0, hargaPerSatuan),
 
     // ✅ METADATA: tambahan yang aman disimpan
     nama: String(i.nama ?? '').trim(),
@@ -97,7 +97,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
           const qtyBase = toNumber(i.qty_base ?? i.jumlah ?? i.kuantitas);
           const baseUnit = i.base_unit ?? i.satuan ?? '';
           const hargaPerSatuan =
-            toNumber(i.harga_per_satuan ?? i.hargaSatuan) ||
+            toNumber(i.hargaSatuan ?? i.harga_satuan) ||
             toNumber(deriveUnitPriceFromPackaging(i) ?? 0);
 
           const subtotal =
@@ -124,7 +124,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
             // simpan juga field baru (opsional)
             qty_base: qtyBase,
             base_unit: baseUnit,
-            harga_per_satuan: hargaPerSatuan,
+            harga_satuan: hargaPerSatuan,
             jumlahKemasan: jumlahKemasan || undefined,
             isiPerKemasan: isiPerKemasan || undefined,
             satuanKemasan: satuanKemasan || undefined,
@@ -226,7 +226,7 @@ export const normalizePurchaseFormData = (formData: any): any => ({
     ? formData.items.map((item: any) => {
         const qty = toNumber(item.kuantitas ?? item.qty_base);
         const price =
-          toNumber(item.hargaSatuan ?? item.harga_per_satuan) ||
+          toNumber(item.hargaSatuan ?? item.harga_satuan) ||
           toNumber(deriveUnitPriceFromPackaging(item) ?? 0);
         return {
           ...item,
@@ -235,7 +235,7 @@ export const normalizePurchaseFormData = (formData: any): any => ({
           satuan: item.satuan ?? item.base_unit ?? '',
           base_unit: item.base_unit ?? item.satuan ?? '',
           hargaSatuan: price,
-          harga_per_satuan: price,
+          harga_satuan: price,
           subtotal: item.subtotal !== undefined ? toNumber(item.subtotal) : qty * price,
         };
       })
@@ -257,7 +257,7 @@ export const sanitizePurchaseData = (data: any): any => ({
         );
         const hargaSatuan = Number(
           item.hargaSatuan ?? 
-          item.harga_per_satuan ?? 
+          item.harga_satuan ?? 
           item.price_unit ?? 
           deriveUnitPriceFromPackaging(item) ??
           0

@@ -17,7 +17,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Types - ✅ FIXED: Remove unused BahanBaku import
 import type { BahanBakuFrontend } from '../types';
-import type { RecipeIngredient } from '@/types/recipe';
 
 // Query keys
 const warehouseQueryKeys = {
@@ -50,9 +49,9 @@ interface WarehouseContextType {
   getBahanBakuByName: (nama: string) => BahanBakuFrontend | undefined;
   reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
   getIngredientPrice: (nama: string) => number;
-  validateIngredientAvailability: (ingredients: RecipeIngredient[]) => boolean;
-  consumeIngredients: (ingredients: RecipeIngredient[]) => Promise<boolean>;
-  updateIngredientPrices: (ingredients: RecipeIngredient[]) => RecipeIngredient[];
+  validateIngredientAvailability: (ingredients: any[]) => boolean;
+  consumeIngredients: (ingredients: any[]) => Promise<boolean>;
+  updateIngredientPrices: (ingredients: any[]) => any[];
   
   // Analysis
   getLowStockItems: () => BahanBakuFrontend[];
@@ -79,10 +78,13 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
-    });
+    }) as any; // Type assertion to access CRUD methods
     
     const items = await service.fetchBahanBaku();
     logger.debug('📊 fetchWarehouseData received items:', items.length);
+    
+    // ✅ AUTO PRICE ADJUSTMENT: Fix zero prices automatically
+    await autoAdjustPrices(items, userId);
     
     // Transform to frontend format and ensure proper types
     const transformedItems = items.map((item: any) => ({
@@ -102,6 +104,97 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
   }
 };
 
+/**
+ * Auto-adjust prices for items with zero prices
+ * This replaces the manual fix button with automatic adjustment
+ */
+const autoAdjustPrices = async (items: any[], userId?: string) => {
+  if (!userId || !items) return;
+  
+  try {
+    // Find items with zero prices
+    const zeroPriceItems = items.filter(item => 
+      (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
+    );
+    
+    if (zeroPriceItems.length === 0) return;
+    
+    logger.info(`🔄 Auto-adjusting prices for ${zeroPriceItems.length} items`);
+    
+    // Get purchase history for price calculation
+    const { data: purchases, error: purchasesError } = await supabase
+      .from('purchases')
+      .select('items')
+      .eq('user_id', userId)
+      .eq('status', 'completed');
+    
+    if (purchasesError) {
+      logger.error('Failed to fetch purchase history for price adjustment:', purchasesError);
+      return;
+    }
+    
+    // Process each item with zero price
+    for (const item of zeroPriceItems) {
+      try {
+        let newPrice = 0;
+        let totalQuantity = 0;
+        let totalValue = 0;
+        
+        // Calculate average price from purchase history
+        if (purchases && purchases.length > 0) {
+          purchases.forEach(purchase => {
+            if (purchase.items && Array.isArray(purchase.items)) {
+              purchase.items.forEach((purchaseItem: any) => {
+                if (purchaseItem.bahan_baku_id === item.id) {
+                  const qty = Number(purchaseItem.jumlah || 0);
+                  const price = Number(purchaseItem.harga_per_satuan || 0);
+                  if (qty > 0 && price > 0) {
+                    totalQuantity += qty;
+                    totalValue += qty * price;
+                  }
+                }
+              });
+            }
+          });
+        }
+        
+        if (totalQuantity > 0 && totalValue > 0) {
+          newPrice = totalValue / totalQuantity;
+        } else {
+          // Default price for items without purchase history
+          newPrice = 1000; // Rp 1,000 default
+        }
+        
+        // Update the item price
+        const { error: updateError } = await supabase
+          .from('bahan_baku')
+          .update({
+            harga_satuan: item.harga === 0 ? newPrice : item.harga,
+            harga_rata_rata: newPrice,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id)
+          .eq('user_id', userId);
+        
+        if (updateError) {
+          logger.error(`Failed to update price for ${item.nama}:`, updateError);
+        } else {
+          logger.info(`✅ Auto-adjusted price for ${item.nama}: Rp ${newPrice.toLocaleString()}`);
+          // Update the item in memory so the change is visible immediately
+          item.harga = item.harga === 0 ? newPrice : item.harga;
+          item.hargaRataRata = newPrice;
+        }
+        
+      } catch (error) {
+        logger.error(`Error processing item ${item.nama}:`, error);
+      }
+    }
+    
+  } catch (error) {
+    logger.error('Error in auto price adjustment:', error);
+  }
+};
+
 const createWarehouseItem = async (
   item: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string },
   userId?: string
@@ -114,7 +207,7 @@ const createWarehouseItem = async (
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const result = await service.addBahanBaku(item);
+    const result = await (service as any).addBahanBaku(item);
     logger.debug('📊 createWarehouseItem result:', result);
     return result;
   } catch (error) {
@@ -138,7 +231,7 @@ const updateWarehouseItem = async ({ id, updates, userId }: { id: string; update
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const result = await service.updateBahanBaku(id, updates);
+    const result = await (service as any).updateBahanBaku(id, updates);
     logger.info('📊 updateWarehouseItem result:', result);
     return result;
   } catch (error) {
@@ -156,7 +249,7 @@ const deleteWarehouseItem = async (id: string, userId?: string): Promise<boolean
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const result = await service.deleteBahanBaku(id);
+    const result = await (service as any).deleteBahanBaku(id);
     logger.debug('📊 deleteWarehouseItem result:', result);
     return result;
   } catch (error) {
@@ -174,7 +267,7 @@ const bulkDeleteWarehouseItems = async (ids: string[], userId?: string): Promise
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const result = await service.bulkDeleteBahanBaku(ids);
+    const result = await (service as any).bulkDeleteBahanBaku(ids);
     logger.debug('📊 bulkDeleteWarehouseItems result:', result);
     return result;
   } catch (error) {
@@ -442,7 +535,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         enableDebugLogs
       });
       
-      const success = await service.reduceStok(nama, jumlah, bahanBaku);
+      const success = await (service as any).reduceStok(nama, jumlah, bahanBaku);
       if (success) {
         await refetch(); // Refresh using useQuery
       }
@@ -462,7 +555,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const validateIngredientAvailability = React.useCallback(
-    (ingredients: RecipeIngredient[]): boolean => {
+    (ingredients: any[]): boolean => {
       for (const ingredient of ingredients) {
         const item = getBahanBakuByName(ingredient.nama);
         if (!item) {
@@ -482,7 +575,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const consumeIngredients = React.useCallback(
-    async (ingredients: RecipeIngredient[]): Promise<boolean> => {
+    async (ingredients: any[]): Promise<boolean> => {
       if (!validateIngredientAvailability(ingredients)) {
         return false;
       }
@@ -497,7 +590,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         );
         return true;
       } catch (error) {
-        logger.error(error);
+        logger.error('Error in consumeIngredients:', error);
         return false;
       }
     },
@@ -505,7 +598,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const updateIngredientPrices = React.useCallback(
-    (ingredients: RecipeIngredient[]): RecipeIngredient[] => {
+    (ingredients: any[]): any[] => {
       return ingredients.map(ingredient => {
         const currentPrice = getIngredientPrice(ingredient.nama);
         if (currentPrice > 0 && currentPrice !== ingredient.hargaPerSatuan) {

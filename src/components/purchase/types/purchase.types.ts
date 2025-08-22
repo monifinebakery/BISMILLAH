@@ -176,7 +176,7 @@ export interface UsePurchaseStatusReturn {
 
 // ============ Intent types ============
 // ✅ NEW: Intent system for different add purchase modes
-export type AddPurchaseIntent = 'quick' | 'accurate' | 'packaging' | 'normal';
+export type AddPurchaseIntent = 'quick' | 'accurate' | 'normal';
 
 // ============ Component Props ============
 export interface PurchaseDialogProps {

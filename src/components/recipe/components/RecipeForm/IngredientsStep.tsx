@@ -73,7 +73,6 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
           typeof_harga_satuan: typeof item.harga_satuan,
           all_price_related_fields: {
             harga_satuan: item.harga_satuan,
-            harga_total_beli_kemasan: item.harga_total_beli_kemasan,
             // Check if there are other price fields
             ...Object.fromEntries(
               Object.entries(item).filter(([key]) => 

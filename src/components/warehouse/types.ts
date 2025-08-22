@@ -50,8 +50,7 @@ export interface BahanBakuFrontend {
   updatedAt: string;                   // maps to updated_at
 }
 
-// ✅ ENHANCED: Package calculation helper types
-export interface PackageCalculation {}
+
 
 // ✅ ENHANCED: Unit conversion types
 export interface UnitInfo {
@@ -135,7 +134,6 @@ export interface ImportValidationResult {
   valid: BahanBakuImport[];
   errors: string[];
   warnings: string[];
-  calculations: PackageCalculation[];
 }
 
 // ✅ ENHANCED: Bulk operations with package awareness
@@ -199,7 +197,6 @@ export interface WarehouseError extends Error {
   context?: {
     operation?: string;
     itemId?: string;
-    calculation?: Partial<PackageCalculation>;
   };
 }
 
@@ -242,14 +239,7 @@ export interface DatabaseFieldMapping {
   updatedAt: 'updated_at';
 }
 
-// ✅ ENHANCED: Package parsing types
-export interface ParsedPackageInfo {
-  isiPerKemasan: number;
-  satuan: string;
-  jenisKemasan: string;
-  isValid: boolean;
-  originalString: string;
-}
+
 
 // ✅ UTILITY: Export utility types for easier imports
 export type CreateBahanBakuInput = Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>;

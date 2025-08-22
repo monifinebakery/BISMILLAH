@@ -61,11 +61,17 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       console.log(`🚀 [AuthGuard] IMMEDIATE REDIRECT triggered for user:`, user.email);
       console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
       
-      // Force immediate redirect with timeout to ensure state is fully updated
+      // Force immediate redirect without timeout
       console.log(`🚀 [AuthGuard] Executing immediate redirect`);
+      window.location.href = '/';
+      
+      // Fallback dengan window.location.replace jika masih di halaman auth
       setTimeout(() => {
-        window.location.href = '/';
-      }, 200); // Tambahkan delay kecil untuk memastikan state terupdate sepenuhnya
+        if (window.location.pathname === '/auth') {
+          console.log(`🚀 [AuthGuard] Still on auth page, using location.replace`);
+          window.location.replace('/');
+        }
+      }, 1000);
     }
   }, [user, isReady, isLoading, location.pathname]);
 

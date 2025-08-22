@@ -217,20 +217,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       currentPath: window.location.pathname
     });
     
-    if (isReady && user && window.location.pathname === '/auth') {
-      // Tambahkan delay kecil untuk memastikan state terupdate sepenuhnya
+    if (window.location.pathname === '/auth') {
+      // Langsung redirect ke halaman utama tanpa menunggu state
+      logger.info('AuthContext: Forcing immediate redirect from /auth');
+      window.location.href = '/';
+      
+      // Sebagai fallback, gunakan window.location.replace jika masih di halaman auth
       setTimeout(() => {
-        window.location.href = '/';
-      }, 200);
+        if (window.location.pathname === '/auth') {
+          logger.warn('AuthContext: Still on auth page, using location.replace');
+          window.location.replace('/');
+        }
+      }, 1000);
     } else if (!isReady || !user) {
       // Jika belum ready atau belum ada user, coba refresh session
+      logger.info('AuthContext: Refreshing user session before redirect');
       refreshUser();
-      // Coba lagi setelah refresh
-      setTimeout(() => {
-        if (user && window.location.pathname === '/auth') {
-          window.location.href = '/';
-        }
-      }, 500);
     }
   };
 

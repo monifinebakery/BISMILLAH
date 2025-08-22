@@ -364,17 +364,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // ✅ Force immediate redirect to dashboard after successful OTP verification
         // This ensures redirect happens even if AuthGuard fails
         logger.info('EmailAuth: Forcing immediate redirect to dashboard');
-        // Tunggu lebih lama sebelum redirect untuk memastikan semua state diperbarui
+        
+        // Gunakan window.location.href langsung untuk memastikan redirect terjadi
+        logger.info('EmailAuth: Using direct window.location.href redirect');
+        window.location.href = '/';
+        
+        // Sebagai fallback, jika masih di halaman yang sama setelah beberapa waktu
         setTimeout(() => {
-          // Coba redirect dengan navigate terlebih dahulu
-          navigate('/');
-          // Jika masih di halaman yang sama setelah beberapa waktu, gunakan window.location
-          setTimeout(() => {
-            if (window.location.pathname === '/auth') {
-              window.location.href = '/';
-            }
-          }, 300);
-        }, 300);
+          if (window.location.pathname === '/auth') {
+            logger.warn('EmailAuth: Still on auth page after redirect, forcing again');
+            window.location.replace('/');
+          }
+        }, 1000);
         
         // ✅ Only call onLoginSuccess callback if provided (for custom logic)
         if (onLoginSuccess) {

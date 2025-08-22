@@ -11,14 +11,30 @@ import {
 import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 
 export class PurchaseApiService {
-  private static shouldSkipWarehouseSync(purchase: Purchase | null | undefined): boolean {
-    if (!purchase || !Array.isArray(purchase.items)) return false;
+  private static shouldSkipWarehouseSync(purchase: Purchase | null | undefined, forceSync: boolean = false): boolean {
+    console.log('🔄 [PURCHASE API] shouldSkipWarehouseSync called with:', { purchase: purchase?.id, forceSync });
+    
+    // If forceSync is true, don't skip (allow manual sync for imported items)
+    if (forceSync) {
+      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (forceSync enabled)');
+      return false;
+    }
+    
+    if (!purchase || !Array.isArray(purchase.items)) {
+      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (no purchase or items)');
+      return false;
+    }
+    
     try {
       // Skip jika semua item bertanda [IMPORTED] di keterangan
-      return purchase.items.length > 0 && purchase.items.every((it: any) =>
+      const shouldSkip = purchase.items.length > 0 && purchase.items.every((it: any) =>
         typeof it?.keterangan === 'string' && it.keterangan.toUpperCase().includes('IMPORTED')
       );
+      
+      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync result:', shouldSkip);
+      return shouldSkip;
     } catch {
+      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (error in check)');
       return false;
     }
   }
@@ -73,7 +89,8 @@ export class PurchaseApiService {
       if (error) throw new Error(error.message);
 
       // Manual sync: apply to warehouse if created as completed
-      if (purchaseData.status === 'completed' && data?.id && !this.shouldSkipWarehouseSync(purchaseData as Purchase)) {
+      // Don't force sync during creation (respect IMPORTED flag)
+      if (purchaseData.status === 'completed' && data?.id && !this.shouldSkipWarehouseSync(purchaseData as Purchase, false)) {
         await applyPurchaseToWarehouse({
           ...purchaseData,
           id: data.id,
@@ -111,7 +128,7 @@ export class PurchaseApiService {
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
       // If existing was completed, reverse its effects first
-      if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing)) {
+      if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing, false)) {
         await reversePurchaseFromWarehouse(existing);
       }
 
@@ -134,7 +151,7 @@ export class PurchaseApiService {
       if (fetchUpdatedErr) throw new Error(fetchUpdatedErr.message);
       const updated = updatedRow ? transformPurchaseFromDB(updatedRow) : null;
 
-      if (updated && updated.status === 'completed' && !this.shouldSkipWarehouseSync(updated)) {
+      if (updated && updated.status === 'completed' && !this.shouldSkipWarehouseSync(updated, false)) {
         await applyPurchaseToWarehouse(updated);
       }
       return { success: true, error: null };
@@ -157,6 +174,8 @@ export class PurchaseApiService {
     newStatus: Purchase['status']
   ): Promise<{ success: boolean; error: string | null }> {
     try {
+      console.log('🔄 [PURCHASE API] setPurchaseStatus called:', { id, userId, newStatus });
+      
       // Fetch current
       const { data: existingRow, error: fetchErr } = await supabase
         .from('purchases')
@@ -166,6 +185,8 @@ export class PurchaseApiService {
         .single();
       if (fetchErr) throw new Error(fetchErr.message);
       const prev = existingRow ? transformPurchaseFromDB(existingRow) : null;
+      
+      console.log('🔄 [PURCHASE API] Previous purchase data:', prev);
 
       // Update status
       const { error } = await supabase
@@ -175,10 +196,15 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+      
+      console.log('✅ [PURCHASE API] Status updated in database');
 
       // Manual apply/reverse after status change
       if (prev && prev.status !== newStatus) {
+        console.log('🔄 [PURCHASE API] Status changed from', prev.status, 'to', newStatus);
+        
         if (newStatus === 'completed') {
+          console.log('🔄 [PURCHASE API] Applying to warehouse...');
           // Fetch fresh row to reflect any concurrent changes
           const { data: newRow } = await supabase
             .from('purchases')
@@ -187,18 +213,36 @@ export class PurchaseApiService {
             .eq('user_id', userId)
             .single();
           const fresh = newRow ? transformPurchaseFromDB(newRow) : prev;
-          if (!this.shouldSkipWarehouseSync(fresh)) {
+          
+          console.log('🔄 [PURCHASE API] Fresh purchase data for warehouse sync:', fresh);
+          
+          // Force sync for manual status changes (even for imported items)
+          const forceSync = true;
+          if (!this.shouldSkipWarehouseSync(fresh, forceSync)) {
+            console.log('🔄 [PURCHASE API] Calling applyPurchaseToWarehouse with forceSync...');
             await applyPurchaseToWarehouse(fresh);
+            console.log('✅ [PURCHASE API] Warehouse sync completed');
+          } else {
+            console.log('⏭️ [PURCHASE API] Skipping warehouse sync (shouldSkipWarehouseSync returned true)');
           }
         } else if (prev.status === 'completed') {
-          if (!this.shouldSkipWarehouseSync(prev)) {
+          console.log('🔄 [PURCHASE API] Reversing from warehouse...');
+          // Force sync for manual status changes (even for imported items) 
+          const forceSync = true;
+          if (!this.shouldSkipWarehouseSync(prev, forceSync)) {
             await reversePurchaseFromWarehouse(prev);
+            console.log('✅ [PURCHASE API] Warehouse reverse completed');
+          } else {
+            console.log('⏭️ [PURCHASE API] Skipping warehouse reverse (shouldSkipWarehouseSync returned true)');
           }
         }
+      } else {
+        console.log('⏭️ [PURCHASE API] No status change, skipping warehouse sync');
       }
 
       return { success: true, error: null };
     } catch (err: any) {
+      console.error('❌ [PURCHASE API] Error in setPurchaseStatus:', err);
       logger.error('Error updating status:', err);
       return { success: false, error: err.message || 'Gagal update status' };
     }
@@ -225,7 +269,7 @@ export class PurchaseApiService {
         .single();
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
-      if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing)) {
+      if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing, false)) {
         await reversePurchaseFromWarehouse(existing);
       }
 

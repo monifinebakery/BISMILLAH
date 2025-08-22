@@ -23,7 +23,7 @@ import { warehouseApi } from '@/components/warehouse/services/warehouseApi';
 import { operationalCostApi } from '@/components/operational-costs/services/operationalCostApi';
 
 import { calculateRealTimeProfit, calculateMargins, generateExecutiveInsights, getCOGSEfficiencyRating } from '../utils/profitCalculations';
-import { transformToFNBCOGSBreakdown } from '../utils/profitTransformers';
+import { transformToFNBCOGSBreakdown, getCurrentPeriod } from '../utils/profitTransformers';
 // 🍽️ Import F&B constants
 import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
 // 🔧 Import date utilities for accuracy
@@ -583,7 +583,9 @@ const generatePeriods = (from: Date, to: Date, periodType: 'monthly' | 'quarterl
 
   while (current <= end) {
     if (periodType === 'monthly') {
-      periods.push(current.toISOString().slice(0, 7)); // YYYY-MM
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, '0');
+      periods.push(`${year}-${month}`); // YYYY-MM
       current.setMonth(current.getMonth() + 1);
     } else if (periodType === 'quarterly') {
       const quarter = Math.floor(current.getMonth() / 3) + 1;
@@ -1237,7 +1239,7 @@ export const profitAnalysisApi = {
    * ✅ Get current month profit analysis
    */
   async getCurrentMonthProfit(): Promise<ProfitApiResponse<RealTimeProfitCalculation>> {
-    const currentPeriod = new Date().toISOString().slice(0, 7);
+    const currentPeriod = getCurrentPeriod();
     return this.calculateProfitAnalysis(currentPeriod, 'monthly');
   },
 

@@ -91,6 +91,7 @@ export class PurchaseApiService {
       // Manual sync: apply to warehouse if created as completed
       // Don't force sync during creation (respect IMPORTED flag)
       if (purchaseData.status === 'completed' && data?.id && !this.shouldSkipWarehouseSync(purchaseData as Purchase, false)) {
+
         await applyPurchaseToWarehouse({
           ...purchaseData,
           id: data.id,
@@ -189,6 +190,7 @@ export class PurchaseApiService {
       console.log('🔄 [PURCHASE API] Previous purchase data:', prev);
 
       // Update status
+
       const { error } = await supabase
         .from('purchases')
         .update({ status: newStatus })
@@ -238,6 +240,15 @@ export class PurchaseApiService {
         }
       } else {
         console.log('⏭️ [PURCHASE API] No status change, skipping warehouse sync');
+      }
+
+      // Sinkronisasi manual stok dan WAC jika status berubah
+      if (purchase && previousStatus !== newStatus) {
+        if (newStatus === 'completed') {
+          await applyPurchaseToWarehouse(purchase);
+        } else if (previousStatus === 'completed') {
+          await reversePurchaseFromWarehouse(purchase);
+        }
       }
 
       return { success: true, error: null };

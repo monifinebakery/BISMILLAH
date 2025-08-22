@@ -19,7 +19,6 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { PurchaseApiService } from '../services/purchaseApi';
-
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
 import {
@@ -331,12 +330,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
       // ✅ INVALIDATE WAREHOUSE
+
       invalidateWarehouseData();
 
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
-      
+
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
-      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
       if (prevPurchase) {
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
           // Tambahkan transaksi ketika status berubah ke completed (expense)

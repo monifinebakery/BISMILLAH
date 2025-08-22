@@ -127,7 +127,7 @@ const updateWarehouseItem = async ({ id, item }: { id: string; item: Partial<Bah
 const deleteWarehouseItem = async (id: string): Promise<void> => {
   try {
     const service = await getCrudService();
-    
+
     const success = await service.deleteBahanBaku(id);
     if (!success) {
       throw new Error('Failed to delete item');
@@ -138,14 +138,15 @@ const deleteWarehouseItem = async (id: string): Promise<void> => {
   }
 };
 
-const bulkDeleteWarehouseItems = async (ids: string[]): Promise<void> => {
+const bulkDeleteWarehouseItems = async (ids: string[]): Promise<boolean> => {
   try {
     const service = await getCrudService();
-    
+
     const success = await service.bulkDeleteBahanBaku(ids);
     if (!success) {
       throw new Error('Failed to bulk delete items');
     }
+    return true;
   } catch (error) {
     logger.error('Failed to bulk delete warehouse items:', error);
     throw new Error(`Failed to bulk delete items: ${error}`);
@@ -374,7 +375,15 @@ const WarehousePageContent: React.FC = () => {
         return false;
       }
     },
-    // Note: bulkDeleteBahanBaku will be handled by fallback to individual deletes
+    bulkDeleteBahanBaku: async (ids: string[]) => {
+      try {
+        await bulkDeleteWarehouseItems(ids);
+        return true;
+      } catch (error) {
+        logger.error('Context bulkDeleteBahanBaku error:', error);
+        return false;
+      }
+    }
   };
   
   const core = useWarehouseCore(context);
@@ -482,7 +491,6 @@ const WarehousePageContent: React.FC = () => {
         itemCount={context.bahanBaku?.length || 0}
         selectedCount={core.selection?.selectedCount || 0}
         isConnected={context.isConnected}
-        onOpenDialog={core.dialogs?.open}
       />
 
       {/* Bulk Actions */}

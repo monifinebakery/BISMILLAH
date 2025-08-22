@@ -137,12 +137,14 @@ export type {
 } from './utils/profitCalculations';
 
 // ===== CONVENIENT DEFAULT EXPORT =====
-import { ProfitAnalysisProvider } from './contexts/ProfitAnalysisContext';
+import {
+  ProfitAnalysisProvider,
+  PROFIT_ANALYSIS_QUERY_KEYS,
+} from './contexts/ProfitAnalysisContext';
 import { useProfitAnalysis } from './hooks/useProfitAnalysis';
 import ProfitDashboard from './components/ProfitDashboard';
 import profitAnalysisApi from './services/profitAnalysisApi';
 import { PROFIT_CONSTANTS } from './constants/profitConstants';
-import { PROFIT_ANALYSIS_QUERY_KEYS } from './contexts/ProfitAnalysisContext';
 
 // Default export untuk kemudahan penggunaan
 export default {

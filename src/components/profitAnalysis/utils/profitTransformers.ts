@@ -1,4 +1,4 @@
-// profitTransformers.ts - Data transformation utilities
+// profitTransformers.ts - Data transformation utilities with centralized logic
 // ==============================================
 
 import { 
@@ -14,6 +14,10 @@ import {
 
 // 🍽️ Import F&B constants for categorization
 import { FNB_COGS_CATEGORIES, FNB_REVENUE_CATEGORIES, FNB_OPEX_CATEGORIES } from '../constants/profitConstants';
+// ✅ Import centralized utilities
+import { getEffectiveCogs, calculateHistoricalCOGS } from '@/utils/cogsCalculation';
+import { validateFinancialData, safeCalculateMargins } from '@/utils/profitValidation';
+import { formatPeriodForDisplay, safeSortPeriods } from '@/utils/periodUtils';
 
 /**
  * 🍽️ Transform financial transactions to F&B revenue breakdown
@@ -54,12 +58,15 @@ export const transformToRevenueBreakdown = (
   }, {} as Record<string, { transactions: any[]; total: number }>);
 
   // Transform to breakdown format
-  return Object.entries(categoryGroups).map(([category, data]) => ({
-    category,
-    amount: data.total,
-    percentage: totalRevenue > 0 ? (data.total / totalRevenue) * 100 : 0,
-    transaction_count: data.transactions.length
-  }));
+  return Object.entries(categoryGroups).map(([category, data]) => {
+    const groupData = data as { transactions: any[]; total: number };
+    return {
+      category,
+      amount: groupData.total,
+      percentage: totalRevenue > 0 ? (groupData.total / totalRevenue) * 100 : 0,
+      transaction_count: groupData.transactions.length
+    };
+  });
 };
 
 /**
@@ -181,13 +188,16 @@ export const transformToCOGSBreakdown = (
     return groups;
   }, {} as Record<string, { transactions: any[]; total: number; quantity: number }>);
 
-  return Object.entries(materialGroups).map(([materialName, data]) => ({
-    material_name: materialName,
-    quantity_used: data.quantity,
-    unit_price: data.quantity > 0 ? data.total / data.quantity : 0,
-    total_cost: data.total,
-    percentage: totalCOGS > 0 ? (data.total / totalCOGS) * 100 : 0
-  }));
+  return Object.entries(materialGroups).map(([materialName, data]) => {
+    const groupData = data as { transactions: any[]; total: number; quantity: number };
+    return {
+      material_name: materialName,
+      quantity_used: groupData.quantity,
+      unit_price: groupData.quantity > 0 ? groupData.total / groupData.quantity : 0,
+      total_cost: groupData.total,
+      percentage: totalCOGS > 0 ? (groupData.total / totalCOGS) * 100 : 0
+    };
+  });
 };
 
 /**
@@ -239,19 +249,22 @@ export const transformToOpExBreakdown = (
 };
 
 /**
- * Transform real-time calculation to profit analysis format
+ * ✅ STANDARDIZED: Transform real-time calculation to profit analysis format with validation
  */
 export const transformToProfitAnalysis = (
   calculation: RealTimeProfitCalculation,
   periodType: 'monthly' | 'quarterly' | 'yearly' = 'monthly'
 ): ProfitAnalysis => {
   const revenue = calculation.revenue_data.total;
-  const cogs = calculation.cogs_data.total;
+  
+  // ✅ Use centralized COGS calculation
+  const cogsResult = getEffectiveCogs(calculation, undefined, revenue);
+  const cogs = cogsResult.value;
+  
   const opex = calculation.opex_data.total;
-  const grossProfit = revenue - cogs;
-  const netProfit = grossProfit - opex;
-  const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  
+  // ✅ Use centralized margin calculation with validation
+  const margins = safeCalculateMargins(revenue, cogs, opex);
 
   return {
     id: `${calculation.period}-${Date.now()}`, // Generate temporary ID
@@ -270,12 +283,12 @@ export const transformToProfitAnalysis = (
     opex_breakdown: transformToOpExBreakdown(calculation.opex_data.costs || []),
     
     // Profit Calculations
-    gross_profit: grossProfit,
-    net_profit: netProfit,
+    gross_profit: margins.grossProfit,
+    net_profit: margins.netProfit,
     
     // Margin Calculations
-    gross_margin: grossMargin,
-    net_margin: netMargin,
+    gross_margin: margins.grossMargin,
+    net_margin: margins.netMargin,
     
     // Metadata
     calculation_date: calculation.calculated_at,
@@ -285,39 +298,53 @@ export const transformToProfitAnalysis = (
 };
 
 /**
- * 🍽️ Transform profit analysis history to chart data with WAC support
+ * ✅ STANDARDIZED: Transform profit analysis history to chart data with centralized utilities
  */
 export const transformToChartData = (
   profitHistory: RealTimeProfitCalculation[],
   effectiveCogs?: number // WAC calculated COGS for current period
 ): ProfitChartData[] => {
-  return profitHistory.map((analysis, index) => {
-    const revenue = analysis.revenue_data.total;
-    // Use effective COGS for latest period if available
-    const cogs = (index === profitHistory.length - 1 && effectiveCogs !== undefined) 
-      ? effectiveCogs 
-      : analysis.cogs_data.total;
-    const opex = analysis.opex_data.total;
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - opex;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  if (!Array.isArray(profitHistory) || profitHistory.length === 0) return [];
+  
+  try {
+    // ✅ Get historical COGS calculations using centralized logic
+    const cogsCalculations = calculateHistoricalCOGS(profitHistory, effectiveCogs);
+    
+    // ✅ Sort periods chronologically
+    const sortedHistory = [...profitHistory].sort((a, b) => {
+      const periodsToSort = [a.period, b.period];
+      const sorted = safeSortPeriods(periodsToSort);
+      return periodsToSort.indexOf(a.period) - periodsToSort.indexOf(b.period);
+    });
+    
+    return sortedHistory.map((analysis) => {
+      const revenue = analysis.revenue_data.total;
+      const cogsResult = cogsCalculations.get(analysis.period);
+      const cogs = cogsResult?.value || analysis.cogs_data.total;
+      const opex = analysis.opex_data.total;
+      
+      // ✅ Use centralized margin calculation with validation
+      const margins = safeCalculateMargins(revenue, cogs, opex);
 
-    return {
-      period: analysis.period,
-      revenue,
-      cogs,
-      opex,
-      gross_profit: grossProfit,
-      net_profit: netProfit,
-      gross_margin: grossMargin,
-      net_margin: netMargin
-    };
-  });
+      return {
+        period: analysis.period,
+        revenue,
+        cogs,
+        opex,
+        gross_profit: margins.grossProfit,
+        net_profit: margins.netProfit,
+        gross_margin: margins.grossMargin,
+        net_margin: margins.netMargin
+      };
+    });
+  } catch (error) {
+    console.error('Error transforming to chart data:', error);
+    return [];
+  }
 };
 
 /**
- * Calculate rolling averages for trend analysis
+ * ✅ STANDARDIZED: Calculate rolling averages for trend analysis with validation
  */
 export const calculateRollingAverages = (
   profitHistory: any[],
@@ -337,51 +364,64 @@ export const calculateRollingAverages = (
     };
   }
 
-  const recentData = profitHistory.slice(-periods);
-  
-  const revenueAverage = recentData.reduce((sum, d) => {
-    const revenue = d.revenue_data?.total || d.revenue || 0;
-    return sum + revenue;
-  }, 0) / recentData.length;
+  try {
+    const recentData = profitHistory.slice(-periods);
+    
+    const revenueAverage = recentData.reduce((sum, d) => {
+      const revenue = d.revenue_data?.total || d.revenue || 0;
+      return sum + revenue;
+    }, 0) / recentData.length;
 
-  const profitAverage = recentData.reduce((sum, d) => {
-    const revenue = d.revenue_data?.total || d.revenue || 0;
-    const cogs = d.cogs_data?.total || d.cogs || 0;
-    const opex = d.opex_data?.total || d.opex || 0;
-    const profit = revenue - cogs - opex;
-    return sum + profit;
-  }, 0) / recentData.length;
+    // ✅ Use centralized calculations for consistent logic
+    const profitAverage = recentData.reduce((sum, d) => {
+      const revenue = d.revenue_data?.total || d.revenue || 0;
+      const cogs = d.cogs_data?.total || d.cogs || 0;
+      const opex = d.opex_data?.total || d.opex || 0;
+      
+      const margins = safeCalculateMargins(revenue, cogs, opex);
+      return sum + margins.netProfit;
+    }, 0) / recentData.length;
 
-  const marginAverage = recentData.reduce((sum, d) => {
-    const revenue = d.revenue_data?.total || d.revenue || 0;
-    const cogs = d.cogs_data?.total || d.cogs || 0;
-    const opex = d.opex_data?.total || d.opex || 0;
-    const profit = revenue - cogs - opex;
-    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-    return sum + margin;
-  }, 0) / recentData.length;
+    const marginAverage = recentData.reduce((sum, d) => {
+      const revenue = d.revenue_data?.total || d.revenue || 0;
+      const cogs = d.cogs_data?.total || d.cogs || 0;
+      const opex = d.opex_data?.total || d.opex || 0;
+      
+      const margins = safeCalculateMargins(revenue, cogs, opex);
+      return sum + margins.netMargin;
+    }, 0) / recentData.length;
 
-  // Calculate volatility (standard deviation of margins)
-  const margins = recentData.map(d => {
-    const revenue = d.revenue_data?.total || d.revenue || 0;
-    const cogs = d.cogs_data?.total || d.cogs || 0;
-    const opex = d.opex_data?.total || d.opex || 0;
-    const profit = revenue - cogs - opex;
-    return revenue > 0 ? (profit / revenue) * 100 : 0;
-  });
+    // Calculate volatility (standard deviation of margins)
+    const margins = recentData.map(d => {
+      const revenue = d.revenue_data?.total || d.revenue || 0;
+      const cogs = d.cogs_data?.total || d.cogs || 0;
+      const opex = d.opex_data?.total || d.opex || 0;
+      
+      const marginCalc = safeCalculateMargins(revenue, cogs, opex);
+      return marginCalc.netMargin;
+    });
 
-  const variance = margins.reduce((sum, margin) => {
-    return sum + Math.pow(margin - marginAverage, 2);
-  }, 0) / margins.length;
+    const variance = margins.reduce((sum, margin) => {
+      return sum + Math.pow(margin - marginAverage, 2);
+    }, 0) / margins.length;
 
-  const volatility = Math.sqrt(variance);
+    const volatility = Math.sqrt(variance);
 
-  return {
-    revenueAverage,
-    profitAverage,
-    marginAverage,
-    volatility
-  };
+    return {
+      revenueAverage,
+      profitAverage,
+      marginAverage,
+      volatility
+    };
+  } catch (error) {
+    console.error('Error calculating rolling averages:', error);
+    return {
+      revenueAverage: 0,
+      profitAverage: 0,
+      marginAverage: 0,
+      volatility: 0
+    };
+  }
 };
 
 /**
@@ -444,31 +484,11 @@ export const formatLargeNumber = (num: number): string => {
 };
 
 /**
- * 🗺️ Format period string to UMKM friendly readable format
+ * ✅ STANDARDIZED: Format period string using centralized utility
  */
 export const formatPeriodLabel = (period: string, periodType: 'monthly' | 'quarterly' | 'yearly' = 'monthly'): string => {
-  if (periodType === 'yearly') {
-    return `Tahun ${period}`; // "Tahun 2024"
-  }
-
-  if (periodType === 'quarterly') {
-    // "2024-Q1" format
-    const [year, quarter] = period.split('-Q');
-    return `Kuartal ${quarter} ${year}`;
-  }
-
-  // Monthly: "2024-01" format
-  const [year, month] = period.split('-');
-  const monthNames = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
-  
-  const monthIndex = parseInt(month) - 1;
-  if (monthIndex < 0 || monthIndex >= monthNames.length) {
-    return period; // fallback
-  }
-  return `${monthNames[monthIndex]} ${year}`;
+  // ✅ Use centralized period formatting for consistency
+  return formatPeriodForDisplay(period);
 };
 
 /**

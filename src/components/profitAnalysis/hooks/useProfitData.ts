@@ -1,4 +1,4 @@
-// useProfitData.ts - Enhanced with F&B UMKM friendly formatting
+// useProfitData.ts - Enhanced with F&B UMKM friendly formatting and Centralized Utilities
 // ==============================================
 
 import { useMemo, useCallback } from 'react';
@@ -11,6 +11,10 @@ import {
 
 // 🍽️ Import F&B labels for export
 import { FNB_LABELS } from '../constants/profitConstants';
+// ✅ Import centralized utilities
+import { getEffectiveCogs, calculateHistoricalCOGS } from '@/utils/cogsCalculation';
+import { validateFinancialData, safeCalculateMargins } from '@/utils/profitValidation';
+import { formatPeriodForDisplay, safeSortPeriods } from '@/utils/periodUtils';
 
 export interface UseProfitDataOptions {
   history?: RealTimeProfitCalculation[];
@@ -53,67 +57,53 @@ export const useProfitData = (
     hppBreakdown = []   // F&B breakdown
   } = options;
 
-  // 🗺️ Enhanced period formatting - UMKM friendly
+  // ✅ STANDARDIZED: Use centralized period formatting
   const formatPeriodLabel = useCallback((period: string): string => {
-    try {
-      if (!period || typeof period !== 'string') return period || '';
-
-      // Jika hanya tahun, format sebagai "Tahun XXXX"
-      if (/^\d{4}$/.test(period)) {
-        return `Tahun ${period}`;
-      }
-
-      const [year, month] = period.split('-');
-      if (!year || !month) return period;
-
-      const monthNames = [
-        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-      ];
-
-      const monthIndex = parseInt(month) - 1;
-      if (monthIndex < 0 || monthIndex >= monthNames.length) return period;
-
-      return `${monthNames[monthIndex]} ${year}`;
-    } catch (error) {
-      console.error('Error formatting period label:', error);
-      return period || '';
-    }
+    return formatPeriodForDisplay(period);
   }, []);
 
-  // ✅ CHART DATA PROCESSING - Fixed error handling
+  // ✅ STANDARDIZED: Chart data processing with centralized utilities
   const chartData = useMemo((): ProfitChartData[] => {
     if (!Array.isArray(history) || history.length === 0) return [];
     
     try {
-      return history.map(analysis => {
+      // Get historical COGS calculations
+      const cogsCalculations = calculateHistoricalCOGS(history, effectiveCogs);
+      
+      // Sort periods chronologically
+      const sortedHistory = [...history].sort((a, b) => {
+        const periodsToSort = [a.period, b.period];
+        const sorted = safeSortPeriods(periodsToSort);
+        return periodsToSort.indexOf(a.period) - periodsToSort.indexOf(b.period);
+      });
+      
+      return sortedHistory.map(analysis => {
         if (!analysis) return null;
         
         const revenue = analysis.revenue_data?.total || 0;
-        // 🍽️ Use effective COGS if available (WAC), otherwise fallback to API COGS
-        const cogs = effectiveCogs !== undefined ? effectiveCogs : (analysis.cogs_data?.total || 0);
+        const cogsResult = cogsCalculations.get(analysis.period);
+        const cogs = cogsResult?.value || analysis.cogs_data?.total || 0;
         const opex = analysis.opex_data?.total || 0;
-        const grossProfit = revenue - cogs;
-        const netProfit = grossProfit - opex;
-        const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-        const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-
+        
+        // ✅ Use centralized margin calculation with validation
+        const margins = safeCalculateMargins(revenue, cogs, opex);
+        
         return {
           period: analysis.period || '',
           revenue,
           cogs,
           opex,
-          gross_profit: grossProfit,
-          net_profit: netProfit,
-          gross_margin: grossMargin,
-          net_margin: netMargin
+          gross_profit: margins.grossProfit,
+          net_profit: margins.netProfit,
+          gross_margin: margins.grossMargin,
+          net_margin: margins.netMargin
         };
       }).filter(Boolean) as ProfitChartData[];
     } catch (error) {
       console.error('Error processing chart data:', error);
       return [];
     }
-  }, [history, effectiveCogs]); // Recompute when WAC-based COGS changes as well
+  }, [history, effectiveCogs]);
 
   // ✅ TREND DATA - Fixed dependencies
   const trendData = useMemo((): ProfitTrendData => {
@@ -150,7 +140,7 @@ export const useProfitData = (
     }
   }, [chartData, formatPeriodLabel]); // Depend on chartData and formatPeriodLabel
 
-  // ✅ SUMMARY CALCULATIONS - Fixed error handling
+  // ✅ STANDARDIZED: Summary calculations with validation
   const summaryMetrics = useMemo(() => {
     if (!Array.isArray(history) || history.length === 0) {
       return {
@@ -163,27 +153,41 @@ export const useProfitData = (
     }
 
     try {
+      // Get historical COGS calculations for accuracy
+      const cogsCalculations = calculateHistoricalCOGS(history, effectiveCogs);
+      
       const totalRevenue = history.reduce((sum, h) => {
         return sum + (h?.revenue_data?.total || 0);
       }, 0);
       
       const totalProfit = history.reduce((sum, h) => {
         const revenue = h?.revenue_data?.total || 0;
-        const cogs = h?.cogs_data?.total || 0;
+        const cogsResult = cogsCalculations.get(h.period);
+        const cogs = cogsResult?.value || h?.cogs_data?.total || 0;
         const opex = h?.opex_data?.total || 0;
-        const profit = revenue - cogs - opex;
-        return sum + profit;
+        
+        // ✅ Use validated calculation
+        const margins = safeCalculateMargins(revenue, cogs, opex);
+        return sum + margins.netProfit;
       }, 0);
 
       const averageMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
-      // Find best and worst performing periods
+      // Find best and worst performing periods with validated calculations
       const periodsWithProfit = history
-        .filter(h => h && h.revenue_data && h.cogs_data && h.opex_data)
-        .map(h => ({
-          ...h,
-          profit: (h.revenue_data?.total || 0) - (h.cogs_data?.total || 0) - (h.opex_data?.total || 0)
-        }));
+        .filter(h => h && h.revenue_data)
+        .map(h => {
+          const revenue = h.revenue_data?.total || 0;
+          const cogsResult = cogsCalculations.get(h.period);
+          const cogs = cogsResult?.value || h?.cogs_data?.total || 0;
+          const opex = h?.opex_data?.total || 0;
+          const margins = safeCalculateMargins(revenue, cogs, opex);
+          
+          return {
+            ...h,
+            profit: margins.netProfit
+          };
+        });
 
       let bestPerformingPeriod = null;
       let worstPerformingPeriod = null;
@@ -215,9 +219,9 @@ export const useProfitData = (
         worstPerformingPeriod: null
       };
     }
-  }, [history]); // Only depend on history
+  }, [history, effectiveCogs]);
 
-  // ✅ BREAKDOWN DATA - Fixed error handling
+  // ✅ STANDARDIZED: Breakdown data with validation
   const revenueBreakdown = useMemo(() => {
     if (!currentAnalysis?.revenue_data?.transactions) return [];
 
@@ -238,21 +242,35 @@ export const useProfitData = (
     if (!currentAnalysis) return [];
 
     try {
-      // 🍽️ Use effective COGS (WAC) if available
-      const cogsTotal = effectiveCogs !== undefined ? effectiveCogs : (currentAnalysis.cogs_data?.total || 0);
+      // ✅ Use centralized COGS calculation
+      const cogsResult = getEffectiveCogs(
+        currentAnalysis,
+        effectiveCogs,
+        currentAnalysis.revenue_data?.total
+      );
+      
+      const cogsTotal = cogsResult.value;
       const opexTotal = currentAnalysis.opex_data?.total || 0;
-      const totalCosts = cogsTotal + opexTotal;
+      
+      // ✅ Validate the financial data
+      const validation = validateFinancialData(
+        currentAnalysis.revenue_data?.total || 0,
+        cogsTotal,
+        opexTotal
+      );
+      
+      const totalCosts = validation.corrections.cogs + validation.corrections.opex;
       
       const breakdown = [
         {
           category: '🥘 Modal Bahan Baku',  // F&B friendly term
-          amount: cogsTotal,
-          percentage: totalCosts > 0 ? (cogsTotal / totalCosts) * 100 : 0
+          amount: validation.corrections.cogs,
+          percentage: totalCosts > 0 ? (validation.corrections.cogs / totalCosts) * 100 : 0
         },
         {
           category: '🏪 Biaya Bulanan Tetap', // F&B friendly term
-          amount: opexTotal,
-          percentage: totalCosts > 0 ? (opexTotal / totalCosts) * 100 : 0
+          amount: validation.corrections.opex,
+          percentage: totalCosts > 0 ? (validation.corrections.opex / totalCosts) * 100 : 0
         }
       ];
 
@@ -261,7 +279,7 @@ export const useProfitData = (
       console.error('Error processing cost breakdown:', error);
       return [];
     }
-  }, [currentAnalysis?.cogs_data?.total, currentAnalysis?.opex_data?.total, effectiveCogs]);
+  }, [currentAnalysis, effectiveCogs]);
 
   // 🍽️ F&B specific cost breakdown by category
   const fnbCostBreakdown = useMemo(() => {

@@ -5,6 +5,7 @@ export interface ValidationResult {
   warnings: string[];
   errors: string[];
   correctedData?: any;
+  isEmpty?: boolean; // ✅ ADD: Flag to indicate empty data state
 }
 
 export interface FinancialMetrics {
@@ -95,7 +96,7 @@ export function validateFinancialMetrics(metrics: FinancialMetrics): ValidationR
 }
 
 /**
- * Validates trend data for chronological consistency
+ * ✅ IMPROVED: Validates trend data for chronological consistency with enhanced empty data handling
  */
 export function validateTrendData(trendData: any[]): ValidationResult {
   const warnings: string[] = [];
@@ -107,8 +108,13 @@ export function validateTrendData(trendData: any[]): ValidationResult {
   }
 
   if (trendData.length === 0) {
-    warnings.push('Empty trend data array');
-    return { isValid: true, warnings, errors };
+    // ✅ IMPROVED: Don't treat empty data as a warning, it's a normal state
+    return { 
+      isValid: true, 
+      warnings: [], 
+      errors: [], 
+      isEmpty: true 
+    };
   }
 
   // Check period formatting consistency
@@ -170,7 +176,7 @@ export function validateTrendData(trendData: any[]): ValidationResult {
 }
 
 /**
- * Validates chart configuration and data compatibility
+ * ✅ IMPROVED: Validates chart configuration with enhanced empty data handling
  */
 export function validateChartConfig(chartData: any[], chartType: string, selectedMetrics: string[]): ValidationResult {
   const warnings: string[] = [];
@@ -178,8 +184,13 @@ export function validateChartConfig(chartData: any[], chartType: string, selecte
 
   // Check if chart data exists
   if (!chartData || chartData.length === 0) {
-    warnings.push('No chart data available');
-    return { isValid: true, warnings, errors };
+    // ✅ IMPROVED: Don't treat empty chart data as a warning
+    return { 
+      isValid: true, 
+      warnings: [], 
+      errors: [], 
+      isEmpty: true 
+    };
   }
 
   // Check if selected metrics exist in data
@@ -221,7 +232,7 @@ export function validateChartConfig(chartData: any[], chartType: string, selecte
 }
 
 /**
- * Comprehensive chart validation that combines all validation rules
+ * ✅ IMPROVED: Comprehensive chart validation with better empty data handling
  */
 export function validateChartData(
   chartData: any[],
@@ -230,28 +241,38 @@ export function validateChartData(
 ): ValidationResult {
   const allWarnings: string[] = [];
   const allErrors: string[] = [];
+  let isEmpty = false;
 
   // Run trend data validation
   const trendValidation = validateTrendData(chartData);
   allWarnings.push(...trendValidation.warnings);
   allErrors.push(...trendValidation.errors);
+  if (trendValidation.isEmpty) isEmpty = true;
 
   // Run chart config validation
   const configValidation = validateChartConfig(chartData, chartType, selectedMetrics);
   allWarnings.push(...configValidation.warnings);
   allErrors.push(...configValidation.errors);
+  if (configValidation.isEmpty) isEmpty = true;
 
   return {
     isValid: allErrors.length === 0,
     warnings: allWarnings,
-    errors: allErrors
+    errors: allErrors,
+    isEmpty
   };
 }
 
 /**
- * Logger utility for chart validation
+ * ✅ IMPROVED: Enhanced logger with better empty data handling
  */
 export function logValidationResults(validationResult: ValidationResult, context: string = 'Chart'): void {
+  // ✅ IMPROVED: Don't log warnings for empty data - it's a normal state
+  if (validationResult.isEmpty) {
+    console.debug(`${context}: No data available (normal state)`);
+    return;
+  }
+
   if (validationResult.errors.length > 0) {
     console.error(`${context} Validation Errors:`, validationResult.errors);
   }
@@ -261,7 +282,7 @@ export function logValidationResults(validationResult: ValidationResult, context
   }
   
   if (validationResult.isValid && validationResult.warnings.length === 0) {
-    console.log(`${context} validation passed successfully`);
+    console.debug(`${context} validation passed successfully`);
   }
 }
 

@@ -10,56 +10,11 @@ import { DialogLoader } from './shared/LoadingStates';
 
 import { logger } from '@/utils/logger';
 
-// ✅ OPTIMIZED: Lazy loading with better error boundaries
-const OrderForm = React.lazy(() => 
-  import('./dialogs/OrderForm').catch(() => ({
-    default: () => (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg max-w-md">
-          <div className="text-red-500 text-lg mb-2">❌ Gagal memuat form pesanan</div>
-          <p className="text-gray-600 mb-4">Form tidak dapat dimuat. Silakan coba lagi.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Muat Ulang
-          </button>
-        </div>
-      </div>
-    )
-  }))
-);
-
-const FollowUpTemplateManager = React.lazy(() => 
-  import('./dialogs/FollowUpTemplateManager').catch(() => ({
-    default: () => (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg max-w-md">
-          <div className="text-red-500 text-lg mb-2">❌ Gagal memuat template manager</div>
-          <p className="text-gray-600 mb-4">Template manager tidak dapat dimuat.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Muat Ulang
-          </button>
-        </div>
-      </div>
-    )
-  }))
-);
-
-const BulkDeleteDialog = React.lazy(() => 
-  import('./dialogs/BulkDeleteDialog').catch(() => ({
-    default: () => null
-  }))
-);
-
-const BulkEditDialog = React.lazy(() => 
-  import('./dialogs/BulkEditDialog').catch(() => ({
-    default: () => null
-  }))
-);
+// ✅ OPTIMIZED: Lazy loading sederhana untuk dialog
+const OrderForm = React.lazy(() => import('./dialogs/OrderForm'));
+const FollowUpTemplateManager = React.lazy(() => import('./dialogs/FollowUpTemplateManager'));
+const BulkDeleteDialog = React.lazy(() => import('./dialogs/BulkDeleteDialog'));
+const BulkEditDialog = React.lazy(() => import('./dialogs/BulkEditDialog'));
 
 // ❌ REMOVED: Unnecessary imports - already optimized
 

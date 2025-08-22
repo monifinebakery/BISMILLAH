@@ -283,7 +283,7 @@ const DetailedBreakdownTable = ({
         helpText: 'Uang yang keluar untuk beli bahan-bahan makanan dan minuman'
       },
       {
-        title: '🏠 Biaya Bulanan Tetap (Operasional)',
+        title: 'Biaya Bulanan Tetap (Operasional)',
         icon: Calculator,
         color: 'text-red-700',
         bgColor: 'bg-red-50',
@@ -428,8 +428,8 @@ const DetailedBreakdownTable = ({
         {[
           { key: 'all', label: 'Semua' },
           { key: 'revenue', label: '  Pemasukan' },
-          { key: 'cogs', label: '🛍️ Belanja' },
-          { key: 'opex', label: '🏠 Biaya' }
+          { key: 'cogs', label: 'Belanja' },
+          { key: 'opex', label: 'Biaya' }
         ].map(tab => (
             <Button
               key={tab.key}
@@ -547,7 +547,7 @@ const DetailedBreakdownTable = ({
                     (breakdownSections[1]?.total || 0) + (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-red-600">💸 Total Pengeluaran</div>
+                <div className="text-sm text-red-600">Total Pengeluaran</div>
                 <div className="text-xs text-gray-600 mt-1">
                   Modal Bahan + Biaya Bulanan
                 </div>

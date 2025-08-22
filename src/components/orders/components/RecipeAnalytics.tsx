@@ -12,8 +12,7 @@ import {
   Target,
   Award
 } from 'lucide-react';
-import type { Order } from '../types';
-import { calculateRecipeStats, getRecipeUsageByOrder } from '../types';
+import { type Order, calculateRecipeStats, getRecipeUsageByOrder } from '../types';
 
 interface RecipeAnalyticsProps {
   orders: Order[];

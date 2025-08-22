@@ -148,17 +148,28 @@ export function validateCOGSConsistency(
   calculations: { component: string; value: number; source: string }[]
 ): { isConsistent: boolean; issues: string[] } {
   const issues: string[] = [];
-  
-  if (calculations.length < 2) {
+
+  if (!calculations || calculations.length < 2) {
     return { isConsistent: true, issues: [] };
   }
 
-  const baseValue = calculations[0].value;
+  // Use the first non-zero value as baseline to avoid false positives
+  const baseIndex = calculations.findIndex((c) => (Number(c.value) || 0) > 0);
+  if (baseIndex === -1) {
+    // All zero values -> nothing to compare
+    return { isConsistent: true, issues: [] };
+  }
+
+  const baseValue = Number(calculations[baseIndex].value) || 0;
   const tolerance = Math.max(1, baseValue * 0.01); // 1% tolerance or minimum 1
 
   calculations.forEach((calc, index) => {
-    if (index > 0 && Math.abs(calc.value - baseValue) > tolerance) {
-      issues.push(`${calc.component}: Value ${calc.value} differs from base ${baseValue} (source: ${calc.source})`);
+    if (index === baseIndex) return;
+    const val = Number(calc.value) || 0;
+    // Skip comparison when both sides are ~0 (prevent noise)
+    if (baseValue === 0 && val === 0) return;
+    if (Math.abs(val - baseValue) > tolerance) {
+      issues.push(`${calc.component}: Value ${val} differs from base ${baseValue} (source: ${calc.source})`);
     }
   });
 

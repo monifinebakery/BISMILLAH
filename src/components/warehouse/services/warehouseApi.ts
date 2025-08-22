@@ -28,12 +28,6 @@ const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
     expiry: dbItem.tanggal_kadaluwarsa,
     createdAt: dbItem.created_at,
     updatedAt: dbItem.updated_at,
-
-    // legacy fields (read-only for display; jangan dipakai tulis / kalkulasi di warehouse)
-    jumlahBeliKemasan: Number((dbItem as any).jumlah_beli_kemasan) || 0,
-    isiPerKemasan: Number((dbItem as any).isi_per_kemasan) || 1,
-    satuanKemasan: (dbItem as any).satuan_kemasan ?? null,
-    hargaTotalBeliKemasan: Number((dbItem as any).harga_total_beli_kemasan) || 0,
   };
 };
 
@@ -68,7 +62,6 @@ class CrudService {
         id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
         tanggal_kadaluwarsa, created_at, updated_at,
         harga_rata_rata,
-        jumlah_beli_kemasan, isi_per_kemasan, satuan_kemasan, harga_total_beli_kemasan
       `);
 
       if (this.config.userId) query = query.eq('user_id', this.config.userId);

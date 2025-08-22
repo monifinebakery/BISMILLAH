@@ -16,6 +16,9 @@ import { useAuth } from '@/contexts/AuthContext'; // ✅ TAMBAHKAN INI
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
 const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
 
+// ✅ Komponen hCaptcha yang dimuat secara dinamis
+let HCaptcha: React.ComponentType<any> | null = null;
+
 
 // ✅ Simplified Props Interface
 interface EmailAuthPageProps {
@@ -48,7 +51,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [authState, setAuthState] = useState<AuthState>('idle');
   const [error, setError] = useState('');
   const [cooldownTime, setCooldownTime] = useState(0);
-  
+
+  // ✅ OTP state
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+
   // ✅ hCaptcha state
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   const [hCaptchaKey, setHCaptchaKey] = useState(0);

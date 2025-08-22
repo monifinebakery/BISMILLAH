@@ -272,8 +272,8 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     return analyzeTrend(trendData);
   }, [trendData]);
 
-  // ✅ METRIC CONFIGURATIONS - UPDATE dengan orange dominan
-  const metricConfigs = {
+  // ✅ METRIC CONFIGURATIONS - Complete with all possible metrics
+  const metricConfigs = useMemo(() => ({
     revenue: { key: 'revenue', label: 'Omset', color: CHART_CONFIG.colors.revenue },
     grossProfit: { key: 'grossProfit', label: 'Untung Kotor', color: CHART_CONFIG.colors.primary },
     netProfit: { key: 'netProfit', label: 'Untung Bersih', color: '#dc2626' },
@@ -281,12 +281,18 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     opex: { key: 'opex', label: 'Biaya Tetap', color: CHART_CONFIG.colors.opex },
     grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.primary },
     netMargin: { key: 'netMargin', label: 'Margin Bersih', color: '#dc2626' },
-    // ✅ TAMBAH: Entry baru untuk stockValue
     stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning }
-  };
+  }), []);
 
-  // ✅ EVENT HANDLERS
+  // ✅ EVENT HANDLERS with validation
   const toggleMetric = (metric: string) => {
+    // ✅ ADD: Validate that metric exists in config
+    const config = metricConfigs[metric as keyof typeof metricConfigs];
+    if (!config) {
+      console.warn(`Cannot toggle unknown metric: ${metric}`);
+      return;
+    }
+    
     setSelectedMetrics(prev => 
       prev.includes(metric) 
         ? prev.filter(m => m !== metric)
@@ -359,7 +365,11 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
         {/* Render selected metrics */}
         {selectedMetrics.map(metric => {
           const config = metricConfigs[metric as keyof typeof metricConfigs];
-          if (!config) return null;
+          // ✅ ADD: Guard against undefined config
+          if (!config) {
+            console.warn(`Line chart: Metric config not found for: ${metric}`);
+            return null;
+          }
           
           return (
             <Line
@@ -373,7 +383,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
               name={config.label}
             />
           );
-        })}
+        }).filter(Boolean)}
       </LineChart>
     </ResponsiveContainer>
   );
@@ -400,7 +410,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
         />
         
         {/* Omset Area */}
-        {selectedMetrics.includes('revenue') && (
+        {selectedMetrics.includes('revenue') && metricConfigs.revenue && (
           <Area
             type="monotone"
             dataKey="revenue"
@@ -413,7 +423,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
         )}
         
         {/* COGS Area */}
-        {selectedMetrics.includes('cogs') && (
+        {selectedMetrics.includes('cogs') && metricConfigs.cogs && (
           <Area
             type="monotone"
             dataKey="cogs"
@@ -426,7 +436,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
         )}
         
         {/* OPEX Area */}
-        {selectedMetrics.includes('opex') && (
+        {selectedMetrics.includes('opex') && metricConfigs.opex && (
           <Area
             type="monotone"
             dataKey="opex"
@@ -439,7 +449,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
         )}
         
         {/* Stock Value Area */}
-        {selectedMetrics.includes('stockValue') && (
+        {selectedMetrics.includes('stockValue') && metricConfigs.stockValue && (
           <Area
             type="monotone"
             dataKey="stockValue"
@@ -492,6 +502,12 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
             : ['grossMargin', 'netMargin']
           ).map(metric => {
             const config = metricConfigs[metric as keyof typeof metricConfigs];
+            // ✅ ADD: Guard against undefined config
+            if (!config) {
+              console.warn(`Metric config not found for: ${metric}`);
+              return null;
+            }
+            
             const isSelected = selectedMetrics.includes(metric);
             
             return (
@@ -509,7 +525,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
                 {config.label}
               </Button>
             );
-          })}
+          }).filter(Boolean)}
         </div>
       </CardHeader>
       

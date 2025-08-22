@@ -99,9 +99,15 @@ export async function fetchPemakaianByPeriode(start: string, end: string): Promi
  */
 export async function fetchPemakaianDailyAggregates(start: string, end: string): Promise<Map<string, number>> {
   const result = new Map<string, number>();
+  
+  logger.info('🔄 Fetching COGS daily aggregates:', { start, end });
+  
   try {
     const userId = await getCurrentUserId();
-    if (!userId) return result;
+    if (!userId) {
+      logger.warn('❌ No user ID for COGS aggregates');
+      return result;
+    }
 
     // Coba materialized view terlebih dahulu
     const { data: mvData, error: mvErr } = await supabase
@@ -112,20 +118,42 @@ export async function fetchPemakaianDailyAggregates(start: string, end: string):
       .lte('date', end);
 
     if (!mvErr && Array.isArray(mvData)) {
+      logger.info('✅ Using materialized view for COGS:', {
+        rowCount: mvData.length,
+        sampleData: mvData.slice(0, 3)
+      });
+      
       mvData.forEach((row: any) => {
         const day = new Date(row.date).toISOString().slice(0, 10);
-        result.set(day, Number(row.total_hpp) || 0);
+        const hpp = Number(row.total_hpp) || 0;
+        result.set(day, hpp);
+        logger.debug(`📅 MV COGS: ${row.date} -> ${day}, HPP: ${hpp}`);
       });
       return result;
+    } else {
+      logger.warn('⚠️ Materialized view error or no data:', mvErr?.message || 'No data');
     }
   } catch (e) {
     // fall through to table fallback
-    logger.warn('MV daily aggregates unavailable, using table fallback');
+    logger.warn('⚠️ MV daily aggregates unavailable, using table fallback:', e);
   }
 
   // Fallback: query tabel dan group di sisi aplikasi
+  logger.info('🔄 Using table fallback for COGS aggregation');
+  
   try {
     const pemakaian = await fetchPemakaianByPeriode(start, end);
+    
+    logger.info('📊 Pemakaian data from table:', {
+      rowCount: pemakaian.length,
+      sampleData: pemakaian.slice(0, 3).map(p => ({
+        tanggal: p.tanggal,
+        qty_base: p.qty_base,
+        harga_efektif: p.harga_efektif,
+        hpp_value: p.hpp_value
+      }))
+    });
+    
     pemakaian.forEach((row: any) => {
       const day = (row.tanggal ? new Date(row.tanggal) : new Date()).toISOString().slice(0, 10);
       const qty = Number(row.qty_base || 0);
@@ -134,10 +162,17 @@ export async function fetchPemakaianDailyAggregates(start: string, end: string):
         : typeof row.harga_efektif === 'number'
           ? qty * Number(row.harga_efektif)
           : 0;
+      
+      logger.debug(`📅 Table COGS: ${row.tanggal} -> ${day}, Value: ${val}`);
       result.set(day, (result.get(day) || 0) + val);
     });
+    
+    logger.info('📊 Table fallback aggregation completed:', {
+      totalDays: result.size,
+      aggregatedData: Array.from(result.entries()).sort()
+    });
   } catch (e) {
-    logger.error('Failed to build daily aggregates from table:', e);
+    logger.error('❌ Failed to build daily aggregates from table:', e);
   }
 
   return result;
@@ -159,6 +194,7 @@ export function calculatePemakaianValue(p: any, bahanMap: Record<string, any>): 
 
 /**
  * Calculate daily profit analysis for a date range (inclusive)
+ * Enhanced with proper timezone handling and accurate date filtering
  */
 export async function calculateProfitAnalysisDaily(
   from: Date,
@@ -168,32 +204,82 @@ export async function calculateProfitAnalysisDaily(
     const userId = await getCurrentUserId();
     if (!userId) return { data: [], success: false, error: 'Not authenticated' };
 
-    const fromISO = new Date(from).toISOString();
-    const toISO = new Date(to).toISOString();
+    // Normalize dates to ensure consistent timezone handling
+    const startDate = new Date(from);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(to);
+    endDate.setHours(23, 59, 59, 999);
+    
+    // Format dates for database queries (YYYY-MM-DD format)
+    const startYMD = startDate.toISOString().slice(0, 10);
+    const endYMD = endDate.toISOString().slice(0, 10);
 
-    // Fetch financial transactions in range
+    logger.info('📅 Daily profit analysis:', { 
+      startYMD, 
+      endYMD, 
+      originalFromDate: from.toISOString(),
+      originalToDate: to.toISOString(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone 
+    });
+
+    // Fetch financial transactions in range with proper date filtering
     const { data: trx, error: trxErr } = await supabase
       .from('financial_transactions')
       .select('id, user_id, type, category, amount, description, date')
       .eq('user_id', userId)
-      .gte('date', fromISO)
-      .lte('date', toISO);
+      .gte('date', startYMD)
+      .lte('date', endYMD)
+      .order('date', { ascending: true });
     if (trxErr) throw trxErr;
+    
+    logger.info('🔍 Raw transaction data fetched:', {
+      totalTransactions: trx?.length || 0,
+      dateRange: { startYMD, endYMD },
+      sampleDates: (trx || []).slice(0, 3).map(t => ({ id: t.id, date: t.date, type: t.type, amount: t.amount })),
+      uniqueDates: [...new Set((trx || []).map(t => t.date))].sort()
+    });
 
-    // Group income by day
+    // Group income by day with proper date normalization
     const incomeByDay = new Map<string, number>();
-    (trx || [])
-      .filter((t: any) => t.type === 'income')
-      .forEach((t: any) => {
-        if (!t.date) return;
-        const d = new Date(t.date).toISOString().slice(0, 10);
-        incomeByDay.set(d, (incomeByDay.get(d) || 0) + (Number(t.amount) || 0));
-      });
+    let totalTransactions = 0;
+    const incomeTransactions = (trx || []).filter((t: any) => t.type === 'income');
+    
+    logger.info('💰 Processing income transactions:', {
+      totalTransactions: trx?.length || 0,
+      incomeTransactions: incomeTransactions.length,
+      sampleIncomeData: incomeTransactions.slice(0, 3).map(t => ({
+        date: t.date,
+        amount: t.amount,
+        description: t.description
+      }))
+    });
+    
+    incomeTransactions.forEach((t: any) => {
+      if (!t.date) return;
+      totalTransactions++;
+      // Normalize transaction date to YYYY-MM-DD format
+      const transactionDate = new Date(t.date);
+      const dayKey = transactionDate.toISOString().slice(0, 10);
+      const amount = Number(t.amount) || 0;
+      
+      logger.debug(`📊 Processing transaction: ${t.date} -> ${dayKey}, amount: ${amount}`);
+      incomeByDay.set(dayKey, (incomeByDay.get(dayKey) || 0) + amount);
+    });
+    
+    logger.info('💰 Income transactions processed:', { 
+      totalTransactions, 
+      uniqueDays: incomeByDay.size,
+      incomeByDayEntries: Array.from(incomeByDay.entries()).sort(),
+      totalRevenue: Array.from(incomeByDay.values()).reduce((sum, val) => sum + val, 0)
+    });
 
-// WAC-based COGS from pemakaian (prefer MV daily aggregates)
-    const startYMD = new Date(fromISO).toISOString().slice(0, 10);
-    const endYMD = new Date(toISO).toISOString().slice(0, 10);
+    // WAC-based COGS from pemakaian (prefer MV daily aggregates)
     const cogsByDay = await fetchPemakaianDailyAggregates(startYMD, endYMD);
+    logger.info('🍽️ COGS data fetched:', { 
+      totalDays: cogsByDay.size,
+      cogsByDayEntries: Array.from(cogsByDay.entries()).sort(),
+      totalCOGS: Array.from(cogsByDay.values()).reduce((sum, val) => sum + val, 0)
+    });
 
     // OpEx daily pro-rata (sum aktif costs per month / daysInMonth for each day)
     const { data: costs, error: costErr } = await supabase
@@ -202,28 +288,73 @@ export async function calculateProfitAnalysisDaily(
     if (costErr) throw costErr;
     const activeMonthly = (costs || []).filter((c: any) => c.status === 'aktif').reduce((s: number, c: any) => s + Number(c.jumlah_per_bulan || 0), 0);
 
-    // Build day list
+    // Build day list with proper date iteration
     const days: string[] = [];
-    const cur = new Date(startYMD);
-    const end = new Date(endYMD);
-    while (cur <= end) {
-      days.push(cur.toISOString().slice(0, 10));
-      cur.setDate(cur.getDate() + 1);
+    const currentDay = new Date(startYMD + 'T00:00:00');
+    const lastDay = new Date(endYMD + 'T00:00:00');
+    
+    while (currentDay <= lastDay) {
+      days.push(currentDay.toISOString().slice(0, 10));
+      currentDay.setDate(currentDay.getDate() + 1);
     }
+    
+    logger.info('📅 Date range analysis:', { 
+      totalDays: days.length, 
+      dateRange: `${days[0]} to ${days[days.length - 1]}`,
+      hasRevenue: incomeByDay.size > 0,
+      hasCOGS: cogsByDay.size > 0,
+      daysList: days,
+      revenueDays: Array.from(incomeByDay.keys()).sort(),
+      cogsDays: Array.from(cogsByDay.keys()).sort()
+    });
 
-    const results: RealTimeProfitCalculation[] = days.map((d) => {
-      const revenue = incomeByDay.get(d) || 0;
-      const cogs = cogsByDay.get(d) || 0;
-      const dateObj = new Date(d + 'T00:00:00Z');
-      const daysInMonth = new Date(dateObj.getUTCFullYear(), dateObj.getUTCMonth() + 1, 0).getUTCDate();
-      const opex = daysInMonth > 0 ? activeMonthly / daysInMonth : 0;
+    const results: RealTimeProfitCalculation[] = days.map((dayKey) => {
+      const revenue = incomeByDay.get(dayKey) || 0;
+      const cogs = cogsByDay.get(dayKey) || 0;
+      
+      // Calculate pro-rated daily OpEx based on the specific month
+      const dateObj = new Date(dayKey + 'T00:00:00');
+      const daysInMonth = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).getDate();
+      const dailyOpex = daysInMonth > 0 ? activeMonthly / daysInMonth : 0;
+      
+      logger.debug(`📅 Day ${dayKey}: Revenue=${revenue}, COGS=${cogs}, OpEx=${dailyOpex.toFixed(2)}`);
+      
       return {
-        period: d, // use date as period for daily mode
-        revenue_data: { total: revenue, transactions: [] },
-        cogs_data: { total: Math.round(cogs), materials: [] },
-        opex_data: { total: Math.round(opex), costs: [] },
+        period: dayKey, // Use date as period for daily mode
+        revenue_data: { 
+          total: revenue, 
+          transactions: [] // Simplified for performance
+        },
+        cogs_data: { 
+          total: Math.round(cogs), 
+          materials: [] // Simplified for performance
+        },
+        opex_data: { 
+          total: Math.round(dailyOpex), 
+          costs: [] // Simplified for performance
+        },
         calculated_at: new Date().toISOString(),
       };
+    });
+    
+    const totalRevenue = results.reduce((sum, r) => sum + r.revenue_data.total, 0);
+    const totalCOGS = results.reduce((sum, r) => sum + r.cogs_data.total, 0);
+    const totalOpEx = results.reduce((sum, r) => sum + r.opex_data.total, 0);
+    
+    logger.success('✅ Daily profit analysis completed:', {
+      days: results.length,
+      totalRevenue,
+      totalCOGS,
+      totalOpEx,
+      netProfit: totalRevenue - totalCOGS - totalOpEx,
+      nonZeroRevenueDays: results.filter(r => r.revenue_data.total > 0).length,
+      nonZeroCOGSDays: results.filter(r => r.cogs_data.total > 0).length,
+      resultsSample: results.slice(0, 3).map(r => ({
+        period: r.period,
+        revenue: r.revenue_data.total,
+        cogs: r.cogs_data.total,
+        opex: r.opex_data.total
+      }))
     });
 
     return { data: results, success: true };

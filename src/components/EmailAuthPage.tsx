@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ Dynamic hCaptcha import
-let HCaptcha: any = null;
+let HCaptchaComponent: any = null;
 
 // ✅ Environment variables
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
@@ -44,6 +45,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 }) => {
   // ✅ TAMBAHKAN NAVIGATE
   const navigate = useNavigate();
+  const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
   
   // ✅ Simplified State Management
   const [email, setEmail] = useState('');
@@ -67,7 +69,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    if (HCAPTCHA_ENABLED && !HCaptcha) {
+    if (HCAPTCHA_ENABLED && !HCaptchaComponent) {
       // Set a timeout to mark hCaptcha as loaded even if it fails (CSP workaround)
       timeoutId = setTimeout(() => {
         if (mountedRef.current && !hCaptchaLoaded) {
@@ -81,7 +83,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         .then((module) => {
           if (mountedRef.current) {
             clearTimeout(timeoutId);
-            HCaptcha = module.default;
+            HCaptchaComponent = module.default;
             setHCaptchaLoaded(true);
             setHCaptchaKey(1);
           }
@@ -345,28 +347,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       
       if (!mountedRef.current) return;
       
-      if (result === true) {
-        logger.debug('EmailAuth: OTP verification successful');
-        
-        // ✅ SIMPLIFIED: Set success state and let AuthGuard handle redirect
-        setAuthState('success');
-        toast.success('Login berhasil! Mengarahkan ke dashboard...');
-        
-        // ✅ BACKUP REDIRECT: Jika AuthGuard gagal, lakukan manual redirect
-        setTimeout(() => {
-          console.log('🚀 [EmailAuth] Backup redirect check, current path:', window.location.pathname);
-          if (window.location.pathname === '/auth') {
-            console.log('🚀 [EmailAuth] AuthGuard failed, doing manual redirect');
-            navigate('/', { replace: true });
+        if (result === true) {
+          logger.debug('EmailAuth: OTP verification successful');
+
+          // 🔄 Perbarui user & cek redirect
+          await refreshUser();
+          redirectCheck();
+
+          setAuthState('success');
+          toast.success('Login berhasil! Mengarahkan ke dashboard...');
+          navigate('/', { replace: true });
+
+          if (onLoginSuccess) {
+            onLoginSuccess();
           }
-        }, 2000);
-        
-        // ✅ Only call onLoginSuccess callback if provided (for custom logic)
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        }
-        
-      } else if (result === 'expired') {
+
+        } else if (result === 'expired') {
         setAuthState('expired');
         setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
         setOtp(['', '', '', '', '', '']);
@@ -450,9 +446,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               </div>
 
               {/* ✅ hCaptcha Widget */}
-              {HCAPTCHA_ENABLED && hCaptchaLoaded && HCaptcha && hCaptchaKey > 0 && (
+              {HCAPTCHA_ENABLED && hCaptchaLoaded && HCaptchaComponent && hCaptchaKey > 0 && (
                 <div className="flex justify-center">
-                  <HCaptcha
+                  <HCaptchaComponent
                     key={hCaptchaKey}
                     sitekey={HCAPTCHA_SITE_KEY}
                     onVerify={(token: string) => {

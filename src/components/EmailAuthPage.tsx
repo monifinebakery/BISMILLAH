@@ -418,7 +418,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const isLoading = authState === 'sending' || authState === 'verifying';
   const isSent = authState === 'sent' || authState === 'expired';
   const isSuccess = authState === 'success';
-  const canSend = isFormValid() && cooldownTime === 0 && !isLoading;
+  const canSend = isFormValid() && cooldownTime === 0 && !isLoading && !isSuccess;
   const canVerify = otp.every(digit => digit !== '') && !isLoading && !isSuccess;
 
   return (

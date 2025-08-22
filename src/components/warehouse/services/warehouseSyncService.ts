@@ -555,7 +555,7 @@ export class WarehouseSyncService {
       return {
         itemId,
         itemName: currentItem.nama,
-        oldWac: oldWac ?? undefined,
+        oldWac,
         newWac,
         status: 'success',
         message: `WAC updated from ${oldWac || 0} to ${newWac}`
@@ -658,12 +658,7 @@ export class WarehouseSyncService {
   async generateSyncReport(): Promise<{
     summary: SyncSummary;
     consistencyIssues: WarehouseConsistencyCheck[];
-    integrityReport: {
-      isValid: boolean;
-      errors: string[];
-      warnings: string[];
-      recommendations: string[];
-    };
+    integrityReport: Awaited<ReturnType<typeof this.validateWarehouseIntegrity>>;
     timestamp: string;
   }> {
     const startTime = Date.now();

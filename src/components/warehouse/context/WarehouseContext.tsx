@@ -249,6 +249,7 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
                   // Enhanced price field matching - prioritize actual PurchaseItem fields
                   const price = Number(
                     purchaseItem.hargaSatuan ||  // PurchaseItem standard field
+                    purchaseItem.harga_per_satuan || 
                     purchaseItem.harga_satuan || 
                     purchaseItem.unit_price ||
                     purchaseItem.price ||
@@ -308,21 +309,21 @@ const autoAdjustPrices = async (items: any[], userId?: string) => {
         } else {
           // Smart default pricing based on category
           const categoryDefaults: { [key: string]: number } = {
-            'Daging': 0,
-            'Seafood': 0,
-            'Sayuran': 0,
-            'Buah': 0,
-            'Bumbu': 0,
-            'Minyak': 0,
-            'Tepung': 0,
-            'Gula': 0,
-            'Garam': 0,
-            'Susu': 0,
-            'Telur': 0
+            'Daging': 50000,
+            'Seafood': 40000,
+            'Sayuran': 15000,
+            'Buah': 20000,
+            'Bumbu': 10000,
+            'Minyak': 25000,
+            'Tepung': 8000,
+            'Gula': 12000,
+            'Garam': 5000,
+            'Susu': 15000,
+            'Telur': 25000
           };
           
-          newPrice = categoryDefaults[item.kategori] || 0; // Default to 0 instead of 5000
-          logger.info(`⚠️ No purchase history found for "${item.nama}", using default: Rp ${newPrice.toLocaleString()} (${item.kategori})`);
+          newPrice = categoryDefaults[item.kategori] || 5000; // Better default than 2500
+          logger.info(`⚠️ No purchase history found for "${item.nama}", using category-based default: Rp ${newPrice.toLocaleString()} (${item.kategori})`);
         }
         
         // Prepare database update - only update fields that are actually zero

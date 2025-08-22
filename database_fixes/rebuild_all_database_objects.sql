@@ -57,6 +57,7 @@ DROP INDEX IF EXISTS idx_bahan_baku_user_id;
 DROP INDEX IF EXISTS idx_bahan_baku_user_kategori;
 DROP INDEX IF EXISTS idx_bahan_baku_stok;
 DROP INDEX IF EXISTS idx_bahan_baku_harga_rata_rata;
+DROP INDEX IF EXISTS idx_bahan_baku_harga_per_satuan;
 DROP INDEX IF EXISTS idx_financial_transactions_user_id;
 DROP INDEX IF EXISTS idx_financial_transactions_user_type;
 DROP INDEX IF EXISTS idx_financial_transactions_user_date;

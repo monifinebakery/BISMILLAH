@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePaymentStatus } from '@/hooks/usePaymentStatus';
+import { usePaymentContext } from '@/contexts/PaymentContext';
 import MandatoryUpgradeModal from '@/components/MandatoryUpgradeModal';
 import { logger } from '@/utils/logger';
 
@@ -8,7 +8,7 @@ interface PaymentGuardProps {
 }
 
 const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
-  const { paymentStatus, isLoading, isPaid, error } = usePaymentStatus();
+  const { paymentStatus, isLoading, isPaid, error, hasAccess, accessMessage } = usePaymentContext();
 
   // Error state
   if (error) {
@@ -60,15 +60,50 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
     );
   }
 
-  logger.debug('PaymentGuard: Payment status checked', { paymentStatus, isPaid });
+  logger.debug('PaymentGuard: Payment status checked', { paymentStatus, isPaid, hasAccess });
 
-  // Render children with upgrade modal
-  // Note: Removed duplicate PaymentProvider as it's already in AppProviders
+  // Allow access for users with preview access or paid users
+  if (hasAccess || isPaid) {
+    return (
+      <>
+        {children}
+        <MandatoryUpgradeModal />
+      </>
+    );
+  }
+
+  // If user doesn't have access and isn't paid, show error
+  logger.warn('PaymentGuard: User does not have access', { isPaid, hasAccess, accessMessage });
   return (
-    <>
-      {children}
-      <MandatoryUpgradeModal />
-    </>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="max-w-md w-full bg-white rounded-xl border border-orange-200">
+        <div className="p-6 text-center">
+          <div className="mx-auto flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4">
+            <span className="text-orange-600 text-2xl">🔒</span>
+          </div>
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">
+            Akses Dibatasi
+          </h1>
+          <p className="text-gray-600 mb-6">
+            {accessMessage || 'Anda tidak memiliki akses ke aplikasi ini.'}
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+            >
+              Coba Lagi
+            </button>
+            <button
+              onClick={() => window.location.href = '/auth'}
+              className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg transition-colors"
+            >
+              Kembali ke Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

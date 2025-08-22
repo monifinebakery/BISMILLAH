@@ -106,6 +106,7 @@ export const PriceAdjustmentDebug: React.FC = () => {
                   purchaseItem.quantity || 0
                 );
                 const price = Number(
+                  purchaseItem.harga_per_satuan || 
                   purchaseItem.harga_satuan || 
                   purchaseItem.hargaSatuan ||
                   purchaseItem.unit_price ||

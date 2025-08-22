@@ -9,6 +9,9 @@ import {
 import { formatCurrency, formatLargeNumber } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { CHART_CONFIG } from '../constants';
+import { validateFinancialMetrics, logValidationResults } from '@/utils/chartDataValidation';
+import { getEffectiveCogs } from '@/utils/cogsCalculation';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // ==============================================
 // TYPES
@@ -188,16 +191,59 @@ const ProfitBreakdownChart = ({
   labels
 }: ProfitBreakdownChartProps) => {
 
-  // ✅ UPDATE: Pakai effectiveCogs kalau ada
+  // ✅ IMPROVED: Use centralized COGS calculation
   const revenue = currentAnalysis?.revenue_data?.total ?? 0;
-  const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : currentAnalysis?.cogs_data?.total) ?? 0;
+  
+  const cogsResult = getEffectiveCogs(
+    currentAnalysis || {} as RealTimeProfitCalculation,
+    effectiveCogs,
+    revenue,
+    { preferWAC: true, validateRange: true }
+  );
+  
   const opex = currentAnalysis?.opex_data?.total ?? 0;
 
-  // Calculate all metrics directly
-  const metrics = calculateMetrics(revenue, cogs, opex);
-  const barChartData = generateBarChartData(metrics);
-  const pieChartData = generatePieChartData(metrics);
-  const summaryStats = calculateSummaryStats(metrics);
+  // ✅ IMPROVED: Use safe margin calculation with comprehensive validation
+  const margins = safeCalculateMargins(revenue, cogsResult.value, opex);
+  
+  // Log any COGS calculation warnings
+  if (cogsResult.warnings.length > 0) {
+    cogsResult.warnings.forEach(warning => 
+      console.warn('Breakdown Chart COGS:', warning)
+    );
+  }
+  
+  // Log data quality issues
+  if (!margins.isValid) {
+    console.warn('Breakdown Chart: Invalid financial data detected', {
+      revenue,
+      cogs: cogsResult.value,
+      opex,
+      errors: margins.errors
+    });
+  }
+  
+  if (margins.qualityScore < 70) {
+    console.warn('Breakdown Chart: Low data quality', {
+      score: margins.qualityScore,
+      warnings: margins.warnings
+    });
+  }
+  
+  // Use the validated and corrected metrics
+  const finalMetrics = {
+    revenue,
+    cogs: cogsResult.value,
+    opex,
+    grossProfit: margins.grossProfit,
+    netProfit: margins.netProfit,
+    grossMargin: margins.grossMargin,
+    netMargin: margins.netMargin
+  };
+  
+  const barChartData = generateBarChartData(finalMetrics);
+  const pieChartData = generatePieChartData(finalMetrics);
+  const summaryStats = calculateSummaryStats(finalMetrics);
 
   // ✅ PIE LABEL FUNCTION
   const renderPieLabel = (entry: any) => {

@@ -7,6 +7,8 @@ import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { logger } from '@/utils/logger';
+// 🔧 IMPROVED: Import centralized date normalization
+import { normalizeDateForDatabase } from '@/utils/dateNormalization';
 
 // 🚀 Lazy load heavy components
 const StatsGrid = lazy(() => import('@/components/dashboard/StatsGrid'));
@@ -26,15 +28,15 @@ const SectionLoader = ({ height = "h-32", className = "" }) => (
   </div>
 );
 
-// 🗓️ Helper function untuk inisialisasi date range
+// 🗓️ Helper function untuk inisialisasi date range dengan centralized normalization
 const getDefaultDateRange = () => {
   const today = new Date();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(today.getDate() - 30);
   
   return {
-    from: thirtyDaysAgo.toISOString().split('T')[0],
-    to: today.toISOString().split('T')[0]
+    from: normalizeDateForDatabase(thirtyDaysAgo),
+    to: normalizeDateForDatabase(today)
   };
 };
 

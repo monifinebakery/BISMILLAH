@@ -11,6 +11,33 @@ import {
 import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 
 export class PurchaseApiService {
+  private static shouldSkipWarehouseSync(purchase: Purchase | null | undefined, forceSync: boolean = false): boolean {
+    console.log('🔄 [PURCHASE API] shouldSkipWarehouseSync called with:', { purchase: purchase?.id, forceSync });
+    
+    // If forceSync is true, don't skip (allow manual sync for imported items)
+    if (forceSync) {
+      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (forceSync enabled)');
+      return false;
+    }
+    
+    if (!purchase || !Array.isArray(purchase.items)) {
+      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (no purchase or items)');
+      return false;
+    }
+    
+    try {
+      // Skip jika semua item bertanda [IMPORTED] di keterangan
+      const shouldSkip = purchase.items.length > 0 && purchase.items.every((it: any) =>
+        typeof it?.keterangan === 'string' && it.keterangan.toUpperCase().includes('IMPORTED')
+      );
+      
+      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync result:', shouldSkip);
+      return shouldSkip;
+    } catch {
+      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (error in check)');
+      return false;
+    }
+  }
   /** Get all purchases */
   static async fetchPurchases(userId: string): Promise<{ data: Purchase[] | null; error: string | null }> {
     try {
@@ -61,8 +88,10 @@ export class PurchaseApiService {
 
       if (error) throw new Error(error.message);
 
-      // Jika langsung dibuat dengan status 'completed', sinkronkan stok & WAC
-      if (purchaseData.status === 'completed' && data?.id) {
+      // Manual sync: apply to warehouse if created as completed
+      // Don't force sync during creation (respect IMPORTED flag)
+      if (purchaseData.status === 'completed' && data?.id && !this.shouldSkipWarehouseSync(purchaseData as Purchase, false)) {
+
         await applyPurchaseToWarehouse({
           ...purchaseData,
           id: data.id,
@@ -79,8 +108,9 @@ export class PurchaseApiService {
   }
 
   /**
-   * Update purchase (BOLEH meski sudah completed).
-   * Perubahan items/total/status akan otomatis disinkronkan ke stok & WAC oleh trigger di DB.
+   * Update purchase (allowed even after completed).
+   * Manual warehouse synchronization: changes to items/total/status
+   * will be manually synchronized to warehouse stock and WAC.
    */
   static async updatePurchase(
     id: string,
@@ -88,6 +118,21 @@ export class PurchaseApiService {
     userId: string
   ): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Fetch existing to know previous status/items
+      const { data: existingRow, error: fetchErr } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      if (fetchErr) throw new Error(fetchErr.message);
+      const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
+
+      // If existing was completed, reverse its effects first
+      if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing, false)) {
+        await reversePurchaseFromWarehouse(existing);
+      }
+
       const payload = transformPurchaseUpdateForDB(updatedData);
       const { error } = await supabase
         .from('purchases')
@@ -96,6 +141,20 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+
+      // Fetch updated row to apply new effects if still completed
+      const { data: updatedRow, error: fetchUpdatedErr } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      if (fetchUpdatedErr) throw new Error(fetchUpdatedErr.message);
+      const updated = updatedRow ? transformPurchaseFromDB(updatedRow) : null;
+
+      if (updated && updated.status === 'completed' && !this.shouldSkipWarehouseSync(updated, false)) {
+        await applyPurchaseToWarehouse(updated);
+      }
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error updating purchase:', err);
@@ -105,32 +164,33 @@ export class PurchaseApiService {
 
   /**
    * Set status (pending/completed/cancelled).
-   * Saat set ke 'completed', trigger DB akan:
+   * Manual warehouse synchronization when status changes to 'completed':
    * - menambah stok,
-  * - hitung WAC (harga_rata_rata),
-  * - tandai applied_at,
-  * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
-  */
+   * - hitung WAC (harga_rata_rata),
+   * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
+   */
   static async setPurchaseStatus(
     id: string,
     userId: string,
     newStatus: Purchase['status']
   ): Promise<{ success: boolean; error: string | null }> {
     try {
-      // Ambil data pembelian saat ini untuk mengetahui status sebelumnya dan itemnya
-      const { data: existing, error: fetchError } = await supabase
+      console.log('🔄 [PURCHASE API] setPurchaseStatus called:', { id, userId, newStatus });
+      
+      // Fetch current
+      const { data: existingRow, error: fetchErr } = await supabase
         .from('purchases')
         .select('*')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
+      if (fetchErr) throw new Error(fetchErr.message);
+      const prev = existingRow ? transformPurchaseFromDB(existingRow) : null;
+      
+      console.log('🔄 [PURCHASE API] Previous purchase data:', prev);
 
-      if (fetchError) throw new Error(fetchError.message);
+      // Update status
 
-      const purchase = existing ? transformPurchaseFromDB(existing) : null;
-      const previousStatus = purchase?.status;
-
-      // Update status di database
       const { error } = await supabase
         .from('purchases')
         .update({ status: newStatus })
@@ -138,6 +198,49 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+      
+      console.log('✅ [PURCHASE API] Status updated in database');
+
+      // Manual apply/reverse after status change
+      if (prev && prev.status !== newStatus) {
+        console.log('🔄 [PURCHASE API] Status changed from', prev.status, 'to', newStatus);
+        
+        if (newStatus === 'completed') {
+          console.log('🔄 [PURCHASE API] Applying to warehouse...');
+          // Fetch fresh row to reflect any concurrent changes
+          const { data: newRow } = await supabase
+            .from('purchases')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', userId)
+            .single();
+          const fresh = newRow ? transformPurchaseFromDB(newRow) : prev;
+          
+          console.log('🔄 [PURCHASE API] Fresh purchase data for warehouse sync:', fresh);
+          
+          // Force sync for manual status changes (even for imported items)
+          const forceSync = true;
+          if (!this.shouldSkipWarehouseSync(fresh, forceSync)) {
+            console.log('🔄 [PURCHASE API] Calling applyPurchaseToWarehouse with forceSync...');
+            await applyPurchaseToWarehouse(fresh);
+            console.log('✅ [PURCHASE API] Warehouse sync completed');
+          } else {
+            console.log('⏭️ [PURCHASE API] Skipping warehouse sync (shouldSkipWarehouseSync returned true)');
+          }
+        } else if (prev.status === 'completed') {
+          console.log('🔄 [PURCHASE API] Reversing from warehouse...');
+          // Force sync for manual status changes (even for imported items) 
+          const forceSync = true;
+          if (!this.shouldSkipWarehouseSync(prev, forceSync)) {
+            await reversePurchaseFromWarehouse(prev);
+            console.log('✅ [PURCHASE API] Warehouse reverse completed');
+          } else {
+            console.log('⏭️ [PURCHASE API] Skipping warehouse reverse (shouldSkipWarehouseSync returned true)');
+          }
+        }
+      } else {
+        console.log('⏭️ [PURCHASE API] No status change, skipping warehouse sync');
+      }
 
       // Sinkronisasi manual stok dan WAC jika status berubah
       if (purchase && previousStatus !== newStatus) {
@@ -150,6 +253,7 @@ export class PurchaseApiService {
 
       return { success: true, error: null };
     } catch (err: any) {
+      console.error('❌ [PURCHASE API] Error in setPurchaseStatus:', err);
       logger.error('Error updating status:', err);
       return { success: false, error: err.message || 'Gagal update status' };
     }
@@ -162,11 +266,24 @@ export class PurchaseApiService {
 
   /**
   * Delete purchase.
-  * Jika purchase sudah pernah diaplikasikan (applied_at IS NOT NULL),
-  * trigger DB akan otomatis mengembalikan stok/WAC (reversal).
+  * Manual warehouse synchronization: if purchase was completed,
+  * manually reverse stock and WAC changes before deletion.
   */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
+      // Fetch existing to reverse if needed
+      const { data: existingRow } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
+
+      if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing, false)) {
+        await reversePurchaseFromWarehouse(existing);
+      }
+
       const { error } = await supabase
         .from('purchases')
         .delete()
@@ -203,26 +320,42 @@ export class PurchaseApiService {
     }
   }
 
-  /** Stats via RPC (optional, kalau sudah ada function-nya) */
+  /** Get basic purchase statistics manually */
   static async getPurchaseStats(userId: string) {
     try {
-      const { data, error } = await supabase.rpc('get_purchase_stats', { p_user_id: userId });
+      const { data: purchases, error } = await supabase
+        .from('purchases')
+        .select('status, total_nilai')
+        .eq('user_id', userId);
+
       if (error) throw new Error(error.message);
-      return { data: data?.[0] || null, error: null as string | null };
+
+      const stats = {
+        total: purchases?.length || 0,
+        pending: purchases?.filter(p => p.status === 'pending').length || 0,
+        completed: purchases?.filter(p => p.status === 'completed').length || 0,
+        cancelled: purchases?.filter(p => p.status === 'cancelled').length || 0,
+        total_value: purchases?.reduce((sum, p) => sum + (p.total_nilai || 0), 0) || 0
+      };
+
+      return { data: stats, error: null as string | null };
     } catch (err: any) {
       logger.error('Error getting purchase stats:', err);
       return { data: null, error: err.message || 'Gagal memuat statistik pembelian' };
     }
   }
 
-  /** Date range via RPC (optional, kalau sudah ada function-nya) */
+  /** Get purchases by date range manually */
   static async getPurchasesByDateRange(userId: string, startDate: Date, endDate: Date) {
     try {
-      const { data, error } = await supabase.rpc('get_purchases_by_date_range', {
-        p_user_id: userId,
-        p_start_date: startDate.toISOString().slice(0, 10),
-        p_end_date: endDate.toISOString().slice(0, 10)
-      });
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('tanggal', startDate.toISOString().slice(0, 10))
+        .lte('tanggal', endDate.toISOString().slice(0, 10))
+        .order('tanggal', { ascending: false });
+
       if (error) throw new Error(error.message);
       return { data: transformPurchasesFromDB(data ?? []), error: null };
     } catch (err: any) {

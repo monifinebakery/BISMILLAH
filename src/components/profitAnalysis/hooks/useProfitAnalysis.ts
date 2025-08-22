@@ -24,8 +24,10 @@ import profitAnalysisApi, {
 import { calcHPP } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';
-// 🔧 Helper untuk periode bulan berjalan tanpa masalah zona waktu
-import { getCurrentPeriod } from '../utils/profitTransformers';
+// ✅ ADD: Import centralized utilities
+import { getEffectiveCogs, shouldUseWAC } from '@/utils/cogsCalculation';
+import { safeCalculateMargins, monitorDataQuality } from '@/utils/profitValidation';
+
 
 // Query Keys
 export const PROFIT_QUERY_KEYS = {
@@ -181,23 +183,25 @@ export const useProfitAnalysis = (
   });
 
   const pemakaianQuery = useQuery({
-    queryKey: PROFIT_QUERY_KEYS.pemakaian(currentPeriod, currentPeriod),
+    queryKey: mode === 'daily' && dateRange 
+      ? PROFIT_QUERY_KEYS.pemakaian(dateRange.from.toISOString().split('T')[0], dateRange.to.toISOString().split('T')[0])
+      : PROFIT_QUERY_KEYS.pemakaian(currentPeriod, currentPeriod),
     queryFn: async () => {
-      // Pastikan format periode valid (YYYY-MM), fallback ke bulan berjalan jika tidak
-      let period = currentPeriod;
-      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) {
-        const now = new Date();
-        period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      if (mode === 'daily' && dateRange) {
+        // For daily mode, use the selected date range
+        const start = dateRange.from.toISOString().split('T')[0];
+        const end = dateRange.to.toISOString().split('T')[0];
+        return fetchPemakaianByPeriode(start, end);
+      } else {
+        // For monthly mode, use the current period
+        const start = currentPeriod + '-01';
+        const end = new Date(new Date(currentPeriod + '-01').getFullYear(), 
+                            new Date(currentPeriod + '-01').getMonth() + 1, 0)
+                    .toISOString().split('T')[0];
+        return fetchPemakaianByPeriode(start, end);
       }
-
-      const start = `${period}-01`;
-      const endDate = new Date(`${period}-01`);
-      const end = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0)
-        .toISOString()
-        .split('T')[0];
-      return fetchPemakaianByPeriode(start, end);
     },
-    enabled: enableWAC && Boolean(currentPeriod),
+    enabled: enableWAC && Boolean((mode === 'daily' && dateRange) || (mode !== 'daily' && currentPeriod)),
     staleTime: 60 * 1000, // 1 minute
   });
 
@@ -234,7 +238,7 @@ export const useProfitAnalysis = (
 
   // ✅ WAC CALCULATION
   const { totalHPP, hppBreakdown } = useMemo(() => {
-    if (bahanMapQuery.data && pemakaianQuery.data) {
+    if (bahanMapQuery.data && pemakaianQuery.data && Array.isArray(pemakaianQuery.data)) {
       try {
         const res = calcHPP(pemakaianQuery.data, bahanMapQuery.data);
         return {
@@ -303,20 +307,40 @@ export const useProfitAnalysis = (
     }
 
     try {
-      // ✅ Pakai totalHPP (WAC) jika tersedia; fallback ke cogs dari kalkulasi lama
-      const effectiveCogs = totalHPP > 0 ? totalHPP : cogs;
-      const grossProfit = revenue - effectiveCogs;
-      const netProfit = grossProfit - opex;
-      const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-      const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+      // ✅ IMPROVED: Use centralized COGS calculation
+      const cogsResult = getEffectiveCogs(
+        currentData,
+        totalHPP,
+        revenue,
+        { preferWAC: shouldUseWAC(totalHPP) }
+      );
+      
+      // ✅ IMPROVED: Use safe margin calculation
+      const margins = safeCalculateMargins(revenue, cogsResult.value, opex);
+      
+      // ✅ ADD: Monitor data quality
+      monitorDataQuality({
+        revenue,
+        cogs: cogsResult.value,
+        opex
+      }, currentData.period);
+      
+      // Log COGS calculation warnings
+      if (cogsResult.warnings.length > 0) {
+        logger.warn('Profit metrics COGS warnings:', cogsResult.warnings);
+      }
+      
+      if (!margins.isValid) {
+        logger.warn('Profit metrics validation failed:', margins.errors);
+      }
 
       return {
-        grossProfit,
-        netProfit,
-        grossMargin,
-        netMargin,
+        grossProfit: margins.grossProfit,
+        netProfit: margins.netProfit,
+        grossMargin: margins.grossMargin,
+        netMargin: margins.netMargin,
         revenue,
-        cogs: effectiveCogs,
+        cogs: cogsResult.value,
         opex,
         // WAC metrics with F&B breakdown
         totalHPP,
@@ -407,8 +431,8 @@ export const useProfitAnalysis = (
       }
 
       setProfitHistory(response.data || []);
-      logger.success('✅ Profit history loaded:', (response.data || []).length, 'periods');
-
+      logger.success(`✅ Profit history loaded: ${(response.data || []).length} periods`);
+      
     } catch (error) {
       logger.error('❌ Load profit history failed:', error);
       // Pastikan state dikosongkan saat gagal
@@ -543,7 +567,7 @@ export const useProfitAnalysis = (
     
     // ✅ INCLUDE WAC UTILITIES
     bahanMap: bahanMapQuery.data ?? {},
-    pemakaian: pemakaianQuery.data ?? [],
+    pemakaian: Array.isArray(pemakaianQuery.data) ? pemakaianQuery.data : [],
     labels
   };
 };

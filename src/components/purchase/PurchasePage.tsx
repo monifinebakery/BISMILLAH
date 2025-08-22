@@ -172,7 +172,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         }));
       },
       openEdit: (purchase: any) => {
-        // edit selalu diperbolehkan (stok/WAC diurus trigger DB)
+        // edit selalu diperbolehkan (stok/WAC diurus manual sync)
         setAppState(prev => ({
           ...prev,
           dialogs: {

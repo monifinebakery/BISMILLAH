@@ -28,7 +28,13 @@ export const calculateNewWac = (
  * Apply a completed purchase to warehouse stock and WAC
  */
 export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
-  if (!purchase || !Array.isArray(purchase.items)) return;
+  console.log('🔄 [WAREHOUSE SYNC] Starting applyPurchaseToWarehouse for purchase:', purchase.id);
+  console.log('🔄 [WAREHOUSE SYNC] Purchase items:', purchase.items);
+  
+  if (!purchase || !Array.isArray(purchase.items)) {
+    console.warn('⚠️ [WAREHOUSE SYNC] Invalid purchase data:', { purchase, items: purchase?.items });
+    return;
+  }
 
   for (const item of purchase.items) {
     const itemId =
@@ -41,22 +47,43 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
       0
     );
 
-    if (!itemId || qty <= 0) continue;
+    console.log('🔄 [WAREHOUSE SYNC] Processing item:', { itemId, qty, unitPrice, rawItem: item });
 
-    const { data: existing } = await supabase
+    if (!itemId || qty <= 0) {
+      console.warn('⚠️ [WAREHOUSE SYNC] Skipping invalid item:', { itemId, qty, unitPrice });
+      continue;
+    }
+
+    const { data: existing, error: fetchError } = await supabase
       .from('bahan_baku')
       .select('id, stok, harga_rata_rata, harga_satuan')
       .eq('id', itemId)
       .eq('user_id', purchase.userId)
       .single();
 
+    if (fetchError) {
+      console.error('❌ [WAREHOUSE SYNC] Error fetching existing item:', fetchError);
+    }
+
     const oldStock = existing?.stok ?? 0;
     const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;
     const newStock = oldStock + qty;
     const newWac = calculateNewWac(oldWac, oldStock, qty, unitPrice);
 
+    console.log('🔄 [WAREHOUSE SYNC] Stock calculation:', {
+      itemId,
+      oldStock,
+      qty,
+      newStock,
+      oldWac,
+      unitPrice,
+      newWac,
+      existing
+    });
+
     if (existing) {
-      await supabase
+      console.log('🔄 [WAREHOUSE SYNC] Updating existing item:', itemId);
+      const { error: updateError } = await supabase
         .from('bahan_baku')
         .update({
           stok: newStock,
@@ -66,8 +93,15 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         })
         .eq('id', itemId)
         .eq('user_id', purchase.userId);
+      
+      if (updateError) {
+        console.error('❌ [WAREHOUSE SYNC] Error updating item:', updateError);
+      } else {
+        console.log('✅ [WAREHOUSE SYNC] Successfully updated item:', itemId);
+      }
     } else {
-      await supabase.from('bahan_baku').insert({
+      console.log('🔄 [WAREHOUSE SYNC] Creating new item:', itemId);
+      const { error: insertError } = await supabase.from('bahan_baku').insert({
         id: itemId,
         user_id: purchase.userId,
         nama: (item as any).nama ?? (item as any).namaBarang ?? '',
@@ -81,8 +115,16 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
+      
+      if (insertError) {
+        console.error('❌ [WAREHOUSE SYNC] Error creating item:', insertError);
+      } else {
+        console.log('✅ [WAREHOUSE SYNC] Successfully created item:', itemId);
+      }
     }
   }
+  
+  console.log('✅ [WAREHOUSE SYNC] Completed applyPurchaseToWarehouse for purchase:', purchase.id);
 };
 
 /**
@@ -168,36 +210,95 @@ export class WarehouseSyncService {
 
   /**
    * Manually recalculate WAC for all warehouse items
-   * This uses the database function we created in the trigger file
+   * This manually calculates warehouse consistency
    */
   async recalculateAllWAC(): Promise<SyncSummary> {
     const startTime = Date.now();
     const results: SyncResult[] = [];
 
     try {
-      logger.info('Starting WAC recalculation for user:', this.userId);
+      logger.info('Starting manual WAC recalculation for user:', this.userId);
 
-      // Call the database function to recalculate WAC
-      const { data: dbResults, error } = await supabase
-        .rpc('sync_all_warehouse_wac', { p_user_id: this.userId });
+      // Get all warehouse items
+      const { data: warehouseItems, error: warehouseError } = await supabase
+        .from('bahan_baku')
+        .select('*')
+        .eq('user_id', this.userId);
 
-      if (error) {
-        throw error;
-      }
+      if (warehouseError) throw warehouseError;
 
-      // Process results from database function
-      if (dbResults && Array.isArray(dbResults)) {
-        dbResults.forEach((row: any) => {
-          results.push({
-            itemId: row.bahan_id,
-            itemName: row.message?.includes('to') ? 
-              row.message.split(' ')[0] : 'Unknown',
-            oldWac: row.old_wac,
-            newWac: row.new_wac,
-            status: 'success',
-            message: row.message
+      // Get all completed purchases
+      const { data: purchases, error: purchaseError } = await supabase
+        .from('purchases')
+        .select('items')
+        .eq('user_id', this.userId)
+        .eq('status', 'completed');
+
+      if (purchaseError) throw purchaseError;
+
+      // Process each warehouse item
+      for (const item of warehouseItems || []) {
+        try {
+          const oldWac = item.harga_rata_rata || 0;
+          
+          // Calculate new WAC from purchase history
+          let totalQuantity = 0;
+          let totalValue = 0;
+
+          purchases?.forEach(purchase => {
+            if (purchase.items && Array.isArray(purchase.items)) {
+              purchase.items.forEach((purchaseItem: any) => {
+                if (purchaseItem.bahan_baku_id === item.id) {
+                  const qty = Number(purchaseItem.jumlah || 0);
+                  const price = Number(purchaseItem.harga_per_satuan || 0);
+                  totalQuantity += qty;
+                  totalValue += qty * price;
+                }
+              });
+            }
           });
-        });
+
+          const newWac = totalQuantity > 0 ? totalValue / totalQuantity : item.harga_satuan;
+
+          // Update the item with new WAC if it changed
+          if (Math.abs(newWac - oldWac) > 0.01) {
+            const { error: updateError } = await supabase
+              .from('bahan_baku')
+              .update({
+                harga_rata_rata: newWac,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', item.id)
+              .eq('user_id', this.userId);
+
+            if (updateError) throw updateError;
+
+            results.push({
+              itemId: item.id,
+              itemName: item.nama,
+              oldWac,
+              newWac,
+              status: 'success',
+              message: `WAC updated from ${oldWac} to ${newWac}`
+            });
+          } else {
+            results.push({
+              itemId: item.id,
+              itemName: item.nama,
+              oldWac,
+              newWac,
+              status: 'skipped',
+              message: 'WAC unchanged'
+            });
+          }
+        } catch (itemError) {
+          results.push({
+            itemId: item.id,
+            itemName: item.nama,
+            status: 'error',
+            message: itemError instanceof Error ? itemError.message : 'Unknown error'
+          });
+        }
       }
 
       const duration = Date.now() - startTime;
@@ -210,7 +311,7 @@ export class WarehouseSyncService {
         duration
       };
 
-      logger.info('WAC recalculation completed', summary);
+      logger.info('Manual WAC recalculation completed', summary);
       return summary;
 
     } catch (error) {
@@ -251,7 +352,7 @@ export class WarehouseSyncService {
       // Get all completed purchases
       const { data: purchases, error: purchaseError } = await supabase
         .from('purchases')
-        .select('id, items, total_nilai, status, applied_at')
+        .select('id, items, total_nilai, status')
         .eq('user_id', this.userId)
         .eq('status', 'completed');
 

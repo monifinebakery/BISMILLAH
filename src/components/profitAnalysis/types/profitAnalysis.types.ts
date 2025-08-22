@@ -2,6 +2,44 @@
 // ==============================================
 // Fixed Types with Compatibility
 
+// Base transaction type for filtering and calculations
+export interface FinancialTransactionActual {
+  id: string;
+  type: 'income' | 'expense';
+  category?: string;
+  amount: number;
+  date: string;
+  description?: string;
+  user_id: string;
+}
+
+// Material data type for calculations
+export interface BahanBakuActual {
+  id: string;
+  nama: string;
+  stok: number;
+  harga_satuan: number;
+  status: 'aktif' | 'nonaktif';
+  user_id: string;
+}
+
+// Operational cost type for calculations
+export interface OperationalCostActual {
+  id: string;
+  nama_biaya: string;
+  jumlah_per_bulan: number;
+  jenis: 'tetap' | 'variabel';
+  status: 'aktif' | 'nonaktif';
+  cost_category?: string;
+  user_id: string;
+}
+
+// Usage tracking for material calculations
+export interface PemakaianBahan {
+  bahan_baku_id: string;
+  qty_base: number; // Base quantity used
+}
+
 export interface ProfitAnalysis {
   id: string;
   user_id: string;

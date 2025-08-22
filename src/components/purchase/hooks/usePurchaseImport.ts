@@ -293,21 +293,19 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
             supplierId = supplier.id;
           }
           
-            const purchase = {
-              supplier: supplierId,
-              tanggal: new Date(purchaseData.tanggal),
-              items: purchaseData.items.map(item => {
-                const hargaSatuan = purchaseData.totalNilai / item.kuantitas;
-                return {
-                  ...item,
-                  hargaSatuan,
-                  subtotal: hargaSatuan * item.kuantitas
-                };
-              }),
-              totalNilai: purchaseData.totalNilai,
-              metodePerhitungan: 'AVERAGE' as const,
-              status: 'pending' as const
-            };
+          const purchase = {
+            supplier: supplierId,
+            tanggal: new Date(purchaseData.tanggal),
+            items: purchaseData.items.map(item => ({
+              ...item,
+              subtotal: item.kuantitas * item.hargaSatuan,
+              // Tandai sebagai hasil import agar sinkron stok bisa dilewati saat perubahan status
+              keterangan: '[IMPORTED]'
+            })),
+            totalNilai: purchaseData.totalNilai,
+            metodePerhitungan: 'AVERAGE' as const,
+            status: 'pending' as const
+          };
 
           const success = await addPurchase(purchase);
           if (success) {

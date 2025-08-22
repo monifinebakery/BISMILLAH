@@ -4,6 +4,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
+// 🔧 IMPROVED: Import centralized date normalization
+import { normalizeDateRange, normalizeDateForDatabase } from '@/utils/dateNormalization';
 import { 
   FinancialTransaction, 
   CreateTransactionData, 
@@ -161,17 +163,33 @@ export const getTransactionsByDateRange = async (
   to: Date
 ): Promise<FinancialTransaction[]> => {
   try {
+    // 🔧 IMPROVED: Use centralized date normalization for consistency
+    const { startYMD, endYMD } = normalizeDateRange(from, to);
+    
+    logger.info('📊 Fetching financial transactions by date range:', {
+      userId,
+      dateRange: { from: from.toISOString(), to: to.toISOString() },
+      normalizedRange: { startYMD, endYMD }
+    });
+    
     const { data, error } = await supabase
       .from('financial_transactions')
       .select('*')
       .eq('user_id', userId)
-      .gte('date', from.toISOString())
-      .lte('date', to.toISOString())
+      .gte('date', startYMD)
+      .lte('date', endYMD)
       .order('date', { ascending: false });
 
     if (error) throw error;
     
-    return (data || []).map(transformFromDB);
+    const transactions = (data || []).map(transformFromDB);
+    
+    logger.info('✅ Financial transactions fetched:', {
+      count: transactions.length,
+      dateRange: { startYMD, endYMD }
+    });
+    
+    return transactions;
   } catch (error: any) {
     logger.error('Error fetching transactions by date range:', error);
     throw new Error(`Failed to fetch transactions: ${error.message}`);

@@ -62,7 +62,7 @@ class DialogErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error('Dialog loading error:', error, errorInfo);
+    logger.error('Dialog loading error:', { error, errorInfo });
   }
 
   render() {
@@ -179,21 +179,149 @@ const DialogManager: React.FC<DialogManagerProps> = ({
     handleBulkOperation: async (operation: 'edit' | 'delete', data?: any) => {
       try {
         let success = false;
+        
+        logger.info(`[${pageId}] 🔄 Starting bulk ${operation} operation`, { 
+          operation, 
+          dataProvided: !!data,
+          dataKeys: data ? Object.keys(data) : [],
+          bulkAvailable: !!bulk,
+          bulkMethods: bulk ? Object.keys(bulk) : []
+        });
+        
         if (operation === 'delete') {
+          // Bulk delete doesn't need data parameter
+          if (!bulk || typeof bulk.bulkDelete !== 'function') {
+            logger.error(`[${pageId}] ❌ Bulk delete function not available`, { bulk: !!bulk, bulkDelete: !!bulk?.bulkDelete });
+            throw new Error('Fungsi bulk delete tidak tersedia');
+          }
+          
+          logger.debug(`[${pageId}] 🗑️ Calling bulk.bulkDelete()`);
           success = await bulk.bulkDelete();
-          logger.debug(`[${pageId}] ✅ Bulk delete operation completed`);
+          logger.debug(`[${pageId}] ✅ Bulk delete operation completed: ${success}`);
+          
         } else if (operation === 'edit' && data) {
-          success = await bulk.bulkEdit(data);
-          logger.debug(`[${pageId}] ✅ Bulk edit operation completed`);
+          // Log the data being passed for bulk edit
+          logger.debug(`[${pageId}] 📝 Bulk edit raw data:`, data);
+          
+          if (!bulk || typeof bulk.bulkEdit !== 'function') {
+            logger.error(`[${pageId}] ❌ Bulk edit function not available`, { bulk: !!bulk, bulkEdit: !!bulk?.bulkEdit });
+            throw new Error('Fungsi bulk edit tidak tersedia');
+          }
+          
+          // Validate that we have data to update
+          if (!data || typeof data !== 'object') {
+            logger.error(`[${pageId}] ❌ Invalid bulk edit data:`, { data, type: typeof data });
+            throw new Error('Data bulk edit tidak valid');
+          }
+          
+          // Convert and validate the data with enhanced type checking
+          const updates: Partial<any> = {};
+          let hasValidUpdates = false;
+          
+          // Map the fields correctly with strict validation
+          if (data.kategori !== undefined && data.kategori !== null && String(data.kategori).trim() !== '') {
+            updates.kategori = String(data.kategori).trim();
+            hasValidUpdates = true;
+            logger.debug(`[${pageId}] ✓ Adding kategori: "${updates.kategori}"`);
+          }
+          
+          if (data.supplier !== undefined && data.supplier !== null && String(data.supplier).trim() !== '') {
+            updates.supplier = String(data.supplier).trim();
+            hasValidUpdates = true;
+            logger.debug(`[${pageId}] ✓ Adding supplier: "${updates.supplier}"`);
+          }
+          
+          if (data.minimum !== undefined && data.minimum !== null && data.minimum !== '') {
+            const minimum = Number(data.minimum);
+            if (!isNaN(minimum) && minimum >= 0) {
+              updates.minimum = minimum;
+              hasValidUpdates = true;
+              logger.debug(`[${pageId}] ✓ Adding minimum: ${updates.minimum}`);
+            } else {
+              logger.warn(`[${pageId}] ⚠️ Invalid minimum value: ${data.minimum}`);
+            }
+          }
+          
+          if (data.harga !== undefined && data.harga !== null && data.harga !== '') {
+            const harga = Number(data.harga);
+            if (!isNaN(harga) && harga >= 0) {
+              updates.harga = harga;
+              hasValidUpdates = true;
+              logger.debug(`[${pageId}] ✓ Adding harga: ${updates.harga}`);
+            } else {
+              logger.warn(`[${pageId}] ⚠️ Invalid harga value: ${data.harga}`);
+            }
+          }
+          
+          if (data.expiry !== undefined && data.expiry !== null && String(data.expiry).trim() !== '') {
+            const expiryStr = String(data.expiry).trim();
+            // Basic date validation
+            const expiryDate = new Date(expiryStr);
+            if (!isNaN(expiryDate.getTime())) {
+              updates.expiry = expiryStr;
+              hasValidUpdates = true;
+              logger.debug(`[${pageId}] ✓ Adding expiry: "${updates.expiry}"`);
+            } else {
+              logger.warn(`[${pageId}] ⚠️ Invalid expiry date: ${data.expiry}`);
+            }
+          }
+          
+          logger.debug(`[${pageId}] 📝 Final bulk edit updates:`, updates);
+          
+          // Check if there are any actual valid updates
+          if (!hasValidUpdates || Object.keys(updates).length === 0) {
+            const message = 'Tidak ada perubahan valid yang akan diterapkan';
+            logger.warn(`[${pageId}] ⚠️ ${message}`);
+            toast.warning(message);
+            return false;
+          }
+          
+          logger.debug(`[${pageId}] 🚀 Calling bulk.bulkEdit() with updates:`, updates);
+          success = await bulk.bulkEdit(updates);
+          logger.debug(`[${pageId}] ✅ Bulk edit operation completed: ${success}`);
+          
+        } else {
+          logger.warn(`[${pageId}] ⚠️ Invalid bulk operation parameters:`, { 
+            operation, 
+            hasData: !!data,
+            isEditWithoutData: operation === 'edit' && !data
+          });
+          const message = operation === 'edit' ? 'Data untuk bulk edit tidak tersedia' : 'Operasi bulk tidak valid';
+          toast.error(message);
+          return false;
         }
+        
         if (success) {
           queryClient.invalidateQueries({ queryKey: ['warehouse'] });
+          logger.info(`[${pageId}] ✅ Bulk ${operation} operation successful`);
+        } else {
+          logger.warn(`[${pageId}] ⚠️ Bulk ${operation} operation returned false`);
+          toast.warning(`Operasi ${operation === 'edit' ? 'edit' : 'hapus'} massal tidak berhasil`);
         }
+        
         return success;
       } catch (error: any) {
-        logger.error(`[${pageId}] ❌ Bulk ${operation} operation failed:`, error);
-        toast.error(`Operasi ${operation === 'edit' ? 'edit' : 'hapus'} massal gagal: ${error.message || 'Unknown error'}`);
-        throw error;
+        logger.error(`[${pageId}] ❌ Bulk ${operation} operation failed:`, {
+          error: error.message,
+          stack: error.stack,
+          operation,
+          dataProvided: !!data
+        });
+        
+        // Provide more specific error messages
+        let errorMessage = 'Operasi gagal';
+        if (error.message?.includes('tidak tersedia')) {
+          errorMessage = error.message;
+        } else if (error.message?.includes('tidak valid')) {
+          errorMessage = error.message;
+        } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+          errorMessage = 'Masalah koneksi jaringan. Silakan coba lagi.';
+        } else {
+          errorMessage = `Operasi ${operation === 'edit' ? 'edit' : 'hapus'} massal gagal: ${error.message || 'Error tidak diketahui'}`;
+        }
+        
+        toast.error(errorMessage);
+        return false; // Don't re-throw to prevent dialog from staying open
       }
     },
 
@@ -211,7 +339,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
             successCount++;
           } catch (error) {
             errorCount++;
-            logger.warn(`[${pageId}] Failed to import item:`, item?.nama, error);
+            logger.warn(`[${pageId}] Failed to import item:`, { nama: item?.nama, error });
           }
         }
         await queryClient.refetchQueries({ queryKey: ['warehouse'] });
@@ -263,8 +391,8 @@ const DialogManager: React.FC<DialogManagerProps> = ({
               }}
               operation={dialogs.states.bulkEdit ? 'edit' : 'delete'}
               selectedItems={Array.from(selection.selectedItems || [])}
-              selectedItemsData={Array.from(selection.selectedItems || []).map((id: string) => 
-                context.bahanBaku?.find((item: any) => item.id === id)
+              selectedItemsData={Array.from(selection.selectedItems || []).map((id) => 
+                context.bahanBaku?.find((item: any) => item.id === String(id))
               ).filter(Boolean)}
               onConfirm={async (data) => {
                 const operation = dialogs.states.bulkEdit ? 'edit' : 'delete';
@@ -292,18 +420,9 @@ const DialogManager: React.FC<DialogManagerProps> = ({
                 dialogs.close('import');
                 dialogs.close('export');
               }}
-              type={dialogs.states.import ? 'import' : 'export'}
-              data={filters.filteredItems || []}
-              selectedData={Array.from(selection.selectedItems || []).map((id: string) => 
-                context.bahanBaku?.find((item: any) => item.id === id)
-              ).filter(Boolean)}
               onImport={async (items: any[]) => {
                 const result = await enhancedHandlers.handleImport(items);
-                return result;
-              }}
-              onExport={(data, format) => {
-                logger.info(`[${pageId}] 📤 Exporting ${data.length} items as ${format}`);
-                // tambahkan logic export sesuai kebutuhan
+                return result.successCount > 0;
               }}
             />
           </Suspense>

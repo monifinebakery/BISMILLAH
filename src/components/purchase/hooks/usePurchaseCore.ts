@@ -133,12 +133,12 @@ export const usePurchaseCore = ({
       toast.warning('Pembelian sedang diproses, tunggu sebentar');
       return false;
     }
-    // izinkan delete; trigger DB akan rollback stok jika sudah applied
+    // izinkan delete; manual sync akan rollback stok jika sudah applied
     return true;
   }, [isProcessing]);
 
   // ---------- Actions ----------
-  /** Ubah status via API khusus supaya trigger DB jalan */
+  /** Ubah status via API khusus supaya manual sync jalan */
   const updateStatus = useCallback(async (purchaseId: string, newStatus: 'pending'|'completed'|'cancelled'): Promise<boolean> => {
     const v = validateStatusChange(purchaseId, newStatus);
     if (!v.canChange) {

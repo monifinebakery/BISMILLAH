@@ -203,8 +203,8 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
         bValue = Number(bValue) || 0;
       }
       
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      if ((aValue ?? '') < (bValue ?? '')) return sortConfig.direction === 'asc' ? -1 : 1;
+      if ((aValue ?? '') > (bValue ?? '')) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
 
@@ -369,7 +369,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       }
     } catch (error) {
       logger.error(`[${hookId.current}] ❌ Exception during edit save:`, error);
-      toast.error(`Gagal memperbarui item: ${error.message || 'Unknown error'}`);
+      toast.error(`Gagal memperbarui item: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   }, [editingItem, context.updateBahanBaku, context.refetch, closeDialog]);
@@ -398,7 +398,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
         }
       } catch (error) {
         logger.error(`[${hookId.current}] ❌ Exception during delete:`, error);
-        toast.error(`Gagal menghapus item: ${error.message || 'Unknown error'}`);
+        toast.error(`Gagal menghapus item: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     } else {
       logger.debug(`[${hookId.current}] ❌ Delete cancelled by user`);

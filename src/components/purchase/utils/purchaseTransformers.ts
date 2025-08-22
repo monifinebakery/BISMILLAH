@@ -84,7 +84,6 @@ type DbPurchaseRow = {
   metode_perhitungan: 'AVERAGE';
   created_at: string;
   updated_at: string;
-  applied_at?: string | null;
 };
 
 /** ==== FRONTEND <- DB ==== */
@@ -148,7 +147,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       updatedAt: safeParseDate(row.updated_at) ?? new Date(),
     };
   } catch (error) {
-    logger.error('Error transforming purchase from DB:', error, dbItem);
+    logger.error('Error transforming purchase from DB:', error);
     return {
       id: dbItem?.id ?? 'error',
       userId: dbItem?.user_id ?? '',

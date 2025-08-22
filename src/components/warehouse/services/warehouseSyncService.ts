@@ -28,7 +28,13 @@ export const calculateNewWac = (
  * Apply a completed purchase to warehouse stock and WAC
  */
 export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
-  if (!purchase || !Array.isArray(purchase.items)) return;
+  console.log('🔄 [WAREHOUSE SYNC] Starting applyPurchaseToWarehouse for purchase:', purchase.id);
+  console.log('🔄 [WAREHOUSE SYNC] Purchase items:', purchase.items);
+  
+  if (!purchase || !Array.isArray(purchase.items)) {
+    console.warn('⚠️ [WAREHOUSE SYNC] Invalid purchase data:', { purchase, items: purchase?.items });
+    return;
+  }
 
   for (const item of purchase.items) {
     const itemId =
@@ -41,22 +47,43 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
       0
     );
 
-    if (!itemId || qty <= 0) continue;
+    console.log('🔄 [WAREHOUSE SYNC] Processing item:', { itemId, qty, unitPrice, rawItem: item });
 
-    const { data: existing } = await supabase
+    if (!itemId || qty <= 0) {
+      console.warn('⚠️ [WAREHOUSE SYNC] Skipping invalid item:', { itemId, qty, unitPrice });
+      continue;
+    }
+
+    const { data: existing, error: fetchError } = await supabase
       .from('bahan_baku')
       .select('id, stok, harga_rata_rata, harga_satuan')
       .eq('id', itemId)
       .eq('user_id', purchase.userId)
       .single();
 
+    if (fetchError) {
+      console.error('❌ [WAREHOUSE SYNC] Error fetching existing item:', fetchError);
+    }
+
     const oldStock = existing?.stok ?? 0;
     const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;
     const newStock = oldStock + qty;
     const newWac = calculateNewWac(oldWac, oldStock, qty, unitPrice);
 
+    console.log('🔄 [WAREHOUSE SYNC] Stock calculation:', {
+      itemId,
+      oldStock,
+      qty,
+      newStock,
+      oldWac,
+      unitPrice,
+      newWac,
+      existing
+    });
+
     if (existing) {
-      await supabase
+      console.log('🔄 [WAREHOUSE SYNC] Updating existing item:', itemId);
+      const { error: updateError } = await supabase
         .from('bahan_baku')
         .update({
           stok: newStock,
@@ -66,8 +93,15 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         })
         .eq('id', itemId)
         .eq('user_id', purchase.userId);
+      
+      if (updateError) {
+        console.error('❌ [WAREHOUSE SYNC] Error updating item:', updateError);
+      } else {
+        console.log('✅ [WAREHOUSE SYNC] Successfully updated item:', itemId);
+      }
     } else {
-      await supabase.from('bahan_baku').insert({
+      console.log('🔄 [WAREHOUSE SYNC] Creating new item:', itemId);
+      const { error: insertError } = await supabase.from('bahan_baku').insert({
         id: itemId,
         user_id: purchase.userId,
         nama: (item as any).nama ?? (item as any).namaBarang ?? '',
@@ -81,8 +115,16 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
+      
+      if (insertError) {
+        console.error('❌ [WAREHOUSE SYNC] Error creating item:', insertError);
+      } else {
+        console.log('✅ [WAREHOUSE SYNC] Successfully created item:', itemId);
+      }
     }
   }
+  
+  console.log('✅ [WAREHOUSE SYNC] Completed applyPurchaseToWarehouse for purchase:', purchase.id);
 };
 
 /**

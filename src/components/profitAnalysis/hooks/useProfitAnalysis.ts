@@ -168,15 +168,25 @@ export const useProfitAnalysis = (
   });
 
   const pemakaianQuery = useQuery({
-    queryKey: PROFIT_QUERY_KEYS.pemakaian(currentPeriod, currentPeriod),
+    queryKey: mode === 'daily' && dateRange 
+      ? PROFIT_QUERY_KEYS.pemakaian(dateRange.from.toISOString().split('T')[0], dateRange.to.toISOString().split('T')[0])
+      : PROFIT_QUERY_KEYS.pemakaian(currentPeriod, currentPeriod),
     queryFn: async () => {
-      const start = currentPeriod + '-01';
-      const end = new Date(new Date(currentPeriod + '-01').getFullYear(), 
-                          new Date(currentPeriod + '-01').getMonth() + 1, 0)
-                  .toISOString().split('T')[0];
-      return fetchPemakaianByPeriode(start, end);
+      if (mode === 'daily' && dateRange) {
+        // For daily mode, use the selected date range
+        const start = dateRange.from.toISOString().split('T')[0];
+        const end = dateRange.to.toISOString().split('T')[0];
+        return fetchPemakaianByPeriode(start, end);
+      } else {
+        // For monthly mode, use the current period
+        const start = currentPeriod + '-01';
+        const end = new Date(new Date(currentPeriod + '-01').getFullYear(), 
+                            new Date(currentPeriod + '-01').getMonth() + 1, 0)
+                    .toISOString().split('T')[0];
+        return fetchPemakaianByPeriode(start, end);
+      }
     },
-    enabled: enableWAC && Boolean(currentPeriod),
+    enabled: enableWAC && Boolean((mode === 'daily' && dateRange) || (mode !== 'daily' && currentPeriod)),
     staleTime: 60 * 1000, // 1 minute
   });
 
@@ -213,7 +223,7 @@ export const useProfitAnalysis = (
 
   // ✅ WAC CALCULATION
   const { totalHPP, hppBreakdown } = useMemo(() => {
-    if (bahanMapQuery.data && pemakaianQuery.data) {
+    if (bahanMapQuery.data && pemakaianQuery.data && Array.isArray(pemakaianQuery.data)) {
       try {
         const res = calcHPP(pemakaianQuery.data, bahanMapQuery.data);
         return {
@@ -384,7 +394,7 @@ export const useProfitAnalysis = (
       }
       
       setProfitHistory(response.data || []);
-      logger.success('✅ Profit history loaded:', (response.data || []).length, 'periods');
+      logger.success(`✅ Profit history loaded: ${(response.data || []).length} periods`);
       
     } catch (error) {
       logger.error('❌ Load profit history failed:', error);
@@ -493,7 +503,7 @@ export const useProfitAnalysis = (
     
     // ✅ INCLUDE WAC UTILITIES
     bahanMap: bahanMapQuery.data ?? {},
-    pemakaian: pemakaianQuery.data ?? [],
+    pemakaian: Array.isArray(pemakaianQuery.data) ? pemakaianQuery.data : [],
     labels
   };
 };

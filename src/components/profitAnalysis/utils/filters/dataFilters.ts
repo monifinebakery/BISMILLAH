@@ -4,6 +4,30 @@
 import { FinancialTransactionActual } from '../../types/profitAnalysis.types';
 
 /**
+ * Filter transactions by custom date range
+ */
+export const filterTransactionsByDateRange = (
+  transactions: FinancialTransactionActual[],
+  startDate: Date,
+  endDate: Date
+): FinancialTransactionActual[] => {
+  if (!startDate || !endDate) return transactions;
+  
+  // Ensure we're comparing dates correctly by normalizing to start/end of day
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+  
+  return transactions.filter(t => {
+    if (!t.date) return false;
+    const transactionDate = new Date(t.date);
+    return transactionDate >= start && transactionDate <= end;
+  });
+};
+
+/**
  * Filter transactions by period with timezone handling
  */
 export const filterTransactionsByPeriod = (

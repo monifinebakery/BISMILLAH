@@ -8,7 +8,8 @@ import { RealTimeProfitCalculation, FNBCOGSBreakdown, FNBInsight } from '../type
 import { 
   calculateMargins, 
   getMarginRating, 
-  filterTransactionsByPeriod 
+  filterTransactionsByPeriod,
+  filterTransactionsByDateRange
 } from '../utils/profitCalculations';
 
 // 🍽️ Import F&B constants and thresholds
@@ -39,6 +40,7 @@ export interface UseProfitCalculationOptions {
   transactions?: FinancialTransaction[];
   materials?: BahanBakuFrontend[];
   operationalCosts?: OperationalCost[];
+  dateRange?: { from: Date; to: Date }; // Add custom date range support
 }
 
 export interface UseProfitCalculationReturn {
@@ -47,7 +49,8 @@ export interface UseProfitCalculationReturn {
     transactions: FinancialTransaction[],
     materials: BahanBakuFrontend[],
     costs: OperationalCost[],
-    period: string
+    period: string,
+    dateRange?: { from: Date; to: Date }
   ) => {
     revenue: number;
     cogs: number;
@@ -101,16 +104,19 @@ export const useProfitCalculation = (
   options: UseProfitCalculationOptions = {}
 ): UseProfitCalculationReturn => {
   
-  // ✅ LOCAL PROFIT CALCULATION - No dependencies needed
+  // ✅ LOCAL PROFIT CALCULATION - Now supports both period and date range filtering
   const calculateLocalProfit = useCallback((
     transactions: FinancialTransaction[],
     materials: BahanBakuFrontend[],
     costs: OperationalCost[],
-    period: string
+    period: string,
+    dateRange?: { from: Date; to: Date }
   ) => {
     try {
-      // Filter transactions for the period
-      const periodTransactions = filterTransactionsByPeriod(transactions || [], period);
+      // Filter transactions - use date range if provided, otherwise use period
+      const periodTransactions = dateRange 
+        ? filterTransactionsByDateRange(transactions || [], dateRange.from, dateRange.to)
+        : filterTransactionsByPeriod(transactions || [], period);
       
       // Calculate revenue
       const revenueTransactions = periodTransactions.filter(t => t?.type === 'income');

@@ -423,7 +423,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const isLoading = authState === 'sending' || authState === 'verifying';
   const isSent = authState === 'sent' || authState === 'expired';
   const isSuccess = authState === 'success';
-  const canSend = isFormValid() && cooldownTime === 0 && !isLoading;
+  // Perbaikan error diagnostik: Memastikan tombol kirim ulang tidak aktif saat login berhasil
+  const canSend = isFormValid() && cooldownTime === 0 && !isLoading && authState !== 'success';
   const canVerify = otp.every(digit => digit !== '') && !isLoading && !isSuccess;
 
   return (

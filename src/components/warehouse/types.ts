@@ -22,10 +22,6 @@ export interface BahanBaku {
   tanggal_kadaluwarsa?: string;
   created_at: string;
   updated_at: string;
-  jumlah_beli_kemasan?: number;        // ✅ VERIFIED: matches DB column
-  isi_per_kemasan?: number;            // ✅ VERIFIED: matches DB column
-  satuan_kemasan?: string;             // ✅ VERIFIED: matches DB column
-  harga_total_beli_kemasan?: number;   // ✅ VERIFIED: matches DB column
   harga_rata_rata?: number;            // ✅ TAMBAH: WAC field from DB
 }
 
@@ -45,23 +41,9 @@ export interface BahanBakuFrontend {
   expiry?: string;                     // maps to tanggal_kadaluwarsa
   createdAt: string;                   // maps to created_at
   updatedAt: string;                   // maps to updated_at
-  // Enhanced package fields
-  jumlahBeliKemasan?: number;          // maps to jumlah_beli_kemasan
-  isiPerKemasan?: number;              // maps to isi_per_kemasan ✅
-  satuanKemasan?: string;              // maps to satuan_kemasan
-  hargaTotalBeliKemasan?: number;      // maps to harga_total_beli_kemasan
 }
 
-// ✅ ENHANCED: Package calculation helper types
-export interface PackageCalculation {
-  jumlahKemasan: number;
-  isiPerKemasan: number;
-  totalIsi: number;
-  hargaTotal: number;
-  hargaPerSatuan: number;
-  satuan: string;
-  jenisKemasan: string;
-}
+
 
 // ✅ ENHANCED: Unit conversion types
 export interface UnitInfo {
@@ -120,9 +102,7 @@ export interface WarehouseContextType {
   updateIngredientPrices: (ingredients: RecipeIngredient[]) => RecipeIngredient[];
   
   // ✅ ENHANCED: Package calculation utilities
-  calculateUnitPrice: (jumlahKemasan: number, isiPerKemasan: number, hargaTotal: number) => number;
-  calculateTotalContent: (jumlahKemasan: number, isiPerKemasan: number) => number;
-  validatePackageConsistency: (calculation: PackageCalculation) => { isValid: boolean; errors: string[] };
+  
   
   // Analysis
   getLowStockItems: () => BahanBakuFrontend[];
@@ -140,10 +120,6 @@ export interface BahanBakuImport {
   stok: number;
   minimum: number;
   harga: number;
-  jumlahBeliKemasan?: number;
-  isiPerKemasan?: number;              // ✅ VERIFIED: for import calculations
-  satuanKemasan?: string;
-  hargaTotalBeliKemasan?: number;
   updatedAt?: string;
 }
 
@@ -151,7 +127,6 @@ export interface ImportValidationResult {
   valid: BahanBakuImport[];
   errors: string[];
   warnings: string[];
-  calculations: PackageCalculation[];   // ✅ track calculated prices
 }
 
 // ✅ ENHANCED: Bulk operations with package awareness
@@ -166,11 +141,7 @@ export interface BulkUpdateData {
     operation: 'multiply' | 'add' | 'set';
     value: number;
   };
-  updatePackageInfo?: {
-    isiPerKemasan?: number;
-    satuanKemasan?: string;
-    recalculatePrice?: boolean;         // ✅ Recalculate unit price based on package info
-  };
+  
 }
 
 // ✅ ENHANCED: Analytics Types
@@ -183,8 +154,7 @@ export interface StockAnalytics {
   topCategories: { kategori: string; count: number; value: number }[];
   topSuppliers: { supplier: string; count: number; value: number }[];
   averageUnitPrice: { [satuan: string]: number };
-  packagedItemsCount: number;          // ✅ NEW: count of items with package info
-  averagePackageEfficiency: number;    // ✅ NEW: average packaging efficiency
+  
 }
 
 // ✅ FUTURE: Price History Types
@@ -196,12 +166,7 @@ export interface PriceHistory {
   tanggal_perubahan: string;
   alasan?: string;
   user_id: string;
-  // Package context for price changes
-  package_context?: {
-    jumlah_kemasan?: number;
-    isi_per_kemasan?: number;
-    harga_total_kemasan?: number;
-  };
+  
 }
 
 // ✅ FUTURE: Stock Movement Types
@@ -216,10 +181,7 @@ export interface StockMovement {
   keterangan?: string;
   tanggal: string;
   user_id: string;
-  // Package tracking
-  jumlah_kemasan?: number;
-  isi_per_kemasan?: number;            // ✅ VERIFIED: consistent naming
-  jenis_kemasan?: string;
+  
 }
 
 // ✅ ENHANCED: Error types with package calculation context
@@ -228,12 +190,6 @@ export interface WarehouseError extends Error {
   context?: {
     operation?: string;
     itemId?: string;
-    calculation?: Partial<PackageCalculation>;
-    packageInfo?: {
-      jumlahKemasan?: number;
-      isiPerKemasan?: number;
-      hargaTotal?: number;
-    };
   };
 }
 
@@ -263,10 +219,6 @@ export interface BahanBakuFormData {
   satuan: string;
   harga: number;
   expiry: string;
-  jumlahBeliKemasan: number;
-  isiPerKemasan: number;               // ✅ VERIFIED: separate field for package content
-  satuanKemasan: string;               // ✅ VERIFIED: pure package type (pak, botol, dus)
-  hargaTotalBeliKemasan: number;
 }
 
 // ✅ ENHANCED: Database field validation
@@ -278,20 +230,9 @@ export interface DatabaseFieldMapping {
   expiry: 'tanggal_kadaluwarsa';
   createdAt: 'created_at';
   updatedAt: 'updated_at';
-  jumlahBeliKemasan: 'jumlah_beli_kemasan';
-  isiPerKemasan: 'isi_per_kemasan';              // ✅ VERIFIED
-  satuanKemasan: 'satuan_kemasan';
-  hargaTotalBeliKemasan: 'harga_total_beli_kemasan';
 }
 
-// ✅ ENHANCED: Package parsing types
-export interface ParsedPackageInfo {
-  isiPerKemasan: number;
-  satuan: string;
-  jenisKemasan: string;
-  isValid: boolean;
-  originalString: string;
-}
+
 
 // ✅ UTILITY: Export utility types for easier imports
 export type CreateBahanBakuInput = Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>;
@@ -325,10 +266,6 @@ export const DB_COLUMNS = {
   TANGGAL_KADALUWARSA: 'tanggal_kadaluwarsa',
   CREATED_AT: 'created_at',
   UPDATED_AT: 'updated_at',
-  JUMLAH_BELI_KEMASAN: 'jumlah_beli_kemasan',
-  ISI_PER_KEMASAN: 'isi_per_kemasan',           // ✅ VERIFIED
-  SATUAN_KEMASAN: 'satuan_kemasan',
-  HARGA_TOTAL_BELI_KEMASAN: 'harga_total_beli_kemasan',
 } as const;
 
 // ✅ TYPE GUARD: Runtime validation helpers
@@ -360,17 +297,7 @@ export const isBahanBakuFrontend = (obj: any): obj is BahanBakuFrontend => {
   );
 };
 
-// ✅ PACKAGE VALIDATION: Type guards for package data
-export const hasValidPackageData = (item: BahanBakuFrontend): boolean => {
-  return !!(
-    item.jumlahBeliKemasan && 
-    item.isiPerKemasan && 
-    item.hargaTotalBeliKemasan &&
-    item.jumlahBeliKemasan > 0 &&
-    item.isiPerKemasan > 0 &&
-    item.hargaTotalBeliKemasan > 0
-  );
-};
+
 
 // Re-export commonly used types with clear aliases
 export type { 
@@ -387,10 +314,6 @@ export const FIELD_MAPPINGS = {
     expiry: 'tanggal_kadaluwarsa',
     createdAt: 'created_at',
     updatedAt: 'updated_at',
-    jumlahBeliKemasan: 'jumlah_beli_kemasan',
-    isiPerKemasan: 'isi_per_kemasan',                    // ✅ VERIFIED
-    satuanKemasan: 'satuan_kemasan',
-    hargaTotalBeliKemasan: 'harga_total_beli_kemasan',
   },
   database: {
     user_id: 'userId',
@@ -399,9 +322,5 @@ export const FIELD_MAPPINGS = {
     tanggal_kadaluwarsa: 'expiry',
     created_at: 'createdAt',
     updated_at: 'updatedAt',
-    jumlah_beli_kemasan: 'jumlahBeliKemasan',
-    isi_per_kemasan: 'isiPerKemasan',                    // ✅ VERIFIED
-    satuan_kemasan: 'satuanKemasan',
-    harga_total_beli_kemasan: 'hargaTotalBeliKemasan',
   }
 } as const;

@@ -17,7 +17,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Types - ✅ FIXED: Remove unused BahanBaku import
 import type { BahanBakuFrontend } from '../types';
-import type { RecipeIngredient } from '@/types/recipe';
 
 // Query keys
 const warehouseQueryKeys = {
@@ -50,9 +49,9 @@ interface WarehouseContextType {
   getBahanBakuByName: (nama: string) => BahanBakuFrontend | undefined;
   reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
   getIngredientPrice: (nama: string) => number;
-  validateIngredientAvailability: (ingredients: RecipeIngredient[]) => boolean;
-  consumeIngredients: (ingredients: RecipeIngredient[]) => Promise<boolean>;
-  updateIngredientPrices: (ingredients: RecipeIngredient[]) => RecipeIngredient[];
+  validateIngredientAvailability: (ingredients: any[]) => boolean;
+  consumeIngredients: (ingredients: any[]) => Promise<boolean>;
+  updateIngredientPrices: (ingredients: any[]) => any[];
   
   // Analysis
   getLowStockItems: () => BahanBakuFrontend[];
@@ -79,10 +78,54 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
-    });
+    }) as any; // Type assertion to access CRUD methods
     
     const items = await service.fetchBahanBaku();
     logger.debug('📊 fetchWarehouseData received items:', items.length);
+    
+    // Log detailed price status before adjustment
+    const priceAnalysis = items.map((item: any) => ({
+      id: item.id,
+      nama: item.nama,
+      harga: item.harga || 0,
+      hargaRataRata: item.hargaRataRata || 0,
+      hasZeroHarga: (item.harga || 0) === 0,
+      hasZeroWac: (item.hargaRataRata || 0) === 0,
+      needsAttention: (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
+    }));
+    
+    const itemsNeedingPriceAdjustment = priceAnalysis.filter((p: any) => p.needsAttention);
+    logger.info(`📈 Price analysis before adjustment: ${itemsNeedingPriceAdjustment.length}/${items.length} items need price adjustment`);
+    
+    if (itemsNeedingPriceAdjustment.length > 0) {
+      logger.debug('📊 Items needing price adjustment:', 
+        itemsNeedingPriceAdjustment.map((p: any) => `${p.nama} (harga: ${p.harga}, WAC: ${p.hargaRataRata})`)
+      );
+      
+      // ✅ AUTO PRICE ADJUSTMENT: Fix zero prices automatically
+      await autoAdjustPrices(items, userId);
+      
+      // Log price status after adjustment
+      const postAdjustmentAnalysis = items.map((item: any) => ({
+        nama: item.nama,
+        harga: item.harga || 0,
+        hargaRataRata: item.hargaRataRata || 0,
+        hasZeroPrice: (item.harga || 0) === 0 && (item.hargaRataRata || 0) === 0
+      }));
+      
+      const stillZeroCount = postAdjustmentAnalysis.filter((p: any) => p.hasZeroPrice).length;
+      const adjustedCount = itemsNeedingPriceAdjustment.length - stillZeroCount;
+      
+      logger.info(`📈 Price adjustment results: ${adjustedCount} items fixed, ${stillZeroCount} items still need attention`);
+      
+      if (stillZeroCount > 0) {
+        logger.warn('⚠️ Items still with zero prices:', 
+          postAdjustmentAnalysis.filter((p: any) => p.hasZeroPrice).map((p: any) => p.nama)
+        );
+      }
+    } else {
+      logger.info('✅ All items have proper pricing - no adjustment needed');
+    }
     
     // Transform to frontend format and ensure proper types
     const transformedItems = items.map((item: any) => ({
@@ -90,15 +133,243 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
       stok: Number(item.stok) || 0,
       minimum: Number(item.minimum) || 0,
       harga: Number(item.harga) || 0,
-      jumlahBeliKemasan: item.jumlahBeliKemasan ? Number(item.jumlahBeliKemasan) : undefined,
-      hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ? Number(item.hargaTotalBeliKemasan) : undefined,
+      hargaRataRata: item.hargaRataRata ? Number(item.hargaRataRata) : undefined,
+      
     }));
+    
+    // Final price validation log
+    const finalPriceCheck = transformedItems.filter((item: any) => {
+      const effectivePrice = item.hargaRataRata || item.harga || 0;
+      return effectivePrice === 0;
+    });
+    
+    if (finalPriceCheck.length === 0) {
+      logger.info(`✅ Success: All ${transformedItems.length} items now have valid prices`);
+    } else {
+      logger.warn(`⚠️ Warning: ${finalPriceCheck.length} items still have zero effective prices:`, 
+        finalPriceCheck.map((item: any) => item.nama)
+      );
+    }
     
     logger.debug('✅ fetchWarehouseData transformed items:', transformedItems.length);
     return transformedItems;
   } catch (error) {
     logger.error('❌ fetchWarehouseData failed:', error);
     throw error;
+  }
+};
+
+/**
+ * Enhanced Auto-adjust prices for items with zero prices
+ * Now includes better purchase data matching and smarter default pricing
+ */
+const autoAdjustPrices = async (items: any[], userId?: string) => {
+  if (!userId || !items) return;
+  
+  try {
+    // Find items with zero prices (prioritize items that have never had prices set)
+    const zeroPriceItems = items.filter(item => {
+      const hasZeroHarga = (item.harga || 0) === 0;
+      const hasZeroWac = (item.hargaRataRata || 0) === 0;
+      return hasZeroHarga || hasZeroWac;
+    });
+    
+    if (zeroPriceItems.length === 0) {
+      logger.debug('✅ No items with zero prices found');
+      return;
+    }
+    
+    logger.info(`🔄 Auto-adjusting prices for ${zeroPriceItems.length} items:`, 
+      zeroPriceItems.map(item => `${item.nama} (harga: ${item.harga || 0}, WAC: ${item.hargaRataRata || 0})`)
+    );
+    
+    // Get purchase history for price calculation with more comprehensive query
+    const { data: purchases, error: purchasesError } = await supabase
+      .from('purchases')
+      .select('id, items, created_at, supplier, user_id')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(50); // Get more recent purchases for better accuracy
+    
+    if (purchasesError) {
+      logger.error('Failed to fetch purchase history for price adjustment:', purchasesError);
+      return;
+    }
+    
+    logger.info(`📊 Found ${purchases?.length || 0} completed purchases for WAC calculation`);
+    
+    // Debug: Log first purchase structure for analysis
+    if (purchases && purchases.length > 0 && purchases[0].items) {
+      const items = purchases[0].items as any[];
+      logger.debug('🔍 Purchase data structure analysis:', {
+        firstPurchase: purchases[0].id,
+        itemsCount: items.length,
+        firstItem: items[0],
+        fieldNames: Object.keys(items[0] || {})
+      });
+    }
+    
+    // Process each item with zero price
+    for (const item of zeroPriceItems) {
+      try {
+        let newPrice = 0;
+        let newWac = null;
+        let totalQuantity = 0;
+        let totalValue = 0;
+        const purchaseHistory: any[] = [];
+        
+        // Calculate average price from purchase history with enhanced matching
+        if (purchases && purchases.length > 0) {
+          purchases.forEach(purchase => {
+            if (purchase.items && Array.isArray(purchase.items)) {
+              purchase.items.forEach((purchaseItem: any) => {
+                // Enhanced field matching for different purchase data structures
+                // Based on actual PurchaseItem interface: bahanBakuId, hargaSatuan, kuantitas
+                const itemMatches = (
+                  purchaseItem.bahanBakuId === item.id || 
+                  purchaseItem.bahan_baku_id === item.id ||
+                  purchaseItem.id === item.id ||
+                  purchaseItem.itemId === item.id ||
+                  purchaseItem.warehouse_id === item.id ||
+                  // Name-based matching as fallback
+                  (purchaseItem.nama && item.nama && purchaseItem.nama.toLowerCase() === item.nama.toLowerCase())
+                );
+                
+                if (itemMatches) {
+                  // Enhanced quantity field matching - prioritize actual PurchaseItem fields
+                  const qty = Number(
+                    purchaseItem.kuantitas ||  // PurchaseItem standard field
+                    purchaseItem.jumlah || 
+                    purchaseItem.quantity || 
+                    purchaseItem.qty ||
+                    purchaseItem.amount || 0
+                  );
+                  
+                  // Enhanced price field matching - prioritize actual PurchaseItem fields
+                  const price = Number(
+                    purchaseItem.hargaSatuan ||  // PurchaseItem standard field
+                    purchaseItem.harga_per_satuan || 
+                    purchaseItem.harga_satuan || 
+                    purchaseItem.unit_price ||
+                    purchaseItem.price ||
+                    purchaseItem.unitPrice ||
+                    purchaseItem.harga || 0
+                  );
+                  
+                  logger.debug(`🔍 Purchase item match found for "${item.nama}":`, {
+                    purchaseId: purchase.id,
+                    purchaseItem: {
+                      bahanBakuId: purchaseItem.bahanBakuId,
+                      nama: purchaseItem.nama,
+                      kuantitas: purchaseItem.kuantitas,
+                      hargaSatuan: purchaseItem.hargaSatuan,
+                      qty,
+                      price
+                    },
+                    warehouseItem: {
+                      id: item.id,
+                      nama: item.nama
+                    }
+                  });
+                  
+                  if (qty > 0 && price > 0) {
+                    totalQuantity += qty;
+                    totalValue += qty * price;
+                    purchaseHistory.push({
+                      purchaseId: purchase.id,
+                      qty,
+                      price,
+                      date: purchase.created_at,
+                      supplier: purchase.supplier,
+                      total: qty * price
+                    });
+                  } else {
+                    logger.warn(`⚠️ Invalid qty/price for "${item.nama}": qty=${qty}, price=${price}`);
+                  }
+                }
+              });
+            }
+          });
+        }
+        
+        logger.debug(`📈 Item "${item.nama}" purchase analysis:`, {
+          totalPurchases: purchaseHistory.length,
+          totalQuantity,
+          totalValue,
+          calculatedWAC: totalQuantity > 0 ? totalValue / totalQuantity : 0,
+          recentPurchases: purchaseHistory.slice(0, 3) // Show first 3 for debugging
+        });
+        
+        // Determine the appropriate price strategy
+        if (totalQuantity > 0 && totalValue > 0) {
+          newWac = totalValue / totalQuantity;
+          newPrice = newWac; // Use WAC as the primary price
+          logger.info(`✅ Calculated WAC for "${item.nama}" from ${purchaseHistory.length} purchase records: Rp ${newWac.toLocaleString()}`);
+        } else {
+          // Smart default pricing based on category
+          const categoryDefaults: { [key: string]: number } = {
+            'Daging': 50000,
+            'Seafood': 40000,
+            'Sayuran': 15000,
+            'Buah': 20000,
+            'Bumbu': 10000,
+            'Minyak': 25000,
+            'Tepung': 8000,
+            'Gula': 12000,
+            'Garam': 5000,
+            'Susu': 15000,
+            'Telur': 25000
+          };
+          
+          newPrice = categoryDefaults[item.kategori] || 5000; // Better default than 2500
+          logger.info(`⚠️ No purchase history found for "${item.nama}", using category-based default: Rp ${newPrice.toLocaleString()} (${item.kategori})`);
+        }
+        
+        // Prepare database update - only update fields that are actually zero
+        const updateData: any = {
+          updated_at: new Date().toISOString()
+        };
+        
+        if ((item.harga || 0) === 0) {
+          updateData.harga_satuan = newPrice;
+        }
+        
+        if (newWac !== null && (item.hargaRataRata || 0) === 0) {
+          updateData.harga_rata_rata = newWac;
+        }
+        
+        // Update the item price in database
+        const { error: updateError } = await supabase
+          .from('bahan_baku')
+          .update(updateData)
+          .eq('id', item.id)
+          .eq('user_id', userId);
+        
+        if (updateError) {
+          logger.error(`Failed to update price for ${item.nama}:`, updateError);
+        } else {
+          const priceType = newWac !== null ? 'WAC' : 'category-default';
+          logger.info(`✅ Auto-adjusted price for "${item.nama}": Rp ${newPrice.toLocaleString()} (${priceType})`);
+          
+          // Update the item in memory so the change is visible immediately
+          if ((item.harga || 0) === 0) {
+            item.harga = newPrice;
+          }
+          if (newWac !== null && (item.hargaRataRata || 0) === 0) {
+            item.hargaRataRata = newWac;
+          }
+        }
+        
+      } catch (error) {
+        logger.error(`Error processing item ${item.nama}:`, error);
+      }
+    }
+    
+    logger.info(`✅ Completed auto price adjustment for ${zeroPriceItems.length} items`);
+    
+  } catch (error) {
+    logger.error('Error in auto price adjustment:', error);
   }
 };
 
@@ -114,7 +385,7 @@ const createWarehouseItem = async (
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const result = await service.addBahanBaku(item);
+    const result = await (service as any).addBahanBaku(item);
     logger.debug('📊 createWarehouseItem result:', result);
     return result;
   } catch (error) {
@@ -126,19 +397,13 @@ const createWarehouseItem = async (
 const updateWarehouseItem = async ({ id, updates, userId }: { id: string; updates: Partial<BahanBakuFrontend>; userId?: string }): Promise<boolean> => {
   try {
     logger.info('🔄 updateWarehouseItem called:', { id, updates, userId });
-    logger.debug('📦 Package updates:', {
-      jumlahBeliKemasan: updates.jumlahBeliKemasan,
-      isiPerKemasan: updates.isiPerKemasan,
-      satuanKemasan: updates.satuanKemasan,
-      hargaTotalBeliKemasan: updates.hargaTotalBeliKemasan
-    });
     
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const result = await service.updateBahanBaku(id, updates);
+    const result = await (service as any).updateBahanBaku(id, updates);
     logger.info('📊 updateWarehouseItem result:', result);
     return result;
   } catch (error) {
@@ -156,7 +421,7 @@ const deleteWarehouseItem = async (id: string, userId?: string): Promise<boolean
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const result = await service.deleteBahanBaku(id);
+    const result = await (service as any).deleteBahanBaku(id);
     logger.debug('📊 deleteWarehouseItem result:', result);
     return result;
   } catch (error) {
@@ -174,7 +439,7 @@ const bulkDeleteWarehouseItems = async (ids: string[], userId?: string): Promise
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const result = await service.bulkDeleteBahanBaku(ids);
+    const result = await (service as any).bulkDeleteBahanBaku(ids);
     logger.debug('📊 bulkDeleteWarehouseItems result:', result);
     return result;
   } catch (error) {
@@ -442,7 +707,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         enableDebugLogs
       });
       
-      const success = await service.reduceStok(nama, jumlah, bahanBaku);
+      const success = await (service as any).reduceStok(nama, jumlah, bahanBaku);
       if (success) {
         await refetch(); // Refresh using useQuery
       }
@@ -462,7 +727,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const validateIngredientAvailability = React.useCallback(
-    (ingredients: RecipeIngredient[]): boolean => {
+    (ingredients: any[]): boolean => {
       for (const ingredient of ingredients) {
         const item = getBahanBakuByName(ingredient.nama);
         if (!item) {
@@ -482,7 +747,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const consumeIngredients = React.useCallback(
-    async (ingredients: RecipeIngredient[]): Promise<boolean> => {
+    async (ingredients: any[]): Promise<boolean> => {
       if (!validateIngredientAvailability(ingredients)) {
         return false;
       }
@@ -497,7 +762,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         );
         return true;
       } catch (error) {
-        logger.error(error);
+        logger.error('Error in consumeIngredients:', error);
         return false;
       }
     },
@@ -505,7 +770,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const updateIngredientPrices = React.useCallback(
-    (ingredients: RecipeIngredient[]): RecipeIngredient[] => {
+    (ingredients: any[]): any[] => {
       return ingredients.map(ingredient => {
         const currentPrice = getIngredientPrice(ingredient.nama);
         if (currentPrice > 0 && currentPrice !== ingredient.hargaPerSatuan) {

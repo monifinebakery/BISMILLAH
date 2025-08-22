@@ -117,7 +117,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           if (mappedKey) {
             let value = row[key];
 
-            if (['stok', 'minimum', 'jumlahBeliKemasan', 'isiPerKemasan', 'hargaTotalBeliKemasan'].includes(mappedKey)) {
+            if (['stok', 'minimum'].includes(mappedKey)) {
               const cleanValue = String(value).replace(/[,\s]/g, '').replace(/[^\d.-]/g, '');
               value = parseFloat(cleanValue) || 0;
             }
@@ -193,11 +193,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           satuan: 'gram',
           expiry: '2024-12-31',
           stok: 5000,
-          minimum: 1000,
-          jumlahBeliKemasan: 2,
-          isiPerKemasan: 25000,
-          satuanKemasan: 'sak',
-          hargaTotalBeliKemasan: 150000
+          minimum: 1000
         },
         {
           nama: 'Gula Pasir Halus',
@@ -206,11 +202,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           satuan: 'gram',
           expiry: '2024-11-30',
           stok: 3000,
-          minimum: 500,
-          jumlahBeliKemasan: 1,
-          isiPerKemasan: 1000,
-          satuanKemasan: 'karton',
-          hargaTotalBeliKemasan: 18000
+          minimum: 500
         },
         {
           nama: 'Minyak Goreng',
@@ -219,11 +211,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           satuan: 'ml',
           expiry: '2025-06-15',
           stok: 2000,
-          minimum: 300,
-          jumlahBeliKemasan: 4,
-          isiPerKemasan: 500,
-          satuanKemasan: 'botol',
-          hargaTotalBeliKemasan: 60000
+          minimum: 300
         }
       ];
 
@@ -268,11 +256,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           satuan: 'gram',
           expiry: '2024-12-31',
           stok: 5000,
-          minimum: 1000,
-          jumlahBeliKemasan: 2,
-          isiPerKemasan: 25000,
-          satuanKemasan: 'sak',
-          hargaTotalBeliKemasan: 150000
+          minimum: 1000
         },
         {
           nama: 'Gula Pasir Halus',
@@ -281,11 +265,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           satuan: 'gram',
           expiry: '2024-11-30',
           stok: 3000,
-          minimum: 500,
-          jumlahBeliKemasan: 1,
-          isiPerKemasan: 1000,
-          satuanKemasan: 'karton',
-          hargaTotalBeliKemasan: 18000
+          minimum: 500
         },
         {
           nama: 'Minyak Goreng',
@@ -294,11 +274,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           satuan: 'ml',
           expiry: '2025-06-15',
           stok: 2000,
-          minimum: 300,
-          jumlahBeliKemasan: 4,
-          isiPerKemasan: 500,
-          satuanKemasan: 'botol',
-          hargaTotalBeliKemasan: 60000
+          minimum: 300
         }
       ];
 

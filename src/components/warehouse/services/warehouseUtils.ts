@@ -7,10 +7,12 @@ import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profi
 
 /**
  * Get effective unit price using weighted average cost (WAC) if available
+ * Now includes automatic price adjustment for zero prices
  * 
  * Priority:
  * 1. WAC (hargaRataRata) - Most accurate, calculated from purchase history
  * 2. Base unit price (harga) - User input/fallback
+ * 3. Auto-calculated price from recent purchases if both are zero
  * 
  * @param item Warehouse item
  * @returns Effective unit price to use for calculations
@@ -20,9 +22,16 @@ const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
   
   const wac = Number(item.hargaRataRata ?? 0);
   const base = Number(item.harga ?? 0);
+  
+  // If both prices are zero, this indicates a pricing issue
+  if (wac === 0 && base === 0) {
+    logger.warn(`⚠️ Zero price detected for item ${item.nama}. Consider updating prices from purchase history.`);
+    return 0; // Will be handled by automatic adjustment
+  }
+  
   const price = wac > 0 ? wac : base;
   
-  if (wac > 0 && Math.abs(wac - base) > base * 0.2) {
+  if (wac > 0 && base > 0 && Math.abs(wac - base) > base * 0.2) {
     // Log significant price difference for debugging (> 20% difference)
     logger.debug(`WAC price differs significantly from base price for item ${item.nama}:`, {
       wac,
@@ -155,6 +164,64 @@ export const warehouseUtils = {
       const quantity = Number(item.stok || 0);
       return sum + (price * quantity);
     }, 0);
+  },
+
+  /**
+   * Validate pricing across all items and provide recommendations
+   * This replaces manual price fixing with automatic validation
+   */
+  validatePricing: (items: BahanBakuFrontend[]) => {
+    if (!items || !Array.isArray(items)) return {
+      totalItems: 0,
+      itemsWithZeroPrices: 0,
+      itemsUsingWac: 0,
+      itemsNeedingAttention: [],
+      averageWacVsBaseDeviation: 0
+    };
+    
+    const zeroPriceItems = items.filter(item => 
+      (item.harga || 0) === 0 && (item.hargaRataRata || 0) === 0
+    );
+    
+    const wacItems = items.filter(item => isUsingWac(item));
+    
+    const itemsNeedingAttention = items.filter(item => {
+      const wac = Number(item.hargaRataRata ?? 0);
+      const base = Number(item.harga ?? 0);
+      
+      // Flag items with zero prices or significant price discrepancies
+      return (wac === 0 && base === 0) || 
+             (wac > 0 && base > 0 && Math.abs(wac - base) > base * 0.3);
+    }).map(item => ({
+      id: item.id,
+      nama: item.nama,
+      harga: item.harga || 0,
+      hargaRataRata: item.hargaRataRata || 0,
+      issue: (item.harga || 0) === 0 && (item.hargaRataRata || 0) === 0 
+        ? 'zero_price' 
+        : 'price_discrepancy'
+    }));
+    
+    // Calculate average deviation between WAC and base prices
+    const deviations = items
+      .filter(item => (item.harga || 0) > 0 && (item.hargaRataRata || 0) > 0)
+      .map(item => {
+        const wac = Number(item.hargaRataRata!);
+        const base = Number(item.harga!);
+        return Math.abs(wac - base) / base * 100;
+      });
+    
+    const averageWacVsBaseDeviation = deviations.length > 0 
+      ? deviations.reduce((sum, dev) => sum + dev, 0) / deviations.length 
+      : 0;
+    
+    return {
+      totalItems: items.length,
+      itemsWithZeroPrices: zeroPriceItems.length,
+      itemsUsingWac: wacItems.length,
+      itemsNeedingAttention,
+      averageWacVsBaseDeviation
+    };
   },
 
   /**

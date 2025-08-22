@@ -36,10 +36,25 @@ if (!SUPABASE_PUBLISHABLE_KEY) {
   );
 }
 
-// Export client
+// Export client with enhanced auth configuration
 export const supabase = createClient<Database>(
   SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+      // Enhanced error handling for refresh token issues
+      debug: import.meta.env.DEV
+    },
+    global: {
+      headers: {
+        'x-application-name': 'BISMILLAH-App'
+      }
+    }
+  }
 );
 
 // Optional: expose in dev for easier debugging

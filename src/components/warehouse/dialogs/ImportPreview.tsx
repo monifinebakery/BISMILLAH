@@ -92,9 +92,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({ preview, onReset }) => {
                   <th className="px-3 py-2 text-left font-medium text-gray-500">Kategori</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">Supplier</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500">Stok</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Kemasan</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Isi/Kemasan</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500">Harga Total</th>
+                  
                   <th className="px-3 py-2 text-left font-medium text-gray-500">Terakhir Diperbarui</th>
                 </tr>
               </thead>
@@ -110,15 +108,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({ preview, onReset }) => {
                         <span className="ml-1 text-yellow-600 text-xs">⚠️</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
-                      {item.jumlahBeliKemasan} {item.satuanKemasan}
-                    </td>
-                    <td className="px-3 py-2 text-gray-600">
-                      {item.isiPerKemasan} {item.satuan}
-                    </td>
-                    <td className="px-3 py-2 text-gray-600">
-                      Rp {item.hargaTotalBeliKemasan?.toLocaleString('id-ID')}
-                    </td>
+                    
                     <td className="px-3 py-2 text-gray-600">
                       {item.updatedAt ? formatDate(item.updatedAt) : '-'}
                     </td>

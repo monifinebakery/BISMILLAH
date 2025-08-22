@@ -110,10 +110,7 @@ const ImportControls: React.FC<ImportControlsProps> = ({
           <div><span className="font-medium">stok</span> - Stok saat ini</div>
           <div><span className="font-medium">minimum</span> - Stok minimum</div>
           <div><span className="font-medium">expiry</span> - Tanggal kadaluarsa (opsional)</div>
-          <div><span className="font-medium">jumlahBeliKemasan</span> - Jumlah kemasan</div>
-          <div><span className="font-medium">isiPerKemasan</span> - Isi per kemasan</div>
-          <div><span className="font-medium">satuanKemasan</span> - Jenis kemasan</div>
-          <div><span className="font-medium">hargaTotalBeliKemasan</span> - Harga total</div>
+          
         </div>
         <p className="text-xs text-gray-500 mt-2">
           Sistem mendukung berbagai variasi nama kolom (Indonesia/Inggris)

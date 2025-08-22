@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 import { CACHE_DURATION } from '@/services/auth/config';
+import { withExponentialBackoff } from '@/utils/asyncUtils';
 
 // ✅ SIMPLIFIED: Minimal session cache for utility functions only
 // AuthContext handles the main session management
@@ -19,6 +20,7 @@ export const clearSessionCache = () => {
 // ✅ CRITICAL: Prevent cache conflicts with AuthContext
 // Use very short cache duration to avoid stale data
 const UTILITY_CACHE_DURATION = 1000; // Only 1 second for utilities
+const SESSION_TIMEOUT_MS = 30000; // Increased to 30 seconds to better tolerate slow devices/networks
 
 export const getCurrentSession = async (): Promise<Session | null> => {
   try {
@@ -32,22 +34,13 @@ export const getCurrentSession = async (): Promise<Session | null> => {
 
     logger.debug('[Session] Fetching fresh session from Supabase for utility');
     
-    // ✅ ADD TIMEOUT: Prevent hanging utilities
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session utility timeout')), 5000)
+    // ✅ Use exponential backoff with retry to tolerate post-OTP propagation
+    const session = await withExponentialBackoff(
+      () => supabase.auth.getSession().then(res => res.data.session),
+      3, // max retries
+      1000, // base delay 1 second
+      SESSION_TIMEOUT_MS
     );
-    
-    const { data: { session }, error } = await Promise.race([
-      sessionPromise,
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.error('[Session] Error getting session:', error);
-      clearSessionCache();
-      return null;
-    }
     
     // ✅ Enhanced session validation
     if (session) {
@@ -74,8 +67,14 @@ export const getCurrentSession = async (): Promise<Session | null> => {
     }
     
     return session;
-  } catch (error) {
-    logger.error('[Session] Error getting current session:', error);
+  } catch (error: any) {
+    const msg = error?.message || String(error);
+    if (msg.includes('Session utility timeout')) {
+      // Downgrade to warn; often due to propagation delay after OTP
+      logger.warn('[Session] Error getting current session (timeout):', error);
+    } else {
+      logger.error('[Session] Error getting current session:', error);
+    }
     clearSessionCache();
     return null;
   }
@@ -85,22 +84,13 @@ export const refreshSession = async (): Promise<Session | null> => {
   try {
     logger.info('[Session] Refreshing session...');
     
-    // ✅ ADD TIMEOUT: Prevent hanging refresh
-    const refreshPromise = supabase.auth.refreshSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session refresh timeout')), 10000)
+    // ✅ Use exponential backoff for session refresh
+    const data = await withExponentialBackoff(
+      () => supabase.auth.refreshSession(),
+      2, // max retries
+      1000, // base delay 1 second
+      10000 // timeout 10 seconds
     );
-    
-    const { data, error } = await Promise.race([
-      refreshPromise,
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.error('[Session] Session refresh error:', error);
-      clearSessionCache();
-      return null;
-    }
     
     if (data.session && data.session.user && data.session.user.id !== 'null') {
       logger.success('[Session] Session refreshed successfully');

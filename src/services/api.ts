@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { handleAuthError, isRefreshTokenError } from '@/utils/authErrorHandler';
 
 // Base API URL for Supabase Edge Functions
 const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
@@ -9,9 +10,38 @@ let cachedToken: string | null = null;
 let tokenExpiry: number | null = null;
 
 const refreshToken = async () => {
-  const { data } = await supabase.auth.getSession();
-  cachedToken = data.session?.access_token ?? null;
-  tokenExpiry = data.session?.expires_at ?? null;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      logger.error('Error getting session for token refresh:', error);
+      
+      // Handle refresh token errors
+      if (isRefreshTokenError(error)) {
+        await handleAuthError(error);
+        cachedToken = null;
+        tokenExpiry = null;
+        return;
+      }
+    }
+    
+    cachedToken = data.session?.access_token ?? null;
+    tokenExpiry = data.session?.expires_at ?? null;
+    
+    if (!cachedToken) {
+      logger.warn('No access token available after refresh');
+    }
+  } catch (error) {
+    logger.error('Exception during token refresh:', error);
+    
+    // Handle potential refresh token errors
+    if (isRefreshTokenError(error)) {
+      await handleAuthError(error);
+    }
+    
+    cachedToken = null;
+    tokenExpiry = null;
+  }
 };
 
 // Helper function to get auth headers with cached token
@@ -28,17 +58,52 @@ const getAuthHeaders = async () => {
 
 // Fetch wrapper that retries once on unauthorized
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  const headers = await getAuthHeaders();
-  let response = await fetch(url, { ...options, headers: { ...headers, ...(options.headers || {}) } });
+  try {
+    const headers = await getAuthHeaders();
+    let response = await fetch(url, { ...options, headers: { ...headers, ...(options.headers || {}) } });
 
-  if (response.status === 401) {
-    cachedToken = null;
-    await refreshToken();
-    const retryHeaders = await getAuthHeaders();
-    response = await fetch(url, { ...options, headers: { ...retryHeaders, ...(options.headers || {}) } });
+    if (response.status === 401) {
+      logger.warn('401 Unauthorized, attempting token refresh and retry...');
+      
+      // Clear cached token and try refresh
+      cachedToken = null;
+      
+      try {
+        await refreshToken();
+        
+        // Retry with new token
+        const retryHeaders = await getAuthHeaders();
+        response = await fetch(url, { ...options, headers: { ...retryHeaders, ...(options.headers || {}) } });
+        
+        // If still 401 after retry, might be a session issue
+        if (response.status === 401) {
+          logger.error('Still 401 after token refresh, possible session expired');
+          const sessionError = new Error('Session expired or invalid');
+          await handleAuthError(sessionError);
+        }
+      } catch (refreshError) {
+        logger.error('Error during token refresh:', refreshError);
+        
+        // Handle potential refresh token errors
+        if (isRefreshTokenError(refreshError)) {
+          await handleAuthError(refreshError);
+        }
+        
+        throw refreshError;
+      }
+    }
+
+    return response;
+  } catch (error) {
+    logger.error('Error in fetchWithAuth:', error);
+    
+    // Handle potential auth errors
+    if (isRefreshTokenError(error)) {
+      await handleAuthError(error);
+    }
+    
+    throw error;
   }
-
-  return response;
 };
 
 // API for protected endpoints (requires authentication)

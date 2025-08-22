@@ -86,15 +86,15 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
       };
     }
 
-    // ✅ STEP 3: No payment found - need order verification
-    logger.info('[AccessCheck] No payment found for user');
+    // ✅ STEP 3: No payment found - Grant 60-second preview access for new users
+    logger.info('[AccessCheck] No payment found for user, granting 60-second preview access');
     return {
-      hasAccess: false,
+      hasAccess: true, // Grant preview access
       isAuthenticated: true,
       paymentRecord: null,
-      needsOrderVerification: true,
+      needsOrderVerification: false,
       needsLinking: false,
-      message: 'Silakan verifikasi Order ID untuk mendapatkan akses'
+      message: 'Akses preview tersedia selama 60 detik'
     };
 
   } catch (error) {

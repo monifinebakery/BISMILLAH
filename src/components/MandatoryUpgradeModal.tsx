@@ -8,11 +8,11 @@ import { toast } from 'sonner';
 import { usePaymentContext } from '@/contexts/PaymentContext';
 
 const MandatoryUpgradeModal = () => {
-  const { showMandatoryUpgrade, previewTimeLeft, isPaid } = usePaymentContext();
+  const { showMandatoryUpgrade, previewTimeLeft, isPaid, hasAccess, accessMessage } = usePaymentContext();
   const [isProcessing, setIsProcessing] = React.useState(false);
 
-  // Don't show timer or modal for paid users
-  if (isPaid) {
+  // Don't show timer or modal for paid users or users with access
+  if (isPaid || hasAccess) {
     return null;
   }
 
@@ -89,7 +89,8 @@ const MandatoryUpgradeModal = () => {
     }
   };
 
-  if (!showMandatoryUpgrade) {
+  // Show preview timer for users with access but not paid
+  if (hasAccess && !isPaid) {
     return (
       <div className="fixed top-4 right-4 z-50">
         <div className="bg-orange-100 border border-orange-300 rounded-lg p-3">
@@ -102,6 +103,10 @@ const MandatoryUpgradeModal = () => {
         </div>
       </div>
     );
+  }
+
+  if (!showMandatoryUpgrade) {
+    return null;
   }
 
   return (

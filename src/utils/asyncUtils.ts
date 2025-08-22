@@ -45,3 +45,49 @@ export async function withSoftTimeout<T>(promise: Promise<T>, ms: number, sentin
   });
 }
 
+/**
+ * Execute a promise with exponential backoff retry logic
+ * @param promiseFn Function that returns a promise to execute
+ * @param maxRetries Maximum number of retry attempts
+ * @param baseDelay Base delay in milliseconds (will be exponentially increased)
+ * @param timeoutMs Timeout for each attempt
+ * @returns Promise result or throws error after max retries
+ */
+export async function withExponentialBackoff<T>(
+  promiseFn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000,
+  timeoutMs: number = 15000
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // For retry attempts (attempt > 0), add delay before retry
+      if (attempt > 0) {
+        const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      // Execute with timeout
+      return await withTimeout(promiseFn(), timeoutMs, `Operation timeout (attempt ${attempt + 1}/${maxRetries + 1})`);
+    } catch (error) {
+      lastError = error as Error;
+      
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw lastError;
+      }
+      
+      // For non-timeout errors, we might want to stop retrying
+      const errorMessage = lastError.message || '';
+      if (!errorMessage.includes('timeout') && !errorMessage.includes('network')) {
+        throw lastError;
+      }
+    }
+  }
+  
+  // This should never be reached, but just in case
+  throw lastError || new Error('Unknown error in exponential backoff');
+}
+

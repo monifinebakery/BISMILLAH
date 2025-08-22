@@ -19,6 +19,9 @@ let HCaptcha: any = null;
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
 const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
 
+// ✅ Komponen hCaptcha yang dimuat secara dinamis
+let HCaptcha: React.ComponentType<any> | null = null;
+
 
 // ✅ Simplified Props Interface
 interface EmailAuthPageProps {
@@ -33,27 +36,32 @@ interface EmailAuthPageProps {
 
 // ✅ Simplified Auth States
 type AuthState = 'idle' | 'sending' | 'sent' | 'verifying' | 'error' | 'expired' | 'success';
+type OtpResult = 'expired' | 'rate_limited' | 'invalid' | true;
 
 const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   appName = 'Sistem HPP',
-  appDescription = 'Hitung Harga Pokok Penjualan dengan mudah',
-  primaryColor = '#ea580c', // Orange-600
-  supportEmail = 'admin@sistemhpp.com',
+  appDescription = 'Masukkan email Anda dan kode OTP yang dikirim untuk login',
+  primaryColor = 'from-orange-500 to-red-500',
+  supportEmail = 'cs@monifinebakery.com',
   logoUrl,
   onLoginSuccess,
   redirectUrl = '/',
 }) => {
-  // ✅ TAMBAHKAN NAVIGATE
+  // ✅ Get triggerRedirectCheck from AuthContext
+  const { triggerRedirectCheck } = useAuth();
   const navigate = useNavigate();
   const { refreshUser, triggerRedirectCheck } = useAuth();
   
-  // ✅ Simplified State Management
+  // ✅ State Management
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  // (removed duplicate state; see typed declaration below)
   const [authState, setAuthState] = useState<AuthState>('idle');
   const [error, setError] = useState('');
   const [cooldownTime, setCooldownTime] = useState(0);
-  
+
+  // ✅ OTP state
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+
   // ✅ hCaptcha state
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   const [hCaptchaKey, setHCaptchaKey] = useState(0);
@@ -327,7 +335,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
   };
 
-  // ✅ SIMPLIFIED: Verify OTP - Let AuthGuard handle redirection completely
+  // ✅ SIMPLIFIED: Verify OTP - Use single reliable redirect method
   const handleVerifyOtp = async () => {
     if (!mountedRef.current) return;
     
@@ -343,7 +351,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
     try {
       logger.debug('EmailAuth: Starting OTP verification...');
-      const result = await verifyEmailOtp(email, otpCode);
+      const result = await verifyEmailOtp(email, otpCode) as OtpResult;
       
       if (!mountedRef.current) return;
       
@@ -372,6 +380,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setError('Terlalu banyak percobaan. Tunggu beberapa menit.');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
+      } else if (result === 'invalid') {
+        setAuthState('error');
+        setError('Kode OTP tidak valid. Silakan coba lagi.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
       } else {
         setAuthState('error');
         setError('Kode OTP tidak valid. Silakan coba lagi.');
@@ -392,8 +405,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // ✅ Get Button States
   const isLoading = authState === 'sending' || authState === 'verifying';
   const isSent = authState === 'sent' || authState === 'expired';
-  const canSend = isFormValid() && cooldownTime === 0 && !isLoading;
-  const canVerify = otp.every(digit => digit !== '') && authState !== 'verifying' && authState !== 'success';
+  const isSuccess = authState === 'success';
+  // Perbaikan error diagnostik: Memastikan tombol kirim ulang tidak aktif saat login berhasil
+  const canSend = isFormValid() && cooldownTime === 0 && !isLoading && authState !== 'success';
+  const canVerify = otp.every(digit => digit !== '') && !isLoading && !isSuccess;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
@@ -552,12 +567,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
               {/* Success Message */}
               {authState === 'success' && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-3">
                   <div className="flex items-center">
                     <RefreshCw className="w-4 h-4 mr-2 text-green-600 animate-spin" />
                     <span className="text-sm text-green-800">
                       Login berhasil! AuthGuard akan mengarahkan ke dashboard...
                     </span>
+                  </div>
+                  
+                  {/* Emergency redirect button */}
+                  <div className="pt-2">
+                    <Button
+                      onClick={() => {
+                        console.log('🚑 [EMERGENCY] Manual redirect clicked');
+                        window.location.href = '/';
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      🚑 Jika tidak redirect otomatis, klik di sini
+                    </Button>
                   </div>
                 </div>
               )}
@@ -581,7 +611,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
                       className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
-                      disabled={authState === 'verifying' || authState === 'success'}
+                      disabled={isLoading || isSuccess}
                     />
                   ))}
                 </div>
@@ -593,12 +623,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 disabled={!canVerify}
                 className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg border transition-all duration-200 disabled:opacity-50"
               >
-                {authState === 'verifying' ? (
+                {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Memverifikasi...
                   </>
-                ) : authState === 'success' ? (
+                ) : isSuccess ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Berhasil! AuthGuard mengarahkan...
@@ -617,7 +647,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 <Button
                   variant="outline"
                   onClick={handleResendOtp}
-                  disabled={isLoading || cooldownTime > 0 || authState === 'success'}
+                  disabled={isLoading || cooldownTime > 0 || isSuccess}
                   className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                 >
                   {cooldownTime > 0 ? `Tunggu ${cooldownTime}s` : 'Kirim Ulang Kode'}

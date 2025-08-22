@@ -290,6 +290,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             >
               <div className="flex items-center gap-1">Harga {getSortIcon('harga')}</div>
             </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+              <div className="flex items-center gap-1">Harga Per Satuan</div>
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+              <div className="flex items-center gap-1">Total Harga</div>
+            </th>
             <th
               className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer"
               onClick={() => onSort('expiry')}

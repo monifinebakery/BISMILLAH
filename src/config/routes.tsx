@@ -94,6 +94,13 @@ const [NotFound, Settings, MenuPage, PaymentSuccessPage, InvoicePage, DeviceMana
   React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/devices/DeviceManagementPage"))
 ];
 
+// ✅ DEBUG: Price Adjustment Debug Tool (Development only)
+const PriceAdjustmentDebug = React.lazy(() => 
+  import(/* webpackChunkName: "debug" */ "@/components/warehouse/debug/PriceAdjustmentDebug").then(module => ({
+    default: module.PriceAdjustmentDebug
+  }))
+);
+
 // ✅ Route wrapper with error boundary
 const RouteWrapper: React.FC<{ 
   children: React.ReactNode; 
@@ -528,6 +535,20 @@ export const AppRouter = () => (
           </RouteWrapper>
         } 
       />
+      
+      {/* ✅ DEBUG: Price Adjustment Tool (Development only) */}
+      {import.meta.env.DEV && (
+        <Route 
+          path="debug/price-adjustment" 
+          element={
+            <RouteWrapper title="Price Adjustment Debug">
+              <div className="p-6">
+                <PriceAdjustmentDebug />
+              </div>
+            </RouteWrapper>
+          } 
+        />
+      )}
       
       {/* ✅ 404 Not Found */}
       <Route 

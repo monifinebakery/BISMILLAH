@@ -106,7 +106,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       logger.debug('PaymentContext: Refreshing access status for valid user:', user?.email);
       
-const accessPromise = getUserAccessStatus();
+      const accessPromise = getUserAccessStatus();
       const accessStatus = await withTimeout(accessPromise, 8000, 'Access status timeout') as any;
       
       logger.debug('Access status result:', {
@@ -118,6 +118,19 @@ const accessPromise = getUserAccessStatus();
       
       setHasAccess(accessStatus.hasAccess);
       setAccessMessage(accessStatus.message);
+      
+      // Jika pengguna tidak memiliki akses dan tidak perlu verifikasi order atau linking,
+      // berikan mereka akses preview selama 60 detik
+      if (!accessStatus.hasAccess && 
+          !accessStatus.needsOrderVerification && 
+          !accessStatus.needsLinking) {
+        // Ini adalah pengguna baru yang baru saja login, berikan akses preview
+        logger.info('PaymentContext: New user login, granting preview access');
+        setHasAccess(true);
+        setAccessMessage('Akses preview tersedia selama 60 detik');
+        setPreviewTimeLeft(60);
+        setShowMandatoryUpgrade(false);
+      }
       
       if ((accessStatus.needsOrderVerification || accessStatus.needsLinking) && 
           !accessStatus.hasAccess && 
@@ -223,7 +236,33 @@ const accessPromise = getUserAccessStatus();
     validateUser();
   }, [authReady, authLoading, user]);
 
-  // ✅ EFFECT 2: Trigger access refresh
+  // ✅ EFFECT 2: Preview timer countdown
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    // Start timer for non-paid users who are valid
+    if (isUserValid && !isPaid && previewTimeLeft > 0) {
+      timer = setInterval(() => {
+        setPreviewTimeLeft(prev => {
+          const newTime = prev - 1;
+          if (newTime <= 0) {
+            setShowMandatoryUpgrade(true);
+            return 0;
+          }
+          return newTime;
+        });
+      }, 1000);
+    }
+    
+    // Clear timer on cleanup or when conditions change
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [isUserValid, isPaid, previewTimeLeft]);
+
+  // ✅ EFFECT 3: Trigger access refresh
   useEffect(() => {
     if (authReady && !authLoading && isUserValid && !paymentLoading) {
       logger.debug('PaymentContext: Triggering access refresh for valid user');
@@ -238,7 +277,7 @@ const accessPromise = getUserAccessStatus();
     }
   }, [authReady, authLoading, isUserValid, paymentLoading, isPaid, paymentStatus?.user_id, refreshAccessStatus]);
 
-  // ✅ EFFECT 3: Close popup when access granted
+  // ✅ EFFECT 4: Close popup when access granted
   useEffect(() => {
     if (hasAccess && showOrderPopup) {
       logger.info('PaymentContext: Access granted, closing order popup');
@@ -246,7 +285,7 @@ const accessPromise = getUserAccessStatus();
     }
   }, [hasAccess, showOrderPopup, setShowOrderPopup]);
 
-  // ✅ EFFECT 4: Auto-close auto-link popup
+  // ✅ EFFECT 5: Auto-close auto-link popup
   useEffect(() => {
     if (autoLinkCount === 0 && showAutoLinkPopup) {
       logger.info('PaymentContext: No more auto-link payments, closing popup');
@@ -254,7 +293,7 @@ const accessPromise = getUserAccessStatus();
     }
   }, [autoLinkCount, showAutoLinkPopup, setShowAutoLinkPopup]);
 
-  // ✅ EFFECT 5: Debug logging
+  // ✅ EFFECT 6: Debug logging
   useEffect(() => {
     logger.debug('PaymentContext state update:', {
       authReady,
@@ -268,7 +307,9 @@ const accessPromise = getUserAccessStatus();
       currentUserEmail: user?.email,
       currentUserId: user?.id,
       autoLinkCount,
-      totalUnlinkedCount: (hasUnlinkedPayment ? 1 : 0) + autoLinkCount
+      totalUnlinkedCount: (hasUnlinkedPayment ? 1 : 0) + autoLinkCount,
+      previewTimeLeft,
+      showMandatoryUpgrade
     });
   }, [
     authReady,
@@ -281,7 +322,9 @@ const accessPromise = getUserAccessStatus();
     user?.email,
     user?.id,
     autoLinkCount, 
-    hasUnlinkedPayment
+    hasUnlinkedPayment,
+    previewTimeLeft,
+    showMandatoryUpgrade
   ]);
 
   // ✅ Calculate derived values AFTER all hooks

@@ -336,6 +336,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
 
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
+      const prevPurchase = ctx?.prev?.find((p) => p.id === ctx?.id);
       if (prevPurchase) {
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
           // Tambahkan transaksi ketika status berubah ke completed (expense)

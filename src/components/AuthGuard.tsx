@@ -55,15 +55,17 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isLoading, isReady, location.pathname, renderCount]);
 
-  // ✅ IMMEDIATE REDIRECT CHECK on user change
+  // ✅ IMMEDIATE REDIRECT CHECK on user change - FIXED VERSION
   useEffect(() => {
     if (isReady && !isLoading && user && location.pathname === '/auth') {
       console.log(`🚀 [AuthGuard] IMMEDIATE REDIRECT triggered for user:`, user.email);
       console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
       
-      // Force immediate redirect
+      // Force immediate redirect with timeout to ensure state is fully updated
       console.log(`🚀 [AuthGuard] Executing immediate redirect`);
-      window.location.href = '/';
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 200); // Tambahkan delay kecil untuk memastikan state terupdate sepenuhnya
     }
   }, [user, isReady, isLoading, location.pathname]);
 

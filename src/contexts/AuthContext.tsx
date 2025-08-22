@@ -218,7 +218,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     
     if (isReady && user && window.location.pathname === '/auth') {
-      window.location.href = '/';
+      // Tambahkan delay kecil untuk memastikan state terupdate sepenuhnya
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 200);
+    } else if (!isReady || !user) {
+      // Jika belum ready atau belum ada user, coba refresh session
+      refreshUser();
+      // Coba lagi setelah refresh
+      setTimeout(() => {
+        if (user && window.location.pathname === '/auth') {
+          window.location.href = '/';
+        }
+      }, 500);
     }
   };
 

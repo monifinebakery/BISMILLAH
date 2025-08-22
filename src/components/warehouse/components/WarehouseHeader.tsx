@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
-import { ZeroPriceFixDialog } from './ZeroPriceFixDialog';
+
 
 interface WarehouseHeaderProps {
   itemCount: number;
@@ -31,15 +31,18 @@ const fetchWarehouseStats = async () => {
     const service = await warehouseApi.createService('crud', {
       userId: user?.id,
       enableDebugLogs: import.meta.env.DEV
-    });
+    }) as any; // Type assertion to access fetchBahanBaku method
     
     const items = await service.fetchBahanBaku();
     
-    // Calculate stats
+    // ✅ AUTO PRICE ADJUSTMENT: Fix zero prices automatically
+    await autoAdjustPrices(items, user?.id);
+    
+    // Calculate stats with proper typing
     const totalItems = items.length;
-    const lowStockItems = items.filter(item => Number(item.stok) <= Number(item.minimum));
-    const outOfStockItems = items.filter(item => Number(item.stok) === 0);
-    const expiringItems = items.filter(item => {
+    const lowStockItems = items.filter((item: any) => Number(item.stok) <= Number(item.minimum));
+    const outOfStockItems = items.filter((item: any) => Number(item.stok) === 0);
+    const expiringItems = items.filter((item: any) => {
       if (!item.expiry) return false;
       const expiryDate = new Date(item.expiry);
       const threshold = new Date();
@@ -48,7 +51,7 @@ const fetchWarehouseStats = async () => {
     });
     
     // ✅ UPDATE: Calculate total value using effective price (WAC)
-    const totalValue = items.reduce((sum, item) => {
+    const totalValue = items.reduce((sum: number, item: any) => {
       const harga = item.hargaRataRata ?? item.harga ?? 0;
       return sum + (Number(item.stok) * harga);
     }, 0);
@@ -59,12 +62,100 @@ const fetchWarehouseStats = async () => {
       outOfStockCount: outOfStockItems.length,
       expiringCount: expiringItems.length,
       totalValue,
-      categories: [...new Set(items.map(item => item.kategori))].length,
-      suppliers: [...new Set(items.map(item => item.supplier))].length,
+      categories: [...new Set(items.map((item: any) => item.kategori))].length,
+      suppliers: [...new Set(items.map((item: any) => item.supplier))].length,
     };
   } catch (error) {
     logger.error('Failed to fetch warehouse stats:', error);
     return null;
+  }
+};
+
+/**
+ * Auto-adjust prices for items with zero prices
+ * This replaces the manual fix button with automatic adjustment
+ */
+const autoAdjustPrices = async (items: any[], userId?: string) => {
+  if (!userId || !items) return;
+  
+  try {
+    // Find items with zero prices
+    const zeroPriceItems = items.filter(item => 
+      (item.harga || 0) === 0 || (item.hargaRataRata || 0) === 0
+    );
+    
+    if (zeroPriceItems.length === 0) return;
+    
+    logger.info(`🔄 Auto-adjusting prices for ${zeroPriceItems.length} items`);
+    
+    // Get purchase history for price calculation
+    const { data: purchases, error: purchasesError } = await supabase
+      .from('purchases')
+      .select('items')
+      .eq('user_id', userId)
+      .eq('status', 'completed');
+    
+    if (purchasesError) {
+      logger.error('Failed to fetch purchase history for price adjustment:', purchasesError);
+      return;
+    }
+    
+    // Process each item with zero price
+    for (const item of zeroPriceItems) {
+      try {
+        let newPrice = 0;
+        let totalQuantity = 0;
+        let totalValue = 0;
+        
+        // Calculate average price from purchase history
+        if (purchases && purchases.length > 0) {
+          purchases.forEach(purchase => {
+            if (purchase.items && Array.isArray(purchase.items)) {
+              purchase.items.forEach((purchaseItem: any) => {
+                if (purchaseItem.bahan_baku_id === item.id) {
+                  const qty = Number(purchaseItem.jumlah || 0);
+                  const price = Number(purchaseItem.harga_per_satuan || 0);
+                  if (qty > 0 && price > 0) {
+                    totalQuantity += qty;
+                    totalValue += qty * price;
+                  }
+                }
+              });
+            }
+          });
+        }
+        
+        if (totalQuantity > 0 && totalValue > 0) {
+          newPrice = totalValue / totalQuantity;
+        } else {
+          // Default price for items without purchase history
+          newPrice = 1000; // Rp 1,000 default
+        }
+        
+        // Update the item price
+        const { error: updateError } = await supabase
+          .from('bahan_baku')
+          .update({
+            harga_satuan: item.harga === 0 ? newPrice : item.harga,
+            harga_rata_rata: newPrice,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id)
+          .eq('user_id', userId);
+        
+        if (updateError) {
+          logger.error(`Failed to update price for ${item.nama}:`, updateError);
+        } else {
+          logger.info(`✅ Auto-adjusted price for ${item.nama}: Rp ${newPrice.toLocaleString()}`);
+        }
+        
+      } catch (error) {
+        logger.error(`Error processing item ${item.nama}:`, error);
+      }
+    }
+    
+  } catch (error) {
+    logger.error('Error in auto price adjustment:', error);
   }
 };
 
@@ -123,7 +214,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   const handleRefresh = async () => {
     try {
       await Promise.all([
-        refetchStats(),
+        refetchStats(), // This will now trigger auto price adjustment
         onRefresh?.()
       ]);
     } catch (error) {
@@ -151,9 +242,9 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
             <div className="flex-1">
               <span className="text-sm font-medium">Perhatian: </span>
               <span className="text-sm">
-                {stats.lowStockCount > 0 && `${stats.lowStockCount} item stok hampir habis`}
-                {stats.lowStockCount > 0 && stats.expiringCount > 0 && ', '}
-                {stats.expiringCount > 0 && `${stats.expiringCount} item akan kadaluarsa`}
+                {(stats?.lowStockCount || 0) > 0 && `${stats!.lowStockCount} item stok hampir habis`}
+                {(stats?.lowStockCount || 0) > 0 && (stats?.expiringCount || 0) > 0 && ', '}
+                {(stats?.expiringCount || 0) > 0 && `${stats!.expiringCount} item akan kadaluarsa`}
               </span>
             </div>
           </div>
@@ -178,10 +269,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
           </div>
 
           <div className="hidden md:flex gap-3">
-            <ZeroPriceFixDialog onFixComplete={() => {
-              refetchStats();
-              onRefresh?.();
-            }} />
+
             
             {onRefresh && (
               <Button 
@@ -205,11 +293,6 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
         </div>
 
         <div className="flex md:hidden flex-col gap-3 mt-6">
-          <ZeroPriceFixDialog onFixComplete={() => {
-            refetchStats();
-            onRefresh?.();
-          }} />
-          
           {onRefresh && (
             <Button
               onClick={handleRefresh}

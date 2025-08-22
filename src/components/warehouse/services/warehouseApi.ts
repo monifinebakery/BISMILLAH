@@ -61,7 +61,7 @@ class CrudService {
       let query = supabase.from('bahan_baku').select(`
         id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
         tanggal_kadaluwarsa, created_at, updated_at,
-        harga_rata_rata,
+        harga_rata_rata
       `);
 
       if (this.config.userId) query = query.eq('user_id', this.config.userId);

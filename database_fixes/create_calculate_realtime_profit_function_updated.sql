@@ -587,17 +587,18 @@ BEGIN
     WHILE v_current_date <= v_end_date LOOP
         v_period_text := to_char(v_current_date, 'YYYY-MM');
         
-        -- Get profit data for this period
-        SELECT * INTO v_profit_data 
-        FROM public.calculate_realtime_profit(p_user_id, v_period_text);
-        
-        RETURN QUERY SELECT 
-            v_period_text,
-            v_profit_data.total_revenue,
-            v_profit_data.total_cogs,
-            v_profit_data.total_opex,
-            (v_profit_data.total_revenue - v_profit_data.total_cogs) as gross_profit,
-            (v_profit_data.total_revenue - v_profit_data.total_cogs - v_profit_data.total_opex) as net_profit;
+        -- Get profit data for this period using a cursor approach
+        FOR v_profit_data IN 
+            SELECT * FROM public.calculate_realtime_profit(p_user_id, v_period_text)
+        LOOP
+            RETURN QUERY SELECT 
+                v_period_text,
+                v_profit_data.total_revenue,
+                v_profit_data.total_cogs,
+                v_profit_data.total_opex,
+                (v_profit_data.total_revenue - v_profit_data.total_cogs) as gross_profit,
+                (v_profit_data.total_revenue - v_profit_data.total_cogs - v_profit_data.total_opex) as net_profit;
+        END LOOP;
         
         -- Move to next month
         v_current_date := v_current_date + INTERVAL '1 month';

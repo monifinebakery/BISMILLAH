@@ -360,14 +360,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // ✅ Call triggerRedirectCheck from AuthContext to ensure proper redirect
         triggerRedirectCheck();
         
-        // ✅ NEW: Force redirect to dashboard after successful OTP verification
-        // This ensures redirect even if AuthGuard fails
+        // ✅ Force immediate redirect to dashboard after successful OTP verification
+        // This ensures redirect happens even if AuthGuard fails
+        logger.info('EmailAuth: Forcing immediate redirect to dashboard');
+        // Tunggu sebentar sebelum redirect untuk memastikan semua state diperbarui
         setTimeout(() => {
-          if (window.location.pathname === '/auth') {
-            logger.info('EmailAuth: Manual redirect to dashboard after OTP verification');
-            window.location.href = '/';
-          }
-        }, 500); // Reduced delay to 500ms
+          window.location.href = '/';
+        }, 100);
         
         // ✅ Only call onLoginSuccess callback if provided (for custom logic)
         if (onLoginSuccess) {

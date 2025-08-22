@@ -279,9 +279,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const triggerRedirectCheck = () => {
+    logger.info('AuthContext: Manual redirect trigger called', {
+      isReady,
+      hasUser: !!user,
+      currentPath: window.location.pathname
+    });
+    
     if (isReady && user && window.location.pathname === '/auth') {
       logger.info('AuthContext: Manual redirect trigger - user authenticated on auth page');
+      // Force immediate redirect
       window.location.href = '/';
+    } else if (window.location.pathname === '/auth') {
+      logger.info('AuthContext: Manual redirect skipped', {
+        isReady,
+        hasUser: !!user,
+        reason: !isReady ? 'not ready' : !user ? 'no user' : 'already redirected'
+      });
     }
   };
 
@@ -465,8 +478,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logger.context('AuthContext', 'Auth state updated, letting AuthGuard handle navigation');
         
         // ✅ NEW: Force redirect check when user becomes authenticated
-        if (event === 'SIGNED_IN' && user && window.location.pathname === '/auth') {
+        if (event === 'SIGNED_IN' && validUser && window.location.pathname === '/auth') {
           logger.info('AuthContext: User signed in on auth page, forcing redirect to dashboard');
+          // Force immediate redirect
           window.location.href = '/';
         }
       }

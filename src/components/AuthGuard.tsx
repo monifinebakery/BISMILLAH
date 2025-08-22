@@ -61,13 +61,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       console.log(`🚀 [AuthGuard] IMMEDIATE REDIRECT triggered for user:`, user.email);
       console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
       
-      // Small delay to ensure state is stable
-      setTimeout(() => {
-        if (location.pathname === '/auth') {
-          console.log(`🚀 [AuthGuard] Executing delayed redirect`);
-          window.location.href = '/';
-        }
-      }, 500); // Reduced delay to 500ms
+      // Force immediate redirect
+      console.log(`🚀 [AuthGuard] Executing immediate redirect`);
+      window.location.href = '/';
     }
   }, [user, isReady, isLoading, location.pathname]);
 

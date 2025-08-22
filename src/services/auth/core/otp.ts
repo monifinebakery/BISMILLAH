@@ -129,6 +129,8 @@ export const verifyEmailOtp = async (
       logger.debug('[OTP] Verification successful, AuthContext will detect session change');
       
       toast.success('Login berhasil!');
+      // Tambahkan delay kecil sebelum mengembalikan hasil untuk memastikan sesi disetel
+      await new Promise(resolve => setTimeout(resolve, 100));
       return true;
     } else {
       logger.warn('OTP verified but no session created');

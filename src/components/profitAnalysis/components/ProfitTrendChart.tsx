@@ -13,6 +13,9 @@ import { formatCurrency, formatLargeNumber, getShortPeriodLabel } from '../utils
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { CHART_CONFIG } from '../constants';
 import { validateChartData, logValidationResults } from '@/utils/chartDataValidation';
+import { getEffectiveCogs, validateCOGSConsistency } from '@/utils/cogsCalculation';
+import { safeSortPeriods, formatPeriodForDisplay } from '@/utils/periodUtils';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // ==============================================
 // TYPES
@@ -57,62 +60,51 @@ const processTrendData = (
 ) => {
   if (!profitHistory || profitHistory.length === 0) return [];
 
-  // Create copy of array to avoid mutation
-  const sortedHistory = [...profitHistory].sort((a, b) => {
-    // ✅ IMPROVED: More robust period sorting with error handling
-    try {
-      // Handle both monthly format (YYYY-MM) and daily format (YYYY-MM-DD)
-      if (a.period.includes('-') && a.period.split('-').length === 3) {
-        // Daily format - convert to date for sorting
-        const dateA = new Date(a.period);
-        const dateB = new Date(b.period);
-        if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-          // Fallback to string comparison if date parsing fails
-          return a.period.localeCompare(b.period);
-        }
-        return dateA.getTime() - dateB.getTime();
-      } else {
-        // Monthly format - use lexicographic sorting for YYYY-MM format
-        return a.period.localeCompare(b.period);
-      }
-    } catch (error) {
-      console.warn('Period sorting error:', error);
-      return a.period.localeCompare(b.period);
-    }
-  });
+  // ✅ IMPROVED: Use centralized period sorting
+  const periods = profitHistory.map(h => h.period);
+  const sortedPeriods = safeSortPeriods(periods);
   
-  return sortedHistory.map((analysis, index) => {
+  // Reorder history based on sorted periods
+  const sortedHistory = sortedPeriods.map(period => 
+    profitHistory.find(h => h.period === period)
+  ).filter(Boolean) as RealTimeProfitCalculation[];
+  
+  // ✅ IMPROVED: Track COGS calculations for consistency validation
+  const cogsCalculations: { component: string; value: number; source: string }[] = [];
+  
+  const results = sortedHistory.map((analysis, index) => {
     const revenue = analysis.revenue_data?.total || 0;
     
-    // ✅ IMPROVED: Enhanced COGS calculation with validation
-    let cogs: number;
-    if (typeof effectiveCogs === 'number' && effectiveCogs >= 0) {
-      // Use effectiveCogs (WAC data) if available and valid
-      cogs = effectiveCogs;
-    } else {
-      // Fallback to analysis COGS data
-      cogs = analysis.cogs_data?.total || 0;
-    }
+    // ✅ IMPROVED: Use centralized COGS calculation
+    const cogsResult = getEffectiveCogs(
+      analysis,
+      effectiveCogs, // Only apply to latest period
+      revenue,
+      { preferWAC: index === sortedHistory.length - 1 } // WAC for latest only
+    );
     
-    // ✅ ADD: Data validation to prevent logical inconsistencies
-    if (cogs > revenue && revenue > 0) {
-      console.warn(`Period ${analysis.period}: COGS (${cogs}) > Revenue (${revenue}) - using capped value`);
-      cogs = Math.min(cogs, revenue * 0.95); // Cap COGS at 95% of revenue
-    }
+    cogsCalculations.push({
+      component: `TrendChart-${analysis.period}`,
+      value: cogsResult.value,
+      source: cogsResult.source
+    });
     
     const opex = analysis.opex_data?.total || 0;
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - opex;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    
+    // ✅ IMPROVED: Use safe margin calculation
+    const margins = safeCalculateMargins(revenue, cogsResult.value, opex);
+    
+    // Log warnings from COGS calculation
+    if (cogsResult.warnings.length > 0) {
+      cogsResult.warnings.forEach(warning => 
+        console.warn(`Period ${analysis.period}: ${warning}`)
+      );
+    }
 
     // ✅ IMPROVED: Period-specific stock value calculation
     let periodStockValue = wacStockValue || 0;
-    // Note: stock_data property may not exist in current type definition
-    // Using fallback to provided wacStockValue for now
     try {
       if ((analysis as any).stock_data?.wac_value) {
-        // Use period-specific WAC stock value if available
         periodStockValue = (analysis as any).stock_data.wac_value;
       }
     } catch (error) {
@@ -121,18 +113,25 @@ const processTrendData = (
 
     return {
       period: analysis.period,
-      periodLabel: getShortPeriodLabel(analysis.period),
+      periodLabel: formatPeriodForDisplay(analysis.period),
       revenue,
-      cogs,
+      cogs: cogsResult.value,
       opex,
-      grossProfit,
-      netProfit,
-      grossMargin,
-      netMargin,
-      // ✅ FIXED: Use period-specific stock value, not static value
+      grossProfit: margins.grossProfit,
+      netProfit: margins.netProfit,
+      grossMargin: margins.grossMargin,
+      netMargin: margins.netMargin,
       stockValue: periodStockValue
     };
   });
+  
+  // ✅ IMPROVED: Validate COGS consistency across periods
+  const consistencyCheck = validateCOGSConsistency(cogsCalculations);
+  if (!consistencyCheck.isConsistent) {
+    console.warn('COGS calculation inconsistency detected:', consistencyCheck.issues);
+  }
+  
+  return results;
 };
 
 const analyzeTrend = (trendData: TrendData[]) => {

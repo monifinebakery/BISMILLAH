@@ -88,7 +88,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         .update({
           stok: newStock,
           harga_rata_rata: newWac,
-          harga_satuan: unitPrice,
+          harga_satuan: newWac, // Set unit price to match WAC for consistency
           updated_at: new Date().toISOString()
         })
         .eq('id', itemId)
@@ -140,7 +140,6 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
     const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
     const unitPrice = Number(
       (item as any).hargaSatuan ??
-      (item as any).harga_per_satuan ??
       (item as any).harga_satuan ??
       0
     );
@@ -250,7 +249,7 @@ export class WarehouseSyncService {
               purchase.items.forEach((purchaseItem: any) => {
                 if (purchaseItem.bahan_baku_id === item.id) {
                   const qty = Number(purchaseItem.jumlah || 0);
-                  const price = Number(purchaseItem.harga_per_satuan || 0);
+                  const price = Number(purchaseItem.harga_satuan || 0);
                   totalQuantity += qty;
                   totalValue += qty * price;
                 }
@@ -266,6 +265,7 @@ export class WarehouseSyncService {
               .from('bahan_baku')
               .update({
                 harga_rata_rata: newWac,
+                harga_satuan: newWac, // Also update unit price to match WAC
                 updated_at: new Date().toISOString()
               })
               .eq('id', item.id)

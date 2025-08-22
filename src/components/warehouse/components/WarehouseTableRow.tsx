@@ -294,29 +294,28 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                 </div>
               </div>
               <div>
+                <span className="text-gray-500">Harga dari Pembelian:</span>
+                <div className="font-medium text-gray-900">
+                  {item.hargaPerSatuan ? warehouseUtils.formatCurrency(item.hargaPerSatuan) : '-'}
+                </div>
+                
+              </div>
+              <div>
+                <span className="text-gray-500">Total Nilai Stok:</span>
+                <div className="font-medium text-gray-900">
+                  {warehouseUtils.formatCurrency(item.stok * warehouseUtils.getEffectiveUnitPrice(item))}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {item.stok} × {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
+                </div>
+              </div>
+              <div>
                 <span className="text-gray-500">Kadaluarsa:</span>
                 <div className={`font-medium ${isExpiringSoon ? 'text-red-600' : 'text-gray-900'}`}>
                   {item.expiry ? warehouseUtils.formatDate(item.expiry) : '-'}
                 </div>
               </div>
-              {item.jumlahBeliKemasan && (
-                <>
-                  <div>
-                    <span className="text-gray-500">Jumlah Kemasan:</span>
-                    <div className="font-medium text-gray-900">
-                      {item.jumlahBeliKemasan} {item.satuanKemasan || 'unit'}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Harga Kemasan:</span>
-                    <div className="font-medium text-gray-900">
-                      {item.hargaTotalBeliKemasan
-                        ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan)
-                        : '-'}
-                    </div>
-                  </div>
-                </>
-              )}
+              
             </div>
           </div>
         )}
@@ -432,6 +431,24 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
       </td>
 
       <td className="px-4 py-4">
+        <span className="text-sm font-medium text-gray-900">
+          {item.hargaPerSatuan ? warehouseUtils.formatCurrency(item.hargaPerSatuan) : '-'}
+        </span>
+        <div className="text-xs text-gray-500">
+          dari pembelian
+        </div>
+      </td>
+
+      <td className="px-4 py-4">
+        <span className="text-sm font-medium text-gray-900">
+          {warehouseUtils.formatCurrency(item.stok * warehouseUtils.getEffectiveUnitPrice(item))}
+        </span>
+        <div className="text-xs text-gray-500">
+          {item.stok} × {warehouseUtils.formatCurrency(warehouseUtils.getEffectiveUnitPrice(item))}
+        </div>
+      </td>
+
+      <td className="px-4 py-4">
         {item.expiry ? (
           <div className={`text-sm ${isExpiringSoon ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
             {warehouseUtils.formatDate(item.expiry)}
@@ -485,4 +502,3 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
 };
 
 export default WarehouseTableRow;
-

@@ -134,8 +134,7 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
       minimum: Number(item.minimum) || 0,
       harga: Number(item.harga) || 0,
       hargaRataRata: item.hargaRataRata ? Number(item.hargaRataRata) : undefined,
-      jumlahBeliKemasan: item.jumlahBeliKemasan ? Number(item.jumlahBeliKemasan) : undefined,
-      hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ? Number(item.hargaTotalBeliKemasan) : undefined,
+      
     }));
     
     // Final price validation log
@@ -397,12 +396,6 @@ const createWarehouseItem = async (
 const updateWarehouseItem = async ({ id, updates, userId }: { id: string; updates: Partial<BahanBakuFrontend>; userId?: string }): Promise<boolean> => {
   try {
     logger.info('🔄 updateWarehouseItem called:', { id, updates, userId });
-    logger.debug('📦 Package updates:', {
-      jumlahBeliKemasan: updates.jumlahBeliKemasan,
-      isiPerKemasan: updates.isiPerKemasan,
-      satuanKemasan: updates.satuanKemasan,
-      hargaTotalBeliKemasan: updates.hargaTotalBeliKemasan
-    });
     
     const service = await warehouseApi.createService('crud', {
       userId,

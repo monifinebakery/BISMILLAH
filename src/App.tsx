@@ -8,6 +8,7 @@ import { AppRouter } from "@/config/routes";
 import { queryClient } from "@/config/queryClient";
 import { AppLoader } from "@/components/loaders";
 import { logger } from "@/utils/logger";
+import '@/utils/authRecovery'; // Load auth recovery utilities
 
 const App = () => {
   // ✅ Memoized initial setup handler
@@ -85,7 +86,7 @@ const App = () => {
           {import.meta.env.DEV && (
             <ReactQueryDevtools
               initialIsOpen={false} 
-              position="bottom-right"
+              position="bottom"
               toggleButtonProps={{
                 style: {
                   background: '#f97316',

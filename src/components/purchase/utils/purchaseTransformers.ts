@@ -12,18 +12,8 @@ const toYMD = (d: Date | string): string => {
 /** ==== Helpers untuk packaging & harga ==== */
 const toNumber = (v: any, def = 0) => (v === null || v === undefined || v === '' ? def : Number(v));
 
-/** Hitung harga_per_satuan dari data kemasan jika ada */
-const deriveUnitPriceFromPackaging = (row: any): number | null => {
-  const jumlahKemasan = toNumber(row.jumlah_kemasan ?? row.jumlahKemasan);
-  const isiPerKemasan = toNumber(row.isi_per_kemasan ?? row.isiPerKemasan);
-  const totalBeli = toNumber(row.harga_total_beli_kemasan ?? row.hargaTotalBeliKemasan);
-
-  const totalIsi = jumlahKemasan * isiPerKemasan;
-  if (jumlahKemasan > 0 && isiPerKemasan > 0 && totalBeli > 0 && totalIsi > 0) {
-    return totalBeli / totalIsi;
-  }
-  return null;
-};
+// Packaging-based unit price removed
+const deriveUnitPriceFromPackaging = (_row: any): number | null => null;
 
 /** ✅ HARDENED: Robust item mapper untuk DB format */
 const mapItemForDB = (i: any) => {
@@ -34,13 +24,7 @@ const mapItemForDB = (i: any) => {
     0
   );
 
-  const hargaPerSatuan = Number(
-    i.hargaSatuan ??
-    i.harga_satuan ??
-    i.price_unit ?? // kalau ada istilah lain
-    deriveUnitPriceFromPackaging(i) ?? // hitung dari kemasan
-    0
-  );
+  const hargaPerSatuan = Number(i.hargaSatuan ?? i.harga_satuan ?? i.price_unit ?? 0);
 
   const satuan = String(
     i.satuan ??
@@ -64,11 +48,7 @@ const mapItemForDB = (i: any) => {
     subtotal: Math.max(0, subtotal),
     keterangan: i.keterangan ? String(i.keterangan).trim() : null,
 
-    // ✅ INFO KEMASAN: opsional, abaikan kalau null/empty
-    jumlah_kemasan: toNumber(i.jumlah_kemasan ?? i.jumlahKemasan) || null,
-    satuan_kemasan: (i.satuan_kemasan ?? i.satuanKemasan) ? String(i.satuan_kemasan ?? i.satuanKemasan).trim() : null,
-    isi_per_kemasan: toNumber(i.isi_per_kemasan ?? i.isiPerKemasan) || null,
-    harga_total_beli_kemasan: toNumber(i.harga_total_beli_kemasan ?? i.hargaTotalBeliKemasan) || null,
+    
   };
 };
 
@@ -105,12 +85,6 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
               ? toNumber(i.subtotal)
               : qtyBase * hargaPerSatuan;
 
-          // simpan juga info kemasan bila ada (opsional untuk UI)
-          const jumlahKemasan = toNumber(i.jumlah_kemasan);
-          const isiPerKemasan = toNumber(i.isi_per_kemasan);
-          const satuanKemasan = i.satuan_kemasan ?? undefined;
-          const hargaTotalBeliKemasan = toNumber(i.harga_total_beli_kemasan);
-
           const out: any = {
             // shape lama agar kompatibel UI
             bahanBakuId: i.bahan_baku_id ?? i.bahanBakuId ?? '',
@@ -125,10 +99,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
             qty_base: qtyBase,
             base_unit: baseUnit,
             harga_satuan: hargaPerSatuan,
-            jumlahKemasan: jumlahKemasan || undefined,
-            isiPerKemasan: isiPerKemasan || undefined,
-            satuanKemasan: satuanKemasan || undefined,
-            hargaTotalBeliKemasan: hargaTotalBeliKemasan || undefined,
+            
           };
           return out as PurchaseItem;
         })
@@ -277,11 +248,7 @@ export const sanitizePurchaseData = (data: any): any => ({
           subtotal: Math.max(0, Number(item.subtotal ?? (kuantitas * hargaSatuan)) || 0),
           keterangan: item.keterangan ? String(item.keterangan).trim() : undefined,
           
-          // ✅ KEMASAN: Simpan info kemasan jika ada (untuk UI yang masih pakai)
-          jumlahKemasan: item.jumlahKemasan ?? item.jumlah_kemasan ?? undefined,
-          isiPerKemasan: item.isiPerKemasan ?? item.isi_per_kemasan ?? undefined,
-          satuanKemasan: item.satuanKemasan ?? item.satuan_kemasan ?? undefined,
-          hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ?? item.harga_total_beli_kemasan ?? undefined,
+          
         };
       })
     : [],

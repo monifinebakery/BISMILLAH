@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 import { withTimeout, withSoftTimeout } from '@/utils/asyncUtils';
+import { AuthErrorHandler, handleAuthError } from '@/utils/authErrorHandler';
 
 // ✅ Import from authUtils untuk konsistensi
 import { 
@@ -217,6 +218,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (timeoutError) {
         logger.error('AuthContext refresh timeout/error:', timeoutError);
         
+        // ✅ NEW: Handle refresh token errors
+        const wasAuthErrorHandled = await handleAuthError(timeoutError);
+        if (wasAuthErrorHandled) {
+          return;
+        }
+        
         // ✅ Fallback: coba gunakan refreshSessionSafely dari authUtils
         const refreshSuccess = await refreshSessionSafely();
         if (!refreshSuccess) {
@@ -288,7 +295,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return await debugAuthState();
     } catch (error) {
       logger.error('AuthContext: Error debugging auth:', error);
-      return { error: error.message };
+      return { error: error instanceof Error ? error.message : String(error) };
     }
   };
 
@@ -312,6 +319,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (timeoutError) {
           logger.error('AuthContext initialization timeout/error:', timeoutError);
+          
+          // ✅ NEW: Handle refresh token errors
+          const wasAuthErrorHandled = await handleAuthError(timeoutError);
+          if (wasAuthErrorHandled) {
+            setSession(null);
+            setUser(null);
+            setIsLoading(false);
+            setIsReady(true);
+            return;
+          }
           
           // ✅ Fallback strategy untuk slow devices
           const capabilities = detectDeviceCapabilities();
@@ -404,6 +421,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           event,
           currentPath: window.location.pathname,
         });
+
+        // ✅ NEW: Handle auth errors in state changes
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          // Attempt session recovery if there are any auth errors
+          try {
+            const recoverySuccess = await AuthErrorHandler.attemptSessionRecovery();
+            if (!recoverySuccess && !session) {
+              logger.warn('Session recovery failed, clearing auth state');
+              setSession(null);
+              setUser(null);
+              return;
+            }
+          } catch (recoveryError) {
+            logger.error('Error during session recovery:', recoveryError);
+            await handleAuthError(recoveryError);
+          }
+        }
 
         const { session: validSession, user: validUser } = validateSession(session);
         setSession(validSession);

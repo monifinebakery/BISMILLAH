@@ -9,11 +9,6 @@ export interface PurchaseItem {
   hargaSatuan: number;
   subtotal: number;
   keterangan?: string;
-  // ✅ NEW: Packaging fields for accurate pricing
-  jumlahKemasan?: number;
-  isiPerKemasan?: number;
-  satuanKemasan?: string;
-  hargaTotalBeliKemasan?: number;
 }
 
 export interface Purchase {
@@ -71,10 +66,7 @@ export interface PurchaseItemDB {
   subtotal?: number;
   keterangan?: string | null;
   // ✅ NEW: Packaging metadata for audit trail
-  jumlah_kemasan?: number;
-  isi_per_kemasan?: number;
-  satuan_kemasan?: string;
-  harga_total_beli_kemasan?: number;
+  
 }
 
 // Payload INSERT ke tabel purchases

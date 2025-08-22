@@ -62,16 +62,19 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
       
       // Force immediate redirect without timeout
+      // Gunakan window.location.replace untuk menggantikan halaman saat ini dalam history browser
       console.log(`🚀 [AuthGuard] Executing immediate redirect`);
-      window.location.href = '/';
+      window.location.replace('/');
       
-      // Fallback dengan window.location.replace jika masih di halaman auth
+      // Fallback dengan reload jika masih di halaman auth
       setTimeout(() => {
         if (window.location.pathname === '/auth') {
-          console.log(`🚀 [AuthGuard] Still on auth page, using location.replace`);
-          window.location.replace('/');
+          console.log(`🚀 [AuthGuard] Still on auth page, forcing reload`);
+          window.location.href = '/';
+          // Force reload halaman untuk memastikan redirect terjadi
+          setTimeout(() => window.location.reload(), 200);
         }
-      }, 1000);
+      }, 500);
     }
   }, [user, isReady, isLoading, location.pathname]);
 

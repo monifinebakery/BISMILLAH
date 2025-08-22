@@ -365,17 +365,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // This ensures redirect happens even if AuthGuard fails
         logger.info('EmailAuth: Forcing immediate redirect to dashboard');
         
-        // Gunakan window.location.href langsung untuk memastikan redirect terjadi
-        logger.info('EmailAuth: Using direct window.location.href redirect');
-        window.location.href = '/';
+        // Gunakan window.location.replace langsung untuk memastikan redirect terjadi
+        // window.location.replace menggantikan halaman saat ini dalam history browser
+        // sehingga pengguna tidak bisa kembali ke halaman login dengan tombol back
+        logger.info('EmailAuth: Using direct window.location.replace redirect');
+        window.location.replace('/');
         
         // Sebagai fallback, jika masih di halaman yang sama setelah beberapa waktu
+        // Gunakan timeout yang lebih pendek untuk mempercepat redirect
         setTimeout(() => {
           if (window.location.pathname === '/auth') {
-            logger.warn('EmailAuth: Still on auth page after redirect, forcing again');
-            window.location.replace('/');
+            logger.warn('EmailAuth: Still on auth page after redirect, forcing again with reload');
+            window.location.href = '/';
+            // Force reload halaman untuk memastikan redirect terjadi
+            setTimeout(() => window.location.reload(), 200);
           }
-        }, 1000);
+        }, 500);
         
         // ✅ Only call onLoginSuccess callback if provided (for custom logic)
         if (onLoginSuccess) {

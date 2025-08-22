@@ -21,9 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { 
-  Plus, 
-  Trash2, 
+import {
+  Plus,
+  Trash2,
   ShoppingCart,
   Calculator,
   Info,
@@ -32,9 +32,13 @@ import {
   Package
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { RECIPE_UNITS } from '../../types';
+import {
+  RECIPE_UNITS,
+  type NewRecipe,
+  type RecipeFormStepProps,
+  type BahanResep,
+} from '../../types';
 import { formatCurrency } from '../../services/recipeUtils';
-import type { NewRecipe, RecipeFormStepProps, BahanResep } from '../../types';
 import { logger } from '@/utils/logger';
 
 // Import warehouse related hooks/services

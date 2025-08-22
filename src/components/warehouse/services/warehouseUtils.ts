@@ -2,6 +2,8 @@
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
 // Note: Avoid importing the barrel (../services/index.ts) here to prevent circular dependencies
 import { logger } from '@/utils/logger';
+// Default kategori untuk sinkron dengan analisis profit
+import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
 /**
  * Get effective unit price using weighted average cost (WAC) if available
@@ -102,7 +104,10 @@ export const warehouseUtils = {
     });
   },
 
-  getUniqueCategories: (items: BahanBakuFrontend[]) => Array.from(new Set(items.map(i => i.kategori).filter(Boolean))).sort(),
+  getUniqueCategories: (items: BahanBakuFrontend[]) => {
+    const categories = Array.from(new Set(items.map(i => i.kategori).filter(Boolean)));
+    return categories.length > 0 ? categories.sort() : [...FNB_COGS_CATEGORIES];
+  },
   getUniqueSuppliers:  (items: BahanBakuFrontend[]) => Array.from(new Set(items.map(i => i.supplier).filter(Boolean))).sort(),
 
   // Expose helpers via object (no self-reference inside initializer)

@@ -169,7 +169,7 @@ const OperationalCostContent: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calculator className="h-5 w-5 text-orange-600" />
-              🧮 Kalkulator Overhead
+              Kalkulator Overhead
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

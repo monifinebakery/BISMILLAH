@@ -2,7 +2,7 @@
 // src/components/warehouse/components/WarehouseHeader.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, AlertTriangle, Upload, RefreshCw, TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { Plus, Package, AlertTriangle, RefreshCw, TrendingDown, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +14,6 @@ interface WarehouseHeaderProps {
   itemCount: number;
   selectedCount: number;
   isConnected: boolean;
-  onOpenDialog: (dialog: string) => void;
   lastUpdated?: Date;
   onRefresh?: () => void;
 }
@@ -92,7 +91,6 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   itemCount,
   selectedCount,
   isConnected,
-  onOpenDialog,
   lastUpdated,
   onRefresh
 }) => {
@@ -190,14 +188,6 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
               </Button>
             )}
 
-            <Button 
-              onClick={() => onOpenDialog('import')} 
-              className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
-            >
-              <Upload className="h-4 w-4" />
-              Import Data
-            </Button>
-            
             <Button
               onClick={() => navigate('/pembelian')}
               className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
@@ -210,7 +200,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
 
         <div className="flex md:hidden flex-col gap-3 mt-6">
           {onRefresh && (
-            <Button 
+            <Button
               onClick={handleRefresh}
               disabled={statsLoading}
               className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
@@ -219,15 +209,6 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
               Refresh Data
             </Button>
           )}
-
-          <Button 
-            onClick={() => onOpenDialog('import')} 
-            className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"
-          >
-            <Upload className="h-4 w-4" />
-            Import Data
-          </Button>
-          
           <Button
             onClick={() => navigate('/pembelian')}
             className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"

@@ -7,13 +7,8 @@
  */
 
 // ✅ ESSENTIAL DIALOGS: Core dialog components
-export { default as OrderForm } from './OrderForm';
-export { default as BulkDeleteDialog } from './BulkDeleteDialog';
-export { default as BulkEditDialog } from './BulkEditDialog';
-export { default as FollowUpTemplateManager } from './FollowUpTemplateManager';
-
-// ❌ NOT CHANGED: These are the core dialogs, all are essential
-// For lazy loading, import directly in parent components:
+// Direct exports dihapus untuk mendorong pemuatan dinamis.
+// Gunakan React.lazy di komponen induk:
 // const OrderForm = React.lazy(() => import('./dialogs/OrderForm'));
 
 // ✅ DIALOG GROUPS: For batch loading when needed

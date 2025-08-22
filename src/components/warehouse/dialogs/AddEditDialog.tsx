@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, Plus, Edit2, Save, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { logger } from '@/utils/logger';
 import type { BahanBakuFrontend } from '../types';
+// Gunakan kategori HPP yang sama dengan analisis profit
+import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
 interface AddEditDialogProps {
   isOpen: boolean;
@@ -55,14 +58,18 @@ const baseUnits = [
 
 const fetchDialogData = async (type: 'categories' | 'suppliers'): Promise<string[]> => {
   try {
+    if (type === 'categories') {
+      return [...FNB_COGS_CATEGORIES];
+    }
     const { data: { user } } = await supabase.auth.getUser();
     const service = await warehouseApi.createService('crud', { userId: user?.id });
     const items = await service.fetchBahanBaku();
-    const field = type === 'categories' ? 'kategori' : 'supplier';
-    return [...new Set(items.map(item => item[field]).filter(Boolean))].sort();
+    const field = 'supplier';
+    const values = [...new Set(items.map(item => item[field]).filter(Boolean))];
+    return values.sort();
   } catch (error) {
     logger.error(`Failed to fetch ${type}:`, error);
-    return [];
+    return type === 'categories' ? [...FNB_COGS_CATEGORIES] : [];
   }
 };
 
@@ -72,26 +79,18 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   mode,
   item,
   onSave,
-  availableCategories: propCategories,
+  availableCategories: _propCategories,
   availableSuppliers: propSuppliers,
 }) => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDropdown, setShowDropdown] = useState({
-    categories: false,
     suppliers: false,
     units: false,
   });
 
   const isEditMode = mode === 'edit' || !!item;
-
-  const { data: queriedCategories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useQuery({
-    queryKey: ['dialog-categories'],
-    queryFn: () => fetchDialogData('categories'),
-    enabled: isOpen,
-    staleTime: 5 * 60 * 1000,
-  });
 
   const { data: queriedSuppliers = [], isLoading: suppliersLoading, refetch: refetchSuppliers } = useQuery({
     queryKey: ['dialog-suppliers'],
@@ -99,8 +98,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     enabled: isOpen,
     staleTime: 5 * 60 * 1000,
   });
-
-  const availableCategories = queriedCategories.length > 0 ? queriedCategories : propCategories;
+  const availableCategories = [...FNB_COGS_CATEGORIES];
   const availableSuppliers = queriedSuppliers.length > 0 ? queriedSuppliers : propSuppliers;
 
   useEffect(() => {
@@ -172,18 +170,16 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   const handleRefresh = async () => {
     try {
-      await Promise.all([refetchCategories(), refetchSuppliers()]);
+      await refetchSuppliers();
       toast.success('Data berhasil diperbarui');
     } catch (error) {
       toast.error('Gagal memperbarui data');
     }
   };
-
-  const handleSelect = (field: 'kategori' | 'supplier' | 'satuan', value: string) => {
+  const handleSelect = (field: 'supplier' | 'satuan', value: string) => {
     handleFieldChange(field, value);
-    setShowDropdown(prev => ({ 
-      ...prev, 
-      categories: field === 'kategori' ? false : prev.categories,
+    setShowDropdown(prev => ({
+      ...prev,
       suppliers: field === 'supplier' ? false : prev.suppliers,
       units: field === 'satuan' ? false : prev.units,
     }));
@@ -241,7 +237,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isSubmitting}>
-              <RefreshCw className={`w-4 h-4 ${categoriesLoading || suppliersLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${suppliersLoading ? 'animate-spin' : ''}`} />
             </Button>
             <button onClick={onClose} disabled={isSubmitting} className="text-gray-400 hover:text-gray-600">
               <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -284,39 +280,26 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         />
                       </div>
 
-                      <div className="relative">
+                      <div>
                         <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                          Kategori * {categoriesLoading && <span className="text-xs text-gray-500">(loading...)</span>}
+                          Kategori *
                         </label>
-                        <Input
+                        <Select
                           value={formData.kategori}
-                          onChange={(e) => {
-                            handleFieldChange('kategori', e.target.value);
-                            setShowDropdown(prev => ({ ...prev, categories: true }));
-                          }}
-                          onFocus={() => setShowDropdown(prev => ({ ...prev, categories: true }))}
-                          onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, categories: false })), 200)}
-                          placeholder="Pilih atau ketik kategori"
+                          onValueChange={(value) => handleFieldChange('kategori', value)}
                           disabled={isSubmitting}
-                          required
-                          className="text-sm"
-                        />
-                          {showDropdown.categories && availableCategories.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-10 max-h-32 sm:max-h-40 overflow-y-auto">
-                            {availableCategories
-                              .filter(cat => cat.toLowerCase().includes(formData.kategori.toLowerCase()))
-                              .map((category) => (
-                                <button
-                                  key={category}
-                                  type="button"
-                                  onClick={() => handleSelect('kategori', category)}
-                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm"
-                                >
-                                  {category}
-                                </button>
-                              ))}
-                          </div>
-                        )}
+                        >
+                          <SelectTrigger className="text-sm">
+                            <SelectValue placeholder="Pilih kategori" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableCategories.map((category) => (
+                              <SelectItem key={category} value={category} className="focus:bg-orange-50">
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="relative">

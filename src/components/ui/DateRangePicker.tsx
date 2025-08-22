@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -166,6 +166,9 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <DialogContent className="w-[95vw] max-w-md p-0">
           <DialogHeader className="px-4 py-3 border-b">
             <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
+            <DialogDescription>
+              Pilih rentang tanggal untuk memfilter data.
+            </DialogDescription>
           </DialogHeader>
           <PresetButtons />
           <div className="p-4">

@@ -13,7 +13,6 @@ export interface PurchaseImportData {
     nama: string;
     kuantitas: number;
     satuan: string;
-    hargaSatuan: number;
   }>;
   totalNilai: number;
 }
@@ -51,14 +50,7 @@ const headerMap: Record<string, string> = {
   'satuan': 'satuan',
   'unit': 'satuan',
   'uom': 'satuan',
-  
-  // Price variations
-  'harga_satuan': 'hargaSatuan',
-  'harga': 'hargaSatuan',
-  'unit_price': 'hargaSatuan',
-  'price': 'hargaSatuan',
-  'harga_per_satuan': 'hargaSatuan',
-  
+
   // Total variations
   'total': 'totalNilai',
   'total_nilai': 'totalNilai',
@@ -72,7 +64,6 @@ const requiredFields = [
   'nama',
   'kuantitas',
   'satuan',
-  'hargaSatuan',
   'totalNilai'
 ];
 
@@ -110,10 +101,6 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
       errors.push('Satuan tidak boleh kosong');
     }
 
-    if (isNaN(data.hargaSatuan) || data.hargaSatuan < 0) {
-      errors.push('Harga satuan tidak valid');
-    }
-
     if (isNaN(data.totalNilai) || data.totalNilai < 0) {
       errors.push('Total nilai tidak valid');
     }
@@ -122,10 +109,12 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
   };
 
   const downloadTemplate = () => {
-    const csvContent = `tanggal,supplier,nama,jumlah,satuan,harga_satuan,total
-2024-01-15,PT. Maju Jaya,tepung terigu,10,kg,12000,120000
-2024-01-16,CV. Sumber Rejeki,gula pasir,5,kg,15000,75000
-2024-01-17,Toko Bahan Kue,minyak goreng,2,liter,20000,40000`;
+    const csvContent = [
+      'tanggal;supplier;nama;jumlah;satuan;total',
+      '2024-01-15;PT. Maju Jaya;tepung terigu;10;kg;120000',
+      '2024-01-16;CV. Sumber Rejeki;gula pasir;5;kg;75000',
+      '2024-01-17;Toko Bahan Kue;minyak goreng;2;liter;40000'
+    ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -253,8 +242,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
             items: [{
               nama: mappedRow.nama,
               kuantitas: parseFloat(mappedRow.kuantitas),
-              satuan: mappedRow.satuan,
-              hargaSatuan: parseFloat(mappedRow.hargaSatuan)
+              satuan: mappedRow.satuan
             }],
             totalNilai: parseFloat(mappedRow.totalNilai)
           });

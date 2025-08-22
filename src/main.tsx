@@ -140,6 +140,14 @@ if (effectiveDev) {
     console.warn('Could not load imported purchase sync test:', error);
   });
   
+  // Import unit price calculation test utility
+  import('@/utils/testUnitPriceCalculation').then(({ testUnitPriceCalculation }) => {
+    (window as any).testUnitPriceCalculation = testUnitPriceCalculation;
+    console.log('🧪 Unit price calculation test utility loaded');
+  }).catch(error => {
+    console.warn('Could not load unit price calculation test:', error);
+  });
+  
   (window as any).appDebug = {
     logger,
     testLogger: () => {

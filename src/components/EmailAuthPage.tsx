@@ -10,9 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-
-// ✅ Dynamic hCaptcha import
-let HCaptcha: any = null;
+import { useAuth } from '@/contexts/AuthContext'; // ✅ TAMBAHKAN INI
 
 // ✅ Environment variables
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
@@ -35,19 +33,18 @@ type AuthState = 'idle' | 'sending' | 'sent' | 'verifying' | 'error' | 'expired'
 
 const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   appName = 'Sistem HPP',
-  appDescription = 'Hitung Harga Pokok Penjualan dengan mudah',
-  primaryColor = '#ea580c', // Orange-600
-  supportEmail = 'admin@sistemhpp.com',
+  appDescription = 'Masukkan email Anda dan kode OTP yang dikirim untuk login',
+  primaryColor = 'from-orange-500 to-red-500',
+  supportEmail = 'cs@monifinebakery.com',
   logoUrl,
   onLoginSuccess,
   redirectUrl = '/',
 }) => {
-  // ✅ TAMBAHKAN NAVIGATE
-  const navigate = useNavigate();
+  // ✅ Get triggerRedirectCheck from AuthContext
+  const { triggerRedirectCheck } = useAuth();
   
-  // ✅ Simplified State Management
+  // ✅ State Management
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [authState, setAuthState] = useState<AuthState>('idle');
   const [error, setError] = useState('');
   const [cooldownTime, setCooldownTime] = useState(0);
@@ -351,6 +348,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // ✅ SIMPLIFIED: Set success state and let AuthGuard handle redirect
         setAuthState('success');
         toast.success('Login berhasil! Mengarahkan ke dashboard...');
+        
+        // ✅ Call triggerRedirectCheck from AuthContext to ensure proper redirect
+        triggerRedirectCheck();
         
         // ✅ BACKUP REDIRECT: Jika AuthGuard gagal, lakukan manual redirect
         setTimeout(() => {

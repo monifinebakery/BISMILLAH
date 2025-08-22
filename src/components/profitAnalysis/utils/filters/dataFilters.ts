@@ -1,10 +1,33 @@
 // src/components/profitAnalysis/utils/filters/dataFilters.ts
-// Data filtering utilities
+// Data filtering utilities with improved accuracy
 
 import { FinancialTransactionActual } from '../../types/profitAnalysis.types';
+import { normalizeDateRange, isDateInRange, parseDatabaseDate } from '@/utils/dateNormalization';
 
 /**
- * Filter transactions by period with timezone handling
+ * Filter transactions by custom date range with proper timezone handling
+ * Uses centralized date normalization to ensure accuracy
+ */
+export const filterTransactionsByDateRange = (
+  transactions: FinancialTransactionActual[],
+  startDate: Date,
+  endDate: Date
+): FinancialTransactionActual[] => {
+  if (!startDate || !endDate) return transactions;
+  
+  // Use centralized date normalization
+  const { startDate: normalizedStart, endDate: normalizedEnd } = normalizeDateRange(startDate, endDate);
+  
+  return transactions.filter(t => {
+    if (!t.date) return false;
+    
+    // Use centralized date range checking
+    return isDateInRange(t.date, normalizedStart, normalizedEnd);
+  });
+};
+
+/**
+ * Filter transactions by period with improved timezone handling
  */
 export const filterTransactionsByPeriod = (
   transactions: FinancialTransactionActual[],
@@ -14,20 +37,22 @@ export const filterTransactionsByPeriod = (
   
   const now = new Date();
   let startDate: Date;
-  let endDate: Date = new Date(now);
+  let endDate: Date;
   
   switch (period) {
     case 'today':
-      startDate = new Date(now.setHours(0, 0, 0, 0));
-      endDate = new Date(now.setHours(23, 59, 59, 999));
+      startDate = new Date(now);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
       break;
     case 'week':
       const dayOfWeek = now.getDay();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - dayOfWeek);
-      startOfWeek.setHours(0, 0, 0, 0);
-      startDate = startOfWeek;
-      endDate.setDate(startOfWeek.getDate() + 6);
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - dayOfWeek);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
       endDate.setHours(23, 59, 59, 999);
       break;
     case 'month':
@@ -41,15 +66,20 @@ export const filterTransactionsByPeriod = (
       endDate.setHours(23, 59, 59, 999);
       break;
     default:
-      // Handle custom date ranges if needed
-      return transactions;
+      // Handle custom monthly periods like '2024-01'
+      if (/^\d{4}-\d{2}$/.test(period)) {
+        const [year, month] = period.split('-').map(Number);
+        startDate = new Date(year, month - 1, 1);
+        endDate = new Date(year, month, 0);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        return transactions;
+      }
+      break;
   }
   
-  return transactions.filter(t => {
-    if (!t.date) return false;
-    const transactionDate = new Date(t.date);
-    return transactionDate >= startDate && transactionDate <= endDate;
-  });
+  // Use centralized date filtering
+  return filterTransactionsByDateRange(transactions, startDate, endDate);
 };
 
 /**

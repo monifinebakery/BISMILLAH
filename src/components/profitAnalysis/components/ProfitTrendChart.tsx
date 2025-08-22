@@ -1,5 +1,5 @@
 // src/components/warehouse/components/ProfitTrendChart.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +12,10 @@ import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { formatCurrency, formatLargeNumber, getShortPeriodLabel } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { CHART_CONFIG } from '../constants';
+import { validateChartData, logValidationResults } from '@/utils/chartDataValidation';
+import { getEffectiveCogs, validateCOGSConsistency } from '@/utils/cogsCalculation';
+import { safeSortPeriods, formatPeriodForDisplay } from '@/utils/periodUtils';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // ==============================================
 // TYPES
@@ -56,42 +60,78 @@ const processTrendData = (
 ) => {
   if (!profitHistory || profitHistory.length === 0) return [];
 
-  // Create copy of array to avoid mutation
-  const sortedHistory = [...profitHistory].sort((a, b) => {
-    // Handle both monthly format (YYYY-MM) and daily format (YYYY-MM-DD)
-    if (a.period.includes('-') && a.period.split('-').length === 3) {
-      // Daily format - convert to date for sorting
-      return new Date(a.period).getTime() - new Date(b.period).getTime();
-    } else {
-      // Monthly format - use existing sorting
-      return a.period.localeCompare(b.period);
-    }
-  });
+  // ✅ IMPROVED: Use centralized period sorting
+  const periods = profitHistory.map(h => h.period);
+  const sortedPeriods = safeSortPeriods(periods);
   
-  return sortedHistory.map(analysis => {
+  // Reorder history based on sorted periods
+  const sortedHistory = sortedPeriods.map(period => 
+    profitHistory.find(h => h.period === period)
+  ).filter(Boolean) as RealTimeProfitCalculation[];
+  
+  // ✅ IMPROVED: Track COGS calculations for consistency validation
+  const cogsCalculations: { component: string; value: number; source: string }[] = [];
+  
+  const results = sortedHistory.map((analysis, index) => {
     const revenue = analysis.revenue_data?.total || 0;
-    // ✅ UPDATE: Gunakan effectiveCogs kalau ada
-    const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : analysis.cogs_data?.total) || 0;
+    
+    // ✅ IMPROVED: Use centralized COGS calculation
+    const cogsResult = getEffectiveCogs(
+      analysis,
+      effectiveCogs, // Only apply to latest period
+      revenue,
+      { preferWAC: index === sortedHistory.length - 1 } // WAC for latest only
+    );
+    
+    cogsCalculations.push({
+      component: `TrendChart-${analysis.period}`,
+      value: cogsResult.value,
+      source: cogsResult.source
+    });
+    
     const opex = analysis.opex_data?.total || 0;
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - opex;
-    const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    
+    // ✅ IMPROVED: Use safe margin calculation
+    const margins = safeCalculateMargins(revenue, cogsResult.value, opex);
+    
+    // Log warnings from COGS calculation
+    if (cogsResult.warnings.length > 0) {
+      cogsResult.warnings.forEach(warning => 
+        console.warn(`Period ${analysis.period}: ${warning}`)
+      );
+    }
+
+    // ✅ IMPROVED: Period-specific stock value calculation
+    let periodStockValue = wacStockValue || 0;
+    try {
+      if ((analysis as any).stock_data?.wac_value) {
+        periodStockValue = (analysis as any).stock_data.wac_value;
+      }
+    } catch (error) {
+      // Silently fall back to provided wacStockValue
+    }
 
     return {
       period: analysis.period,
-      periodLabel: getShortPeriodLabel(analysis.period),
+      periodLabel: formatPeriodForDisplay(analysis.period),
       revenue,
-      cogs,
+      cogs: cogsResult.value,
       opex,
-      grossProfit,
-      netProfit,
-      grossMargin,
-      netMargin,
-      // ✅ TAMBAH: Nilai stok WAC
-      stockValue: wacStockValue
+      grossProfit: margins.grossProfit,
+      netProfit: margins.netProfit,
+      grossMargin: margins.grossMargin,
+      netMargin: margins.netMargin,
+      stockValue: periodStockValue
     };
   });
+  
+  // ✅ IMPROVED: Validate COGS consistency across periods
+  const consistencyCheck = validateCOGSConsistency(cogsCalculations);
+  if (!consistencyCheck.isConsistent) {
+    console.warn('COGS calculation inconsistency detected:', consistencyCheck.issues);
+  }
+  
+  return results;
 };
 
 const analyzeTrend = (trendData: TrendData[]) => {
@@ -212,9 +252,25 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
   const [selectedMetrics, setSelectedMetrics] = useState(['revenue', 'grossProfit', 'netProfit']);
   const [viewType, setViewType] = useState('values');
 
-  // ✅ NO useMemo - Calculate directly on each render
-  const trendData = processTrendData(profitHistory, effectiveCogs, wacStockValue);
-  const trendAnalysis = analyzeTrend(trendData);
+  // ✅ IMPROVED: Add memoization with proper dependencies and validation
+  const trendData = useMemo(() => {
+    const rawData = processTrendData(profitHistory, effectiveCogs, wacStockValue);
+    
+    // ✅ ADD: Comprehensive validation of chart data
+    const validationResult = validateChartData(rawData, 'line', selectedMetrics);
+    logValidationResults(validationResult, 'Profit Trend Chart');
+    
+    // Log any data quality issues
+    if (!validationResult.isValid) {
+      console.error('Profit Trend Chart: Data validation failed', validationResult.errors);
+    }
+    
+    return rawData;
+  }, [profitHistory, effectiveCogs, wacStockValue, selectedMetrics]);
+  
+  const trendAnalysis = useMemo(() => {
+    return analyzeTrend(trendData);
+  }, [trendData]);
 
   // ✅ METRIC CONFIGURATIONS - UPDATE dengan orange dominan
   const metricConfigs = {

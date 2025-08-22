@@ -1,22 +1,42 @@
 // src/components/profitAnalysis/utils/analysis/complexAnalysis.ts
-// Complex profit analysis utilities
+// Complex profit analysis utilities with improved accuracy
 
 import { FinancialTransactionActual, BahanBakuActual, OperationalCostActual, RealTimeProfitCalculation } from '../../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS, FNB_THRESHOLDS, FNB_LABELS } from '../../constants/profitConstants';
 import { calculateMargins, getEffectiveUnitPrice, calcHPP } from '../calculations/basicCalculations';
-import { filterTransactionsByPeriod } from '../filters/dataFilters';
+import { filterTransactionsByPeriod, filterTransactionsByDateRange } from '../filters/dataFilters';
 import { getMarginRating, getCOGSEfficiencyRating } from '../ratings/profitRatings';
+import { logger } from '@/utils/logger';
 
 /**
  * Calculate real-time profit analysis with actual schema
+ * Supports both predefined periods and custom date ranges with improved accuracy
  */
 export const calculateRealTimeProfit = (
   period: string,
   transactions: FinancialTransactionActual[],
   materials: BahanBakuActual[],
-  operationalCosts: OperationalCostActual[]
+  operationalCosts: OperationalCostActual[],
+  dateRange?: { from: Date; to: Date }
 ): RealTimeProfitCalculation => {
-  const periodTransactions = filterTransactionsByPeriod(transactions, period);
+  logger.info('🔄 Calculating real-time profit (IMPROVED):', { 
+    period, 
+    hasDateRange: !!dateRange,
+    transactionCount: transactions?.length || 0,
+    materialCount: materials?.length || 0,
+    costCount: operationalCosts?.length || 0
+  });
+  
+  // Use improved date range filter if provided, otherwise use period filter
+  const periodTransactions = dateRange 
+    ? filterTransactionsByDateRange(transactions, dateRange.from, dateRange.to)
+    : filterTransactionsByPeriod(transactions, period);
+    
+  logger.debug('📊 Filtered transactions:', {
+    originalCount: transactions?.length || 0,
+    filteredCount: periodTransactions.length,
+    filterType: dateRange ? 'dateRange' : 'period'
+  });
 
   const revenueTransactions = periodTransactions.filter(t => t.type === 'income');
   const totalRevenue = revenueTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);

@@ -2,6 +2,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from '@/utils/logger';
+// 🔧 IMPROVED: Import centralized date normalization
+import { normalizeDateForDatabase } from '@/utils/dateNormalization';
 import { 
   OperationalCost, 
   AllocationSettings, 
@@ -104,8 +106,8 @@ export const operationalCostApi = {
         .insert({
           ...costData,
           user_id: userId, // ✅ Add user_id
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          created_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
+          updated_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
         })
         .select()
         .single();
@@ -131,7 +133,7 @@ export const operationalCostApi = {
         .from('operational_costs')
         .update({
           ...costData,
-          updated_at: new Date().toISOString(),
+          updated_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
         })
         .eq('id', id)
         .eq('user_id', userId) // ✅ Add user filter

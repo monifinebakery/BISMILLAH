@@ -353,7 +353,9 @@ const WarehousePageContent: React.FC = () => {
     loading: warehouseData.loading,
     error: warehouseData.error,
     isConnected: navigator.onLine, // Simplified
-    refetch: warehouseData.refetch,
+    refetch: async (): Promise<void> => {
+      await warehouseData.refetch();
+    },
     // ✅ FIXED: Add missing CRUD functions for bulk operations
     updateBahanBaku: async (id: string, updates: Partial<BahanBakuFrontend>) => {
       try {
@@ -415,7 +417,8 @@ const WarehousePageContent: React.FC = () => {
         core.dialogs?.close?.('addItem');
       } catch (error) {
         logger.error('Create handler error:', error);
-        toast.error(`Gagal menambah item: ${error.message || 'Unknown error'}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        toast.error(`Gagal menambah item: ${errorMessage}`);
       }
     },
     
@@ -426,7 +429,8 @@ const WarehousePageContent: React.FC = () => {
         core.dialogs?.close?.('editItem'); // ✅ Perbaiki closing dialog
       } catch (error) {
         logger.error('Update handler error:', error);
-        toast.error(`Gagal memperbarui item: ${error.message || 'Unknown error'}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        toast.error(`Gagal memperbarui item: ${errorMessage}`);
       }
     },
     
@@ -437,8 +441,21 @@ const WarehousePageContent: React.FC = () => {
         }
       } catch (error) {
         logger.error('Delete handler error:', error);
-        toast.error(`Gagal menghapus item: ${error.message || 'Unknown error'}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        toast.error(`Gagal menghapus item: ${errorMessage}`);
       }
+    },
+    
+    // ✅ FIXED: Wrap editSave to match interface (Promise<void>)
+    editSave: async (updates: Partial<BahanBakuFrontend>): Promise<void> => {
+      const result = await core.handlers?.editSave(updates);
+      logger.debug('editSave completed with result:', result);
+      // Don't return the boolean result to match interface
+    },
+    
+    // ✅ FIXED: Wrap sort to match interface (string instead of keyof)
+    sort: (key: string) => {
+      core.handlers?.sort(key as keyof BahanBakuFrontend);
     },
   };
 
@@ -477,15 +494,24 @@ const WarehousePageContent: React.FC = () => {
       />
 
       {/* Bulk Actions */}
-      {(core.selection?.selectedCount || 0) > 0 && (
-        <BulkActions
-          selectedCount={core.selection.selectedCount}
-          onBulkEdit={() => core.dialogs?.open?.('bulkEdit')}
-          onBulkDelete={() => core.dialogs?.open?.('bulkDelete')}
-          onClearSelection={core.selection?.clear}
-          isProcessing={warehouseData.isProcessing || false}
-        />
-      )}
+      {(() => {
+        const shouldShowBulkActions = core.selection?.isSelectionMode || (core.selection?.selectedCount || 0) > 0;
+        logger.debug('BulkActions visibility check:', {
+          isSelectionMode: core.selection?.isSelectionMode,
+          selectedCount: core.selection?.selectedCount,
+          shouldShow: shouldShowBulkActions
+        });
+        
+        return shouldShowBulkActions ? (
+          <BulkActions
+            selectedCount={core.selection.selectedCount || 0}
+            onBulkEdit={() => core.dialogs?.open?.('bulkEdit')}
+            onBulkDelete={() => core.dialogs?.open?.('bulkDelete')}
+            onClearSelection={core.selection?.clear}
+            isProcessing={warehouseData.isProcessing || false}
+          />
+        ) : null;
+      })()}
 
       {/* Main Content */}
       {context.loading ? (
@@ -518,8 +544,17 @@ const WarehousePageContent: React.FC = () => {
             onEdit={core.handlers?.edit}
             onDelete={enhancedHandlers.delete}
             emptyStateAction={() => navigate('/pembelian')}
-            onRefresh={warehouseData.refetch}
+            onRefresh={async () => {
+              await warehouseData.refetch();
+            }}
             lastUpdated={warehouseData.lastUpdated}
+            // ✅ ADDED: Pass selection state from core
+            selectedItems={core.selection?.selectedItems || []}
+            onToggleSelection={core.selection?.toggle}
+            onSelectPage={core.selection?.selectPage}
+            isSelected={core.selection?.isSelected}
+            isPageSelected={core.selection?.isPageSelected}
+            isPagePartiallySelected={core.selection?.isPagePartiallySelected}
           />
 
           {/* Pagination */}

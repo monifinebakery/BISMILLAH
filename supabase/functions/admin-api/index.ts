@@ -88,6 +88,81 @@ serve(async (req)=>{
           }
         });
       }
+
+      if (path === "fix-applied-at") {
+        // Fix applied_at field issue
+        console.log('🔧 Starting applied_at field database cleanup...');
+        
+        // Test a simple update operation first to see the current error
+        const { data: testPurchases } = await supabase
+          .from('purchases')
+          .select('id, status, user_id')
+          .limit(1);
+
+        let testResult = null;
+        if (testPurchases && testPurchases.length > 0) {
+          const testPurchase = testPurchases[0];
+          const { error: testError } = await supabase
+            .from('purchases')
+            .update({ status: testPurchase.status })
+            .eq('id', testPurchase.id)
+            .eq('user_id', testPurchase.user_id);
+
+          testResult = {
+            success: !testError,
+            error: testError?.message || null,
+            stillHasAppliedAtIssue: testError?.message?.includes('applied_at') || false
+          };
+        }
+
+        // Check if applied_at column still exists
+        const { data: columns, error: columnsError } = await supabase
+          .from('information_schema.columns')
+          .select('column_name')
+          .eq('table_name', 'purchases')
+          .eq('column_name', 'applied_at');
+
+        const hasAppliedAt = columns && columns.length > 0;
+        console.log(`Applied_at column exists: ${hasAppliedAt}`);
+
+        // Try to execute a direct column drop if it exists
+        let dropResult = null;
+        if (hasAppliedAt) {
+          try {
+            const { error: dropError } = await supabase.sql`
+              ALTER TABLE purchases DROP COLUMN IF EXISTS applied_at CASCADE;
+            `;
+            dropResult = {
+              success: !dropError,
+              error: dropError?.message || null
+            };
+          } catch (err) {
+            dropResult = {
+              success: false,
+              error: String(err)
+            };
+          }
+        }
+
+        const response = {
+          success: true,
+          message: 'Database cleanup check completed',
+          appliedAtColumnExists: hasAppliedAt,
+          testUpdate: testResult,
+          dropColumnResult: dropResult,
+          timestamp: new Date().toISOString()
+        };
+
+        console.log('🎉 Cleanup check completed:', response);
+
+        return new Response(JSON.stringify({ data: response }), {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        });
+      }
     }
     if (req.method === "PUT" && path === "payment-status") {
       // Update payment status

@@ -2,7 +2,7 @@
 // ✅ PERFORMANCE & MERGED CORE: Context ini sudah menggabungkan fungsionalitas usePurchaseCore
 // - Optimistic updates untuk create/update/status/delete
 // - Stats, bulk ops, validate prerequisites
-// - Edit/Hapus setelah 'completed' diperbolehkan (stok & WAC diurus trigger DB)
+// - Edit/Hapus setelah 'completed' diperbolehkan (stok & WAC diurus manual sync)
 // - Realtime aman (hindari refetch berlebih)
 // ✅ TAMBAH: Invalidate warehouse data setiap ada perubahan purchase
 
@@ -18,11 +18,7 @@ import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
-import {
-  applyPurchaseToWarehouse,
-  reversePurchaseFromWarehouse
-} from '@/components/warehouse/services/warehouseSyncService';
-
+import { PurchaseApiService } from '../services/purchaseApi';
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
 import {
@@ -57,37 +53,50 @@ const fetchPurchases = async (userId: string): Promise<Purchase[]> => {
   return transformPurchasesFromDB(data || []);
 };
 
-// Insert biasa (status awal umumnya 'pending'); trigger DB akan apply ketika status==completed
+// CREATE via service (manual warehouse sync handled in service), then fetch the created row
 const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string) => {
-  const db = transformPurchaseForDB(payload, userId);
-  const { data, error } = await supabase.from('purchases').insert(db).select('*').single();
-  if (error) throw new Error(error.message);
-  return transformPurchaseFromDB(data);
-};
-
-const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>) => {
-  const patch = transformPurchaseUpdateForDB(updates);
-  const { data, error } = await supabase.from('purchases').update(patch).eq('id', id).select('*').single();
-  if (error) throw new Error(error.message);
-  return transformPurchaseFromDB(data);
-};
-
-// Pakai UPDATE kolom status; trigger DB akan urus stok/WAC apply/rollback/re-apply
-const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatus) => {
+  const res = await PurchaseApiService.createPurchase(payload, userId);
+  if (!res.success || !res.purchaseId) throw new Error(res.error || 'Gagal membuat pembelian');
   const { data, error } = await supabase
     .from('purchases')
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('user_id', userId)
     .select('*')
+    .eq('id', res.purchaseId)
+    .eq('user_id', userId)
     .single();
   if (error) throw new Error(error.message);
   return transformPurchaseFromDB(data);
 };
 
-const apiDeletePurchase = async (id: string) => {
-  const { error } = await supabase.from('purchases').delete().eq('id', id);
+const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId: string) => {
+  const res = await PurchaseApiService.updatePurchase(id, updates, userId);
+  if (!res.success) throw new Error(res.error || 'Gagal memperbarui pembelian');
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single();
   if (error) throw new Error(error.message);
+  return transformPurchaseFromDB(data);
+};
+
+// Status via service (service handles manual warehouse sync), then fetch fresh row
+const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatus) => {
+  const res = await PurchaseApiService.setPurchaseStatus(id, userId, newStatus);
+  if (!res.success) throw new Error(res.error || 'Gagal update status');
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single();
+  if (error) throw new Error(error.message);
+  return transformPurchaseFromDB(data);
+};
+
+const apiDeletePurchase = async (id: string, userId: string) => {
+  const res = await PurchaseApiService.deletePurchase(id, userId);
+  if (!res.success) throw new Error(res.error || 'Gagal menghapus pembelian');
 };
 
 // ------------------- Context -------------------
@@ -237,8 +246,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               id: item.bahanBakuId,
               nama: item.nama,
               kategori: 'Lainnya',
-              // Jika purchase belum selesai, stok awal tetap 0 agar tidak double saat diselesaikan
-              stok: newRow.status === 'completed' ? item.kuantitas : 0,
+              // Manual sync: stok awal selalu 0. Akan dinaikkan saat status 'completed'.
+              stok: 0,
               minimum: 0,
               satuan: item.satuan || '-',
               harga: item.hargaSatuan || 0,
@@ -250,12 +259,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         logger.error('Gagal menambahkan bahan baku baru dari pembelian', e);
       }
 
-      // Terapkan ke gudang jika langsung selesai
-      if (newRow.status === 'completed') {
-        void applyPurchaseToWarehouse(newRow);
-      }
-
-      // ✅ INVALIDATE WAREHOUSE: Trigger DB mungkin sudah update stok jika status=completed
+      // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
 
       // Info
@@ -285,7 +289,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // UPDATE (optimistic merge)
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Purchase> }) => apiUpdatePurchase(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Purchase> }) => apiUpdatePurchase(id, updates, user!.id),
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
@@ -297,7 +301,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     onSuccess: (fresh, _vars, ctx) => {
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
-      // ✅ INVALIDATE WAREHOUSE: Trigger DB akan rekalkulasi stok/WAC jika diperlukan
+      // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
 
       toast.success('Pembelian diperbarui. (Stok akan disesuaikan otomatis bila diperlukan)');
@@ -325,14 +329,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.log('✅ Status mutation onSuccess with:', fresh);
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
-      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
-      if (prevPurchase?.status !== 'completed' && fresh.status === 'completed') {
-        void applyPurchaseToWarehouse(fresh);
-      } else if (prevPurchase?.status === 'completed' && fresh.status !== 'completed') {
-        void reversePurchaseFromWarehouse(prevPurchase);
-      }
+      // ✅ INVALIDATE WAREHOUSE
 
-      // ✅ INVALIDATE WAREHOUSE: Apply/rollback WAC & stok terjadi di trigger DB
       invalidateWarehouseData();
 
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
@@ -380,7 +378,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // DELETE (optimistic remove)
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiDeletePurchase(id),
+    mutationFn: (id: string) => apiDeletePurchase(id, user!.id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
@@ -388,9 +386,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { prev, id };
     },
     onSuccess: (_res, id, ctx) => {
-      // ✅ INVALIDATE WAREHOUSE: Trigger DB akan reversal stok/WAC jika pernah applied
+      // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
-
       const p = ctx?.prev?.find((x) => x.id === id);
       if (p) {
         const supplierName = getSupplierName(p.supplier);
@@ -432,7 +429,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user, createMutation, ensureBahanBakuIds]);
 
-  // Edit diperbolehkan walau completed — trigger DB akan rekalkulasi stok jika perlu
+  // Edit diperbolehkan walau completed — manual sync akan rekalkulasi stok jika perlu
   const updatePurchaseAction = useCallback(async (id: string, updated: Partial<Purchase>) => {
     if (!user) { toast.error('Anda harus login'); return false; }
     try {

@@ -116,6 +116,7 @@ export {
   calculateRealTimeProfit,
   calculateMargins,
   filterTransactionsByPeriod,
+  filterTransactionsByDateRange,
   getMarginRating,
   extractMaterialName,
   calculateInventoryBasedCOGS,

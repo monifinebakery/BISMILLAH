@@ -9,6 +9,7 @@ import {
 import { formatCurrency, formatLargeNumber } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { CHART_CONFIG } from '../constants';
+import { validateFinancialMetrics, logValidationResults } from '@/utils/chartDataValidation';
 
 // ==============================================
 // TYPES
@@ -188,16 +189,62 @@ const ProfitBreakdownChart = ({
   labels
 }: ProfitBreakdownChartProps) => {
 
-  // ✅ UPDATE: Pakai effectiveCogs kalau ada
+  // ✅ IMPROVED: Enhanced COGS calculation with validation
   const revenue = currentAnalysis?.revenue_data?.total ?? 0;
-  const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : currentAnalysis?.cogs_data?.total) ?? 0;
+  
+  let cogs: number;
+  if (typeof effectiveCogs === 'number' && effectiveCogs >= 0) {
+    // Use effectiveCogs (WAC data) if available and valid
+    cogs = effectiveCogs;
+  } else {
+    // Fallback to analysis COGS data
+    cogs = currentAnalysis?.cogs_data?.total ?? 0;
+  }
+  
+  // ✅ ADD: Data validation to prevent logical inconsistencies
+  if (cogs > revenue && revenue > 0) {
+    console.warn(`Breakdown Chart: COGS (${cogs}) > Revenue (${revenue}) - using capped value`);
+    cogs = Math.min(cogs, revenue * 0.95); // Cap COGS at 95% of revenue
+  }
+  
   const opex = currentAnalysis?.opex_data?.total ?? 0;
 
-  // Calculate all metrics directly
+  // Calculate all metrics directly with enhanced validation
   const metrics = calculateMetrics(revenue, cogs, opex);
-  const barChartData = generateBarChartData(metrics);
-  const pieChartData = generatePieChartData(metrics);
-  const summaryStats = calculateSummaryStats(metrics);
+  
+  // ✅ ADD: Comprehensive financial validation
+  const validationResult = validateFinancialMetrics({
+    revenue,
+    cogs,
+    opex,
+    grossProfit: metrics.grossProfit,
+    netProfit: metrics.netProfit
+    // Note: margins are calculated internally by validation function
+  });
+  
+  logValidationResults(validationResult, 'Profit Breakdown Chart');
+  
+  // Use corrected data if validation found issues
+  const finalMetrics = validationResult.correctedData ? {
+    ...metrics,
+    revenue: validationResult.correctedData.revenue,
+    cogs: validationResult.correctedData.cogs,
+    grossProfit: validationResult.correctedData.grossProfit,
+    netProfit: validationResult.correctedData.netProfit
+  } : metrics;
+  
+  // ✅ ADD: Additional validation for calculated metrics
+  if (finalMetrics.grossProfit < 0 && revenue > 0) {
+    console.warn('Breakdown Chart: Negative gross profit detected', {
+      revenue,
+      cogs,
+      grossProfit: finalMetrics.grossProfit
+    });
+  }
+  
+  const barChartData = generateBarChartData(finalMetrics);
+  const pieChartData = generatePieChartData(finalMetrics);
+  const summaryStats = calculateSummaryStats(finalMetrics);
 
   // ✅ PIE LABEL FUNCTION
   const renderPieLabel = (entry: any) => {

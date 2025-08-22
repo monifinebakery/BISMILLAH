@@ -48,7 +48,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [authState, setAuthState] = useState<AuthState>('idle');
   const [error, setError] = useState('');
   const [cooldownTime, setCooldownTime] = useState(0);
-  
+
+  // ✅ OTP state
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+
   // ✅ hCaptcha state
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   const [hCaptchaKey, setHCaptchaKey] = useState(0);

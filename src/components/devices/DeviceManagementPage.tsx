@@ -141,39 +141,11 @@ const DeviceManagementPage: React.FC = () => {
     }
   }, []);
 
-  const getDeviceAccuracyScore = useCallback((device: any) => {
-    let score = 100;
-    
-    // Deduct points for missing information
-    if (!device.device_name || device.device_name === 'Unknown Device') score -= 20;
-    if (!device.os || device.os === 'Unknown') score -= 15;
-    if (!device.browser || device.browser === 'Unknown') score -= 15;
-    if (!device.device_type) score -= 10;
-    
-    // Deduct points for old devices
-    const status = getDeviceStatus(device);
-    if (status.status === 'old') score -= 20;
-    if (status.status === 'week') score -= 10;
-    
-    return Math.max(score, 0);
-  }, [getDeviceStatus]);
-
-  const getAccuracyColor = useCallback((score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
-    if (score >= 50) return 'text-orange-600';
-    return 'text-red-600';
-  }, []);
-
   const shouldShowWarning = devices.length > 5;
   const hasOldDevices = devices.some(device => {
     const status = getDeviceStatus(device);
     return status.hours > 24 * 30; // 30 days
   });
-
-  const overallAccuracy = devices.length > 0 
-    ? Math.round(devices.reduce((sum, device) => sum + getDeviceAccuracyScore(device), 0) / devices.length)
-    : 0;
 
   const formatLastActive = useCallback((dateString: string) => {
     try {
@@ -212,64 +184,65 @@ const DeviceManagementPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-0">
       <div>
-        <h1 className="text-3xl font-bold">Manajemen Perangkat</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl md:text-3xl font-bold">Manajemen Perangkat</h1>
+        <p className="text-gray-600 mt-2 text-sm md:text-base">
           Kelola perangkat yang saat ini masuk ke akun Anda
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex flex-wrap items-center gap-2 text-lg md:text-xl">
                 Perangkat Aktif
-                <Badge variant={shouldShowWarning ? 'destructive' : 'secondary'}>
+                <Badge variant={shouldShowWarning ? 'destructive' : 'secondary'} className="text-xs">
                   {devices.length} perangkat
                 </Badge>
                 {shouldShowWarning && (
                   <AlertTriangle className="h-4 w-4 text-orange-500" />
                 )}
               </CardTitle>
-              <CardDescription className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Akurasi identifikasi: 
-                <span className={`font-medium ${getAccuracyColor(overallAccuracy)}`}>
-                  {overallAccuracy}%
-                </span>
+              <CardDescription className="flex flex-col space-y-2 md:flex-row md:items-center md:gap-2 md:space-y-0 text-sm">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Status perangkat aktif
+                </div>
                 {shouldShowWarning && (
-                  <span className="text-orange-600 ml-2 flex items-center gap-1">
+                  <span className="text-orange-600 flex items-center gap-1 text-xs md:text-sm">
                     <AlertTriangle className="h-3 w-3" />
                     Terlalu banyak perangkat - pertimbangkan untuk membersihkan
                   </span>
                 )}
                 {hasOldDevices && (
-                  <span className="text-red-600 ml-2 flex items-center gap-1">
+                  <span className="text-red-600 flex items-center gap-1 text-xs md:text-sm">
                     <Clock className="h-3 w-3" />
                     Ada perangkat tidak aktif {'>'} 30 hari
                   </span>
                 )}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col space-y-2 md:flex-row md:gap-2 md:space-y-0">
               {devices.length > 1 && (
                 <Button 
                   variant="outline" 
                   onClick={handleRemoveAllOtherDevices}
                   disabled={isCleaningUp || isRefreshing}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs md:text-sm w-full md:w-auto"
                 >
                   {isCleaningUp ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500 mr-2"></div>
-                      Membersihkan...
+                      <span className="hidden md:inline">Membersihkan...</span>
+                      <span className="md:hidden">Keluar Semua</span>
                     </>
                   ) : (
                     <>
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Keluar dari Semua Perangkat
+                      <span className="hidden md:inline">Keluar dari Semua Perangkat</span>
+                      <span className="md:hidden">Keluar Semua</span>
                     </>
                   )}
                 </Button>
@@ -278,7 +251,7 @@ const DeviceManagementPage: React.FC = () => {
                 variant="outline" 
                 onClick={handleRefreshDevices}
                 disabled={isRefreshing || isCleaningUp}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-xs md:text-sm w-full md:w-auto"
               >
                 {isRefreshing ? (
                   <>
@@ -295,19 +268,18 @@ const DeviceManagementPage: React.FC = () => {
         <CardContent>
           {devices.length === 0 ? (
             <div className="text-center py-8">
-              <SmartphoneCharging className="h-12 w-12 text-gray-400 mx-auto" />
-              <p className="mt-4 text-gray-600">Tidak ada perangkat aktif</p>
+              <SmartphoneCharging className="h-8 w-8 md:h-12 md:w-12 text-gray-400 mx-auto" />
+              <p className="mt-4 text-gray-600 text-sm md:text-base">Tidak ada perangkat aktif</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {devices.map((device) => {
                 const status = getDeviceStatus(device);
-                const accuracy = getDeviceAccuracyScore(device);
                 
                 return (
                   <div 
                     key={device.id} 
-                    className={`p-4 rounded-lg border transition-all duration-200 ${
+                    className={`p-3 md:p-4 rounded-lg border transition-all duration-200 ${
                       device.is_current 
                         ? 'border-orange-200 bg-orange-50 shadow-sm' 
                         : status.status === 'old' 
@@ -315,9 +287,9 @@ const DeviceManagementPage: React.FC = () => {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4">
-                        <div className={`p-2 rounded-full relative ${
+                    <div className="flex flex-col space-y-3 md:flex-row md:items-start md:justify-between md:space-y-0">
+                      <div className="flex items-start space-x-3 md:space-x-4 flex-1">
+                        <div className={`p-2 rounded-full relative flex-shrink-0 ${
                           device.is_current ? 'bg-orange-100' : 
                           status.status === 'old' ? 'bg-red-100' : 'bg-gray-100'
                         }`}>
@@ -330,14 +302,14 @@ const DeviceManagementPage: React.FC = () => {
                             status.status === 'week' ? 'bg-orange-500' : 'bg-red-500'
                           }`} />
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col space-y-2 md:flex-row md:items-center md:space-x-2 md:space-y-0 mb-2">
                             {editingDeviceId === device.id ? (
                               <div className="flex items-center space-x-2">
                                 <Input
                                   value={editName}
                                   onChange={(e) => setEditName(e.target.value)}
-                                  className="h-8 w-48"
+                                  className="h-8 w-full md:w-48"
                                   placeholder="Nama perangkat"
                                   autoFocus
                                 />
@@ -358,39 +330,38 @@ const DeviceManagementPage: React.FC = () => {
                               </div>
                             ) : (
                               <>
-                                <h3 className="font-medium text-gray-900">
-                                  {device.device_name || `${device.os} ${device.device_type}`}
-                                </h3>
-                                {device.is_current && (
-                                  <Badge variant="default" className="bg-orange-600">
-                                    <Shield className="h-3 w-3 mr-1" />
-                                    Perangkat Saat Ini
-                                  </Badge>
-                                )}
-                                <Badge 
-                                  variant="outline" 
-                                  className={`${getAccuracyColor(accuracy)} border-current`}
-                                >
-                                  {accuracy}% akurat
-                                </Badge>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleEditName(device.id, device.device_name || '')}
-                                  className="ml-2"
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center space-x-2">
+                                  <h3 className="font-medium text-gray-900 text-sm md:text-base truncate">
+                                    {device.device_name || `${device.os} ${device.device_type}`}
+                                  </h3>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleEditName(device.id, device.device_name || '')}
+                                    className="flex-shrink-0"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {device.is_current && (
+                                    <Badge variant="default" className="bg-orange-600 text-xs">
+                                      <Shield className="h-3 w-3 mr-1" />
+                                      <span className="hidden md:inline">Perangkat Saat Ini</span>
+                                      <span className="md:hidden">Aktif</span>
+                                    </Badge>
+                                  )}
+                                </div>
                               </>
                             )}
                           </div>
                           
                           {/* Enhanced device information */}
-                          <div className="space-y-1 text-sm">
-                            <div className="flex items-center gap-4 text-gray-600">
+                          <div className="space-y-1 text-xs md:text-sm">
+                            <div className="flex flex-col space-y-1 md:flex-row md:items-center md:gap-4 text-gray-600">
                               <span className="flex items-center gap-1">
                                 <Monitor className="h-3 w-3" />
-                                {device.browser} di {device.os}
+                                <span className="truncate">{device.browser} di {device.os}</span>
                               </span>
                               <span className={`flex items-center gap-1 font-medium ${
                                 status.color === 'green' ? 'text-green-600' :
@@ -405,16 +376,8 @@ const DeviceManagementPage: React.FC = () => {
                             
                             {/* Device ID for debugging */}
                             {import.meta.env.DEV && (
-                              <div className="text-xs text-gray-400 font-mono">
+                              <div className="text-xs text-gray-400 font-mono truncate">
                                 ID: {device.device_id?.substring(0, 20)}...
-                              </div>
-                            )}
-                            
-                            {/* Additional accuracy details */}
-                            {accuracy < 70 && (
-                              <div className="flex items-center gap-1 text-yellow-600 text-xs">
-                                <AlertTriangle className="h-3 w-3" />
-                                Informasi perangkat tidak lengkap - akurasi rendah
                               </div>
                             )}
                             
@@ -427,20 +390,21 @@ const DeviceManagementPage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 flex-shrink-0">
                         {!device.is_current && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleRemoveDevice(device.id)}
-                            className={`${
+                            className={`text-xs md:text-sm w-full md:w-auto ${
                               status.status === 'old' 
                                 ? 'text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200'
                                 : 'text-gray-600 hover:text-gray-700'
                             }`}
                           >
                             <LogOut className="h-4 w-4 mr-2" />
-                            Keluarkan
+                            <span className="hidden md:inline">Keluarkan</span>
+                            <span className="md:hidden">Keluar</span>
                           </Button>
                         )}
                       </div>
@@ -455,21 +419,21 @@ const DeviceManagementPage: React.FC = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Keamanan</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-lg md:text-xl">Keamanan</CardTitle>
+          <CardDescription className="text-sm md:text-base">
             Tindakan keamanan untuk melindungi akun Anda
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h3 className="font-medium">Aktivitas Mencurigakan?</h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <h3 className="font-medium text-sm md:text-base">Aktivitas Mencurigakan?</h3>
+              <p className="text-xs md:text-sm text-gray-600 mt-1">
                 Jika Anda melihat aktivitas mencurigakan, segera ubah kata sandi Anda.
               </p>
               <Button 
                 variant="outline" 
-                className="mt-2"
+                className="mt-2 text-xs md:text-sm w-full md:w-auto"
                 onClick={() => {
                   // This would navigate to password change page
                   // For now, we'll just show an alert

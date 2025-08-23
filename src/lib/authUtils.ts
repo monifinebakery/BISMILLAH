@@ -52,28 +52,28 @@ const detectDeviceCapabilities = () => {
 /**
  * ✅ Adaptive timeout based on device capabilities
  */
-const getAdaptiveTimeout = (baseTimeout = 15000) => {
+const getAdaptiveTimeout = (baseTimeout = 8000) => {
   const capabilities = detectDeviceCapabilities();
   
   let timeout = baseTimeout;
   
   // Increase timeout for slow devices
   if (capabilities.isSlowDevice) {
-    timeout *= 2;
-    logger.debug('Slow device detected, doubling timeout:', timeout);
+    timeout *= 1.5;
+    logger.debug('Slow device detected, increasing timeout:', timeout);
   }
   
   // Increase timeout for slow networks
   if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
-    timeout *= 3;
-    logger.debug('Slow network detected, tripling timeout:', timeout);
+    timeout *= 2;
+    logger.debug('Slow network detected, doubling timeout:', timeout);
   } else if (capabilities.networkType === '3g') {
-    timeout *= 1.5;
-    logger.debug('3G network detected, increasing timeout:', timeout);
+    timeout *= 1.2;
+    logger.debug('3G network detected, slightly increasing timeout:', timeout);
   }
   
   // Cap at reasonable maximum
-  return Math.min(timeout, 60000); // Max 60 seconds
+  return Math.min(timeout, 20000); // Reduced max to 20 seconds
 };
 
 /**
@@ -164,21 +164,21 @@ export const performGlobalSignOut = async () => {
  * - Handles temporary network issues gracefully
  * - Prevents aggressive cleanup that destroys valid sessions
  */
-export const validateAuthSession = async (retryCount = 0) => {
-  const maxRetries = 3;
+export const validateAuthSession = async (retryCount = 0): Promise<boolean> => {
+  const maxRetries = 2; // Reduced retries
   
   try {
     logger.debug(`🔍 Validating auth session (attempt ${retryCount + 1}/${maxRetries + 1})...`);
     
     // ✅ DEVICE B FIX: Adaptive timeout based on device capabilities
-    const adaptiveTimeout = getAdaptiveTimeout(30000);
+    const adaptiveTimeout = getAdaptiveTimeout(10000); // Reduced timeout
     logger.debug('Using adaptive timeout:', adaptiveTimeout);
     
     // Use exponential backoff for session validation
     const session = await withExponentialBackoff(
       () => supabase.auth.getSession().then(res => res.data.session),
       maxRetries,
-      1000, // base delay 1 second
+      500, // Reduced base delay
       adaptiveTimeout
     );
     
@@ -243,7 +243,7 @@ export const validateAuthSession = async (retryCount = 0) => {
     
     // ✅ DEVICE B FIX: Enhanced retry logic for device-specific issues
     if (retryCount < maxRetries) {
-      const errorMessage = error.message?.toLowerCase() || '';
+      const errorMessage = (error as Error).message?.toLowerCase() || '';
       
       if (errorMessage.includes('session validation timeout')) {
         logger.warn('⏱️ Session validation timeout, retrying with longer delay...');
@@ -259,10 +259,10 @@ export const validateAuthSession = async (retryCount = 0) => {
     }
     
     // ✅ CRITICAL FIX: DON'T cleanup on timeout/network errors after all retries
-    if (error.message?.includes('Session validation timeout')) {
+    if ((error as Error).message?.includes('Session validation timeout')) {
       logger.debug('⏱️ Session validation timeout after retries, preserving auth state');
-    } else if (error.message?.includes('network') || 
-               error.message?.includes('fetch')) {
+    } else if ((error as Error).message?.includes('network') || 
+               (error as Error).message?.includes('fetch')) {
       logger.debug('🌐 Network error after retries, preserving auth state');
     } else {
       logger.warn('🧹 Unexpected error after retries, cleaning up auth state for safety');
@@ -297,7 +297,7 @@ export const checkSessionExists = async () => {
     return exists;
     
   } catch (error) {
-    logger.debug('❌ Error in safe session check:', error.message);
+    logger.debug('❌ Error in safe session check:', (error as Error).message);
     return false;
   }
 };
@@ -378,7 +378,7 @@ export const debugAuthState = async () => {
         userIdLength: session?.user?.id?.length || 0
       };
     } catch (err) {
-      sessionInfo = { error: err.message };
+      sessionInfo = { error: (err as Error).message };
     }
     
     const debugInfo = {
@@ -409,6 +409,6 @@ export const debugAuthState = async () => {
     
   } catch (error) {
     logger.error('❌ Error debugging auth state:', error);
-    return { error: error.message };
+    return { error: (error as Error).message };
   }
 };

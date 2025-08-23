@@ -47,9 +47,21 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isLoading, isReady, location.pathname, renderCount]);
 
-  // ✅ ENHANCED: Loading state with more detailed info
+  // ✅ ENHANCED: Loading state with timeout fallback
   if (isLoading || !isReady) {
     console.log(`🔄 [AuthGuard #${renderCount}] Loading state:`, { isLoading, isReady });
+    
+    // Force redirect to auth page after 20 seconds of loading
+    useEffect(() => {
+      const timeout = setTimeout(() => {
+        if ((isLoading || !isReady) && location.pathname !== '/auth') {
+          console.log('🚨 AuthGuard: Force redirect after 20s timeout');
+          window.location.href = '/auth';
+        }
+      }, 20000);
+      
+      return () => clearTimeout(timeout);
+    }, [isLoading, isReady, location.pathname]);
     
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -62,6 +74,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           <p className="text-xs text-gray-400 mt-2">
             Render #{renderCount} | isLoading: {isLoading.toString()} | isReady: {isReady.toString()}
           </p>
+          <button 
+            onClick={() => {
+              console.log('🔄 Manual refresh triggered');
+              window.location.reload();
+            }}
+            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm"
+          >
+            Refresh Halaman
+          </button>
         </div>
       </div>
     );

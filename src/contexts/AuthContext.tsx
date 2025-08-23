@@ -56,15 +56,15 @@ const detectDeviceCapabilities = () => {
   return capabilities;
 };
 
-const getAdaptiveTimeout = (baseTimeout = 30000) => {
+const getAdaptiveTimeout = (baseTimeout = 8000) => {
   const capabilities = detectDeviceCapabilities();
   let timeout = baseTimeout;
 
-  if (capabilities.isSlowDevice) timeout *= 2;
-  if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') timeout *= 3;
-  else if (capabilities.networkType === '3g') timeout *= 1.5;
+  if (capabilities.isSlowDevice) timeout *= 1.5;
+  if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') timeout *= 2;
+  else if (capabilities.networkType === '3g') timeout *= 1.2;
 
-  return Math.min(timeout, 60000);
+  return Math.min(timeout, 20000); // Reduced max timeout to 20 seconds
 };
 
 // ================================
@@ -104,17 +104,17 @@ const safeWithTimeout = async <T,>(
   _timeoutMessage: string,
   retryCount = 0
 ): Promise<{ data: T | null; error: Error | null }> => {
-  const maxRetries = 2;
+  const maxRetries = 1; // Reduced retries
   try {
-    const result = await withExponentialBackoff(promiseFn, maxRetries, 1000, timeoutMs);
+    const result = await withExponentialBackoff(promiseFn, maxRetries, 500, timeoutMs);
     return { data: result, error: null };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     if (
       retryCount < maxRetries &&
-      (msg.includes('network') || msg.includes('fetch') || msg.includes('timeout') || msg.includes('Failed to fetch'))
+      (msg.includes('network') || msg.includes('fetch') || msg.includes('timeout'))
     ) {
-      await new Promise(r => setTimeout(r, (retryCount + 1) * 2000));
+      await new Promise(r => setTimeout(r, 1000)); // Reduced retry delay
       return safeWithTimeout(promiseFn, timeoutMs, _timeoutMessage, retryCount + 1);
     }
     return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
@@ -233,14 +233,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     catch (e) { logger.error('AuthContext: Error debugging auth:', e); return { error: e instanceof Error ? e.message : String(e) }; }
   };
 
-  // -------- initializeAuth (FIXED) --------
+  // -------- initializeAuth (SIMPLIFIED) --------
   useEffect(() => {
     let mounted = true;
+    let initTimeout: NodeJS.Timeout;
 
     const initializeAuth = async () => {
       try {
         logger.context('AuthContext', 'Initializing auth...');
-        const adaptiveTimeout = getAdaptiveTimeout(15000);
+        const adaptiveTimeout = getAdaptiveTimeout(8000); // Reduced base timeout
 
         const { data: sessionResp, error: timeoutError } = await safeWithTimeout(
           () => supabase.auth.getSession(),
@@ -252,19 +253,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (timeoutError) {
           logger.error('AuthContext initialization timeout/error:', timeoutError);
-
-          const wasHandled = await handleAuthError(timeoutError);
-          if (wasHandled) {
-            setSession(null); setUser(null); setLoading(false); setReady(true); return;
-          }
-
-          const caps = detectDeviceCapabilities();
-          if (caps.isSlowDevice || caps.networkType === '2g' || caps.networkType === '3g') {
-            const exists = await checkSessionExists();
-            if (exists) { setLoading(false); setReady(true); return; }
-          }
-
-          setSession(null); setUser(null); setLoading(false); setReady(true);
+          
+          // Simplified error handling - don't retry indefinitely
+          setSession(null); 
+          setUser(null); 
+          setLoading(false); 
+          setReady(true);
           return;
         }
 
@@ -310,6 +304,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
 
+    // Set maximum initialization timeout of 15 seconds
+    initTimeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        logger.warn('AuthContext: Force ending loading state after 15 seconds');
+        setLoading(false);
+        setReady(true);
+        setSession(null);
+        setUser(null);
+      }
+    }, 15000);
+
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     initializeAuth();
 
@@ -350,6 +355,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return () => {
       mounted = false;
+      clearTimeout(initTimeout);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       subscription.unsubscribe();
     };

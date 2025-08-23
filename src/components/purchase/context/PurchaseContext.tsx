@@ -110,16 +110,14 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { addFinancialTransaction, deleteFinancialTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
-  // Add defensive check for useBahanBaku
-  let bahanBaku: any[] = [];
-  let addBahanBaku = async (_: any) => false;
-  try {
-    const warehouseContext = useBahanBaku();
-    bahanBaku = warehouseContext?.bahanBaku || [];
-    addBahanBaku = warehouseContext?.addBahanBaku || addBahanBaku;
-  } catch (error) {
-    console.warn('Failed to get warehouse data in PurchaseContext:', error);
-  }
+  
+  // ✅ FIXED: Safe warehouse context access without try-catch around hooks
+  const warehouseContext = useBahanBaku();
+  const bahanBaku = warehouseContext?.bahanBaku || [];
+  const addBahanBaku = warehouseContext?.addBahanBaku || (async (_: any) => {
+    console.warn('addBahanBaku not available in warehouse context');
+    return false;
+  });
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
       const s = suppliers?.find(

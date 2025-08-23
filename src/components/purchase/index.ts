@@ -1,15 +1,15 @@
-// src/components/purchase/index.ts - Optimized Dependencies (8 → 4)
+// src/components/purchase/index.ts - Fixed Temporal Dead Zone Issues
 /**
  * Purchase Module - Clean Barrel Export
  * 
- * HANYA export yang benar-benar diperlukan untuk external consumers
+ * ✅ FIXED: Stable export pattern to avoid temporal dead zone issues
  * Dependencies reduced from 8 to 4
  */
 
 // ✅ CORE COMPONENT: Main page component
 export { default as PurchasePage } from './PurchasePage';
 
-// ✅ ESSENTIAL CONTEXT: Provider and hook
+// ✅ ESSENTIAL CONTEXT: Provider and hook (stable exports)
 export {
   PurchaseProvider,
   usePurchase
@@ -23,8 +23,8 @@ export type {
   PurchaseContextType
 } from './types/purchase.types';
 
-// ✅ CONSOLIDATED: Single service export for external use
-export { purchaseApi } from './services/purchaseApi';
+// ✅ CONSOLIDATED: Stable service export for external use
+export { purchaseApi, PurchaseApiService } from './services/purchaseApi';
 
 // ❌ REMOVED - Reduce dependencies:
 // - PurchaseTableProvider (internal use only in PurchasePage)

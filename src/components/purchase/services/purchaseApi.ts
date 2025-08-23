@@ -427,6 +427,13 @@ export class PurchaseRealtimeService {
   }
 }
 
-// Aliases
+// ✅ FIXED: Proper export structure to avoid temporal dead zone issues
 export const purchaseApi = PurchaseApiService;
 export const purchaseRealtime = PurchaseRealtimeService;
+
+// ✅ Additional instance exports for immediate use
+export const purchaseApiInstance = new (class extends PurchaseApiService {})();
+export const purchaseRealtimeInstance = new (class extends PurchaseRealtimeService {})();
+
+// ✅ Default export for easy importing
+export default purchaseApi;

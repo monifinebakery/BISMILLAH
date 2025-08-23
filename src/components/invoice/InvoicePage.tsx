@@ -202,7 +202,7 @@ const InvoicePage: React.FC = () => {
   // ✅ Main render
   return (
     <>
-      {/* CSS untuk print */}
+      {/* CSS untuk print dan export */}
       <style>{`
         @media print {
           .print\\:hidden { display: none !important; }
@@ -213,6 +213,22 @@ const InvoicePage: React.FC = () => {
         @page {
           size: A4;
           margin: 16mm;
+        }
+        
+        /* Export specific styles */
+        #invoice-content {
+          background-color: white !important;
+          color: black !important;
+        }
+        #invoice-content * {
+          background-color: transparent !important;
+          color: inherit !important;
+        }
+        #invoice-content .bg-white {
+          background-color: white !important;
+        }
+        #invoice-content .text-white {
+          color: black !important;
         }
       `}</style>
 

@@ -50,15 +50,15 @@ interface BarChartData {
 // ==============================================
 
 const calculateMetrics = (revenue: number, cogs: number, opex: number) => {
-  const grossProfit = revenue - cogs;
-  const netProfit = grossProfit - opex;
+  // ✅ IMPROVED: Use centralized calculation for consistency
+  const margins = safeCalculateMargins(revenue, cogs, opex);
 
   return {
     revenue,
     cogs,
     opex,
-    grossProfit,
-    netProfit
+    grossProfit: margins.grossProfit,
+    netProfit: margins.netProfit
   };
 };
 

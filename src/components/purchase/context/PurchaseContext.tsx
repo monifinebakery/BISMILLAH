@@ -329,16 +329,37 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
       // ✅ INVALIDATE WAREHOUSE
-
       invalidateWarehouseData();
 
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
 
+      // 🔍 DEBUG: Log mutation context for debugging
+      console.log('🔍 Status mutation context:', {
+        id: ctx?.id,
+        newStatus: ctx?.newStatus,
+        previousData: ctx?.prev?.find(p => p.id === ctx?.id),
+        freshData: fresh
+      });
+
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
-      const prevPurchase = findPurchase(fresh.id);
+      // 🔧 FIX: Use previous data from mutation context instead of current cache
+      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      
       if (prevPurchase) {
+        console.log('🔍 Purchase status comparison:', {
+          previousStatus: prevPurchase.status,
+          newStatus: fresh.status,
+          willCreateTransaction: prevPurchase.status !== 'completed' && fresh.status === 'completed'
+        });
+        
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
           // Tambahkan transaksi ketika status berubah ke completed (expense)
+          console.log('💰 Creating financial transaction for completed purchase:', {
+            purchaseId: fresh.id,
+            amount: fresh.totalNilai,
+            supplier: getSupplierName(fresh.supplier)
+          });
+          
           void addFinancialTransaction({
             type: 'expense',
             amount: fresh.totalNilai,
@@ -361,6 +382,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
         } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
           // Hapus transaksi ketika status berubah dari completed (berdasarkan related_id)
+          console.log('💰 Deleting financial transaction for reverted purchase:', fresh.id);
+          
           // Cari transaksi terkait lalu hapus
           (async () => {
             try {
@@ -392,6 +415,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           })();
         }
+      } else {
+        console.warn('⚠️ Previous purchase data not found in mutation context for:', fresh.id);
       }
     },
     onError: (err, _vars, ctx) => {

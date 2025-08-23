@@ -33,79 +33,178 @@ interface DeviceContextType {
 
 const DeviceContext = createContext<DeviceContextType | undefined>(undefined);
 
-// Helper function to generate a unique device ID
+// Helper function to generate a unique device ID with enhanced stability
 const generateDeviceId = (): string => {
   // Try to use existing device ID from localStorage
   let deviceId = localStorage.getItem('device_id');
   
   if (!deviceId) {
-    // Generate a more stable device ID based on browser characteristics
+    // Generate a more stable device ID based on comprehensive browser characteristics
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
-    let fingerprint: string;
+    // Enhanced fingerprinting components for better stability
+    const components = {
+      userAgent: navigator.userAgent,
+      language: navigator.language || navigator.languages?.[0] || 'en',
+      platform: navigator.platform,
+      screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+      timezone: new Date().getTimezoneOffset(),
+      cookieEnabled: navigator.cookieEnabled,
+      doNotTrack: navigator.doNotTrack || 'unspecified',
+      hardwareConcurrency: navigator.hardwareConcurrency || 1,
+      maxTouchPoints: navigator.maxTouchPoints || 0,
+      canvas: ''
+    };
+    
+    // Enhanced canvas fingerprinting for better device identification
     if (ctx) {
       ctx.textBaseline = 'top';
       ctx.font = '14px Arial';
-      ctx.fillText('Device fingerprint', 2, 2);
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#f60';
+      ctx.fillRect(125, 1, 62, 20);
+      ctx.fillStyle = '#069';
+      ctx.font = '11pt Arial';
+      ctx.fillText('Device fingerprint 🔒', 2, 15);
+      ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+      ctx.font = '18pt Arial';
+      ctx.fillText('BISMILLAH', 4, 45);
       
-      fingerprint = [
-        navigator.userAgent,
-        navigator.language,
-        screen.width + 'x' + screen.height,
-        new Date().getTimezoneOffset(),
-        canvas.toDataURL()
-      ].join('|');
-    } else {
-      // Fallback if canvas is not supported
-      fingerprint = [
-        navigator.userAgent,
-        navigator.language,
-        screen.width + 'x' + screen.height,
-        new Date().getTimezoneOffset()
-      ].join('|');
+      // Add some geometric shapes for more uniqueness
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = 'rgb(255,0,255)';
+      ctx.beginPath();
+      ctx.arc(50, 50, 50, 0, Math.PI * 2, true);
+      ctx.closePath();
+      ctx.fill();
+      
+      components.canvas = canvas.toDataURL();
     }
     
-    // Create a hash of the fingerprint for stability
-    const hash = btoa(fingerprint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
-    deviceId = `device_${hash}_${Date.now()}`;
-    localStorage.setItem('device_id', deviceId);
+    // Create fingerprint string from all components
+    const fingerprint = Object.values(components).join('|');
+    
+    // Create a stable hash of the fingerprint
+    let hash = 0;
+    for (let i = 0; i < fingerprint.length; i++) {
+      const char = fingerprint.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Convert to positive hex string for consistency
+    const hashString = Math.abs(hash).toString(16).padStart(8, '0');
+    
+    // Add additional entropy from localStorage persistence test
+    const storageTest = Math.random().toString(36).substring(2, 8);
+    
+    deviceId = `device_${hashString}_${storageTest}_${Date.now()}`;
+    
+    try {
+      localStorage.setItem('device_id', deviceId);
+      // Test localStorage persistence
+      const testRead = localStorage.getItem('device_id');
+      if (testRead !== deviceId) {
+        // Storage might be disabled or in private mode
+        deviceId = `temp_${hashString}_${Date.now()}`;
+      }
+    } catch (e) {
+      // localStorage not available, use session-based ID
+      deviceId = `session_${hashString}_${Date.now()}`;
+    }
   }
   
   return deviceId;
 };
 
-// Helper function to get device information
+// Helper function to get enhanced device information
 const getDeviceInfo = (): Partial<Device> => {
-  const userAgent = navigator.userAgent;
+  const userAgent = navigator.userAgent.toLowerCase();
   let deviceType = 'desktop';
   let os = 'Unknown';
   let browser = 'Unknown';
+  let deviceName = 'Unknown Device';
 
-  // Detect device type
-  if (/mobile|android|iphone|ipod|ipad/i.test(userAgent)) {
-    deviceType = /ipad/i.test(userAgent) ? 'tablet' : 'mobile';
+  // Enhanced device type detection
+  if (/ipad/i.test(userAgent)) {
+    deviceType = 'tablet';
+  } else if (/mobile|android|iphone|ipod|blackberry|opera mini|iemobile|wpdesktop/i.test(userAgent)) {
+    deviceType = 'mobile';
+  } else if (/tablet|kindle|silk|playbook|nexus (?!.*mobile)/i.test(userAgent)) {
+    deviceType = 'tablet';
   }
 
-  // Detect OS
-  if (/windows/i.test(userAgent)) os = 'Windows';
-  else if (/macintosh|mac os x/i.test(userAgent)) os = 'macOS';
-  else if (/android/i.test(userAgent)) os = 'Android';
-  else if (/iphone|ipad|iPod/i.test(userAgent)) os = 'iOS';
-  else if (/linux/i.test(userAgent)) os = 'Linux';
+  // Enhanced OS detection with version information
+  if (/windows nt 10/i.test(userAgent)) {
+    os = 'Windows 10+';
+  } else if (/windows nt 6\.3/i.test(userAgent)) {
+    os = 'Windows 8.1';
+  } else if (/windows nt 6\.2/i.test(userAgent)) {
+    os = 'Windows 8';
+  } else if (/windows nt 6\.1/i.test(userAgent)) {
+    os = 'Windows 7';
+  } else if (/windows/i.test(userAgent)) {
+    os = 'Windows';
+  } else if (/intel mac os x 10_([0-9]+)/i.test(userAgent)) {
+    const version = userAgent.match(/intel mac os x 10_([0-9]+)/i)?.[1];
+    os = version ? `macOS 10.${version}` : 'macOS';
+  } else if (/macintosh|mac os x/i.test(userAgent)) {
+    os = 'macOS';
+  } else if (/android ([0-9\.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/android ([0-9\.]+)/i)?.[1];
+    os = `Android ${version || ''}`;
+  } else if (/android/i.test(userAgent)) {
+    os = 'Android';
+  } else if (/iphone os ([0-9_]+)/i.test(userAgent)) {
+    const version = userAgent.match(/iphone os ([0-9_]+)/i)?.[1]?.replace(/_/g, '.');
+    os = `iOS ${version || ''}`;
+  } else if (/iphone|ipad|ipod/i.test(userAgent)) {
+    os = 'iOS';
+  } else if (/linux/i.test(userAgent)) {
+    os = 'Linux';
+  } else if (/cros/i.test(userAgent)) {
+    os = 'ChromeOS';
+  }
 
-  // Detect browser
-  if (/chrome/i.test(userAgent)) browser = 'Chrome';
-  else if (/firefox/i.test(userAgent)) browser = 'Firefox';
-  else if (/safari/i.test(userAgent)) browser = 'Safari';
-  else if (/edge/i.test(userAgent)) browser = 'Edge';
+  // Enhanced browser detection with version
+  if (/edg\/([0-9\.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/edg\/([0-9\.]+)/i)?.[1];
+    browser = `Edge ${version?.split('.')[0] || ''}`;
+  } else if (/chrome\/([0-9\.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/chrome\/([0-9\.]+)/i)?.[1];
+    browser = `Chrome ${version?.split('.')[0] || ''}`;
+  } else if (/firefox\/([0-9\.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/firefox\/([0-9\.]+)/i)?.[1];
+    browser = `Firefox ${version?.split('.')[0] || ''}`;
+  } else if (/version\/([0-9\.]+).*safari/i.test(userAgent)) {
+    const version = userAgent.match(/version\/([0-9\.]+)/i)?.[1];
+    browser = `Safari ${version?.split('.')[0] || ''}`;
+  } else if (/safari/i.test(userAgent)) {
+    browser = 'Safari';
+  } else if (/opera|opr\/([0-9\.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/(?:opera|opr)\/([0-9\.]+)/i)?.[1];
+    browser = `Opera ${version?.split('.')[0] || ''}`;
+  }
+
+  // Generate a more descriptive device name
+  const screenInfo = `${screen.width}×${screen.height}`;
+  const deviceTypeFormatted = deviceType.charAt(0).toUpperCase() + deviceType.slice(1);
+  
+  if (deviceType === 'mobile') {
+    deviceName = `${os} ${deviceTypeFormatted}`;
+  } else if (deviceType === 'tablet') {
+    deviceName = `${os} ${deviceTypeFormatted} (${screenInfo})`;
+  } else {
+    deviceName = `${os} ${deviceTypeFormatted} - ${browser}`;
+  }
 
   return {
     device_id: generateDeviceId(),
     device_type: deviceType,
     os,
     browser,
-    device_name: `${os} ${deviceType}`, // Default name
+    device_name: deviceName,
   };
 };
 

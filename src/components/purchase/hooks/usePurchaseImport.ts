@@ -296,16 +296,37 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
           const purchase = {
             supplier: supplierId,
             tanggal: new Date(purchaseData.tanggal),
-            items: purchaseData.items.map(item => ({
-              ...item,
-              subtotal: item.kuantitas * item.hargaSatuan,
-              // Tandai sebagai hasil import agar sinkron stok bisa dilewati saat perubahan status
-              keterangan: '[IMPORTED]'
-            })),
+            items: purchaseData.items.map(item => {
+              // 🔧 AUTOMATIC UNIT PRICE CALCULATION: Same as manual entry
+              // Calculate unit price from total payment ÷ quantity
+              const calculatedUnitPrice = item.kuantitas > 0 
+                ? Math.round((purchaseData.totalNilai / item.kuantitas) * 100) / 100
+                : 0;
+                
+              const subtotal = item.kuantitas * calculatedUnitPrice;
+              
+              console.log('🔄 [IMPORT CALC] Automatic price calculation:', {
+                itemName: item.nama,
+                totalPayment: purchaseData.totalNilai,
+                quantity: item.kuantitas,
+                calculatedPrice: calculatedUnitPrice,
+                subtotal: subtotal
+              });
+              
+              return {
+                ...item,
+                hargaSatuan: calculatedUnitPrice, // Use calculated price instead of 0
+                subtotal: subtotal,
+                // Mark as imported for tracking, but treated SAMA with manual entry
+                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.totalNilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}`
+              };
+            }),
             totalNilai: purchaseData.totalNilai,
             metodePerhitungan: 'AVERAGE' as const,
-            status: 'pending' as const
+            status: 'pending' as const // ✅ SAMA: Import and manual both start as pending
           };
+
+          console.log('🔄 [IMPORT] Creating purchase with automatic calculation:', purchase);
 
           const success = await addPurchase(purchase);
           if (success) {

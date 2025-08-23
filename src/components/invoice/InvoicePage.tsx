@@ -230,6 +230,20 @@ const InvoicePage: React.FC = () => {
         #invoice-content .text-white {
           color: black !important;
         }
+        
+        /* Export mode - hide form inputs and show static text */
+        .export-mode input,
+        .export-mode select,
+        .export-mode button,
+        .export-mode textarea {
+          display: none !important;
+        }
+        .export-mode .export-text {
+          display: block !important;
+        }
+        .export-text {
+          display: none;
+        }
       `}</style>
 
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 p-4">

@@ -10,6 +10,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 import { formatCurrency, formatPercentage, calculateGrowth, getGrowthStatus } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
+import { getEffectiveCogs } from '@/utils/cogsCalculation';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // ==============================================
 // TYPES
@@ -59,22 +61,43 @@ const calculateMetrics = (currentAnalysis: RealTimeProfitCalculation | null, eff
   }
 
   const revenue = currentAnalysis.revenue_data?.total ?? 0;
-  // ✅ UPDATE: Gunakan effectiveCogs kalau ada
-  const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : currentAnalysis.cogs_data?.total) ?? 0;
+  
+  // ✅ IMPROVED: Use centralized COGS calculation
+  const cogsResult = getEffectiveCogs(
+    currentAnalysis,
+    effectiveCogs,
+    revenue,
+    { preferWAC: true, validateRange: true }
+  );
+  
   const opex = currentAnalysis.opex_data?.total ?? 0;
-  const grossProfit = revenue - cogs;
-  const netProfit = grossProfit - opex;
-  const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  
+  // ✅ IMPROVED: Use safe margin calculation with validation
+  const validationResult = safeCalculateMargins(revenue, cogsResult.value, opex);
+  
+  // Log any warnings in development
+  if (import.meta.env.DEV && cogsResult.warnings.length > 0) {
+    cogsResult.warnings.forEach(warning => 
+      console.warn('[SummaryCards] COGS warning:', warning)
+    );
+  }
+  
+  if (import.meta.env.DEV && !validationResult.isValid) {
+    console.warn('[SummaryCards] Data validation issues:', {
+      errors: validationResult.errors,
+      qualityScore: validationResult.qualityScore
+    });
+  }
 
+  // Return the validated metrics directly (safeCalculateMargins returns metrics directly)
   return {
     revenue,
-    cogs,
+    cogs: cogsResult.value,
     opex,
-    grossProfit,
-    netProfit,
-    grossMargin,
-    netMargin
+    grossProfit: validationResult.grossProfit,
+    netProfit: validationResult.netProfit,
+    grossMargin: validationResult.grossMargin,
+    netMargin: validationResult.netMargin
   };
 };
 
@@ -93,17 +116,25 @@ const calculateChanges = (
   }
 
   const prevRevenue = previousAnalysis.revenue_data?.total ?? 0;
-  // ✅ UPDATE: Gunakan effectiveCogs kalau ada
-  const prevCogs = (typeof effectiveCogs === 'number' ? effectiveCogs : previousAnalysis.cogs_data?.total) ?? 0;
+  
+  // ✅ IMPROVED: Use centralized COGS calculation for previous period
+  const prevCogsResult = getEffectiveCogs(
+    previousAnalysis,
+    undefined, // Don't apply current WAC to previous period
+    prevRevenue,
+    { preferWAC: false, validateRange: true } // Use transaction-based for historical
+  );
+  
   const prevOpex = previousAnalysis.opex_data?.total ?? 0;
-  const prevGrossProfit = prevRevenue - prevCogs;
-  const prevNetProfit = prevGrossProfit - prevOpex;
+  
+  // ✅ IMPROVED: Use safe calculation for previous period
+  const prevValidation = safeCalculateMargins(prevRevenue, prevCogsResult.value, prevOpex);
 
   return {
     revenueChange: calculateGrowth(metrics.revenue, prevRevenue),
-    grossProfitChange: calculateGrowth(metrics.grossProfit, prevGrossProfit),
-    netProfitChange: calculateGrowth(metrics.netProfit, prevNetProfit),
-    cogsChange: calculateGrowth(metrics.cogs, prevCogs)
+    grossProfitChange: calculateGrowth(metrics.grossProfit, prevValidation.grossProfit),
+    netProfitChange: calculateGrowth(metrics.netProfit, prevValidation.netProfit),
+    cogsChange: calculateGrowth(metrics.cogs, prevCogsResult.value)
   };
 };
 
@@ -181,8 +212,9 @@ const generateCards = (
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
       subtitle: labels?.hppLabel ? `${labels.hppLabel} aktif` : 'Harga rata-rata',
-      change: undefined,
-      changeType: 'neutral'
+      change: 0,
+      changeType: 'neutral' as const,
+      helpText: 'Total nilai persediaan bahan baku berdasarkan harga rata-rata pembelian (WAC)'
     });
   }
 
@@ -231,7 +263,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
 
   // ✅ NO useMemo - Calculate directly
   const metrics = calculateMetrics(currentAnalysis, effectiveCogs);
-  const changes = calculateChanges(metrics, previousAnalysis, effectiveCogs);
+  const changes = calculateChanges(metrics, previousAnalysis || undefined, effectiveCogs);
   const cards = generateCards(metrics, changes, wacStockValue, labels);
 
   // ✅ LOADING STATE
@@ -345,7 +377,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
               {/* Change indicator */}
               {hasChange && (
                 <div className="flex items-center space-x-1">
-                  {getChangeIcon(card.changeType)}
+                  {getChangeIcon(card.changeType as 'positive' | 'negative' | 'neutral')}
                   <span className={`text-sm font-medium ${
                     card.changeType === 'positive' ? 'text-green-600' : 
                     card.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'

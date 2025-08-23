@@ -7,6 +7,8 @@ export interface OperationalCost {
   jumlah_per_bulan: number;
   jenis: 'tetap' | 'variabel';
   status: 'aktif' | 'nonaktif';
+  deskripsi?: string;
+  cost_category: 'fixed' | 'variable' | 'other'; // Generated column
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +27,8 @@ export interface CostFormData {
   jumlah_per_bulan: number;
   jenis: 'tetap' | 'variabel';
   status: 'aktif' | 'nonaktif';
+  deskripsi?: string;
+  // Note: cost_category is not included as it's a generated column
 }
 
 export interface AllocationFormData {

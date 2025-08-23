@@ -1,13 +1,13 @@
-// src/components/purchase/services/index.ts - Optimized Dependencies (6 → 3)
+// src/components/purchase/services/index.ts - Fixed Temporal Dead Zone Issues
 /**
  * Purchase Services - Clean API Export
  * 
- * HANYA export services yang benar-benar diperlukan untuk external consumers
+ * ✅ FIXED: Stable export pattern to avoid temporal dead zone issues
  * Dependencies reduced from 6 to 3
  */
 
-// ✅ CORE API: Main purchase API service (most commonly used)
-export { purchaseApi } from './purchaseApi';
+// ✅ CORE API: Main purchase API service (stable export)
+export { purchaseApi, PurchaseApiService, PurchaseRealtimeService } from './purchaseApi';
 
 // ✅ CORE TYPES: Essential API types only
 export type {

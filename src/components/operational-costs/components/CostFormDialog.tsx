@@ -15,7 +15,6 @@ interface CostFormDialogProps {
     nama_biaya: string;
     jumlah_per_bulan: number;
     jenis: 'tetap' | 'variabel';
-    cost_category: string;
     status?: string;
   }) => Promise<boolean>;
   cost?: OperationalCost | null; // null for new cost, object for edit
@@ -33,7 +32,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
     nama_biaya: '',
     jumlah_per_bulan: 0,
     jenis: 'tetap' as 'tetap' | 'variabel',
-    cost_category: 'general'
+    deskripsi: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,7 +47,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           nama_biaya: cost.nama_biaya,
           jumlah_per_bulan: cost.jumlah_per_bulan,
           jenis: cost.jenis as 'tetap' | 'variabel',
-          cost_category: cost.cost_category || 'general'
+          deskripsi: cost.deskripsi || ''
         });
       } else {
         // Add mode
@@ -56,7 +55,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           nama_biaya: '',
           jumlah_per_bulan: 0,
           jenis: 'tetap',
-          cost_category: 'general'
+          deskripsi: ''
         });
       }
       setErrors({});
@@ -153,7 +152,6 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                 id="jumlah_per_bulan"
                 type="number"
                 min="0"
-                step="1000"
                 placeholder="0"
                 value={formData.jumlah_per_bulan || ''}
                 onChange={(e) => setFormData(prev => ({ 
@@ -204,46 +202,41 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             </Select>
           </div>
 
-          {/* Kategori */}
+          {/* Deskripsi (Optional) */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Kategori
+            <Label htmlFor="deskripsi" className="text-sm font-medium">
+              Deskripsi <span className="text-gray-400">(Opsional)</span>
             </Label>
-            <Select
-              value={formData.cost_category}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, cost_category: value }))}
+            <Input
+              id="deskripsi"
+              type="text"
+              placeholder="Tambahkan catatan atau keterangan..."
+              value={formData.deskripsi || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, deskripsi: e.target.value }))}
               disabled={isSubmitting}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih kategori" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="general">
-                  <div className="flex flex-col">
-                    <span className="font-medium">General</span>
-                    <span className="text-xs text-gray-500">Biaya umum</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="administrative">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Administrative</span>
-                    <span className="text-xs text-gray-500">Biaya administrasi</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="selling">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Selling</span>
-                    <span className="text-xs text-gray-500">Biaya penjualan/marketing</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="overhead">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Overhead</span>
-                    <span className="text-xs text-gray-500">Biaya overhead produksi</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            />
+            <p className="text-xs text-gray-500">
+              Keterangan tambahan untuk biaya ini
+            </p>
+          </div>
+
+          {/* Info about automatic categorization */}
+          <div className="space-y-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <div className="w-4 h-4 bg-blue-500 rounded-full mt-0.5 flex-shrink-0"></div>
+                <div className="text-sm">
+                  <p className="font-medium text-blue-900 mb-1">Kategori Otomatis</p>
+                  <p className="text-blue-700">
+                    Kategori akan ditentukan otomatis berdasarkan jenis:
+                  </p>
+                  <ul className="mt-1 space-y-0.5 text-blue-600">
+                    <li>• <strong>Tetap</strong> → Fixed Cost</li>
+                    <li>• <strong>Variabel</strong> → Variable Cost</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">

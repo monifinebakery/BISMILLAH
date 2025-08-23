@@ -89,6 +89,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     suppliers: false,
     units: false,
   });
+  // Price suggestion removed
 
   const isEditMode = mode === 'edit' || !!item;
 
@@ -113,6 +114,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         harga: Number(item.harga) || 0,
         expiry: item.expiry ? item.expiry.split('T')[0] : '',
       });
+
+      // Price suggestion removed
     } else {
       setFormData(initialFormData);
     }
@@ -461,6 +464,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           placeholder="0"
                         />
                       </div>
+                      {/* Price suggestion removed */}
                       {isEditMode && typeof item?.hargaRataRata === 'number' && (
                         <p className="text-xs text-gray-500 mt-1">
                           Harga rata-rata (server): <strong>{warehouseUtils.formatCurrency(item.hargaRataRata)}</strong>

@@ -276,6 +276,16 @@ export const useFinancialOperations = () => {
       queryClient.invalidateQueries({ 
         queryKey: financialQueryKeys.transactions(user?.id) 
       });
+      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
+      console.log('📈 Invalidating profit analysis cache after adding financial transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
+      });
+      // ✅ INVALIDATE ALL FINANCIAL CACHES: Ensure all financial reports get updated
+      console.log('💰 Invalidating all financial caches after adding transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['financial'] 
+      });
       toast.success('Transaksi berhasil ditambahkan');
     }
   });
@@ -318,6 +328,16 @@ export const useFinancialOperations = () => {
       queryClient.invalidateQueries({ 
         queryKey: financialQueryKeys.transactions(user?.id) 
       });
+      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
+      console.log('📈 Invalidating profit analysis cache after updating financial transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
+      });
+      // ✅ INVALIDATE ALL FINANCIAL CACHES: Ensure all financial reports get updated
+      console.log('💰 Invalidating all financial caches after updating transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['financial'] 
+      });
       toast.success('Transaksi berhasil diperbarui');
     }
   });
@@ -353,6 +373,16 @@ export const useFinancialOperations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: financialQueryKeys.transactions(user?.id) 
+      });
+      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
+      console.log('📈 Invalidating profit analysis cache after deleting financial transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
+      });
+      // ✅ INVALIDATE ALL FINANCIAL CACHES: Ensure all financial reports get updated
+      console.log('💰 Invalidating all financial caches after deleting transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['financial'] 
       });
       toast.success('Transaksi berhasil dihapus');
     }

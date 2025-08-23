@@ -14,7 +14,7 @@ export class PurchaseApiService {
   private static shouldSkipWarehouseSync(purchase: Purchase | null | undefined, forceSync: boolean = false): boolean {
     console.log('🔄 [PURCHASE API] shouldSkipWarehouseSync called with:', { purchase: purchase?.id, forceSync });
     
-    // If forceSync is true, don't skip (allow manual sync for imported items)
+    // If forceSync is true, don't skip (allow manual sync for any items)
     if (forceSync) {
       console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (forceSync enabled)');
       return false;
@@ -25,18 +25,10 @@ export class PurchaseApiService {
       return false;
     }
     
-    try {
-      // Skip jika semua item bertanda [IMPORTED] di keterangan
-      const shouldSkip = purchase.items.length > 0 && purchase.items.every((it: any) =>
-        typeof it?.keterangan === 'string' && it.keterangan.toUpperCase().includes('IMPORTED')
-      );
-      
-      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync result:', shouldSkip);
-      return shouldSkip;
-    } catch {
-      console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (error in check)');
-      return false;
-    }
+    // ✅ SAMA UNTUK SEMUA: Import dan manual entry diperlakukan sama
+    // Tidak skip warehouse sync untuk item apapun - semua harus update warehouse
+    console.log('⏭️ [PURCHASE API] shouldSkipWarehouseSync: false (treating all items equally)');
+    return false;
   }
   /** Get all purchases */
   static async fetchPurchases(userId: string): Promise<{ data: Purchase[] | null; error: string | null }> {
@@ -435,6 +427,13 @@ export class PurchaseRealtimeService {
   }
 }
 
-// Aliases
+// ✅ FIXED: Proper export structure to avoid temporal dead zone issues
 export const purchaseApi = PurchaseApiService;
 export const purchaseRealtime = PurchaseRealtimeService;
+
+// ✅ Additional instance exports for immediate use
+export const purchaseApiInstance = new (class extends PurchaseApiService {})();
+export const purchaseRealtimeInstance = new (class extends PurchaseRealtimeService {})();
+
+// ✅ Default export for easy importing
+export default purchaseApi;

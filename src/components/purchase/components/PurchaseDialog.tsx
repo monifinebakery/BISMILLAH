@@ -49,7 +49,8 @@ import { toast } from 'sonner';
 import { generateUUID } from '@/utils/uuid';
 
 // Import warehouse context
-import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+// Avoid importing WarehouseContext to reduce bundle graph and prevent circular init
+import { supabase } from '@/integrations/supabase/client';
 
 // Import extracted components
 import { NewItemForm } from './dialogs/NewItemForm';
@@ -132,8 +133,36 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     },
   });
 
-  // Warehouse context
-  const { bahanBaku: warehouseItems } = useBahanBaku();
+  // Lightweight warehouse items fetch (avoid WarehouseContext import)
+  const [warehouseItems, setWarehouseItems] = useState<Array<{ id: string; nama: string; satuan: string; stok: number; harga?: number; hargaRataRata?: number }>>([]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) return;
+        const { data, error } = await supabase
+          .from('bahan_baku')
+          .select('id, nama, satuan, stok, harga_satuan, harga_rata_rata')
+          .eq('user_id', user.id)
+          .order('nama', { ascending: true });
+        if (error) throw error;
+        if (!mounted) return;
+        const items = (data || []).map((row: any) => ({
+          id: row.id,
+          nama: row.nama,
+          satuan: row.satuan,
+          stok: Number(row.stok) || 0,
+          harga: Number(row.harga_satuan) || 0,
+          hargaRataRata: row.harga_rata_rata != null ? Number(row.harga_rata_rata) : undefined,
+        }));
+        setWarehouseItems(items);
+      } catch (_) {
+        // swallow; dialog can still work for manual items
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // Item management
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);

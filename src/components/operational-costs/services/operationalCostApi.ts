@@ -4,6 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from '@/utils/logger';
 // 🔧 IMPROVED: Import centralized date normalization
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+// 🔄 For cache invalidation - will be used by components
+let globalQueryClient: any = null;
+export const setQueryClient = (client: any) => {
+  globalQueryClient = client;
+};
+
+// 🔄 Cache invalidation helper for profit analysis sync
+const invalidateRelatedCaches = () => {
+  if (globalQueryClient) {
+    console.log('🔄 Invalidating caches for operational costs changes...');
+    // Invalidate profit analysis and operational costs caches
+    globalQueryClient.invalidateQueries({ queryKey: ['profit-analysis'] });
+    globalQueryClient.invalidateQueries({ queryKey: ['operational-costs'] });
+    globalQueryClient.invalidateQueries({ queryKey: ['financial'] });
+    console.log('✅ Cache invalidation completed for profit sync');
+  }
+};
 import { 
   OperationalCost, 
   AllocationSettings, 
@@ -31,6 +48,67 @@ const getCurrentUserId = async (): Promise<string | null> => {
 // ================================
 
 export const operationalCostApi = {
+  // Get costs with date range filter for profit analysis
+  async getCostsByDateRange(
+    startDate: Date,
+    endDate: Date,
+    userId?: string
+  ): Promise<ApiResponse<OperationalCost[]>> {
+    try {
+      const resolvedUserId = userId ?? await getCurrentUserId();
+      if (!resolvedUserId) {
+        return { data: [], error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
+      const startYMD = normalizeDateForDatabase(startDate);
+      const endYMD = normalizeDateForDatabase(endDate);
+
+      console.log('🔍 Fetching operational costs by date range:', {
+        startDate: startYMD,
+        endDate: endYMD,
+        userId: resolvedUserId
+      });
+
+      // Get costs that were created/updated within the date range
+      // AND are currently active
+      const { data, error } = await supabase
+        .from('operational_costs')
+        .select('*')
+        .eq('user_id', resolvedUserId)
+        .eq('status', 'aktif') // Only active costs
+        .lte('created_at', endYMD + 'T23:59:59.999Z') // Created before or during the period
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Cast the database response to our typed interface
+      const typedData: OperationalCost[] = (data || []).map(item => ({
+        ...item,
+        jenis: item.jenis as 'tetap' | 'variabel',
+        status: item.status as 'aktif' | 'nonaktif',
+        cost_category: item.cost_category as 'fixed' | 'variable' | 'other',
+        deskripsi: item.deskripsi || undefined
+      }));
+
+      console.log('🔍 Filtered operational costs result:', {
+        totalCosts: typedData.length,
+        activeCosts: typedData.filter(c => c.status === 'aktif').length,
+        dateRange: { startYMD, endYMD },
+        costs: typedData.map(c => ({
+          nama: c.nama_biaya,
+          jumlah: c.jumlah_per_bulan,
+          created_at: c.created_at,
+          jenis: c.jenis
+        }))
+      });
+
+      return { data: typedData };
+    } catch (error) {
+      logger.error('Error fetching costs by date range:', error);
+      return { data: [], error: 'Gagal mengambil data biaya operasional berdasarkan tanggal' };
+    }
+  },
+
   // Get all costs with filters
   async getCosts(
     filters?: CostFilters,
@@ -62,7 +140,16 @@ export const operationalCostApi = {
 
       if (error) throw error;
 
-      return { data: data || [] };
+      // Cast the database response to our typed interface
+      const typedData: OperationalCost[] = (data || []).map(item => ({
+        ...item,
+        jenis: item.jenis as 'tetap' | 'variabel',
+        status: item.status as 'aktif' | 'nonaktif',
+        cost_category: item.cost_category as 'fixed' | 'variable' | 'other',
+        deskripsi: item.deskripsi || undefined // Convert null to undefined
+      }));
+
+      return { data: typedData };
     } catch (error) {
       logger.error('Error fetching costs:', error);
       return { data: [], error: 'Gagal mengambil data biaya operasional' };
@@ -86,7 +173,16 @@ export const operationalCostApi = {
 
       if (error) throw error;
 
-      return { data };
+      // Cast the database response to our typed interface
+      const typedData: OperationalCost = {
+        ...data,
+        jenis: data.jenis as 'tetap' | 'variabel',
+        status: data.status as 'aktif' | 'nonaktif',
+        cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
+        deskripsi: data.deskripsi || undefined // Convert null to undefined
+      };
+
+      return { data: typedData };
     } catch (error) {
       logger.error('Error fetching cost:', error);
       return { data: null, error: 'Gagal mengambil data biaya' };
@@ -101,10 +197,13 @@ export const operationalCostApi = {
         return { data: {} as OperationalCost, error: 'User tidak ditemukan. Silakan login kembali.' };
       }
 
+      // Remove cost_category as it's a generated column in the database
+      const { cost_category, ...insertData } = costData as any;
+      
       const { data, error } = await supabase
         .from('operational_costs')
         .insert({
-          ...costData,
+          ...insertData,
           user_id: userId, // ✅ Add user_id
           created_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
           updated_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
@@ -114,7 +213,19 @@ export const operationalCostApi = {
 
       if (error) throw error;
 
-      return { data, message: 'Biaya operasional berhasil ditambahkan' };
+      // Cast the database response to our typed interface
+      const typedData: OperationalCost = {
+        ...data,
+        jenis: data.jenis as 'tetap' | 'variabel',
+        status: data.status as 'aktif' | 'nonaktif',
+        cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
+        deskripsi: data.deskripsi || undefined // Convert null to undefined
+      };
+
+      // 🔄 Invalidate caches for profit analysis sync
+      invalidateRelatedCaches();
+
+      return { data: typedData, message: 'Biaya operasional berhasil ditambahkan' };
     } catch (error) {
       logger.error('Error creating cost:', error);
       return { data: {} as OperationalCost, error: 'Gagal menambahkan biaya operasional' };
@@ -129,10 +240,13 @@ export const operationalCostApi = {
         return { data: {} as OperationalCost, error: 'User tidak ditemukan. Silakan login kembali.' };
       }
 
+      // Remove cost_category as it's a generated column in the database
+      const { cost_category, ...updateData } = costData as any;
+
       const { data, error } = await supabase
         .from('operational_costs')
         .update({
-          ...costData,
+          ...updateData,
           updated_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
         })
         .eq('id', id)
@@ -142,7 +256,19 @@ export const operationalCostApi = {
 
       if (error) throw error;
 
-      return { data, message: 'Biaya operasional berhasil diperbarui' };
+      // Cast the database response to our typed interface
+      const typedData: OperationalCost = {
+        ...data,
+        jenis: data.jenis as 'tetap' | 'variabel',
+        status: data.status as 'aktif' | 'nonaktif',
+        cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
+        deskripsi: data.deskripsi || undefined // Convert null to undefined
+      };
+
+      // 🔄 Invalidate caches for profit analysis sync
+      invalidateRelatedCaches();
+
+      return { data: typedData, message: 'Biaya operasional berhasil diperbarui' };
     } catch (error) {
       logger.error('Error updating cost:', error);
       return { data: {} as OperationalCost, error: 'Gagal memperbarui biaya operasional' };
@@ -164,6 +290,9 @@ export const operationalCostApi = {
         .eq('user_id', userId); // ✅ Add user filter
 
       if (error) throw error;
+
+      // 🔄 Invalidate caches for profit analysis sync
+      invalidateRelatedCaches();
 
       return { data: true, message: 'Biaya operasional berhasil dihapus' };
     } catch (error) {
@@ -250,7 +379,14 @@ export const allocationApi = {
 
       if (error) throw error;
 
-      return { data: data || null };
+      // Cast the database response to our typed interface
+      const typedData: AllocationSettings | null = data ? {
+        id: (data as any).id || 'temp-id', // Handle missing ID from DB response
+        ...data,
+        metode: data.metode as 'per_unit' | 'persentase'
+      } : null;
+
+      return { data: typedData };
     } catch (error) {
       logger.error('Error fetching allocation settings:', error);
       return { data: null, error: 'Gagal mengambil pengaturan alokasi' };
@@ -283,17 +419,27 @@ export const allocationApi = {
 
       if (error) throw error;
 
-      return { data, message: 'Pengaturan alokasi berhasil disimpan' };
+      // Cast the database response to our typed interface
+      const typedData: AllocationSettings = {
+        id: (data as any).id || 'temp-id', // Handle missing ID from DB response
+        ...data,
+        metode: data.metode as 'per_unit' | 'persentase'
+      };
+
+      return { data: typedData, message: 'Pengaturan alokasi berhasil disimpan' };
     } catch (error) {
       logger.error('Error upserting allocation settings:', error);
       
-      // ✅ Better error handling
+      // ✅ Better error handling with proper typing
       let errorMessage = 'Gagal menyimpan pengaturan alokasi';
       
-      if (error.code === '42501') {
-        errorMessage = 'Tidak memiliki izin untuk menyimpan pengaturan. Silakan login kembali.';
-      } else if (error.code === '23505') {
-        errorMessage = 'Pengaturan sudah ada. Mencoba update...';
+      if (error && typeof error === 'object' && 'code' in error) {
+        const dbError = error as any;
+        if (dbError.code === '42501') {
+          errorMessage = 'Tidak memiliki izin untuk menyimpan pengaturan. Silakan login kembali.';
+        } else if (dbError.code === '23505') {
+          errorMessage = 'Pengaturan sudah ada. Mencoba update...';
+        }
       }
 
       return { data: {} as AllocationSettings, error: errorMessage };

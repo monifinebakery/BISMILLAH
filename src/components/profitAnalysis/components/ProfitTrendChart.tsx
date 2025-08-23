@@ -1,5 +1,5 @@
 // src/components/warehouse/components/ProfitTrendChart.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -305,6 +305,15 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     netMargin: { key: 'netMargin', label: 'Margin Bersih', color: '#dc2626' },
     stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning }
   }), []);
+
+  // ✅ FIXED: Auto-update selectedMetrics when viewType changes
+  useEffect(() => {
+    if (viewType === 'margins') {
+      setSelectedMetrics(['grossMargin', 'netMargin']);
+    } else {
+      setSelectedMetrics(['revenue', 'grossProfit', 'netProfit']);
+    }
+  }, [viewType]);
 
   // ✅ EVENT HANDLERS with validation
   const toggleMetric = (metric: string) => {

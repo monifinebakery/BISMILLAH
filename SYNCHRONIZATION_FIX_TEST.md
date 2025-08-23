@@ -3,8 +3,11 @@
 ## 🎯 **Issue Summary**
 **Problem 1**: Completed purchases appeared in financial reports but not in profit analysis, indicating missing data synchronization.
 **Problem 2**: After fixing profit analysis sync, financial reports stopped syncing properly.
+**Problem 3**: Purchase completion not creating financial transactions due to status comparison bug.
 
-**Root Cause**: Incomplete cache invalidation - only invalidating profit analysis cache but not financial transaction caches when purchases are completed.
+**Root Causes**: 
+1. Incomplete cache invalidation - only invalidating profit analysis cache but not financial transaction caches when purchases are completed.
+2. **Critical Bug**: Using optimistically updated cache data instead of original purchase data for status comparison, preventing financial transaction creation.
 
 ## 🔧 **Solution Implemented**
 
@@ -64,6 +67,38 @@ if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
 ### 2. **Data Flow Integration**
 The complete data flow now works as follows:
 
+### 3. **Critical Status Comparison Fix**
+Fixed the financial transaction creation logic that was preventing transactions from being created.
+
+#### **The Bug:**
+```typescript
+// ❌ BEFORE: Using optimistically updated cache data
+const prevPurchase = findPurchase(fresh.id); // Already shows 'completed'
+if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
+  // This condition was never true because prevPurchase.status was already 'completed'
+}
+```
+
+#### **The Fix:**
+```typescript
+// ✅ AFTER: Using original data from mutation context
+const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id); // Shows original status
+if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
+  // This condition now works correctly
+  console.log('💰 Creating financial transaction for completed purchase');
+  void addFinancialTransaction({ /* ... */ });
+}
+```
+
+#### **Enhanced Debug Logging:**
+```typescript
+console.log('🔍 Purchase status comparison:', {
+  previousStatus: prevPurchase.status,
+  newStatus: fresh.status,
+  willCreateTransaction: prevPurchase.status !== 'completed' && fresh.status === 'completed'
+});
+```
+
 ```mermaid
 sequenceDiagram
     participant User as User
@@ -90,19 +125,30 @@ sequenceDiagram
 ## 🧪 **Testing Instructions**
 
 ### **Before Fix**: 
-1. Complete a purchase → Creates financial transaction
-2. Check profit analysis → ❌ Old data (cached)
-3. Manual refresh needed → ✅ Shows new data
+1. Complete a purchase → ❌ No financial transaction created (due to status comparison bug)
+2. Check financial reports → ❌ Purchase not visible
+3. Check profit analysis → ❌ Old data (cached)
 
-### **After Fix**:
-1. Complete a purchase → Creates financial transaction + invalidates cache
-2. Check profit analysis → ✅ Fresh data automatically
-3. No manual refresh needed → ✅ Real-time synchronization
+### **After Complete Fix**:
+1. Complete a purchase → ✅ Creates financial transaction + invalidates all caches
+2. Check financial reports → ✅ Fresh data automatically (purchase visible)
+3. Check profit analysis → ✅ Fresh data automatically (purchase included)
+4. No manual refresh needed → ✅ Real-time synchronization
 
 ### **Debug Console Logs**:
 When testing, you should see these console messages:
 ```
 🔄 Status mutation onSuccess with: [purchase object]
+🔍 Purchase status comparison: {
+  previousStatus: "pending",
+  newStatus: "completed", 
+  willCreateTransaction: true
+}
+💰 Creating financial transaction for completed purchase: {
+  purchaseId: "abc123",
+  amount: 150000,
+  supplier: "Supplier Name"
+}
 📈 Invalidating profit analysis cache after purchase completion
 💰 Invalidating financial transaction cache after purchase completion
 📈 Invalidating profit analysis cache after adding financial transaction
@@ -135,7 +181,9 @@ When testing, you should see these console messages:
   - `['profit-analysis']` - invalidates all profit analysis queries
   - `['financial']` - invalidates all financial transaction queries
 - **Trigger Points**: Financial transaction CRUD operations + Purchase completion
+- **Critical Fix**: Use mutation context data (`ctx.prev`) instead of cache data for accurate status comparison
 - **Impact**: Comprehensive data synchronization across all financial contexts
 - **Performance**: Minimal impact (only invalidates cache, doesn't force refetch)
+- **Debug Enhancement**: Added detailed logging for transaction creation flow
 
-The fix ensures that any financial transaction change (from purchases or direct entry) immediately reflects in profit analysis without requiring manual refresh or reload.
+The fix ensures that any purchase status change to 'completed' correctly creates financial transactions and immediately reflects in both financial reports and profit analysis without requiring manual refresh or reload.

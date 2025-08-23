@@ -1,6 +1,5 @@
 // src/components/profitAnalysis/utils/dashboardHelpers.ts
 
-import { calculateMargins } from './profitCalculations';
 import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // ==============================================

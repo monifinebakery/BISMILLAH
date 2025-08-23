@@ -22,7 +22,7 @@ import financialApi from '@/components/financial/services/financialApi';
 import { warehouseApi, getWarehouseDataByDateRange } from '@/components/warehouse/services/warehouseApi';
 import { operationalCostApi } from '@/components/operational-costs/services/operationalCostApi';
 
-import { calculateRealTimeProfit, calculateMargins, generateExecutiveInsights, getCOGSEfficiencyRating } from '../utils/profitCalculations';
+import { calculateRealTimeProfit, generateExecutiveInsights, getCOGSEfficiencyRating } from '../utils/profitCalculations'; // Removed unused calculateMargins for consistency
 import { safeCalculateMargins } from '@/utils/profitValidation';
 import { transformToFNBCOGSBreakdown, getCurrentPeriod } from '../utils/profitTransformers';
 // 🍽️ Import F&B constants

@@ -286,18 +286,23 @@ export const calculateAdvancedMetricsHelper = (profitHistory: any[], currentAnal
     const cogs = currentAnalysis.cogs_data?.total || 0;
     const opex = currentAnalysis.opex_data?.total || 0;
     
-    const margins = calculateMargins(revenue, cogs, opex);
+    // ✅ IMPROVED: Use centralized calculation for consistency
+    const margins = safeCalculateMargins(revenue, cogs, opex);
     const rollingAverages = profitHistory?.length > 0 ? 
       calculateRollingAverages(profitHistory, 3) : 
       { revenueAverage: 0, profitAverage: 0, marginAverage: 0, volatility: 0 };
+    
+    // Calculate additional percentages not included in safeCalculateMargins
+    const cogsPercentage = revenue > 0 ? (cogs / revenue) * 100 : 0;
+    const opexPercentage = revenue > 0 ? (opex / revenue) * 100 : 0;
     
     return {
       grossProfitMargin: margins.grossMargin || 0,
       netProfitMargin: margins.netMargin || 0,
       monthlyGrowthRate: rollingAverages.marginAverage || 0,
       marginOfSafety: 0,
-      cogsPercentage: margins.cogsPercentage || 0,
-      opexPercentage: margins.opexPercentage || 0,
+      cogsPercentage: cogsPercentage || 0,
+      opexPercentage: opexPercentage || 0,
       confidenceScore: validateDataQuality(currentAnalysis)?.score || 0,
       operatingLeverage: revenue > 0 ? (margins.grossProfit / revenue) * 100 : 0,
     };

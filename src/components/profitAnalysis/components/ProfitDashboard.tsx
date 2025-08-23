@@ -8,6 +8,7 @@ import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 import { useProfitAnalysis, useProfitData } from '../hooks';
 import { getCurrentPeriod, generatePeriodOptions } from '../utils/profitTransformers';
 import { calculateMargins } from '../utils/profitCalculations';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // Import dashboard sections and tabs
 import {
@@ -135,7 +136,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const safeRevenue = profitMetrics?.revenue ?? currentAnalysis?.revenue_data?.total ?? 0;
   const safeCogs = profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0;
   const safeOpex = currentAnalysis?.opex_data?.total ?? 0;
-  const footerCalc = calculateMargins(safeRevenue, safeCogs, safeOpex);
+  // ✅ IMPROVED: Use centralized calculation for consistency
+  const footerCalc = safeCalculateMargins(safeRevenue, safeCogs, safeOpex);
 
     return (
       <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>

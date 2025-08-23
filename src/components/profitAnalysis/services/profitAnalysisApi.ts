@@ -1329,7 +1329,8 @@ export const profitAnalysisApi = {
       const revenue = calculation.revenue_data.total;
       const cogs = effectiveCogs || calculation.cogs_data.total;
       const opex = calculation.opex_data.total;
-      const margins = calculateMargins(revenue, cogs, opex);
+      // ✅ IMPROVED: Use centralized calculation for consistency
+      const margins = safeCalculateMargins(revenue, cogs, opex);
       
       // Generate basic insights - use null for optional parameters
       const executiveInsights = null; // Simplified for this implementation

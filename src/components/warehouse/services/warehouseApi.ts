@@ -12,8 +12,8 @@ export interface ServiceConfig {
 
 // Transform DB -> FE (tetap boleh membaca field kemasan lama untuk kompatibilitas tampilan,
 // tapi TIDAK dipakai untuk menghitung/menulis apa pun di warehouse)
-const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
-  const wac = dbItem.harga_rata_rata != null ? Number(dbItem.harga_rata_rata) : null;
+const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
+  const wac = dbItem.harga_rata_rata != null ? Number(dbItem.harga_rata_rata) : undefined;
 
   return {
     id: dbItem.id,
@@ -25,16 +25,16 @@ const transformToFrontend = (dbItem: BahanBaku): BahanBakuFrontend => {
     satuan: dbItem.satuan,
     harga: Number(dbItem.harga_satuan) || 0,
     hargaRataRata: wac,
-    supplier: dbItem.supplier,
-    expiry: dbItem.tanggal_kadaluwarsa,
+    supplier: dbItem.supplier || '',
+    expiry: dbItem.tanggal_kadaluwarsa || undefined,
     createdAt: dbItem.created_at,
     updatedAt: dbItem.updated_at,
   };
 };
 
 // Transform FE -> DB (❗️tanpa field kemasan)
-const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: string): Partial<BahanBaku> => {
-  const dbItem: Partial<BahanBaku> = {
+const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: string): any => {
+  const dbItem: any = {
     id: frontendItem.id,
     nama: frontendItem.nama,
     kategori: frontendItem.kategori,
@@ -43,14 +43,14 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     satuan: frontendItem.satuan,
     harga_satuan: frontendItem.harga,
     harga_rata_rata: frontendItem.hargaRataRata,
-    supplier: frontendItem.supplier,
+    supplier: frontendItem.supplier || '',
     tanggal_kadaluwarsa: frontendItem.expiry || null,
   };
   if (userId) dbItem.user_id = userId;
 
   return Object.fromEntries(
     Object.entries(dbItem).filter(([, v]) => v !== undefined)
-  ) as Partial<BahanBaku>;
+  );
 };
 
 class CrudService {
@@ -70,7 +70,7 @@ class CrudService {
       const { data, error } = await query.order('nama', { ascending: true });
       if (error) throw error;
 
-      return (data || []).map(transformToFrontend);
+      return (data || []).map((item: any) => transformToFrontend(item));
     } catch (error: any) {
       this.handleError('Fetch failed', error);
       return [];
@@ -106,7 +106,7 @@ class CrudService {
       const { data, error } = await query;
       if (error) throw error;
 
-      const materials = (data || []).map(transformToFrontend);
+      const materials = (data || []).map((item: any) => transformToFrontend(item));
 
       console.log('🔍 Filtered warehouse materials result:', {
         totalMaterials: materials.length,
@@ -131,7 +131,7 @@ class CrudService {
   ): Promise<boolean> {
     try {
       const dbData = transformToDatabase(bahan, this.config.userId);
-      const { error } = await supabase.from('bahan_baku').insert(dbData);
+      const { error } = await supabase.from('bahan_baku').insert(dbData as any);
       if (error) throw error;
       return true;
     } catch (error: any) {

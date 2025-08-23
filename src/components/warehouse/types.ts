@@ -5,7 +5,7 @@
  * Updated to support proper package content calculation and unit price handling
  */
 
-import type { RecipeIngredient } from '@/types/recipe';
+import type { BahanResep } from '@/components/recipe/types';
 
 // Core Data Types (Database format - snake_case)
 // ✅ VERIFIED: All field names match database schema exactly
@@ -43,16 +43,7 @@ export interface BahanBakuFrontend {
   updatedAt: string;                   // maps to updated_at
 }
 
-// ✅ ENHANCED: Package calculation helper types
-export interface PackageCalculation {
-  jumlahKemasan: number;
-  isiPerKemasan: number;
-  totalIsi: number;
-  hargaTotal: number;
-  hargaPerSatuan: number;
-  satuan: string;
-  jenisKemasan: string;
-}
+
 
 // ✅ ENHANCED: Unit conversion types
 export interface UnitInfo {
@@ -106,14 +97,9 @@ export interface WarehouseContextType {
   getBahanBakuByName: (nama: string) => BahanBakuFrontend | undefined;
   reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
   getIngredientPrice: (nama: string) => number;
-  validateIngredientAvailability: (ingredients: RecipeIngredient[]) => boolean;
-  consumeIngredients: (ingredients: RecipeIngredient[]) => Promise<boolean>;
-  updateIngredientPrices: (ingredients: RecipeIngredient[]) => RecipeIngredient[];
-  
-  // ✅ ENHANCED: Package calculation utilities
-  calculateUnitPrice: (jumlahKemasan: number, isiPerKemasan: number, hargaTotal: number) => number;
-  calculateTotalContent: (jumlahKemasan: number, isiPerKemasan: number) => number;
-  validatePackageConsistency: (calculation: PackageCalculation) => { isValid: boolean; errors: string[] };
+  validateIngredientAvailability: (ingredients: BahanResep[]) => boolean;
+  consumeIngredients: (ingredients: BahanResep[]) => Promise<boolean>;
+  updateIngredientPrices: (ingredients: BahanResep[]) => BahanResep[];
   
   // Analysis
   getLowStockItems: () => BahanBakuFrontend[];
@@ -121,7 +107,7 @@ export interface WarehouseContextType {
   getStockValue: () => number;
 }
 
-// ✅ ENHANCED: Import/Export Types with package support
+// ✅ ENHANCED: Import/Export Types
 export interface BahanBakuImport {
   nama: string;
   kategori: string;
@@ -131,10 +117,6 @@ export interface BahanBakuImport {
   stok: number;
   minimum: number;
   harga: number;
-  jumlahBeliKemasan?: number;
-  isiPerKemasan?: number;              // ✅ VERIFIED: for import calculations
-  satuanKemasan?: string;
-  hargaTotalBeliKemasan?: number;
   updatedAt?: string;
 }
 
@@ -142,7 +124,6 @@ export interface ImportValidationResult {
   valid: BahanBakuImport[];
   errors: string[];
   warnings: string[];
-  calculations: PackageCalculation[];   // ✅ track calculated prices
 }
 
 // ✅ ENHANCED: Bulk operations with package awareness
@@ -157,11 +138,7 @@ export interface BulkUpdateData {
     operation: 'multiply' | 'add' | 'set';
     value: number;
   };
-  updatePackageInfo?: {
-    isiPerKemasan?: number;
-    satuanKemasan?: string;
-    recalculatePrice?: boolean;         // ✅ Recalculate unit price based on package info
-  };
+
 }
 
 // ✅ ENHANCED: Analytics Types
@@ -213,18 +190,13 @@ export interface StockMovement {
   jenis_kemasan?: string;
 }
 
-// ✅ ENHANCED: Error types with package calculation context
+// ✅ ENHANCED: Error types with calculation context
 export interface WarehouseError extends Error {
   code?: string;
   context?: {
     operation?: string;
     itemId?: string;
-    calculation?: Partial<PackageCalculation>;
-    packageInfo?: {
-      jumlahKemasan?: number;
-      isiPerKemasan?: number;
-      hargaTotal?: number;
-    };
+
   };
 }
 
@@ -254,10 +226,6 @@ export interface BahanBakuFormData {
   satuan: string;
   harga: number;
   expiry: string;
-  jumlahBeliKemasan: number;
-  isiPerKemasan: number;               // ✅ VERIFIED: separate field for package content
-  satuanKemasan: string;               // ✅ VERIFIED: pure package type (pak, botol, dus)
-  hargaTotalBeliKemasan: number;
 }
 
 // ✅ ENHANCED: Database field validation
@@ -271,14 +239,7 @@ export interface DatabaseFieldMapping {
   updatedAt: 'updated_at';
 }
 
-// ✅ ENHANCED: Package parsing types
-export interface ParsedPackageInfo {
-  isiPerKemasan: number;
-  satuan: string;
-  jenisKemasan: string;
-  isValid: boolean;
-  originalString: string;
-}
+
 
 // ✅ UTILITY: Export utility types for easier imports
 export type CreateBahanBakuInput = Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'>;
@@ -340,18 +301,6 @@ export const isBahanBakuFrontend = (obj: any): obj is BahanBakuFrontend => {
     typeof obj.minimum === 'number' &&
     typeof obj.harga === 'number' &&
     typeof obj.supplier === 'string'
-  );
-};
-
-// ✅ PACKAGE VALIDATION: Type guards for package data
-export const hasValidPackageData = (item: BahanBakuFrontend): boolean => {
-  return !!(
-    item.jumlahBeliKemasan && 
-    item.isiPerKemasan && 
-    item.hargaTotalBeliKemasan &&
-    item.jumlahBeliKemasan > 0 &&
-    item.isiPerKemasan > 0 &&
-    item.hargaTotalBeliKemasan > 0
   );
 };
 

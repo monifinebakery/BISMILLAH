@@ -199,20 +199,20 @@ export const useDashboardData = (dateRange: DateRange) => {
       
       filteredOrders.forEach(order => {
         order?.items?.forEach(item => {
-          if (!item?.namaBarang) return;
+          if (!item?.name) return;
           
-          const recipe = recipes.find(r => r?.namaResep === item.namaBarang);
-          if (!recipe?.bahanBaku) return;
+          const recipe = recipes.find(r => r?.namaResep === item.name);
+          if (!recipe?.bahanResep) return;
           
           const quantity = Number(item.quantity) || 0;
           
-          recipe.bahanBaku.forEach(ingredient => {
-            if (!ingredient?.namaBahan) return;
+          recipe.bahanResep.forEach((ingredient: any) => {
+            if (!ingredient?.nama) return;
             
-            if (!ingredientUsage[ingredient.namaBahan]) {
-              ingredientUsage[ingredient.namaBahan] = 0;
+            if (!ingredientUsage[ingredient.nama]) {
+              ingredientUsage[ingredient.nama] = 0;
             }
-            ingredientUsage[ingredient.namaBahan] += quantity;
+            ingredientUsage[ingredient.nama] += quantity;
           });
         });
       });
@@ -240,20 +240,20 @@ export const useDashboardData = (dateRange: DateRange) => {
       
       filteredOrders.forEach(order => {
         order?.items?.forEach(item => {
-          if (!item?.namaBarang) return;
+          if (!item?.name) return;
           
-          const recipe = recipes.find(r => r?.namaResep === item.namaBarang);
-          if (!recipe?.bahanBaku) return;
+          const recipe = recipes.find(r => r?.namaResep === item.name);
+          if (!recipe?.bahanResep) return;
           
           const quantity = Number(item.quantity) || 0;
           
-          recipe.bahanBaku.forEach(ingredient => {
-            if (!ingredient?.namaBahan) return;
+          recipe.bahanResep.forEach((ingredient: any) => {
+            if (!ingredient?.nama) return;
             
-            if (!ingredientUsage[ingredient.namaBahan]) {
-              ingredientUsage[ingredient.namaBahan] = 0;
+            if (!ingredientUsage[ingredient.nama]) {
+              ingredientUsage[ingredient.nama] = 0;
             }
-            ingredientUsage[ingredient.namaBahan] += quantity;
+            ingredientUsage[ingredient.nama] += quantity;
           });
         });
       });
@@ -290,7 +290,7 @@ export const useDashboardData = (dateRange: DateRange) => {
         profit = profitMetrics.netProfit;
         isFromProfitAnalysis = true;
         
-        const cogsSource = profitMetrics.totalHPP > 0 ? 'wac' : 
+        const cogsSource: 'wac' | 'inventory' | 'estimated' = profitMetrics.totalHPP > 0 ? 'wac' : 
                           (profitMetrics.cogs > revenue * 0.5 ? 'inventory' : 'estimated');
         
         profitAnalysisSync = {
@@ -435,18 +435,18 @@ export const useDashboardData = (dateRange: DateRange) => {
       
       filteredOrders.forEach((order, orderIndex) => {
         order?.items?.forEach((item, itemIndex) => {
-          if (!item?.namaBarang) return;
+          if (!item?.name) return;
           
           const quantity = Number(item.quantity) || 0;
-          const harga = Number(item.hargaSatuan) || 0;
-          const key = `${item.namaBarang}_${orderIndex}_${itemIndex}`;
+          const harga = Number(item.price) || 0;
+          const key = `${item.name}_${orderIndex}_${itemIndex}`;
           
-          if (!productSales[item.namaBarang]) {
-            productSales[item.namaBarang] = { quantity: 0, revenue: 0, key };
+          if (!productSales[item.name]) {
+            productSales[item.name] = { quantity: 0, revenue: 0, key };
           }
           
-          productSales[item.namaBarang].quantity += quantity;
-          productSales[item.namaBarang].revenue += (quantity * harga);
+          productSales[item.name].quantity += quantity;
+          productSales[item.name].revenue += (quantity * harga);
         });
       });
       

@@ -293,29 +293,13 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                   {warehouseUtils.isUsingWac(item) ? ' · rata-rata' : ''}
                 </div>
               </div>
-              <div>
-                <span className="text-gray-500">Kadaluarsa:</span>
-                <div className={`font-medium ${isExpiringSoon ? 'text-red-600' : 'text-gray-900'}`}>
-                  {item.expiry ? warehouseUtils.formatDate(item.expiry) : '-'}
+              {item.expiry && (
+                <div>
+                  <span className="text-gray-500">Kadaluarsa:</span>
+                  <div className={`font-medium ${isExpiringSoon ? 'text-red-600' : 'text-gray-900'}`}>
+                    {warehouseUtils.formatDate(item.expiry)}
+                  </div>
                 </div>
-              </div>
-              {item.jumlahBeliKemasan && (
-                <>
-                  <div>
-                    <span className="text-gray-500">Jumlah Kemasan:</span>
-                    <div className="font-medium text-gray-900">
-                      {item.jumlahBeliKemasan} {item.satuanKemasan || 'unit'}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Harga Kemasan:</span>
-                    <div className="font-medium text-gray-900">
-                      {item.hargaTotalBeliKemasan
-                        ? warehouseUtils.formatCurrency(item.hargaTotalBeliKemasan)
-                        : '-'}
-                    </div>
-                  </div>
-                </>
               )}
             </div>
           </div>

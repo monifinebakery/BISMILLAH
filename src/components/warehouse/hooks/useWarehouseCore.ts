@@ -98,13 +98,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
     if (editingItem) {
       logger.debug(`[${hookId.current}] 📝 Editing item set:`, {
         id: editingItem.id,
-        nama: editingItem.nama,
-        packageInfo: {
-          jumlahBeliKemasan: editingItem.jumlahBeliKemasan,
-          isiPerKemasan: editingItem.isiPerKemasan,
-          satuanKemasan: editingItem.satuanKemasan,
-          hargaTotalBeliKemasan: editingItem.hargaTotalBeliKemasan
-        }
+        nama: editingItem.nama
       });
     } else {
       logger.debug(`[${hookId.current}] 📝 Editing item cleared`);
@@ -302,12 +296,6 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   // === EVENT HANDLERS ===
   const handleEdit = useCallback((item: BahanBakuFrontend) => {
     logger.info(`[${hookId.current}] ✏️ Edit triggered for: "${item.nama}" (ID: ${item.id})`);
-    logger.debug(`[${hookId.current}] 📦 Item package data:`, {
-      jumlahBeliKemasan: item.jumlahBeliKemasan,
-      isiPerKemasan: item.isiPerKemasan,
-      satuanKemasan: item.satuanKemasan,
-      hargaTotalBeliKemasan: item.hargaTotalBeliKemasan
-    });
     
     setEditingItem(item);
     openDialog('editItem');

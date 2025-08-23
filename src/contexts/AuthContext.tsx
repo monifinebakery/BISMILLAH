@@ -343,8 +343,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
 
-        // ✅ SIMPLIFIED: Let AuthGuard handle redirects
-        // AuthGuard will automatically redirect when user state changes
+        logger.context('AuthContext', 'Auth state updated, letting AuthGuard handle navigation');
+
+        // 🔁 Redirect dari halaman auth jika user sudah terautentikasi
+        if (validUser && window.location.pathname === '/auth') {
+          logger.info('AuthContext: Redirecting authenticated user from /auth to /');
+          window.location.href = '/';
+        }
       }
     );
 

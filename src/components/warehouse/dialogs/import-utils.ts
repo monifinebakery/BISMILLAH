@@ -47,8 +47,6 @@ export const headerMap: Record<string, keyof BahanBakuImport> = {
   'min_stock': 'minimum',
   'min': 'minimum',
   'reorder_point': 'minimum',
-
-  
 };
 
 export const requiredFields: (keyof BahanBakuImport)[] = [
@@ -57,7 +55,7 @@ export const requiredFields: (keyof BahanBakuImport)[] = [
   'supplier',
   'satuan',
   'stok',
-  'minimum'
+  'minimum',
 ];
 
 export const validate = (data: any): string[] => {

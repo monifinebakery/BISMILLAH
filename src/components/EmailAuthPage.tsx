@@ -10,8 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { useAuth } from '@/contexts/AuthContext'; // ✅ TAMBAHKAN INI
+import { useAuth } from '@/contexts/AuthContext';
 
+// ✅ Dynamic hCaptcha import
+let HCaptchaComponent: any = null;
 // ✅ Environment variables
 const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
 const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
@@ -47,6 +49,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // ✅ Get triggerRedirectCheck from AuthContext
   const { triggerRedirectCheck } = useAuth();
   const navigate = useNavigate();
+  const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
   
   // ✅ State Management
   const [email, setEmail] = useState('');
@@ -73,7 +76,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    if (HCAPTCHA_ENABLED && !HCaptcha) {
+    if (HCAPTCHA_ENABLED && !HCaptchaComponent) {
       // Set a timeout to mark hCaptcha as loaded even if it fails (CSP workaround)
       timeoutId = setTimeout(() => {
         if (mountedRef.current && !hCaptchaLoaded) {
@@ -87,7 +90,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         .then((module) => {
           if (mountedRef.current) {
             clearTimeout(timeoutId);
-            HCaptcha = module.default;
+            HCaptchaComponent = module.default;
             setHCaptchaLoaded(true);
             setHCaptchaKey(1);
           }
@@ -351,45 +354,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       
       if (!mountedRef.current) return;
       
-      if (result === true) {
-        logger.debug('EmailAuth: OTP verification successful');
-        
-        // ✅ Set success state
-        setAuthState('success');
-        toast.success('Login berhasil! Mengarahkan ke dashboard...');
-        
-        // ✅ AGGRESSIVE REDIRECT: Multiple fallback mechanisms
-        logger.info('EmailAuth: Executing aggressive redirect strategy');
-        
-        // Method 1: Immediate redirect
-        console.log('🚀 [REDIRECT] Method 1: Immediate redirect');
-        window.location.href = '/';
-        
-        // Method 2: Backup redirect after 1 second
-        setTimeout(() => {
-          if (mountedRef.current && window.location.pathname === '/auth') {
-            console.log('🚀 [REDIRECT] Method 2: Backup redirect (1s)');
-            window.location.replace('/');
+        if (result === true) {
+          logger.debug('EmailAuth: OTP verification successful');
+
+          // 🔄 Perbarui user & cek redirect
+          await refreshUser();
+          redirectCheck();
+
+          setAuthState('success');
+          toast.success('Login berhasil! Mengarahkan ke dashboard...');
+          navigate('/', { replace: true });
+
+          if (onLoginSuccess) {
+            onLoginSuccess();
           }
-        }, 1000);
-        
-        // Method 3: Final fallback after 2 seconds
-        setTimeout(() => {
-          if (mountedRef.current && window.location.pathname === '/auth') {
-            console.log('🚀 [REDIRECT] Method 3: Final fallback (2s)');
-            console.log('🚀 [REDIRECT] Current location:', window.location.href);
-            console.log('🚀 [REDIRECT] Force reload and redirect');
-            window.location.href = '/';
-            setTimeout(() => window.location.reload(), 100);
-          }
-        }, 2000);
-        
-        // ✅ Call onLoginSuccess callback if provided
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        }
-        
-      } else if (result === 'expired') {
+
+        } else if (result === 'expired') {
         setAuthState('expired');
         setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
         setOtp(['', '', '', '', '', '']);
@@ -480,9 +460,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               </div>
 
               {/* ✅ hCaptcha Widget */}
-              {HCAPTCHA_ENABLED && hCaptchaLoaded && HCaptcha && hCaptchaKey > 0 && (
+              {HCAPTCHA_ENABLED && hCaptchaLoaded && HCaptchaComponent && hCaptchaKey > 0 && (
                 <div className="flex justify-center">
-                  <HCaptcha
+                  <HCaptchaComponent
                     key={hCaptchaKey}
                     sitekey={HCAPTCHA_SITE_KEY}
                     onVerify={(token: string) => {

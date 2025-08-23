@@ -111,7 +111,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
   // Add defensive check for useBahanBaku
-  let bahanBaku = [];
+  let bahanBaku: any[] = [];
   let addBahanBaku = async (_: any) => false;
   try {
     const warehouseContext = useBahanBaku();
@@ -178,7 +178,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return code && code >= 400 && code < 500 ? false : count < 3;
     },
     retryDelay: (i) => Math.min(1000 * 2 ** i, 30000),
-    keepPreviousData: true,
+    // keepPreviousData is deprecated in newer versions, use placeholderData instead
+    placeholderData: [],
   });
 
   // ------------------- Optimistic helpers -------------------
@@ -188,13 +189,13 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   }, [queryClient, user?.id]);
 
-  const findPurchase = useCallback((id: string) => purchases.find((p) => p.id === id), [purchases]);
+  const findPurchase = useCallback((id: string) => (purchases as Purchase[]).find((p: Purchase) => p.id === id), [purchases]);
 
   // ------------------- Stats (memo) -------------------
   const stats = useMemo(() => {
-    const total = purchases.length;
-    const totalValue = purchases.reduce((sum, p) => sum + Number(p.totalNilai || 0), 0);
-    const statusCounts = purchases.reduce((acc: Record<string, number>, p) => {
+    const total = (purchases as Purchase[]).length;
+    const totalValue = (purchases as Purchase[]).reduce((sum: number, p: Purchase) => sum + Number(p.totalNilai || 0), 0);
+    const statusCounts = (purchases as Purchase[]).reduce((acc: Record<string, number>, p: Purchase) => {
       acc[p.status] = (acc[p.status] || 0) + 1;
       return acc;
     }, {});
@@ -240,7 +241,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Tambahkan otomatis bahan baku baru jika belum ada di gudang
       try {
         for (const item of newRow.items || []) {
-          const exists = bahanBaku?.some((bb) => bb.id === item.bahanBakuId);
+          const exists = (bahanBaku as any[])?.some((bb: any) => bb.id === item.bahanBakuId);
           if (!exists) {
             await addBahanBaku({
               id: item.bahanBakuId,
@@ -336,6 +337,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
 
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
+      const prevPurchase = findPurchase(fresh.id);
       if (prevPurchase) {
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
           // Tambahkan transaksi ketika status berubah ke completed (expense)
@@ -459,8 +461,39 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!p.items?.length) errors.push('Tidak dapat selesai tanpa item');
       if (!p.totalNilai || p.totalNilai <= 0) errors.push('Total nilai harus > 0');
       if (!p.supplier) errors.push('Supplier wajib diisi');
-      const invalid = p.items.filter((it: any) => !it.bahanBakuId || !it.nama || !it.kuantitas || it.kuantitas <= 0 || !it.hargaSatuan);
-      if (invalid.length) errors.push(`Ada ${invalid.length} item tidak lengkap`);
+      
+      // Enhanced item validation for better error reporting
+      const invalid = p.items.filter((it: any) => {
+        const issues = [];
+        if (!it.bahanBakuId) issues.push('ID bahan baku');
+        if (!it.nama || !it.nama.trim()) issues.push('nama');
+        if (!it.kuantitas || it.kuantitas <= 0) issues.push('kuantitas');
+        if (!it.satuan || !it.satuan.trim()) issues.push('satuan');
+        // Allow zero price for free items or automatic calculation
+        if (it.hargaSatuan === undefined || it.hargaSatuan === null || it.hargaSatuan < 0) {
+          issues.push('harga satuan');
+        }
+        return issues.length > 0;
+      });
+      
+      if (invalid.length) {
+        const firstItem = invalid[0];
+        const itemName = firstItem.nama || 'Item tanpa nama';
+        const missingFields = [];
+        if (!firstItem.bahanBakuId) missingFields.push('ID bahan baku');
+        if (!firstItem.nama || !firstItem.nama.trim()) missingFields.push('nama');
+        if (!firstItem.kuantitas || firstItem.kuantitas <= 0) missingFields.push('kuantitas');
+        if (!firstItem.satuan || !firstItem.satuan.trim()) missingFields.push('satuan');
+        if (firstItem.hargaSatuan === undefined || firstItem.hargaSatuan === null || firstItem.hargaSatuan < 0) {
+          missingFields.push('harga satuan');
+        }
+        
+        if (invalid.length === 1) {
+          errors.push(`Item "${itemName}" tidak lengkap: ${missingFields.join(', ')}`);
+        } else {
+          errors.push(`${invalid.length} item tidak lengkap (contoh: ${missingFields.join(', ')})`);
+        }
+      }
     }
     if (p.status === 'completed' && newStatus !== 'completed') {
       warnings.push('Mengubah dari "Selesai" akan mengoreksi stok gudang otomatis.');
@@ -564,7 +597,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ------------------- Context value -------------------
   const contextValue: PurchaseContextType = useMemo(() => ({
     // from original type
-    purchases,
+    purchases: purchases as Purchase[],
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
     error: error ? (error as Error).message : null,
     isProcessing: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,

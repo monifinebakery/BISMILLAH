@@ -8,7 +8,6 @@ import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { warehouseUtils } from '../services/warehouseUtils';
-import { fetchLatestUnitPriceForItem } from '../services/priceSuggestionService';
 import { logger } from '@/utils/logger';
 import type { BahanBakuFrontend } from '../types';
 // Gunakan kategori HPP yang sama dengan analisis profit
@@ -123,7 +122,9 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
           setIsFetchingPrice(true);
           const { data: { user } } = await supabase.auth.getUser();
           if (user?.id && item.id) {
-            const suggestion = await fetchLatestUnitPriceForItem(user.id, item.id);
+            // Lazy-load to avoid any import-time circular dependency issues
+            const mod = await import('../services/priceSuggestionService');
+            const suggestion = await mod.fetchLatestUnitPriceForItem(user.id, item.id);
             if (suggestion && suggestion.price > 0) {
               setPriceSuggestion({ value: Number(suggestion.price), tanggal: suggestion.tanggal, purchaseId: suggestion.purchaseId || undefined });
               // Autofill only if current price is empty/zero

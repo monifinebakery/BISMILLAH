@@ -43,7 +43,7 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
         <div className="col-span-2 text-right">
           <Label className="font-semibold text-gray-700 text-xs sm:text-sm">Total</Label>
         </div>
-        <div className="col-span-1 print:hidden"></div>
+        <div className="col-span-1"></div>
       </div>
       
       {/* Table Items */}
@@ -64,10 +64,10 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                 placeholder="Deskripsi produk/jasa" 
                 value={item.description} 
                 onChange={e => onItemChange(item.id, 'description', e.target.value)} 
-                className="resize-none border-gray-300 focus:border-blue-500 text-xs sm:text-sm print:hidden"
+                className="resize-none border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
                 rows={2}
               />
-              <div className="hidden print:block text-sm whitespace-pre-line">
+              <div className="export-text text-sm whitespace-pre-line">
                 {item.description}
               </div>
             </div>
@@ -82,9 +82,9 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                 min="1"
                 value={item.quantity} 
                 onChange={e => onItemChange(item.id, 'quantity', e.target.value)} 
-                className="text-center font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm print:hidden"
+                className="text-center font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
               />
-              <div className="hidden print:block text-center font-mono text-sm">
+              <div className="export-text text-center font-mono text-sm">
                 {item.quantity}
               </div>
             </div>
@@ -99,9 +99,9 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                 min="0"
                 value={item.price} 
                 onChange={e => onItemChange(item.id, 'price', e.target.value)} 
-                className="text-right font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm print:hidden"
+                className="text-right font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
               />
-              <div className="hidden print:block text-right font-mono text-sm">
+              <div className="export-text text-right font-mono text-sm">
                 {formatCurrency(item.price)}
               </div>
             </div>

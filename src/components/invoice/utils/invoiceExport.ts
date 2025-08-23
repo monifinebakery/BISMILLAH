@@ -35,6 +35,15 @@ async function modernDomToImage(element: HTMLElement): Promise<string> {
             padding: 0;
             background: white;
           }
+          /* Hide form inputs and show static text during export */
+          .export-mode input,
+          .export-mode select,
+          .export-mode button {
+            display: none !important;
+          }
+          .export-mode .export-text {
+            display: block !important;
+          }
         ]]></style>
       </defs>
       <rect width="100%" height="100%" fill="white"/>
@@ -106,6 +115,12 @@ export const downloadInvoiceImage = async (
   }
 
   try {
+    // Add export mode class to hide form inputs and show static content
+    element.classList.add('export-mode');
+    
+    // Wait for style changes to apply
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    
     let dataUrl: string;
     
     // Try modern implementation first
@@ -128,6 +143,8 @@ export const downloadInvoiceImage = async (
             <style>
               .invoice-content { background-color: white !important; color: black !important; }
               * { box-sizing: border-box; }
+              .export-mode input, .export-mode select, .export-mode button { display: none !important; }
+              .export-mode .export-text { display: block !important; }
             </style>
           </defs>
           <foreignObject width="100%" height="100%">
@@ -181,6 +198,9 @@ export const downloadInvoiceImage = async (
   } catch (error) {
     console.error('Error downloading invoice image:', error);
     throw new Error('Gagal mengunduh gambar invoice: ' + (error as Error).message);
+  } finally {
+    // Remove export mode class
+    element.classList.remove('export-mode');
   }
 };
 

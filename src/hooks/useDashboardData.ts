@@ -9,13 +9,12 @@ import { useRecipe } from '@/contexts/RecipeContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialCalculations';
 
-  // ✅ NEW: Import Profit Analysis functionality for real data sync
+  // ✅ NEW: Import Profit Analysis functionality for real data sync (removed unused calculateMargins for consistency)
 import { useProfitAnalysis } from '@/components/profitAnalysis/hooks/useProfitAnalysis';
-import { calculateMargins } from '@/components/profitAnalysis/utils/profitCalculations';
 import { formatCurrency } from '@/utils/formatUtils';
 import { logger } from '@/utils/logger';
 // ✅ ENHANCED: Ensure all dependencies are imported properly
-import type { ProfitAnalysisResult } from '@/components/profitAnalysis/types/profitAnalysis.types';
+import type { ProfitAnalysis } from '@/components/profitAnalysis/types/profitAnalysis.types';
 // 🔍 DEBUG: Import debug utilities
 import { debugProfitIntegration } from '@/utils/debugProfitIntegration';
 

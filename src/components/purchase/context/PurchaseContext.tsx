@@ -353,6 +353,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           queryClient.invalidateQueries({ 
             queryKey: ['profit-analysis'] 
           });
+          
+          // ✅ INVALIDATE FINANCIAL REPORTS: Purchase completion creates financial transaction
+          console.log('💰 Invalidating financial transaction cache after purchase completion');
+          queryClient.invalidateQueries({ 
+            queryKey: ['financial'] 
+          });
         } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
           // Hapus transaksi ketika status berubah dari completed (berdasarkan related_id)
           // Cari transaksi terkait lalu hapus
@@ -374,6 +380,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               console.log('📈 Invalidating profit analysis cache after financial transaction deletion');
               queryClient.invalidateQueries({ 
                 queryKey: ['profit-analysis'] 
+              });
+              
+              // ✅ INVALIDATE FINANCIAL REPORTS: Financial transaction deletion affects reports
+              console.log('💰 Invalidating financial transaction cache after deletion');
+              queryClient.invalidateQueries({ 
+                queryKey: ['financial'] 
               });
             } catch (e) {
               logger.warn('Gagal membersihkan transaksi keuangan saat revert purchase:', e);

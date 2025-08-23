@@ -65,7 +65,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
       .select('id, stok, harga_rata_rata, harga_satuan')
       .eq('id', itemId)
       .eq('user_id', purchase.userId)
-      .single();
+      .maybeSingle();
 
     if (fetchError) {
       console.error('❌ [WAREHOUSE SYNC] Error fetching existing item:', fetchError);
@@ -160,7 +160,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
       .select('id, stok, harga_rata_rata, harga_satuan')
       .eq('id', itemId)
       .eq('user_id', purchase.userId)
-      .single();
+      .maybeSingle();
 
     if (error || !existing) continue;
 

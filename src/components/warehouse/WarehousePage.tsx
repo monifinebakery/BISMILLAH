@@ -64,8 +64,6 @@ const fetchWarehouseItems = async (): Promise<BahanBakuFrontend[]> => {
       stok: Number(item.stok) || 0,
       minimum: Number(item.minimum) || 0,
       harga: Number(item.harga) || 0,
-      jumlahBeliKemasan: item.jumlahBeliKemasan ? Number(item.jumlahBeliKemasan) : undefined,
-      hargaTotalBeliKemasan: item.hargaTotalBeliKemasan ? Number(item.hargaTotalBeliKemasan) : undefined,
     }));
   } catch (error) {
     logger.error('Failed to fetch warehouse items:', error);

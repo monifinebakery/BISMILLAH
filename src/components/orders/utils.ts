@@ -8,6 +8,7 @@
 
 import { Order, NewOrder } from './types';
 import { logger } from '@/utils/logger';
+import { generateOrderNumber } from '@/utils/formatUtils'; // ✅ FIXED: Import order number generator
 import { VALIDATION_LIMITS } from './constants'; // ✅ Added: Import validation limits from constants
 
 // ✅ DATE UTILITIES: Optimized with better error handling
@@ -78,7 +79,7 @@ export const transformOrderFromDB = (dbItem: any): Order => {
       emailPelanggan: dbItem.email_pelanggan || '',
       alamatPengiriman: dbItem.alamat_pengiriman || '',
       tanggal: safeParseDate(dbItem.tanggal) || new Date(),
-      tanggalSelesai: safeParseDate(dbItem.tanggal_selesai), // ✅ ADDED: Completion date
+      tanggalSelesai: safeParseDate(dbItem.tanggal_selesai) || undefined, // ✅ FIXED: Use undefined instead of null
       items: Array.isArray(dbItem.items) ? dbItem.items : [],
       totalPesanan: Number(dbItem.total_pesanan) || 0,
       status: dbItem.status || 'pending',
@@ -90,7 +91,7 @@ export const transformOrderFromDB = (dbItem: any): Order => {
       updatedAt: safeParseDate(dbItem.updated_at) || new Date(),
     };
   } catch (error) {
-    logger.error('Error transforming order from DB:', error, dbItem);
+    logger.error('Error transforming order from DB:', error);
     return createFallbackOrder(dbItem?.id);
   }
 };
@@ -99,8 +100,9 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
   const dbData: Record<string, any> = {};
   
   try {
-    // ✅ ENHANCED: Property mapping with completion date
+    // ✅ ENHANCED: Property mapping with completion date and order number
     const propertyMap = [
+      ['nomorPesanan', 'nomor_pesanan'], // ✅ FIXED: Add order number mapping
       ['namaPelanggan', 'nama_pelanggan'],
       ['teleponPelanggan', 'telepon_pelanggan'],
       ['emailPelanggan', 'email_pelanggan'],
@@ -133,15 +135,17 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
     
     return dbData;
   } catch (error) {
-    logger.error('Error transforming order to DB:', error, data);
+    logger.error('Error transforming order to DB:', error);
     
-    // ✅ SAFE FALLBACK: Minimal valid data
+    // ✅ SAFE FALLBACK: Minimal valid data with order number
     return {
+      nomor_pesanan: String(data.nomorPesanan || generateOrderNumber()), // ✅ FIXED: Ensure order number exists
       nama_pelanggan: String(data.namaPelanggan || 'Error'),
       status: data.status || 'pending',
       total_pesanan: Number(data.totalPesanan) || 0,
       tanggal: toSafeISOString(new Date()),
-      tanggal_selesai: null // ✅ ADDED: Default null for completion date
+      tanggal_selesai: null, // ✅ FIXED: Use null for database compatibility
+      telepon_pelanggan: '' // ✅ FIXED: Add required field with default
     };
   }
 };
@@ -344,7 +348,7 @@ const createFallbackOrder = (id?: string): Order => ({
   emailPelanggan: '',
   alamatPengiriman: '',
   tanggal: new Date(),
-  tanggalSelesai: null, // ✅ ADDED: Default null for completion date
+  tanggalSelesai: undefined, // ✅ FIXED: Use undefined instead of null
   items: [],
   totalPesanan: 0,
   status: 'pending',
@@ -357,11 +361,7 @@ const createFallbackOrder = (id?: string): Order => ({
 });
 
 // ✅ Made private since only used internally; export if needed elsewhere
-const generateOrderNumber = (): string => {
-  const timestamp = Date.now().toString().slice(-8);
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `ORD-${timestamp}-${random}`;
-};
+// Removed local generateOrderNumber - using imported one from formatUtils
 
 // ✅ SEARCH & FILTER: Optimized search functions
 export const searchOrders = (orders: Order[], searchTerm: string): Order[] => {
@@ -372,7 +372,7 @@ export const searchOrders = (orders: Order[], searchTerm: string): Order[] => {
   return orders.filter(order => 
     order.namaPelanggan.toLowerCase().includes(lowerSearchTerm) ||
     order.nomorPesanan.toLowerCase().includes(lowerSearchTerm) ||
-    order.telefonPelanggan?.toLowerCase().includes(lowerSearchTerm) ||
+    order.teleponPelanggan?.toLowerCase().includes(lowerSearchTerm) ||
     order.emailPelanggan?.toLowerCase().includes(lowerSearchTerm)
   );
 };

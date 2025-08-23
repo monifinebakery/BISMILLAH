@@ -409,8 +409,7 @@ export const useFinancialForm = (
     amount: 0,
     category: '',
     description: '',
-    date: new Date(),
-    notes: ''
+    date: new Date()
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -423,8 +422,7 @@ export const useFinancialForm = (
         amount: transaction.amount,
         category: transaction.category || '',
         description: transaction.description || '',
-        date: new Date(transaction.date!),
-        notes: transaction.notes || ''
+        date: new Date(transaction.date!)
       });
     } else {
       setFormData({
@@ -432,8 +430,7 @@ export const useFinancialForm = (
         amount: 0,
         category: '',
         description: '',
-        date: new Date(),
-        notes: ''
+        date: new Date()
       });
     }
     setErrors({});

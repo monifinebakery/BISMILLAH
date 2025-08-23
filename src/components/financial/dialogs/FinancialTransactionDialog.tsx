@@ -269,16 +269,50 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             />
           </div>
 
-          {/* Date */}
-          <div>
-            <Label htmlFor="date">Tanggal</Label>
-            <Input
-              id="date"
-              type="date"
-              value={formatDateToYYYYMMDD(formData.date)}
-              onChange={(e) => handleFieldChange('date', new Date(e.target.value))}
-              required
-            />
+          {/* Date and Time */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="date">Tanggal</Label>
+              <Input
+                id="date"
+                type="date"
+                value={formatDateToYYYYMMDD(formData.date)}
+                onChange={(e) => {
+                  const newDate = new Date(e.target.value);
+                  // Preserve existing time when changing date
+                  const currentTime = formData.date;
+                  if (currentTime) {
+                    newDate.setHours(currentTime.getHours());
+                    newDate.setMinutes(currentTime.getMinutes());
+                  }
+                  handleFieldChange('date', newDate);
+                }}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="time">Waktu (opsional)</Label>
+              <Input
+                id="time"
+                type="time"
+                value={formData.date ? 
+                  `${String(formData.date.getHours()).padStart(2, '0')}:${String(formData.date.getMinutes()).padStart(2, '0')}` 
+                  : ''
+                }
+                onChange={(e) => {
+                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                  const newDate = new Date(formData.date);
+                  newDate.setHours(hours || 0);
+                  newDate.setMinutes(minutes || 0);
+                  newDate.setSeconds(0);
+                  handleFieldChange('date', newDate);
+                }}
+                placeholder="HH:MM"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Kosongkan jika hanya ingin menyimpan tanggal
+              </p>
+            </div>
           </div>
 
           {/* Footer */}

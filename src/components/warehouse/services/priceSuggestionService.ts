@@ -10,15 +10,7 @@ export interface PriceSuggestion {
 
 // Derive unit price from packaging metadata if explicit unit price missing
 const deriveUnitPriceFromPackaging = (row: any): number | null => {
-  const toNumber = (v: any, def = 0) => (v === null || v === undefined || v === '' ? def : Number(v));
-  const jumlahKemasan = toNumber(row.jumlah_kemasan ?? row.jumlahKemasan);
-  const isiPerKemasan = toNumber(row.isi_per_kemasan ?? row.isiPerKemasan);
-  const totalBeli = toNumber(row.harga_total_beli_kemasan ?? row.hargaTotalBeliKemasan);
-
-  const totalIsi = jumlahKemasan * isiPerKemasan;
-  if (jumlahKemasan > 0 && isiPerKemasan > 0 && totalBeli > 0 && totalIsi > 0) {
-    return totalBeli / totalIsi;
-  }
+  // Function removed as packaging fields are no longer used
   return null;
 };
 
@@ -67,8 +59,7 @@ export const fetchLatestUnitPriceForItem = async (
       if (!found) continue;
 
       const explicit = Number(found.harga_per_satuan ?? found.hargaSatuan ?? 0);
-      const derived = deriveUnitPriceFromPackaging(found) ?? 0;
-      const price = explicit > 0 ? explicit : derived > 0 ? derived : 0;
+      const price = explicit > 0 ? explicit : 0;
       if (price > 0) {
         return { price, tanggal: row.tanggal, purchaseId: row.id };
       }

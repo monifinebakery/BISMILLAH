@@ -4,6 +4,7 @@
 import { FinancialTransactionActual, BahanBakuActual, OperationalCostActual, RealTimeProfitCalculation } from '../../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS, FNB_THRESHOLDS, FNB_LABELS } from '../../constants/profitConstants';
 import { calculateMargins, getEffectiveUnitPrice, calcHPP } from '../calculations/basicCalculations';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 import { filterTransactionsByPeriod, filterTransactionsByDateRange } from '../filters/dataFilters';
 import { getMarginRating, getCOGSEfficiencyRating } from '../ratings/profitRatings';
 import { logger } from '@/utils/logger';
@@ -184,8 +185,9 @@ export const comparePeriods = (
   const opexChange = previous.opex > 0 ? 
     ((current.opex - previous.opex) / previous.opex) * 100 : 0;
 
-  const currentMargins = calculateMargins(current.revenue, current.cogs, current.opex);
-  const previousMargins = calculateMargins(previous.revenue, previous.cogs, previous.opex);
+  // ✅ IMPROVED: Use centralized calculation for consistency
+  const currentMargins = safeCalculateMargins(current.revenue, current.cogs, current.opex);
+  const previousMargins = safeCalculateMargins(previous.revenue, previous.cogs, previous.opex);
 
   const grossMarginChange = currentMargins.grossMargin - previousMargins.grossMargin;
   const netMarginChange = currentMargins.netMargin - previousMargins.netMargin;
@@ -229,7 +231,8 @@ export const generateExecutiveInsights = (
   materials: BahanBakuActual[],
   transactions: FinancialTransactionActual[]
 ) => {
-  const margins = calculateMargins(revenue, cogs, opex);
+  // ✅ IMPROVED: Use centralized calculation for consistency
+  const margins = safeCalculateMargins(revenue, cogs, opex);
   const cogsRatio = revenue > 0 ? (cogs / revenue) * 100 : 0;
   
   const insights: string[] = [];

@@ -21,8 +21,10 @@ import DateRangePicker from '@/components/ui/DateRangePicker';
 
 // ✅ CLEAN IMPORTS - Using consolidated hooks
 import { useFinancialCore } from './hooks/useFinancialCore';
+import { useFinancialPage } from './hooks/useFinancialPages';
 import { useFinancialChartData } from './hooks/useFinancialData';
 import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 
 // LAZY LOADED COMPONENTS
 const FinancialCharts = React.lazy(() => 
@@ -236,8 +238,7 @@ const FinancialReportPage: React.FC = () => {
     
     // Settings
     settings,
-    saveSettings,
-    refreshSettings
+    saveSettings
   } = useFinancialCore();
 
   // ✅ CHART DATA - Single hook
@@ -504,7 +505,7 @@ const FinancialReportPage: React.FC = () => {
             onClose={closeTransactionDialog}
             onAddTransaction={handleAddTransaction}
             onUpdateTransaction={handleUpdateTransaction}
-            categories={settings?.financialCategories || DEFAULT_FINANCIAL_CATEGORIES}
+            categories={DEFAULT_FINANCIAL_CATEGORIES}
             transaction={dialogs.transaction.editing}
           />
         </Suspense>
@@ -516,23 +517,26 @@ const FinancialReportPage: React.FC = () => {
             settings={settings}
             saveSettings={async (newSettings) => {
               try {
-                // Save the settings
+                // This is now a legacy fallback - categories are managed dynamically
                 const result = await saveSettings(newSettings);
                 if (result) {
-                  toast.success('Kategori berhasil disimpan');
-                  logger.info('Categories saved successfully');
+                  toast.success('Pengaturan berhasil disimpan');
+                  logger.info('Settings saved successfully');
                   return true;
                 } else {
-                  toast.error('Gagal menyimpan kategori');
+                  toast.error('Gagal menyimpan pengaturan');
                   return false;
                 }
               } catch (error) {
-                toast.error('Terjadi kesalahan saat menyimpan kategori');
-                logger.error('Failed to save categories:', error);
+                toast.error('Terjadi kesalahan saat menyimpan pengaturan');
+                logger.error('Failed to save settings:', error);
                 return false;
               }
             }}
-            refreshSettings={refreshSettings}
+            refreshSettings={async () => {
+              // Refresh settings if needed
+              return true;
+            }}
           />
         </Suspense>
       </div>

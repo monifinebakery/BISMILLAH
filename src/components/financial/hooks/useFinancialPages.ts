@@ -21,6 +21,13 @@ import {
 
 // Context imports
 import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { getFinancialCategories } from '../services/categoryService';
+import { 
+  DEFAULT_FINANCIAL_CATEGORIES,
+  FinancialCategories 
+} from '../types/financial';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ===========================================
 // ✅ COMPOSITE HOOK FOR FINANCIAL PAGES
@@ -56,6 +63,17 @@ export const useFinancialPage = (options: UseFinancialPageOptions = {}) => {
     isLoading: transactionsLoading, 
     error: transactionsError 
   } = useFinancialData();
+
+  const { user } = useAuth();
+
+  // ✅ Dynamic categories from transaction data
+  const { data: dynamicCategories, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['financial-categories', user?.id],
+    queryFn: () => user?.id ? getFinancialCategories(user.id) : Promise.resolve(DEFAULT_FINANCIAL_CATEGORIES),
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
 
   // User settings
   const { 
@@ -152,11 +170,8 @@ export const useFinancialPage = (options: UseFinancialPageOptions = {}) => {
     isPositiveBalance: summary.balance >= 0,
     hasData: finalTransactions.length > 0,
 
-    // Categories from settings
-    categories: settings?.financialCategories || {
-      income: ['Penjualan', 'Jasa', 'Investasi', 'Lainnya'],
-      expense: ['Operasional', 'Marketing', 'Gaji', 'Lainnya']
-    },
+    // Categories from dynamic transaction data
+    categories: dynamicCategories || DEFAULT_FINANCIAL_CATEGORIES,
 
     // Quick stats
     quickStats: {
@@ -169,7 +184,7 @@ export const useFinancialPage = (options: UseFinancialPageOptions = {}) => {
     }
   }), [
     transactionsLoading,
-    settingsLoading, 
+    categoriesLoading,
     operationsLoading,
     transactionsError,
     transactions.length,
@@ -177,7 +192,7 @@ export const useFinancialPage = (options: UseFinancialPageOptions = {}) => {
     searchResults.length,
     summary.balance,
     finalTransactions.length,
-    settings?.financialCategories,
+    dynamicCategories,
     paginatedTransactions.length,
     groupedByType.income.length,
     groupedByType.expense.length

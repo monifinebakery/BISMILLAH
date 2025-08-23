@@ -21,10 +21,6 @@ export interface UserSettings {
     lowStock: boolean;
     newOrder: boolean;
   };
-  financialCategories?: {
-    income: Array<{id: string; name: string; type: string; color: string; isDefault: boolean}>;
-    expense: Array<{id: string; name: string; type: string; color: string; isDefault: boolean}>;
-  };
   updatedAt?: string;
 }
 
@@ -52,10 +48,6 @@ const defaultSettings: UserSettings = {
   notifications: {
     lowStock: true,
     newOrder: true,
-  },
-  financialCategories: {
-    income: [],
-    expense: []
   }
 };
 
@@ -93,18 +85,16 @@ const userSettingsApi = {
     }
 
     const loadedSettings: UserSettings = {
-      ...defaultSettings,
-      businessName: data.business_name || data.businessName || defaultSettings.businessName,
-      ownerName: data.owner_name || data.ownerName || defaultSettings.ownerName,
+      businessName: data.business_name || defaultSettings.businessName,
+      ownerName: data.owner_name || defaultSettings.ownerName,
       email: data.email || userEmail || defaultSettings.email,
       phone: data.phone || defaultSettings.phone,
       address: data.address || defaultSettings.address,
       notifications: {
-        lowStock: data.notifications?.lowStock ?? defaultSettings.notifications.lowStock,
-        newOrder: data.notifications?.newOrder ?? defaultSettings.notifications.newOrder,
+        lowStock: (data.notifications as any)?.lowStock ?? defaultSettings.notifications.lowStock,
+        newOrder: (data.notifications as any)?.newOrder ?? defaultSettings.notifications.newOrder,
       },
-      financialCategories: data.financial_categories || data.financialCategories || defaultSettings.financialCategories,
-      updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
+      updatedAt: data.updated_at || new Date().toISOString()
     };
 
     logger.success('Settings loaded for user:', { userId, settings: loadedSettings });
@@ -122,7 +112,6 @@ const userSettingsApi = {
       phone: settings.phone,
       address: settings.address,
       notifications: settings.notifications,
-      financial_categories: settings.financialCategories,
       updated_at: new Date().toISOString()
     };
 
@@ -150,11 +139,10 @@ const userSettingsApi = {
     const savedSettings: UserSettings = {
       businessName: data.business_name,
       ownerName: data.owner_name,
-      email: data.email,
+      email: data.email || '',
       phone: data.phone || '',
       address: data.address || '',
-      notifications: data.notifications || defaultSettings.notifications,
-      financialCategories: data.financial_categories || defaultSettings.financialCategories,
+      notifications: (data.notifications as any) || defaultSettings.notifications,
       updatedAt: data.updated_at
     };
 

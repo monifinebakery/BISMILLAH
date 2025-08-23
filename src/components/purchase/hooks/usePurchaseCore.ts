@@ -100,11 +100,39 @@ export const usePurchaseCore = ({
       if (!p.items || p.items.length === 0) errors.push('Tidak dapat selesai tanpa item');
       if (!p.totalNilai || p.totalNilai <= 0) errors.push('Total nilai harus > 0');
       if (!p.supplier) errors.push('Supplier wajib diisi');
-      // item minimal
-      const invalid = (p.items ?? []).filter((it: any) =>
-        !it.bahanBakuId || !it.nama || !it.kuantitas || it.kuantitas <= 0 || !it.hargaSatuan
-      );
-      if (invalid.length) errors.push(`Ada ${invalid.length} item tidak lengkap`);
+      
+      // Enhanced item validation with better error messages
+      const invalid = (p.items ?? []).filter((it: any) => {
+        const missingFields = [];
+        if (!it.bahanBakuId) missingFields.push('ID bahan baku');
+        if (!it.nama || !it.nama.trim()) missingFields.push('nama item');
+        if (!it.kuantitas || it.kuantitas <= 0) missingFields.push('kuantitas');
+        if (!it.satuan || !it.satuan.trim()) missingFields.push('satuan');
+        // Allow hargaSatuan to be 0 for automatic calculation or free items
+        if (it.hargaSatuan === undefined || it.hargaSatuan === null || it.hargaSatuan < 0) {
+          missingFields.push('harga satuan');
+        }
+        return missingFields.length > 0;
+      });
+      
+      if (invalid.length) {
+        // More descriptive error message
+        const firstInvalidItem = invalid[0];
+        const missingFields = [];
+        if (!firstInvalidItem.bahanBakuId) missingFields.push('ID bahan baku');
+        if (!firstInvalidItem.nama || !firstInvalidItem.nama.trim()) missingFields.push('nama');
+        if (!firstInvalidItem.kuantitas || firstInvalidItem.kuantitas <= 0) missingFields.push('kuantitas');
+        if (!firstInvalidItem.satuan || !firstInvalidItem.satuan.trim()) missingFields.push('satuan');
+        if (firstInvalidItem.hargaSatuan === undefined || firstInvalidItem.hargaSatuan === null || firstInvalidItem.hargaSatuan < 0) {
+          missingFields.push('harga satuan');
+        }
+        
+        if (invalid.length === 1) {
+          errors.push(`Item "${firstInvalidItem.nama || 'Tanpa nama'}" tidak lengkap: ${missingFields.join(', ')}`);
+        } else {
+          errors.push(`${invalid.length} item tidak lengkap (contoh: ${missingFields.join(', ')})`);
+        }
+      }
     }
 
     // info buat user kalau revert dari completed

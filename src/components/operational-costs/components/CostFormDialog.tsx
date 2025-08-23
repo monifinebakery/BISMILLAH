@@ -48,7 +48,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           nama_biaya: cost.nama_biaya,
           jumlah_per_bulan: cost.jumlah_per_bulan,
           jenis: cost.jenis as 'tetap' | 'variabel',
-          cost_category: cost.cost_category || 'general'
+          cost_category: 'general'
         });
       } else {
         // Add mode
@@ -153,7 +153,6 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                 id="jumlah_per_bulan"
                 type="number"
                 min="0"
-                step="1000"
                 placeholder="0"
                 value={formData.jumlah_per_bulan || ''}
                 onChange={(e) => setFormData(prev => ({ 

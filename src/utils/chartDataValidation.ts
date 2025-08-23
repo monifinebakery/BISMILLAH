@@ -1,5 +1,7 @@
 // utils/chartDataValidation.ts - Chart Data Validation Utilities
 
+import { safeCalculateMargins } from './profitValidation';
+
 export interface ValidationResult {
   isValid: boolean;
   warnings: string[];
@@ -19,18 +21,27 @@ export interface FinancialMetrics {
 }
 
 /**
- * Validates financial metrics for logical consistency
+ * ✅ IMPROVED: Validates financial metrics using centralized calculation logic
  */
 export function validateFinancialMetrics(metrics: FinancialMetrics): ValidationResult {
   const warnings: string[] = [];
   const errors: string[] = [];
   let correctedData = { ...metrics };
 
-  // Calculate derived metrics if not provided
-  const grossProfit = metrics.grossProfit ?? (metrics.revenue - metrics.cogs);
-  const netProfit = metrics.netProfit ?? (grossProfit - metrics.opex);
-  const grossMargin = metrics.grossMargin ?? (metrics.revenue > 0 ? (grossProfit / metrics.revenue) * 100 : 0);
-  const netMargin = metrics.netMargin ?? (metrics.revenue > 0 ? (netProfit / metrics.revenue) * 100 : 0);
+  // ✅ IMPROVED: Use centralized calculation for consistency
+  const calculationResult = safeCalculateMargins(metrics.revenue, metrics.cogs, metrics.opex);
+  
+  // Extract calculated values
+  const grossProfit = calculationResult.grossProfit;
+  const netProfit = calculationResult.netProfit;
+  const grossMargin = calculationResult.grossMargin;
+  const netMargin = calculationResult.netMargin;
+  
+  // Add any warnings from the centralized calculation
+  if (!calculationResult.isValid) {
+    warnings.push(...calculationResult.warnings);
+    errors.push(...calculationResult.errors);
+  }
 
   // Validation Rule 1: Revenue should be non-negative
   if (metrics.revenue < 0) {
@@ -69,7 +80,7 @@ export function validateFinancialMetrics(metrics: FinancialMetrics): ValidationR
     warnings.push(`Unusual net margin: ${netMargin.toFixed(1)}%`);
   }
 
-  // Validation Rule 7: Calculated vs provided values consistency
+  // ✅ IMPROVED: Compare provided vs calculated values for consistency
   if (metrics.grossProfit !== undefined && Math.abs(metrics.grossProfit - grossProfit) > 0.01) {
     warnings.push(`Gross profit calculation mismatch: provided ${metrics.grossProfit}, calculated ${grossProfit}`);
   }
@@ -78,7 +89,7 @@ export function validateFinancialMetrics(metrics: FinancialMetrics): ValidationR
     warnings.push(`Net profit calculation mismatch: provided ${metrics.netProfit}, calculated ${netProfit}`);
   }
 
-  // Update corrected data with calculated values
+  // Update corrected data with validated calculated values
   correctedData = {
     ...correctedData,
     grossProfit,

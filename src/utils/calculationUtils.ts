@@ -1,5 +1,7 @@
 // src/utils/calculationUtils.ts
-// Placeholder implementations for calculation utilities referenced in index.ts
+// ✅ IMPROVED: Calculation utilities with centralized logic integration
+
+import { safeCalculateMargins } from './profitValidation';
 
 export const calculatePromoResult = (
   cost: number,
@@ -8,12 +10,20 @@ export const calculatePromoResult = (
   return price - cost;
 };
 
+/**
+ * ✅ IMPROVED: Calculate margin using centralized validation logic
+ */
 export const analyzeMargin = (
   revenue: number,
   cost: number
 ): number => {
-  if (revenue === 0) return 0;
-  return ((revenue - cost) / revenue) * 100;
+  if (!validateCalculationInput(revenue) || !validateCalculationInput(cost)) {
+    return 0;
+  }
+  
+  // Use centralized calculation for consistency
+  const margins = safeCalculateMargins(revenue, cost, 0);
+  return margins.grossMargin;
 };
 
 export const findOptimalDiscount = (
@@ -61,21 +71,40 @@ export const estimatePriceElasticity = (
   return quantityChange / priceChange;
 };
 
+/**
+ * ✅ IMPROVED: Calculate financial metrics with validation
+ */
 export const calculateFinancialMetrics = (
   revenues: number[],
   expenses: number[]
 ): { profit: number; revenue: number; expense: number } => {
-  const totalRevenue = revenues.reduce((sum, r) => sum + r, 0);
-  const totalExpense = expenses.reduce((sum, e) => sum + e, 0);
+  if (!Array.isArray(revenues) || !Array.isArray(expenses)) {
+    return { profit: 0, revenue: 0, expense: 0 };
+  }
+  
+  const totalRevenue = revenues.reduce((sum, r) => {
+    return sum + (validateCalculationInput(r) ? r : 0);
+  }, 0);
+  
+  const totalExpense = expenses.reduce((sum, e) => {
+    return sum + (validateCalculationInput(e) ? e : 0);
+  }, 0);
+  
+  // Use centralized calculation for consistency
+  const margins = safeCalculateMargins(totalRevenue, totalExpense, 0);
+  
   return {
-    profit: totalRevenue - totalExpense,
+    profit: margins.grossProfit,
     revenue: totalRevenue,
     expense: totalExpense,
   };
 };
 
+/**
+ * ✅ IMPROVED: Enhanced input validation
+ */
 export const validateCalculationInput = (value: unknown): boolean => {
-  return typeof value === 'number' && !isNaN(value);
+  return typeof value === 'number' && !isNaN(value) && isFinite(value);
 };
 
 export const roundToDecimal = (value: number, decimals: number = 2): number => {

@@ -1,6 +1,7 @@
 // src/components/warehouse/services/warehouseApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { normalizeDateForDatabase } from '@/utils/dateNormalization';
 import type { BahanBaku, BahanBakuFrontend } from '../types';
 
 export interface ServiceConfig {
@@ -72,6 +73,55 @@ class CrudService {
       return (data || []).map(transformToFrontend);
     } catch (error: any) {
       this.handleError('Fetch failed', error);
+      return [];
+    }
+  }
+
+  // 🎯 NEW: Fetch materials by date range for profit analysis
+  async fetchBahanBakuByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<BahanBakuFrontend[]> {
+    try {
+      const startYMD = normalizeDateForDatabase(startDate);
+      const endYMD = normalizeDateForDatabase(endDate);
+
+      console.log('🔍 Fetching warehouse materials by date range:', {
+        startDate: startYMD,
+        endDate: endYMD,
+        userId: this.config.userId
+      });
+
+      // Get materials that existed during the period (created before or during the period)
+      let query = supabase.from('bahan_baku').select(`
+        id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
+        tanggal_kadaluwarsa, created_at, updated_at,
+        harga_rata_rata
+      `)
+      .lte('created_at', endYMD + 'T23:59:59.999Z') // Created before or during the period
+      .order('nama', { ascending: true });
+
+      if (this.config.userId) query = query.eq('user_id', this.config.userId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const materials = (data || []).map(transformToFrontend);
+
+      console.log('🔍 Filtered warehouse materials result:', {
+        totalMaterials: materials.length,
+        dateRange: { startYMD, endYMD },
+        materials: materials.slice(0, 3).map(m => ({
+          nama: m.nama,
+          stok: m.stok,
+          harga: m.harga,
+          created_at: m.createdAt
+        }))
+      });
+
+      return materials;
+    } catch (error: any) {
+      this.handleError('Fetch by date range failed', error);
       return [];
     }
   }
@@ -234,6 +284,16 @@ export const warehouseApi = {
   // expose transformers (read-only)
   transformToFrontend,
   transformToDatabase,
+};
+
+// 🎯 Direct export for profit analysis date filtering
+export const getWarehouseDataByDateRange = async (
+  userId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<BahanBakuFrontend[]> => {
+  const crudService = new CrudService({ userId });
+  return await crudService.fetchBahanBakuByDateRange(startDate, endDate);
 };
 
 export { transformToFrontend, transformToDatabase };

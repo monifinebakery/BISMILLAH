@@ -4,6 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from '@/utils/logger';
 // 🔧 IMPROVED: Import centralized date normalization
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+// 🔄 For cache invalidation - will be used by components
+let globalQueryClient: any = null;
+export const setQueryClient = (client: any) => {
+  globalQueryClient = client;
+};
+
+// 🔄 Cache invalidation helper for profit analysis sync
+const invalidateRelatedCaches = () => {
+  if (globalQueryClient) {
+    console.log('🔄 Invalidating caches for operational costs changes...');
+    // Invalidate profit analysis and operational costs caches
+    globalQueryClient.invalidateQueries({ queryKey: ['profit-analysis'] });
+    globalQueryClient.invalidateQueries({ queryKey: ['operational-costs'] });
+    globalQueryClient.invalidateQueries({ queryKey: ['financial'] });
+    console.log('✅ Cache invalidation completed for profit sync');
+  }
+};
 import { 
   OperationalCost, 
   AllocationSettings, 
@@ -31,6 +48,67 @@ const getCurrentUserId = async (): Promise<string | null> => {
 // ================================
 
 export const operationalCostApi = {
+  // Get costs with date range filter for profit analysis
+  async getCostsByDateRange(
+    startDate: Date,
+    endDate: Date,
+    userId?: string
+  ): Promise<ApiResponse<OperationalCost[]>> {
+    try {
+      const resolvedUserId = userId ?? await getCurrentUserId();
+      if (!resolvedUserId) {
+        return { data: [], error: 'User tidak ditemukan. Silakan login kembali.' };
+      }
+
+      const startYMD = normalizeDateForDatabase(startDate);
+      const endYMD = normalizeDateForDatabase(endDate);
+
+      console.log('🔍 Fetching operational costs by date range:', {
+        startDate: startYMD,
+        endDate: endYMD,
+        userId: resolvedUserId
+      });
+
+      // Get costs that were created/updated within the date range
+      // AND are currently active
+      const { data, error } = await supabase
+        .from('operational_costs')
+        .select('*')
+        .eq('user_id', resolvedUserId)
+        .eq('status', 'aktif') // Only active costs
+        .lte('created_at', endYMD + 'T23:59:59.999Z') // Created before or during the period
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Cast the database response to our typed interface
+      const typedData: OperationalCost[] = (data || []).map(item => ({
+        ...item,
+        jenis: item.jenis as 'tetap' | 'variabel',
+        status: item.status as 'aktif' | 'nonaktif',
+        cost_category: item.cost_category as 'fixed' | 'variable' | 'other',
+        deskripsi: item.deskripsi || undefined
+      }));
+
+      console.log('🔍 Filtered operational costs result:', {
+        totalCosts: typedData.length,
+        activeCosts: typedData.filter(c => c.status === 'aktif').length,
+        dateRange: { startYMD, endYMD },
+        costs: typedData.map(c => ({
+          nama: c.nama_biaya,
+          jumlah: c.jumlah_per_bulan,
+          created_at: c.created_at,
+          jenis: c.jenis
+        }))
+      });
+
+      return { data: typedData };
+    } catch (error) {
+      logger.error('Error fetching costs by date range:', error);
+      return { data: [], error: 'Gagal mengambil data biaya operasional berdasarkan tanggal' };
+    }
+  },
+
   // Get all costs with filters
   async getCosts(
     filters?: CostFilters,
@@ -144,6 +222,9 @@ export const operationalCostApi = {
         deskripsi: data.deskripsi || undefined // Convert null to undefined
       };
 
+      // 🔄 Invalidate caches for profit analysis sync
+      invalidateRelatedCaches();
+
       return { data: typedData, message: 'Biaya operasional berhasil ditambahkan' };
     } catch (error) {
       logger.error('Error creating cost:', error);
@@ -184,6 +265,9 @@ export const operationalCostApi = {
         deskripsi: data.deskripsi || undefined // Convert null to undefined
       };
 
+      // 🔄 Invalidate caches for profit analysis sync
+      invalidateRelatedCaches();
+
       return { data: typedData, message: 'Biaya operasional berhasil diperbarui' };
     } catch (error) {
       logger.error('Error updating cost:', error);
@@ -206,6 +290,9 @@ export const operationalCostApi = {
         .eq('user_id', userId); // ✅ Add user filter
 
       if (error) throw error;
+
+      // 🔄 Invalidate caches for profit analysis sync
+      invalidateRelatedCaches();
 
       return { data: true, message: 'Biaya operasional berhasil dihapus' };
     } catch (error) {

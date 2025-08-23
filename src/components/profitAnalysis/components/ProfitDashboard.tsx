@@ -7,7 +7,7 @@ import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitData } from '../hooks';
 import { getCurrentPeriod, generatePeriodOptions } from '../utils/profitTransformers';
-import { calculateMargins } from '../utils/profitCalculations';
+// Removed unused calculateMargins import - using safeCalculateMargins for consistency
 import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // Import dashboard sections and tabs

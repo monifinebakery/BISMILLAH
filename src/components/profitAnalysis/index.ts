@@ -111,10 +111,9 @@ export {
 } from './utils/profitTransformers';
 
 // ===== PROFIT CALCULATIONS =====
-// FIXED: Import yang sudah benar dengan semua fungsi yang ada
+// FIXED: Import yang sudah benar dengan semua fungsi yang ada (removed calculateMargins for consistency)
 export {
   calculateRealTimeProfit,
-  calculateMargins,
   filterTransactionsByPeriod,
   filterTransactionsByDateRange,
   getMarginRating,

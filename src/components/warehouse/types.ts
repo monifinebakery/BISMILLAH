@@ -5,7 +5,7 @@
  * Updated to support proper package content calculation and unit price handling
  */
 
-import type { RecipeIngredient } from '@/types/recipe';
+import type { BahanResep } from '@/components/recipe/types';
 
 // Core Data Types (Database format - snake_case)
 // ✅ VERIFIED: All field names match database schema exactly
@@ -97,9 +97,9 @@ export interface WarehouseContextType {
   getBahanBakuByName: (nama: string) => BahanBakuFrontend | undefined;
   reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
   getIngredientPrice: (nama: string) => number;
-  validateIngredientAvailability: (ingredients: RecipeIngredient[]) => boolean;
-  consumeIngredients: (ingredients: RecipeIngredient[]) => Promise<boolean>;
-  updateIngredientPrices: (ingredients: RecipeIngredient[]) => RecipeIngredient[];
+  validateIngredientAvailability: (ingredients: BahanResep[]) => boolean;
+  consumeIngredients: (ingredients: BahanResep[]) => Promise<boolean>;
+  updateIngredientPrices: (ingredients: BahanResep[]) => BahanResep[];
   
   // Analysis
   getLowStockItems: () => BahanBakuFrontend[];
@@ -123,7 +123,6 @@ export interface BahanBakuImport {
 export interface ImportValidationResult {
   valid: BahanBakuImport[];
   errors: string[];
-  warnings: string[];
   warnings: string[];
 }
 

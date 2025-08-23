@@ -23,6 +23,7 @@ import { warehouseApi, getWarehouseDataByDateRange } from '@/components/warehous
 import { operationalCostApi } from '@/components/operational-costs/services/operationalCostApi';
 
 import { calculateRealTimeProfit, calculateMargins, generateExecutiveInsights, getCOGSEfficiencyRating } from '../utils/profitCalculations';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 import { transformToFNBCOGSBreakdown, getCurrentPeriod } from '../utils/profitTransformers';
 // 🍽️ Import F&B constants
 import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
@@ -1247,20 +1248,19 @@ export const profitAnalysisApi = {
         const revenue = calc.revenue_data.total;
         const cogs = calc.cogs_data.total;
         const opex = calc.opex_data.total;
-        const grossProfit = revenue - cogs;
-        const netProfit = grossProfit - opex;
-        const grossMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
-        const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+        
+        // ✅ IMPROVED: Use centralized calculation for consistency
+        const margins = safeCalculateMargins(revenue, cogs, opex);
 
         return [
           calc.period,
           revenue.toFixed(2),
           cogs.toFixed(2),
           opex.toFixed(2),
-          grossProfit.toFixed(2),
-          netProfit.toFixed(2),
-          grossMargin.toFixed(2),
-          netMargin.toFixed(2)
+          margins.grossProfit.toFixed(2),
+          margins.netProfit.toFixed(2),
+          margins.grossMargin.toFixed(2),
+          margins.netMargin.toFixed(2)
         ];
       });
 

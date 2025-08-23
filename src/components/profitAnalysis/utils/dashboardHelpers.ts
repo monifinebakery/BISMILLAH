@@ -1,6 +1,7 @@
 // src/components/profitAnalysis/utils/dashboardHelpers.ts
 
 import { calculateMargins } from './profitCalculations';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // ==============================================
 // DATA VALIDATION HELPERS
@@ -26,13 +27,11 @@ export const validateForecastData = (currentAnalysis: any) => {
   if (opex > revenue * 3.0) issues.push("OPEX terlalu tinggi dibanding revenue");
   
   // Calculate margin for validation
-  const grossProfit = revenue - cogs;
-  const netProfit = grossProfit - opex;
-  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  const margins = safeCalculateMargins(revenue, cogs, opex);
   
   // More realistic margin warnings for F&B businesses
-  if (netMargin < -200) issues.push("Margin negatif ekstrem terdeteksi");
-  if (netMargin > 95) issues.push("Margin terlalu tinggi, periksa data");
+  if (margins.netMargin < -200) issues.push("Margin negatif ekstrem terdeteksi");
+  if (margins.netMargin > 95) issues.push("Margin terlalu tinggi, periksa data");
   
   return {
     isValid: issues.length === 0,
@@ -43,10 +42,10 @@ export const validateForecastData = (currentAnalysis: any) => {
       opex: Math.max(0, Math.min(opex, revenue * 2.5))  // OPEX max 250% dari revenue (untuk startup)
     },
     metrics: {
-      grossProfit,
-      netProfit,
-      netMargin,
-      grossMargin: revenue > 0 ? (grossProfit / revenue) * 100 : 0
+      grossProfit: margins.grossProfit,
+      netProfit: margins.netProfit,
+      netMargin: margins.netMargin,
+      grossMargin: margins.grossMargin
     }
   };
 };
@@ -81,10 +80,8 @@ export const generateForecastHelper = (profitHistory: any[], currentAnalysis: an
     const cogs = currentAnalysis.cogs_data?.total || 0;
     const opex = currentAnalysis.opex_data?.total || 0;
     
-    // Calculate actual profit and margins
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - opex;
-    const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    // Calculate actual profit and margins using centralized utility
+    const currentMargins = safeCalculateMargins(revenue, cogs, opex);
     
     // Analyze trends from history (take last 3-6 periods)
     const recentHistory = profitHistory.slice(-6);
@@ -183,8 +180,8 @@ export const generateForecastHelper = (profitHistory: any[], currentAnalysis: an
       // Additional info for debugging
       metadata: {
         currentRevenue: revenue,
-        currentNetProfit: netProfit,
-        currentMargin: netMargin,
+        currentNetProfit: currentMargins.netProfit,
+        currentMargin: currentMargins.netMargin,
         averageGrowthRate: averageGrowthRate,
         cogsPercentage: cogsPercentage * 100,
         opexPercentage: opexPercentage * 100,
@@ -216,7 +213,10 @@ export const calculateRollingAverages = (profitHistory: any[], periods: number) 
     const revenue = p.revenue_data?.total || 0;
     const cogs = p.cogs_data?.total || 0;
     const opex = p.opex_data?.total || 0;
-    return revenue - cogs - opex;
+    
+    // ✅ IMPROVED: Use centralized calculation for consistency
+    const margins = safeCalculateMargins(revenue, cogs, opex);
+    return margins.netProfit;
   });
   const margins = profits.map((profit, i) => revenues[i] > 0 ? (profit / revenues[i]) * 100 : 0);
 
@@ -363,9 +363,9 @@ export const generateExecutiveInsights = (currentAnalysis: any) => {
   const revenue = currentAnalysis.revenue_data?.total || 0;
   const cogs = currentAnalysis.cogs_data?.total || 0;
   const opex = currentAnalysis.opex_data?.total || 0;
-  const grossProfit = revenue - cogs;
-  const netProfit = grossProfit - opex;
-  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+  
+  // ✅ IMPROVED: Use centralized calculation for consistency
+  const margins = safeCalculateMargins(revenue, cogs, opex);
   const cogsPercentage = revenue > 0 ? (cogs / revenue) * 100 : 0;
 
   const keyHighlights = [];
@@ -373,24 +373,24 @@ export const generateExecutiveInsights = (currentAnalysis: any) => {
   const opportunities = [];
 
   // Key highlights
-  if (netProfit > 0) {
-    keyHighlights.push(`Bisnis menguntungkan dengan margin ${netMargin.toFixed(1)}%`);
+  if (margins.netProfit > 0) {
+    keyHighlights.push(`Bisnis menguntungkan dengan margin ${margins.netMargin.toFixed(1)}%`);
   }
   if (cogsPercentage < 30) {
     keyHighlights.push('Efisiensi biaya bahan baku sangat baik');
   }
-  if (netMargin > 20) {
+  if (margins.netMargin > 20) {
     keyHighlights.push('Margin profit di atas rata-rata industri');
   }
 
   // Critical issues
-  if (netProfit < 0) {
+  if (margins.netProfit < 0) {
     criticalIssues.push('Bisnis mengalami kerugian - perlu tindakan segera');
   }
   if (cogsPercentage > 60) {
     criticalIssues.push('Biaya bahan baku terlalu tinggi - margin tertekan');
   }
-  if (netMargin < 5 && netProfit > 0) {
+  if (margins.netMargin < 5 && margins.netProfit > 0) {
     criticalIssues.push('Margin sangat tipis - rentan terhadap fluktuasi biaya');
   }
 
@@ -398,7 +398,7 @@ export const generateExecutiveInsights = (currentAnalysis: any) => {
   if (cogsPercentage > 40 && cogsPercentage < 60) {
     opportunities.push('Optimasi supplier dan negosiasi harga bahan baku');
   }
-  if (netMargin > 10 && netMargin < 20) {
+  if (margins.netMargin > 10 && margins.netMargin < 20) {
     opportunities.push('Potensi ekspansi dengan margin yang sehat');
   }
   if (revenue > 0) {

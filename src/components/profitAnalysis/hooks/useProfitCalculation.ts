@@ -317,7 +317,10 @@ export const useProfitCalculation = (
         const revenue = h?.revenue_data?.total || 0;
         const cogs = h?.cogs_data?.total || 0;
         const opex = h?.opex_data?.total || 0;
-        return revenue - cogs - opex;
+        
+        // ✅ IMPROVED: Use centralized calculation for consistency
+        const margins = calculateMargins(revenue, cogs, opex);
+        return margins.netProfit;
       });
 
       const avgRevenueGrowth = revenueValues.reduce((acc, val, idx) => {

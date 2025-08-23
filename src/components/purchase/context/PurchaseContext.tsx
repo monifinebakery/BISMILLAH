@@ -474,13 +474,11 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!p.totalNilai || p.totalNilai <= 0) errors.push('Total nilai harus > 0');
       if (!p.supplier) errors.push('Supplier wajib diisi');
       const invalid = p.items.filter((it: any) => {
-        const imported = String(it?.keterangan || '').toUpperCase().includes('IMPORTED');
-        const hasValidPrice = Number(it?.hargaSatuan) > 0;
         return (
           !it?.bahanBakuId ||
           !it?.nama ||
           !it?.kuantitas || it.kuantitas <= 0 ||
-          (!imported && !hasValidPrice)
+          !it?.hargaSatuan || it.hargaSatuan <= 0
         );
       });
       if (invalid.length) errors.push(`Ada ${invalid.length} item tidak lengkap`);

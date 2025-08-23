@@ -101,8 +101,16 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
       errors.push('Satuan tidak boleh kosong');
     }
 
-    if (isNaN(data.totalNilai) || data.totalNilai < 0) {
-      errors.push('Total nilai tidak valid');
+    if (isNaN(data.totalNilai) || data.totalNilai <= 0) {
+      errors.push('Total nilai harus lebih dari 0');
+    }
+
+    // Validasi harga satuan (dihitung dari total nilai / kuantitas)
+    if (data.kuantitas > 0 && data.totalNilai > 0) {
+      const calculatedUnitPrice = data.totalNilai / data.kuantitas;
+      if (calculatedUnitPrice <= 0) {
+        errors.push('Harga satuan hasil perhitungan harus lebih dari 0');
+      }
     }
 
     return errors;
@@ -298,12 +306,12 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
             tanggal: new Date(purchaseData.tanggal),
             items: purchaseData.items.map(item => ({
               ...item,
-              // Harga satuan opsional pada import → default 0
-              hargaSatuan: 0,
+              bahanBakuId: `temp-${Date.now()}-${Math.random()}`, // Temporary ID for import
+              // Harga satuan wajib untuk semua item (dihitung dari totalNilai / kuantitas)
+              hargaSatuan: Number(purchaseData.totalNilai) / item.kuantitas || 0,
               // Subtotal ambil dari totalNilai per baris import (1 item per baris)
               subtotal: Number(purchaseData.totalNilai) || 0,
-              // Tandai sebagai hasil import agar sinkron stok bisa dilewati saat perubahan status
-              keterangan: '[IMPORTED]'
+              keterangan: null
             })),
             totalNilai: purchaseData.totalNilai,
             metodePerhitungan: 'AVERAGE' as const,

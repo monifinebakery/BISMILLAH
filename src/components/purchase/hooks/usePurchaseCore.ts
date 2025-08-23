@@ -102,7 +102,7 @@ export const usePurchaseCore = ({
       if (!p.supplier) errors.push('Supplier wajib diisi');
       // item minimal
       const invalid = (p.items ?? []).filter((it: any) =>
-        !it.bahanBakuId || !it.nama || !it.kuantitas || it.kuantitas <= 0 || !it.hargaSatuan
+        !it.bahanBakuId || !it.nama || !it.kuantitas || it.kuantitas <= 0 || !it.hargaSatuan || it.hargaSatuan <= 0
       );
       if (invalid.length) errors.push(`Ada ${invalid.length} item tidak lengkap`);
     }

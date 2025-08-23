@@ -116,7 +116,7 @@ export const usePurchaseStatus = ({
       }
 
       const invalidItems = (purchase.items ?? []).filter(
-        (it) => !it.bahanBakuId || !it.nama || !it.kuantitas || it.kuantitas <= 0 || !it.hargaSatuan
+        (it) => !it.bahanBakuId || !it.nama || !it.kuantitas || it.kuantitas <= 0 || !it.hargaSatuan || it.hargaSatuan <= 0
       );
       if (invalidItems.length > 0) {
         errors.push(`Terdapat ${invalidItems.length} item dengan data tidak lengkap`);

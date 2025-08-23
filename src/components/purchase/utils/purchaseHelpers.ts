@@ -269,20 +269,14 @@ export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
 
   // Validate each item
   purchase.items?.forEach((item, index) => {
-    const isImported = String(item.keterangan || '').toUpperCase().includes('IMPORTED');
     if (!item.nama?.trim()) {
       errors.push(`Item ${index + 1}: Nama item harus diisi`);
     }
     if (!item.kuantitas || item.kuantitas <= 0) {
       errors.push(`Item ${index + 1}: Kuantitas harus lebih dari 0`);
     }
-    // Harga satuan: untuk data import (ditandai [IMPORTED]) boleh 0 atau kosong,
-    // karena subtotal/totalNilai digunakan sebagai dasar perhitungan.
-    // Untuk input normal, hargaSatuan harus > 0.
-    if (!isImported) {
-      if (!(Number(item.hargaSatuan) > 0)) {
-        errors.push(`Item ${index + 1}: Harga satuan tidak valid`);
-      }
+    if (!(Number(item.hargaSatuan) > 0)) {
+      errors.push(`Item ${index + 1}: Harga satuan harus lebih dari 0`);
     }
     if (!item.satuan?.trim()) {
       errors.push(`Item ${index + 1}: Satuan harus diisi`);

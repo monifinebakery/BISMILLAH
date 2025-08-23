@@ -115,11 +115,36 @@ export const usePurchaseStatus = ({
         errors.push('Supplier harus diisi sebelum menyelesaikan purchase');
       }
 
-      const invalidItems = (purchase.items ?? []).filter(
-        (it) => !it.bahanBakuId || !it.nama || !it.kuantitas || it.kuantitas <= 0 || !it.hargaSatuan
-      );
+      const invalidItems = (purchase.items ?? []).filter((it) => {
+        const issues = [];
+        if (!it.bahanBakuId) issues.push('ID bahan baku');
+        if (!it.nama || !it.nama.trim()) issues.push('nama');
+        if (!it.kuantitas || it.kuantitas <= 0) issues.push('kuantitas');
+        if (!it.satuan || !it.satuan.trim()) issues.push('satuan');
+        // Allow zero price for free items or automatic calculation
+        if (it.hargaSatuan === undefined || it.hargaSatuan === null || it.hargaSatuan < 0) {
+          issues.push('harga satuan');
+        }
+        return issues.length > 0;
+      });
+      
       if (invalidItems.length > 0) {
-        errors.push(`Terdapat ${invalidItems.length} item dengan data tidak lengkap`);
+        const firstItem = invalidItems[0];
+        const itemName = firstItem.nama || 'Item tanpa nama';
+        
+        if (invalidItems.length === 1) {
+          const missingFields = [];
+          if (!firstItem.bahanBakuId) missingFields.push('ID bahan baku');
+          if (!firstItem.nama || !firstItem.nama.trim()) missingFields.push('nama');
+          if (!firstItem.kuantitas || firstItem.kuantitas <= 0) missingFields.push('kuantitas');
+          if (!firstItem.satuan || !firstItem.satuan.trim()) missingFields.push('satuan');
+          if (firstItem.hargaSatuan === undefined || firstItem.hargaSatuan === null || firstItem.hargaSatuan < 0) {
+            missingFields.push('harga satuan');
+          }
+          errors.push(`Item "${itemName}" tidak lengkap: ${missingFields.join(', ')}`);
+        } else {
+          errors.push(`${invalidItems.length} item tidak lengkap`);
+        }
       }
 
       // Validasi ringan terhadap master bahan (opsional)

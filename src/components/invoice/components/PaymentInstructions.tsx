@@ -28,10 +28,10 @@ export const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({
         <Textarea 
           value={paymentInstructions} 
           onChange={e => setPaymentInstructions(e.target.value)} 
-          className="text-gray-700 border-gray-300 focus:border-blue-500 text-xs sm:text-sm print:hidden"
+          className="text-gray-700 border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
           rows={4}
         />
-        <div className="hidden print:block text-gray-700 text-sm whitespace-pre-line">
+        <div className="export-text text-gray-700 text-sm whitespace-pre-line">
           {paymentInstructions}
         </div>
       </div>
@@ -44,10 +44,10 @@ export const PaymentInstructions: React.FC<PaymentInstructionsProps> = ({
         <Textarea 
           value={notes} 
           onChange={e => setNotes(e.target.value)} 
-          className="text-gray-700 border-gray-300 focus:border-blue-500 text-xs sm:text-sm print:hidden"
+          className="text-gray-700 border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
           rows={3}
         />
-        <div className="hidden print:block text-gray-700 text-sm whitespace-pre-line">
+        <div className="export-text text-gray-700 text-sm whitespace-pre-line">
           {notes}
         </div>
       </div>

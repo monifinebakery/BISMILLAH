@@ -9,12 +9,12 @@ import {
   PaymentInstructions 
 } from '../components';
 import { useInvoiceCalculations } from '../hooks';
-import type { InvoiceData } from '../types';
+import type { InvoiceData, InvoiceItem } from '../types';
 
 interface InvoiceTemplateProps {
   data: InvoiceData;
   onDataChange: (data: Partial<InvoiceData>) => void;
-  onItemChange: (id: number, field: string, value: string | number) => void;
+  onItemChange: (id: number, field: keyof Omit<InvoiceItem, 'id'>, value: string | number) => void;
   onAddItem: () => void;
   onRemoveItem: (id: number) => void;
   onBack?: () => void;
@@ -37,8 +37,12 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   const calculations = useInvoiceCalculations(data.items, data.discount, data.tax, data.shipping);
 
   return (
-    <Card className={`border-2 border-gray-200 overflow-hidden invoice-content ${className}`} id="invoice-content">
-      <div className="bg-white p-4 sm:p-8">
+    <Card 
+      className={`border-2 border-gray-200 overflow-hidden invoice-content ${className}`} 
+      id="invoice-content"
+      style={{ backgroundColor: 'white', color: 'black' }}
+    >
+      <div className="bg-white p-4 sm:p-8" style={{ backgroundColor: 'white', color: 'black' }}>
         {/* Invoice Header */}
         <InvoiceHeader
           invoiceNumber={data.invoiceNumber}

@@ -11,6 +11,7 @@ import {
   filterTransactionsByPeriod,
   filterTransactionsByDateRange
 } from '../utils/profitCalculations';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // 🍽️ Import F&B constants and thresholds
 import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
@@ -157,7 +158,8 @@ export const useProfitCalculation = (
       const opex = activeCosts.reduce((sum, c) => sum + (c?.jumlah_per_bulan || 0), 0);
       
       // Calculate profits and margins
-      const margins = calculateMargins(revenue, cogs, opex);
+      // ✅ IMPROVED: Use centralized calculation for consistency
+      const margins = safeCalculateMargins(revenue, cogs, opex);
       
       return {
         revenue,
@@ -317,7 +319,10 @@ export const useProfitCalculation = (
         const revenue = h?.revenue_data?.total || 0;
         const cogs = h?.cogs_data?.total || 0;
         const opex = h?.opex_data?.total || 0;
-        return revenue - cogs - opex;
+        
+        // ✅ IMPROVED: Use centralized calculation for consistency
+        const margins = safeCalculateMargins(revenue, cogs, opex);
+        return margins.netProfit;
       });
 
       const avgRevenueGrowth = revenueValues.reduce((acc, val, idx) => {

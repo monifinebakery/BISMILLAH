@@ -10,6 +10,8 @@ export const useDeviceManagement = () => {
     refreshDevices,
     updateDeviceName,
     removeDevice,
+    removeAllOtherDevices,
+    cleanupOldDevices,
     getCurrentDevice
   } = useDevice();
 
@@ -26,6 +28,8 @@ export const useDeviceManagement = () => {
     refreshDevices,
     updateDeviceName,
     removeDevice,
+    removeAllOtherDevices,
+    cleanupOldDevices,
     getCurrentDevice,
     
     // Convenience getters

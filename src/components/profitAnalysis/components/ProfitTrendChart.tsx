@@ -13,7 +13,7 @@ import { formatCurrency, formatLargeNumber, getShortPeriodLabel } from '../utils
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { CHART_CONFIG } from '../constants';
 import { validateChartData, logValidationResults } from '@/utils/chartDataValidation';
-import { getEffectiveCogs, validateCOGSConsistency } from '@/utils/cogsCalculation';
+import { getEffectiveCogs, validateCOGSConsistency, calculateHistoricalCOGS } from '@/utils/cogsCalculation';
 import { safeSortPeriods, formatPeriodForDisplay } from '@/utils/periodUtils';
 import { safeCalculateMargins } from '@/utils/profitValidation';
 
@@ -60,11 +60,11 @@ const processTrendData = (
 ) => {
   if (!profitHistory || profitHistory.length === 0) return [];
 
-  // ✅ IMPROVED: Use centralized period sorting
+  // ✅ IMPROVED: Use centralized period sorting with validation
   const periods = profitHistory.map(h => h.period);
   const sortedPeriods = safeSortPeriods(periods);
   
-  // Reorder history based on sorted periods
+  // Reorder history based on sorted periods with validation
   const sortedHistory = sortedPeriods.map(period => 
     profitHistory.find(h => h.period === period)
   ).filter(Boolean) as RealTimeProfitCalculation[];
@@ -72,16 +72,23 @@ const processTrendData = (
   // ✅ IMPROVED: Track COGS calculations for consistency validation
   const cogsCalculations: { component: string; value: number; source: string }[] = [];
   
+  // ✅ NEW: Calculate effective COGS for all periods using centralized calculation
+  const historicalCOGS = calculateHistoricalCOGS(
+    sortedHistory, 
+    effectiveCogs, // WAC only applied to latest period internally
+    { preferWAC: true, validateRange: true }
+  );
+  
   const results = sortedHistory.map((analysis, index) => {
     const revenue = analysis.revenue_data?.total || 0;
     
-    // ✅ IMPROVED: Use centralized COGS calculation
-    const cogsResult = getEffectiveCogs(
-      analysis,
-      effectiveCogs, // Only apply to latest period
-      revenue,
-      { preferWAC: index === sortedHistory.length - 1 } // WAC for latest only
-    );
+    // ✅ IMPROVED: Use consistent COGS from centralized calculation
+    const cogsResult = historicalCOGS.get(analysis.period) || {
+      value: 0,
+      source: 'fallback' as const,
+      isValid: false,
+      warnings: ['No COGS data available']
+    };
     
     cogsCalculations.push({
       component: `TrendChart-${analysis.period}`,
@@ -91,36 +98,51 @@ const processTrendData = (
     
     const opex = analysis.opex_data?.total || 0;
     
-    // ✅ IMPROVED: Use safe margin calculation
-    const margins = safeCalculateMargins(revenue, cogsResult.value, opex);
+    // ✅ IMPROVED: Use safe margin calculation with validation
+    const validationResult = safeCalculateMargins(revenue, cogsResult.value, opex);
     
     // Log warnings from COGS calculation
     if (import.meta.env.DEV && cogsResult.warnings.length > 0) {
       cogsResult.warnings.forEach(warning => {
-        console.warn(`Period ${analysis.period}: ${warning}`);
+        console.warn(`[TrendChart] Period ${analysis.period}: ${warning}`);
       });
     }
 
-    // ✅ IMPROVED: Period-specific stock value calculation
-    let periodStockValue = wacStockValue || 0;
+    // Log data quality issues
+    if (import.meta.env.DEV && !validationResult.isValid) {
+      console.warn(`[TrendChart] Period ${analysis.period}: Invalid data`, {
+        errors: validationResult.errors,
+        warnings: validationResult.warnings
+      });
+    }
+
+    // ✅ IMPROVED: Dynamic period-specific stock value calculation
+    let periodStockValue = 0;
     try {
-      if ((analysis as any).stock_data?.wac_value) {
+      // Try to get period-specific WAC stock value
+      if (analysis.wac_data?.total_wac_cogs) {
+        periodStockValue = analysis.wac_data.total_wac_cogs;
+      } else if ((analysis as any).stock_data?.wac_value) {
         periodStockValue = (analysis as any).stock_data.wac_value;
+      } else if (index === sortedHistory.length - 1 && wacStockValue) {
+        // Only use provided WAC stock value for the latest period
+        periodStockValue = wacStockValue;
       }
     } catch (error) {
-      // Silently fall back to provided wacStockValue
+      // Silently fall back to 0
+      periodStockValue = 0;
     }
 
     return {
       period: analysis.period,
       periodLabel: formatPeriodForDisplay(analysis.period),
-      revenue,
+      revenue: revenue,
       cogs: cogsResult.value,
-      opex,
-      grossProfit: margins.grossProfit,
-      netProfit: margins.netProfit,
-      grossMargin: margins.grossMargin,
-      netMargin: margins.netMargin,
+      opex: opex,
+      grossProfit: validationResult.grossProfit,
+      netProfit: validationResult.netProfit,
+      grossMargin: validationResult.grossMargin,
+      netMargin: validationResult.netMargin,
       stockValue: periodStockValue
     };
   });
@@ -128,7 +150,7 @@ const processTrendData = (
   // ✅ IMPROVED: Validate COGS consistency across periods
   const consistencyCheck = validateCOGSConsistency(cogsCalculations);
   if (import.meta.env.DEV && !consistencyCheck.isConsistent) {
-    console.warn('COGS calculation inconsistency detected:', consistencyCheck.issues);
+    console.warn('[TrendChart] COGS calculation inconsistency detected:', consistencyCheck.issues);
   }
   
   return results;

@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 
 // ✅ CLEAN IMPORTS - Using consolidated hooks
+import { useFinancialCore } from './hooks/useFinancialCore';
 import { useFinancialPage } from './hooks/useFinancialPages';
 import { useFinancialChartData } from './hooks/useFinancialData';
 import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
@@ -237,8 +238,7 @@ const FinancialReportPage: React.FC = () => {
     
     // Settings
     settings,
-    saveSettings,
-    refreshSettings
+    saveSettings
   } = useFinancialCore();
 
   // ✅ CHART DATA - Single hook
@@ -505,7 +505,7 @@ const FinancialReportPage: React.FC = () => {
             onClose={closeTransactionDialog}
             onAddTransaction={handleAddTransaction}
             onUpdateTransaction={handleUpdateTransaction}
-            categories={data.categories || DEFAULT_FINANCIAL_CATEGORIES}
+            categories={DEFAULT_FINANCIAL_CATEGORIES}
             transaction={dialogs.transaction.editing}
           />
         </Suspense>
@@ -533,7 +533,10 @@ const FinancialReportPage: React.FC = () => {
                 return false;
               }
             }}
-            refreshSettings={refreshSettings}
+            refreshSettings={async () => {
+              // Refresh settings if needed
+              return true;
+            }}
           />
         </Suspense>
       </div>

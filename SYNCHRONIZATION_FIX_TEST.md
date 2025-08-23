@@ -1,9 +1,10 @@
-# ✅ Purchase-Profit Analysis Synchronization Fix
+# ✅ Complete Purchase-Financial System Synchronization Fix
 
 ## 🎯 **Issue Summary**
-**Problem**: Completed purchases appeared in financial reports but not in profit analysis, indicating missing data synchronization.
+**Problem 1**: Completed purchases appeared in financial reports but not in profit analysis, indicating missing data synchronization.
+**Problem 2**: After fixing profit analysis sync, financial reports stopped syncing properly.
 
-**Root Cause**: No cache invalidation between financial transaction changes and profit analysis queries.
+**Root Cause**: Incomplete cache invalidation - only invalidating profit analysis cache but not financial transaction caches when purchases are completed.
 
 ## 🔧 **Solution Implemented**
 
@@ -23,6 +24,11 @@ onSuccess: () => {
   console.log('📈 Invalidating profit analysis cache after [operation] financial transaction');
   queryClient.invalidateQueries({ 
     queryKey: ['profit-analysis'] 
+  });
+  // ✅ INVALIDATE ALL FINANCIAL CACHES: Ensure all financial reports get updated
+  console.log('💰 Invalidating all financial caches after [operation] transaction');
+  queryClient.invalidateQueries({ 
+    queryKey: ['financial'] 
   });
   toast.success('Transaksi berhasil [operation]');
 }
@@ -45,6 +51,12 @@ if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
   console.log('📈 Invalidating profit analysis cache after purchase completion');
   queryClient.invalidateQueries({ 
     queryKey: ['profit-analysis'] 
+  });
+  
+  // ✅ INVALIDATE FINANCIAL REPORTS: Purchase completion creates financial transaction
+  console.log('💰 Invalidating financial transaction cache after purchase completion');
+  queryClient.invalidateQueries({ 
+    queryKey: ['financial'] 
   });
 }
 ```
@@ -92,7 +104,9 @@ When testing, you should see these console messages:
 ```
 🔄 Status mutation onSuccess with: [purchase object]
 📈 Invalidating profit analysis cache after purchase completion
+💰 Invalidating financial transaction cache after purchase completion
 📈 Invalidating profit analysis cache after adding financial transaction
+💰 Invalidating all financial caches after adding transaction
 ```
 
 ## 🎯 **Verification Steps**
@@ -108,16 +122,20 @@ When testing, you should see these console messages:
 ## 🎉 **Expected Results**
 
 ✅ **Purchase completion** creates financial transaction  
-✅ **Financial transaction creation** invalidates profit analysis cache  
+✅ **Financial transaction creation** invalidates both profit analysis and financial caches  
+✅ **Purchase completion** invalidates both profit analysis and financial caches  
 ✅ **Profit analysis** shows updated data immediately  
+✅ **Financial reports** show updated data immediately  
 ✅ **No manual refresh** required for synchronization  
 ✅ **Real-time data flow** between all financial systems
 
 ## 🔍 **Technical Details**
 
-- **Cache Key**: `['profit-analysis']` - invalidates all profit analysis queries
+- **Cache Keys**: 
+  - `['profit-analysis']` - invalidates all profit analysis queries
+  - `['financial']` - invalidates all financial transaction queries
 - **Trigger Points**: Financial transaction CRUD operations + Purchase completion
-- **Impact**: Automatic data synchronization across financial contexts
+- **Impact**: Comprehensive data synchronization across all financial contexts
 - **Performance**: Minimal impact (only invalidates cache, doesn't force refetch)
 
 The fix ensures that any financial transaction change (from purchases or direct entry) immediately reflects in profit analysis without requiring manual refresh or reload.

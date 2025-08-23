@@ -3,7 +3,7 @@
 
 import { FinancialTransactionActual, BahanBakuActual, OperationalCostActual, RealTimeProfitCalculation } from '../../types/profitAnalysis.types';
 import { PROFIT_CONSTANTS, FNB_THRESHOLDS, FNB_LABELS } from '../../constants/profitConstants';
-import { calculateMargins, getEffectiveUnitPrice, calcHPP } from '../calculations/basicCalculations';
+import { getEffectiveUnitPrice, calcHPP } from '../calculations/basicCalculations'; // Removed unused calculateMargins for consistency
 import { safeCalculateMargins } from '@/utils/profitValidation';
 import { filterTransactionsByPeriod, filterTransactionsByDateRange } from '../filters/dataFilters';
 import { getMarginRating, getCOGSEfficiencyRating } from '../ratings/profitRatings';

@@ -4,9 +4,8 @@
 import { useCallback } from 'react';
 import { RealTimeProfitCalculation, FNBCOGSBreakdown, FNBInsight } from '../types/profitAnalysis.types';
 
-// ✅ Import calculation utilities
+// ✅ Import calculation utilities (removed unused calculateMargins for consistency)
 import { 
-  calculateMargins, 
   getMarginRating, 
   filterTransactionsByPeriod,
   filterTransactionsByDateRange

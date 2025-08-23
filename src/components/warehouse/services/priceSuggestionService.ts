@@ -69,5 +69,4 @@ export const fetchLatestUnitPriceForItem = async (
   }
 };
 
-export default { fetchLatestUnitPriceForItem };
-
+// No default export to avoid any bundler interop edge-cases

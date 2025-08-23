@@ -460,7 +460,7 @@ const DetailedBreakdownTable = ({
         <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
         {[
           { key: 'all', label: 'Semua' },
-          { key: 'revenue', label: '  Pemasukan' },
+          { key: 'revenue', label: 'Pemasukan' },
           { key: 'cogs', label: 'Belanja' },
           { key: 'opex', label: 'Biaya' }
         ].map(tab => (
@@ -469,7 +469,11 @@ const DetailedBreakdownTable = ({
               variant={activeTab === tab.key ? 'default' : 'outline'}
               size="sm"
               onClick={() => handleTabChange(tab.key)}
-              className="text-xs px-2 py-1"
+              className={`text-xs px-2 py-1 ${
+                activeTab === tab.key 
+                  ? 'bg-black text-white hover:bg-gray-800' 
+                  : 'border-black text-black hover:bg-black hover:text-white'
+              }`}
             >
               {tab.label}
             </Button>
@@ -489,7 +493,11 @@ const DetailedBreakdownTable = ({
               variant={sortBy === sort.key ? 'default' : 'ghost'}
               size="sm"
               onClick={() => handleSortChange(sort.key)}
-              className="text-xs px-2 py-1"
+              className={`text-xs px-2 py-1 ${
+                sortBy === sort.key 
+                  ? 'bg-black text-white hover:bg-gray-800' 
+                  : 'text-black hover:bg-black hover:text-white'
+              }`}
             >
               {sort.label}
               {sortBy === sort.key && (

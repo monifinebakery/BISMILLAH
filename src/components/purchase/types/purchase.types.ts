@@ -88,6 +88,16 @@ export interface CreatePurchaseRequest {
   metode_perhitungan?: CalculationMethod;
 }
 
+// ✅ NEW: Payload UPDATE untuk tabel purchases
+export interface UpdatePurchaseRequest {
+  supplier?: string;
+  tanggal?: string;
+  total_nilai?: number;
+  items?: PurchaseItemDB[];
+  status?: PurchaseStatus;
+  metode_perhitungan?: CalculationMethod;
+}
+
 // Response pembelian (opsional kalau perlu)
 export interface PurchaseApiResponse {
   data: Purchase[] | null;

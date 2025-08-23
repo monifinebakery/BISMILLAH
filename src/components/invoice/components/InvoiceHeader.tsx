@@ -92,40 +92,46 @@ export const InvoiceHeader: React.FC<InvoiceHeaderProps> = ({
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3 min-w-[280px]">
           <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
             <Label className="text-gray-600 font-medium">No. Invoice:</Label>
-            <Input 
-              value={invoiceNumber} 
-              onChange={e => setInvoiceNumber(e.target.value)} 
-              className="text-right font-mono bg-transparent border-none p-0 h-auto print:hidden"
-            />
-            <span className="hidden print:block text-right font-mono text-sm">{invoiceNumber}</span>
+            <div>
+              <Input 
+                value={invoiceNumber} 
+                onChange={e => setInvoiceNumber(e.target.value)} 
+                className="text-right font-mono bg-transparent border-none p-0 h-auto"
+              />
+              <span className="export-text text-right font-mono text-sm block">{invoiceNumber}</span>
+            </div>
             
             <Label className="text-gray-600 font-medium">Tanggal:</Label>
-            <Input 
-              type="date" 
-              value={formatDateForInput(issueDate)} 
-              onChange={e => setIssueDate(new Date(e.target.value))} 
-              className="text-right bg-transparent border-none p-0 h-auto print:hidden"
-            />
-            <span className="hidden print:block text-right text-sm">
-              {formatDateForInput(issueDate)}
-            </span>
+            <div>
+              <Input 
+                type="date" 
+                value={formatDateForInput(issueDate)} 
+                onChange={e => setIssueDate(new Date(e.target.value))} 
+                className="text-right bg-transparent border-none p-0 h-auto"
+              />
+              <span className="export-text text-right text-sm block">
+                {issueDate.toLocaleDateString('id-ID')}
+              </span>
+            </div>
             
             <Label className="text-gray-600 font-medium">Jatuh Tempo:</Label>
-            <Input 
-              type="date" 
-              value={formatDateForInput(dueDate)} 
-              onChange={e => setDueDate(new Date(e.target.value))} 
-              className="text-right bg-transparent border-none p-0 h-auto print:hidden"
-            />
-            <span className="hidden print:block text-right text-sm">
-              {formatDateForInput(dueDate)}
-            </span>
+            <div>
+              <Input 
+                type="date" 
+                value={formatDateForInput(dueDate)} 
+                onChange={e => setDueDate(new Date(e.target.value))} 
+                className="text-right bg-transparent border-none p-0 h-auto"
+              />
+              <span className="export-text text-right text-sm block">
+                {dueDate.toLocaleDateString('id-ID')}
+              </span>
+            </div>
           </div>
           
           <div className="mt-4">
             <Label className="text-gray-600 font-medium mb-2 block">Status:</Label>
             <Select value={status} onValueChange={(value: InvoiceStatus) => setStatus(value)}>
-              <SelectTrigger className="print:hidden">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -134,7 +140,7 @@ export const InvoiceHeader: React.FC<InvoiceHeaderProps> = ({
                 <SelectItem value="JATUH TEMPO">JATUH TEMPO</SelectItem>
               </SelectContent>
             </Select>
-            <div className="hidden print:block">
+            <div className="export-text block">
               <StatusBadge status={status} />
             </div>
           </div>

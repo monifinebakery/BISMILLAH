@@ -16,13 +16,15 @@ import {
   RefreshCw,
   AlertCircle,
   Trash2,
-  Edit
+  Edit,
+  Info
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // ✅ Import useAuth dengan ES Module - Pastikan path ini benar sesuai struktur proyek Anda
 import { useAuth } from '@/contexts/AuthContext';
@@ -293,7 +295,26 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tanggal & Waktu</TableHead>
+                  <TableHead className="min-w-[140px]">
+                    <div className="flex items-center gap-2">
+                      <span>Tanggal & Waktu</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs">
+                            <div className="text-xs space-y-1">
+                              <p><strong>Format tampilan:</strong></p>
+                              <p>• Dengan waktu: "25 Des 2023" + "14:30 WIB"</p>
+                              <p>• Tanpa waktu: "25 Des 2023" + "Tanggal saja"</p>
+                              <p>• Waktu bersifat opsional saat input</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </TableHead>
                   <TableHead>Deskripsi</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead>Tipe</TableHead>
@@ -305,25 +326,56 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 {currentTransactions.length > 0 ? (
                   currentTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
-                      <TableCell>
+                      <TableCell className="min-w-[140px]">
                         {transaction.date ? (() => {
                           try {
                             const date = new Date(transaction.date);
-                            // Check if this is a valid date with actual time information
+                            // Check if this is a valid date
+                            if (isNaN(date.getTime())) {
+                              return (
+                                <div className="text-gray-400 text-sm">
+                                  <div>Tanggal tidak valid</div>
+                                </div>
+                              );
+                            }
+                            
+                            // Check if this has actual time information (not midnight)
                             const hasTimeInfo = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
                             
+                            // Format date consistently
+                            const dateStr = format(date, 'dd MMM yyyy', { locale: id });
+                            const timeStr = format(date, 'HH:mm', { locale: id });
+                            
                             if (hasTimeInfo) {
-                              // Show full date and time if time information is available
-                              return format(date, 'dd MMM yyyy HH:mm', { locale: id });
+                              // Show both date and time when time is available
+                              return (
+                                <div className="text-sm">
+                                  <div className="font-medium text-gray-900">{dateStr}</div>
+                                  <div className="text-gray-500 text-xs">{timeStr} WIB</div>
+                                </div>
+                              );
                             } else {
-                              // Show only date if no time information (avoid showing 00:00)
-                              return format(date, 'dd MMM yyyy', { locale: id });
+                              // Show only date when no specific time is recorded
+                              return (
+                                <div className="text-sm">
+                                  <div className="font-medium text-gray-900">{dateStr}</div>
+                                  <div className="text-gray-400 text-xs">Tanggal saja</div>
+                                </div>
+                              );
                             }
                           } catch (error) {
                             console.warn('Error formatting transaction date:', transaction.date, error);
-                            return '-';
+                            return (
+                              <div className="text-gray-400 text-sm">
+                                <div>Format tidak valid</div>
+                              </div>
+                            );
                           }
-                        })() : '-'}
+                        })() : (
+                          <div className="text-gray-400 text-sm">
+                            <div>Tidak ada tanggal</div>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {transaction.description || '-'}

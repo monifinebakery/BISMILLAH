@@ -65,22 +65,12 @@ export const validate = (data: any): string[] => {
   if (!data.kategori?.trim()) errors.push('Kategori kosong');
   if (!data.supplier?.trim()) errors.push('Supplier kosong');
   if (!data.satuan?.trim()) errors.push('Satuan kosong');
-  if (!data.satuanKemasan?.trim()) errors.push('Satuan kemasan kosong');
 
   if (isNaN(data.stok) || data.stok < 0) {
     errors.push('Stok tidak valid (harus angka ≥ 0)');
   }
   if (isNaN(data.minimum) || data.minimum < 0) {
     errors.push('Minimum stok tidak valid (harus angka ≥ 0)');
-  }
-  if (isNaN(data.jumlahBeliKemasan) || data.jumlahBeliKemasan <= 0) {
-    errors.push('Jumlah kemasan tidak valid (harus angka > 0)');
-  }
-  if (isNaN(data.isiPerKemasan) || data.isiPerKemasan <= 0) {
-    errors.push('Isi per kemasan tidak valid (harus angka > 0)');
-  }
-  if (isNaN(data.hargaTotalBeliKemasan) || data.hargaTotalBeliKemasan <= 0) {
-    errors.push('Harga total tidak valid (harus angka > 0)');
   }
 
   if (data.expiry && data.expiry.trim()) {

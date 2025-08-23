@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { warehouseUtils } from '../services/warehouseUtils';
+import { fetchLatestUnitPriceForItem } from '../services/priceSuggestionService';
 import { logger } from '@/utils/logger';
 import type { BahanBakuFrontend } from '../types';
 // Gunakan kategori HPP yang sama dengan analisis profit
@@ -89,6 +90,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     suppliers: false,
     units: false,
   });
+  const [priceSuggestion, setPriceSuggestion] = useState<{ value: number; tanggal: string; purchaseId?: string } | null>(null);
+  const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
   const isEditMode = mode === 'edit' || !!item;
 
@@ -113,8 +116,33 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         harga: Number(item.harga) || 0,
         expiry: item.expiry ? item.expiry.split('T')[0] : '',
       });
+
+      // Fetch latest purchase unit price suggestion (non-blocking)
+      (async () => {
+        try {
+          setIsFetchingPrice(true);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.id && item.id) {
+            const suggestion = await fetchLatestUnitPriceForItem(user.id, item.id);
+            if (suggestion && suggestion.price > 0) {
+              setPriceSuggestion({ value: Number(suggestion.price), tanggal: suggestion.tanggal, purchaseId: suggestion.purchaseId || undefined });
+              // Autofill only if current price is empty/zero
+              setFormData(prev => ({ ...prev, harga: prev.harga && prev.harga > 0 ? prev.harga : Number(suggestion.price) }));
+            } else {
+              setPriceSuggestion(null);
+            }
+          } else {
+            setPriceSuggestion(null);
+          }
+        } catch {
+          setPriceSuggestion(null);
+        } finally {
+          setIsFetchingPrice(false);
+        }
+      })();
     } else {
       setFormData(initialFormData);
+      setPriceSuggestion(null);
     }
     setErrors([]);
   }, [isEditMode, item, isOpen]);
@@ -460,6 +488,28 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           required
                           placeholder="0"
                         />
+                      </div>
+                      {/* Price suggestion from latest completed purchase */}
+                      <div className="mt-2">
+                        {isEditMode && !isFetchingPrice && priceSuggestion && priceSuggestion.value > 0 && (
+                          <div className="text-xs sm:text-sm text-gray-600 flex items-center gap-3">
+                            <span className="inline-flex items-center gap-1">
+                              <span className="text-gray-500">Saran harga (pembelian {new Date(priceSuggestion.tanggal).toLocaleDateString('id-ID')}):</span>
+                              <span className="font-medium text-gray-800">Rp {priceSuggestion.value.toLocaleString('id-ID')}</span>
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleFieldChange('harga', priceSuggestion.value)}
+                            >
+                              Gunakan
+                            </Button>
+                          </div>
+                        )}
+                        {isEditMode && isFetchingPrice && (
+                          <div className="text-xs text-gray-500">Mengambil saran harga…</div>
+                        )}
                       </div>
                       {isEditMode && typeof item?.hargaRataRata === 'number' && (
                         <p className="text-xs text-gray-500 mt-1">

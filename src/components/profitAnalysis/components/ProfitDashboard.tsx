@@ -183,27 +183,36 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="w-full overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 h-auto p-2 gap-2 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl">
+          <TabsList className="grid w-full grid-cols-3 h-auto p-1.5 gap-1 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl">
             <TabsTrigger 
               value="ikhtisar" 
-              className="flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] sm:data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
             >
-              <BarChart3 className="w-4 h-4 text-orange-600 group-data-[state=active]:text-orange-700" />
-              <span className="font-medium text-gray-700 group-data-[state=active]:text-orange-700">📊 Ringkasan</span>
+              <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 group-data-[state=active]:text-orange-700 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700 group-data-[state=active]:text-orange-700 text-center sm:text-left leading-tight">
+                <span className="hidden sm:inline">📊 Ringkasan</span>
+                <span className="sm:hidden">📊<br />Ringkasan</span>
+              </span>
             </TabsTrigger>
             <TabsTrigger 
               value="tren" 
-              className="flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] sm:data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
             >
-              <TrendingUp className="w-4 h-4 text-orange-600 group-data-[state=active]:text-orange-700" />
-              <span className="font-medium text-gray-700 group-data-[state=active]:text-orange-700">📈 Grafik</span>
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 group-data-[state=active]:text-orange-700 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700 group-data-[state=active]:text-orange-700 text-center sm:text-left leading-tight">
+                <span className="hidden sm:inline">📈 Grafik</span>
+                <span className="sm:hidden">📈<br />Grafik</span>
+              </span>
             </TabsTrigger>
             <TabsTrigger 
               value="breakdown" 
-              className="flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] sm:data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
             >
-              <FileText className="w-4 h-4 text-orange-600 group-data-[state=active]:text-orange-700" />
-              <span className="font-medium text-gray-700 group-data-[state=active]:text-orange-700">📋 Detail</span>
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 group-data-[state=active]:text-orange-700 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700 group-data-[state=active]:text-orange-700 text-center sm:text-left leading-tight">
+                <span className="hidden sm:inline">📋 Detail</span>
+                <span className="sm:hidden">📋<br />Detail</span>
+              </span>
             </TabsTrigger>
           </TabsList>
         </div>

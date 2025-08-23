@@ -22,10 +22,11 @@ import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 const DeviceManagementPage: React.FC = () => {
-  const { devices, currentDevice, loading, error, refreshDevices, updateDeviceName, removeDevice } = useDevice();
+  const { devices, currentDevice, loading, error, refreshDevices, updateDeviceName, removeDevice, removeAllOtherDevices } = useDevice();
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
 
   // Load devices only once when component mounts
@@ -82,6 +83,24 @@ const DeviceManagementPage: React.FC = () => {
       setIsRefreshing(false);
     }
   }, [isRefreshing, refreshDevices]);
+
+  const handleRemoveAllOtherDevices = useCallback(async () => {
+    if (isCleaningUp) return;
+    
+    if (window.confirm('Apakah Anda yakin ingin mengeluarkan semua perangkat lain? Anda akan tetap masuk di perangkat ini.')) {
+      setIsCleaningUp(true);
+      try {
+        const success = await removeAllOtherDevices();
+        if (success) {
+          logger.info('Successfully removed all other devices');
+        }
+      } catch (err) {
+        logger.error('Error removing all other devices:', err);
+      } finally {
+        setIsCleaningUp(false);
+      }
+    }
+  }, [isCleaningUp, removeAllOtherDevices]);
 
   const getDeviceIcon = useCallback((deviceType?: string) => {
     switch (deviceType?.toLowerCase()) {
@@ -148,22 +167,46 @@ const DeviceManagementPage: React.FC = () => {
               <CardTitle>Perangkat Aktif</CardTitle>
               <CardDescription>
                 {devices.length} perangkat saat ini masuk ke akun Anda
+                {devices.length > 5 && (
+                  <span className="text-orange-600 ml-2">
+                    (Terlalu banyak perangkat - pertimbangkan untuk membersihkan)
+                  </span>
+                )}
               </CardDescription>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={handleRefreshDevices}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 mr-2"></div>
-                  Memperbarui...
-                </>
-              ) : (
-                'Perbarui Daftar'
+            <div className="flex gap-2">
+              {devices.length > 1 && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleRemoveAllOtherDevices}
+                  disabled={isCleaningUp || isRefreshing}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  {isCleaningUp ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500 mr-2"></div>
+                      Membersihkan...
+                    </>
+                  ) : (
+                    'Keluar dari Semua Perangkat'
+                  )}
+                </Button>
               )}
-            </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleRefreshDevices}
+                disabled={isRefreshing || isCleaningUp}
+              >
+                {isRefreshing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 mr-2"></div>
+                    Memperbarui...
+                  </>
+                ) : (
+                  'Perbarui Daftar'
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -182,7 +225,7 @@ const DeviceManagementPage: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4">
                       <div className={`p-2 rounded-full ${device.is_current ? 'bg-orange-100' : 'bg-gray-100'}`}>
-                        {getDeviceIcon(device.device_type)}
+                        {getDeviceIcon(device.device_type || undefined)}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
@@ -231,7 +274,7 @@ const DeviceManagementPage: React.FC = () => {
                         <div className="mt-2 text-sm text-gray-600">
                           <p>{device.browser} di {device.os}</p>
                           <p className="mt-1">
-                            Terakhir aktif {formatLastActive(device.last_active)}
+                            Terakhir aktif {device.last_active ? formatLastActive(device.last_active) : 'Tidak diketahui'}
                           </p>
                         </div>
                       </div>
@@ -265,37 +308,6 @@ const DeviceManagementPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div>
-              <h3 className="font-medium">Keluar dari Semua Perangkat</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Keluar dari akun Anda di semua perangkat, termasuk perangkat saat ini.
-              </p>
-              <Button 
-                variant="destructive" 
-                className="mt-2"
-                onClick={async () => {
-                  if (window.confirm('Apakah Anda yakin ingin keluar dari semua perangkat?')) {
-                    try {
-                      setIsRefreshing(true);
-                      // This would be implemented in your auth context
-                      // await performGlobalSignOut();
-                      // For now, we'll just refresh the devices list
-                      await refreshDevices();
-                    } catch (err) {
-                      logger.error('Error signing out from all devices:', err);
-                    } finally {
-                      setIsRefreshing(false);
-                    }
-                  }
-                }}
-                disabled={isRefreshing}
-              >
-                Keluar dari Semua Perangkat
-              </Button>
-            </div>
-            
-            <Separator />
-            
             <div>
               <h3 className="font-medium">Aktivitas Mencurigakan?</h3>
               <p className="text-sm text-gray-600 mt-1">

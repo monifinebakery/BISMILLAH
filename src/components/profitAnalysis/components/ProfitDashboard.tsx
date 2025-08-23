@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitData } from '../hooks';
@@ -87,7 +87,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
   const { formatPeriodLabel, exportData } = useProfitData({
     history: profitHistory,
-    currentAnalysis,
+    currentAnalysis: currentAnalysis || undefined,
   });
 
   const advancedMetrics = showAdvancedMetrics
@@ -183,10 +183,28 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="w-full overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 h-auto p-1 gap-1">
-            <TabsTrigger value="ikhtisar">Ringkasan</TabsTrigger>
-            <TabsTrigger value="tren">Grafik</TabsTrigger>
-            <TabsTrigger value="breakdown">Detail</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 h-auto p-2 gap-2 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl">
+            <TabsTrigger 
+              value="ikhtisar" 
+              className="flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+            >
+              <BarChart3 className="w-4 h-4 text-orange-600 group-data-[state=active]:text-orange-700" />
+              <span className="font-medium text-gray-700 group-data-[state=active]:text-orange-700">📊 Ringkasan</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="tren" 
+              className="flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+            >
+              <TrendingUp className="w-4 h-4 text-orange-600 group-data-[state=active]:text-orange-700" />
+              <span className="font-medium text-gray-700 group-data-[state=active]:text-orange-700">📈 Grafik</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="breakdown" 
+              className="flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+            >
+              <FileText className="w-4 h-4 text-orange-600 group-data-[state=active]:text-orange-700" />
+              <span className="font-medium text-gray-700 group-data-[state=active]:text-orange-700">📋 Detail</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 

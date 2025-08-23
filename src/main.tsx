@@ -140,6 +140,24 @@ if (effectiveDev) {
     console.warn('Could not load imported purchase sync test:', error);
   });
   
+  // Import price calculation debug utilities
+  import('@/utils/debugPriceCalculation').then(({ debugPriceCalculation, testQuickCalculation }) => {
+    (window as any).debugPriceCalculation = debugPriceCalculation;
+    (window as any).testQuickCalculation = testQuickCalculation;
+    console.log('🔍 Price calculation debug utilities loaded');
+  }).catch(error => {
+    console.warn('Could not load price calculation debug utilities:', error);
+  });
+  
+  // Import import calculation test utilities
+  import('@/utils/testImportCalculation').then(({ testImportCalculation, testManualVsImportComparison }) => {
+    (window as any).testImportCalculation = testImportCalculation;
+    (window as any).testManualVsImportComparison = testManualVsImportComparison;
+    console.log('🧪 Import calculation test utilities loaded');
+  }).catch(error => {
+    console.warn('Could not load import calculation test utilities:', error);
+  });
+  
   (window as any).appDebug = {
     logger,
     testLogger: () => {

@@ -810,6 +810,26 @@ export const profitAnalysisApi = {
         description: t.description || undefined,
         user_id: userId // Add missing user_id field
       }));
+      
+      // 🔍 DEBUG: Enhanced logging for profit analysis transaction processing
+      const cogsTransactions = transactionsActual.filter(t => 
+        t.type === 'expense' && t.category === 'Pembelian Bahan Baku'
+      );
+      
+      console.log('🔍 Profit Analysis Transaction Debug:', {
+        period,
+        totalTransactions: transactionsActual.length,
+        cogsTransactionCount: cogsTransactions.length,
+        cogsTransactions: cogsTransactions.map(t => ({
+          id: t.id,
+          category: t.category,
+          amount: t.amount,
+          description: t.description,
+          date: t.date
+        })),
+        allTransactionCategories: [...new Set(transactionsActual.map(t => t.category))],
+        dateRange: { from: from.toISOString(), to: to.toISOString() }
+      });
 
       // Calculate profit analysis using utility function
       const calculation = calculateRealTimeProfit(

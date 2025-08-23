@@ -357,7 +357,16 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           console.log('💰 Creating financial transaction for completed purchase:', {
             purchaseId: fresh.id,
             amount: fresh.totalNilai,
-            supplier: getSupplierName(fresh.supplier)
+            supplier: getSupplierName(fresh.supplier),
+            category: 'Pembelian Bahan Baku',
+            transactionData: {
+              type: 'expense',
+              amount: fresh.totalNilai,
+              description: `Pembelian dari ${getSupplierName(fresh.supplier)}`,
+              category: 'Pembelian Bahan Baku',
+              date: new Date(),
+              relatedId: fresh.id,
+            }
           });
           
           void addFinancialTransaction({

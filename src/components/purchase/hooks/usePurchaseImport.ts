@@ -4,6 +4,7 @@ import { logger } from '@/utils/logger';
 import { loadXLSX } from '@/components/warehouse/dialogs/import-utils';
 import { usePurchase } from '@/components/purchase/context/PurchaseContext';
 import { useSupplier } from '@/contexts/SupplierContext';
+import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 // Define the import data structure
 export interface PurchaseImportData {
@@ -72,6 +73,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
   const [preview, setPreview] = useState<{ valid: PurchaseImportData[]; errors: string[] } | null>(null);
   const { addPurchase } = usePurchase();
   const { suppliers } = useSupplier();
+  const { bahanBaku: warehouseItems } = useBahanBaku();
 
   const validate = (data: any): string[] => {
     const errors: string[] = [];
@@ -305,20 +307,44 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
                 
               const subtotal = item.kuantitas * calculatedUnitPrice;
               
+              // 🔄 WAREHOUSE LINKING: Find existing warehouse item by name and unit
+              let bahanBakuId = '';
+              const matchingWarehouseItem = warehouseItems?.find(wItem => 
+                wItem.nama.toLowerCase().trim() === item.nama.toLowerCase().trim() &&
+                wItem.satuan.toLowerCase().trim() === item.satuan.toLowerCase().trim()
+              );
+              
+              if (matchingWarehouseItem) {
+                bahanBakuId = matchingWarehouseItem.id;
+                console.log('✅ [IMPORT LINK] Found matching warehouse item:', {
+                  importItem: item.nama,
+                  warehouseId: bahanBakuId,
+                  warehouseName: matchingWarehouseItem.nama
+                });
+              } else {
+                console.log('⚠️ [IMPORT LINK] No matching warehouse item found for:', {
+                  name: item.nama,
+                  unit: item.satuan,
+                  suggestion: 'Item will be created as new purchase item without warehouse link'
+                });
+              }
+              
               console.log('🔄 [IMPORT CALC] Automatic price calculation:', {
                 itemName: item.nama,
                 totalPayment: purchaseData.totalNilai,
                 quantity: item.kuantitas,
                 calculatedPrice: calculatedUnitPrice,
-                subtotal: subtotal
+                subtotal: subtotal,
+                warehouseLinked: !!bahanBakuId
               });
               
               return {
                 ...item,
+                bahanBakuId: bahanBakuId, // ✅ LINK to warehouse item if found
                 hargaSatuan: calculatedUnitPrice, // Use calculated price instead of 0
                 subtotal: subtotal,
                 // Mark as imported for tracking, but treated SAMA with manual entry
-                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.totalNilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}`
+                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.totalNilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`
               };
             }),
             totalNilai: purchaseData.totalNilai,

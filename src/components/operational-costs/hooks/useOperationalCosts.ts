@@ -1,6 +1,7 @@
 // src/components/operational-costs/hooks/useOperationalCosts.ts
 
 import { useState, useCallback, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 import { 
   OperationalCost, 
@@ -9,7 +10,7 @@ import {
   CostSummary,
   ApiResponse 
 } from '../types';
-import { operationalCostApi } from '../services';
+import { operationalCostApi, setQueryClient } from '../services';
 import { transformCostsToSummary } from '../utils/costTransformers';
 import { validateCostForm } from '../utils/costValidation';
 
@@ -38,10 +39,16 @@ interface UseOperationalCostsReturn {
 }
 
 export const useOperationalCosts = (initialFilters?: CostFilters): UseOperationalCostsReturn => {
+  const queryClient = useQueryClient();
   const [costs, setCosts] = useState<OperationalCost[]>([]);
   const [filters, setFilters] = useState<CostFilters>(initialFilters || {});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 🔄 Set up query client for cache invalidation
+  useEffect(() => {
+    setQueryClient(queryClient);
+  }, [queryClient]);
 
   // Computed values
   const filteredCosts = costs.filter(cost => {

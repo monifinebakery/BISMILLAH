@@ -25,7 +25,6 @@ interface FinancialTransactionDB {
   amount: number;
   description: string | null;
   date: string | null;
-  notes: string | null;
   related_id: string | null;
   created_at: string;
   updated_at: string;
@@ -44,7 +43,6 @@ const transformForDB = (
     category: transaction.category || null,
     amount: transaction.amount,
     description: transaction.description || null,
-    notes: transaction.notes || null,
     related_id: transaction.relatedId || null,
     date: transaction.date ? new Date(transaction.date).toISOString() : null,
   };
@@ -68,7 +66,6 @@ const transformFromDB = (data: any): FinancialTransaction => {
     amount: data.amount,
     description: data.description,
     date: safeParseDate(data.date),
-    notes: data.notes,
     relatedId: data.related_id,
     createdAt: safeParseDate(data.created_at),
     updatedAt: safeParseDate(data.updated_at),

@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
-import { warehouseUtils } from '@/components/warehouse/services/warehouseUtils';
+// Avoid importing warehouseUtils to reduce bundle graph and prevent potential cycles
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
 
@@ -86,10 +86,11 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     
     const item = warehouseItems.find(item => item.id === selectedWarehouseItem);
     if (!item) return null;
-    
-    // Use effective unit price (WAC prioritized over base price)
-    const effectivePrice = warehouseUtils.getEffectiveUnitPrice(item);
-    const isUsingWac = warehouseUtils.isUsingWac(item);
+    // Local helpers to avoid importing warehouseUtils
+    const wac = Number((item as any).hargaRataRata ?? 0);
+    const base = Number((item as any).harga ?? 0);
+    const effectivePrice = wac > 0 ? wac : base;
+    const isUsingWac = wac > 0;
     
     return {
       item,

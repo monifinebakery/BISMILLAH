@@ -121,33 +121,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     }
   }, [selectedWarehouseItemData]);
   
-  // Show notification when automatic calculation is active
-  React.useEffect(() => {
-    if (isUsingAutomaticCalculation && computedUnitPrice > 0) {
-      const qty = toNumber(formData.kuantitas);
-      const total = toNumber(formData.totalBayar);
-      toast.success(
-        `📊 Harga satuan otomatis: ${formatCurrency(computedUnitPrice)}`,
-        {
-          description: `Dihitung dari Rp ${total.toLocaleString('id-ID')} ÷ ${qty} = ${formatCurrency(computedUnitPrice)}`
-        }
-      );
-    }
-  }, [isUsingAutomaticCalculation, computedUnitPrice, formData.kuantitas, formData.totalBayar]);
-  
-  // Update totalBayar when kuantitas changes for existing warehouse items
-  React.useEffect(() => {
-    if (selectedWarehouseItemData && formData.kuantitas) {
-      const qty = toNumber(formData.kuantitas);
-      const newTotal = qty * selectedWarehouseItemData.effectivePrice;
-      setFormData(prev => ({
-        ...prev,
-        totalBayar: newTotal > 0 ? newTotal.toString() : ''
-      }));
-    }
-  }, [formData.kuantitas, selectedWarehouseItemData]);
-
-  // Computed values
+  // Computed values (declare BEFORE any effects that depend on them)
   const computedUnitPrice = useMemo(() => {
     // For existing warehouse items, use effective price directly
     if (selectedWarehouseItemData) {
@@ -171,6 +145,32 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   }, [selectedWarehouseItemData, formData.kuantitas, formData.totalBayar]);
 
   const effectiveQty = useMemo(() => toNumber(formData.kuantitas), [formData.kuantitas]);
+
+  // Show notification when automatic calculation is active
+  React.useEffect(() => {
+    if (isUsingAutomaticCalculation && computedUnitPrice > 0) {
+      const qty = toNumber(formData.kuantitas);
+      const total = toNumber(formData.totalBayar);
+      toast.success(
+        `📊 Harga satuan otomatis: ${formatCurrency(computedUnitPrice)}`,
+        {
+          description: `Dihitung dari Rp ${total.toLocaleString('id-ID')} ÷ ${qty} = ${formatCurrency(computedUnitPrice)}`
+        }
+      );
+    }
+  }, [isUsingAutomaticCalculation, computedUnitPrice, formData.kuantitas, formData.totalBayar]);
+
+  // Update totalBayar when kuantitas changes for existing warehouse items
+  React.useEffect(() => {
+    if (selectedWarehouseItemData && formData.kuantitas) {
+      const qty = toNumber(formData.kuantitas);
+      const newTotal = qty * selectedWarehouseItemData.effectivePrice;
+      setFormData(prev => ({
+        ...prev,
+        totalBayar: newTotal > 0 ? newTotal.toString() : ''
+      }));
+    }
+  }, [formData.kuantitas, selectedWarehouseItemData]);
 
   const canSubmit = isSelectingExistingItem
     ? selectedWarehouseItem !== '' && effectiveQty > 0 && (computedUnitPrice > 0 || selectedWarehouseItemData?.effectivePrice === 0)

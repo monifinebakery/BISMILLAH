@@ -19,7 +19,7 @@ import {
 
 // Import existing APIs with compatibility
 import financialApi from '@/components/financial/services/financialApi';
-import { warehouseApi } from '@/components/warehouse/services/warehouseApi';
+import { warehouseApi, getWarehouseDataByDateRange } from '@/components/warehouse/services/warehouseApi';
 import { operationalCostApi } from '@/components/operational-costs/services/operationalCostApi';
 
 import { calculateRealTimeProfit, calculateMargins, generateExecutiveInsights, getCOGSEfficiencyRating } from '../utils/profitCalculations';
@@ -246,8 +246,8 @@ export async function calculateProfitAnalysisDaily(
   to: Date
 ): Promise<ProfitApiResponse<RealTimeProfitCalculation[]>> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) return { data: [], success: false, error: 'Not authenticated' };
+    const authUserId = await getCurrentUserId();
+    if (!authUserId) return { data: [], success: false, error: 'Not authenticated' };
 
     // Use centralized date normalization to ensure consistency
     const { startDate, endDate, startYMD, endYMD } = normalizeDateRange(from, to);
@@ -266,7 +266,7 @@ export async function calculateProfitAnalysisDaily(
     const { data: trx, error: trxErr } = await supabase
       .from('financial_transactions')
       .select('id, user_id, type, category, amount, description, date')
-      .eq('user_id', userId)
+      .eq('user_id', authUserId)
       .gte('date', startYMD)
       .lte('date', endYMD)
       .order('date', { ascending: true });
@@ -321,12 +321,22 @@ export async function calculateProfitAnalysisDaily(
     });
 
     // OpEx daily pro-rata (sum aktif costs per month / daysInMonth for each day)
-    // Use type assertion to bypass TypeScript schema validation
-    const { data: costs, error: costErr } = await (supabase as any)
-      .from('operational_costs')
-      .select('jumlah_per_bulan, jenis, status');
-    if (costErr) throw costErr;
-    const activeMonthly = (costs || []).filter((c: any) => c.status === 'aktif').reduce((s: number, c: any) => s + Number(c.jumlah_per_bulan || 0), 0);
+    // 🎯 FIX: Use date-filtered operational costs for accurate period matching
+    const opCostsResult = await operationalCostApi.getCostsByDateRange(startDate, endDate, authUserId);
+    const activeCosts = (opCostsResult.data || []).filter((c: any) => c.status === 'aktif');
+    const activeMonthly = activeCosts.reduce((s: number, c: any) => s + Number(c.jumlah_per_bulan || 0), 0);
+    
+    console.log('🔍 Daily OpEx Calculation (IMPROVED):', {
+      dateRange: { startYMD, endYMD },
+      totalCosts: opCostsResult.data?.length || 0,
+      activeCosts: activeCosts.length,
+      totalMonthlyOpEx: activeMonthly,
+      costsBreakdown: activeCosts.map(c => ({
+        nama: c.nama_biaya,
+        jumlah: c.jumlah_per_bulan,
+        created_at: c.created_at
+      }))
+    });
 
     // Build day list using centralized utility
     const days = generateDayList(startDate, endDate);
@@ -781,8 +791,8 @@ export const profitAnalysisApi = {
           operationalCosts
         ] = await Promise.all([
           financialApi.getTransactionsByDateRange(userId, from, to),
-          getWarehouseData(userId),
-          operationalCostApi.getCosts(undefined, userId)
+          getWarehouseDataByDateRange(userId, from, to), // 🎯 FIX: Use date-filtered warehouse data
+          operationalCostApi.getCostsByDateRange(from, to, userId) // 🎯 FIX: Use date-filtered operational costs
         ]);
 
       // Handle potential errors from data sources
@@ -794,11 +804,45 @@ export const profitAnalysisApi = {
         id: m.id,
         nama: m.nama,
         stok: m.stok,
-        harga_satuan: m.harga_satuan,
+        harga_satuan: m.harga, // Use `harga` from BahanBakuFrontend
         status: 'aktif' as const, // Default to active
         user_id: userId
       })) : [];
       const costsData = operationalCosts.data || [];
+      
+      // 🔍 DEBUG: Enhanced warehouse materials filtering
+      console.log('🔍 Warehouse Materials Analysis Debug:', {
+        period,
+        dateRange: { from: from.toISOString(), to: to.toISOString() },
+        totalWarehouseMaterials: materialsData.length,
+        activeMaterials: materialsData.filter(m => m.status === 'aktif').length,
+        materialsBreakdown: materialsData.slice(0, 5).map(m => ({
+          nama: m.nama,
+          stok: m.stok,
+          harga_satuan: m.harga_satuan,
+          id: m.id
+        })),
+        totalStockValue: materialsData.reduce((sum, m) => sum + (m.stok * m.harga_satuan), 0)
+      });
+      
+      // 🔍 DEBUG: Enhanced operational costs filtering
+      console.log('🔍 Operational Costs Analysis Debug:', {
+        period,
+        dateRange: { from: from.toISOString(), to: to.toISOString() },
+        totalOperationalCosts: costsData.length,
+        activeCosts: costsData.filter((c: any) => c.status === 'aktif').length,
+        costsBreakdown: costsData.map((c: any) => ({
+          nama: c.nama_biaya,
+          jumlah_per_bulan: c.jumlah_per_bulan,
+          jenis: c.jenis,
+          status: c.status,
+          created_at: c.created_at,
+          cost_category: c.cost_category
+        })),
+        totalMonthlyOpEx: costsData
+          .filter((c: any) => c.status === 'aktif')
+          .reduce((sum: number, c: any) => sum + (c.jumlah_per_bulan || 0), 0)
+      });
       
       // Convert transactions to expected format
       const transactionsActual = transactions.map(t => ({
@@ -810,6 +854,26 @@ export const profitAnalysisApi = {
         description: t.description || undefined,
         user_id: userId // Add missing user_id field
       }));
+      
+      // 🔍 DEBUG: Enhanced logging for profit analysis transaction processing
+      const cogsTransactions = transactionsActual.filter(t => 
+        t.type === 'expense' && t.category === 'Pembelian Bahan Baku'
+      );
+      
+      console.log('🔍 Profit Analysis Transaction Debug:', {
+        period,
+        totalTransactions: transactionsActual.length,
+        cogsTransactionCount: cogsTransactions.length,
+        cogsTransactions: cogsTransactions.map(t => ({
+          id: t.id,
+          category: t.category,
+          amount: t.amount,
+          description: t.description,
+          date: t.date
+        })),
+        allTransactionCategories: [...new Set(transactionsActual.map(t => t.category))],
+        dateRange: { from: from.toISOString(), to: to.toISOString() }
+      });
 
       // Calculate profit analysis using utility function
       const calculation = calculateRealTimeProfit(

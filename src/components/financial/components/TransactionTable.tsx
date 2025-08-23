@@ -86,7 +86,7 @@ const useTransactionData = (dateRange?: { from: Date; to?: Date }, userId?: stri
       ? transactionQueryKeys.byRange(dateRange.from, dateRange.to)
       : transactionQueryKeys.list(),
     queryFn: () => {
-      if (!userId || !dateRange?.from) {
+      if (!userId || !dateRange?.from || !dateRange?.to) {
         return Promise.resolve([]);
       }
       return getTransactionsByDateRange(userId, dateRange.from, dateRange.to);
@@ -100,13 +100,13 @@ const useTransactionData = (dateRange?: { from: Date; to?: Date }, userId?: stri
   // Mutation: Hapus transaksi
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteFinancialTransaction(id),
-    onSuccess: (response) => {
-      if (response.success) {
+    onSuccess: (success: boolean) => {
+      if (success) {
         // Invalidate cache
         queryClient.invalidateQueries({ queryKey: transactionQueryKeys.list() });
         toast.success('Transaksi berhasil dihapus');
       } else {
-        toast.error(response.error || 'Gagal menghapus transaksi');
+        toast.error('Gagal menghapus transaksi');
       }
     },
     onError: (error: Error) => {
@@ -306,10 +306,24 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   currentTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell>
-                        {transaction.date
-                          ? format(new Date(transaction.date), 'dd MMM yyyy HH:mm', { locale: id })
-                          : '-'
-                        }
+                        {transaction.date ? (() => {
+                          try {
+                            const date = new Date(transaction.date);
+                            // Check if this is a valid date with actual time information
+                            const hasTimeInfo = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
+                            
+                            if (hasTimeInfo) {
+                              // Show full date and time if time information is available
+                              return format(date, 'dd MMM yyyy HH:mm', { locale: id });
+                            } else {
+                              // Show only date if no time information (avoid showing 00:00)
+                              return format(date, 'dd MMM yyyy', { locale: id });
+                            }
+                          } catch (error) {
+                            console.warn('Error formatting transaction date:', transaction.date, error);
+                            return '-';
+                          }
+                        })() : '-'}
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {transaction.description || '-'}

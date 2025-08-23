@@ -40,6 +40,13 @@ import {
 } from '../../types';
 import { formatCurrency } from '../../services/recipeUtils';
 import { logger } from '@/utils/logger';
+import { 
+  convertIngredientUnit, 
+  getConversionDisplayText, 
+  formatConvertedPrice,
+  shouldConvertUnit,
+  type ConvertedIngredient 
+} from '@/utils/unitConversion';
 
 // Import warehouse related hooks/services
 import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
@@ -69,19 +76,10 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       // Check specific price fields
       warehouseItems.slice(0, 3).forEach((item, index) => {
         logger.debug(`Item ${index + 1} - ${item.nama}:`, {
-          harga_satuan: item.harga_satuan,
-          typeof_harga_satuan: typeof item.harga_satuan,
-          all_price_related_fields: {
-            harga_satuan: item.harga_satuan,
-            harga_total_beli_kemasan: item.harga_total_beli_kemasan,
-            // Check if there are other price fields
-            ...Object.fromEntries(
-              Object.entries(item).filter(([key]) => 
-                key.toLowerCase().includes('harga') || 
-                key.toLowerCase().includes('price')
-              )
-            )
-          }
+          harga: (item as any).harga,
+          typeof_harga: typeof (item as any).harga,
+          satuan: item.satuan,
+          rawItem: item
         });
       });
     }
@@ -96,30 +94,60 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
     totalHarga: 0,
   });
 
+  // 🆕 Unit conversion state
+  const [conversionInfo, setConversionInfo] = useState<ConvertedIngredient | null>(null);
+
   // Calculate total ingredient cost
   const totalIngredientCost = data.bahanResep.reduce((sum, ingredient) => sum + ingredient.totalHarga, 0);
 
-  // Handle warehouse item selection
+  // Handle warehouse item selection with automatic unit conversion
   const handleWarehouseItemSelect = (warehouseItemId: string) => {
     const selectedItem = warehouseItems.find(item => item.id === warehouseItemId);
     if (selectedItem) {
       // Cast to BahanBakuFrontend since that's what the API actually returns
       const frontendItem = selectedItem as any as BahanBakuFrontend;
       
-      console.log('Selected item (corrected):', {
+      console.log('Selected item (before conversion):', {
         nama: frontendItem.nama,
-        harga: frontendItem.harga, // This should be the correct field
-        rawItem: selectedItem
+        harga: frontendItem.harga,
+        satuan: frontendItem.satuan
       });
       
+      // 🆕 AUTO CONVERT: Convert warehouse unit to recipe-friendly smaller unit
+      const warehousePrice = frontendItem.harga || 0;
+      const warehouseUnit = frontendItem.satuan || 'pcs';
+      const conversion = convertIngredientUnit(warehouseUnit, warehousePrice);
+      
+      console.log('🆕 Unit conversion applied:', {
+        from: conversion.originalUnit,
+        to: conversion.convertedUnit,
+        priceFrom: conversion.originalPrice,
+        priceTo: conversion.convertedPrice,
+        isConverted: conversion.isConverted,
+        displayText: getConversionDisplayText(conversion)
+      });
+      
+      // Update form with converted values
       setNewIngredient(prev => ({
         ...prev,
         nama: frontendItem.nama,
-        satuan: frontendItem.satuan || prev.satuan,
-        hargaSatuan: frontendItem.harga || 0, // Use 'harga' field from BahanBakuFrontend
+        satuan: conversion.convertedUnit, // 🆕 Use converted unit (gram instead of kg)
+        hargaSatuan: conversion.convertedPrice, // 🆕 Use converted price (per gram instead of per kg)
         warehouseId: frontendItem.id,
-        totalHarga: (prev.jumlah || 0) * (frontendItem.harga || 0)
+        totalHarga: (prev.jumlah || 0) * conversion.convertedPrice
       }));
+      
+      // Store conversion info for display
+      setConversionInfo(conversion);
+      
+      // Show conversion info to user
+      if (conversion.isConverted) {
+        toast.success(
+          `🆕 Satuan dikonversi: ${conversion.originalUnit} → ${conversion.convertedUnit}\n` +
+          `Harga disesuaikan: ${formatConvertedPrice(conversion)}`,
+          { duration: 4000 }
+        );
+      }
     }
   };
 
@@ -162,6 +190,9 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       hargaSatuan: 0,
       totalHarga: 0,
     });
+    
+    // 🆕 Reset conversion info
+    setConversionInfo(null);
 
     toast.success('Bahan berhasil ditambahkan');
   };
@@ -189,7 +220,7 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
     onUpdate('bahanResep', newIngredients);
   };
 
-  // Update existing ingredient with warehouse data
+  // Update existing ingredient with warehouse data and unit conversion
   const handleUpdateIngredientFromWarehouse = (index: number, warehouseItemId: string) => {
     const selectedItem = warehouseItems.find(item => item.id === warehouseItemId);
     if (selectedItem) {
@@ -197,16 +228,38 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       const newIngredients = [...data.bahanResep];
       const currentQuantity = newIngredients[index].jumlah;
       
+      // 🆕 AUTO CONVERT: Apply unit conversion for existing ingredients too
+      const warehousePrice = frontendItem.harga || 0;
+      const warehouseUnit = frontendItem.satuan || 'pcs';
+      const conversion = convertIngredientUnit(warehouseUnit, warehousePrice);
+      
+      console.log('🆕 Updating existing ingredient with conversion:', {
+        index,
+        from: conversion.originalUnit,
+        to: conversion.convertedUnit,
+        priceFrom: conversion.originalPrice,
+        priceTo: conversion.convertedPrice,
+        isConverted: conversion.isConverted
+      });
+      
       newIngredients[index] = {
         ...newIngredients[index],
         nama: frontendItem.nama,
-        satuan: frontendItem.satuan || newIngredients[index].satuan,
-        hargaSatuan: frontendItem.harga || newIngredients[index].hargaSatuan,
-        totalHarga: currentQuantity * (frontendItem.harga || newIngredients[index].hargaSatuan),
+        satuan: conversion.convertedUnit, // 🆕 Use converted unit
+        hargaSatuan: conversion.convertedPrice, // 🆕 Use converted price
+        totalHarga: currentQuantity * conversion.convertedPrice,
         warehouseId: frontendItem.id,
       };
 
       onUpdate('bahanResep', newIngredients);
+      
+      // Show conversion info to user for existing ingredient updates
+      if (conversion.isConverted) {
+        toast.success(
+          `🆕 Bahan "${frontendItem.nama}" dikonversi: ${conversion.originalUnit} → ${conversion.convertedUnit}`,
+          { duration: 3000 }
+        );
+      }
     }
   };
 
@@ -277,20 +330,48 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                         Dari Warehouse
                       </div>
                     </div>
-                    {availableWarehouseItems.map((item) => (
-                      <SelectItem key={item.id} value={item.id} className="cursor-pointer">
-                        <div className="flex flex-col items-start gap-1 py-1">
-                          <span className="font-medium">{item.nama}</span>
-                          <div className="text-xs text-gray-500 flex items-center gap-2">
-                            <span>{item.satuan}</span>
-                            <span>•</span>
-                            <span className="font-medium text-green-600">
-                              {formatCurrency((item as any).harga || 0)}
-                            </span>
+                    {availableWarehouseItems.map((item) => {
+                      // Check if this item will be converted
+                      const warehousePrice = (item as any).harga || 0;
+                      const warehouseUnit = item.satuan || 'pcs';
+                      const conversion = convertIngredientUnit(warehouseUnit, warehousePrice);
+                      
+                      return (
+                        <SelectItem key={item.id} value={item.id} className="cursor-pointer">
+                          <div className="flex flex-col items-start gap-1 py-1">
+                            <span className="font-medium">{item.nama}</span>
+                            <div className="text-xs text-gray-500 flex items-center gap-2">
+                              {conversion.isConverted ? (
+                                <>
+                                  <span className="line-through text-gray-400">{conversion.originalUnit}</span>
+                                  <span className="text-green-600 font-medium">🆕 {conversion.convertedUnit}</span>
+                                  <span>•</span>
+                                  <span className="text-green-600 font-medium">
+                                    {formatCurrency(conversion.convertedPrice)}/{conversion.convertedUnit}
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    (dari {formatCurrency(conversion.originalPrice)}/{conversion.originalUnit})
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>{item.satuan}</span>
+                                  <span>•</span>
+                                  <span className="font-medium text-green-600">
+                                    {formatCurrency(warehousePrice)}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {conversion.isConverted && (
+                              <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-1">
+                                🆕 Auto-convert ke satuan lebih kecil untuk kemudahan resep
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </SelectItem>
-                    ))}
+                        </SelectItem>
+                      );
+                    })}
                     {availableWarehouseItems.length === 0 && !loadingWarehouse && (
                       <div className="px-2 py-4 text-center text-gray-500 text-sm">
                         Belum ada bahan di warehouse
@@ -396,6 +477,42 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                 </div>
               </div>
             )}
+            
+            {/* 🆕 Unit Conversion Info */}
+            {conversionInfo && conversionInfo.isConverted && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Calculator className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-medium text-blue-900 text-sm">
+                      🆕 Konversi Satuan Otomatis
+                    </h4>
+                    <p className="text-blue-700 text-xs leading-relaxed">
+                      {getConversionDisplayText(conversionInfo)}
+                    </p>
+                    <div className="text-xs text-blue-600 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span>Harga asli:</span>
+                        <span className="font-medium">
+                          {formatCurrency(conversionInfo.originalPrice)}/{conversionInfo.originalUnit}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Harga per {conversionInfo.convertedUnit}:</span>
+                        <span className="font-medium text-green-600">
+                          {formatCurrency(conversionInfo.convertedPrice)}/{conversionInfo.convertedUnit}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-blue-500 italic">
+                      Ini memudahkan input takaran resep dengan satuan yang lebih kecil dan presisi.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -452,16 +569,34 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                               <SelectValue placeholder="Pilih dari warehouse" />
                             </SelectTrigger>
                             <SelectContent className="max-w-[300px]">
-                              {availableWarehouseItems.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  <div className="flex flex-col items-start gap-1">
-                                    <span>{item.nama}</span>
-                                    <div className="text-xs text-gray-500">
-                                      {formatCurrency((item as any).harga || 0)}
+                              {availableWarehouseItems.map((item) => {
+                                // Check if this item will be converted for table display
+                                const warehousePrice = (item as any).harga || 0;
+                                const warehouseUnit = item.satuan || 'pcs';
+                                const conversion = convertIngredientUnit(warehouseUnit, warehousePrice);
+                                
+                                return (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    <div className="flex flex-col items-start gap-1">
+                                      <span>{item.nama}</span>
+                                      <div className="text-xs text-gray-500">
+                                        {conversion.isConverted ? (
+                                          <div className="space-y-1">
+                                            <div>
+                                              🆕 {formatCurrency(conversion.convertedPrice)}/{conversion.convertedUnit}
+                                            </div>
+                                            <div className="text-xs text-gray-400">
+                                              (dari {formatCurrency(conversion.originalPrice)}/{conversion.originalUnit})
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          formatCurrency(warehousePrice)
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                </SelectItem>
-                              ))}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           <Input
@@ -577,13 +712,13 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                   </span>
                 </div>
 
-                {data.jumlahPcsPerPorsi > 1 && (
+                {(data.jumlahPcsPerPorsi || 0) > 1 && (
                   <div className="flex justify-between">
                     <span className="text-blue-700">Biaya per Pcs:</span>
                     <span className="font-semibold text-blue-900">
                       {formatCurrency(
-                        data.jumlahPorsi > 0 && data.jumlahPcsPerPorsi > 0 
-                          ? totalIngredientCost / (data.jumlahPorsi * data.jumlahPcsPerPorsi)
+                        data.jumlahPorsi > 0 && (data.jumlahPcsPerPorsi || 0) > 0 
+                          ? totalIngredientCost / (data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1))
                           : 0
                       )}
                     </span>
@@ -603,12 +738,13 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
               </div>
               <div>
                 <h4 className="font-medium text-orange-900 mb-2">
-                  Tips Menambah Bahan
+                  🆕 Tips Menambah Bahan
                 </h4>
                 <ul className="text-sm text-orange-800 space-y-1">
+                  <li>• 🆕 Satuan besar (kg, liter) otomatis dikonversi ke satuan kecil (gram, ml)</li>
                   <li>• Pilih bahan dari warehouse untuk sinkronisasi harga otomatis</li>
+                  <li>• Harga akan disesuaikan secara proporsional saat konversi</li>
                   <li>• Atau ketik manual jika bahan belum ada di warehouse</li>
-                  <li>• Harga akan otomatis terisi dari data warehouse</li>
                   <li>• Update data warehouse untuk akurasi harga terbaru</li>
                 </ul>
               </div>

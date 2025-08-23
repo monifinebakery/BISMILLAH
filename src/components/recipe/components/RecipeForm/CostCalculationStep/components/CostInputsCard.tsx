@@ -142,16 +142,13 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 value={data.jumlahPcsPerPorsi || ''}
                 onChange={(e) => onUpdate('jumlahPcsPerPorsi', parseInt(e.target.value) || 1)}
                 placeholder="1"
-                className={`${errors.jumlahPcsPerPorsi ? 'border-red-300 focus:border-red-500' : ''}`}
+                className={''}
                 disabled={isLoading}
               />
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                 pcs
               </span>
             </div>
-            {errors.jumlahPcsPerPorsi && (
-              <p className="text-sm text-red-600">{errors.jumlahPcsPerPorsi}</p>
-            )}
             <p className="text-xs text-gray-500">
               Berapa pieces dalam 1 porsi? (Default: 1 pcs = 1 porsi)
             </p>
@@ -228,8 +225,19 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
               <Input
                 type="number"
                 min="0"
-                value={data.biayaTenagaKerja || ''}
-                onChange={(e) => onUpdate('biayaTenagaKerja', parseFloat(e.target.value) || 0)}
+                value={data.biayaTenagaKerja?.toString() || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string for better UX during typing
+                  if (value === '') {
+                    onUpdate('biayaTenagaKerja', 0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      onUpdate('biayaTenagaKerja', numValue);
+                    }
+                  }
+                }}
                 placeholder="0"
                 className={`pl-8 ${errors.biayaTenagaKerja ? 'border-red-300 focus:border-red-500' : ''}`}
                 disabled={isLoading}
@@ -363,8 +371,19 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
               <Input
                 type="number"
                 min="0"
-                value={data.biayaOverhead || ''}
-                onChange={(e) => overheadManagement.setManualOverhead(parseFloat(e.target.value) || 0)}
+                value={data.biayaOverhead?.toString() || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string for better UX during typing
+                  if (value === '') {
+                    overheadManagement.setManualOverhead(0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      overheadManagement.setManualOverhead(numValue);
+                    }
+                  }
+                }}
                 placeholder="0"
                 className={`pl-8 ${errors.biayaOverhead ? 'border-red-300 focus:border-red-500' : ''} ${
                   overheadManagement.isUsingAutoOverhead ? 'bg-green-50 border-green-200' : ''
@@ -467,8 +486,19 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 min="0"
                 max="1000"
                 step="0.1"
-                value={data.marginKeuntunganPersen || ''}
-                onChange={(e) => onUpdate('marginKeuntunganPersen', parseFloat(e.target.value) || 0)}
+                value={data.marginKeuntunganPersen?.toString() || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string for better UX during typing
+                  if (value === '') {
+                    onUpdate('marginKeuntunganPersen', 0);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                      onUpdate('marginKeuntunganPersen', numValue);
+                    }
+                  }
+                }}
                 placeholder="Contoh: 25"
                 className={`pr-8 ${
                   errors.marginKeuntunganPersen ? 'border-red-300 focus:border-red-500' : 

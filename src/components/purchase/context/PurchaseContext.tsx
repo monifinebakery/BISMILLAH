@@ -110,16 +110,14 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { addFinancialTransaction, deleteFinancialTransaction } = useFinancial();
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
-  // Add defensive check for useBahanBaku
-  let bahanBaku: any[] = [];
-  let addBahanBaku = async (_: any) => false;
-  try {
-    const warehouseContext = useBahanBaku();
-    bahanBaku = warehouseContext?.bahanBaku || [];
-    addBahanBaku = warehouseContext?.addBahanBaku || addBahanBaku;
-  } catch (error) {
-    console.warn('Failed to get warehouse data in PurchaseContext:', error);
-  }
+  
+  // ✅ FIXED: Safe warehouse context access without try-catch around hooks
+  const warehouseContext = useBahanBaku();
+  const bahanBaku = warehouseContext?.bahanBaku || [];
+  const addBahanBaku = warehouseContext?.addBahanBaku || (async (_: any) => {
+    console.warn('addBahanBaku not available in warehouse context');
+    return false;
+  });
   const getSupplierName = useCallback((supplierId: string): string => {
     try {
       const s = suppliers?.find(
@@ -331,16 +329,46 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
       // ✅ INVALIDATE WAREHOUSE
-
       invalidateWarehouseData();
 
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
 
+      // 🔍 DEBUG: Log mutation context for debugging
+      console.log('🔍 Status mutation context:', {
+        id: ctx?.id,
+        newStatus: ctx?.newStatus,
+        previousData: ctx?.prev?.find(p => p.id === ctx?.id),
+        freshData: fresh
+      });
+
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
-      const prevPurchase = findPurchase(fresh.id);
+      // 🔧 FIX: Use previous data from mutation context instead of current cache
+      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      
       if (prevPurchase) {
+        console.log('🔍 Purchase status comparison:', {
+          previousStatus: prevPurchase.status,
+          newStatus: fresh.status,
+          willCreateTransaction: prevPurchase.status !== 'completed' && fresh.status === 'completed'
+        });
+        
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
           // Tambahkan transaksi ketika status berubah ke completed (expense)
+          console.log('💰 Creating financial transaction for completed purchase:', {
+            purchaseId: fresh.id,
+            amount: fresh.totalNilai,
+            supplier: getSupplierName(fresh.supplier),
+            category: 'Pembelian Bahan Baku',
+            transactionData: {
+              type: 'expense',
+              amount: fresh.totalNilai,
+              description: `Pembelian dari ${getSupplierName(fresh.supplier)}`,
+              category: 'Pembelian Bahan Baku',
+              date: new Date(),
+              relatedId: fresh.id,
+            }
+          });
+          
           void addFinancialTransaction({
             type: 'expense',
             amount: fresh.totalNilai,
@@ -349,8 +377,22 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             date: new Date(),
             relatedId: fresh.id,
           });
+          
+          // ✅ INVALIDATE PROFIT ANALYSIS: Purchase completion affects profit calculations
+          console.log('📈 Invalidating profit analysis cache after purchase completion');
+          queryClient.invalidateQueries({ 
+            queryKey: ['profit-analysis'] 
+          });
+          
+          // ✅ INVALIDATE FINANCIAL REPORTS: Purchase completion creates financial transaction
+          console.log('💰 Invalidating financial transaction cache after purchase completion');
+          queryClient.invalidateQueries({ 
+            queryKey: ['financial'] 
+          });
         } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
           // Hapus transaksi ketika status berubah dari completed (berdasarkan related_id)
+          console.log('💰 Deleting financial transaction for reverted purchase:', fresh.id);
+          
           // Cari transaksi terkait lalu hapus
           (async () => {
             try {
@@ -365,11 +407,25 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               for (const id of ids) {
                 await deleteFinancialTransaction(id);
               }
+              
+              // ✅ INVALIDATE PROFIT ANALYSIS: Financial transaction deletion affects profit calculations
+              console.log('📈 Invalidating profit analysis cache after financial transaction deletion');
+              queryClient.invalidateQueries({ 
+                queryKey: ['profit-analysis'] 
+              });
+              
+              // ✅ INVALIDATE FINANCIAL REPORTS: Financial transaction deletion affects reports
+              console.log('💰 Invalidating financial transaction cache after deletion');
+              queryClient.invalidateQueries({ 
+                queryKey: ['financial'] 
+              });
             } catch (e) {
               logger.warn('Gagal membersihkan transaksi keuangan saat revert purchase:', e);
             }
           })();
         }
+      } else {
+        console.warn('⚠️ Previous purchase data not found in mutation context for:', fresh.id);
       }
     },
     onError: (err, _vars, ctx) => {

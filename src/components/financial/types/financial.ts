@@ -11,7 +11,6 @@ export interface FinancialTransaction {
   amount: number;
   description: string | null;
   date: Date | string | null;
-  notes?: string | null;
   relatedId?: string | null;
   userId: string;
   createdAt?: Date | string | null;
@@ -66,7 +65,6 @@ export interface TransactionFormData {
   category: string;
   description: string;
   date: Date;
-  notes?: string;
 }
 
 export interface ValidationResult {

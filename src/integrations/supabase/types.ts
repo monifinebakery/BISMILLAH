@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       activities: {
@@ -36,6 +41,57 @@ export type Database = {
           type?: string
           user_id?: string
           value?: string | null
+        }
+        Relationships: []
+      }
+      allocation_settings: {
+        Row: {
+          created_at: string
+          metode: string
+          nilai: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          metode?: string
+          nilai?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          metode?: string
+          nilai?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      app_updates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          release_date: string
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          release_date?: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          release_date?: string
+          title?: string
         }
         Relationships: []
       }
@@ -90,6 +146,7 @@ export type Database = {
       bahan_baku: {
         Row: {
           created_at: string
+          harga_rata_rata: number | null
           harga_satuan: number
           id: string
           kategori: string
@@ -104,6 +161,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          harga_rata_rata?: number | null
           harga_satuan?: number
           id?: string
           kategori: string
@@ -118,6 +176,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          harga_rata_rata?: number | null
           harga_satuan?: number
           id?: string
           kategori?: string
@@ -132,6 +191,51 @@ export type Database = {
         }
         Relationships: []
       }
+      devices: {
+        Row: {
+          browser: string | null
+          created_at: string | null
+          device_id: string
+          device_name: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          is_current: boolean | null
+          last_active: string | null
+          os: string | null
+          refresh_token_hash: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string | null
+          device_id: string
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active?: string | null
+          os?: string | null
+          refresh_token_hash?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string | null
+          device_id?: string
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active?: string | null
+          os?: string | null
+          refresh_token_hash?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_transactions: {
         Row: {
           amount: number
@@ -140,6 +244,7 @@ export type Database = {
           date: string
           description: string
           id: string
+          related_id: string | null
           type: string
           updated_at: string
           user_id: string
@@ -151,6 +256,7 @@ export type Database = {
           date: string
           description: string
           id?: string
+          related_id?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -162,104 +268,210 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          related_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
-      hpp_recipes: {
+      followup_templates: {
         Row: {
-          biaya_overhead: number
-          biaya_tenaga_kerja: number
           created_at: string
-          deskripsi: string | null
-          harga_jual_per_porsi: number
-          hpp_per_porsi: number
           id: string
-          ingredients: Json
-          margin_keuntungan: number
-          nama_resep: string
-          porsi: number
-          total_hpp: number
+          status: string
+          template: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          biaya_overhead?: number
-          biaya_tenaga_kerja?: number
           created_at?: string
-          deskripsi?: string | null
-          harga_jual_per_porsi?: number
-          hpp_per_porsi?: number
           id?: string
-          ingredients?: Json
-          margin_keuntungan?: number
-          nama_resep: string
-          porsi?: number
-          total_hpp?: number
+          status: string
+          template: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          biaya_overhead?: number
-          biaya_tenaga_kerja?: number
           created_at?: string
-          deskripsi?: string | null
-          harga_jual_per_porsi?: number
-          hpp_per_porsi?: number
           id?: string
-          ingredients?: Json
-          margin_keuntungan?: number
-          nama_resep?: string
-          porsi?: number
-          total_hpp?: number
+          status?: string
+          template?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
-      hpp_results: {
+      notification_settings: {
         Row: {
-          biaya_overhead: number
-          biaya_tenaga_kerja: number
+          auto_archive_days: number | null
           created_at: string
-          harga_jual_per_porsi: number
-          hpp_per_porsi: number
+          daily_reports: boolean
+          financial_alerts: boolean
+          financial_notifications: boolean
+          inventory_alerts: boolean
+          inventory_notifications: boolean
+          low_stock_alerts: boolean
+          low_stock_threshold: number | null
+          monthly_reports: boolean
+          order_alerts: boolean
+          order_notifications: boolean
+          payment_alerts: boolean
+          payment_notifications: boolean
+          push_notifications: boolean
+          reminder_notifications: boolean
+          security_alerts: boolean
+          stock_alerts: boolean
+          stock_notifications: boolean
+          system_notifications: boolean
+          updated_at: string
+          user_id: string
+          weekly_reports: boolean
+        }
+        Insert: {
+          auto_archive_days?: number | null
+          created_at?: string
+          daily_reports?: boolean
+          financial_alerts?: boolean
+          financial_notifications?: boolean
+          inventory_alerts?: boolean
+          inventory_notifications?: boolean
+          low_stock_alerts?: boolean
+          low_stock_threshold?: number | null
+          monthly_reports?: boolean
+          order_alerts?: boolean
+          order_notifications?: boolean
+          payment_alerts?: boolean
+          payment_notifications?: boolean
+          push_notifications?: boolean
+          reminder_notifications?: boolean
+          security_alerts?: boolean
+          stock_alerts?: boolean
+          stock_notifications?: boolean
+          system_notifications?: boolean
+          updated_at?: string
+          user_id: string
+          weekly_reports?: boolean
+        }
+        Update: {
+          auto_archive_days?: number | null
+          created_at?: string
+          daily_reports?: boolean
+          financial_alerts?: boolean
+          financial_notifications?: boolean
+          inventory_alerts?: boolean
+          inventory_notifications?: boolean
+          low_stock_alerts?: boolean
+          low_stock_threshold?: number | null
+          monthly_reports?: boolean
+          order_alerts?: boolean
+          order_notifications?: boolean
+          payment_alerts?: boolean
+          payment_notifications?: boolean
+          push_notifications?: boolean
+          reminder_notifications?: boolean
+          security_alerts?: boolean
+          stock_alerts?: boolean
+          stock_notifications?: boolean
+          system_notifications?: boolean
+          updated_at?: string
+          user_id?: string
+          weekly_reports?: boolean
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          expires_at: string | null
+          icon: string | null
           id: string
-          ingredients: Json
-          jumlah_porsi: number
-          margin_keuntungan: number
-          nama: string
-          total_hpp: number
+          is_archived: boolean
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          priority: number
+          related_id: string | null
+          related_type: string | null
+          title: string
+          type: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          biaya_overhead?: number
-          biaya_tenaga_kerja?: number
+          action_url?: string | null
           created_at?: string
-          harga_jual_per_porsi?: number
-          hpp_per_porsi?: number
+          expires_at?: string | null
+          icon?: string | null
           id?: string
-          ingredients?: Json
-          jumlah_porsi?: number
-          margin_keuntungan?: number
-          nama: string
-          total_hpp?: number
+          is_archived?: boolean
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          priority?: number
+          related_id?: string | null
+          related_type?: string | null
+          title: string
+          type: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          biaya_overhead?: number
-          biaya_tenaga_kerja?: number
+          action_url?: string | null
           created_at?: string
-          harga_jual_per_porsi?: number
-          hpp_per_porsi?: number
+          expires_at?: string | null
+          icon?: string | null
           id?: string
-          ingredients?: Json
-          jumlah_porsi?: number
-          margin_keuntungan?: number
-          nama?: string
-          total_hpp?: number
+          is_archived?: boolean
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          priority?: number
+          related_id?: string | null
+          related_type?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      operational_costs: {
+        Row: {
+          cost_category: string | null
+          created_at: string
+          deskripsi: string | null
+          id: string
+          jenis: string
+          jumlah_per_bulan: number
+          nama_biaya: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cost_category?: string | null
+          created_at?: string
+          deskripsi?: string | null
+          id?: string
+          jenis: string
+          jumlah_per_bulan?: number
+          nama_biaya: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cost_category?: string | null
+          created_at?: string
+          deskripsi?: string | null
+          id?: string
+          jenis?: string
+          jumlah_per_bulan?: number
+          nama_biaya?: string
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -271,7 +483,7 @@ export type Database = {
           created_at: string
           email_pelanggan: string | null
           id: string
-          items: Json
+          items: Json | null
           nama_pelanggan: string
           nomor_pesanan: string
           status: string
@@ -287,10 +499,10 @@ export type Database = {
           created_at?: string
           email_pelanggan?: string | null
           id?: string
-          items?: Json
+          items?: Json | null
           nama_pelanggan: string
           nomor_pesanan: string
-          status?: string
+          status: string
           tanggal?: string
           telepon_pelanggan: string
           total_pesanan?: number
@@ -303,13 +515,111 @@ export type Database = {
           created_at?: string
           email_pelanggan?: string | null
           id?: string
-          items?: Json
+          items?: Json | null
           nama_pelanggan?: string
           nomor_pesanan?: string
           status?: string
           tanggal?: string
           telepon_pelanggan?: string
           total_pesanan?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pemakaian_bahan: {
+        Row: {
+          bahan_baku_id: string
+          created_at: string
+          harga_efektif: number | null
+          hpp_value: number | null
+          id: string
+          keterangan: string | null
+          qty_base: number
+          source_id: string | null
+          source_type: string | null
+          tanggal: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bahan_baku_id: string
+          created_at?: string
+          harga_efektif?: number | null
+          hpp_value?: number | null
+          id?: string
+          keterangan?: string | null
+          qty_base?: number
+          source_id?: string | null
+          source_type?: string | null
+          tanggal?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bahan_baku_id?: string
+          created_at?: string
+          harga_efektif?: number | null
+          hpp_value?: number | null
+          id?: string
+          keterangan?: string | null
+          qty_base?: number
+          source_id?: string | null
+          source_type?: string | null
+          tanggal?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pemakaian_bahan_bahan_baku_id_fkey"
+            columns: ["bahan_baku_id"]
+            isOneToOne: false
+            referencedRelation: "bahan_baku"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promos: {
+        Row: {
+          calculation_result: Json | null
+          created_at: string
+          data_promo: Json | null
+          deskripsi: string | null
+          id: string
+          nama_promo: string
+          status: string
+          tanggal_mulai: string | null
+          tanggal_selesai: string | null
+          tipe_promo: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calculation_result?: Json | null
+          created_at?: string
+          data_promo?: Json | null
+          deskripsi?: string | null
+          id?: string
+          nama_promo: string
+          status?: string
+          tanggal_mulai?: string | null
+          tanggal_selesai?: string | null
+          tipe_promo?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calculation_result?: Json | null
+          created_at?: string
+          data_promo?: Json | null
+          deskripsi?: string | null
+          id?: string
+          nama_promo?: string
+          status?: string
+          tanggal_mulai?: string | null
+          tanggal_selesai?: string | null
+          tipe_promo?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -353,6 +663,72 @@ export type Database = {
           tanggal?: string
           total_nilai?: number
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          bahan_resep: Json | null
+          biaya_overhead: number
+          biaya_tenaga_kerja: number
+          created_at: string
+          deskripsi: string | null
+          foto_url: string | null
+          harga_jual_per_pcs: number
+          harga_jual_porsi: number
+          hpp_per_pcs: number
+          hpp_per_porsi: number
+          id: string
+          jumlah_pcs_per_porsi: number
+          jumlah_porsi: number
+          kategori_resep: string | null
+          margin_keuntungan_persen: number
+          nama_resep: string
+          total_hpp: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bahan_resep?: Json | null
+          biaya_overhead?: number
+          biaya_tenaga_kerja?: number
+          created_at?: string
+          deskripsi?: string | null
+          foto_url?: string | null
+          harga_jual_per_pcs?: number
+          harga_jual_porsi?: number
+          hpp_per_pcs?: number
+          hpp_per_porsi?: number
+          id?: string
+          jumlah_pcs_per_porsi?: number
+          jumlah_porsi?: number
+          kategori_resep?: string | null
+          margin_keuntungan_persen?: number
+          nama_resep: string
+          total_hpp?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bahan_resep?: Json | null
+          biaya_overhead?: number
+          biaya_tenaga_kerja?: number
+          created_at?: string
+          deskripsi?: string | null
+          foto_url?: string | null
+          harga_jual_per_pcs?: number
+          harga_jual_porsi?: number
+          hpp_per_pcs?: number
+          hpp_per_porsi?: number
+          id?: string
+          jumlah_pcs_per_porsi?: number
+          jumlah_porsi?: number
+          kategori_resep?: string | null
+          margin_keuntungan_persen?: number
+          nama_resep?: string
+          total_hpp?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -407,7 +783,7 @@ export type Database = {
           payment_status: string
           pg_reference_id: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -419,7 +795,7 @@ export type Database = {
           payment_status?: string
           pg_reference_id?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -431,9 +807,38 @@ export type Database = {
           payment_status?: string
           pg_reference_id?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
+      }
+      user_seen_updates: {
+        Row: {
+          id: string
+          seen_at: string
+          update_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          seen_at?: string
+          update_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          seen_at?: string
+          update_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_seen_updates_update_id_fkey"
+            columns: ["update_id"]
+            isOneToOne: false
+            referencedRelation: "app_updates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
@@ -488,10 +893,109 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      pemakaian_bahan_daily_mv: {
+        Row: {
+          date: string | null
+          source_types: string | null
+          total_hpp: number | null
+          usage_count: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      calculate_overhead: {
+        Args: { p_material_cost: number; p_user_id: string }
+        Returns: number
+      }
+      calculate_realtime_profit: {
+        Args: { p_period: string; p_user_id: string }
+        Returns: {
+          calculated_at: string
+          cogs_materials: Json
+          opex_costs: Json
+          revenue_transactions: Json
+          total_cogs: number
+          total_opex: number
+          total_revenue: number
+        }[]
+      }
+      can_complete_order: {
+        Args: { p_order_id: string }
+        Returns: {
+          available_ingredients: number
+          can_complete: boolean
+          insufficient_stock: Json
+          total_ingredients: number
+        }[]
+      }
+      complete_order_and_deduct_stock: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      create_new_order: {
+        Args: { order_data: Json }
+        Returns: string
+      }
+      get_order_statistics: {
+        Args: { p_user_id: string }
+        Returns: {
+          average_order_value: number
+          cancelled_orders: number
+          completed_orders: number
+          pending_orders: number
+          total_orders: number
+          total_revenue: number
+        }[]
+      }
+      get_profit_trend: {
+        Args: {
+          p_end_period: string
+          p_start_period: string
+          p_user_id: string
+        }
+        Returns: {
+          gross_profit: number
+          net_profit: number
+          period: string
+          total_cogs: number
+          total_opex: number
+          total_revenue: number
+        }[]
+      }
+      get_revenue_breakdown: {
+        Args: { p_period: string; p_user_id: string }
+        Returns: {
+          amount: number
+          category: string
+          transaction_count: number
+        }[]
+      }
+      get_total_costs: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      is_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      record_material_usage: {
+        Args: {
+          p_bahan_baku_id: string
+          p_harga_efektif?: number
+          p_keterangan?: string
+          p_qty_base: number
+          p_source_id?: string
+          p_source_type?: string
+          p_tanggal?: string
+        }
+        Returns: string
+      }
+      refresh_pemakaian_daily_mv: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -502,21 +1006,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -534,14 +1042,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -557,14 +1067,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -580,14 +1092,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -595,14 +1109,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

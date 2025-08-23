@@ -17,10 +17,12 @@ import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
 
 // Types for external dependencies
 interface FinancialTransaction {
+  id?: string;
   type: 'income' | 'expense';
   category?: string;
   amount?: number;
-  date?: string; // ✅ PERBAIKAN 2: Tambah field date untuk kompatibilitas filter
+  date?: string | Date; // ✅ PERBAIKAN 2: Tambah field date untuk kompatibilitas filter
+  user_id?: string;
 }
 
 interface BahanBakuFrontend {
@@ -115,8 +117,8 @@ export const useProfitCalculation = (
     try {
       // Filter transactions - use date range if provided, otherwise use period
       const periodTransactions = dateRange 
-        ? filterTransactionsByDateRange(transactions || [], dateRange.from, dateRange.to)
-        : filterTransactionsByPeriod(transactions || [], period);
+        ? filterTransactionsByDateRange(transactions as any || [], dateRange.from, dateRange.to)
+        : filterTransactionsByPeriod(transactions as any || [], period);
       
       // Calculate revenue
       const revenueTransactions = periodTransactions.filter(t => t?.type === 'income');
@@ -126,6 +128,28 @@ export const useProfitCalculation = (
       const cogsTransactions = periodTransactions.filter(t => 
         t?.type === 'expense' && t?.category === 'Pembelian Bahan Baku'
       );
+      
+      // 🔍 DEBUG: Enhanced logging for COGS calculation
+      console.log('🔍 COGS Calculation Debug:', {
+        period,
+        totalTransactions: transactions?.length || 0,
+        periodTransactions: periodTransactions.length,
+        cogsTransactions: cogsTransactions.length,
+        cogsTransactionDetails: cogsTransactions.map(t => ({
+          id: t.id,
+          type: t.type,
+          category: t.category,
+          amount: t.amount,
+          description: t.description,
+          date: t.date
+        })),
+        hasDateRange: !!dateRange,
+        dateRange: dateRange ? {
+          from: dateRange.from.toISOString(),
+          to: dateRange.to.toISOString()
+        } : null
+      });
+      
       const cogs = cogsTransactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
       
       // Calculate OpEx

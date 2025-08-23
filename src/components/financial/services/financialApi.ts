@@ -25,7 +25,6 @@ interface FinancialTransactionDB {
   amount: number;
   description: string | null;
   date: string | null;
-  notes: string | null;
   related_id: string | null;
   created_at: string;
   updated_at: string;
@@ -38,14 +37,13 @@ interface FinancialTransactionDB {
 const transformForDB = (
   transaction: CreateTransactionData | UpdateTransactionData, 
   userId?: string
-): Partial<FinancialTransactionDB> => {
-  const dbTransaction: Partial<FinancialTransactionDB> = {
+): any => {
+  const dbTransaction: any = {
     type: transaction.type,
-    category: transaction.category,
+    category: transaction.category || null,
     amount: transaction.amount,
-    description: transaction.description,
-    notes: transaction.notes,
-    related_id: transaction.relatedId,
+    description: transaction.description || null,
+    related_id: transaction.relatedId || null,
     date: transaction.date ? new Date(transaction.date).toISOString() : null,
   };
 
@@ -59,7 +57,7 @@ const transformForDB = (
   );
 };
 
-const transformFromDB = (data: FinancialTransactionDB): FinancialTransaction => {
+const transformFromDB = (data: any): FinancialTransaction => {
   return {
     id: data.id,
     userId: data.user_id,
@@ -68,7 +66,6 @@ const transformFromDB = (data: FinancialTransactionDB): FinancialTransaction => 
     amount: data.amount,
     description: data.description,
     date: safeParseDate(data.date),
-    notes: data.notes,
     relatedId: data.related_id,
     createdAt: safeParseDate(data.created_at),
     updatedAt: safeParseDate(data.updated_at),
@@ -101,7 +98,21 @@ export const addFinancialTransaction = async (
   userId: string
 ): Promise<FinancialTransaction> => {
   try {
+    console.log('💰 Adding financial transaction:', {
+      userId,
+      transaction: {
+        type: transaction.type,
+        category: transaction.category,
+        amount: transaction.amount,
+        description: transaction.description,
+        date: transaction.date,
+        relatedId: transaction.relatedId
+      }
+    });
+    
     const dbData = transformForDB(transaction, userId);
+    
+    console.log('💾 Database data to insert:', dbData);
     
     const { data, error } = await supabase
       .from('financial_transactions')
@@ -109,9 +120,20 @@ export const addFinancialTransaction = async (
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Financial transaction creation failed:', error);
+      throw error;
+    }
     
-    return transformFromDB(data);
+    const result = transformFromDB(data);
+    console.log('✅ Financial transaction created successfully:', {
+      id: result.id,
+      category: result.category,
+      amount: result.amount,
+      date: result.date
+    });
+    
+    return result;
   } catch (error: any) {
     logger.error('Error adding transaction:', error);
     throw new Error(`Failed to add transaction: ${error.message}`);

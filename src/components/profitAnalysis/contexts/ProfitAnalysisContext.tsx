@@ -107,16 +107,23 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     enabled: !!user,
     staleTime: refreshInterval,
     refetchInterval: autoRefresh ? refreshInterval : false,
-    retry: 2,
-    onSuccess: (data) => {
-      dispatch({ type: 'SET_CURRENT_ANALYSIS', payload: data });
-      dispatch({ type: 'SET_ERROR', payload: null });
-    },
-    onError: (error: Error) => {
-      logger.error(' Gagal memuat analisis profit:', error);
-      dispatch({ type: 'SET_ERROR', payload: error.message });
-    }
+    retry: 2
   });
+
+  // ✅ FIXED: Handle success/error via useEffect instead of deprecated callbacks
+  useEffect(() => {
+    if (currentAnalysisQuery.data) {
+      dispatch({ type: 'SET_CURRENT_ANALYSIS', payload: currentAnalysisQuery.data });
+      dispatch({ type: 'SET_ERROR', payload: null });
+    }
+  }, [currentAnalysisQuery.data]);
+
+  useEffect(() => {
+    if (currentAnalysisQuery.error) {
+      logger.error(' Gagal memuat analisis profit:', currentAnalysisQuery.error);
+      dispatch({ type: 'SET_ERROR', payload: (currentAnalysisQuery.error as Error).message });
+    }
+  }, [currentAnalysisQuery.error]);
 
   // Mutation untuk kalkulasi profit
   const calculateProfitMutation = useMutation({
@@ -133,10 +140,14 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
         throw new Error(response.error);
       }
       return response.data;
-    },
-    onSuccess: (data, variables) => {
+    }
+  });
+
+  // ✅ FIXED: Handle mutation success/error via useEffect
+  useEffect(() => {
+    if (calculateProfitMutation.isSuccess && calculateProfitMutation.data) {
+      const data = calculateProfitMutation.data;
       logger.success(' Kalkulasi profit berhasil:', {
-        period: variables.period,
         revenue: data.revenue_data.total
       });
       
@@ -151,12 +162,15 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       queryClient.invalidateQueries({ 
         queryKey: PROFIT_ANALYSIS_QUERY_KEYS.analysis() 
       });
-    },
-    onError: (error: Error) => {
-      logger.error(' Gagal menghitung profit:', error);
-      dispatch({ type: 'SET_ERROR', payload: `Gagal menghitung profit: ${error.message}` });
-    },
-  });
+    }
+  }, [calculateProfitMutation.isSuccess, calculateProfitMutation.data, queryClient]);
+
+  useEffect(() => {
+    if (calculateProfitMutation.isError && calculateProfitMutation.error) {
+      logger.error(' Gagal menghitung profit:', calculateProfitMutation.error);
+      dispatch({ type: 'SET_ERROR', payload: `Gagal menghitung profit: ${(calculateProfitMutation.error as Error).message}` });
+    }
+  }, [calculateProfitMutation.isError, calculateProfitMutation.error]);
 
   // Actions
   const calculateProfit = useCallback(async (
@@ -192,7 +206,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       }
       
       dispatch({ type: 'SET_PROFIT_DATA', payload: response.data });
-      logger.success(' Riwayat profit berhasil dimuat:', response.data.length, 'periode');
+      logger.success(` Riwayat profit berhasil dimuat: ${response.data.length} periode`);
       
     } catch (error) {
       logger.error(' Gagal memuat riwayat profit:', error);

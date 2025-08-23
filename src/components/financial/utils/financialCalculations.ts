@@ -272,8 +272,7 @@ export const searchTransactions = (
     const searchTerm = query.toLowerCase();
     results = results.filter(t => 
       (t.description || '').toLowerCase().includes(searchTerm) ||
-      (t.category || '').toLowerCase().includes(searchTerm) ||
-      (t.notes || '').toLowerCase().includes(searchTerm)
+      (t.category || '').toLowerCase().includes(searchTerm)
     );
   }
   

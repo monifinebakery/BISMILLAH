@@ -66,6 +66,16 @@ interface WarehouseContextType {
 
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
 
+// 🔄 Cache invalidation helper for profit analysis sync
+const invalidateRelatedCaches = (queryClient: any) => {
+  console.log('🔄 Invalidating caches for warehouse changes...');
+  // Invalidate warehouse, profit analysis, and financial caches
+  queryClient.invalidateQueries({ queryKey: ['warehouse'] });
+  queryClient.invalidateQueries({ queryKey: ['profit-analysis'] });
+  queryClient.invalidateQueries({ queryKey: ['financial'] });
+  console.log('✅ Cache invalidation completed for warehouse sync');
+};
+
 interface WarehouseProviderProps {
   children: React.ReactNode;
   enableDebugLogs?: boolean;
@@ -303,6 +313,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     onSuccess: (success, item) => {
       if (success) {
         queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+        // 🔄 Invalidate profit analysis cache for cross-component sync
+        invalidateRelatedCaches(queryClient);
         addActivity({
           title: 'Bahan Baku Ditambahkan',
           description: `${item.nama} telah ditambahkan ke gudang.`,
@@ -326,6 +338,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     onSuccess: (success, { updates }) => {
       if (success) {
         queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+        // 🔄 Invalidate profit analysis cache for cross-component sync
+        invalidateRelatedCaches(queryClient);
         toast.success('Bahan baku berhasil diperbarui');
         logger.info('✅ Update mutation successful');
       } else {
@@ -345,6 +359,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     onSuccess: (success) => {
       if (success) {
         queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+        // 🔄 Invalidate profit analysis cache for cross-component sync
+        invalidateRelatedCaches(queryClient);
         toast.success('Bahan baku berhasil dihapus');
       } else {
         toast.error('Gagal menghapus bahan baku');
@@ -361,6 +377,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     onSuccess: (success, ids) => {
       if (success) {
         queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
+        // 🔄 Invalidate profit analysis cache for cross-component sync
+        invalidateRelatedCaches(queryClient);
         toast.success(`${ids.length} item berhasil dihapus`);
       } else {
         toast.error('Gagal menghapus bahan baku');

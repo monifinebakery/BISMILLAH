@@ -191,7 +191,7 @@ const ProfitBreakdownChart = ({
   labels
 }: ProfitBreakdownChartProps) => {
 
-  // ✅ IMPROVED: Use centralized COGS calculation
+  // ✅ IMPROVED: Use centralized COGS calculation with comprehensive validation
   const revenue = currentAnalysis?.revenue_data?.total ?? 0;
   
   const cogsResult = getEffectiveCogs(
@@ -204,41 +204,40 @@ const ProfitBreakdownChart = ({
   const opex = currentAnalysis?.opex_data?.total ?? 0;
 
   // ✅ IMPROVED: Use safe margin calculation with comprehensive validation
-  const margins = safeCalculateMargins(revenue, cogsResult.value, opex);
+  const validationResult = safeCalculateMargins(revenue, cogsResult.value, opex);
   
   // Log any COGS calculation warnings
-  if (cogsResult.warnings.length > 0) {
+  if (import.meta.env.DEV && cogsResult.warnings.length > 0) {
     cogsResult.warnings.forEach(warning => 
-      console.warn('Breakdown Chart COGS:', warning)
+      console.warn('[BreakdownChart] COGS warning:', warning)
     );
   }
   
   // Log data quality issues
-  if (!margins.isValid) {
-    console.warn('Breakdown Chart: Invalid financial data detected', {
-      revenue,
-      cogs: cogsResult.value,
-      opex,
-      errors: margins.errors
+  if (import.meta.env.DEV && !validationResult.isValid) {
+    console.warn('[BreakdownChart] Data validation issues:', {
+      errors: validationResult.errors,
+      warnings: validationResult.warnings,
+      qualityScore: validationResult.qualityScore
     });
   }
   
-  if (margins.qualityScore < 70) {
-    console.warn('Breakdown Chart: Low data quality', {
-      score: margins.qualityScore,
-      warnings: margins.warnings
+  if (import.meta.env.DEV && validationResult.qualityScore < 70) {
+    console.warn('[BreakdownChart] Low data quality detected:', {
+      score: validationResult.qualityScore,
+      issues: [...validationResult.errors, ...validationResult.warnings]
     });
   }
   
-  // Use the validated and corrected metrics
+  // Use the validated metrics directly (safeCalculateMargins returns metrics directly, not in nested structure)
   const finalMetrics = {
     revenue,
     cogs: cogsResult.value,
     opex,
-    grossProfit: margins.grossProfit,
-    netProfit: margins.netProfit,
-    grossMargin: margins.grossMargin,
-    netMargin: margins.netMargin
+    grossProfit: validationResult.grossProfit,
+    netProfit: validationResult.netProfit,
+    grossMargin: validationResult.grossMargin,
+    netMargin: validationResult.netMargin
   };
   
   const barChartData = generateBarChartData(finalMetrics);

@@ -145,28 +145,28 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
       {advancedAnalytics && (
         <>
           <Button
-            variant={showForecast ? 'default' : 'outline'}
+            variant='default'
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowForecast(!showForecast)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
           >
-            🔮 {isMobile ? 'Prediksi' : 'Prediksi'}
+            {isMobile ? 'Prediksi' : 'Prediksi'}
           </Button>
           <Button
-            variant={showAnomalies ? 'default' : 'outline'}
+            variant='default'
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowAnomalies(!showAnomalies)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
           >
-            ⚠️ {isMobile ? 'Anomali' : 'Anomali'}
+            {isMobile ? 'Anomali' : 'Anomali'}
           </Button>
           <Button
-            variant={showComparison ? 'default' : 'outline'}
+            variant='default'
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowComparison(!showComparison)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
           >
-            🔄 {isMobile ? 'Bandingkan' : 'Bandingkan'}
+            {isMobile ? 'Bandingkan' : 'Bandingkan'}
           </Button>
         </>
       )}

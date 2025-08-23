@@ -236,11 +236,11 @@ const DetailedBreakdownTable = ({
   }, [revenueTransactions, finalRevenue]);
 
   // ✅ Group revenue by category
-  const groupedRevenue = useMemo(() => {
-    return revenueItems.reduce((acc, item) => {
-      const existing = acc.find((a: any) => a.name === item.name);
+  const groupedRevenue: BreakdownItem[] = useMemo(() => {
+    return revenueItems.reduce((acc: BreakdownItem[], item) => {
+      const existing = acc.find((a) => a.name === item.name);
       if (existing) {
-        return acc.map((a: any) => 
+        return acc.map((a) => 
           a.name === item.name 
             ? { 
                 ...a, 
@@ -362,12 +362,14 @@ const DetailedBreakdownTable = ({
           bValue = b.amount;
       }
       
-      if (typeof aValue === 'string') {
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortOrder === 'asc' 
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
-        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+        const aNum = Number(aValue);
+        const bNum = Number(bValue);
+        return sortOrder === 'asc' ? aNum - bNum : bNum - aNum;
       }
     });
   }, [sortBy, sortOrder]);
@@ -567,7 +569,7 @@ const DetailedBreakdownTable = ({
                 </div>
                 <div className="text-sm text-green-600">  Total Omset</div>
                 <div className="text-xs text-gray-600 mt-1">
-                  Dari {breakdownSections[0]?.items.length || 0} sumber pemasukan
+                  Dari {Array.isArray(breakdownSections[0]?.items) ? breakdownSections[0].items.length : 0} sumber pemasukan
                 </div>
               </div>
 

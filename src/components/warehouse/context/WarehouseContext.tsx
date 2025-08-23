@@ -15,9 +15,9 @@ import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 
-// Types - ✅ FIXED: Remove unused BahanBaku import
+// Types - ✅ FIXED: Use correct BahanResep type from recipe components
 import type { BahanBakuFrontend } from '../types';
-import type { RecipeIngredient } from '@/types/recipe';
+import type { BahanResep } from '@/components/recipe/types';
 
 // Query keys
 const warehouseQueryKeys = {
@@ -50,9 +50,9 @@ interface WarehouseContextType {
   getBahanBakuByName: (nama: string) => BahanBakuFrontend | undefined;
   reduceStok: (nama: string, jumlah: number) => Promise<boolean>;
   getIngredientPrice: (nama: string) => number;
-  validateIngredientAvailability: (ingredients: RecipeIngredient[]) => boolean;
-  consumeIngredients: (ingredients: RecipeIngredient[]) => Promise<boolean>;
-  updateIngredientPrices: (ingredients: RecipeIngredient[]) => RecipeIngredient[];
+  validateIngredientAvailability: (ingredients: BahanResep[]) => boolean;
+  consumeIngredients: (ingredients: BahanResep[]) => Promise<boolean>;
+  updateIngredientPrices: (ingredients: BahanResep[]) => BahanResep[];
   
   // Analysis
   getLowStockItems: () => BahanBakuFrontend[];
@@ -89,7 +89,7 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
-    });
+    }) as any; // Type assertion for CrudService
     
     const items = await service.fetchBahanBaku();
     logger.debug('📊 fetchWarehouseData received items:', items.length);
@@ -120,7 +120,7 @@ const createWarehouseItem = async (
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
-    });
+    }) as any; // Type assertion for CrudService
     
     const result = await service.addBahanBaku(item);
     logger.debug('📊 createWarehouseItem result:', result);
@@ -138,7 +138,7 @@ const updateWarehouseItem = async ({ id, updates, userId }: { id: string; update
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
-    });
+    }) as any; // Type assertion for CrudService
     
     const result = await service.updateBahanBaku(id, updates);
     logger.info('📊 updateWarehouseItem result:', result);
@@ -156,7 +156,7 @@ const deleteWarehouseItem = async (id: string, userId?: string): Promise<boolean
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
-    });
+    }) as any; // Type assertion for CrudService
     
     const result = await service.deleteBahanBaku(id);
     logger.debug('📊 deleteWarehouseItem result:', result);
@@ -174,7 +174,7 @@ const bulkDeleteWarehouseItems = async (ids: string[], userId?: string): Promise
     const service = await warehouseApi.createService('crud', {
       userId,
       enableDebugLogs: import.meta.env.DEV
-    });
+    }) as any; // Type assertion for CrudService
     
     const result = await service.bulkDeleteBahanBaku(ids);
     logger.debug('📊 bulkDeleteWarehouseItems result:', result);
@@ -447,12 +447,23 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
   const reduceStok = React.useCallback(async (nama: string, jumlah: number): Promise<boolean> => {
     try {
-      const service = await warehouseApi.createService('crud', {
-        userId: user?.id,
-        enableDebugLogs
-      });
+      // Find the item first
+      const item = getBahanBakuByName(nama);
+      if (!item) {
+        logger.error(`Item ${nama} not found in warehouse`);
+        return false;
+      }
       
-      const success = await service.reduceStok(nama, jumlah, bahanBaku);
+      // Check if there's enough stock
+      if (item.stok < jumlah) {
+        logger.error(`Insufficient stock for ${nama}. Available: ${item.stok}, Required: ${jumlah}`);
+        return false;
+      }
+      
+      // Reduce stock using the updateBahanBaku method
+      const newStok = item.stok - jumlah;
+      const success = await updateBahanBaku(item.id, { stok: newStok });
+      
       if (success) {
         await refetch(); // Refresh using useQuery
       }
@@ -461,7 +472,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       logger.error(`[${providerId.current}] Reduce stock failed:`, error);
       return false;
     }
-  }, [user?.id, enableDebugLogs, bahanBaku, refetch]);
+  }, [getBahanBakuByName, updateBahanBaku, refetch]);
 
   const getIngredientPrice = React.useCallback(
     (nama: string): number => {
@@ -472,7 +483,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const validateIngredientAvailability = React.useCallback(
-    (ingredients: RecipeIngredient[]): boolean => {
+    (ingredients: BahanResep[]): boolean => {
       for (const ingredient of ingredients) {
         const item = getBahanBakuByName(ingredient.nama);
         if (!item) {
@@ -492,7 +503,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const consumeIngredients = React.useCallback(
-    async (ingredients: RecipeIngredient[]): Promise<boolean> => {
+    async (ingredients: BahanResep[]): Promise<boolean> => {
       if (!validateIngredientAvailability(ingredients)) {
         return false;
       }
@@ -507,7 +518,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         );
         return true;
       } catch (error) {
-        logger.error(error);
+        logger.error(String(error));
         return false;
       }
     },
@@ -515,13 +526,13 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   );
 
   const updateIngredientPrices = React.useCallback(
-    (ingredients: RecipeIngredient[]): RecipeIngredient[] => {
+    (ingredients: BahanResep[]): BahanResep[] => {
       return ingredients.map(ingredient => {
         const currentPrice = getIngredientPrice(ingredient.nama);
-        if (currentPrice > 0 && currentPrice !== ingredient.hargaPerSatuan) {
+        if (currentPrice > 0 && currentPrice !== ingredient.hargaSatuan) {
           return {
             ...ingredient,
-            hargaPerSatuan: currentPrice,
+            hargaSatuan: currentPrice,
             totalHarga: ingredient.jumlah * currentPrice,
           };
         }

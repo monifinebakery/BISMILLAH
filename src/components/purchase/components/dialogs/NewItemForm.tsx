@@ -120,6 +120,20 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     }
   }, [selectedWarehouseItemData]);
   
+  // Show notification when automatic calculation is active
+  React.useEffect(() => {
+    if (isUsingAutomaticCalculation && computedUnitPrice > 0) {
+      const qty = toNumber(formData.kuantitas);
+      const total = toNumber(formData.totalBayar);
+      toast.success(
+        `📊 Harga satuan otomatis: ${formatCurrency(computedUnitPrice)}`,
+        {
+          description: `Dihitung dari Rp ${total.toLocaleString('id-ID')} ÷ ${qty} = ${formatCurrency(computedUnitPrice)}`
+        }
+      );
+    }
+  }, [isUsingAutomaticCalculation, computedUnitPrice, formData.kuantitas, formData.totalBayar]);
+  
   // Update totalBayar when kuantitas changes for existing warehouse items
   React.useEffect(() => {
     if (selectedWarehouseItemData && formData.kuantitas) {
@@ -147,6 +161,13 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     }
     return 0;
   }, [formData.kuantitas, formData.totalBayar, selectedWarehouseItemData]);
+
+  // Check if using automatic calculation
+  const isUsingAutomaticCalculation = useMemo(() => {
+    return !selectedWarehouseItemData && 
+           toNumber(formData.kuantitas) > 0 && 
+           toNumber(formData.totalBayar) > 0;
+  }, [selectedWarehouseItemData, formData.kuantitas, formData.totalBayar]);
 
   const effectiveQty = useMemo(() => toNumber(formData.kuantitas), [formData.kuantitas]);
 
@@ -336,7 +357,23 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
           </div>
         ) : (
           // Add new item form
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            {/* Helpful instruction for automatic calculation */}
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Calculator className="h-4 w-4 text-orange-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-orange-800">
+                    💡 Hitung Harga Satuan Otomatis
+                  </p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    Masukkan <strong>kuantitas</strong> dan <strong>total bayar</strong>, sistem akan menghitung harga satuan secara otomatis menggunakan rumus: <strong>Total Bayar ÷ Kuantitas</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
               <input
@@ -366,6 +403,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
               </Select>
             </div>
           </div>
+        </div>
         )}
 
         {/* Input utama: Total yang dibeli + Total bayar */}
@@ -408,6 +446,21 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
               <p className="text-xs text-gray-500">
                 Dihitung otomatis dari kuantitas × harga per satuan
               </p>
+            )}
+            {isUsingAutomaticCalculation && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4 text-blue-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-800">
+                      Harga Satuan Otomatis: {formatCurrency(computedUnitPrice)}
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      Dihitung dari: Rp {toNumber(formData.totalBayar).toLocaleString('id-ID')} ÷ {toNumber(formData.kuantitas)} {formData.satuan || 'unit'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

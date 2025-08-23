@@ -235,9 +235,34 @@ export const formatCurrency = (amount: number): string => {
 export const formatDate = (date: Date | string | null): string => {
   if (!date) return '-';
   const parsedDate = safeParseDate(date);
-  return parsedDate 
-    ? new Intl.DateTimeFormat('id-ID').format(parsedDate)
-    : '-';
+  if (!parsedDate) return 'Format tidak valid';
+  
+  try {
+    // Check if date has specific time information
+    const hasTimeInfo = parsedDate.getHours() !== 0 || parsedDate.getMinutes() !== 0 || parsedDate.getSeconds() !== 0;
+    
+    if (hasTimeInfo) {
+      // Return date with time if time information is available
+      return new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Jakarta'
+      }).format(parsedDate) + ' WIB';
+    } else {
+      // Return only date if no specific time
+      return new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      }).format(parsedDate);
+    }
+  } catch (error) {
+    logger.warn('Error formatting date:', { date, error });
+    return 'Error format';
+  }
 };
 
 export const formatTransactionForDisplay = (transaction: FinancialTransaction) => {

@@ -19,9 +19,6 @@ export interface BahanBaku {
   tanggalKadaluwarsa: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
-  jumlahBeliKemasan?: number | null;
-  satuanKemasan?: string | null;
-  hargaTotalBeliKemasan?: number | null;
   userId?: string;
 }
 

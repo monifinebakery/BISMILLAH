@@ -9,6 +9,7 @@ import { queryClient } from "@/config/queryClient";
 import { AppLoader } from "@/components/loaders";
 import { logger } from "@/utils/logger";
 import '@/utils/authRecovery'; // Load auth recovery utilities
+import { isJWTExpiredError, isAuthError } from '@/utils/apiInterceptor';
 
 const App = () => {
   // ✅ Memoized initial setup handler
@@ -41,12 +42,36 @@ const App = () => {
   const handleQueryError = useCallback((error: any) => {
     logger.error('React Query Error:', error);
     
-    // ✅ Handle auth errors globally
-    if (error?.message?.includes('session missing') || 
-        error?.message?.includes('JWT expired') ||
-        error?.status === 401) {
-      logger.warn('Session expired, will redirect to auth...');
+    // ✅ Enhanced JWT expired error handling using interceptor functions
+    if (isJWTExpiredError(error)) {
+      logger.warn('JWT expired error detected globally:', {
+        code: error?.code,
+        message: error?.message,
+        status: error?.status,
+        timestamp: new Date().toISOString()
+      });
+      
+      // The apiInterceptor should handle token refresh automatically
+      // Just log this occurrence for monitoring
+      return;
+    }
+    
+    // ✅ Handle other auth errors
+    if (isAuthError(error)) {
+      logger.warn('Auth error detected globally:', {
+        message: error?.message,
+        status: error?.status,
+        timestamp: new Date().toISOString()
+      });
       // Let AuthContext handle the redirect
+      return;
+    }
+    
+    // Log other errors for debugging
+    if (error?.status >= 500) {
+      logger.error('Server error detected:', error);
+    } else if (error?.status >= 400 && error?.status < 500) {
+      logger.warn('Client error detected:', error);
     }
   }, []);
 
@@ -87,13 +112,6 @@ const App = () => {
             <ReactQueryDevtools
               initialIsOpen={false} 
               position="bottom"
-              toggleButtonProps={{
-                style: {
-                  background: '#f97316',
-                  color: 'white',
-                  zIndex: 9999, // ✅ Ensure it's always on top
-                }
-              }}
             />
           )}
         </AppProviders>

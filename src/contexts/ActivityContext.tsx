@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { useAuth } from './AuthContext';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
+import { withJWTRefresh, supabaseQuery, isJWTExpiredError } from '@/utils/apiInterceptor';
 
 // ===== QUERY KEYS =====
 export const activityQueryKeys = {
@@ -31,19 +32,25 @@ interface DatabaseActivity {
 // ===== API FUNCTIONS =====
 const activityApi = {
   async getActivities(userId: string): Promise<Activity[]> {
-    const { data, error } = await supabase
-      .from('activities')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(100);
+    // Use JWT refresh interceptor for API calls
+    const result = await supabaseQuery.select(
+      supabase
+        .from('activities')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(100),
+      `Activities query for user ${userId}`
+    );
+    
+    const { data, error } = result;
 
     if (error) {
       logger.error("Error fetching activities:", error);
       throw new Error('Gagal memuat riwayat aktivitas: ' + error.message);
     }
 
-    return data ? data.map(transformActivityFromDB) : [];
+    return data ? (data as DatabaseActivity[]).map(transformActivityFromDB) : [];
   },
 
   async createActivity(activityData: Omit<Activity, 'id' | 'timestamp' | 'createdAt' | 'updatedAt' | 'userId'>, userId: string): Promise<Activity> {
@@ -56,18 +63,28 @@ const activityApi = {
       // created_at and updated_at will be handled by database defaults
     };
 
-    const { data, error } = await supabase
-      .from('activities')
-      .insert(activityToInsert)
-      .select()
-      .single();
+    // Use JWT refresh interceptor for insert operations
+    const result = await supabaseQuery.insert(
+      supabase
+        .from('activities')
+        .insert([activityToInsert])
+        .select()
+        .single(),
+      `Create activity for user ${userId}`
+    );
+    
+    const { data, error } = result;
     
     if (error) {
       logger.error('Gagal mengirim aktivitas ke DB:', error.message);
       throw new Error('Gagal menambahkan aktivitas: ' + error.message);
     }
 
-    return transformActivityFromDB(data);
+    if (!data) {
+      throw new Error('No data returned from activity creation');
+    }
+
+    return transformActivityFromDB(data as unknown as DatabaseActivity);
   }
 };
 
@@ -76,12 +93,12 @@ const transformActivityFromDB = (dbItem: DatabaseActivity): Activity => ({
   id: dbItem.id,
   title: dbItem.title,
   description: dbItem.description,
-  type: dbItem.type,
+  type: dbItem.type as any, // Cast to ActivityType to handle enum differences
   value: dbItem.value,
-  timestamp: safeParseDate(dbItem.created_at), // Map created_at to timestamp for backward compatibility
+  timestamp: safeParseDate(dbItem.created_at) || new Date(), // Fallback to current date
   userId: dbItem.user_id, // Map user_id to userId
-  createdAt: safeParseDate(dbItem.created_at), // Map created_at to createdAt
-  updatedAt: safeParseDate(dbItem.updated_at), // Map updated_at to updatedAt
+  createdAt: safeParseDate(dbItem.created_at) || new Date(), // Fallback to current date
+  updatedAt: safeParseDate(dbItem.updated_at) || new Date(), // Fallback to current date
 });
 
 // ===== DEBOUNCE UTILITY (REMOVED - using simpler approach) =====
@@ -99,10 +116,26 @@ const useActivitiesQuery = (userId?: string) => {
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error: any) => {
-      if (error?.status >= 400 && error?.status < 500) {
+      // Enhanced retry logic with JWT error detection
+      if (isJWTExpiredError(error)) {
+        logger.warn('JWT expired error detected, apiInterceptor should handle this:', error);
+        // Allow one retry for JWT errors as the interceptor should refresh the token
+        return failureCount < 1;
+      }
+      
+      // Don't retry on other auth errors
+      if (error?.message?.includes('session missing') ||
+          error?.status === 401) {
+        logger.warn('Auth error detected, not retrying:', error.message);
         return false;
       }
-      return failureCount < 3;
+      
+      // Retry network errors up to 3 times
+      if (error?.status >= 500 || error?.code === 'NETWORK_ERROR') {
+        return failureCount < 3;
+      }
+      
+      return false;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -150,8 +183,16 @@ const useActivityMutations = (userId?: string) => {
         queryClient.setQueryData(activityQueryKeys.list(userId), context.previousActivities);
       }
       
-      logger.error('ActivityContext: Add mutation error:', error);
-      // Don't show toast here as the API already handles it
+      // Enhanced error handling for JWT errors
+      if (isJWTExpiredError(error)) {
+        logger.warn('JWT expired during activity add, will be handled by interceptor');
+        // Show a more user-friendly message for JWT errors
+        toast.error('Sesi berakhir, silakan coba lagi');
+      } else {
+        logger.error('ActivityContext: Add mutation error:', error);
+        // Don't show toast here as the API already handles it for other errors
+        toast.error('Gagal menambahkan aktivitas: ' + (error?.message || 'Error tidak diketahui'));
+      }
     },
     onSuccess: (newActivity, variables) => {
       // ✅ Invalidate queries to ensure fresh data
@@ -159,7 +200,14 @@ const useActivityMutations = (userId?: string) => {
       queryClient.invalidateQueries({ queryKey: activityQueryKeys.stats(userId) });
 
       logger.context('ActivityContext', 'Activity added successfully:', newActivity.id);
-    }
+    },
+    // Enable retry for JWT errors
+    retry: (failureCount, error) => {
+      if (isJWTExpiredError(error)) {
+        return failureCount < 1; // Allow one retry for JWT errors
+      }
+      return false; // Don't retry other errors for mutations
+    },
   });
 
   return { addMutation };
@@ -335,8 +383,15 @@ export const ActivityProvider: React.FC<{ children: ReactNode }> = ({ children }
   // ===== ERROR HANDLING =====
   useEffect(() => {
     if (error) {
-      logger.error('ActivityContext: Query error:', error);
-      toast.error('Gagal memuat riwayat aktivitas');
+      // Enhanced error handling with JWT error detection
+      if (isJWTExpiredError(error)) {
+        logger.warn('ActivityContext: JWT expired error detected:', error);
+        // Don't show error toast for JWT errors as they should be handled automatically
+        // The interceptor should refresh the token and retry
+      } else {
+        logger.error('ActivityContext: Query error:', error);
+        toast.error('Gagal memuat riwayat aktivitas');
+      }
     }
   }, [error]);
 

@@ -347,6 +347,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             date: new Date(),
             relatedId: fresh.id,
           });
+          
+          // ✅ INVALIDATE PROFIT ANALYSIS: Purchase completion affects profit calculations
+          console.log('📈 Invalidating profit analysis cache after purchase completion');
+          queryClient.invalidateQueries({ 
+            queryKey: ['profit-analysis'] 
+          });
         } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
           // Hapus transaksi ketika status berubah dari completed (berdasarkan related_id)
           // Cari transaksi terkait lalu hapus
@@ -363,6 +369,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               for (const id of ids) {
                 await deleteFinancialTransaction(id);
               }
+              
+              // ✅ INVALIDATE PROFIT ANALYSIS: Financial transaction deletion affects profit calculations
+              console.log('📈 Invalidating profit analysis cache after financial transaction deletion');
+              queryClient.invalidateQueries({ 
+                queryKey: ['profit-analysis'] 
+              });
             } catch (e) {
               logger.warn('Gagal membersihkan transaksi keuangan saat revert purchase:', e);
             }

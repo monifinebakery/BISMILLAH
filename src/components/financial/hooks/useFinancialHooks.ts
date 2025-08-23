@@ -276,6 +276,11 @@ export const useFinancialOperations = () => {
       queryClient.invalidateQueries({ 
         queryKey: financialQueryKeys.transactions(user?.id) 
       });
+      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
+      console.log('📈 Invalidating profit analysis cache after adding financial transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
+      });
       toast.success('Transaksi berhasil ditambahkan');
     }
   });
@@ -318,6 +323,11 @@ export const useFinancialOperations = () => {
       queryClient.invalidateQueries({ 
         queryKey: financialQueryKeys.transactions(user?.id) 
       });
+      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
+      console.log('📈 Invalidating profit analysis cache after updating financial transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
+      });
       toast.success('Transaksi berhasil diperbarui');
     }
   });
@@ -353,6 +363,11 @@ export const useFinancialOperations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: financialQueryKeys.transactions(user?.id) 
+      });
+      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
+      console.log('📈 Invalidating profit analysis cache after deleting financial transaction');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
       });
       toast.success('Transaksi berhasil dihapus');
     }

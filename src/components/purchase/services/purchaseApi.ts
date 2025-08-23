@@ -242,14 +242,7 @@ export class PurchaseApiService {
         console.log('⏭️ [PURCHASE API] No status change, skipping warehouse sync');
       }
 
-      // Sinkronisasi manual stok dan WAC jika status berubah
-      if (purchase && previousStatus !== newStatus) {
-        if (newStatus === 'completed') {
-          await applyPurchaseToWarehouse(purchase);
-        } else if (previousStatus === 'completed') {
-          await reversePurchaseFromWarehouse(purchase);
-        }
-      }
+
 
       return { success: true, error: null };
     } catch (err: any) {

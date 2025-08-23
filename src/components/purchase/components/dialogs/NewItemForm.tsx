@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
+import { warehouseUtils } from '@/components/warehouse/services/warehouseUtils';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
 
@@ -79,20 +80,78 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
     setFormData(prev => ({ ...prev, [field]: cleanValue }));
   }, []);
 
+  // Auto-populate form data when warehouse item is selected
+  const selectedWarehouseItemData = useMemo(() => {
+    if (!isSelectingExistingItem || !selectedWarehouseItem) return null;
+    
+    const item = warehouseItems.find(item => item.id === selectedWarehouseItem);
+    if (!item) return null;
+    
+    // Use effective unit price (WAC prioritized over base price)
+    const effectivePrice = warehouseUtils.getEffectiveUnitPrice(item);
+    const isUsingWac = warehouseUtils.isUsingWac(item);
+    
+    return {
+      item,
+      effectivePrice,
+      isUsingWac,
+      priceSource: isUsingWac ? 'WAC (Harga Rata-rata)' : 'Harga Input'
+    };
+  }, [isSelectingExistingItem, selectedWarehouseItem, warehouseItems]);
+  
+  // Auto-update form when warehouse item is selected
+  React.useEffect(() => {
+    if (selectedWarehouseItemData) {
+      const { item, effectivePrice } = selectedWarehouseItemData;
+      setFormData(prev => ({
+        ...prev,
+        nama: item.nama,
+        satuan: item.satuan,
+        // Calculate totalBayar from existing kuantitas and new price
+        totalBayar: prev.kuantitas ? (toNumber(prev.kuantitas) * effectivePrice).toString() : ''
+      }));
+      
+      // Show pricing info to user
+      if (selectedWarehouseItemData.isUsingWac) {
+        toast.info(`Menggunakan harga WAC: ${formatCurrency(effectivePrice)} per ${item.satuan}`);
+      } else {
+        toast.info(`Menggunakan harga input: ${formatCurrency(effectivePrice)} per ${item.satuan}`);
+      }
+    }
+  }, [selectedWarehouseItemData]);
+  
+  // Update totalBayar when kuantitas changes for existing warehouse items
+  React.useEffect(() => {
+    if (selectedWarehouseItemData && formData.kuantitas) {
+      const qty = toNumber(formData.kuantitas);
+      const newTotal = qty * selectedWarehouseItemData.effectivePrice;
+      setFormData(prev => ({
+        ...prev,
+        totalBayar: newTotal > 0 ? newTotal.toString() : ''
+      }));
+    }
+  }, [formData.kuantitas, selectedWarehouseItemData]);
+
   // Computed values
   const computedUnitPrice = useMemo(() => {
+    // For existing warehouse items, use effective price directly
+    if (selectedWarehouseItemData) {
+      return selectedWarehouseItemData.effectivePrice;
+    }
+    
+    // For manual items, calculate from total payment
     const qty = toNumber(formData.kuantitas);
     const pay = toNumber(formData.totalBayar);
     if (qty > 0 && pay > 0) {
       return Math.round((pay / qty) * 100) / 100;
     }
     return 0;
-  }, [formData.kuantitas, formData.totalBayar]);
+  }, [formData.kuantitas, formData.totalBayar, selectedWarehouseItemData]);
 
   const effectiveQty = useMemo(() => toNumber(formData.kuantitas), [formData.kuantitas]);
 
   const canSubmit = isSelectingExistingItem
-    ? selectedWarehouseItem !== '' && effectiveQty > 0 && computedUnitPrice > 0
+    ? selectedWarehouseItem !== '' && effectiveQty > 0 && (computedUnitPrice > 0 || selectedWarehouseItemData?.effectivePrice === 0)
     : formData.nama.trim() !== '' && formData.satuan.trim() !== '' && effectiveQty > 0 && computedUnitPrice > 0;
 
   const existingIndex = useMemo(
@@ -249,6 +308,31 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Price information display for warehouse items */}
+            {selectedWarehouseItemData && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Calculator className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-900">
+                      Harga Otomatis: {formatCurrency(selectedWarehouseItemData.effectivePrice)} per {selectedWarehouseItemData.item.satuan}
+                    </p>
+                    <p className="text-xs text-blue-700">
+                      Sumber: {selectedWarehouseItemData.priceSource}
+                    </p>
+                    {selectedWarehouseItemData.isUsingWac && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        💡 WAC dihitung dari rata-rata pembelian sebelumnya
+                      </p>
+                    )}
+                    <p className="text-xs text-blue-600 mt-1">
+                      Stok tersedia: {selectedWarehouseItemData.item.stok} {selectedWarehouseItemData.item.satuan}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           // Add new item form
@@ -303,7 +387,12 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Total Bayar *</Label>
+            <Label className="text-sm font-medium text-gray-700">
+              {isSelectingExistingItem && selectedWarehouseItemData 
+                ? 'Total Bayar (Dihitung Otomatis)' 
+                : 'Total Bayar *'
+              }
+            </Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
               <SafeNumericInput
@@ -312,8 +401,14 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 onChange={(e) => handleNumericChange('totalBayar', e.target.value)}
                 className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
+                disabled={!!(isSelectingExistingItem && selectedWarehouseItemData)}
               />
             </div>
+            {isSelectingExistingItem && selectedWarehouseItemData && (
+              <p className="text-xs text-gray-500">
+                Dihitung otomatis dari kuantitas × harga per satuan
+              </p>
+            )}
           </div>
         </div>
 

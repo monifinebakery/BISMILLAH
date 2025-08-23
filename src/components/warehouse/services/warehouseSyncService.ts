@@ -36,16 +36,22 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     return;
   }
 
+  // Helper: derive unit price from any available fields
+  const deriveUnitPrice = (it: any, qty: number): number => {
+    const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
+    const explicit = toNum(it.hargaSatuan ?? it.harga_per_satuan ?? it.harga_satuan);
+    if (explicit > 0) return explicit;
+    // Fallback: subtotal / qty (no packaging fields)
+    const subtotal = toNum(it.subtotal);
+    if (qty > 0 && subtotal > 0) return subtotal / qty;
+    return 0;
+  };
+
   for (const item of purchase.items) {
     const itemId =
       (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
-    const unitPrice = Number(
-      (item as any).hargaSatuan ??
-      (item as any).harga_per_satuan ??
-      (item as any).harga_satuan ??
-      0
-    );
+    const unitPrice = deriveUnitPrice(item as any, qty);
 
     console.log('🔄 [WAREHOUSE SYNC] Processing item:', { itemId, qty, unitPrice, rawItem: item });
 
@@ -138,12 +144,14 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
     const itemId =
       (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
-    const unitPrice = Number(
-      (item as any).hargaSatuan ??
-      (item as any).harga_per_satuan ??
-      (item as any).harga_satuan ??
-      0
-    );
+    const unitPrice = (() => {
+      const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
+      const explicit = toNum((item as any).hargaSatuan ?? (item as any).harga_per_satuan ?? (item as any).harga_satuan);
+      if (explicit > 0) return explicit;
+      const subtotal = toNum((item as any).subtotal);
+      if (qty > 0 && subtotal > 0) return subtotal / qty;
+      return 0;
+    })();
 
     if (!itemId || qty <= 0) continue;
 

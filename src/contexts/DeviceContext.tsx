@@ -8,14 +8,14 @@ export interface Device {
   id: string;
   user_id: string;
   device_id: string;
-  device_name?: string;
-  device_type?: string;
-  browser?: string;
-  os?: string;
-  ip_address?: string;
-  last_active: string;
-  created_at: string;
-  is_current: boolean;
+  device_name?: string | null;
+  device_type?: string | null;
+  browser?: string | null;
+  os?: string | null;
+  ip_address?: string | null;
+  last_active: string | null;
+  created_at: string | null;
+  is_current: boolean | null;
 }
 
 interface DeviceContextType {
@@ -26,6 +26,8 @@ interface DeviceContextType {
   refreshDevices: () => Promise<void>;
   updateDeviceName: (deviceId: string, name: string) => Promise<boolean>;
   removeDevice: (deviceId: string) => Promise<boolean>;
+  removeAllOtherDevices: () => Promise<boolean>;
+  cleanupOldDevices: (userId: string) => Promise<void>;
   getCurrentDevice: () => Device | null;
 }
 
@@ -37,8 +39,36 @@ const generateDeviceId = (): string => {
   let deviceId = localStorage.getItem('device_id');
   
   if (!deviceId) {
-    // Generate a new device ID
-    deviceId = `${btoa(navigator.userAgent)}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a more stable device ID based on browser characteristics
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let fingerprint: string;
+    if (ctx) {
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Device fingerprint', 2, 2);
+      
+      fingerprint = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset(),
+        canvas.toDataURL()
+      ].join('|');
+    } else {
+      // Fallback if canvas is not supported
+      fingerprint = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset()
+      ].join('|');
+    }
+    
+    // Create a hash of the fingerprint for stability
+    const hash = btoa(fingerprint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+    deviceId = `device_${hash}_${Date.now()}`;
     localStorage.setItem('device_id', deviceId);
   }
   
@@ -155,6 +185,9 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .update({ is_current: false })
         .neq('device_id', deviceId)
         .eq('user_id', userId);
+
+      // Cleanup old devices periodically
+      await cleanupOldDevices(userId);
     } catch (err) {
       logger.error('Error registering device:', err);
     }
@@ -268,6 +301,92 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [currentDevice, refreshDevices]);
 
+  // Clean up old and inactive devices
+  const cleanupOldDevices = useCallback(async (userId: string) => {
+    try {
+      // Get all devices for the user
+      const { data: allDevices, error: fetchError } = await supabase
+        .from('devices')
+        .select('*')
+        .eq('user_id', userId)
+        .order('last_active', { ascending: false });
+
+      if (fetchError) {
+        logger.error('Error fetching devices for cleanup:', fetchError);
+        return;
+      }
+
+      if (!allDevices || allDevices.length <= 5) {
+        // If 5 or fewer devices, no cleanup needed
+        return;
+      }
+
+      // Keep the most recent 5 devices and remove older ones
+      const devicesToKeep = allDevices.slice(0, 5);
+      const devicesToRemove = allDevices.slice(5);
+
+      if (devicesToRemove.length > 0) {
+        const deviceIdsToRemove = devicesToRemove.map(d => d.id);
+        
+        const { error: deleteError } = await supabase
+          .from('devices')
+          .delete()
+          .in('id', deviceIdsToRemove);
+
+        if (deleteError) {
+          logger.error('Error cleaning up old devices:', deleteError);
+        } else {
+          logger.info(`Cleaned up ${devicesToRemove.length} old devices`);
+        }
+      }
+
+      // Also remove devices that haven't been active for more than 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { error: inactiveDeleteError } = await supabase
+        .from('devices')
+        .delete()
+        .eq('user_id', userId)
+        .lt('last_active', thirtyDaysAgo.toISOString());
+
+      if (inactiveDeleteError) {
+        logger.error('Error cleaning up inactive devices:', inactiveDeleteError);
+      }
+    } catch (err) {
+      logger.error('Error in cleanupOldDevices:', err);
+    }
+  }, []);
+
+  // Remove all devices except current (sign out from all other devices)
+  const removeAllOtherDevices = useCallback(async (): Promise<boolean> => {
+    try {
+      if (!currentDevice) {
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('devices')
+        .delete()
+        .neq('id', currentDevice.id)
+        .eq('user_id', currentDevice.user_id);
+
+      if (error) {
+        logger.error('Error removing other devices:', error);
+        setError(error.message);
+        return false;
+      }
+
+      // Refresh the devices list
+      await refreshDevices();
+      return true;
+    } catch (err) {
+      logger.error('Error in removeAllOtherDevices:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return false;
+    }
+  }, [currentDevice, refreshDevices]);
+
   // Get current device
   const getCurrentDevice = useCallback(() => currentDevice, [currentDevice]);
 
@@ -375,6 +494,8 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     refreshDevices,
     updateDeviceName,
     removeDevice,
+    removeAllOtherDevices,
+    cleanupOldDevices,
     getCurrentDevice,
   };
 

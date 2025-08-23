@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitData } from '../hooks';
 import { getCurrentPeriod, generatePeriodOptions } from '../utils/profitTransformers';
 import { calculateMargins } from '../utils/profitCalculations';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // Import dashboard sections and tabs
 import {
@@ -87,7 +88,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
   const { formatPeriodLabel, exportData } = useProfitData({
     history: profitHistory,
-    currentAnalysis,
+    currentAnalysis: currentAnalysis || undefined,
   });
 
   const advancedMetrics = showAdvancedMetrics
@@ -135,7 +136,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const safeRevenue = profitMetrics?.revenue ?? currentAnalysis?.revenue_data?.total ?? 0;
   const safeCogs = profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0;
   const safeOpex = currentAnalysis?.opex_data?.total ?? 0;
-  const footerCalc = calculateMargins(safeRevenue, safeCogs, safeOpex);
+  // ✅ IMPROVED: Use centralized calculation for consistency
+  const footerCalc = safeCalculateMargins(safeRevenue, safeCogs, safeOpex);
 
     return (
       <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
@@ -183,10 +185,37 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="w-full overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 h-auto p-1 gap-1">
-            <TabsTrigger value="ikhtisar">Ringkasan</TabsTrigger>
-            <TabsTrigger value="tren">Grafik</TabsTrigger>
-            <TabsTrigger value="breakdown">Detail</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-auto p-1.5 gap-1 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl">
+            <TabsTrigger 
+              value="ikhtisar" 
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] sm:data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+            >
+              <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 group-data-[state=active]:text-orange-700 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700 group-data-[state=active]:text-orange-700 text-center sm:text-left leading-tight">
+                <span className="hidden sm:inline">📊 Ringkasan</span>
+                <span className="sm:hidden">📊<br />Ringkasan</span>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="tren" 
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] sm:data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+            >
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 group-data-[state=active]:text-orange-700 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700 group-data-[state=active]:text-orange-700 text-center sm:text-left leading-tight">
+                <span className="hidden sm:inline">📈 Grafik</span>
+                <span className="sm:hidden">📈<br />Grafik</span>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="breakdown" 
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] sm:data-[state=active]:scale-105 data-[state=active]:border data-[state=active]:border-orange-200 hover:bg-white/60 group"
+            >
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 group-data-[state=active]:text-orange-700 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700 group-data-[state=active]:text-orange-700 text-center sm:text-left leading-tight">
+                <span className="hidden sm:inline">📋 Detail</span>
+                <span className="sm:hidden">📋<br />Detail</span>
+              </span>
+            </TabsTrigger>
           </TabsList>
         </div>
 

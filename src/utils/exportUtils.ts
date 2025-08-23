@@ -1,6 +1,7 @@
 // utils/exportUtils.js - Optimized with Lazy Loading
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { safeCalculateMargins } from './profitValidation';
 
 /**
  * Lazy load XLSX library hanya saat dibutuhkan
@@ -23,14 +24,14 @@ const loadXLSX = async () => {
  * @param headers Objek pemetaan dari kunci data (camelCase) ke nama kolom Excel.
  * @returns Array objek yang siap untuk diubah menjadi sheet Excel.
  */
-const cleanDataForExport = (data: any[], headers: { [key: string]: string }) => {
+const cleanDataForExport = (data: any[], headers: any) => {
   if (!data || !Array.isArray(data)) {
     return []; // Kembalikan array kosong jika data tidak valid
   }
 
   const headerKeys = Object.keys(headers);
   return data.map(row => {
-    const newRow: { [key: string]: any } = {};
+    const newRow: Record<string, any> = {};
     for (const key of headerKeys) {
       let value = row[key];
       
@@ -320,19 +321,19 @@ export const exportAllDataToExcel = async (
             const revenue = p.total_revenue ?? p.revenue_data?.total ?? 0;
             const cogs = p.total_cogs ?? p.cogs_data?.total ?? 0;
             const opex = p.total_opex ?? p.opex_data?.total ?? 0;
-            const gross = p.gross_profit ?? (revenue - cogs);
-            const net = p.net_profit ?? (gross - opex);
-            const grossMargin = p.gross_margin ?? (revenue ? (gross / revenue) * 100 : 0);
-            const netMargin = p.net_margin ?? (revenue ? (net / revenue) * 100 : 0);
+            
+            // ✅ IMPROVED: Use centralized calculation for consistency
+            const margins = safeCalculateMargins(revenue, cogs, opex);
+            
             return {
               period: p.period,
               total_revenue: revenue,
               total_cogs: cogs,
               total_opex: opex,
-              gross_profit: gross,
-              net_profit: net,
-              gross_margin: grossMargin,
-              net_margin: netMargin,
+              gross_profit: margins.grossProfit,
+              net_profit: margins.netProfit,
+              gross_margin: margins.grossMargin,
+              net_margin: margins.netMargin,
               calculation_date: p.calculation_date || p.calculated_at
             };
           });

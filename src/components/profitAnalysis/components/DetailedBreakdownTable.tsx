@@ -18,6 +18,8 @@ import {
   transformToOpExBreakdown 
 } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
+import { getEffectiveCogs } from '@/utils/cogsCalculation';
+import { safeCalculateMargins } from '@/utils/profitValidation';
 
 // ==============================================
 // TYPES
@@ -187,10 +189,39 @@ const DetailedBreakdownTable = ({
   const [sortBy, setSortBy] = useState('amount');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  // ✅ Extract primitive values first
+  // ✅ IMPROVED: Use centralized COGS calculation and validation
   const revenue = currentAnalysis?.revenue_data?.total ?? 0;
-  const cogs = (typeof effectiveCogs === 'number' ? effectiveCogs : currentAnalysis?.cogs_data?.total) ?? 0;
+  
+  const cogsResult = getEffectiveCogs(
+    currentAnalysis || {} as RealTimeProfitCalculation,
+    effectiveCogs,
+    revenue,
+    { preferWAC: true, validateRange: true }
+  );
+  
   const opex = currentAnalysis?.opex_data?.total ?? 0;
+  
+  // ✅ IMPROVED: Use safe margin calculation with validation
+  const validationResult = safeCalculateMargins(revenue, cogsResult.value, opex);
+  
+  // Log warnings in development
+  if (import.meta.env.DEV && cogsResult.warnings.length > 0) {
+    cogsResult.warnings.forEach(warning => 
+      console.warn('[DetailedTable] COGS warning:', warning)
+    );
+  }
+  
+  if (import.meta.env.DEV && !validationResult.isValid) {
+    console.warn('[DetailedTable] Data validation issues:', {
+      errors: validationResult.errors,
+      qualityScore: validationResult.qualityScore
+    });
+  }
+  
+  // Use validated values directly (safeCalculateMargins doesn't return nested corrections/metrics structure)
+  const finalRevenue = revenue;
+  const finalCogs = cogsResult.value;
+  const finalOpex = opex;
   const revenueTransactions = currentAnalysis?.revenue_data?.transactions ?? [];
   const opexCosts = currentAnalysis?.opex_data?.costs ?? [];
 
@@ -199,10 +230,10 @@ const DetailedBreakdownTable = ({
     return revenueTransactions.map(t => ({
       name: t.category || 'Kategori Tidak Diketahui',
       amount: t.amount || 0,
-      percentage: revenue > 0 ? ((t.amount || 0) / revenue) * 100 : 0,
+      percentage: finalRevenue > 0 ? ((t.amount || 0) / finalRevenue) * 100 : 0,
       count: 1
     }));
-  }, [revenueTransactions, revenue]);
+  }, [revenueTransactions, finalRevenue]);
 
   // ✅ Group revenue by category
   const groupedRevenue = useMemo(() => {
@@ -215,7 +246,7 @@ const DetailedBreakdownTable = ({
                 ...a, 
                 amount: a.amount + item.amount,
                 count: (a.count || 0) + 1,
-                percentage: revenue > 0 ? ((a.amount + item.amount) / revenue) * 100 : 0
+                percentage: finalRevenue > 0 ? ((a.amount + item.amount) / finalRevenue) * 100 : 0
               }
             : a
         );
@@ -223,17 +254,17 @@ const DetailedBreakdownTable = ({
         return [...acc, { ...item }];
       }
     }, []);
-  }, [revenueItems, revenue]);
+  }, [revenueItems, finalRevenue]);
 
   // ✅ UPDATE: Process COGS items - pakai hppBreakdown kalau ada
   const cogsItems = useMemo(() => {
-    if (hppBreakdown && hppBreakdown.length > 0 && cogs > 0) {
+    if (hppBreakdown && hppBreakdown.length > 0 && finalCogs > 0) {
       // mapping WAC breakdown → rows
       const items = hppBreakdown
         .map(b => ({
           name: b.nama || 'Komponen HPP',
           amount: b.hpp || 0,                  // nilai HPP per komponen
-          percentage: cogs > 0 ? ((b.hpp || 0) / cogs) * 100 : 0,
+          percentage: finalCogs > 0 ? ((b.hpp || 0) / finalCogs) * 100 : 0,
           type: 'Bahan Langsung'
         }))
         .filter(i => i.amount > 0);
@@ -244,55 +275,55 @@ const DetailedBreakdownTable = ({
 
     // fallback F&B friendly
     return [
-      { name: '  Bahan Makanan Utama', amount: cogs * 0.6, percentage: cogs > 0 ? 60 : 0, type: '  Bahan Pokok' },
-      { name: '🧂 Bumbu & Pelengkap', amount: cogs * 0.2, percentage: cogs > 0 ? 20 : 0, type: '🌶️ Bumbu Dapur' },
-      { name: '🥤 Minuman & Es', amount: cogs * 0.15, percentage: cogs > 0 ? 15 : 0, type: '🥤 Minuman' },
-      { name: '  Kemasan & Perlengkapan', amount: cogs * 0.05, percentage: cogs > 0 ? 5 : 0, type: '  Kemasan' }
+      { name: '🍲 Bahan Makanan Utama', amount: finalCogs * 0.6, percentage: finalCogs > 0 ? 60 : 0, type: '🍲 Bahan Pokok' },
+      { name: '🧂 Bumbu & Pelengkap', amount: finalCogs * 0.2, percentage: finalCogs > 0 ? 20 : 0, type: '🌶️ Bumbu Dapur' },
+      { name: '🥤 Minuman & Es', amount: finalCogs * 0.15, percentage: finalCogs > 0 ? 15 : 0, type: '🥤 Minuman' },
+      { name: '🎁 Kemasan & Perlengkapan', amount: finalCogs * 0.05, percentage: finalCogs > 0 ? 5 : 0, type: '🎁 Kemasan' }
     ].filter(item => item.amount > 0);
-  }, [hppBreakdown, cogs]);
+  }, [hppBreakdown, finalCogs]);
 
   // ✅ Process OPEX items
   const opexItems = useMemo(() => {
     return opexCosts.map(cost => ({
       name: cost.nama_biaya || cost.name || 'Biaya Tidak Diketahui',
       amount: cost.jumlah_per_bulan || cost.amount || 0,
-      percentage: opex > 0 ? ((cost.jumlah_per_bulan || cost.amount || 0) / opex) * 100 : 0,
+      percentage: finalOpex > 0 ? ((cost.jumlah_per_bulan || cost.amount || 0) / finalOpex) * 100 : 0,
       type: cost.jenis || cost.type || 'Tidak Diketahui'
     }));
-  }, [opexCosts, opex]);
+  }, [opexCosts, finalOpex]);
 
   // ✅ Breakdown sections
   const breakdownSections = useMemo(() => {
     return [
       {
-        title: '  Sumber Pemasukan (Dari Mana Uang Masuk)',
+        title: '💰 Sumber Pemasukan (Dari Mana Uang Masuk)',
         icon: DollarSign,
         color: 'text-green-700',
         bgColor: 'bg-green-50',
-        total: revenue,
+        total: finalRevenue,
         items: groupedRevenue,
         helpText: 'Semua uang yang masuk ke warung dari penjualan makanan, minuman, dan layanan lainnya'
       },
       {
-        title: '  Modal Bahan Baku (Belanja Dapur)',
+        title: '🛒 Modal Bahan Baku (Belanja Dapur)',
         icon: ShoppingCart,
         color: 'text-amber-700',
         bgColor: 'bg-amber-50',
-        total: cogs,
+        total: finalCogs,
         items: cogsItems,
         helpText: 'Uang yang keluar untuk beli bahan-bahan makanan dan minuman'
       },
       {
-        title: 'Biaya Bulanan Tetap (Operasional)',
+        title: '🏪 Biaya Bulanan Tetap (Operasional)',
         icon: Calculator,
         color: 'text-red-700',
         bgColor: 'bg-red-50',
-        total: opex,
+        total: finalOpex,
         items: opexItems,
         helpText: 'Biaya yang harus dibayar setiap bulan: sewa, listrik, gaji, internet, dll'
       }
     ];
-  }, [groupedRevenue, cogsItems, opexItems, revenue, cogs, opex]);
+  }, [groupedRevenue, cogsItems, opexItems, finalRevenue, finalCogs, finalOpex]);
 
   // ✅ OPTIMASI: Memoize filtered sections
   const filteredSections = useMemo(() => {

@@ -90,13 +90,18 @@ export const useEnhancedHppCalculation = ({
       
       if (settings?.overhead_per_pcs) {
         console.log('💡 Enhanced HPP: Using overhead from app settings:', settings.overhead_per_pcs);
+      } else if (settings) {
+        console.log('⚠️ Enhanced HPP: App settings found but no overhead calculated yet');
       } else {
-        console.log('⚠️ Enhanced HPP: No overhead settings found, will use manual input');
+        console.log('⚠️ Enhanced HPP: No app settings found, default settings will be created');
       }
     } catch (err) {
-      const errorMessage = 'Gagal memuat pengaturan overhead';
+      const errorMessage = 'Gagal memuat pengaturan overhead. Sistem akan menggunakan nilai default.';
       setError(errorMessage);
       console.error('Error refreshing app settings:', err);
+      
+      // Still try to use the system without settings
+      setAppSettings(null);
     } finally {
       setIsLoadingSettings(false);
     }
@@ -249,6 +254,7 @@ export const useEnhancedHppCalculation = ({
 
 /**
  * Hook specifically for integrating with existing recipe forms
+ * Default to enhanced mode for simplified user experience
  */
 export const useRecipeHppIntegration = (recipeData: {
   bahanResep: any[];
@@ -259,9 +265,10 @@ export const useRecipeHppIntegration = (recipeData: {
 }) => {
   const hppHook = useEnhancedHppCalculation({ autoCalculate: true });
   
-  const [isEnhancedMode, setIsEnhancedMode] = useState(false);
+  // Default to enhanced mode (true) for simplified experience
+  const [isEnhancedMode, setIsEnhancedMode] = useState(true);
   
-  // Auto-calculate when recipe data changes
+  // Auto-calculate when recipe data changes and enhanced mode is active
   useEffect(() => {
     if (isEnhancedMode && recipeData.bahanResep.length > 0) {
       const params: CalculateHPPParams = {
@@ -285,10 +292,10 @@ export const useRecipeHppIntegration = (recipeData: {
         useAppSettingsOverhead: true
       };
       
-      // Debounce calculation
+      // Debounce calculation for better performance
       const timer = setTimeout(() => {
         hppHook.calculateHPP(params);
-      }, 500);
+      }, 300); // Reduced debounce time for better responsiveness
       
       return () => clearTimeout(timer);
     }

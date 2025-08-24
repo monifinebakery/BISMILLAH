@@ -3,3 +3,4 @@
 export * from './useOperationalCosts';
 export * from './useCostCalculation';
 export * from './useCostAllocation';
+export * from './useProgressSetup';

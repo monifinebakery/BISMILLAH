@@ -557,7 +557,7 @@ export const SupplierProvider: React.FC<{ children: ReactNode }> = ({ children }
     // State
     suppliers,
     isLoading: isLoading || addMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
-    error: error ? (error as Error).message : null,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
     
     // Actions
     addSupplier,

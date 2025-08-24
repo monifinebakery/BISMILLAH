@@ -48,10 +48,14 @@ import { useAuth } from '@/contexts/AuthContext';
 // ✅ QUERY KEYS
 // ===========================================
 
+// ✅ STANDARDIZED: Query Keys for consistent patterns across modules
 export const financialQueryKeys = {
   all: ['financial'] as const,
   transactions: (userId?: string) => [...financialQueryKeys.all, 'transactions', userId] as const,
-};
+  // ✅ ADD: Additional keys for comprehensive functionality
+  summary: (userId?: string, dateRange?: any) => [...financialQueryKeys.all, 'summary', userId, dateRange] as const,
+  categories: (userId?: string) => [...financialQueryKeys.all, 'categories', userId] as const,
+} as const;
 
 // ===========================================
 // ✅ 1. DATA FETCHING HOOK
@@ -281,10 +285,10 @@ export const useFinancialOperations = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['profit-analysis'] 
       });
-      // ✅ INVALIDATE ALL FINANCIAL CACHES: Ensure all financial reports get updated
+      // ✅ STANDARDIZED: Use financialQueryKeys for consistent patterns
       console.log('💰 Invalidating all financial caches after adding transaction');
       queryClient.invalidateQueries({ 
-        queryKey: ['financial'] 
+        queryKey: financialQueryKeys.all 
       });
       toast.success('Transaksi berhasil ditambahkan');
     }
@@ -333,10 +337,10 @@ export const useFinancialOperations = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['profit-analysis'] 
       });
-      // ✅ INVALIDATE ALL FINANCIAL CACHES: Ensure all financial reports get updated
+      // ✅ STANDARDIZED: Use financialQueryKeys for consistent patterns
       console.log('💰 Invalidating all financial caches after updating transaction');
       queryClient.invalidateQueries({ 
-        queryKey: ['financial'] 
+        queryKey: financialQueryKeys.all 
       });
       toast.success('Transaksi berhasil diperbarui');
     }
@@ -379,10 +383,10 @@ export const useFinancialOperations = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['profit-analysis'] 
       });
-      // ✅ INVALIDATE ALL FINANCIAL CACHES: Ensure all financial reports get updated
+      // ✅ STANDARDIZED: Use financialQueryKeys for consistent patterns
       console.log('💰 Invalidating all financial caches after deleting transaction');
       queryClient.invalidateQueries({ 
-        queryKey: ['financial'] 
+        queryKey: financialQueryKeys.all 
       });
       toast.success('Transaksi berhasil dihapus');
     }

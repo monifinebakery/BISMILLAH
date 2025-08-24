@@ -437,7 +437,7 @@ export const PromoProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     promos,
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || 
                deleteMutation.isPending || bulkDeleteMutation.isPending,
-    error: error ? (error as Error).message : null,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
     addPromo,
     updatePromo: updatePromoAction,
     deletePromo: deletePromoAction,

@@ -30,9 +30,13 @@ import {
 import { validatePurchaseData, getStatusDisplayText } from '../utils/purchaseHelpers';
 
 // ------------------- Query Keys -------------------
+// ✅ STANDARDIZED: Query Keys for consistent patterns across modules
 const purchaseQueryKeys = {
   all: ['purchases'] as const,
   list: (userId?: string) => [...purchaseQueryKeys.all, 'list', userId] as const,
+  // ✅ ADD: Additional keys for comprehensive functionality
+  stats: (userId?: string) => [...purchaseQueryKeys.all, 'stats', userId] as const,
+  byStatus: (userId?: string, status?: string) => [...purchaseQueryKeys.all, 'byStatus', userId, status] as const,
 } as const;
 
 // ✅ WAREHOUSE QUERY KEYS: Untuk invalidation
@@ -101,6 +105,9 @@ const apiDeletePurchase = async (id: string, userId: string) => {
 
 // ------------------- Context -------------------
 const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined);
+
+// Export the context for use in hooks
+export { PurchaseContext };
 
 export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -655,7 +662,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // from original type
     purchases: purchases as Purchase[],
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
-    error: error ? (error as Error).message : null,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
     isProcessing: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
 
     addPurchase,
@@ -701,8 +708,5 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
-export const usePurchase = () => {
-  const ctx = useContext(PurchaseContext);
-  if (!ctx) throw new Error('usePurchase must be used within a PurchaseProvider');
-  return ctx;
-};
+// ✅ REMOVED: Duplicate usePurchase export to avoid conflicts
+// Use the dedicated hook from ../hooks/usePurchase.ts instead

@@ -44,7 +44,7 @@ interface RecipeContextType {
 
   // CRUD Operations
   addRecipe: (recipe: NewRecipe) => Promise<boolean>;
-  updateRecipe: (id: string, recipe: Partial<NewRecipe>) => Promise<boolean>;
+  updateRecipe: (id: string, recipe: Partial<NewRecipe>, skipAutoCalculation?: boolean) => Promise<boolean>;
   deleteRecipe: (id: string) => Promise<boolean>;
   duplicateRecipe: (id: string, newName: string) => Promise<boolean>;
   bulkDeleteRecipes: (ids: string[]) => Promise<boolean>;
@@ -139,7 +139,21 @@ const useRecipeMutations = () => {
         userId: user?.id || '',
         createdAt: new Date(),
         updatedAt: new Date(),
-        ...newRecipe,
+        namaResep: newRecipe.namaResep,
+        jumlahPorsi: newRecipe.jumlahPorsi,
+        kategoriResep: newRecipe.kategoriResep || '',
+        deskripsi: newRecipe.deskripsi || '',
+        fotoUrl: newRecipe.fotoUrl || '',
+        bahanResep: newRecipe.bahanResep,
+        biayaTenagaKerja: newRecipe.biayaTenagaKerja,
+        biayaOverhead: newRecipe.biayaOverhead,
+        marginKeuntunganPersen: newRecipe.marginKeuntunganPersen,
+        totalHpp: newRecipe.totalHpp || 0,
+        hppPerPorsi: newRecipe.hppPerPorsi || 0,
+        hargaJualPorsi: newRecipe.hargaJualPorsi || 0,
+        jumlahPcsPerPorsi: newRecipe.jumlahPcsPerPorsi || 1,
+        hppPerPcs: newRecipe.hppPerPcs || 0,
+        hargaJualPerPcs: newRecipe.hargaJualPerPcs || 0,
       };
 
       queryClient.setQueryData(
@@ -422,17 +436,17 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, [user?.id, addMutation]);
 
-  const updateRecipe = useCallback(async (id: string, updates: Partial<NewRecipe>): Promise<boolean> => {
+  const updateRecipe = useCallback(async (id: string, updates: Partial<NewRecipe>, skipAutoCalculation: boolean = false): Promise<boolean> => {
     if (!user?.id) {
       toast.error('User tidak ditemukan');
       return false;
     }
 
-    // Recalculate HPP if relevant data changed
+    // Recalculate HPP if relevant data changed and not skipping auto-calculation
     let finalUpdates = { ...updates };
     const existingRecipe = recipes.find(r => r.id === id);
     
-    if (existingRecipe && (
+    if (!skipAutoCalculation && existingRecipe && (
       updates.bahanResep !== undefined ||
       updates.jumlahPorsi !== undefined ||
       updates.biayaTenagaKerja !== undefined ||
@@ -450,6 +464,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // NOTE: This uses legacy HPP calculation for backward compatibility
       // Enhanced HPP calculation with operational costs integration
       // is available through RecipeHppIntegration component
+      // Use skipAutoCalculation=true when updating with enhanced calculation results
       const calculation = calculateHPP(
         bahanResep,
         jumlahPorsi,

@@ -392,6 +392,9 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // Calculate HPP if not provided
     let finalRecipeData = { ...recipeData };
     if (!finalRecipeData.totalHpp || !finalRecipeData.hppPerPorsi) {
+      // NOTE: This uses legacy HPP calculation for backward compatibility
+      // Enhanced HPP calculation with operational costs integration
+      // is available through RecipeHppIntegration component
       const calculation = calculateHPP(
         finalRecipeData.bahanResep || [],
         finalRecipeData.jumlahPorsi || 1,
@@ -444,6 +447,9 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const marginKeuntunganPersen = updates.marginKeuntunganPersen ?? existingRecipe.marginKeuntunganPersen;
       const jumlahPcsPerPorsi = updates.jumlahPcsPerPorsi ?? existingRecipe.jumlahPcsPerPorsi;
 
+      // NOTE: This uses legacy HPP calculation for backward compatibility
+      // Enhanced HPP calculation with operational costs integration
+      // is available through RecipeHppIntegration component
       const calculation = calculateHPP(
         bahanResep,
         jumlahPorsi,

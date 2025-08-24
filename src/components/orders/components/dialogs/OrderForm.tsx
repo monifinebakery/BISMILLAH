@@ -566,7 +566,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                ));
+                );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500 border rounded-lg bg-gray-50">

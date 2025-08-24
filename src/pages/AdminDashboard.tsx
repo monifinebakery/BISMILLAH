@@ -48,8 +48,8 @@ const AdminDashboard = () => {
       setPayments(paymentDataFromApi || []);
 
     } catch (error: any) {
-      console.error('Error fetching admin data:', error.message);
-      toast.error(error.message || 'Gagal memuat data admin dari API.');
+      console.error('Error fetching admin data:', error instanceof Error ? error.message : String(error));
+      toast.error((error instanceof Error ? error.message : String(error)) || 'Gagal memuat data admin dari API.');
     } finally {
       setLoading(false);
     }
@@ -85,8 +85,8 @@ const AdminDashboard = () => {
       
       toast.success(`Status pembayaran berhasil ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
     } catch (error: any) {
-      console.error('Error updating payment status:', error.message);
-      toast.error(error.message || 'Gagal mengubah status pembayaran');
+      console.error('Error updating payment status:', error instanceof Error ? error.message : String(error));
+      toast.error((error instanceof Error ? error.message : String(error)) || 'Gagal mengubah status pembayaran');
     }
   };
 

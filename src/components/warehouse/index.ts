@@ -10,7 +10,10 @@
 export { default as WarehousePage } from './WarehousePage';
 export { 
   WarehouseProvider, 
-  useWarehouseContext
+  useWarehouseContext,
+  // ✅ BACKWARD COMPATIBILITY: Clear naming for legacy support
+  WarehouseProvider as BahanBakuProvider,
+  useWarehouseContext as useBahanBaku
 } from './context/WarehouseContext';
 
 // ✅ ESSENTIAL TYPES ONLY

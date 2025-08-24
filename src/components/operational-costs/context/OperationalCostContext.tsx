@@ -60,6 +60,10 @@ const initialState: OperationalCostState = {
     total_biaya_variabel: 0,
     jumlah_biaya_aktif: 0,
     jumlah_biaya_nonaktif: 0,
+    total_hpp_group: 0,
+    total_operasional_group: 0,
+    jumlah_hpp_aktif: 0,
+    jumlah_operasional_aktif: 0,
   },
   overheadCalculation: null,
   filters: {},
@@ -193,7 +197,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         logger.error('❌ Error fetching costs:', response.error);
         throw new Error(response.error);
       }
-      logger.success('✅ Costs fetched successfully:', response.data?.length || 0, 'items');
+      logger.debug('✅ Costs fetched successfully:', response.data?.length || 0);
       return response.data;
     },
     enabled: state.isAuthenticated,
@@ -223,7 +227,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   // ✅ Mutations for CRUD operations
   const createCostMutation = useMutation({
     mutationFn: async (data: CostFormData) => {
-      logger.info('🔄 Creating new cost:', data.nama);
+      logger.info('🔄 Creating new cost:', data.nama_biaya);
       const response = await operationalCostApi.createCost(data);
       if (response.error) {
         logger.error('❌ Error creating cost:', response.error);
@@ -238,14 +242,14 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
     },
     onError: (error: Error) => {
-      logger.error('❌ Create cost mutation error:', error.message);
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Gagal menambahkan biaya operasional' });
+      logger.error('❌ Create cost mutation error:', error instanceof Error ? error.message : String(error));
+      dispatch({ type: 'SET_ERROR', payload: (error instanceof Error ? error.message : String(error)) || 'Gagal menambahkan biaya operasional' });
     },
   });
 
   const updateCostMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<CostFormData> }) => {
-      logger.info('🔄 Updating cost:', id, data);
+      logger.info('🔄 Updating cost:', id);
       const response = await operationalCostApi.updateCost(id, data);
       if (response.error) {
         logger.error('❌ Error updating cost:', response.error);
@@ -260,8 +264,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
     },
     onError: (error: Error) => {
-      logger.error('❌ Update cost mutation error:', error.message);
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Gagal memperbarui biaya operasional' });
+      logger.error('❌ Update cost mutation error:', error instanceof Error ? error.message : String(error));
+      dispatch({ type: 'SET_ERROR', payload: (error instanceof Error ? error.message : String(error)) || 'Gagal memperbarui biaya operasional' });
     },
   });
 
@@ -282,8 +286,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
     },
     onError: (error: Error) => {
-      logger.error('❌ Delete cost mutation error:', error.message);
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Gagal menghapus biaya operasional' });
+      logger.error('❌ Delete cost mutation error:', error instanceof Error ? error.message : String(error));
+      dispatch({ type: 'SET_ERROR', payload: (error instanceof Error ? error.message : String(error)) || 'Gagal menghapus biaya operasional' });
     },
   });
 
@@ -304,8 +308,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.allocationSettings() });
     },
     onError: (error: Error) => {
-      logger.error('❌ Save allocation mutation error:', error.message);
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Gagal menyimpan pengaturan alokasi' });
+      logger.error('❌ Save allocation mutation error:', error instanceof Error ? error.message : String(error));
+      dispatch({ type: 'SET_ERROR', payload: (error instanceof Error ? error.message : String(error)) || 'Gagal menyimpan pengaturan alokasi' });
     },
   });
 

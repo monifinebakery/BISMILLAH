@@ -89,7 +89,7 @@ const UpgradePopup = () => {
       setShowUpgradePopup(false);
       
     } catch (error: any) { // Tangani error umum inisiasi pembayaran
-      console.error('Payment initiation error:', error.message);
+      console.error('Payment initiation error:', error instanceof Error ? error.message : String(error));
       toast.error('Terjadi kesalahan saat memproses pembayaran');
     } finally {
       setIsProcessing(false);

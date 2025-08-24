@@ -38,7 +38,7 @@ const PromoList = React.lazy(() =>
       default: () => (
         <div className="p-8 text-center bg-red-50 border border-red-200 rounded-lg">
           <div className="text-red-500 text-lg mb-2">❌ Gagal memuat PromoList</div>
-          <p className="text-sm text-red-600 mb-4">Error: {err.message}</p>
+          <p className="text-sm text-red-600 mb-4">Error: {err instanceof Error ? err.message : String(err)}</p>
           <button 
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
@@ -69,8 +69,8 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     logger.error('Lazy loading error details:', {
-      error: error.message,
-      stack: error.stack,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       componentStack: errorInfo.componentStack,
       props: this.props
     });

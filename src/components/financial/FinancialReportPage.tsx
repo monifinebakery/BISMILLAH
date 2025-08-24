@@ -22,7 +22,7 @@ import DateRangePicker from '@/components/ui/DateRangePicker';
 // ✅ CLEAN IMPORTS - Using consolidated hooks
 import { useFinancialCore } from './hooks/useFinancialCore';
 import { useFinancialPage } from './hooks/useFinancialPages';
-import { useFinancialChartData } from './hooks/useFinancialData';
+import { useFinancialChartDataProcessing } from './hooks/useFinancialData';
 import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 
@@ -242,7 +242,7 @@ const FinancialReportPage: React.FC = () => {
   } = useFinancialCore();
 
   // ✅ CHART DATA - Single hook
-  const chartData = useFinancialChartData(filteredTransactions);
+  const chartData = useFinancialChartDataProcessing(filteredTransactions);
 
   // ✅ STATE - Dialogs and active tab (only charts and transactions)
   const [activeTab, setActiveTab] = useState('charts');

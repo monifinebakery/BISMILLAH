@@ -90,7 +90,7 @@ class ErrorBoundary extends Component<Props, State> {
                 <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
                   <h3 className="text-sm font-medium text-gray-800 mb-2">Detail Error:</h3>
                   <p className="text-xs text-red-600 font-mono break-all">
-                    {this.state.error.message}
+                    {this.state.error instanceof Error ? this.state.error.message : String(this.state.error)}
                   </p>
                   {this.state.errorInfo?.componentStack && (
                     <details className="mt-2">

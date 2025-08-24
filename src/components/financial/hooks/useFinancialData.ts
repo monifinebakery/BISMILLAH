@@ -78,8 +78,9 @@ export const useFinancialDataProcessing = (
 
 /**
  * Hook untuk memproses data chart
+ * ✅ RENAMED: To avoid conflict with useFinancialChartData in useFinancialHooks.ts
  */
-export const useFinancialChartData = (
+export const useFinancialChartDataProcessing = (
   filteredTransactions: FinancialTransaction[]
 ): FinancialChartData => {
   return useMemo(() => {
@@ -227,8 +228,9 @@ export const usePagination = <T>(
 
 /**
  * Hook untuk managing financial form state
+ * ✅ RENAMED: To avoid conflict with useFinancialForm in useFinancialHooks.ts
  */
-export const useFinancialForm = (
+export const useFinancialFormManagement = (
   initialTransaction?: FinancialTransaction | null
 ) => {
   const [formData, setFormData] = useState({
@@ -323,7 +325,7 @@ export const useFinancialForm = (
 
 export default {
   useFinancialDataProcessing,
-  useFinancialChartData,
+  useFinancialChartDataProcessing,
   usePagination,
-  useFinancialForm
+  useFinancialFormManagement
 };

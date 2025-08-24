@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from '@/utils/logger';
 // 🔧 IMPROVED: Import centralized date normalization
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+import { addFinancialTransaction } from '@/components/financial/services/financialApi';
 // 🔄 For cache invalidation - will be used by components
 let globalQueryClient: any = null;
 export const setQueryClient = (client: any) => {
@@ -19,6 +20,32 @@ const invalidateRelatedCaches = () => {
     globalQueryClient.invalidateQueries({ queryKey: ['operational-costs'] });
     globalQueryClient.invalidateQueries({ queryKey: ['financial'] });
     console.log('✅ Cache invalidation completed for profit sync');
+  }
+};
+
+// 🔄 Helper untuk membuat financial transaction otomatis
+const createFinancialTransactionForCost = async (cost: OperationalCost, userId: string) => {
+  try {
+    console.log('💰 Creating financial transaction for operational cost:', {
+      costId: cost.id,
+      nama: cost.nama_biaya,
+      amount: cost.jumlah_per_bulan,
+      status: cost.status
+    });
+    
+    await addFinancialTransaction({
+      type: 'expense',
+      amount: cost.jumlah_per_bulan,
+      description: `Biaya Operasional: ${cost.nama_biaya}`,
+      category: 'Biaya Operasional',
+      date: new Date(),
+      relatedId: cost.id,
+    }, userId);
+    
+    console.log('✅ Financial transaction created for operational cost');
+  } catch (error) {
+    logger.error('Error creating financial transaction for operational cost:', error);
+    // Don't throw error, just log it so operational cost creation doesn't fail
   }
 };
 import { 
@@ -231,6 +258,11 @@ export const operationalCostApi = {
 
       // 🔄 Invalidate caches for profit analysis sync
       invalidateRelatedCaches();
+      
+      // 💰 Auto-create financial transaction if cost is active
+      if (typedData.status === 'aktif') {
+        await createFinancialTransactionForCost(typedData, userId);
+      }
 
       return { data: typedData, message: 'Biaya operasional berhasil ditambahkan' };
     } catch (error) {
@@ -275,6 +307,34 @@ export const operationalCostApi = {
 
       // 🔄 Invalidate caches for profit analysis sync
       invalidateRelatedCaches();
+      
+      // 💰 Handle financial transaction based on status change
+      if (typedData.status === 'aktif') {
+        // Create or update financial transaction for active cost
+        await createFinancialTransactionForCost(typedData, userId);
+      } else if (typedData.status === 'nonaktif') {
+        // Delete related financial transaction if cost becomes inactive
+        try {
+          const { data: existingTransactions } = await supabase
+            .from('financial_transactions')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('related_id', id)
+            .eq('type', 'expense');
+            
+          if (existingTransactions && existingTransactions.length > 0) {
+            await supabase
+              .from('financial_transactions')
+              .delete()
+              .eq('user_id', userId)
+              .eq('related_id', id)
+              .eq('type', 'expense');
+            console.log('🗑️ Deleted financial transaction for inactive operational cost');
+          }
+        } catch (error) {
+          logger.error('Error deleting financial transaction for inactive cost:', error);
+        }
+      }
 
       return { data: typedData, message: 'Biaya operasional berhasil diperbarui' };
     } catch (error) {
@@ -298,6 +358,19 @@ export const operationalCostApi = {
         .eq('user_id', userId); // ✅ Add user filter
 
       if (error) throw error;
+      
+      // 💰 Delete related financial transactions
+      try {
+        await supabase
+          .from('financial_transactions')
+          .delete()
+          .eq('user_id', userId)
+          .eq('related_id', id)
+          .eq('type', 'expense');
+        console.log('🗑️ Deleted financial transactions for deleted operational cost');
+      } catch (error) {
+        logger.error('Error deleting financial transactions for deleted cost:', error);
+      }
 
       // 🔄 Invalidate caches for profit analysis sync
       invalidateRelatedCaches();
@@ -321,6 +394,10 @@ export const operationalCostApi = {
             total_biaya_variabel: 0,
             jumlah_biaya_aktif: 0,
             jumlah_biaya_nonaktif: 0,
+            total_hpp_group: 0,
+            total_operasional_group: 0,
+            jumlah_hpp_aktif: 0,
+            jumlah_operasional_aktif: 0,
           }, 
           error: 'User tidak ditemukan. Silakan login kembali.'
         };
@@ -328,25 +405,37 @@ export const operationalCostApi = {
 
       const { data, error } = await supabase
         .from('operational_costs')
-        .select('jumlah_per_bulan, jenis, status')
+        .select('jumlah_per_bulan, jenis, status, group')
         .eq('user_id', userId); // ✅ Add user filter
 
       if (error) throw error;
 
       const costs = data || [];
       
+      // Filter costs by status
+      const activeCosts = costs.filter(c => c.status === 'aktif');
+      const inactiveCosts = costs.filter(c => c.status === 'nonaktif');
+      
+      // Filter by group
+      const hppCosts = activeCosts.filter(c => c.group === 'HPP');
+      const operasionalCosts = activeCosts.filter(c => c.group === 'OPERASIONAL');
+      
       const summary: CostSummary = {
-        total_biaya_aktif: costs
-          .filter(c => c.status === 'aktif')
+        total_biaya_aktif: activeCosts
           .reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0),
-        total_biaya_tetap: costs
-          .filter(c => c.jenis === 'tetap' && c.status === 'aktif')
+        total_biaya_tetap: activeCosts
+          .filter(c => c.jenis === 'tetap')
           .reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0),
-        total_biaya_variabel: costs
-          .filter(c => c.jenis === 'variabel' && c.status === 'aktif')
+        total_biaya_variabel: activeCosts
+          .filter(c => c.jenis === 'variabel')
           .reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0),
-        jumlah_biaya_aktif: costs.filter(c => c.status === 'aktif').length,
-        jumlah_biaya_nonaktif: costs.filter(c => c.status === 'nonaktif').length,
+        jumlah_biaya_aktif: activeCosts.length,
+        jumlah_biaya_nonaktif: inactiveCosts.length,
+        // New dual-mode properties
+        total_hpp_group: hppCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0),
+        total_operasional_group: operasionalCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0),
+        jumlah_hpp_aktif: hppCosts.length,
+        jumlah_operasional_aktif: operasionalCosts.length,
       };
 
       return { data: summary };
@@ -359,6 +448,10 @@ export const operationalCostApi = {
           total_biaya_variabel: 0,
           jumlah_biaya_aktif: 0,
           jumlah_biaya_nonaktif: 0,
+          total_hpp_group: 0,
+          total_operasional_group: 0,
+          jumlah_hpp_aktif: 0,
+          jumlah_operasional_aktif: 0,
         }, 
         error: 'Gagal mengambil ringkasan biaya' 
       };

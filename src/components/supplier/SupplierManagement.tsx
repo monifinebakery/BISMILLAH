@@ -5,6 +5,9 @@ import React, { useState } from 'react';
 import { Users, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSupplier } from '@/contexts/SupplierContext';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { supplierQueryKeys } from '@/contexts/SupplierContext';
 import { toast } from 'sonner';
 
 import SupplierTable from './SupplierTable';
@@ -14,18 +17,102 @@ import BulkActions from './BulkActions';
 import { useSupplierTable } from './hooks/useSupplierTable';
 import type { Supplier } from '@/types/supplier';
 
+// Import fetchSuppliersPaginated function
+const fetchSuppliersPaginated = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<{
+  data: Supplier[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}> => {
+  // This will be imported from SupplierContext later
+  const { supabase } = await import('@/integrations/supabase/client');
+  const { transformSupplierFromDB } = await import('@/contexts/SupplierContext');
+  
+  // Get total count
+  const { count, error: countError } = await supabase
+    .from('suppliers')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (countError) {
+    throw new Error(countError.message);
+  }
+
+  const total = count || 0;
+  const totalPages = Math.ceil(total / limit);
+  const offset = (page - 1) * limit;
+
+  // Get paginated data
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('*')
+    .eq('user_id', userId)
+    .order('nama', { ascending: true })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  // Transform data
+  const transformSupplierFromDBLocal = (dbItem: any): Supplier => ({
+    id: dbItem.id,
+    nama: dbItem.nama,
+    kontak: dbItem.kontak || '',
+    email: dbItem.email || undefined,
+    telepon: dbItem.telepon || undefined,
+    alamat: dbItem.alamat || undefined,
+    catatan: dbItem.catatan || undefined,
+    userId: dbItem.user_id,
+    createdAt: new Date(dbItem.created_at),
+    updatedAt: new Date(dbItem.updated_at || dbItem.created_at),
+  });
+
+  return {
+    data: (data || []).map(transformSupplierFromDBLocal),
+    total,
+    page,
+    limit,
+    totalPages,
+  };
+};
+
 const SupplierManagement: React.FC = () => {
+  const { user } = useAuth();
   const { suppliers, isLoading, deleteSupplier } = useSupplier();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  
+  // 🎯 NEW: Lazy loading state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [useLazyLoading, setUseLazyLoading] = useState(false);
+
+  // 🎯 NEW: Paginated query for lazy loading
+  const paginatedQuery = useQuery({
+    queryKey: [...supplierQueryKeys.list(), 'paginated', currentPage, itemsPerPage],
+    queryFn: () => fetchSuppliersPaginated(user!.id, currentPage, itemsPerPage),
+    enabled: useLazyLoading && !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use paginated data when lazy loading is enabled, otherwise use regular data
+  const displaySuppliers = useLazyLoading ? (paginatedQuery.data?.data || []) : suppliers;
+  const displayLoading = useLazyLoading ? paginatedQuery.isLoading : isLoading;
+  const paginationInfo = useLazyLoading ? paginatedQuery.data : null;
 
   const {
     searchTerm,
     setSearchTerm,
-    itemsPerPage,
-    setItemsPerPage,
-    currentPage,
-    setCurrentPage,
+    itemsPerPage: tableItemsPerPage,
+    setItemsPerPage: setTableItemsPerPage,
+    currentPage: tablePage,
+    setCurrentPage: setTablePage,
     selectedSupplierIds,
     setSelectedSupplierIds,
     isSelectionMode,
@@ -33,7 +120,14 @@ const SupplierManagement: React.FC = () => {
     filteredSuppliers,
     currentSuppliers,
     totalPages
-  } = useSupplierTable(suppliers);
+  } = useSupplierTable(displaySuppliers);
+  
+  // Override pagination controls when lazy loading is enabled
+  const finalItemsPerPage = useLazyLoading ? itemsPerPage : tableItemsPerPage;
+  const finalCurrentPage = useLazyLoading ? currentPage : tablePage;
+  const finalTotalPages = useLazyLoading ? (paginationInfo?.totalPages || 1) : totalPages;
+  const finalCurrentSuppliers = useLazyLoading ? displaySuppliers : currentSuppliers;
+  const finalFilteredSuppliers = useLazyLoading ? displaySuppliers : filteredSuppliers;
 
   const handleEdit = (supplier: Supplier) => {
     setEditingSupplier(supplier);
@@ -96,32 +190,94 @@ const SupplierManagement: React.FC = () => {
       <BulkActions
         isVisible={isSelectionMode || selectedSupplierIds.length > 0}
         selectedCount={selectedSupplierIds.length}
-        totalFilteredCount={filteredSuppliers.length}
+        totalFilteredCount={finalFilteredSuppliers.length}
         onCancel={() => {
           setSelectedSupplierIds([]);
           setIsSelectionMode(false);
         }}
         onSelectAll={() => {
-          const allIds = filteredSuppliers.map(s => s.id);
+          const allIds = finalFilteredSuppliers.map(s => s.id);
           setSelectedSupplierIds(prev => prev.length === allIds.length ? [] : allIds);
         }}
         onBulkDelete={() => handleBulkDelete(selectedSupplierIds)}
-        suppliers={currentSuppliers.filter(s => selectedSupplierIds.includes(s.id))}
+        suppliers={finalCurrentSuppliers.filter(s => selectedSupplierIds.includes(s.id))}
       />
 
       {/* Main Table Card */}
       <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+        {/* Lazy Loading Controls */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={useLazyLoading}
+                  onChange={(e) => {
+                    setUseLazyLoading(e.target.checked);
+                    setCurrentPage(1); // Reset ke halaman 1 saat toggle
+                  }}
+                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                />
+                <span className="font-medium">Lazy Loading</span>
+                {useLazyLoading && (
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                    Server-side
+                  </span>
+                )}
+              </label>
+              
+              {useLazyLoading && (
+                <div className="flex items-center gap-2 text-sm">
+                  <label htmlFor="itemsPerPage">Items per page:</label>
+                  <select
+                    id="itemsPerPage"
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              )}
+            </div>
+            
+            <div className="text-sm text-gray-600">
+              {useLazyLoading && paginationInfo && (
+                <span className="text-blue-600 font-medium">
+                  Total: {paginationInfo.total} supplier
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Filters */}
         <SupplierFilters
           searchTerm={searchTerm}
           onSearchChange={(term) => {
             setSearchTerm(term);
-            setCurrentPage(1);
+            if (useLazyLoading) {
+              setCurrentPage(1);
+            } else {
+              setTablePage(1);
+            }
           }}
-          itemsPerPage={itemsPerPage}
+          itemsPerPage={finalItemsPerPage}
           onItemsPerPageChange={(count) => {
-            setItemsPerPage(count);
-            setCurrentPage(1);
+            if (useLazyLoading) {
+              setItemsPerPage(count);
+              setCurrentPage(1);
+            } else {
+              setTableItemsPerPage(count);
+              setTablePage(1);
+            }
           }}
           isSelectionMode={isSelectionMode}
           onSelectionModeChange={setIsSelectionMode}
@@ -129,18 +285,18 @@ const SupplierManagement: React.FC = () => {
 
         {/* Table */}
         <SupplierTable
-          suppliers={currentSuppliers}
-          isLoading={isLoading}
+          suppliers={finalCurrentSuppliers}
+          isLoading={displayLoading}
           onEdit={handleEdit}
           onDelete={handleDelete}
           selectedIds={selectedSupplierIds}
           onSelectionChange={setSelectedSupplierIds}
           isSelectionMode={isSelectionMode}
-          filteredCount={filteredSuppliers.length}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
+          filteredCount={finalFilteredSuppliers.length}
+          currentPage={finalCurrentPage}
+          totalPages={finalTotalPages}
+          itemsPerPage={finalItemsPerPage}
+          onPageChange={useLazyLoading ? setCurrentPage : setTablePage}
           onAddFirst={openAddDialog}
           searchTerm={searchTerm}
         />

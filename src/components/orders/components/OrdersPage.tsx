@@ -4,6 +4,8 @@ import React, { useState, useCallback, Suspense, useMemo } from 'react';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ CONSOLIDATED: Order context and hooks
 import { useOrder } from '../context/OrderContext';
@@ -25,6 +27,7 @@ import ContextDebugger from '@/components/debug/ContextDebugger';
 // ✅ TAMBAHKAN IMPORTS: Untuk fallback langsung ke Supabase dan getStatusText
 import { supabase } from '@/integrations/supabase/client';
 import { getStatusText } from '../constants'; // Pastikan path ini benar
+import { fetchOrdersPaginated } from '../services/orderService';
 
 // ✅ OPTIMIZED: Lazy loading with better error boundaries
 const OrderTable = React.lazy(() => 
@@ -90,6 +93,9 @@ const initialState: OrdersPageState = {
 const OrdersPage: React.FC = () => {
   logger.component('OrdersPage', 'Component mounted');
 
+  // ✅ AUTH: Get current user
+  const { user } = useAuth();
+
   // ✅ CONTEXTS: Direct usage with destructuring
   const contextValue = useOrder();
   const { 
@@ -102,11 +108,57 @@ const OrdersPage: React.FC = () => {
     refreshData // ✅ TAMBAHKAN: Untuk refresh manual jika diperlukan
   } = contextValue;
 
+  // ✅ LAZY LOADING STATE: State untuk kontrol lazy loading
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [paginationInfo, setPaginationInfo] = useState({ totalCount: 0, totalPages: 0 });
+
+  // ✅ LAZY LOADING QUERY: Fetch paginated data when lazy loading is enabled
+  const { 
+    data: paginatedData, 
+    isLoading: isPaginatedLoading, 
+    error: paginatedError,
+    refetch: refetchPaginated
+  } = useQuery({
+    queryKey: ['orders-paginated', user?.id, currentPage, itemsPerPage],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return fetchOrdersPaginated(user.id, currentPage, itemsPerPage);
+    },
+    enabled: useLazyLoading && !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    onSuccess: (data) => {
+      setPaginationInfo({ totalCount: data.totalCount, totalPages: data.totalPages });
+    }
+  });
+
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
   const { getWhatsappUrl } = useOrderFollowUp();
 
+  // ✅ DATA SELECTION: Pilih data berdasarkan mode lazy loading
+  const finalOrders = useLazyLoading ? (paginatedData?.orders || []) : orders;
+  const finalIsLoading = useLazyLoading ? isPaginatedLoading : loading;
+  const finalError = useLazyLoading ? paginatedError : null;
+
+  // ✅ STATS CALCULATION: Hitung statistik berdasarkan data yang dipilih
+  const finalStats = useMemo(() => {
+    const dataToUse = useLazyLoading ? (paginatedData?.orders || []) : orders;
+    return {
+      total: useLazyLoading ? paginationInfo.totalCount : orders.length,
+      totalValue: dataToUse.reduce((sum, order) => sum + (order.totalPesanan || 0), 0),
+      byStatus: dataToUse.reduce((acc, order) => {
+        acc[order.status] = (acc[order.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      completionRate: dataToUse.length > 0 
+        ? Math.round((dataToUse.filter(o => o.status === 'completed').length / dataToUse.length) * 100)
+        : 0
+    };
+  }, [useLazyLoading, paginatedData, orders, paginationInfo.totalCount]);
+
   // ✅ UI STATE: Optimized with memoization
-  const uiState = useOrderUI(orders, 10);
+  const uiState = useOrderUI(finalOrders, itemsPerPage);
 
   // ✅ CONSOLIDATED: Single state object
   const [pageState, setPageState] = useState<OrdersPageState>(initialState);
@@ -446,8 +498,11 @@ const OrdersPage: React.FC = () => {
 
   // Log current state for debugging
   logger.debug('OrdersPage render state:', {
-    ordersCount: orders.length,
-    isLoading: loading,
+    ordersCount: finalOrders.length,
+    isLoading: finalIsLoading,
+    useLazyLoading,
+    currentPage,
+    totalPages: paginationInfo.totalPages,
     selectedOrdersCount: uiState.selectedOrderIds.length,
     dialogsOpen: pageState.dialogs,
     isEditingOrder: !!pageState.editingOrder,
@@ -455,7 +510,7 @@ const OrdersPage: React.FC = () => {
   });
 
   // ✅ EARLY RETURN: Loading state
-  if (loading) {
+  if (finalIsLoading) {
     logger.component('OrdersPage', 'Rendering loading state');
     return <PageLoading />;
   }
@@ -480,6 +535,44 @@ const OrdersPage: React.FC = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          {/* ✅ LAZY LOADING CONTROLS */}
+          <div className="flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-lg backdrop-blur-sm">
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useLazyLoading}
+                onChange={(e) => {
+                  setUseLazyLoading(e.target.checked);
+                  if (e.target.checked) {
+                    setCurrentPage(1);
+                  }
+                }}
+                className="rounded"
+              />
+              Lazy Loading
+            </label>
+            {useLazyLoading && (
+              <>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="ml-2 px-2 py-1 text-sm bg-white bg-opacity-20 border border-white border-opacity-30 rounded text-white"
+                >
+                  <option value={5} className="text-gray-800">5/halaman</option>
+                  <option value={10} className="text-gray-800">10/halaman</option>
+                  <option value={20} className="text-gray-800">20/halaman</option>
+                  <option value={50} className="text-gray-800">50/halaman</option>
+                </select>
+                <span className="text-sm ml-2">
+                  Total: {paginationInfo.totalCount} pesanan
+                </span>
+              </>
+            )}
+          </div>
+
           {/* ✅ DEBUG: Debug button for development */}
           {import.meta.env.DEV && (
             <Button
@@ -526,15 +619,15 @@ const OrdersPage: React.FC = () => {
       }>
         <OrderControls 
           uiState={uiState} 
-          loading={loading} 
+          loading={finalIsLoading} 
         />
         <OrderFilters 
           uiState={uiState} 
-          loading={loading} 
+          loading={finalIsLoading} 
         />
         <OrderTable
           uiState={uiState}
-          loading={loading}
+          loading={finalIsLoading}
           onEditOrder={businessHandlers.editOrder}
           onDeleteOrder={businessHandlers.deleteOrder}
           onStatusChange={businessHandlers.statusChange} // ✅ FIXED: This now uses the enhanced updateOrderStatus
@@ -542,6 +635,38 @@ const OrdersPage: React.FC = () => {
           onFollowUp={handleFollowUp}
           onViewDetail={handleViewDetail}
         />
+        
+        {/* ✅ PAGINATION CONTROLS: Untuk mode lazy loading */}
+        {useLazyLoading && paginationInfo.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 p-4 bg-white rounded-lg border">
+            <div className="text-sm text-gray-600">
+              Halaman {currentPage} dari {paginationInfo.totalPages} 
+              ({paginationInfo.totalCount} total pesanan)
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                variant="outline"
+                size="sm"
+              >
+                Sebelumnya
+              </Button>
+              <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded text-sm font-medium">
+                {currentPage}
+              </span>
+              <Button
+                onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
+                disabled={currentPage === paginationInfo.totalPages}
+                variant="outline"
+                size="sm"
+              >
+                Selanjutnya
+              </Button>
+            </div>
+          </div>
+        )}
+        
         <OrderDialogs
           showOrderForm={pageState.dialogs.orderForm}
           editingOrder={pageState.editingOrder}

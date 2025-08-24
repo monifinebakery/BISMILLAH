@@ -19,20 +19,55 @@ import {
   Shield,
   Activity,
   Clock,
-  Trash2
+  Trash2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useDevice } from '@/contexts/DeviceContext';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 const DeviceManagementPage: React.FC = () => {
-  const { devices, currentDevice, loading, error, refreshDevices, updateDeviceName, removeDevice, removeAllOtherDevices } = useDevice();
+  const { devices, currentDevice, loading, error, refreshDevices, updateDeviceName, removeDevice, removeAllOtherDevices, fetchDevicesPaginated } = useDevice();
+  const { user } = useAuth();
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  
+  // ✅ LAZY LOADING STATE
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [paginationInfo, setPaginationInfo] = useState({ totalCount: 0, totalPages: 0 });
+  
+  // ✅ LAZY LOADING QUERY
+  const { 
+    data: paginatedData, 
+    isLoading: isPaginatedLoading, 
+    error: paginatedError,
+    refetch: refetchPaginated 
+  } = useQuery({
+    queryKey: ['devices-paginated', user?.id, currentPage, itemsPerPage],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      const result = await fetchDevicesPaginated(user.id, currentPage, itemsPerPage);
+      setPaginationInfo({ totalCount: result.totalCount, totalPages: result.totalPages });
+      return result;
+    },
+    enabled: useLazyLoading && !!user?.id,
+    staleTime: 30000,
+  });
+  
+  // ✅ DETERMINE FINAL DATA
+  const finalDevices = useLazyLoading ? (paginatedData?.devices || []) : devices;
+  const finalIsLoading = useLazyLoading ? isPaginatedLoading : loading;
+  const finalError = useLazyLoading ? paginatedError : error;
 
   // Load devices only once when component mounts
   useEffect(() => {
@@ -141,8 +176,8 @@ const DeviceManagementPage: React.FC = () => {
     }
   }, []);
 
-  const shouldShowWarning = devices.length > 5;
-  const hasOldDevices = devices.some(device => {
+  const shouldShowWarning = finalDevices.length > 5;
+  const hasOldDevices = finalDevices.some(device => {
     const status = getDeviceStatus(device);
     return status.hours > 24 * 30; // 30 days
   });
@@ -158,7 +193,7 @@ const DeviceManagementPage: React.FC = () => {
     }
   }, []);
 
-  if (loading && !isRefreshing) {
+  if (finalIsLoading && !isRefreshing) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -169,15 +204,16 @@ const DeviceManagementPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (finalError) {
+    const errorMessage = finalError instanceof Error ? finalError.message : (typeof finalError === 'string' ? finalError : 'Terjadi kesalahan');
     return (
       <Card>
         <CardHeader>
           <CardTitle>Kesalahan</CardTitle>
-          <CardDescription>{error}</CardDescription>
+          <CardDescription>{errorMessage}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleRefreshDevices}>Coba Lagi</Button>
+          <Button onClick={useLazyLoading ? () => refetchPaginated() : handleRefreshDevices}>Coba Lagi</Button>
         </CardContent>
       </Card>
     );
@@ -190,6 +226,44 @@ const DeviceManagementPage: React.FC = () => {
         <p className="text-gray-600 mt-2 text-sm md:text-base">
           Kelola perangkat yang saat ini masuk ke akun Anda
         </p>
+        
+        {/* ✅ LAZY LOADING CONTROLS */}
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+          <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
+            <div className="flex items-center space-x-3">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useLazyLoading}
+                  onChange={(e) => setUseLazyLoading(e.target.checked)}
+                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                />
+                <span className="text-sm font-medium">Aktifkan Lazy Loading</span>
+              </label>
+              
+              {useLazyLoading && (
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm"
+                >
+                  <option value={5}>5 per halaman</option>
+                  <option value={10}>10 per halaman</option>
+                  <option value={20}>20 per halaman</option>
+                </select>
+              )}
+            </div>
+            
+            {useLazyLoading && (
+              <div className="text-sm text-gray-600">
+                Total: {paginationInfo.totalCount} perangkat
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <Card>
@@ -199,7 +273,7 @@ const DeviceManagementPage: React.FC = () => {
               <CardTitle className="flex flex-wrap items-center gap-2 text-lg md:text-xl">
                 Perangkat Aktif
                 <Badge variant={shouldShowWarning ? 'destructive' : 'secondary'} className="text-xs">
-                  {devices.length} perangkat
+                  {finalDevices.length} perangkat
                 </Badge>
                 {shouldShowWarning && (
                   <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -225,7 +299,7 @@ const DeviceManagementPage: React.FC = () => {
               </CardDescription>
             </div>
             <div className="flex flex-col space-y-2 md:flex-row md:gap-2 md:space-y-0">
-              {devices.length > 1 && (
+              {finalDevices.length > 1 && (
                 <Button 
                   variant="outline" 
                   onClick={handleRemoveAllOtherDevices}
@@ -266,14 +340,14 @@ const DeviceManagementPage: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {devices.length === 0 ? (
+          {finalDevices.length === 0 ? (
             <div className="text-center py-8">
               <SmartphoneCharging className="h-8 w-8 md:h-12 md:w-12 text-gray-400 mx-auto" />
               <p className="mt-4 text-gray-600 text-sm md:text-base">Tidak ada perangkat aktif</p>
             </div>
           ) : (
             <div className="space-y-3 md:space-y-4">
-              {devices.map((device) => {
+              {finalDevices.map((device) => {
                 const status = getDeviceStatus(device);
                 
                 return (
@@ -445,8 +519,48 @@ const DeviceManagementPage: React.FC = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+        
+        {/* ✅ PAGINATION CONTROLS */}
+        {useLazyLoading && paginationInfo.totalPages > 1 && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+                <div className="text-sm text-gray-600">
+                  Halaman {currentPage} dari {paginationInfo.totalPages} • 
+                  Total {paginationInfo.totalCount} perangkat
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1 || isPaginatedLoading}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Sebelumnya
+                  </Button>
+                  
+                  <span className="px-3 py-1 text-sm bg-gray-100 rounded">
+                    {currentPage}
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
+                    disabled={currentPage === paginationInfo.totalPages || isPaginatedLoading}
+                  >
+                    Selanjutnya
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
   );
 };
 

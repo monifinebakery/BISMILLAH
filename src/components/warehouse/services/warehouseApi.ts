@@ -77,6 +77,63 @@ class CrudService {
     }
   }
 
+  // 🎯 NEW: Fetch materials with pagination
+  async fetchBahanBakuPaginated(page: number = 1, limit: number = 10): Promise<{
+    data: BahanBakuFrontend[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    try {
+      const offset = (page - 1) * limit;
+      
+      // Get total count
+      let countQuery = supabase.from('bahan_baku').select('*', { count: 'exact', head: true });
+      if (this.config.userId) countQuery = countQuery.eq('user_id', this.config.userId);
+      
+      const { count, error: countError } = await countQuery;
+      if (countError) throw countError;
+      
+      const total = count || 0;
+      const totalPages = Math.ceil(total / limit);
+      
+      // Get paginated data
+      let query = supabase.from('bahan_baku').select(`
+        id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
+        tanggal_kadaluwarsa, created_at, updated_at,
+        harga_rata_rata
+      `);
+      
+      if (this.config.userId) query = query.eq('user_id', this.config.userId);
+      
+      const { data, error } = await query
+        .order('nama', { ascending: true })
+        .range(offset, offset + limit - 1);
+        
+      if (error) throw error;
+      
+      const transformedData = (data || []).map((item: any) => transformToFrontend(item));
+      
+      return {
+        data: transformedData,
+        total,
+        page,
+        limit,
+        totalPages
+      };
+    } catch (error: any) {
+      this.handleError('Paginated fetch failed', error);
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0
+      };
+    }
+  }
+
   // 🎯 NEW: Fetch materials by date range for profit analysis
   async fetchBahanBakuByDateRange(
     startDate: Date,

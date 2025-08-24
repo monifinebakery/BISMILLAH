@@ -57,6 +57,41 @@ const fetchPurchases = async (userId: string): Promise<Purchase[]> => {
   return transformPurchasesFromDB(data || []);
 };
 
+// ✅ NEW: Fungsi untuk mengambil data purchase dengan paginasi
+const fetchPurchasesPaginated = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<{ data: Purchase[]; total: number; totalPages: number }> => {
+  const offset = (page - 1) * limit;
+
+  // Ambil total count
+  const { count, error: countError } = await supabase
+    .from('purchases')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (countError) throw new Error(countError.message);
+
+  // Ambil data dengan paginasi
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('user_id', userId)
+    .order('tanggal', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw new Error(error.message);
+
+  const totalPages = Math.ceil((count || 0) / limit);
+
+  return {
+    data: transformPurchasesFromDB(data || []),
+    total: count || 0,
+    totalPages
+  };
+};
+
 // CREATE via service (manual warehouse sync handled in service), then fetch the created row
 const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string) => {
   const res = await PurchaseApiService.createPurchase(payload, userId);

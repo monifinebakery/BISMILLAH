@@ -86,6 +86,7 @@ export const operationalCostApi = {
         ...item,
         jenis: item.jenis as 'tetap' | 'variabel',
         status: item.status as 'aktif' | 'nonaktif',
+        group: item.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
         cost_category: item.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: item.deskripsi || undefined
       }));
@@ -132,6 +133,9 @@ export const operationalCostApi = {
       if (filters?.status) {
         query = query.eq('status', filters.status);
       }
+      if (filters?.group) {
+        query = query.eq('group', filters.group);
+      }
       if (filters?.search) {
         query = query.ilike('nama_biaya', `%${filters.search}%`);
       }
@@ -145,6 +149,7 @@ export const operationalCostApi = {
         ...item,
         jenis: item.jenis as 'tetap' | 'variabel',
         status: item.status as 'aktif' | 'nonaktif',
+        group: item.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
         cost_category: item.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: item.deskripsi || undefined // Convert null to undefined
       }));
@@ -178,6 +183,7 @@ export const operationalCostApi = {
         ...data,
         jenis: data.jenis as 'tetap' | 'variabel',
         status: data.status as 'aktif' | 'nonaktif',
+        group: data.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
         cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: data.deskripsi || undefined // Convert null to undefined
       };
@@ -218,6 +224,7 @@ export const operationalCostApi = {
         ...data,
         jenis: data.jenis as 'tetap' | 'variabel',
         status: data.status as 'aktif' | 'nonaktif',
+        group: data.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
         cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: data.deskripsi || undefined // Convert null to undefined
       };
@@ -261,6 +268,7 @@ export const operationalCostApi = {
         ...data,
         jenis: data.jenis as 'tetap' | 'variabel',
         status: data.status as 'aktif' | 'nonaktif',
+        group: data.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
         cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: data.deskripsi || undefined // Convert null to undefined
       };

@@ -25,6 +25,14 @@ export {
   EmptyState 
 } from './components';
 
+// ✅ NEW: Dual-Mode Components
+export { default as DualModeCalculator } from './components/DualModeCalculator';
+export { default as RecipeHppIntegration } from './components/RecipeHppIntegration';
+
+// ✅ NEW: Essential Hooks for Recipe Integration
+export { useEnhancedHppCalculation, useRecipeHppIntegration } from './hooks/useEnhancedHppCalculation';
+export { useCostClassification } from './hooks/useCostClassification';
+
 // ❌ REMOVED - Reduce dependencies:
 // - All hooks exports (use direct imports if needed)
 // - All constants exports (use direct imports if needed)  

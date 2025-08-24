@@ -1,15 +1,18 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Calculator, Edit2, Trash2, DollarSign } from 'lucide-react';
+import { Plus, Calculator, Edit2, Trash2, DollarSign, Settings, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OperationalCostProvider, useOperationalCost } from './context';
 import { formatCurrency, formatDate } from './utils/costHelpers';
-import { OperationalCost } from './types';
+import { OperationalCost, AppSettings } from './types/operationalCost.types';
 import { CostFormDialog } from './components/CostFormDialog';
+import DualModeCalculator from './components/DualModeCalculator';
+import { appSettingsApi } from './services';
 
 const OperationalCostContent: React.FC = () => {
   const { state, actions } = useOperationalCost();
@@ -17,13 +20,30 @@ const OperationalCostContent: React.FC = () => {
   const [productionTarget, setProductionTarget] = useState(3000);
   const [showDialog, setShowDialog] = useState(false);
   const [editingCost, setEditingCost] = useState<OperationalCost | null>(null);
+  const [activeTab, setActiveTab] = useState('costs'); // 'costs' or 'calculator'
+  const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
 
   // Auto-refresh data when component mounts
   useEffect(() => {
     if (state.isAuthenticated) {
       actions.loadCosts();
+      // Load app settings
+      loadAppSettings();
     }
   }, [state.isAuthenticated]);
+
+  // Load app settings
+  const loadAppSettings = async () => {
+    try {
+      const response = await appSettingsApi.getSettings();
+      if (response.data) {
+        setAppSettings(response.data);
+        setProductionTarget(response.data.target_output_monthly);
+      }
+    } catch (error) {
+      console.error('Error loading app settings:', error);
+    }
+  };
 
   // Auto-refresh after CRUD operations
   useEffect(() => {
@@ -32,8 +52,10 @@ const OperationalCostContent: React.FC = () => {
     }
   }, [state.costs.length]); // Refresh when costs count changes
 
-  // Calculate totals
+  // Calculate totals with dual-mode support
   const totalMonthlyCosts = state.summary?.total_biaya_aktif || 0;
+  const hppCosts = state.summary?.total_hpp_group || 0;
+  const operasionalCosts = state.summary?.total_operasional_group || 0;
   const costPerProduct = productionTarget > 0 ? totalMonthlyCosts / productionTarget : 0;
 
   // Handlers
@@ -163,6 +185,24 @@ const OperationalCostContent: React.FC = () => {
       </div>
 
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* Tabs for Cost Management and Calculator */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          
+          {/* Tab Navigation */}
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="costs" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Kelola Biaya
+            </TabsTrigger>
+            <TabsTrigger value="calculator" className="flex items-center gap-2">
+              <Calculator className="h-4 w-4" />
+              Kalkulator Dual-Mode
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab Content: Cost Management */}
+          <TabsContent value="costs" className="space-y-6">
         
         {/* Top Section: Calculator */}
         <Card>
@@ -396,6 +436,21 @@ const OperationalCostContent: React.FC = () => {
 
           </CardContent>
         </Card>
+
+          </TabsContent>
+
+          {/* Tab Content: Dual-Mode Calculator */}
+          <TabsContent value="calculator" className="space-y-6">
+            <DualModeCalculator
+              costs={state.costs}
+              currentSettings={appSettings}
+              onCalculationComplete={(hppResult, operasionalResult) => {
+                loadAppSettings();
+              }}
+            />
+          </TabsContent>
+
+        </Tabs>
 
       </div>
 

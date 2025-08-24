@@ -7,6 +7,7 @@ export interface OperationalCost {
   jumlah_per_bulan: number;
   jenis: 'tetap' | 'variabel';
   status: 'aktif' | 'nonaktif';
+  group: 'HPP' | 'OPERASIONAL'; // New: Dual-mode cost group
   deskripsi?: string;
   cost_category: 'fixed' | 'variable' | 'other'; // Generated column
   created_at: string;
@@ -27,6 +28,7 @@ export interface CostFormData {
   jumlah_per_bulan: number;
   jenis: 'tetap' | 'variabel';
   status: 'aktif' | 'nonaktif';
+  group: 'HPP' | 'OPERASIONAL'; // New: Dual-mode cost group
   deskripsi?: string;
   // Note: cost_category is not included as it's a generated column
 }
@@ -42,11 +44,17 @@ export interface CostSummary {
   total_biaya_variabel: number;
   jumlah_biaya_aktif: number;
   jumlah_biaya_nonaktif: number;
+  // New: Dual-mode summaries
+  total_hpp_group: number;
+  total_operasional_group: number;
+  jumlah_hpp_aktif: number;
+  jumlah_operasional_aktif: number;
 }
 
 export interface CostFilters {
   jenis?: 'tetap' | 'variabel';
   status?: 'aktif' | 'nonaktif';
+  group?: 'HPP' | 'OPERASIONAL'; // New: Filter by cost group
   search?: string;
 }
 
@@ -74,4 +82,60 @@ export interface CostListResponse {
   total: number;
   page: number;
   limit: number;
+}
+
+// ====================================
+// NEW: Dual-Mode Calculator Types
+// ====================================
+
+export interface DualModeCalculatorData {
+  costs: OperationalCost[];
+  selectedGroup: 'HPP' | 'OPERASIONAL';
+  targetOutputMonthly: number; // Target produksi per bulan
+}
+
+export interface DualModeCalculationResult {
+  group: 'HPP' | 'OPERASIONAL';
+  totalCosts: number;
+  targetOutput: number;
+  costPerUnit: number; // Biaya per pcs
+  isValid: boolean;
+  validationErrors: string[];
+}
+
+// ====================================
+// NEW: App Settings Types
+// ====================================
+
+export interface AppSettings {
+  id: string;
+  user_id: string;
+  target_output_monthly: number; // Target produksi bulanan
+  overhead_per_pcs: number; // Hasil kalkulator kelompok HPP
+  operasional_per_pcs: number; // Hasil kalkulator kelompok Operasional
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppSettingsFormData {
+  target_output_monthly: number;
+  overhead_per_pcs?: number;
+  operasional_per_pcs?: number;
+}
+
+// ====================================
+// NEW: Cost Classification Types
+// ====================================
+
+export interface CostClassificationRule {
+  keywords: string[];
+  group: 'HPP' | 'OPERASIONAL';
+  description: string;
+}
+
+export interface ClassificationSuggestion {
+  suggested_group: 'HPP' | 'OPERASIONAL';
+  confidence: 'high' | 'medium' | 'low';
+  reason: string;
+  matched_keywords: string[];
 }

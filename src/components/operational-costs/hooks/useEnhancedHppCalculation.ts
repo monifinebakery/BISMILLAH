@@ -90,13 +90,18 @@ export const useEnhancedHppCalculation = ({
       
       if (settings?.overhead_per_pcs) {
         console.log('💡 Enhanced HPP: Using overhead from app settings:', settings.overhead_per_pcs);
+      } else if (settings) {
+        console.log('⚠️ Enhanced HPP: App settings found but no overhead calculated yet');
       } else {
-        console.log('⚠️ Enhanced HPP: No overhead settings found, will use manual input');
+        console.log('⚠️ Enhanced HPP: No app settings found, default settings will be created');
       }
     } catch (err) {
-      const errorMessage = 'Gagal memuat pengaturan overhead';
+      const errorMessage = 'Gagal memuat pengaturan overhead. Sistem akan menggunakan nilai default.';
       setError(errorMessage);
       console.error('Error refreshing app settings:', err);
+      
+      // Still try to use the system without settings
+      setAppSettings(null);
     } finally {
       setIsLoadingSettings(false);
     }

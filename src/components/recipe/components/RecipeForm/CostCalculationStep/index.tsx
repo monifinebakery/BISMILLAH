@@ -1,32 +1,14 @@
-// src/components/recipe/components/RecipeForm/CostCalculationStep/index.tsx - FIXED
-
 import React from 'react';
-import { Calculator, Info } from 'lucide-react';
+import { Calculator, Info, Zap } from 'lucide-react';
 import { logger } from '@/utils/logger';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Component imports
-import { CostInputsCard } from './components/CostInputsCard';
-import { ResultsCard } from './components/ResultsCard';
-import { SummaryGrid } from './components/SummaryGrid';
-import { BreakdownChart } from './components/BreakdownChart';
-import { CostValidationAlert } from './components/shared/ValidationAlert';
-
-// Hook imports
-import { useCostCalculation } from './hooks/useCostCalculation';
-import { useOverheadManagement } from './hooks/useOverheadManagement';
-
-// Utility imports
-import { calculateIngredientCost } from './utils/calculations';
-import { formatCurrency } from './utils/formatters';
-
-// Enhanced HPP Integration
+// Enhanced HPP Integration (Primary Method)
 import RecipeHppIntegration from '@/components/operational-costs/components/RecipeHppIntegration';
 import type { EnhancedHPPCalculationResult } from '@/components/operational-costs/utils/enhancedHppCalculations';
 
 // Types
 import type { NewRecipe, RecipeFormStepProps } from '../../../types';
-import type { CostCalculationData } from './utils/types';
 
 interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {
   onEnhancedHppModeChange?: (isActive: boolean) => void;
@@ -40,79 +22,29 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   onEnhancedHppModeChange,
 }) => {
   
-  // Enhanced HPP state
+  // Enhanced HPP state (always enabled)
   const [enhancedHppResult, setEnhancedHppResult] = React.useState<EnhancedHPPCalculationResult | null>(null);
-  
-  // 🔧 FIX: Transform NewRecipe data to CostCalculationData format
-  const costCalculationData: CostCalculationData = {
-    bahanResep: data.bahanResep || [],
-    jumlahPorsi: data.jumlahPorsi || 1,
-    jumlahPcsPerPorsi: data.jumlahPcsPerPorsi || 1,
-    biayaTenagaKerja: data.biayaTenagaKerja || 0,
-    biayaOverhead: data.biayaOverhead || 0,
-    marginKeuntunganPersen: data.marginKeuntunganPersen || 0, // 🎯 KEY FIX!
-  };
-
-  // 🐛 DEBUG: Log the transformation
-  logger.debug('CostCalculationStep data transformation', {
-    originalData: data,
-    transformedData: costCalculationData,
-    marginKeuntunganPersen: {
-      original: data.marginKeuntunganPersen,
-      transformed: costCalculationData.marginKeuntunganPersen,
-      type: typeof costCalculationData.marginKeuntunganPersen
-    }
-  });
-
-  // Calculate ingredient cost with enhanced function
-  const ingredientCost = calculateIngredientCost(costCalculationData.bahanResep);
-  logger.debug('Calculated ingredient cost', { ingredientCost });
-
-  // 🔧 FIX: Main cost calculation hook with correct data format
-  const {
-    costBreakdown,
-    profitAnalysis,
-    breakEvenPoint,
-    validationErrors,
-    totalRevenue,
-    isDataValid,
-  } = useCostCalculation(costCalculationData); // ✅ Use transformed data
-
-  // Override ingredient cost with our enhanced calculation
-  costBreakdown.ingredientCost = ingredientCost;
-  costBreakdown.totalProductionCost = ingredientCost + costBreakdown.laborCost + costBreakdown.overheadCost;
-  costBreakdown.costPerPortion = costCalculationData.jumlahPorsi > 0 ? costBreakdown.totalProductionCost / costCalculationData.jumlahPorsi : 0;
-  costBreakdown.costPerPiece = costCalculationData.jumlahPcsPerPorsi > 0 ? costBreakdown.costPerPortion / costCalculationData.jumlahPcsPerPorsi : 0;
-
-  // Overhead management for auto-calculation
-  const overheadManagement = useOverheadManagement({
-    ingredientCost: costBreakdown.ingredientCost,
-    jumlahPorsi: costCalculationData.jumlahPorsi,
-    currentOverheadCost: costCalculationData.biayaOverhead,
-    onOverheadUpdate: (value) => onUpdate('biayaOverhead', value),
-  });
-
-  // Combine validation errors
-  const allErrors = { ...errors, ...validationErrors };
-  const hasValidationErrors = Object.keys(allErrors).length > 0 || !!overheadManagement.error;
+  const [isEnhancedMode, setIsEnhancedMode] = React.useState(true); // Default to enhanced mode
 
   // Handle enhanced HPP result updates
   const handleEnhancedHppChange = React.useCallback((result: EnhancedHPPCalculationResult | null) => {
     setEnhancedHppResult(result);
     
     if (result) {
-      // Update form data with enhanced results - using proper field names from NewRecipe
+      // Update form data with enhanced results
       onUpdate('totalHpp', result.totalHPP);
       onUpdate('hppPerPorsi', result.hppPerPorsi);
       onUpdate('hppPerPcs', result.hppPerPcs);
       onUpdate('hargaJualPorsi', result.hargaJualPerPorsi);
       onUpdate('hargaJualPerPcs', result.hargaJualPerPcs);
-      onUpdate('biayaOverhead', result.overheadPerPcs * costCalculationData.jumlahPorsi * costCalculationData.jumlahPcsPerPorsi);
+      onUpdate('biayaTenagaKerja', result.tklPerPcs * (data.jumlahPorsi || 1) * (data.jumlahPcsPerPorsi || 1));
+      onUpdate('biayaOverhead', result.overheadPerPcs * (data.jumlahPorsi || 1) * (data.jumlahPcsPerPorsi || 1));
     }
-  }, [onUpdate, costCalculationData.jumlahPorsi, costCalculationData.jumlahPcsPerPorsi]);
+  }, [onUpdate, data.jumlahPorsi, data.jumlahPcsPerPorsi]);
 
   // Handle enhanced HPP mode changes
   const handleEnhancedHppModeChange = React.useCallback((isActive: boolean) => {
+    setIsEnhancedMode(isActive);
     if (onEnhancedHppModeChange) {
       onEnhancedHppModeChange(isActive);
     }
@@ -120,200 +52,116 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
 
   // Prepare recipe data for enhanced HPP integration
   const recipeDataForHpp = React.useMemo(() => ({
-    bahanResep: costCalculationData.bahanResep,
-    jumlahPorsi: costCalculationData.jumlahPorsi,
-    jumlahPcsPerPorsi: costCalculationData.jumlahPcsPerPorsi,
-    biayaTenagaKerja: costCalculationData.biayaTenagaKerja || 0,
-    biayaOverhead: costCalculationData.biayaOverhead || 0,
-    marginKeuntunganPersen: costCalculationData.marginKeuntunganPersen || 0,
-  }), [costCalculationData]);
-
-  // Legacy HPP result for comparison
-  const legacyHppResult = React.useMemo(() => ({
-    hppPerPcs: costBreakdown.costPerPiece,
-    hargaJualPerPcs: profitAnalysis.sellingPricePerPiece,
-    totalHPP: costBreakdown.totalProductionCost,
-  }), [costBreakdown, profitAnalysis]);
-
-  // 🐛 FINAL DEBUG LOG
-  logger.debug('CostCalculationStep final values', {
-    costBreakdown,
-    profitAnalysis,
-    marginAmount: profitAnalysis.marginAmount,
-    isMarginZero: profitAnalysis.marginAmount === 0,
-    marginKeuntunganPersen: costCalculationData.marginKeuntunganPersen,
-    enhancedHppResult
-  });
+    bahanResep: data.bahanResep || [],
+    jumlahPorsi: data.jumlahPorsi || 1,
+    jumlahPcsPerPorsi: data.jumlahPcsPerPorsi || 1,
+    biayaTenagaKerja: data.biayaTenagaKerja || 0,
+    biayaOverhead: data.biayaOverhead || 0,
+    marginKeuntunganPersen: data.marginKeuntunganPersen || 0,
+  }), [data]);
 
   return (
     <div className="space-y-6">
       
       {/* Step Header */}
       <div className="text-center pb-4">
-        <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Calculator className="w-8 h-8 text-purple-600" />
+        <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Zap className="w-8 h-8 text-purple-600" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Kalkulasi HPP & Harga Jual
+          Kalkulasi HPP Otomatis
         </h2>
         <p className="text-gray-600">
-          Tentukan biaya produksi dan margin keuntungan untuk resep Anda
+          Sistem akan menghitung HPP dan harga jual secara otomatis menggunakan overhead dari biaya operasional
         </p>
       </div>
 
-      {/* Enhanced HPP Feature Alert */}
-      <Alert className="border-blue-200 bg-blue-50">
-        <Info className="h-4 w-4" />
-        <AlertDescription className="text-blue-800">
-          <strong>🚀 Fitur Baru:</strong> Sekarang Anda dapat menggunakan overhead otomatis dari menu{' '}
-          <strong>Biaya Operasional</strong>. Aktifkan toggle di bawah untuk menggunakan overhead yang sudah dihitung{' '}
-          berdasarkan dual-mode calculator.
+      {/* Enhanced HPP Information */}
+      <Alert className="border-green-200 bg-green-50">
+        <Zap className="h-4 w-4" />
+        <AlertDescription className="text-green-800">
+          <strong>🎯 HPP Otomatis Aktif:</strong> Sistem menggunakan overhead yang sudah dihitung dari{' '}
+          <strong>Biaya Operasional → Dual-Mode Calculator</strong>. HPP akan dihitung berdasarkan:{' '}
+          <strong>Bahan + TKL + Overhead Otomatis</strong>.
         </AlertDescription>
       </Alert>
 
-
-
-      {/* Main Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        
-        {/* Left Section - Cost Inputs */}
-        <CostInputsCard
-          data={costCalculationData}
-          errors={allErrors}
-          ingredientCost={costBreakdown.ingredientCost}
-          onUpdate={(field: string, value: any) => {
-            // Map CostCalculationData fields to NewRecipe fields
-            const fieldMap: Record<string, keyof NewRecipe> = {
-              'biayaTenagaKerja': 'biayaTenagaKerja',
-              'biayaOverhead': 'biayaOverhead',
-              'marginKeuntunganPersen': 'marginKeuntunganPersen'
-            };
-            const mappedField = fieldMap[field] || field as keyof NewRecipe;
-            onUpdate(mappedField, value);
-          }}
-          isLoading={isLoading}
-        />
-
-        {/* Right Section - Results */}
-        <div className="space-y-6">
-          <ResultsCard
-            costBreakdown={costBreakdown}
-            profitAnalysis={profitAnalysis}
-            jumlahPorsi={costCalculationData.jumlahPorsi}
-            jumlahPcsPerPorsi={costCalculationData.jumlahPcsPerPorsi}
-            marginKeuntunganPersen={costCalculationData.marginKeuntunganPersen || 0}
-            isUsingAutoOverhead={overheadManagement.isUsingAutoOverhead}
-            overheadCalculation={overheadManagement.overheadCalculation}
-          />
-        </div>
-      </div>
-
-      {/* Summary Section */}
-      <SummaryGrid
-        costBreakdown={costBreakdown}
-        profitAnalysis={profitAnalysis}
-        breakEvenPoint={breakEvenPoint}
-        totalRevenue={totalRevenue}
-        jumlahPorsi={costCalculationData.jumlahPorsi}
-        jumlahPcsPerPorsi={costCalculationData.jumlahPcsPerPorsi}
-        marginKeuntunganPersen={costCalculationData.marginKeuntunganPersen || 0}
-      />
-
-      {/* Cost Breakdown Chart */}
-      <BreakdownChart
-        costBreakdown={costBreakdown}
-        isUsingAutoOverhead={overheadManagement.isUsingAutoOverhead}
-      />
-
-      {/* Overhead Details (if using auto-calculation) */}
-      {overheadManagement.isUsingAutoOverhead && overheadManagement.overheadCalculation && (
-        <OverheadDetailsCard
-          overheadCalculation={overheadManagement.overheadCalculation}
-          jumlahPorsi={costCalculationData.jumlahPorsi}
-        />
-      )}
-
-      {/* Enhanced HPP Integration */}
+      {/* Main Enhanced HPP Calculator */}
       <RecipeHppIntegration
         recipeData={recipeDataForHpp}
-        legacyHppResult={legacyHppResult}
         onEnhancedResultChange={handleEnhancedHppChange}
         onEnhancedModeChange={handleEnhancedHppModeChange}
-        className="mt-6"
+        className=""
       />
 
-      {/* Validation Errors */}
-      {hasValidationErrors && (
-        <CostValidationAlert
-          validationErrors={allErrors}
-          overheadError={overheadManagement.error}
-        />
+      {/* Results Summary */}
+      {enhancedHppResult && isEnhancedMode && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-green-600" />
+            Hasil Kalkulasi HPP
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-sm text-blue-600 font-medium">HPP per Pcs</p>
+              <p className="text-xl font-bold text-blue-900">
+                Rp {enhancedHppResult.hppPerPcs.toLocaleString('id-ID')}
+              </p>
+            </div>
+            
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <p className="text-sm text-purple-600 font-medium">HPP per Porsi</p>
+              <p className="text-xl font-bold text-purple-900">
+                Rp {enhancedHppResult.hppPerPorsi.toLocaleString('id-ID')}
+              </p>
+            </div>
+            
+            <div className="bg-green-50 p-4 rounded-lg">
+              <p className="text-sm text-green-600 font-medium">Harga Jual per Pcs</p>
+              <p className="text-xl font-bold text-green-900">
+                Rp {enhancedHppResult.hargaJualPerPcs.toLocaleString('id-ID')}
+              </p>
+            </div>
+            
+            <div className="bg-orange-50 p-4 rounded-lg">
+              <p className="text-sm text-orange-600 font-medium">Total HPP</p>
+              <p className="text-xl font-bold text-orange-900">
+                Rp {enhancedHppResult.totalHPP.toLocaleString('id-ID')}
+              </p>
+            </div>
+          </div>
+          
+          {/* Breakdown Details */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <h4 className="text-md font-medium text-gray-700 mb-3">Rincian Biaya per Pcs:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Bahan:</span>
+                <span className="font-medium">Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">TKL:</span>
+                <span className="font-medium">Rp {enhancedHppResult.tklPerPcs.toLocaleString('id-ID')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Overhead:</span>
+                <span className="font-medium">Rp {enhancedHppResult.overheadPerPcs.toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+            <p className="text-xs text-gray-600">
+              💡 <strong>Metode:</strong> {enhancedHppResult.calculationMethod === 'enhanced_dual_mode' ? 'Enhanced Dual-Mode' : 'Legacy'} •{' '}
+              <strong>Overhead:</strong> {enhancedHppResult.breakdown.overheadSource === 'app_settings' ? 'Otomatis dari Biaya Operasional' : 'Input Manual'}
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Mobile Bottom Navigation Spacer */}
       <div className="h-20 sm:h-0" aria-hidden="true"></div>
-    </div>
-  );
-};
-
-// Overhead Details Card Component (existing logic)
-interface OverheadDetailsCardProps {
-  overheadCalculation: any;
-  jumlahPorsi: number;
-}
-
-const OverheadDetailsCard: React.FC<OverheadDetailsCardProps> = ({
-  overheadCalculation,
-  jumlahPorsi,
-}) => {
-  return (
-    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-          <Calculator className="w-4 h-4 text-green-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-green-900">
-          Detail Kalkulasi Overhead Otomatis
-        </h3>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-3">
-          <div className="flex justify-between">
-            <span className="text-sm text-green-700">Total Biaya Operasional:</span>
-            <span className="font-medium text-green-900">
-              {formatCurrency(overheadCalculation.total_costs)}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-green-700">Metode Alokasi:</span>
-            <span className="font-medium text-green-900">
-              {overheadCalculation.metode === 'per_unit' ? 'Per Unit' : 'Persentase'}
-            </span>
-          </div>
-        </div>
-        
-        <div className="space-y-3">
-          <div className="flex justify-between">
-            <span className="text-sm text-green-700">Overhead per Unit:</span>
-            <span className="font-bold text-green-900">
-              {formatCurrency(overheadCalculation.overhead_per_unit)}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-green-700">Untuk {jumlahPorsi} porsi:</span>
-            <span className="font-bold text-green-900">
-              {formatCurrency(overheadCalculation.overhead_per_unit * jumlahPorsi)}
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      <div className="mt-4 p-3 bg-white rounded-lg border border-green-200">
-        <p className="text-xs text-green-600">
-          💡 Nilai overhead dihitung otomatis berdasarkan biaya operasional aktif dan pengaturan alokasi.
-        </p>
-      </div>
     </div>
   );
 };

@@ -227,8 +227,6 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
       satuan: selectedBahan.satuan,
       hargaSatuan: selectedBahan.hargaSatuan,
       totalHarga: selectedBahan.hargaSatuan * newIngredient.jumlah,
-      isFromInventory: true,
-      inventoryId: selectedBahan.id,
     };
 
     setFormData(prev => ({
@@ -718,13 +716,12 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
           </Card>
         </div>
 
-        {/* Enhanced HPP Feature Alert */}
-        <Alert className="border-blue-200 bg-blue-50">
+        {/* Enhanced HPP Information */}
+        <Alert className="border-green-200 bg-green-50">
           <Info className="h-4 w-4" />
-          <AlertDescription className="text-blue-800">
-            <strong>🚀 Fitur Baru:</strong> Sekarang Anda dapat menggunakan overhead otomatis dari menu{' '}
-            <strong>Biaya Operasional</strong>. Aktifkan toggle di bawah untuk menggunakan overhead yang sudah dihitung{' '}
-            berdasarkan dual-mode calculator.
+          <AlertDescription className="text-green-800">
+            <strong>🤖 Smart HPP Calculator:</strong> Sistem sekarang otomatis menghitung HPP menggunakan overhead dari{' '}
+            <strong>Biaya Operasional → Dual-Mode Calculator</strong>. Hasil kalkulasi akan lebih akurat dan real-time!
           </AlertDescription>
         </Alert>
 
@@ -740,17 +737,9 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
             marginKeuntunganPersen: formData.marginKeuntunganPersen || 0,
           };
 
-          // Legacy HPP result for comparison
-          const legacyHppResult = calculationResults ? {
-            hppPerPcs: calculationResults.hppPerPcs,
-            hargaJualPerPcs: calculationResults.hargaJualPerPcs,
-            totalHPP: calculationResults.totalHPP,
-          } : undefined;
-
           return (
             <RecipeHppIntegration
               recipeData={recipeDataForHpp}
-              legacyHppResult={legacyHppResult}
               onEnhancedResultChange={handleEnhancedHppChange}
               onEnhancedModeChange={handleEnhancedHppModeChange}
             />

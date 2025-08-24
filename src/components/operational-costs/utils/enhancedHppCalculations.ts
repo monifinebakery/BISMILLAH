@@ -191,18 +191,13 @@ export const calculateEnhancedHPP = async (
     
     if (useAppSettingsOverhead) {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: settings } = await supabase
-            .from('app_settings')
-            .select('overhead_per_pcs')
-            .eq('user_id', user.id)
-            .single();
-          
-          if (settings?.overhead_per_pcs) {
-            overheadPerPcs = settings.overhead_per_pcs;
-            overheadSource = 'app_settings';
-          }
+        const settings = await getCurrentAppSettings();
+        if (settings?.overhead_per_pcs && settings.overhead_per_pcs > 0) {
+          overheadPerPcs = settings.overhead_per_pcs;
+          overheadSource = 'app_settings';
+          console.log('💡 Using overhead from app settings:', overheadPerPcs);
+        } else {
+          console.log('⚠️ App settings found but no overhead calculated yet. Please configure operational costs.');
         }
       } catch (error) {
         console.warn('Could not load overhead from app settings:', error);
@@ -258,6 +253,7 @@ export const calculateEnhancedHPP = async (
 
 /**
  * Get current app settings for overhead calculation
+ * Automatically creates default settings if none exist
  */
 export const getCurrentAppSettings = async (): Promise<AppSettings | null> => {
   try {
@@ -268,16 +264,53 @@ export const getCurrentAppSettings = async (): Promise<AppSettings | null> => {
       .from('app_settings')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle(); // Use maybeSingle() to avoid PGRST116 error
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('Error fetching app settings:', error);
       return null;
+    }
+
+    // If no settings found, create default settings
+    if (!settings) {
+      console.log('📝 No app settings found, creating default settings...');
+      return await createDefaultAppSettings(user.id);
     }
 
     return settings;
   } catch (error) {
     console.error('Error getting current app settings:', error);
+    return null;
+  }
+};
+
+/**
+ * Create default app settings for a user
+ */
+export const createDefaultAppSettings = async (userId: string): Promise<AppSettings | null> => {
+  try {
+    const defaultSettings = {
+      user_id: userId,
+      target_output_monthly: 1000, // Default 1000 pcs per month
+      overhead_per_pcs: 0,          // Will be calculated later
+      operasional_per_pcs: 0,       // Will be calculated later
+    };
+
+    const { data, error } = await supabase
+      .from('app_settings')
+      .upsert(defaultSettings, { onConflict: 'user_id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating default app settings:', error);
+      return null;
+    }
+
+    console.log('✅ Default app settings created successfully');
+    return data;
+  } catch (error) {
+    console.error('Error creating default app settings:', error);
     return null;
   }
 };

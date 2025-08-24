@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
 import { Purchase, PurchaseStatus, PurchaseTableContextType } from '../types/purchase.types';
 import { toast } from 'sonner';
-import { usePurchase } from './PurchaseContext';
+import { usePurchase } from '../hooks/usePurchase';
 import { usePurchaseTable as useTableLogic } from '../hooks/usePurchaseTable';
 
 interface PurchaseTableProviderProps {

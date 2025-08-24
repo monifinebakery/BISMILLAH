@@ -106,6 +106,9 @@ const apiDeletePurchase = async (id: string, userId: string) => {
 // ------------------- Context -------------------
 const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined);
 
+// Export the context for use in hooks
+export { PurchaseContext };
+
 export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();

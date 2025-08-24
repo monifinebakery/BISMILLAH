@@ -26,6 +26,14 @@ export type {
 // ✅ CONSOLIDATED: Stable service export for external use
 export { purchaseApi, PurchaseApiService } from './services/purchaseApi';
 
+// ✅ STANDARDIZED: Export centralized validation utilities
+export {
+  validatePurchaseData,
+  validateStatusChange,
+  monitorPurchaseDataQuality,
+  PURCHASE_VALIDATION_RULES
+} from '../../utils/purchaseValidation';
+
 // ❌ REMOVED - Reduce dependencies:
 // - PurchaseTableProvider (internal use only in PurchasePage)
 // - Individual component exports (use direct imports if needed)

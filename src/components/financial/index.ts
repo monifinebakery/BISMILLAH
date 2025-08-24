@@ -26,7 +26,7 @@ export { useFinancialCore } from './hooks/useFinancialCore';
 
 // Individual hooks for flexibility
 export { 
-  useFinancialData,
+  useFinancialDataComputed,
   useFilteredTransactions,
   useTransactionOperations,
   useCategoryData,
@@ -36,6 +36,7 @@ export {
 } from './hooks/useFinancialContext';
 
 export {
+  useFinancialDataProcessing,
   useFinancialChartData,
   usePagination,
   useFinancialForm
@@ -78,6 +79,14 @@ export {
   calculateCategoryTotals
 } from './utils/financialCalculations';
 
+// ✅ STANDARDIZED: Export centralized validation utilities
+export {
+  validateFinancialTransaction,
+  validateTransactionConsistency, 
+  monitorFinancialDataQuality,
+  FINANCIAL_VALIDATION_RULES
+} from '../../utils/financialValidation';
+
 // ===========================================
 // ✅ QUICK ACCESS CONSTANTS
 // ===========================================
@@ -101,10 +110,6 @@ export const FINANCIAL_ADVANCED = {
   calculations: () => import('./utils/financialCalculations'),
   api: () => import('./services/financialApi'),
   types: () => import('./types/financial'),
-  
-  // Component modules (if they exist)
-  components: () => import('./components').catch(() => null),
-  dialogs: () => import('./dialogs').catch(() => null),
   constants: () => import('./constants').catch(() => null)
 } as const;
 

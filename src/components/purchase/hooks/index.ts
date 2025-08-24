@@ -16,13 +16,12 @@ export { usePurchaseForm } from './usePurchaseForm';
 export { usePurchaseTable } from './usePurchaseTable';
 export { usePurchaseStats } from './usePurchaseStats';
 
-// ✅ CONTEXT HOOK: Re-export main purchase hook for convenience
-export { usePurchase } from '../context/PurchaseContext';
+// ✅ CONTEXT HOOK: Use dedicated hook instead of context export
+export { usePurchase } from './usePurchase';
 
 // ✅ ESSENTIAL TYPES: Most commonly used types
 export type {
   UsePurchaseReturn,
-  UsePurchaseFormReturn,
   UsePurchaseTableReturn,
   UsePurchaseStatsReturn,
 } from '../types/purchase.types';

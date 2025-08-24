@@ -23,8 +23,9 @@ import {
 
 /**
  * Hook dengan computed values dan helper functions
+ * ✅ RENAMED: Avoid conflict with main useFinancialData hook
  */
-export const useFinancialData = () => {
+export const useFinancialDataComputed = () => {
   const context = useFinancial();
   
   const computedValues = useMemo(() => {
@@ -236,8 +237,7 @@ export const useTransactionSearch = () => {
       const searchTerm = query.toLowerCase();
       results = results.filter(t => 
         (t.description || '').toLowerCase().includes(searchTerm) ||
-        (t.category || '').toLowerCase().includes(searchTerm) ||
-        (t.notes || '').toLowerCase().includes(searchTerm)
+        (t.category || '').toLowerCase().includes(searchTerm)
       );
     }
     
@@ -319,7 +319,7 @@ export const useBatchOperations = () => {
 // ===========================================
 
 export const FinancialContextHooks = {
-  useFinancialData,
+  useFinancialDataComputed,
   useFilteredTransactions,
   useTransactionOperations,
   useCategoryData,

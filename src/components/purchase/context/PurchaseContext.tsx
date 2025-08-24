@@ -30,9 +30,13 @@ import {
 import { validatePurchaseData, getStatusDisplayText } from '../utils/purchaseHelpers';
 
 // ------------------- Query Keys -------------------
+// ✅ STANDARDIZED: Query Keys for consistent patterns across modules
 const purchaseQueryKeys = {
   all: ['purchases'] as const,
   list: (userId?: string) => [...purchaseQueryKeys.all, 'list', userId] as const,
+  // ✅ ADD: Additional keys for comprehensive functionality
+  stats: (userId?: string) => [...purchaseQueryKeys.all, 'stats', userId] as const,
+  byStatus: (userId?: string, status?: string) => [...purchaseQueryKeys.all, 'byStatus', userId, status] as const,
 } as const;
 
 // ✅ WAREHOUSE QUERY KEYS: Untuk invalidation
@@ -701,8 +705,5 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
-export const usePurchase = () => {
-  const ctx = useContext(PurchaseContext);
-  if (!ctx) throw new Error('usePurchase must be used within a PurchaseProvider');
-  return ctx;
-};
+// ✅ REMOVED: Duplicate usePurchase export to avoid conflicts
+// Use the dedicated hook from ../hooks/usePurchase.ts instead

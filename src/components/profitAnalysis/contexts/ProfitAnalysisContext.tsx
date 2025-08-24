@@ -124,7 +124,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
   useEffect(() => {
     if (currentAnalysisQuery.error) {
       logger.error(' Gagal memuat analisis profit:', currentAnalysisQuery.error);
-      dispatch({ type: 'SET_ERROR', payload: (currentAnalysisQuery.error as Error).message });
+      dispatch({ type: 'SET_ERROR', payload: currentAnalysisQuery.error instanceof Error ? currentAnalysisQuery.error.message : String(currentAnalysisQuery.error) });
     }
   }, [currentAnalysisQuery.error]);
 
@@ -171,7 +171,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
   useEffect(() => {
     if (calculateProfitMutation.isError && calculateProfitMutation.error) {
       logger.error(' Gagal menghitung profit:', calculateProfitMutation.error);
-      dispatch({ type: 'SET_ERROR', payload: `Gagal menghitung profit: ${(calculateProfitMutation.error as Error).message}` });
+      dispatch({ type: 'SET_ERROR', payload: `Gagal menghitung profit: ${calculateProfitMutation.error instanceof Error ? calculateProfitMutation.error.message : String(calculateProfitMutation.error)}` });
     }
   }, [calculateProfitMutation.isError, calculateProfitMutation.error]);
 

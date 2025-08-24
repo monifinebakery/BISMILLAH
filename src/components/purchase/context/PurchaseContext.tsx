@@ -659,7 +659,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // from original type
     purchases: purchases as Purchase[],
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
-    error: error ? (error as Error).message : null,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
     isProcessing: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
 
     addPurchase,

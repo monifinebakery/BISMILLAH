@@ -157,7 +157,7 @@ const InvoicePage: React.FC = () => {
   useEffect(() => {
     if (isError && error) {
       logger.error('InvoicePage: Error loading order data:', error);
-      toast.error('Gagal memuat data pesanan: ' + (error as Error).message);
+      toast.error('Gagal memuat data pesanan: ' + (error instanceof Error ? error.message : String(error)));
     }
   }, [isError, error]);
 

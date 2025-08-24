@@ -197,7 +197,7 @@ export const downloadInvoiceImage = async (
     
   } catch (error) {
     console.error('Error downloading invoice image:', error);
-    throw new Error('Gagal mengunduh gambar invoice: ' + (error as Error).message);
+    throw new Error('Gagal mengunduh gambar invoice: ' + (error instanceof Error ? error.message : String(error)));
   } finally {
     // Remove export mode class
     element.classList.remove('export-mode');

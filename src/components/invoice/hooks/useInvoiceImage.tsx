@@ -9,7 +9,7 @@ export const useInvoiceImage = () => {
       await downloadInvoiceImage();
       toast.success('Invoice berhasil diunduh');
     } catch (error) {
-      toast.error('Gagal mengunduh gambar: ' + (error as Error).message);
+      toast.error('Gagal mengunduh gambar: ' + (error instanceof Error ? error.message : String(error)));
     }
   }, []);
 

@@ -168,7 +168,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
       } else if (error.message?.includes('sudah memiliki pembayaran')) {
         setError('Akun Anda sudah memiliki pembayaran aktif. Silakan hubungi admin jika ini adalah order baru Anda.');
       } else {
-        setError(error.message || 'Terjadi kesalahan. Silakan coba lagi atau hubungi admin.');
+        setError((error instanceof Error ? error.message : String(error)) || 'Terjadi kesalahan. Silakan coba lagi atau hubungi admin.');
       }
     } finally {
       setIsLoading(false);

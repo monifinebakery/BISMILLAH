@@ -276,7 +276,7 @@ const InvoicePage: React.FC = () => {
               <h4 className="text-red-800 font-semibold mb-2">Validasi Error:</h4>
               <ul className="text-red-700 text-sm space-y-1">
                 {errors.map((error, index) => (
-                  <li key={index}>• {error.message}</li>
+                  <li key={index}>• {error instanceof Error ? error.message : String(error)}</li>
                 ))}
               </ul>
             </div>

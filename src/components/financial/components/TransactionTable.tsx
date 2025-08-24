@@ -113,7 +113,7 @@ const useTransactionData = (dateRange?: { from: Date; to?: Date }, userId?: stri
     },
     onError: (error: Error) => {
       logger.error('Failed to delete transaction:', error);
-      toast.error(`Gagal menghapus transaksi: ${error.message}`);
+      toast.error(`Gagal menghapus transaksi: ${error instanceof Error ? error.message : String(error)}`);
     },
   });
 

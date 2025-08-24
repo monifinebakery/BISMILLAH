@@ -274,7 +274,7 @@ const OrdersPage: React.FC = () => {
           .single();
 
         if (error) {
-          throw new Error(`Database error: ${error.message}`);
+          throw new Error(`Database error: ${error instanceof Error ? error.message : String(error)}`);
         }
 
         if (!data) {

@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
 // ✅ CONSOLIDATED: Context imports (kept as-is, already optimal)
-import { PurchaseProvider, usePurchase } from './context/PurchaseContext';
+import { PurchaseProvider } from './context/PurchaseContext';
+import { usePurchase } from './hooks/usePurchase';
 import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
 // ✅ DIRECT CONTEXT: No barrel imports

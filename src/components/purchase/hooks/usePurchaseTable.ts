@@ -7,7 +7,7 @@ import {
   filterPurchasesByStatus, 
   sortPurchases 
 } from '../utils/purchaseHelpers';
-import { usePurchase } from '../context/PurchaseContext';
+import { usePurchase } from './usePurchase';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 

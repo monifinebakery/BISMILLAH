@@ -50,8 +50,9 @@ export interface FinancialChartData {
 
 /**
  * Hook untuk memproses data keuangan berdasarkan date range
+ * ✅ RENAMED: Avoid conflict with main useFinancialData hook
  */
-export const useFinancialData = (
+export const useFinancialDataProcessing = (
   transactions: FinancialTransaction[],
   dateRange: { from: Date; to?: Date }
 ) => {
@@ -321,7 +322,7 @@ export const useFinancialForm = (
 };
 
 export default {
-  useFinancialData,
+  useFinancialDataProcessing,
   useFinancialChartData,
   usePagination,
   useFinancialForm

@@ -25,7 +25,7 @@ interface DatabaseActivity {
   type: string;
   value: string | null;
   created_at: string;
-  updated_at: string | null;
+  updated_at?: string | null;
 }
 
 // ===== API FUNCTIONS =====
@@ -43,7 +43,65 @@ const activityApi = {
       throw new Error('Gagal memuat riwayat aktivitas: ' + error.message);
     }
 
-    return data ? data.map(transformActivityFromDB) : [];
+    return data ? data.map((item) => ({
+       id: item.id,
+       title: item.title,
+       description: item.description,
+       type: item.type as Activity['type'],
+       value: item.value,
+       timestamp: safeParseDate(item.created_at) || new Date(),
+       userId: item.user_id,
+       createdAt: safeParseDate(item.created_at) || new Date(),
+       updatedAt: null,
+     })) : [];
+  },
+
+  async getActivitiesPaginated(userId: string, page: number = 1, limit: number = 20): Promise<{ activities: Activity[], totalCount: number, totalPages: number }> {
+    const offset = (page - 1) * limit;
+    
+    // Get total count
+    const { count, error: countError } = await supabase
+      .from('activities')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (countError) {
+      logger.error("Error counting activities:", countError);
+      throw new Error('Gagal menghitung total aktivitas: ' + countError.message);
+    }
+
+    // Get paginated data
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      logger.error("Error fetching paginated activities:", error);
+      throw new Error('Gagal memuat riwayat aktivitas: ' + error.message);
+    }
+
+    const totalCount = count || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+    const activities = data ? data.map((item): Activity => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      type: item.type as Activity['type'],
+      value: item.value,
+      timestamp: safeParseDate(item.created_at) || new Date(),
+      userId: item.user_id,
+      createdAt: safeParseDate(item.created_at) || new Date(),
+      updatedAt: null,
+    })) : [];
+
+    return {
+      activities,
+      totalCount,
+      totalPages
+    };
   },
 
   async createActivity(activityData: Omit<Activity, 'id' | 'timestamp' | 'createdAt' | 'updatedAt' | 'userId'>, userId: string): Promise<Activity> {
@@ -67,22 +125,22 @@ const activityApi = {
       throw new Error('Gagal menambahkan aktivitas: ' + error.message);
     }
 
-    return transformActivityFromDB(data);
+    return {
+       id: data.id,
+       title: data.title,
+       description: data.description,
+       type: data.type as Activity['type'],
+       value: data.value,
+       timestamp: safeParseDate(data.created_at) || new Date(),
+       userId: data.user_id,
+       createdAt: safeParseDate(data.created_at) || new Date(),
+       updatedAt: null,
+     };
   }
 };
 
 // ===== HELPER FUNCTIONS =====
-const transformActivityFromDB = (dbItem: DatabaseActivity): Activity => ({
-  id: dbItem.id,
-  title: dbItem.title,
-  description: dbItem.description,
-  type: dbItem.type,
-  value: dbItem.value,
-  timestamp: safeParseDate(dbItem.created_at), // Map created_at to timestamp for backward compatibility
-  userId: dbItem.user_id, // Map user_id to userId
-  createdAt: safeParseDate(dbItem.created_at), // Map created_at to createdAt
-  updatedAt: safeParseDate(dbItem.updated_at), // Map updated_at to updatedAt
-});
+// Removed transformActivityFromDB function as it's replaced with inline transformations
 
 // ===== DEBOUNCE UTILITY (REMOVED - using simpler approach) =====
 
@@ -286,6 +344,7 @@ interface ActivityContextType {
   addActivity: (activityData: Omit<Activity, 'id' | 'timestamp' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<void>;
   refreshActivities: () => Promise<void>;
   isRealtimeConnected: boolean;
+  fetchActivitiesPaginated: (userId: string, page: number, limit: number) => Promise<{ activities: Activity[], totalCount: number, totalPages: number }>;
 }
 
 // ===== CONTEXT SETUP =====
@@ -354,6 +413,11 @@ export const ActivityProvider: React.FC<{ children: ReactNode }> = ({ children }
     return () => clearInterval(pollInterval);
   }, [userId, isRealtimeConnected, queryClient]);
 
+  // ===== FETCH ACTIVITIES PAGINATED FUNCTION =====
+  const fetchActivitiesPaginated = useCallback(async (userId: string, page: number, limit: number) => {
+    return await activityApi.getActivitiesPaginated(userId, page, limit);
+  }, []);
+
   // ===== CONTEXT VALUE =====
   const value: ActivityContextType = {
     activities,
@@ -361,6 +425,7 @@ export const ActivityProvider: React.FC<{ children: ReactNode }> = ({ children }
     addActivity,
     refreshActivities,
     isRealtimeConnected,
+    fetchActivitiesPaginated,
   };
 
   return (

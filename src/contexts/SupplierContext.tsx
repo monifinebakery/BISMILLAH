@@ -116,6 +116,55 @@ const fetchSuppliers = async (userId: string): Promise<Supplier[]> => {
 };
 
 /**
+ * Fetch suppliers with pagination for current user
+ */
+const fetchSuppliersPaginated = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<{
+  data: Supplier[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}> => {
+  // Get total count
+  const { count, error: countError } = await supabase
+    .from('suppliers')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (countError) {
+    throw new Error(countError.message);
+  }
+
+  const total = count || 0;
+  const totalPages = Math.ceil(total / limit);
+  const offset = (page - 1) * limit;
+
+  // Get paginated data
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('*')
+    .eq('user_id', userId)
+    .order('nama', { ascending: true })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return {
+    data: (data || []).map(transformSupplierFromDB),
+    total,
+    page,
+    limit,
+    totalPages,
+  };
+};
+
+/**
  * Create new supplier
  */
 const createSupplier = async (

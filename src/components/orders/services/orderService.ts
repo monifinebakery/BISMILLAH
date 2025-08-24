@@ -20,6 +20,54 @@ export async function fetchOrders(userId: string): Promise<Order[]> {
   return (data || []).map(transformOrderFromDB);
 }
 
+// Fetch orders with pagination for lazy loading
+export async function fetchOrdersPaginated(
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<{ orders: Order[]; totalCount: number; totalPages: number }> {
+  try {
+    // Get total count
+    const { count, error: countError } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (countError) {
+      logger.error('Error fetching orders count:', countError);
+      throw countError;
+    }
+
+    const totalCount = count || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Get paginated data
+    const offset = (page - 1) * limit;
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('tanggal', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      logger.error('Error fetching paginated orders:', error);
+      throw error;
+    }
+
+    const orders = (data || []).map(transformOrderFromDB);
+
+    return {
+      orders,
+      totalCount,
+      totalPages
+    };
+  } catch (error) {
+    logger.error('Error in fetchOrdersPaginated:', error);
+    throw error;
+  }
+}
+
 // Create a new order
 export async function addOrder(userId: string, order: NewOrder): Promise<Order> {
   const validation = validateOrderData(order);

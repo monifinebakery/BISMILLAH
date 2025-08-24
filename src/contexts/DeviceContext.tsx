@@ -29,6 +29,7 @@ interface DeviceContextType {
   removeAllOtherDevices: () => Promise<boolean>;
   cleanupOldDevices: (userId: string) => Promise<void>;
   getCurrentDevice: () => Device | null;
+  fetchDevicesPaginated: (userId: string, page: number, limit: number) => Promise<{ devices: Device[]; totalCount: number; totalPages: number }>;
 }
 
 const DeviceContext = createContext<DeviceContextType | undefined>(undefined);
@@ -327,6 +328,47 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
+  // Fetch devices with pagination for lazy loading
+  const fetchDevicesPaginated = useCallback(async (userId: string, page: number, limit: number) => {
+    try {
+      // Get total count
+      const { count, error: countError } = await supabase
+        .from('devices')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      if (countError) {
+        logger.error('Error counting devices:', countError);
+        throw new Error(countError.message);
+      }
+
+      const totalCount = count || 0;
+      const totalPages = Math.ceil(totalCount / limit);
+
+      // Get paginated data
+      const { data, error: fetchError } = await supabase
+        .from('devices')
+        .select('*')
+        .eq('user_id', userId)
+        .order('last_active', { ascending: false })
+        .range((page - 1) * limit, page * limit - 1);
+
+      if (fetchError) {
+        logger.error('Error fetching paginated devices:', fetchError);
+        throw new Error(fetchError.message);
+      }
+
+      return {
+        devices: data || [],
+        totalCount,
+        totalPages
+      };
+    } catch (err) {
+      logger.error('Error in fetchDevicesPaginated:', err);
+      throw err;
+    }
+  }, []);
+
   // Refresh devices list
   const refreshDevices = useCallback(async () => {
     // Only log in development
@@ -596,6 +638,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     removeAllOtherDevices,
     cleanupOldDevices,
     getCurrentDevice,
+    fetchDevicesPaginated,
   };
 
   return (

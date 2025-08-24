@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Purchase, PurchaseFormData, PurchaseItem } from '../types/purchase.types';
 import { validatePurchaseForm, ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
-import { usePurchase } from '../context/PurchaseContext';
+import { usePurchase } from './usePurchase';
 import { logger } from '@/utils/logger';
 
 interface UsePurchaseFormProps {

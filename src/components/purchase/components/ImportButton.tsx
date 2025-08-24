@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Download, Info, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { usePurchase } from '../context/PurchaseContext';
+import { usePurchase } from '../hooks/usePurchase';
 import { parsePurchaseCSV } from '../utils/purchaseImport';
 
 const ImportButton: React.FC = () => {

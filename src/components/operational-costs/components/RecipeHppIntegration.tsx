@@ -46,6 +46,7 @@ interface RecipeHppIntegrationProps {
     totalHPP: number;
   };
   onEnhancedResultChange?: (result: EnhancedHPPCalculationResult | null) => void;
+  onEnhancedModeChange?: (isActive: boolean) => void;
   className?: string;
 }
 
@@ -53,6 +54,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
   recipeData,
   legacyHppResult,
   onEnhancedResultChange,
+  onEnhancedModeChange,
   className = ''
 }) => {
   const {
@@ -81,6 +83,11 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
   const handleModeToggle = (enabled: boolean) => {
     setIsEnhancedMode(enabled);
     
+    // Notify parent component about mode change
+    if (onEnhancedModeChange) {
+      onEnhancedModeChange(enabled);
+    }
+    
     if (enabled && !hasOverheadSettings) {
       toast.warning('Overhead belum dikonfigurasi', {
         description: 'Silakan setup overhead pabrik di menu Biaya Operasional terlebih dahulu'
@@ -90,6 +97,10 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
     if (enabled) {
       toast.info('Mode Enhanced HPP aktif', {
         description: 'Menggunakan overhead dari kalkulator dual-mode'
+      });
+    } else {
+      toast.info('Mode Enhanced HPP dinonaktifkan', {
+        description: 'Kembali menggunakan kalkulasi HPP standar'
       });
     }
   };

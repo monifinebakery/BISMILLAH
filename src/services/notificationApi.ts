@@ -121,7 +121,7 @@ export const addNotification = async (
     return transformFromDB(data);
   } catch (error: any) {
     logger.error('Error adding notification:', error);
-    throw new Error(`Failed to add notification: ${error.message}`);
+    throw new Error(`Failed to add notification: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -140,7 +140,7 @@ export const markAsRead = async (notificationId: string): Promise<boolean> => {
     return true;
   } catch (error: any) {
     logger.error('Error marking as read:', error);
-    throw new Error(`Failed to mark as read: ${error.message}`);
+    throw new Error(`Failed to mark as read: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -160,7 +160,7 @@ export const markAllAsRead = async (userId: string): Promise<boolean> => {
     return true;
   } catch (error: any) {
     logger.error('Error marking all as read:', error);
-    throw new Error(`Failed to mark all as read: ${error.message}`);
+    throw new Error(`Failed to mark all as read: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -292,7 +292,7 @@ export const updateNotificationSettings = async (
     return data;
   } catch (error: any) {
     logger.error('Error updating notification settings:', error);
-    throw new Error(`Failed to update settings: ${error.message}`);
+    throw new Error(`Failed to update settings: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 

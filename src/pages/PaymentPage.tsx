@@ -61,7 +61,7 @@ const PaymentPage = () => {
       toast.success('Halaman pembayaran dibuka di tab baru. Setelah pembayaran selesai, status Anda akan diperbarui secara otomatis.');
       
     } catch (error: any) {
-      console.error('Payment initiation error:', error.message || error);
+      console.error('Payment initiation error:', error instanceof Error ? error.message : String(error));
       toast.error('Terjadi kesalahan saat memulai pembayaran');
     } finally {
       setIsProcessing(false);

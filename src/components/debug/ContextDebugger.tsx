@@ -68,7 +68,7 @@ export const ContextDebugger: React.FC = () => {
         results.push({
           name: 'ActivityContext',
           status: 'error',
-          details: { error: error.message },
+          details: { error: error instanceof Error ? error.message : String(error) },
           loadTime: Date.now() - startTime
         });
       }
@@ -91,7 +91,7 @@ export const ContextDebugger: React.FC = () => {
         results.push({
           name: 'FinancialContext',
           status: 'error',
-          details: { error: error.message },
+          details: { error: error instanceof Error ? error.message : String(error) },
           loadTime: Date.now() - startTime
         });
       }

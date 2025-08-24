@@ -6,17 +6,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { OperationalCost } from '../types';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Info, 
+  Lightbulb, 
+  CheckCircle, 
+  AlertTriangle, 
+  Sparkles,
+  Package,
+  TrendingUp
+} from 'lucide-react';
+import { OperationalCost, CostFormData } from '../types';
+import { useCostClassification } from '../hooks/useCostClassification';
+import { getCostGroupLabel, getCostGroupDescription } from '../constants/costClassification';
+import { formatCurrency } from '@/utils/formatUtils';
+import { toast } from 'sonner';
 
 interface CostFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: {
-    nama_biaya: string;
-    jumlah_per_bulan: number;
-    jenis: 'tetap' | 'variabel';
-    status?: string;
-  }) => Promise<boolean>;
+  onSave: (data: CostFormData) => Promise<boolean>;
   cost?: OperationalCost | null; // null for new cost, object for edit
   isLoading?: boolean;
 }
@@ -28,15 +38,29 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   cost = null,
   isLoading = false
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CostFormData>({
     nama_biaya: '',
     jumlah_per_bulan: 0,
     jenis: 'tetap' as 'tetap' | 'variabel',
+    group: 'OPERASIONAL' as 'HPP' | 'OPERASIONAL', // Default to OPERASIONAL
+    status: 'aktif' as 'aktif' | 'nonaktif',
     deskripsi: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showClassificationSuggestion, setShowClassificationSuggestion] = useState(false);
+
+  // Classification hook
+  const {
+    suggestion,
+    isClassifying,
+    getSuggestionForCost,
+    clearSuggestion,
+    applySuggestion,
+    getGroupLabel,
+    getGroupDescription
+  } = useCostClassification();
 
   // Initialize form when cost prop changes
   useEffect(() => {
@@ -47,6 +71,8 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           nama_biaya: cost.nama_biaya,
           jumlah_per_bulan: cost.jumlah_per_bulan,
           jenis: cost.jenis as 'tetap' | 'variabel',
+          group: cost.group || 'OPERASIONAL', // Include group field
+          status: cost.status as 'aktif' | 'nonaktif',
           deskripsi: cost.deskripsi || ''
         });
       } else {
@@ -55,26 +81,38 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           nama_biaya: '',
           jumlah_per_bulan: 0,
           jenis: 'tetap',
+          group: 'OPERASIONAL', // Default for new costs
+          status: 'aktif',
           deskripsi: ''
         });
       }
       setErrors({});
+      clearSuggestion();
+      setShowClassificationSuggestion(false);
     }
-  }, [cost, isOpen]);
+  }, [cost, isOpen, clearSuggestion]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.nama_biaya.trim()) {
       newErrors.nama_biaya = 'Nama biaya harus diisi';
+    } else if (formData.nama_biaya.trim().length < 3) {
+      newErrors.nama_biaya = 'Nama biaya minimal 3 karakter';
     }
 
     if (formData.jumlah_per_bulan <= 0) {
       newErrors.jumlah_per_bulan = 'Jumlah harus lebih dari 0';
+    } else if (formData.jumlah_per_bulan < 1000) {
+      newErrors.jumlah_per_bulan = 'Jumlah minimal Rp 1.000';
     }
 
     if (formData.jumlah_per_bulan > 999999999) {
       newErrors.jumlah_per_bulan = 'Jumlah terlalu besar';
+    }
+
+    if (!formData.group) {
+      newErrors.group = 'Kelompok biaya harus dipilih';
     }
 
     setErrors(newErrors);
@@ -88,16 +126,20 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      const success = await onSave({
-        ...formData,
-        status: 'aktif'
-      });
+      const success = await onSave(formData); // Send complete formData including group
 
       if (success) {
         onClose();
+        toast.success(
+          cost ? 'Biaya berhasil diperbarui!' : 'Biaya berhasil ditambahkan!',
+          {
+            description: `${getGroupLabel(formData.group)} - ${formatCurrency(formData.jumlah_per_bulan)}/bulan`
+          }
+        );
       }
     } catch (error) {
       console.error('Error saving cost:', error);
+      toast.error('Gagal menyimpan biaya');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,6 +149,21 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
     if (!isSubmitting) {
       onClose();
     }
+  };
+
+  // Apply automatic classification suggestion
+  const handleApplySuggestion = () => {
+    const suggestedGroup = applySuggestion();
+    if (suggestedGroup) {
+      setFormData(prev => ({ ...prev, group: suggestedGroup }));
+      setShowClassificationSuggestion(false);
+    }
+  };
+
+  // Dismiss classification suggestion
+  const handleDismissSuggestion = () => {
+    setShowClassificationSuggestion(false);
+    clearSuggestion();
   };
 
   return (
@@ -202,6 +259,102 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             </Select>
           </div>
 
+          {/* Kelompok Biaya (Dual-Mode) */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Kelompok Biaya <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={formData.group}
+              onValueChange={(value: 'HPP' | 'OPERASIONAL') => 
+                setFormData(prev => ({ ...prev, group: value }))
+              }
+              disabled={isSubmitting}
+            >
+              <SelectTrigger className={errors.group ? 'border-red-500' : ''}>
+                <SelectValue placeholder="Pilih kelompok biaya" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="HPP">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-purple-600" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">Overhead Pabrik (HPP)</span>
+                      <span className="text-xs text-gray-500">Masuk ke harga pokok produksi</span>
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="OPERASIONAL">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">Biaya Operasional</span>
+                      <span className="text-xs text-gray-500">Untuk analisis BEP, tidak masuk HPP</span>
+                    </div>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.group && (
+              <p className="text-sm text-red-600">{errors.group}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              Pilih apakah biaya ini masuk ke HPP atau hanya untuk operasional
+            </p>
+          </div>
+
+          {/* Classification Suggestion */}
+          {showClassificationSuggestion && suggestion && suggestion.suggested_group && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <Sparkles className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-800 mb-1">
+                      💡 Saran Klasifikasi Otomatis
+                    </p>
+                    <p className="text-amber-700 mb-2">
+                      Berdasarkan nama "{formData.nama_biaya}", disarankan masuk kelompok:
+                    </p>
+                    <Badge 
+                      className={`mb-2 ${
+                        suggestion.suggested_group === 'HPP' 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
+                      {getGroupLabel(suggestion.suggested_group)}
+                    </Badge>
+                    <p className="text-xs text-amber-600">
+                      {suggestion.reason}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleApplySuggestion}
+                      className="text-xs h-7"
+                    >
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Gunakan
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleDismissSuggestion}
+                      className="text-xs h-7"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Deskripsi (Optional) */}
           <div className="space-y-2">
             <Label htmlFor="deskripsi" className="text-sm font-medium">
@@ -220,20 +373,31 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             </p>
           </div>
 
-          {/* Info about automatic categorization */}
+          {/* Info about dual-mode classification */}
           <div className="space-y-2">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="flex items-start gap-2">
-                <div className="w-4 h-4 bg-blue-500 rounded-full mt-0.5 flex-shrink-0"></div>
+                <Info className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
-                  <p className="font-medium text-blue-900 mb-1">Kategori Otomatis</p>
-                  <p className="text-blue-700">
-                    Kategori akan ditentukan otomatis berdasarkan jenis:
+                  <p className="font-medium text-green-900 mb-1">Pemisahan Biaya Dual-Mode</p>
+                  <p className="text-green-700 mb-2">
+                    Sistem akan memisahkan biaya berdasarkan kelompok:
                   </p>
-                  <ul className="mt-1 space-y-0.5 text-blue-600">
-                    <li>• <strong>Tetap</strong> → Fixed Cost</li>
-                    <li>• <strong>Variabel</strong> → Variable Cost</li>
-                  </ul>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-3 w-3 text-purple-600" />
+                      <span className="text-green-700"><strong>Overhead Pabrik (HPP):</strong> Masuk ke perhitungan harga pokok produksi</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-3 w-3 text-blue-600" />
+                      <span className="text-green-700"><strong>Biaya Operasional:</strong> Untuk analisis BEP dan pricing strategy</span>
+                    </div>
+                  </div>
+                  {!cost && (
+                    <p className="text-xs text-green-600 mt-2">
+                      💡 Tip: Sistem akan memberikan saran klasifikasi otomatis berdasarkan nama biaya
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

@@ -457,7 +457,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         totalValue={finalStats.totalValue}
         pendingCount={finalStats.byStatus.pending}
         onAddPurchase={(intent) => {
-          if (intent === 'import') {
+          if (intent === 'import' as any) {
             dialogActions.import.open();
           } else {
             dialogActions.purchase.openAdd();
@@ -473,50 +473,54 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           hasSuppliers={!dataStatus.missingSuppliers}
         />
       ) : (
-        <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
-          <Suspense fallback={<QuickLoader />}>
-            <BulkActionsToolbar />
-          </Suspense>
+        <>
+          <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
+            <Suspense fallback={<QuickLoader />}>
+              <BulkActionsToolbar />
+            </Suspense>
 
-          <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
-            <PurchaseTable
-              onEdit={dialogActions.purchase.openEdit}
-              onStatusChange={setStatus}
-              onDelete={businessHandlers.delete}
-              onBulkDelete={businessHandlers.bulkDelete}
-              validateStatusChange={async () => ({ canChange: true, warnings: [], errors: [] })}
-            />
-          </Suspense>
+            <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
+              <PurchaseTable
+                onEdit={dialogActions.purchase.openEdit}
+                onStatusChange={setStatus}
+                onDelete={async (purchaseId: string) => {
+                  await businessHandlers.delete(purchaseId);
+                }}
+                onBulkDelete={businessHandlers.bulkDelete}
+                validateStatusChange={async () => ({ canChange: true, warnings: [], errors: [] })}
+              />
+            </Suspense>
 
-          <Suspense fallback={null}>
-            <BulkDeleteDialog />
-          </Suspense>
-        </PurchaseTableProvider>
+            <Suspense fallback={null}>
+              <BulkDeleteDialog />
+            </Suspense>
+          </PurchaseTableProvider>
 
-        {/* ✅ NEW: Kontrol Paginasi untuk Lazy Loading */}
-        {useLazyLoading && paginationInfo.totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Halaman {currentPage} dari {paginationInfo.totalPages}
+          {/* ✅ NEW: Kontrol Paginasi untuk Lazy Loading */}
+          {useLazyLoading && paginationInfo.totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Halaman {currentPage} dari {paginationInfo.totalPages}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Sebelumnya
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
+                  disabled={currentPage === paginationInfo.totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Selanjutnya
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Sebelumnya
-              </button>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
-                disabled={currentPage === paginationInfo.totalPages}
-                className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Selanjutnya
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </>
       )}
 
       {/* ✅ OPTIMIZED: Conditional dialogs with better loading */}

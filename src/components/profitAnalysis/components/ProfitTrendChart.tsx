@@ -6,7 +6,8 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, HelpCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Extracted components
 import { LineChartRenderer, AreaChartRenderer, CandlestickChartRenderer, HeatmapChartRenderer } from './charts/ChartRenderers';
@@ -201,7 +202,25 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="text-lg">📈 Trend Profit</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            📈 Trend Profit
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    type="button"
+                    className="p-1 -m-1 touch-manipulation"
+                    aria-label="Info trend profit"
+                  >
+                    <HelpCircle className="w-4 h-4 text-orange-500 hover:text-orange-700 transition-colors" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p>Grafik ini akan menampilkan perkembangan omset dan keuntungan dari bulan ke bulan setelah ada data transaksi.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardTitle>
           <CardDescription>Analisis perkembangan keuntungan</CardDescription>
         </CardHeader>
         <CardContent>
@@ -223,28 +242,68 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
           <div>
             <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
               📈 Trend Profit
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info trend profit"
+                    >
+                      <HelpCircle className="w-4 h-4 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Grafik ini menampilkan perkembangan omset, keuntungan kotor, dan keuntungan bersih dari bulan ke bulan. Garis naik menunjukkan perbaikan, garis turun menunjukkan penurunan.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {trendAnalysis && (
-                <span className={`text-sm px-2 py-1 rounded ${
-                  trendAnalysis.profitGrowth > 0 ? 'bg-green-100 text-green-700' :
-                  trendAnalysis.profitGrowth < 0 ? 'bg-red-100 text-red-700' :
-                  'bg-gray-100 text-gray-700'
-                }`}>
-                  {trendAnalysis.profitGrowth > 0 ? (
-                    <><TrendingUp className="w-3 h-3 inline mr-1" />+{trendAnalysis.profitGrowth.toFixed(1)}%</>
-                  ) : trendAnalysis.profitGrowth < 0 ? (
-                    <><TrendingDown className="w-3 h-3 inline mr-1" />{trendAnalysis.profitGrowth.toFixed(1)}%</>
-                  ) : (
-                    '→ Stabil'
-                  )}
-                </span>
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className={`text-sm px-2 py-1 rounded cursor-help ${
+                        trendAnalysis.profitGrowth > 0 ? 'bg-green-100 text-green-700' :
+                        trendAnalysis.profitGrowth < 0 ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {trendAnalysis.profitGrowth > 0 ? (
+                          <><TrendingUp className="w-3 h-3 inline mr-1" />+{trendAnalysis.profitGrowth.toFixed(1)}%</>
+                        ) : trendAnalysis.profitGrowth < 0 ? (
+                          <><TrendingDown className="w-3 h-3 inline mr-1" />{trendAnalysis.profitGrowth.toFixed(1)}%</>
+                        ) : (
+                          '→ Stabil'
+                        )}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p>
+                        {trendAnalysis.profitGrowth > 0 
+                          ? `Keuntungan naik ${trendAnalysis.profitGrowth.toFixed(1)}% dibanding periode awal. Bisnis berkembang baik!`
+                          : trendAnalysis.profitGrowth < 0 
+                          ? `Keuntungan turun ${Math.abs(trendAnalysis.profitGrowth).toFixed(1)}% dibanding periode awal. Perlu evaluasi strategi.`
+                          : 'Keuntungan relatif stabil, tidak ada perubahan signifikan.'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </CardTitle>
             <CardDescription className="text-sm sm:text-base">
               Analisis perkembangan keuntungan {trendData.length} periode terakhir
               {labels?.hppLabel && (
-                <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
-                  {labels.hppLabel}
-                </span>
+                <TooltipProvider delayDuration={100}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded cursor-help">
+                        {labels.hppLabel}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p>{labels.hppHint || 'Menggunakan harga rata-rata bahan baku untuk perhitungan yang lebih akurat'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </CardDescription>
           </div>

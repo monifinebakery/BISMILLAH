@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, User, Phone, Mail, MapPin, FileText, Calculator, ChefHat, Search, Calendar } from 'lucide-react';
+import { X, Plus, Trash2, User, Phone, Mail, MapPin, FileText, Calculator, ChefHat, Search, Calendar, Info, AlertCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -147,6 +147,26 @@ const OrderForm: React.FC<OrderFormProps> = ({
     return getUniqueCategories();
   }, [getUniqueCategories]);
 
+  // Helper function to detect if recipe uses enhanced HPP calculations
+  const getCalculationMethodIndicator = (recipe: Recipe) => {
+    // Check if recipe has enhanced calculation metadata or specific patterns
+    const hasEnhancedCalculation = recipe.updatedAt && 
+      new Date(recipe.updatedAt) > new Date('2024-01-01') && 
+      recipe.biayaOverhead && recipe.biayaOverhead % 100 === 0; // Enhanced usually results in round numbers
+    
+    return hasEnhancedCalculation ? {
+      isEnhanced: true,
+      label: 'Enhanced HPP',
+      icon: Zap,
+      className: 'text-blue-600 bg-blue-50 border-blue-200'
+    } : {
+      isEnhanced: false,
+      label: 'Standard HPP',
+      icon: Calculator,
+      className: 'text-gray-600 bg-gray-50 border-gray-200'
+    };
+  };
+
   // Update form field
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -233,7 +253,13 @@ const OrderForm: React.FC<OrderFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validation = validateOrderData(formData);
+    // Convert string date to Date object for validation and submission
+    const dataForSubmission = {
+      ...formData,
+      tanggal: new Date(formData.tanggal)
+    };
+    
+    const validation = validateOrderData(dataForSubmission);
     if (!validation.isValid) {
       validation.errors.forEach(error => toast.error(error));
       return;
@@ -242,7 +268,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     setLoading(true);
     
     try {
-      await onSubmit(formData);
+      await onSubmit(dataForSubmission);
       onOpenChange(false);
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -404,31 +430,49 @@ const OrderForm: React.FC<OrderFormProps> = ({
                       <CommandEmpty>Tidak ada resep ditemukan</CommandEmpty>
                       
                       <CommandGroup className="max-h-64 overflow-auto">
-                        {filteredRecipes.map((recipe) => (
-                          <CommandItem
-                            key={recipe.id}
-                            onSelect={() => addItemFromRecipe(recipe)}
-                            className="flex flex-col items-start gap-1 p-3"
-                          >
-                            <div className="flex items-center justify-between w-full">
-                              <span className="font-medium">{recipe.namaResep}</span>
-                              <Badge variant="secondary" className="text-xs">
-                                Rp {recipe.hargaJualPorsi?.toLocaleString('id-ID') || 'N/A'}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span>{recipe.kategoriResep}</span>
-                              <span>•</span>
-                              <span>{recipe.jumlahPorsi} porsi</span>
-                              {recipe.hppPerPorsi > 0 && (
-                                <>
-                                  <span>•</span>
-                                  <span>HPP: Rp {recipe.hppPerPorsi.toLocaleString('id-ID')}</span>
-                                </>
-                              )}
-                            </div>
-                          </CommandItem>
-                        ))}
+                        {filteredRecipes.map((recipe) => {
+                          const methodIndicator = getCalculationMethodIndicator(recipe);
+                          return (
+                            <CommandItem
+                              key={recipe.id}
+                              onSelect={() => addItemFromRecipe(recipe)}
+                              className="flex flex-col items-start gap-2 p-3"
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className="font-medium">{recipe.namaResep}</span>
+                                <div className="flex items-center gap-2">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${methodIndicator.className}`}
+                                  >
+                                    <methodIndicator.icon className="w-3 h-3 mr-1" />
+                                    {methodIndicator.label}
+                                  </Badge>
+                                  <Badge variant="secondary" className="text-xs">
+                                    Rp {recipe.hargaJualPorsi?.toLocaleString('id-ID') || 'N/A'}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 w-full">
+                                <span>{recipe.kategoriResep}</span>
+                                <span>•</span>
+                                <span>{recipe.jumlahPorsi} porsi</span>
+                                {recipe.hppPerPorsi > 0 && (
+                                  <>
+                                    <span>•</span>
+                                    <span>HPP: Rp {recipe.hppPerPorsi.toLocaleString('id-ID')}</span>
+                                  </>
+                                )}
+                                {methodIndicator.isEnhanced && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-blue-600 font-medium">Overhead Otomatis</span>
+                                  </>
+                                )}
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
                       </CommandGroup>
                     </Command>
                   </PopoverContent>
@@ -447,40 +491,55 @@ const OrderForm: React.FC<OrderFormProps> = ({
             
             {formData.items.length > 0 ? (
               <div className="space-y-3">
-                {formData.items.map((item, index) => (
-                  <div key={item.id} className="flex items-center gap-3 p-4 border rounded-lg bg-gray-50">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Input
-                          placeholder="Nama item"
-                          value={item.name}
-                          onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                          disabled={item.isFromRecipe}
-                          className={item.isFromRecipe ? 'bg-blue-50' : ''}
-                        />
-                        {item.isFromRecipe && (
-                          <Badge variant="outline" className="text-blue-600 border-blue-200">
-                            <ChefHat className="h-3 w-3 mr-1" />
-                            Resep
-                          </Badge>
-                        )}
-                        {item.recipeCategory && (
-                          <Badge variant="secondary" className="text-xs">
-                            {item.recipeCategory}
-                          </Badge>
-                        )}
+                {formData.items.map((item, index) => {
+                  // Get recipe data if item is from recipe
+                  const recipe = item.recipeId ? recipes.find(r => r.id === item.recipeId) : null;
+                  const methodIndicator = recipe ? getCalculationMethodIndicator(recipe) : null;
+                  
+                  return (
+                    <div key={item.id} className="flex items-center gap-3 p-4 border rounded-lg bg-gray-50">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Input
+                            placeholder="Nama item"
+                            value={item.name}
+                            onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                            disabled={item.isFromRecipe}
+                            className={item.isFromRecipe ? 'bg-blue-50' : ''}
+                          />
+                          {item.isFromRecipe && (
+                            <Badge variant="outline" className="text-blue-600 border-blue-200">
+                              <ChefHat className="h-3 w-3 mr-1" />
+                              Resep
+                            </Badge>
+                          )}
+                          {methodIndicator && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${methodIndicator.className}`}
+                              title={`Menggunakan ${methodIndicator.label} untuk kalkulasi HPP`}
+                            >
+                              <methodIndicator.icon className="w-3 h-3 mr-1" />
+                              {methodIndicator.label}
+                            </Badge>
+                          )}
+                          {item.recipeCategory && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item.recipeCategory}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="w-24">
-                      <Label className="text-xs text-gray-500">Qty</Label>
-                      <Input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                        min="1"
-                      />
-                    </div>
+                      <div className="w-24">
+                        <Label className="text-xs text-gray-500">Qty</Label>
+                        <Input
+                          type="number"
+                          placeholder="Qty"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                          min="1"
+                        />
+                      </div>
                     <div className="w-32">
                       <Label className="text-xs text-gray-500">Harga</Label>
                       <Input
@@ -507,7 +566,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                ))}
+                );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500 border rounded-lg bg-gray-50">

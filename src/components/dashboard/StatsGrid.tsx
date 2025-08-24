@@ -19,7 +19,8 @@ import {
   Minus,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle
 } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 
@@ -107,39 +108,49 @@ const TrendIndicator: React.FC<{
   );
 };
 
-// ✅ NEW: Sync Status Indicator Component
+// ✅ ENHANCED: Sync Status Indicator Component with quality indicators
 const SyncStatusIndicator: React.FC<{
   syncStatus: {
-    isAccurate: boolean;
+    isAccurate?: boolean; // ✅ FIXED: Make optional to match usage
     source: string;
     lastUpdated?: Date;
     cogsSource?: string;
+    dataQuality?: 'high' | 'medium' | 'low';
   } | null;
   className?: string;
 }> = ({ syncStatus, className = "" }) => {
   if (!syncStatus) return null;
 
+  // ✅ Provide defaults for optional properties
+  const isAccurate = syncStatus.isAccurate ?? false;
+  const dataQuality = syncStatus.dataQuality ?? 'low';
+
   const getStatusIcon = () => {
-    if (syncStatus.isAccurate) {
+    if (dataQuality === 'high') {
       return <CheckCircle className="h-3 w-3" />;
-    } else {
+    } else if (dataQuality === 'medium') {
       return <AlertCircle className="h-3 w-3" />;
+    } else {
+      return <AlertTriangle className="h-3 w-3" />;
     }
   };
 
   const getStatusColor = () => {
-    if (syncStatus.isAccurate) {
+    if (dataQuality === 'high') {
       return 'text-green-600 bg-green-50 border-green-200';
+    } else if (dataQuality === 'medium') {
+      return 'text-blue-600 bg-blue-50 border-blue-200';
     } else {
       return 'text-amber-600 bg-amber-50 border-amber-200';
     }
   };
 
   const getStatusLabel = () => {
-    if (syncStatus.isAccurate) {
-      const cogsLabel = syncStatus.cogsSource === 'wac' ? 'WAC' : 
-                       syncStatus.cogsSource === 'inventory' ? 'Inv' : 'Akurat';
+    if (dataQuality === 'high') {
+      const cogsLabel = syncStatus.cogsSource === 'wac' ? 'WAC' : 'Akurat';
       return cogsLabel;
+    } else if (dataQuality === 'medium') {
+      return 'Inv';
     } else {
       return 'Est';
     }
@@ -166,10 +177,11 @@ const StatCard: React.FC<{
   tooltip?: string;
   trend?: TrendData;
   syncStatus?: {
-    isAccurate: boolean;
+    isAccurate?: boolean; // ✅ FIXED: Make optional to match usage
     source: string;
     lastUpdated?: Date;
     cogsSource?: string;
+    dataQuality?: 'high' | 'medium' | 'low'; // ✅ ADD: Support quality indicator
   } | null;
 }> = ({ 
   icon, 
@@ -355,7 +367,11 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
         isAccurate: isFromProfitAnalysis,
         source: isFromProfitAnalysis ? 'Analisis Profit' : 'Estimasi',
         lastUpdated: syncInfo?.lastSynced,
-        cogsSource: syncInfo?.cogsSource
+        cogsSource: syncInfo?.cogsSource,
+        // ✅ FIXED: Derive dataQuality from cogsSource since it doesn't exist on syncInfo yet
+        dataQuality: syncInfo?.cogsSource === 'wac' ? 'high' as const : 
+                    syncInfo?.cogsSource === 'inventory' ? 'medium' as const : 
+                    'low' as const
       }
     },
     {

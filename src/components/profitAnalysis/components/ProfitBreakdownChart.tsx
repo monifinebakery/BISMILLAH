@@ -5,6 +5,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   Cell, PieChart, Pie
 } from 'recharts';
+import { HelpCircle } from 'lucide-react';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { formatCurrency, formatLargeNumber } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
@@ -382,7 +384,25 @@ const ProfitBreakdownChart = ({
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>Ringkasan Keuangan Warung</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Ringkasan Keuangan Warung
+              <TooltipProvider delayDuration={100}>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info ringkasan keuangan"
+                    >
+                      <HelpCircle className="w-4 h-4 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Grafik ini menunjukkan bagaimana omset warung terbagi menjadi: modal beli bahan, biaya tetap bulanan (listrik, sewa, gaji), dan keuntungan bersih yang bisa dibawa pulang.</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </CardTitle>
             <CardDescription>
               {chartType === 'bar' 
                 ? 'Lihat bagaimana omset terbagi: modal bahan, biaya tetap, dan untung bersih'
@@ -403,13 +423,49 @@ const ProfitBreakdownChart = ({
             )}
           </div>
           
-          {/* Quick Stats */}
+          {/* Quick Stats with Tooltips */}
           <div className="text-right">
-            <div className="text-xs sm:text-sm text-gray-600">Untung Kotor</div>
+            <div className="flex items-center gap-1 justify-end">
+              <div className="text-xs sm:text-sm text-gray-600">Untung Kotor</div>
+              <TooltipProvider delayDuration={100}>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info untung kotor"
+                    >
+                      <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Untung kotor = Omset dikurangi modal bahan. Ini keuntungan sebelum dipotong biaya tetap seperti listrik, sewa, gaji.</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
             <div className="text-sm sm:text-lg font-bold text-orange-600">
               {summaryStats.grossMargin.toFixed(1)}%
             </div>
-            <div className="text-xs sm:text-sm text-gray-600 mt-1">Untung Bersih</div>
+            <div className="flex items-center gap-1 justify-end mt-1">
+              <div className="text-xs sm:text-sm text-gray-600">Untung Bersih</div>
+              <TooltipProvider delayDuration={100}>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info untung bersih"
+                    >
+                      <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Untung bersih = Omset dikurangi modal bahan dan semua biaya tetap. Ini keuntungan yang benar-benar bisa dibawa pulang.</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
             <div className="text-sm sm:text-lg font-bold text-orange-700">
               {summaryStats.netMargin.toFixed(1)}%
             </div>
@@ -423,17 +479,53 @@ const ProfitBreakdownChart = ({
           {chartType === 'bar' ? renderBarChart() : renderPieChart()}
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards with Tooltips */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 border-t">
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">Total Omset</div>
+            <div className="flex items-center justify-center gap-1">
+              <div className="text-xs sm:text-sm text-gray-600">Total Omset</div>
+              <TooltipProvider delayDuration={100}>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info total omset"
+                    >
+                      <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Semua uang yang masuk dari jualan makanan dan minuman dalam periode ini.</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
             <div className="text-sm sm:text-lg font-bold text-green-600">
               {formatCurrency(finalMetrics.revenue)}
             </div>
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">Modal Bahan</div>
+            <div className="flex items-center justify-center gap-1">
+              <div className="text-xs sm:text-sm text-gray-600">Modal Bahan</div>
+              <TooltipProvider delayDuration={100}>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info modal bahan"
+                    >
+                      <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Uang yang keluar untuk beli bahan baku seperti tepung, gula, telur, dll. Idealnya di bawah 40% dari omset.</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
             <div className="text-sm sm:text-lg font-bold text-orange-600">
               {formatCurrency(finalMetrics.cogs)}
             </div>
@@ -443,7 +535,25 @@ const ProfitBreakdownChart = ({
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">Biaya Tetap</div>
+            <div className="flex items-center justify-center gap-1">
+              <div className="text-xs sm:text-sm text-gray-600">Biaya Tetap</div>
+              <TooltipProvider delayDuration={100}>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info biaya tetap"
+                    >
+                      <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Biaya yang harus dibayar tiap bulan seperti listrik, gas, sewa tempat, gaji karyawan, dll.</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
             <div className="text-sm sm:text-lg font-bold text-red-600">
               {formatCurrency(finalMetrics.opex)}
             </div>
@@ -453,7 +563,25 @@ const ProfitBreakdownChart = ({
           </div>
           
           <div className="text-center">
-            <div className="text-xs sm:text-sm text-gray-600">Untung Bersih</div>
+            <div className="flex items-center justify-center gap-1">
+              <div className="text-xs sm:text-sm text-gray-600">Untung Bersih</div>
+              <TooltipProvider delayDuration={100}>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info untung bersih"
+                    >
+                      <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Keuntungan yang benar-benar bisa dibawa pulang setelah dikurangi modal bahan dan semua biaya tetap.</p>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
             <div className={`text-sm sm:text-lg font-bold ${
               finalMetrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600'
             }`}>

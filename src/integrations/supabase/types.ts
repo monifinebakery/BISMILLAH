@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          created_at: string
+          id: string
+          operasional_per_pcs: number
+          overhead_per_pcs: number
+          target_output_monthly: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operasional_per_pcs?: number
+          overhead_per_pcs?: number
+          target_output_monthly?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operasional_per_pcs?: number
+          overhead_per_pcs?: number
+          target_output_monthly?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       allocation_settings: {
         Row: {
           created_at: string
@@ -442,6 +472,7 @@ export type Database = {
           cost_category: string | null
           created_at: string
           deskripsi: string | null
+          group: string
           id: string
           jenis: string
           jumlah_per_bulan: number
@@ -454,6 +485,7 @@ export type Database = {
           cost_category?: string | null
           created_at?: string
           deskripsi?: string | null
+          group?: string
           id?: string
           jenis: string
           jumlah_per_bulan?: number
@@ -466,6 +498,7 @@ export type Database = {
           cost_category?: string | null
           created_at?: string
           deskripsi?: string | null
+          group?: string
           id?: string
           jenis?: string
           jumlah_per_bulan?: number

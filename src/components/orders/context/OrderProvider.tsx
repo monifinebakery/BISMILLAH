@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
 import OrderContext from './OrderContext';
 import { safeParseDate, isValidDate, transformOrderFromDB } from '../utils';
-import type { Order, NewOrder } from '../types';
+import type { Order, NewOrder, OrderStatus } from '../types';
 import { useOrderConnection } from '../hooks/useOrderConnection';
 import { useOrderSubscription } from '../hooks/useOrderSubscription';
 import * as orderService from '../services/orderService';
@@ -34,7 +34,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       const data = await orderService.fetchOrders(userId);
       setOrders(data);
     } catch (error: any) {
-      toast.error(`Gagal memuat pesanan: ${error.message}`);
+      toast.error(`Gagal memuat pesanan: ${error instanceof Error ? error.message : String(error)}`);
       setOrders([]);
     } finally {
       setLoading(false);
@@ -92,7 +92,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       }
       return true;
     } catch (error: any) {
-      toast.error(`Gagal menambahkan pesanan: ${error.message}`);
+      toast.error(`Gagal menambahkan pesanan: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }, [userId, throttledFetch, refreshData]);
@@ -146,7 +146,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     if (!userId) return false;
     try {
       await orderService.bulkUpdateStatus(userId, ids, status);
-      setOrders(prev => prev.map(o => (ids.includes(o.id) ? { ...o, status } : o)));
+      setOrders(prev => prev.map(o => (ids.includes(o.id) ? { ...o, status: status as OrderStatus } : o)));
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
@@ -198,7 +198,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
   }, [orders]);
 
   const getPendingOrdersCount = useCallback(() => orders.filter(o => o.status === 'pending').length, [orders]);
-  const getProcessingOrdersCount = useCallback(() => orders.filter(o => o.status === 'processing').length, [orders]);
+  const getProcessingOrdersCount = useCallback(() => orders.filter(o => o.status === 'preparing').length, [orders]);
   const getCompletedOrdersCount = useCallback(() => orders.filter(o => o.status === 'completed').length, [orders]);
   const getCancelledOrdersCount = useCallback(() => orders.filter(o => o.status === 'cancelled').length, [orders]);
 

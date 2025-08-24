@@ -36,7 +36,7 @@ export const ContextDebugger: React.FC = () => {
             exists: !!authContext,
             user: authContext?.user?.id || 'no_user',
             email: authContext?.user?.email || 'no_email',
-            loading: authContext?.loading,
+            loading: authContext?.isLoading,
             type: typeof authContext
           },
           loadTime: Date.now() - startTime
@@ -45,7 +45,7 @@ export const ContextDebugger: React.FC = () => {
         results.push({
           name: 'AuthContext',
           status: 'error',
-          details: { error: error.message },
+          details: { error: error instanceof Error ? error.message : String(error) },
           loadTime: Date.now() - startTime
         });
       }
@@ -81,8 +81,8 @@ export const ContextDebugger: React.FC = () => {
           status: financialContext ? 'ready' : 'loading',
           details: {
             exists: !!financialContext,
-            hasAddTransaction: !!financialContext?.addTransaction,
-            addTransactionType: typeof financialContext?.addTransaction,
+            hasAddTransaction: !!financialContext?.addFinancialTransaction,
+            addTransactionType: typeof financialContext?.addFinancialTransaction,
             contextType: typeof financialContext
           },
           loadTime: Date.now() - startTime
@@ -114,7 +114,7 @@ export const ContextDebugger: React.FC = () => {
         results.push({
           name: 'UserSettingsContext',
           status: 'error',
-          details: { error: error.message },
+          details: { error: error instanceof Error ? error.message : String(error) },
           loadTime: Date.now() - startTime
         });
       }
@@ -137,7 +137,7 @@ export const ContextDebugger: React.FC = () => {
         results.push({
           name: 'NotificationContext',
           status: 'error',
-          details: { error: error.message },
+          details: { error: error instanceof Error ? error.message : String(error) },
           loadTime: Date.now() - startTime
         });
       }
@@ -145,7 +145,7 @@ export const ContextDebugger: React.FC = () => {
       setContexts(results);
 
       // Log results
-      logger.debug('ContextDebugger', 'Context check results:', results);
+      logger.debug('ContextDebugger: Context check results:', results);
       
       // Log summary
       const ready = results.filter(c => c.status === 'ready').length;

@@ -1,8 +1,8 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Calculator, Edit2, Trash2, DollarSign, Settings, Target } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, Calculator, Edit2, Trash2, DollarSign, Settings, Target, Info, Package, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -204,142 +204,104 @@ const OperationalCostContent: React.FC = () => {
           {/* Tab Content: Cost Management */}
           <TabsContent value="costs" className="space-y-6">
         
-        {/* Top Section: Calculator */}
-        <Card>
+        {/* Explanation Section */}
+        <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calculator className="h-5 w-5 text-orange-600" />
-              Kalkulator Overhead
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <Info className="h-5 w-5" />
+              Apa itu "Kelola Biaya"?
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            
-            {/* Input Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="space-y-4">
+            <div className="text-sm text-blue-700 space-y-2">
+              <p>📝 <strong>Tab ini untuk mengelola daftar biaya bulanan Anda:</strong></p>
+              <ul className="ml-4 space-y-1">
+                <li>• Tambah biaya baru (gas, sewa, marketing, dll)</li>
+                <li>• Edit biaya yang sudah ada (jika nominal berubah)</li>
+                <li>• Klasifikasi biaya ke grup yang tepat (HPP vs Operasional)</li>
+                <li>• Lihat total biaya per kategori</li>
+              </ul>
               
-              {/* Monthly Fixed Costs */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Biaya tetap bulanan Anda:
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    Rp
-                  </span>
-                  <Input
-                    type="text"
-                    value={formatCurrency(totalMonthlyCosts)}
-                    readOnly
-                    className="pl-8 bg-gray-50 font-medium"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Total dari {state.costs.length} item biaya di bawah
-                </p>
+              <div className="mt-4 p-3 bg-white rounded border border-blue-200">
+                <p className="font-medium text-blue-800 mb-2">🎯 Setelah selesai mengelola biaya:</p>
+                <p>Pindah ke tab <strong>"Kalkulator Dual-Mode"</strong> untuk menghitung biaya per produk yang akan digunakan di resep.</p>
               </div>
-
-              {/* Production Target */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Target produksi bulanan:
-                </label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min="1"
-                    value={productionTarget || ''}
-                    onChange={(e) => setProductionTarget(parseFloat(e.target.value) || 0)}
-                    placeholder="3000"
-                    className="pr-16"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    produk
-                  </span>
-                </div>
-                
-                {/* Quick suggestions */}
-                <div className="flex gap-1 flex-wrap items-center mt-2">
-                  <p className="text-xs text-gray-400 mr-2">Coba:</p>
-                  {productionSuggestions.map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      onClick={() => setProductionTarget(amount)}
-                      className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border text-gray-600 hover:text-gray-800 transition-colors"
-                    >
-                      {amount.toLocaleString()} pcs
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
             </div>
-
-            {/* Result */}
-            {totalMonthlyCosts > 0 && productionTarget > 0 && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <div className="text-center space-y-2">
-                  <p className="text-sm text-orange-700">
-                    💡 Setiap produk perlu "bayar":
-                  </p>
-                  <div className="text-2xl font-bold text-orange-800">
-                    {formatCurrency(costPerProduct)}
-                  </div>
-                  <p className="text-sm text-orange-600">
-                    untuk tutup biaya operasional
-                  </p>
-                </div>
-                
-                <div className="mt-4 pt-4 border-t border-orange-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                    <div className="text-center">
-                      <p className="text-orange-600">Total Biaya/Bulan</p>
-                      <p className="font-medium text-orange-800">{formatCurrency(totalMonthlyCosts)}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-orange-600">Target Produksi/Bulan</p>
-                      <p className="font-medium text-orange-800">{productionTarget.toLocaleString()} produk</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-orange-600">Biaya per Produk</p>
-                      <p className="font-medium text-orange-800">{formatCurrency(costPerProduct)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 text-center">
-                  <Button className="bg-orange-600 hover:bg-orange-700">
-                    Gunakan angka ini
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {totalMonthlyCosts === 0 && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                <p className="text-gray-600">
-                  Tambahkan biaya operasional di bawah untuk melihat hasil perhitungan
-                </p>
-              </div>
-            )}
-
           </CardContent>
         </Card>
 
-        {/* Bottom Section: Cost Table */}
+        {/* Group Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-orange-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-orange-700 flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Overhead Pabrik (HPP)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-orange-800">
+                  {formatCurrency(
+                    state.costs
+                      .filter(c => c.group === 'HPP' && c.status === 'aktif')
+                      .reduce((sum, c) => sum + c.jumlah_per_bulan, 0)
+                  )}
+                </div>
+                <p className="text-xs text-orange-600">
+                  {state.costs.filter(c => c.group === 'HPP' && c.status === 'aktif').length} item • masuk ke HPP resep
+                </p>
+                <p className="text-xs text-gray-500">
+                  Gas, listrik oven, sewa dapur, gaji koki, dll
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Biaya Operasional
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-green-800">
+                  {formatCurrency(
+                    state.costs
+                      .filter(c => c.group === 'OPERASIONAL' && c.status === 'aktif')
+                      .reduce((sum, c) => sum + c.jumlah_per_bulan, 0)
+                  )}
+                </div>
+                <p className="text-xs text-green-600">
+                  {state.costs.filter(c => c.group === 'OPERASIONAL' && c.status === 'aktif').length} item • untuk markup harga jual
+                </p>
+                <p className="text-xs text-gray-500">
+                  Marketing, admin, internet, biaya bank, dll
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Cost Management Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>📋 Detail Biaya Operasional ({state.costs.length} item)</span>
+              <span>📋 Daftar Semua Biaya ({state.costs.length} item)</span>
               <Button
                 onClick={handleOpenAddDialog}
                 size="sm"
-                className="bg-orange-600 hover:bg-orange-700"
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Tambah Biaya Baru
               </Button>
             </CardTitle>
+            <CardDescription className="text-sm text-gray-600">
+              Kelola semua biaya bulanan Anda. Sistem akan otomatis menyarankan klasifikasi grup berdasarkan nama biaya.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             
@@ -350,8 +312,8 @@ const OperationalCostContent: React.FC = () => {
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-2 font-medium text-gray-700">Nama Biaya</th>
                     <th className="text-right py-3 px-2 font-medium text-gray-700">Jumlah/Bulan</th>
+                    <th className="text-center py-3 px-2 font-medium text-gray-700">Grup</th>
                     <th className="text-center py-3 px-2 font-medium text-gray-700">Jenis</th>
-                    <th className="text-center py-3 px-2 font-medium text-gray-700">Kategori</th>
                     <th className="text-center py-3 px-2 font-medium text-gray-700">Terakhir Diperbarui</th>
                     <th className="text-center py-3 px-2 font-medium text-gray-700">Aksi</th>
                   </tr>
@@ -363,13 +325,16 @@ const OperationalCostContent: React.FC = () => {
                       <td className="py-3 px-2 font-medium">{cost.nama_biaya}</td>
                       <td className="py-3 px-2 text-right font-medium">{formatCurrency(cost.jumlah_per_bulan)}</td>
                       <td className="py-3 px-2 text-center">
-                        <Badge variant={cost.jenis === 'tetap' ? 'default' : 'secondary'}>
-                          {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
+                        <Badge 
+                          variant={cost.group === 'HPP' ? 'default' : 'secondary'}
+                          className={cost.group === 'HPP' ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-green-100 text-green-800 border-green-200'}
+                        >
+                          {cost.group === 'HPP' ? '🏭 HPP' : '💼 Operasional'}
                         </Badge>
                       </td>
                       <td className="py-3 px-2 text-center">
-                        <Badge variant="outline" className="text-xs">
-                          {cost.cost_category || 'general'}
+                        <Badge variant={cost.jenis === 'tetap' ? 'outline' : 'secondary'} className="text-xs">
+                          {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
                         </Badge>
                       </td>
                       <td className="py-3 px-2 text-center">{formatDate(cost.updated_at)}</td>
@@ -400,12 +365,16 @@ const OperationalCostContent: React.FC = () => {
                   {state.costs.length === 0 && (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-gray-500">
-                        <div className="space-y-2">
-                          <p>Belum ada biaya operasional</p>
+                        <div className="space-y-3">
+                          <div className="text-gray-400">
+                            📝
+                          </div>
+                          <p className="font-medium">Belum ada biaya yang ditambahkan</p>
+                          <p className="text-sm">Mulai dengan menambahkan biaya bulanan seperti gas, sewa, atau marketing</p>
                           <Button
                             onClick={handleOpenAddDialog}
                             size="sm"
-                            className="bg-orange-600 hover:bg-orange-700"
+                            className="bg-blue-600 hover:bg-blue-700"
                           >
                             <Plus className="h-4 w-4 mr-1" />
                             Tambah Biaya Pertama
@@ -421,7 +390,7 @@ const OperationalCostContent: React.FC = () => {
                 {state.costs.length > 0 && (
                   <tfoot>
                     <tr className="border-t-2 border-gray-300 font-semibold bg-gray-50">
-                      <td className="py-3 px-2">Total:</td>
+                      <td className="py-3 px-2">Total Semua Biaya:</td>
                       <td className="py-3 px-2 text-right text-lg">{formatCurrency(totalMonthlyCosts)}</td>
                       <td className="py-3 px-2"></td>
                       <td className="py-3 px-2"></td>
@@ -441,6 +410,35 @@ const OperationalCostContent: React.FC = () => {
 
           {/* Tab Content: Dual-Mode Calculator */}
           <TabsContent value="calculator" className="space-y-6">
+            
+            {/* Calculator Guide Card */}
+            <Card className="border-purple-200 bg-purple-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-purple-800">
+                  <Calculator className="h-5 w-5" />
+                  Kalkulator Dual-Mode
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm text-purple-700 space-y-2">
+                  <p>🧮 <strong>Hitung biaya per produk dari daftar biaya yang sudah Anda kelola:</strong></p>
+                  <ul className="ml-4 space-y-1">
+                    <li>• Set target produksi bulanan</li>
+                    <li>• Hitung overhead HPP per produk (masuk ke resep)</li>
+                    <li>• Hitung biaya operasional per produk (untuk markup)</li>
+                    <li>• Simpan hasil untuk digunakan otomatis di resep</li>
+                  </ul>
+                  
+                  <div className="mt-4 p-3 bg-white rounded border border-purple-200">
+                    <p className="text-sm">
+                      💡 <strong>Data biaya:</strong> {state.costs.length} item biaya siap dihitung
+                      ({state.costs.filter(c => c.group === 'HPP').length} HPP + {state.costs.filter(c => c.group === 'OPERASIONAL').length} Operasional)
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
             <DualModeCalculator
               costs={state.costs}
               currentSettings={appSettings}

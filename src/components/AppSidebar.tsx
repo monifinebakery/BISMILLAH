@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { usePaymentContext } from "@/contexts/PaymentContext";
 import { useBahanBaku } from "@/components/warehouse/context/WarehouseContext";
 import { useSupplier } from "@/contexts/SupplierContext";
-import { usePurchase } from "@/components/purchase/context/PurchaseContext";
+import { usePurchase } from "@/components/purchase/hooks/usePurchase";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/components/orders/context/OrderContext";
@@ -40,14 +40,15 @@ export function AppSidebar() {
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
 
-  let bahanBaku = [];
+  let bahanBaku: any[] = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
   } catch { bahanBaku = []; }
   const { suppliers } = useSupplier();
   const { purchases } = usePurchase();
-  const { recipes, hppResults } = useRecipe();
+  const { recipes } = useRecipe();
+  // Note: hppResults may not be available in current context
   const { activities } = useActivity();
   const { orders } = useOrder();
   const { financialTransactions } = useFinancial();
@@ -110,7 +111,7 @@ export function AppSidebar() {
   const handleExportAllData = (format: 'xlsx' | 'csv' = 'xlsx') => {
     if (assetsLoading) { toast.info("Tunggu sebentar, sedang memuat data aset..."); return; }
     exportAllDataToExcel({
-      bahanBaku, suppliers, purchases, recipes, hppResults, activities, orders, assets,
+      bahanBaku, suppliers, purchases, recipes, activities, orders, assets,
       financialTransactions, promos,
       operationalCosts: operationalCostState.costs,
       allocationSettings: operationalCostState.allocationSettings,
@@ -119,7 +120,7 @@ export function AppSidebar() {
     }, settings.businessName, format);
   };
 
-  const renderMenuItem = (item, isActive: boolean) => {
+  const renderMenuItem = (item: any, isActive: boolean) => {
     const isUpdatesMenu = item.url === "/updates";
     return (
       <SidebarMenuButton
@@ -135,7 +136,7 @@ export function AppSidebar() {
     );
   };
 
-  const renderActionButton = (onClick, Icon: React.ElementType, text: string, className = "") => (
+  const renderActionButton = (onClick: any, Icon: React.ElementType, text: string, className = "") => (
     <SidebarMenuButton
       tooltip={text}
       onClick={onClick}

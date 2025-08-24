@@ -5,7 +5,7 @@ import { Download } from 'lucide-react';
 // --- Import Hook Contexts ---
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useSupplier } from "@/contexts/SupplierContext";
-import { usePurchase } from "@/components/purchase/context/PurchaseContext";
+import { usePurchase } from "@/components/purchase/hooks/usePurchase";
 import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/components/orders/context/OrderContext";
@@ -27,7 +27,7 @@ const MobileExportButton = () => {
   const { settings } = useUserSettings();
   
   // Add defensive check for useBahanBaku
-  let bahanBaku = [];
+  let bahanBaku: any[] = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -37,7 +37,8 @@ const MobileExportButton = () => {
   }
   const { suppliers } = useSupplier();
   const { purchases } = usePurchase();
-  const { recipes, hppResults } = useRecipe();
+  const { recipes } = useRecipe();
+  // Note: hppResults may not be available in current context
   const { activities } = useActivity();
   const { orders } = useOrder();
   const { financialTransactions } = useFinancial();
@@ -59,7 +60,6 @@ const MobileExportButton = () => {
       suppliers,
       purchases,
       recipes,
-      hppResults,
       activities,
       orders,
       assets, // Will be empty array during debug

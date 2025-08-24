@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { loadXLSX } from '@/components/warehouse/dialogs/import-utils';
-import { usePurchase } from '@/components/purchase/context/PurchaseContext';
+import { usePurchase } from './usePurchase';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 

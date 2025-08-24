@@ -263,7 +263,8 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
 
     } catch (error) {
       logger.error('Import error:', error);
-      toast.error(`Gagal memproses file: ${(error as Error).message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Gagal memproses file: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -374,7 +375,8 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
       }
     } catch (error) {
       logger.error('Import execution error:', error);
-      toast.error(`Gagal mengimport data: ${(error as Error).message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Gagal mengimport data: ${errorMessage}`);
       return false;
     } finally {
       setLoading(false);

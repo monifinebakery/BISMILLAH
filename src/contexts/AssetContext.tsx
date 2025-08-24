@@ -445,7 +445,7 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const value: AssetContextType = {
     assets,
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
-    error: error ? (error as Error).message : null,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
     addAsset: addAssetAction,
     updateAsset: updateAssetAction,
     deleteAsset: deleteAssetAction,

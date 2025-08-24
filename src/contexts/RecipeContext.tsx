@@ -633,7 +633,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     recipes,
     isLoading: isLoading || addMutation.isPending || updateMutation.isPending || 
                deleteMutation.isPending || duplicateMutation.isPending || bulkDeleteMutation.isPending,
-    error: error ? (error as Error).message : null,
+    error: error ? (error instanceof Error ? error.message : String(error)) : null,
 
     // CRUD Operations
     addRecipe,

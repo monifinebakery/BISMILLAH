@@ -438,7 +438,7 @@ class RecipeApiService {
         await this.getCurrentUserId();
         return { isConnected: true, userAuthenticated: true };
       } catch (authError) {
-        return { isConnected: true, userAuthenticated: false, error: (authError as Error).message };
+        return { isConnected: true, userAuthenticated: false, error: authError instanceof Error ? authError.message : String(authError) };
       }
     } catch (error) {
       return { 

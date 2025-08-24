@@ -131,6 +131,6 @@ export interface TrendAnalysis {
 export interface TooltipProps {
   active?: boolean;
   payload?: any[];
-  label?: string;
+  label?: string | number;
   viewType?: 'values' | 'margins';
 }

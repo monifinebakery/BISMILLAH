@@ -24,31 +24,37 @@ export const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label, 
   };
 
   return (
-    <div className="bg-white p-3 border border-gray-200 rounded-lg">
-      <p className="font-semibold text-gray-800 mb-2">{label}</p>
-      {payload && payload.length > 0 && payload.map((entry: any, index: number) => {
-        if (!entry || entry.value === undefined) return null;
-        
-        const dataKey = entry.dataKey as keyof typeof metricLabelMap;
-        const label = metricLabelMap[dataKey] || entry.dataKey;
-        const value = entry.value !== undefined ? entry.value : 0;
-        
-        return (
-          <div key={index} className="flex items-center space-x-2 mb-1">
-            <div 
-              className="w-3 h-3 rounded-full" 
-              style={{ backgroundColor: entry.color || '#000000' }}
-            />
-            <span className="text-sm text-gray-600">{label}:</span>
-            <span className="text-sm font-medium">
-              {viewType === 'margins' && (dataKey === 'grossMargin' || dataKey === 'netMargin') 
-                ? `${Number(value).toFixed(1)}%`
-                : formatCurrency(Number(value))
-              }
-            </span>
-          </div>
-        );
-      })}
+    <div className="bg-white p-4 border border-gray-200 rounded-xl shadow-xl backdrop-blur-sm">
+      <div className="border-b border-gray-100 pb-2 mb-3">
+        <p className="font-bold text-gray-900 text-base">{String(label)}</p>
+      </div>
+      <div className="space-y-2">
+        {payload && payload.length > 0 && payload.map((entry: any, index: number) => {
+          if (!entry || entry.value === undefined) return null;
+          
+          const dataKey = entry.dataKey as keyof typeof metricLabelMap;
+          const label = metricLabelMap[dataKey] || entry.dataKey;
+          const value = entry.value !== undefined ? entry.value : 0;
+          
+          return (
+            <div key={index} className="flex items-center justify-between space-x-3 py-1">
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-3 h-3 rounded-full shadow-sm" 
+                  style={{ backgroundColor: entry.color || '#000000' }}
+                />
+                <span className="text-sm font-medium text-gray-700">{label}</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900 min-w-0">
+                {viewType === 'margins' && (dataKey === 'grossMargin' || dataKey === 'netMargin') 
+                  ? `${Number(value).toFixed(1)}%`
+                  : formatCurrency(Number(value))
+                }
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -64,8 +70,8 @@ export const CandlestickTooltip: React.FC<TooltipProps> = ({ active, payload, la
   if (!data) return null;
 
   return (
-    <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-      <p className="font-semibold text-gray-800 mb-2">{label}</p>
+    <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+      <p className="font-semibold text-gray-800 mb-3">{String(label)}</p>
       <div className="space-y-1 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-600">Volume (Omset):</span>
@@ -103,8 +109,8 @@ export const HeatmapTooltip: React.FC<TooltipProps> = ({ active, payload, label 
   if (!data) return null;
 
   return (
-    <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-      <p className="font-semibold text-gray-800 mb-2">{label}</p>
+    <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+      <p className="font-semibold text-gray-800 mb-3">{String(label)}</p>
       <div className="space-y-1 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-600">Intensitas Omset:</span>

@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { purchaseApi } from '../services/purchaseApi';
 import { useAuth } from '@/contexts/AuthContext';
+// ✅ STANDARDIZED: Import centralized validation utilities
+import { validateStatusChange, validatePurchaseData } from '@/utils/purchaseValidation';
 
 interface UsePurchaseCoreProps {
   purchaseContext: any;   // tetap fleksibel
@@ -86,61 +88,13 @@ export const usePurchaseCore = ({
     return map[status] || status;
   }, []);
 
-  /** Validasi ringan (semua transisi diizinkan antar pending/completed/cancelled) */
-  const validateStatusChange = useCallback((purchaseId: string, newStatus: 'pending'|'completed'|'cancelled') => {
+  /** ✅ STANDARDIZED: Use centralized validation logic */
+  const validateStatusChangeLocal = useCallback((purchaseId: string, newStatus: 'pending'|'completed'|'cancelled') => {
     const p = purchases.find((x: any) => x.id === purchaseId);
     if (!p) return { canChange: false, warnings: [], errors: ['Pembelian tidak ditemukan'] };
-
-    const warnings: string[] = [];
-    const errors: string[] = [];
-
-    if (p.status === newStatus) warnings.push('Status tidak berubah');
-
-    if (newStatus === 'completed') {
-      if (!p.items || p.items.length === 0) errors.push('Tidak dapat selesai tanpa item');
-      if (!p.totalNilai || p.totalNilai <= 0) errors.push('Total nilai harus > 0');
-      if (!p.supplier) errors.push('Supplier wajib diisi');
-      
-      // Enhanced item validation with better error messages
-      const invalid = (p.items ?? []).filter((it: any) => {
-        const missingFields = [];
-        if (!it.bahanBakuId) missingFields.push('ID bahan baku');
-        if (!it.nama || !it.nama.trim()) missingFields.push('nama item');
-        if (!it.kuantitas || it.kuantitas <= 0) missingFields.push('kuantitas');
-        if (!it.satuan || !it.satuan.trim()) missingFields.push('satuan');
-        // Allow hargaSatuan to be 0 for automatic calculation or free items
-        if (it.hargaSatuan === undefined || it.hargaSatuan === null || it.hargaSatuan < 0) {
-          missingFields.push('harga satuan');
-        }
-        return missingFields.length > 0;
-      });
-      
-      if (invalid.length) {
-        // More descriptive error message
-        const firstInvalidItem = invalid[0];
-        const missingFields = [];
-        if (!firstInvalidItem.bahanBakuId) missingFields.push('ID bahan baku');
-        if (!firstInvalidItem.nama || !firstInvalidItem.nama.trim()) missingFields.push('nama');
-        if (!firstInvalidItem.kuantitas || firstInvalidItem.kuantitas <= 0) missingFields.push('kuantitas');
-        if (!firstInvalidItem.satuan || !firstInvalidItem.satuan.trim()) missingFields.push('satuan');
-        if (firstInvalidItem.hargaSatuan === undefined || firstInvalidItem.hargaSatuan === null || firstInvalidItem.hargaSatuan < 0) {
-          missingFields.push('harga satuan');
-        }
-        
-        if (invalid.length === 1) {
-          errors.push(`Item "${firstInvalidItem.nama || 'Tanpa nama'}" tidak lengkap: ${missingFields.join(', ')}`);
-        } else {
-          errors.push(`${invalid.length} item tidak lengkap (contoh: ${missingFields.join(', ')})`);
-        }
-      }
-    }
-
-    // info buat user kalau revert dari completed
-    if (p.status === 'completed' && newStatus !== 'completed') {
-      warnings.push('Mengubah dari "Selesai" akan mengoreksi stok gudang otomatis.');
-    }
-
-    return { canChange: errors.length === 0, warnings, errors };
+    
+    // Use centralized validation utility
+    return validateStatusChange(p.status, newStatus, p);
   }, [purchases]);
 
   // ---------- Permissions (edit/delete selalu boleh, hanya beri info) ----------
@@ -168,7 +122,7 @@ export const usePurchaseCore = ({
   // ---------- Actions ----------
   /** Ubah status via API khusus supaya manual sync jalan */
   const updateStatus = useCallback(async (purchaseId: string, newStatus: 'pending'|'completed'|'cancelled'): Promise<boolean> => {
-    const v = validateStatusChange(purchaseId, newStatus);
+    const v = validateStatusChangeLocal(purchaseId, newStatus);
     if (!v.canChange) {
       toast.error(v.errors[0] || 'Perubahan status tidak valid');
       return false;

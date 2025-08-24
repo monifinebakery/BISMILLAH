@@ -533,7 +533,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updatePurchaseAction = useCallback(async (id: string, updated: Partial<Purchase>) => {
     if (!user) { toast.error('Anda harus login'); return false; }
     try {
-      let payload = { ...updated };
+      const payload = { ...updated };
       if (updated.items && updated.items.length > 0) {
         const supplierId = updated.supplier || findPurchase(id)?.supplier || '';
         payload.items = await ensureBahanBakuIds(updated.items, supplierId);

@@ -401,7 +401,7 @@ export const useProcessTemplate = () => {
     };
 
     // ✅ ENHANCED: Process template dengan semua variables
-    let processedTemplate = template
+    const processedTemplate = template
       // Basic order info
       .replace(/\{\{namaPelanggan\}\}/g, orderData.namaPelanggan || '')
       .replace(/\{\{nomorPesanan\}\}/g, orderData.nomorPesanan || '')

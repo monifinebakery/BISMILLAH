@@ -1,12 +1,13 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Calculator, Edit2, Trash2, DollarSign, Settings, Target, Info, Package, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Plus, Calculator, Edit2, Trash2, DollarSign, Settings, Target, Info, Package, TrendingUp, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { OperationalCostProvider, useOperationalCost } from './context';
 import { formatCurrency, formatDate } from './utils/costHelpers';
 import { OperationalCost, AppSettings } from './types/operationalCost.types';
@@ -216,7 +217,8 @@ const OperationalCostContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <TooltipProvider>
+      <div className="min-h-screen bg-gray-50">
       {/* Onboarding Modal */}
       {showOnboarding && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -368,15 +370,23 @@ const OperationalCostContent: React.FC = () => {
           <TabsContent value="costs" className="space-y-6">
         
         {/* Explanation Section */}
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-orange-200 bg-orange-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
+            <CardTitle className="flex items-center gap-2 text-orange-800">
               <Info className="h-5 w-5" />
               Apa itu "Kelola Biaya"?
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-orange-600 hover:text-orange-800 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800 max-w-xs">
+                  <p>Tab ini untuk mengelola daftar semua biaya bulanan bisnis Anda. Setelah selesai, pindah ke tab Kalkulator untuk menghitung biaya per produk.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-blue-700 space-y-2">
+            <div className="text-sm text-orange-700 space-y-2">
               <p>📝 <strong>Tab ini untuk mengelola daftar biaya bulanan Anda:</strong></p>
               <ul className="ml-4 space-y-1">
                 <li>• Tambah biaya baru (gas, sewa, marketing, dll)</li>
@@ -385,8 +395,8 @@ const OperationalCostContent: React.FC = () => {
                 <li>• Lihat total biaya per kategori</li>
               </ul>
               
-              <div className="mt-4 p-3 bg-white rounded border border-blue-200">
-                <p className="font-medium text-blue-800 mb-2">🎯 Setelah selesai mengelola biaya:</p>
+              <div className="mt-4 p-3 bg-white rounded border border-orange-200">
+                <p className="font-medium text-orange-800 mb-2">🎯 Setelah selesai mengelola biaya:</p>
                 <p>Pindah ke tab <strong>"Kalkulator Dual-Mode"</strong> untuk menghitung biaya per produk yang akan digunakan di resep.</p>
               </div>
             </div>
@@ -400,6 +410,14 @@ const OperationalCostContent: React.FC = () => {
               <CardTitle className="text-sm font-medium text-orange-700 flex items-center gap-2">
                 <Package className="h-4 w-4" />
                 Overhead Pabrik (HPP)
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-orange-600 hover:text-orange-800 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800 max-w-xs">
+                    <p>Biaya yang langsung terkait produksi dan masuk ke HPP resep. Contoh: gas oven, listrik produksi, sewa dapur, gaji koki.</p>
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -421,23 +439,31 @@ const OperationalCostContent: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-green-200">
+          <Card className="border-orange-300">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
+              <CardTitle className="text-sm font-medium text-orange-700 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Biaya Operasional
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-orange-600 hover:text-orange-800 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800 max-w-xs">
+                    <p>Biaya operasional di luar produksi langsung. Digunakan untuk markup harga jual. Contoh: marketing, admin, internet, biaya bank.</p>
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="text-2xl font-bold text-green-800">
+                <div className="text-2xl font-bold text-orange-800">
                   {formatCurrency(
                     state.costs
                       .filter(c => c.group === 'OPERASIONAL' && c.status === 'aktif')
                       .reduce((sum, c) => sum + c.jumlah_per_bulan, 0)
                   )}
                 </div>
-                <p className="text-xs text-green-600">
+                <p className="text-xs text-orange-600">
                   {state.costs.filter(c => c.group === 'OPERASIONAL' && c.status === 'aktif').length} item • untuk markup harga jual
                 </p>
                 <p className="text-xs text-gray-500">
@@ -452,11 +478,21 @@ const OperationalCostContent: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>📋 Daftar Semua Biaya ({state.costs.length} item)</span>
+              <span className="flex items-center gap-2">
+                📋 Daftar Semua Biaya ({state.costs.length} item)
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-gray-500 hover:text-gray-700 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800 max-w-xs">
+                    <p>Tabel ini menampilkan semua biaya operasional yang sudah Anda tambahkan. Setiap biaya otomatis diklasifikasi ke grup HPP atau Operasional.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
               <Button
                 onClick={handleOpenAddDialog}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-orange-600 hover:bg-orange-700"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Tambah Biaya Baru
@@ -544,7 +580,7 @@ const OperationalCostContent: React.FC = () => {
                             <Button
                               onClick={handleOpenAddDialog}
                               size="lg"
-                              className="bg-blue-600 hover:bg-blue-700 px-6"
+                              className="bg-orange-600 hover:bg-orange-700 px-6"
                             >
                               <Plus className="h-4 w-4 mr-2" />
                               Tambah Biaya Pertama
@@ -554,14 +590,21 @@ const OperationalCostContent: React.FC = () => {
                               atau
                             </div>
                             
-                            <Button
-                              onClick={handleStartOnboarding}
-                              variant="outline"
-                              size="sm"
-                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                            >
-                              🚀 Setup Cepat dengan Template
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={handleStartOnboarding}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                                >
+                                  🚀 Setup Cepat dengan Template
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800">
+                                <p>Gunakan template siap pakai untuk bakery, restaurant, atau cafe dengan 5 biaya contoh</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                       </td>
@@ -597,11 +640,19 @@ const OperationalCostContent: React.FC = () => {
             
             {/* Progress Indicator */}
             {state.costs.length > 0 && (
-              <Card className="border-indigo-200 bg-indigo-50">
+              <Card className="border-orange-200 bg-orange-50">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-sm font-medium text-indigo-800 flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium text-orange-800 flex items-center gap-2">
                     <Target className="h-4 w-4" />
                     Progress Setup
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-orange-600 hover:text-orange-800 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800 max-w-xs">
+                        <p>Tracking progres setup sistem biaya Anda. Setelah kedua langkah selesai, sistem siap digunakan untuk kalkulasi resep.</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -609,9 +660,16 @@ const OperationalCostContent: React.FC = () => {
                     <div className="flex items-center gap-4">
                       {/* Step 1 */}
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                          ✓
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold cursor-help">
+                              ✓
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800">
+                            <p>Langkah 1 selesai: Anda sudah menambahkan biaya operasional</p>
+                          </TooltipContent>
+                        </Tooltip>
                         <span className="text-sm font-medium text-green-800">Biaya Ditambahkan</span>
                       </div>
                       
@@ -619,17 +677,26 @@ const OperationalCostContent: React.FC = () => {
                       
                       {/* Step 2 */}
                       <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          appSettings?.overhead_per_pcs && appSettings?.operasional_per_pcs 
-                            ? 'bg-green-600 text-white' 
-                            : 'bg-indigo-600 text-white'
-                        }`}>
-                          {appSettings?.overhead_per_pcs && appSettings?.operasional_per_pcs ? '✓' : '2'}
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-help ${
+                              appSettings?.overhead_per_pcs && appSettings?.operasional_per_pcs 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-orange-600 text-white'
+                            }`}>
+                              {appSettings?.overhead_per_pcs && appSettings?.operasional_per_pcs ? '✓' : '2'}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800">
+                            <p>{appSettings?.overhead_per_pcs && appSettings?.operasional_per_pcs 
+                              ? 'Langkah 2 selesai: Kalkulasi biaya per produk sudah dilakukan' 
+                              : 'Langkah 2: Lakukan kalkulasi biaya per produk di bawah'}</p>
+                          </TooltipContent>
+                        </Tooltip>
                         <span className={`text-sm font-medium ${
                           appSettings?.overhead_per_pcs && appSettings?.operasional_per_pcs 
                             ? 'text-green-800' 
-                            : 'text-indigo-800'
+                            : 'text-orange-800'
                         }`}>
                           Kalkulasi Selesai
                         </span>
@@ -637,9 +704,16 @@ const OperationalCostContent: React.FC = () => {
                     </div>
                     
                     <div className="text-right">
-                      <div className="text-xs text-indigo-600">
-                        {state.costs.length} biaya • {state.costs.filter(c => c.group === 'HPP').length} HPP + {state.costs.filter(c => c.group === 'OPERASIONAL').length} Operasional
-                      </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="text-xs text-orange-600 cursor-help">
+                            {state.costs.length} biaya • {state.costs.filter(c => c.group === 'HPP').length} HPP + {state.costs.filter(c => c.group === 'OPERASIONAL').length} Operasional
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800">
+                          <p>Total biaya yang sudah ditambahkan dan diklasifikasi ke grup HPP atau Operasional</p>
+                        </TooltipContent>
+                      </Tooltip>
                       {appSettings?.overhead_per_pcs && appSettings?.operasional_per_pcs && (
                         <div className="text-xs text-green-600 font-medium">
                           Siap digunakan di resep! 🎉
@@ -653,38 +727,53 @@ const OperationalCostContent: React.FC = () => {
             
             {/* No costs warning */}
             {state.costs.length === 0 && (
-              <Card className="border-yellow-200 bg-yellow-50">
+              <Card className="border-orange-200 bg-orange-50">
                 <CardContent className="pt-6">
                   <div className="text-center space-y-3">
-                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
-                      <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                      <AlertTriangle className="h-6 w-6 text-orange-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-yellow-800">Belum ada data biaya</p>
-                      <p className="text-sm text-yellow-700">Tambahkan biaya operasional dulu di tab "Kelola Biaya"</p>
+                      <p className="font-medium text-orange-800">Belum ada data biaya</p>
+                      <p className="text-sm text-orange-700">Tambahkan biaya operasional dulu di tab "Kelola Biaya"</p>
                     </div>
-                    <Button
-                      onClick={() => setActiveTab('costs')}
-                      size="sm"
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                    >
-                      Ke Tab Kelola Biaya
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => setActiveTab('costs')}
+                          size="sm"
+                          className="bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                          Ke Tab Kelola Biaya
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800">
+                        <p>Klik untuk beralih ke tab Kelola Biaya dan mulai menambahkan biaya operasional</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </CardContent>
               </Card>
             )}
             
             {/* Calculator Guide Card */}
-            <Card className="border-purple-200 bg-purple-50">
+            <Card className="border-orange-200 bg-orange-50">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-800">
+                <CardTitle className="flex items-center gap-2 text-orange-800">
                   <Calculator className="h-5 w-5" />
                   Kalkulator Dual-Mode
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-orange-600 hover:text-orange-800 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800 max-w-xs">
+                      <p>Kalkulator ini menghitung biaya per produk dari dua grup terpisah: HPP (masuk resep) dan Operasional (untuk markup harga jual).</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="text-sm text-purple-700 space-y-2">
+                <div className="text-sm text-orange-700 space-y-2">
                   <p>🧮 <strong>Hitung biaya per produk dari daftar biaya yang sudah Anda kelola:</strong></p>
                   <ul className="ml-4 space-y-1">
                     <li>• Set target produksi bulanan</li>
@@ -693,11 +782,18 @@ const OperationalCostContent: React.FC = () => {
                     <li>• Simpan hasil untuk digunakan otomatis di resep</li>
                   </ul>
                   
-                  <div className="mt-4 p-3 bg-white rounded border border-purple-200">
-                    <p className="text-sm">
-                      💡 <strong>Data biaya:</strong> {state.costs.length} item biaya siap dihitung
-                      ({state.costs.filter(c => c.group === 'HPP').length} HPP + {state.costs.filter(c => c.group === 'OPERASIONAL').length} Operasional)
-                    </p>
+                  <div className="mt-4 p-3 bg-white rounded border border-orange-200">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-sm cursor-help">
+                          💡 <strong>Data biaya:</strong> {state.costs.length} item biaya siap dihitung
+                          ({state.costs.filter(c => c.group === 'HPP').length} HPP + {state.costs.filter(c => c.group === 'OPERASIONAL').length} Operasional)
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-orange-100 border-orange-200 text-orange-800">
+                        <p>Menampilkan total biaya yang siap untuk dikalkulasi berdasarkan klasifikasi grup</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </CardContent>
@@ -725,6 +821,7 @@ const OperationalCostContent: React.FC = () => {
         isLoading={state.loading.costs}
       />
     </div>
+    </TooltipProvider>
   );
 };
 

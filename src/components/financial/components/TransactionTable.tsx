@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus,
@@ -61,6 +62,12 @@ interface TransactionTableProps {
   transactions?: FinancialTransaction[];
   isLoading?: boolean;
   onRefresh?: () => void;
+  // Bulk operations props
+  selectedIds?: string[];
+  onSelectionChange?: (transactionId: string, isSelected: boolean) => void;
+  isSelectionMode?: boolean;
+  onSelectAll?: () => void;
+  isAllSelected?: boolean;
 }
 
 // ✅ Query keys
@@ -189,6 +196,12 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   transactions: legacyTransactions,
   isLoading: legacyIsLoading,
   onRefresh: legacyOnRefresh,
+  // Bulk operations props
+  selectedIds = [],
+  onSelectionChange,
+  isSelectionMode = false,
+  onSelectAll,
+  isAllSelected = false,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -379,6 +392,15 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
+                  {isSelectionMode && (
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={onSelectAll}
+                        aria-label="Pilih semua transaksi"
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="min-w-[140px]">
                     <div className="flex items-center gap-2">
                       <span>Tanggal & Waktu</span>
@@ -410,6 +432,17 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 {currentTransactions.length > 0 ? (
                   currentTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
+                      {isSelectionMode && (
+                        <TableCell className="w-12">
+                          <Checkbox
+                            checked={selectedIds.includes(transaction.id)}
+                            onCheckedChange={(checked) => 
+                              onSelectionChange?.(transaction.id, checked as boolean)
+                            }
+                            aria-label={`Pilih transaksi ${transaction.description}`}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="min-w-[140px]">
                         {transaction.date ? (() => {
                           try {
@@ -511,7 +544,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
+                    <TableCell colSpan={isSelectionMode ? 7 : 6} className="text-center h-24">
                       <div className="flex flex-col items-center justify-center">
                         <div className="text-gray-400 mb-2">📊</div>
                         <p className="text-gray-500">

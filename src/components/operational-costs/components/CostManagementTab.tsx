@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, DollarSign, Package, TrendingUp, AlertTriangle } f
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency, formatDate } from '../utils/costHelpers';
 import { OperationalCost } from '../types/operationalCost.types';
@@ -15,6 +16,12 @@ interface CostManagementTabProps {
   onOpenAddDialog: () => void;
   onEditCost: (cost: OperationalCost) => void;
   onDeleteCost: (id: string) => void;
+  // Bulk operations props
+  selectedIds?: string[];
+  onSelectionChange?: (costId: string) => void;
+  isSelectionMode?: boolean;
+  onSelectAll?: () => void;
+  isAllSelected?: boolean;
 }
 
 const CostManagementTab: React.FC<CostManagementTabProps> = ({
@@ -25,6 +32,11 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
   onOpenAddDialog,
   onEditCost,
   onDeleteCost,
+  selectedIds = [],
+  onSelectionChange,
+  isSelectionMode = false,
+  onSelectAll,
+  isAllSelected = false,
 }) => {
   return (
     <div className="space-y-6">
@@ -119,6 +131,15 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
+                  {isSelectionMode && (
+                    <th className="text-center py-3 px-2 font-medium text-gray-700 w-12">
+                      <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={onSelectAll}
+                        aria-label="Pilih semua biaya"
+                      />
+                    </th>
+                  )}
                   <th className="text-left py-3 px-2 font-medium text-gray-700">Nama Biaya</th>
                   <th className="text-right py-3 px-2 font-medium text-gray-700">Jumlah/Bulan</th>
                   <th className="text-center py-3 px-2 font-medium text-gray-700">Grup</th>
@@ -130,6 +151,15 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
               <tbody>
                 {costs.map((cost) => (
                   <tr key={cost.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    {isSelectionMode && (
+                      <td className="py-3 px-2 text-center">
+                        <Checkbox
+                          checked={selectedIds.includes(cost.id)}
+                          onCheckedChange={() => onSelectionChange?.(cost.id)}
+                          aria-label={`Pilih biaya ${cost.nama_biaya}`}
+                        />
+                      </td>
+                    )}
                     <td className="py-3 px-2">
                       <div className="font-medium text-gray-900">{cost.nama_biaya}</div>
                     </td>
@@ -179,7 +209,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                 {/* Empty state */}
                 {costs.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-gray-500">
+                    <td colSpan={isSelectionMode ? 7 : 6} className="py-12 text-center text-gray-500">
                       <div className="space-y-4 max-w-md mx-auto">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
                           📝
@@ -216,6 +246,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
               {costs.length > 0 && (
                 <tfoot>
                   <tr className="border-t-2 border-gray-300 font-semibold bg-gray-50">
+                    {isSelectionMode && <td className="py-3 px-2"></td>}
                     <td className="py-3 px-2">Total Semua Biaya:</td>
                     <td className="py-3 px-2 text-right text-lg">{formatCurrency(totalMonthlyCosts)}</td>
                     <td className="py-3 px-2"></td>

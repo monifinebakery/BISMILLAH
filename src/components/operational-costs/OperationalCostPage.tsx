@@ -20,6 +20,8 @@ import {
   CalculatorTab
 } from './components';
 import { appSettingsApi } from './services';
+import { useOperationalCostTable } from './hooks/useOperationalCostTable';
+import BulkActions from './components/BulkActions';
 import { toast } from 'sonner';
 
 const OperationalCostContent: React.FC = () => {
@@ -32,6 +34,19 @@ const OperationalCostContent: React.FC = () => {
   const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentOnboardingStep, setCurrentOnboardingStep] = useState(0);
+
+  // Bulk operations
+  const {
+    selectedIds,
+    selectedCosts,
+    isSelectionMode,
+    isAllSelected,
+    toggleCostSelection,
+    selectAllCosts,
+    clearSelection,
+    enterSelectionMode,
+    exitSelectionMode,
+  } = useOperationalCostTable(state.costs);
 
   // Auto-refresh data when component mounts
   useEffect(() => {
@@ -257,6 +272,14 @@ const OperationalCostContent: React.FC = () => {
 
           {/* Tab Content: Cost Management */}
           <TabsContent value="costs" className="space-y-6">
+            <BulkActions
+              selectedCosts={selectedCosts}
+              selectedIds={selectedIds}
+              onClearSelection={clearSelection}
+              onSelectAll={selectAllCosts}
+              isAllSelected={isAllSelected}
+              totalCount={state.costs.length}
+            />
             <CostManagementTab
               costs={state.costs}
               totalMonthlyCosts={totalMonthlyCosts}
@@ -265,6 +288,11 @@ const OperationalCostContent: React.FC = () => {
               onOpenAddDialog={handleOpenAddDialog}
               onEditCost={handleOpenEditDialog}
               onDeleteCost={handleDeleteCost}
+              selectedIds={selectedIds}
+              onSelectionChange={toggleCostSelection}
+              isSelectionMode={isSelectionMode}
+              onSelectAll={selectAllCosts}
+              isAllSelected={isAllSelected}
             />
           </TabsContent>
 

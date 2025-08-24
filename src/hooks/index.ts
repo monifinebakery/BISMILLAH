@@ -422,11 +422,14 @@ export const useFormValidation = <T extends Record<string, any>>(
   return {
     values,
     errors,
-    touched,
     isValid,
-    setValue,
-    setFieldTouched,
-    validateAll,
+    handleChange,
+    handleSubmit,
     reset,
+    setFieldValue,
+    setFieldError,
+    clearFieldError
   };
 };
+
+```

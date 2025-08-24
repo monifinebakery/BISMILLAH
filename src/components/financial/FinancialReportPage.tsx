@@ -25,6 +25,7 @@ import { useFinancialPage } from './hooks/useFinancialPages';
 import { useFinancialChartDataProcessing } from './hooks/useFinancialData';
 import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { useTransactionTable } from './hooks/useTransactionTable';
 
 // LAZY LOADED COMPONENTS
 const FinancialCharts = React.lazy(() => 
@@ -66,6 +67,15 @@ const FinancialTransactionDialog = React.lazy(() =>
 const CategoryManagementDialog = React.lazy(() => 
   import('./dialogs/CategoryManagementDialog').catch((error) => {
     logger.error('Failed to load CategoryManagementDialog', error);
+    return {
+      default: () => null
+    };
+  })
+);
+
+const BulkActions = React.lazy(() => 
+  import('./components/BulkActions').catch((error) => {
+    logger.error('Failed to load BulkActions', error);
     return {
       default: () => null
     };
@@ -243,6 +253,9 @@ const FinancialReportPage: React.FC = () => {
 
   // ✅ CHART DATA - Single hook
   const chartData = useFinancialChartDataProcessing(filteredTransactions);
+
+  // ✅ BULK OPERATIONS - Transaction table hook
+  const transactionTable = useTransactionTable(filteredTransactions);
 
   // ✅ STATE - Dialogs and active tab (only charts and transactions)
   const [activeTab, setActiveTab] = useState('charts');
@@ -486,6 +499,18 @@ const FinancialReportPage: React.FC = () => {
 
           {/* ✅ TRANSACTIONS TAB */}
           <TabsContent value="transactions" className="space-y-6">
+            {transactionTable.isSelectionMode && (
+              <Suspense fallback={null}>
+                <BulkActions
+                  selectedTransactions={transactionTable.selectedTransactions}
+                  selectedIds={transactionTable.selectedIds}
+                  onClearSelection={transactionTable.exitSelectionMode}
+                  onSelectAll={transactionTable.handleSelectAll}
+                  isAllSelected={transactionTable.isAllSelected}
+                  totalCount={filteredTransactions.length}
+                />
+              </Suspense>
+            )}
             <Suspense fallback={<ChartSkeleton />}>
               <TransactionTable
                 transactions={filteredTransactions}
@@ -493,6 +518,11 @@ const FinancialReportPage: React.FC = () => {
                 onAddTransaction={() => openTransactionDialog()}
                 onDeleteTransaction={handleDeleteTransaction}
                 isLoading={isLoading}
+                selectedIds={transactionTable.selectedIds}
+                onSelectionChange={transactionTable.handleSelectionChange}
+                isSelectionMode={transactionTable.isSelectionMode}
+                onSelectAll={transactionTable.handleSelectAll}
+                isAllSelected={transactionTable.isAllSelected}
               />
             </Suspense>
           </TabsContent>

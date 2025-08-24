@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,12 @@ interface OrderTableProps {
   onNewOrder: () => void;
   onFollowUp?: (order: Order) => void;
   onViewDetail?: (order: Order) => void;
+  // Bulk operations props
+  selectedIds?: string[];
+  onSelectionChange?: (orderId: string) => void;
+  isSelectionMode?: boolean;
+  onSelectAll?: () => void;
+  isAllSelected?: boolean;
 }
 
 // Status Badge Component (unchanged)
@@ -292,7 +299,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
   onStatusChange,
   onNewOrder,
   onFollowUp,
-  onViewDetail
+  onViewDetail,
+  selectedIds = [],
+  onSelectionChange,
+  isSelectionMode = false,
+  onSelectAll,
+  isAllSelected = false
 }) => {
   // ✅ FIXED: Hooks dipanggil di top level component
   const { getTemplate } = useFollowUpTemplate();
@@ -313,14 +325,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
       return;
     }
 
-    if (uiState.isSelectionMode) {
-      uiState.toggleSelectOrder(order.id);
+    if (isSelectionMode && onSelectionChange) {
+      onSelectionChange(order.id);
     }
   };
 
-  const handleToggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    uiState.toggleSelectAll(uiState.currentOrders);
-  };
+
 
   // ✅ FIXED: View detail handler
   const handleViewDetail = (order: Order) => {
@@ -410,16 +420,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
           {/* ✅ UPDATED: Table Header with Completion Date */}
           <thead className="bg-gray-50">
             <tr>
-              {uiState.isSelectionMode && (
+              {isSelectionMode && (
                 <th className="w-12 px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={uiState.allCurrentSelected}
-                    ref={input => {
-                      if (input) input.indeterminate = uiState.someCurrentSelected;
-                    }}
-                    onChange={handleToggleSelectAll}
-                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={() => onSelectAll && onSelectAll()}
+                    className="h-4 w-4"
                   />
                 </th>
               )}
@@ -457,18 +463,18 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 key={order.id}
                 className={`
                   hover:bg-gray-50 cursor-pointer transition-colors duration-150
-                  ${uiState.selectedOrderIds.includes(order.id) ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''}
-                  ${uiState.isSelectionMode ? 'hover:bg-orange-50' : ''}
+                  ${selectedIds.includes(order.id) ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''}
+                  ${isSelectionMode ? 'hover:bg-orange-50' : ''}
                 `}
                 onClick={(e) => handleRowClick(order, e)}
               >
                 {/* Selection Checkbox */}
-                {uiState.isSelectionMode && (
+                {isSelectionMode && (
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <OrderRowSelect
-                      isSelected={uiState.selectedOrderIds.includes(order.id)}
-                      onToggle={(forceValue) => uiState.toggleSelectOrder(order.id, forceValue)}
-                      orderId={order.id}
+                    <Checkbox
+                      checked={selectedIds.includes(order.id)}
+                      onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
+                      className="h-4 w-4"
                     />
                   </td>
                 )}

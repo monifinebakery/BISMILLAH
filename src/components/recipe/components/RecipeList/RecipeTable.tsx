@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -43,6 +44,12 @@ interface RecipeTableProps {
   onDelete: (recipe: Recipe) => void;
   searchTerm: string;
   isLoading?: boolean;
+  // Bulk operations props
+  selectedIds?: Set<string>;
+  onSelectionChange?: (recipeId: string) => void;
+  isSelectionMode?: boolean;
+  onSelectAll?: () => void;
+  isAllSelected?: boolean;
 }
 
 const RecipeTable: React.FC<RecipeTableProps> = ({
@@ -55,6 +62,11 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
   onDelete,
   searchTerm,
   isLoading = false,
+  selectedIds = new Set(),
+  onSelectionChange,
+  isSelectionMode = false,
+  onSelectAll,
+  isAllSelected = false,
 }) => {
   // Sort icon
   const getSortIcon = (field: RecipeSortField) => {
@@ -107,6 +119,17 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
       <Table /* on small screens allow scroll */ className="min-w-[840px]">
         <TableHeader>
           <TableRow className="bg-gray-50">
+            {/* Selection Checkbox */}
+            {isSelectionMode && (
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={onSelectAll}
+                  aria-label="Pilih semua resep"
+                />
+              </TableHead>
+            )}
+            
             <TableHead className="w-[320px]">
               <Button
                 variant="ghost"
@@ -166,6 +189,17 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
         <TableBody>
           {recipes.map((recipe) => (
             <TableRow key={recipe.id} className="transition-colors hover:bg-gray-50">
+              {/* Selection Checkbox */}
+              {isSelectionMode && (
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.has(recipe.id)}
+                    onCheckedChange={() => onSelectionChange?.(recipe.id)}
+                    aria-label={`Pilih resep ${recipe.namaResep}`}
+                  />
+                </TableCell>
+              )}
+              
               {/* Name */}
               <TableCell className="font-medium">
                 <div className="flex items-start gap-3">

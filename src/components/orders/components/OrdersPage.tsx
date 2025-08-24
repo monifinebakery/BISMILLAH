@@ -10,9 +10,20 @@ import { useAuth } from '@/contexts/AuthContext';
 // ✅ CONSOLIDATED: Order context and hooks
 import { useOrder } from '../context/OrderContext';
 import { useOrderUI } from '../hooks/useOrderUI';
+import { useOrderTable } from '../hooks/useOrderTable';
 
 // ✅ CONSOLIDATED: Template integration (enhanced)
 import { useOrderFollowUp } from '../hooks/useOrderFollowUp';
+
+// ✅ BULK OPERATIONS: Lazy load BulkActions
+const BulkActions = React.lazy(() => 
+  import('./BulkActions').catch((error) => {
+    logger.error('Failed to load BulkActions component:', error);
+    return {
+      default: () => null
+    };
+  })
+);
 
 // ✅ ESSENTIAL TYPES: Only what's needed for this component
 import type { Order, NewOrder } from '../types';
@@ -128,9 +139,6 @@ const OrdersPage: React.FC = () => {
     },
     enabled: useLazyLoading && !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    onSuccess: (data) => {
-      setPaginationInfo({ totalCount: data.totalCount, totalPages: data.totalPages });
-    }
   });
 
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
@@ -146,19 +154,42 @@ const OrdersPage: React.FC = () => {
     const dataToUse = useLazyLoading ? (paginatedData?.orders || []) : orders;
     return {
       total: useLazyLoading ? paginationInfo.totalCount : orders.length,
-      totalValue: dataToUse.reduce((sum, order) => sum + (order.totalPesanan || 0), 0),
-      byStatus: dataToUse.reduce((acc, order) => {
+      totalValue: dataToUse.reduce((sum: number, order: Order) => sum + (order.totalPesanan || 0), 0),
+      byStatus: dataToUse.reduce((acc: Record<string, number>, order: Order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
       completionRate: dataToUse.length > 0 
-        ? Math.round((dataToUse.filter(o => o.status === 'completed').length / dataToUse.length) * 100)
+        ? Math.round((dataToUse.filter((o: Order) => o.status === 'completed').length / dataToUse.length) * 100)
         : 0
     };
   }, [useLazyLoading, paginatedData, orders, paginationInfo.totalCount]);
 
+  // ✅ UPDATE PAGINATION INFO: Update when data changes
+  React.useEffect(() => {
+    if (paginatedData) {
+      setPaginationInfo({ 
+        totalCount: paginatedData.totalCount, 
+        totalPages: paginatedData.totalPages 
+      });
+    }
+  }, [paginatedData]);
+
   // ✅ UI STATE: Optimized with memoization
   const uiState = useOrderUI(finalOrders, itemsPerPage);
+
+  // ✅ BULK OPERATIONS: Table selection state
+  const {
+    selectedIds,
+    selectedOrders,
+    isSelectionMode,
+    isAllSelected,
+    toggleOrderSelection,
+    selectAllOrders,
+    clearSelection,
+    enterSelectionMode,
+    exitSelectionMode,
+  } = useOrderTable(finalOrders);
 
   // ✅ CONSOLIDATED: Single state object
   const [pageState, setPageState] = useState<OrdersPageState>(initialState);
@@ -625,6 +656,21 @@ const OrdersPage: React.FC = () => {
           uiState={uiState} 
           loading={finalIsLoading} 
         />
+        
+        {/* ✅ BULK ACTIONS: Komponen untuk operasi massal */}
+         {isSelectionMode && (
+           <Suspense fallback={<div className="h-16 bg-gray-100 rounded animate-pulse" />}>
+             <BulkActions
+                selectedOrders={selectedOrders}
+                selectedIds={selectedIds}
+                onClearSelection={clearSelection}
+                onSelectAll={() => selectAllOrders(finalOrders)}
+                isAllSelected={isAllSelected}
+                totalCount={finalOrders.length}
+              />
+           </Suspense>
+         )}
+        
         <OrderTable
           uiState={uiState}
           loading={finalIsLoading}
@@ -634,6 +680,11 @@ const OrdersPage: React.FC = () => {
           onNewOrder={businessHandlers.newOrder}
           onFollowUp={handleFollowUp}
           onViewDetail={handleViewDetail}
+          selectedIds={selectedIds}
+          onSelectionChange={toggleOrderSelection}
+          isSelectionMode={isSelectionMode}
+          onSelectAll={() => selectAllOrders(finalOrders)}
+          isAllSelected={isAllSelected}
         />
         
         {/* ✅ PAGINATION CONTROLS: Untuk mode lazy loading */}

@@ -249,6 +249,7 @@ export const useEnhancedHppCalculation = ({
 
 /**
  * Hook specifically for integrating with existing recipe forms
+ * Default to enhanced mode for simplified user experience
  */
 export const useRecipeHppIntegration = (recipeData: {
   bahanResep: any[];
@@ -259,9 +260,10 @@ export const useRecipeHppIntegration = (recipeData: {
 }) => {
   const hppHook = useEnhancedHppCalculation({ autoCalculate: true });
   
-  const [isEnhancedMode, setIsEnhancedMode] = useState(false);
+  // Default to enhanced mode (true) for simplified experience
+  const [isEnhancedMode, setIsEnhancedMode] = useState(true);
   
-  // Auto-calculate when recipe data changes
+  // Auto-calculate when recipe data changes and enhanced mode is active
   useEffect(() => {
     if (isEnhancedMode && recipeData.bahanResep.length > 0) {
       const params: CalculateHPPParams = {
@@ -285,10 +287,10 @@ export const useRecipeHppIntegration = (recipeData: {
         useAppSettingsOverhead: true
       };
       
-      // Debounce calculation
+      // Debounce calculation for better performance
       const timer = setTimeout(() => {
         hppHook.calculateHPP(params);
-      }, 500);
+      }, 300); // Reduced debounce time for better responsiveness
       
       return () => clearTimeout(timer);
     }

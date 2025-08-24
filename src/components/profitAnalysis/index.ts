@@ -111,7 +111,7 @@ export {
 } from './utils/profitTransformers';
 
 // ===== PROFIT CALCULATIONS =====
-// FIXED: Import yang sudah benar dengan semua fungsi yang ada (removed calculateMargins for consistency)
+// ✅ FIXED: Import yang sudah benar dengan semua fungsi yang ada (removed calculateMargins for consistency)
 export {
   calculateRealTimeProfit,
   filterTransactionsByPeriod,
@@ -127,6 +127,21 @@ export {
   formatCurrency,
   formatPercentage
 } from './utils/profitCalculations';
+
+// ✅ STANDARDIZED: Export centralized validation utilities
+export { 
+  safeCalculateMargins, 
+  validateFinancialData, 
+  monitorDataQuality 
+} from '../../utils/profitValidation';
+
+// ✅ STANDARDIZED: Export centralized COGS utilities
+export { 
+  getEffectiveCogs, 
+  shouldUseWAC, 
+  getCOGSSourceLabel, 
+  validateCOGSConsistency 
+} from '../../utils/cogsCalculation';
 
 // Export types dari utils
 export type {

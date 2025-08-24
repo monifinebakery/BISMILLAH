@@ -14,12 +14,15 @@ import {
 } from '../types/profitAnalysis.types';
 import profitAnalysisApi from '../services/profitAnalysisApi';
 
-// Query Keys untuk React Query
+// ✅ STANDARDIZED: Query Keys untuk React Query (sync with hooks)
 export const PROFIT_ANALYSIS_QUERY_KEYS = {
-  analysis: (period?: string) => ['analisis-profit', 'kalkulasi', period],
-  history: (dateRange?: DateRangeFilter) => ['analisis-profit', 'riwayat', dateRange],
-  current: () => ['analisis-profit', 'sekarang'],
-  realTime: (period: string) => ['analisis-profit', 'realtime', period],
+  analysis: (period?: string) => ['profit-analysis', 'calculation', period],
+  history: (dateRange?: DateRangeFilter) => ['profit-analysis', 'history', dateRange],
+  current: () => ['profit-analysis', 'current'],
+  realTime: (period: string) => ['profit-analysis', 'realtime', period],
+  // ✅ ADD: WAC query keys for consistency
+  bahanMap: () => ['profit-analysis', 'bahan-map'],
+  pemakaian: (start: string, end: string) => ['profit-analysis', 'pemakaian', start, end],
 } as const;
 
 // State Management -  Fixed to use RealTimeProfitCalculation
@@ -248,6 +251,26 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     logger.info('🔄 State analisis profit direset');
   }, [queryClient]);
 
+  // ✅ ADD: WAC sync function for context consistency
+  const refreshWACData = useCallback(async () => {
+    try {
+      logger.info('🔄 Refreshing WAC data from context...');
+      // Invalidate WAC-related queries
+      await queryClient.invalidateQueries({ 
+        queryKey: PROFIT_ANALYSIS_QUERY_KEYS.bahanMap() 
+      });
+      await queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return Array.isArray(key) && key[0] === 'profit-analysis' && key[1] === 'pemakaian';
+        }
+      });
+      logger.success('✅ WAC data refresh completed');
+    } catch (error) {
+      logger.error('❌ Error refreshing WAC data:', error);
+    }
+  }, [queryClient]);
+
   // Auto-load history saat provider pertama kali dimount
   useEffect(() => {
     if (user && autoRefresh) {
@@ -276,6 +299,9 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     clearError,
     resetState,
     
+    // ✅ ADD: WAC sync action for interface consistency
+    refreshWACData,
+    
     // Utilities
     getProfitByPeriod,
     calculateRealTimeProfit,
@@ -297,6 +323,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     refreshAnalysis,
     clearError,
     resetState,
+    refreshWACData, // ✅ ADD: Include in dependencies
     getProfitByPeriod,
     calculateRealTimeProfit
   ]); //  Properly memoized with all dependencies

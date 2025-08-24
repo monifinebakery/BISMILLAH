@@ -1,8 +1,9 @@
 // src/components/recipe/components/RecipeForm/CostCalculationStep/index.tsx - FIXED
 
 import React from 'react';
-import { Calculator } from 'lucide-react';
+import { Calculator, Info } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Component imports
 import { CostInputsCard } from './components/CostInputsCard';
@@ -19,18 +20,28 @@ import { useOverheadManagement } from './hooks/useOverheadManagement';
 import { calculateIngredientCost } from './utils/calculations';
 import { formatCurrency } from './utils/formatters';
 
+// Enhanced HPP Integration
+import RecipeHppIntegration from '@/components/operational-costs/components/RecipeHppIntegration';
+import type { EnhancedHPPCalculationResult } from '@/components/operational-costs/utils/enhancedHppCalculations';
+
 // Types
-import type { NewRecipe, RecipeFormStepProps } from '../../types';
+import type { NewRecipe, RecipeFormStepProps } from '../../../types';
 import type { CostCalculationData } from './utils/types';
 
-interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
+interface CostCalculationStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {
+  onEnhancedHppModeChange?: (isActive: boolean) => void;
+}
 
 const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   data,
   errors,
   onUpdate,
   isLoading = false,
+  onEnhancedHppModeChange,
 }) => {
+  
+  // Enhanced HPP state
+  const [enhancedHppResult, setEnhancedHppResult] = React.useState<EnhancedHPPCalculationResult | null>(null);
   
   // 🔧 FIX: Transform NewRecipe data to CostCalculationData format
   const costCalculationData: CostCalculationData = {
@@ -85,13 +96,53 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   const allErrors = { ...errors, ...validationErrors };
   const hasValidationErrors = Object.keys(allErrors).length > 0 || !!overheadManagement.error;
 
+  // Handle enhanced HPP result updates
+  const handleEnhancedHppChange = React.useCallback((result: EnhancedHPPCalculationResult | null) => {
+    setEnhancedHppResult(result);
+    
+    if (result) {
+      // Update form data with enhanced results - using proper field names from NewRecipe
+      onUpdate('totalHpp', result.totalHPP);
+      onUpdate('hppPerPorsi', result.hppPerPorsi);
+      onUpdate('hppPerPcs', result.hppPerPcs);
+      onUpdate('hargaJualPorsi', result.hargaJualPerPorsi);
+      onUpdate('hargaJualPerPcs', result.hargaJualPerPcs);
+      onUpdate('biayaOverhead', result.overheadPerPcs * costCalculationData.jumlahPorsi * costCalculationData.jumlahPcsPerPorsi);
+    }
+  }, [onUpdate, costCalculationData.jumlahPorsi, costCalculationData.jumlahPcsPerPorsi]);
+
+  // Handle enhanced HPP mode changes
+  const handleEnhancedHppModeChange = React.useCallback((isActive: boolean) => {
+    if (onEnhancedHppModeChange) {
+      onEnhancedHppModeChange(isActive);
+    }
+  }, [onEnhancedHppModeChange]);
+
+  // Prepare recipe data for enhanced HPP integration
+  const recipeDataForHpp = React.useMemo(() => ({
+    bahanResep: costCalculationData.bahanResep,
+    jumlahPorsi: costCalculationData.jumlahPorsi,
+    jumlahPcsPerPorsi: costCalculationData.jumlahPcsPerPorsi,
+    biayaTenagaKerja: costCalculationData.biayaTenagaKerja || 0,
+    biayaOverhead: costCalculationData.biayaOverhead || 0,
+    marginKeuntunganPersen: costCalculationData.marginKeuntunganPersen || 0,
+  }), [costCalculationData]);
+
+  // Legacy HPP result for comparison
+  const legacyHppResult = React.useMemo(() => ({
+    hppPerPcs: costBreakdown.costPerPiece,
+    hargaJualPerPcs: profitAnalysis.sellingPricePerPiece,
+    totalHPP: costBreakdown.totalProductionCost,
+  }), [costBreakdown, profitAnalysis]);
+
   // 🐛 FINAL DEBUG LOG
   logger.debug('CostCalculationStep final values', {
     costBreakdown,
     profitAnalysis,
     marginAmount: profitAnalysis.marginAmount,
     isMarginZero: profitAnalysis.marginAmount === 0,
-    marginKeuntunganPersen: costCalculationData.marginKeuntunganPersen
+    marginKeuntunganPersen: costCalculationData.marginKeuntunganPersen,
+    enhancedHppResult
   });
 
   return (
@@ -110,6 +161,16 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         </p>
       </div>
 
+      {/* Enhanced HPP Feature Alert */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <Info className="h-4 w-4" />
+        <AlertDescription className="text-blue-800">
+          <strong>🚀 Fitur Baru:</strong> Sekarang Anda dapat menggunakan overhead otomatis dari menu{' '}
+          <strong>Biaya Operasional</strong>. Aktifkan toggle di bawah untuk menggunakan overhead yang sudah dihitung{' '}
+          berdasarkan dual-mode calculator.
+        </AlertDescription>
+      </Alert>
+
 
 
       {/* Main Layout */}
@@ -117,10 +178,19 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         
         {/* Left Section - Cost Inputs */}
         <CostInputsCard
-          data={data}
+          data={costCalculationData}
           errors={allErrors}
           ingredientCost={costBreakdown.ingredientCost}
-          onUpdate={onUpdate}
+          onUpdate={(field: string, value: any) => {
+            // Map CostCalculationData fields to NewRecipe fields
+            const fieldMap: Record<string, keyof NewRecipe> = {
+              'biayaTenagaKerja': 'biayaTenagaKerja',
+              'biayaOverhead': 'biayaOverhead',
+              'marginKeuntunganPersen': 'marginKeuntunganPersen'
+            };
+            const mappedField = fieldMap[field] || field as keyof NewRecipe;
+            onUpdate(mappedField, value);
+          }}
           isLoading={isLoading}
         />
 
@@ -131,7 +201,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
             profitAnalysis={profitAnalysis}
             jumlahPorsi={costCalculationData.jumlahPorsi}
             jumlahPcsPerPorsi={costCalculationData.jumlahPcsPerPorsi}
-            marginKeuntunganPersen={costCalculationData.marginKeuntunganPersen}
+            marginKeuntunganPersen={costCalculationData.marginKeuntunganPersen || 0}
             isUsingAutoOverhead={overheadManagement.isUsingAutoOverhead}
             overheadCalculation={overheadManagement.overheadCalculation}
           />
@@ -145,7 +215,8 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         breakEvenPoint={breakEvenPoint}
         totalRevenue={totalRevenue}
         jumlahPorsi={costCalculationData.jumlahPorsi}
-        marginKeuntunganPersen={costCalculationData.marginKeuntunganPersen}
+        jumlahPcsPerPorsi={costCalculationData.jumlahPcsPerPorsi}
+        marginKeuntunganPersen={costCalculationData.marginKeuntunganPersen || 0}
       />
 
       {/* Cost Breakdown Chart */}
@@ -161,6 +232,15 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           jumlahPorsi={costCalculationData.jumlahPorsi}
         />
       )}
+
+      {/* Enhanced HPP Integration */}
+      <RecipeHppIntegration
+        recipeData={recipeDataForHpp}
+        legacyHppResult={legacyHppResult}
+        onEnhancedResultChange={handleEnhancedHppChange}
+        onEnhancedModeChange={handleEnhancedHppModeChange}
+        className="mt-6"
+      />
 
       {/* Validation Errors */}
       {hasValidationErrors && (

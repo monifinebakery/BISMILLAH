@@ -13,6 +13,9 @@ export const transformApiToCost = (apiData: any): OperationalCost => {
     jumlah_per_bulan: Number(apiData.jumlah_per_bulan) || 0,
     jenis: apiData.jenis || 'tetap',
     status: apiData.status || 'aktif',
+    group: apiData.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // New: Dual-mode support
+    deskripsi: apiData.deskripsi || undefined,
+    cost_category: apiData.cost_category as 'fixed' | 'variable' | 'other' || 'other',
     created_at: apiData.created_at,
     updated_at: apiData.updated_at,
   };
@@ -27,6 +30,8 @@ export const transformCostToForm = (cost: OperationalCost): CostFormData => {
     jumlah_per_bulan: cost.jumlah_per_bulan,
     jenis: cost.jenis,
     status: cost.status,
+    group: cost.group, // Include group in form data
+    deskripsi: cost.deskripsi,
   };
 };
 
@@ -39,6 +44,8 @@ export const transformFormToCostPayload = (formData: CostFormData) => {
     jumlah_per_bulan: Number(formData.jumlah_per_bulan),
     jenis: formData.jenis,
     status: formData.status,
+    group: formData.group, // Include group in payload
+    deskripsi: formData.deskripsi || null,
   };
 };
 
@@ -77,7 +84,7 @@ export const transformFormToAllocationPayload = (formData: AllocationFormData) =
 };
 
 /**
- * Transform costs array to summary data
+ * Transform costs array to summary data with dual-mode support
  */
 export const transformCostsToSummary = (costs: OperationalCost[]): CostSummary => {
   const activeCosts = costs.filter(cost => cost.status === 'aktif');
@@ -96,12 +103,29 @@ export const transformCostsToSummary = (costs: OperationalCost[]): CostSummary =
     .filter(cost => cost.jenis === 'variabel')
     .reduce((sum, cost) => sum + Number(cost.jumlah_per_bulan), 0);
 
+  // New: Dual-mode summaries
+  const hppCosts = activeCosts.filter(cost => cost.group === 'HPP');
+  const operasionalCosts = activeCosts.filter(cost => cost.group === 'OPERASIONAL');
+  
+  const totalHppGroup = hppCosts.reduce(
+    (sum, cost) => sum + Number(cost.jumlah_per_bulan), 0
+  );
+  
+  const totalOperasionalGroup = operasionalCosts.reduce(
+    (sum, cost) => sum + Number(cost.jumlah_per_bulan), 0
+  );
+
   return {
     total_biaya_aktif: totalBiayaAktif,
     total_biaya_tetap: totalBiayaTetap,
     total_biaya_variabel: totalBiayaVariabel,
     jumlah_biaya_aktif: activeCosts.length,
     jumlah_biaya_nonaktif: inactiveCosts.length,
+    // New dual-mode properties
+    total_hpp_group: totalHppGroup,
+    total_operasional_group: totalOperasionalGroup,
+    jumlah_hpp_aktif: hppCosts.length,
+    jumlah_operasional_aktif: operasionalCosts.length,
   };
 };
 
@@ -122,6 +146,8 @@ export const transformCostsForTable = (costs: OperationalCost[]) => {
     jenis_label: cost.jenis === 'tetap' ? 'Tetap' : 'Variabel',
     status: cost.status,
     status_label: cost.status === 'aktif' ? 'Aktif' : 'Non Aktif',
+    group: cost.group,
+    group_label: cost.group === 'HPP' ? 'Overhead Pabrik (HPP)' : 'Biaya Operasional',
     created_at: cost.created_at,
     created_at_formatted: new Date(cost.created_at).toLocaleDateString('id-ID'),
     updated_at: cost.updated_at,
@@ -137,6 +163,7 @@ export const transformCostsForExport = (costs: OperationalCost[]) => {
     'Jumlah per Bulan': cost.jumlah_per_bulan,
     'Jenis': cost.jenis === 'tetap' ? 'Tetap' : 'Variabel',
     'Status': cost.status === 'aktif' ? 'Aktif' : 'Non Aktif',
+    'Kelompok': cost.group === 'HPP' ? 'Overhead Pabrik (HPP)' : 'Biaya Operasional',
     'Tanggal Dibuat': new Date(cost.created_at).toLocaleDateString('id-ID'),
     'Terakhir Update': new Date(cost.updated_at).toLocaleDateString('id-ID'),
   }));

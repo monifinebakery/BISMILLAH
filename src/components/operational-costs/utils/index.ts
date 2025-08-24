@@ -4,3 +4,5 @@ export * from './costCalculations';
 export * from './costHelpers';
 export * from './costValidation';
 export * from './costTransformers';
+export * from './dualModeCalculations';
+export * from './enhancedHppCalculations';

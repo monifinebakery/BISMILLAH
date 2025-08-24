@@ -1,14 +1,14 @@
 // src/components/EnhancedRecipeForm.tsx
 // 🧮 UPDATED WITH HPP PER PCS CALCULATION SUPPORT
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Calculator, RefreshCw, Package, Users, Info } from "lucide-react";
-import { Recipe, NewRecipe, RecipeIngredient } from "@/types/recipe";
+import { Recipe, NewRecipe, BahanResep } from "@/components/recipe/types";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,6 +18,11 @@ import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useRecipe } from "@/contexts/RecipeContext";
 import { formatCurrency } from "@/utils/formatUtils";
 
+// Enhanced HPP Integration
+import RecipeHppIntegration from '@/components/operational-costs/components/RecipeHppIntegration';
+import type { EnhancedHPPCalculationResult } from '@/components/operational-costs/utils/enhancedHppCalculations';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
 interface EnhancedRecipeFormProps {
   initialData?: Recipe | null;
   onSave: (data: NewRecipe) => void;
@@ -26,7 +31,7 @@ interface EnhancedRecipeFormProps {
 
 const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFormProps) => {
   // Add defensive check for useBahanBaku
-  let bahanBaku = [];
+  let bahanBaku: any[] = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -39,9 +44,9 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   const [formData, setFormData] = useState<NewRecipe>({
     namaResep: "",
     jumlahPorsi: 1,
-    kategoriResep: null,
+    kategoriResep: '',
     deskripsi: "",
-    fotoUrl: null,
+    fotoUrl: '',
     bahanResep: [],
     biayaTenagaKerja: 0,
     biayaOverhead: 0,
@@ -65,6 +70,8 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   });
 
   const [calculationResults, setCalculationResults] = useState<any>(null);
+  const [isEnhancedHppActive, setIsEnhancedHppActive] = useState(false); // Track enhanced HPP state
+  const [enhancedHppResult, setEnhancedHppResult] = useState<EnhancedHPPCalculationResult | null>(null);
 
   // Initialize form with existing data
   useEffect(() => {
@@ -89,8 +96,13 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     }
   }, [initialData]);
 
-  // Auto-calculate HPP when form data changes
+  // Auto-calculate HPP when form data changes (only if enhanced mode is NOT active)
   useEffect(() => {
+    // Skip legacy calculation if enhanced HPP is active
+    if (isEnhancedHppActive) {
+      return;
+    }
+    
     if (formData.bahanResep.length > 0 || formData.biayaTenagaKerja > 0 || formData.biayaOverhead > 0) {
       try {
         const bahanForCalculation = formData.bahanResep.map(bahan => ({
@@ -134,8 +146,44 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     formData.biayaOverhead,
     formData.marginKeuntunganPersen,
     formData.jumlahPcsPerPorsi,
-    calculateHPP
+    calculateHPP,
+    isEnhancedHppActive // Add dependency to re-run when enhanced mode changes
   ]);
+
+  // Handle enhanced HPP result updates
+  const handleEnhancedHppChange = React.useCallback((result: EnhancedHPPCalculationResult | null) => {
+    setEnhancedHppResult(result);
+    
+    if (result) {
+      // Update form data with enhanced results
+      setFormData(prev => ({
+        ...prev,
+        totalHpp: result.totalHPP,
+        hppPerPorsi: result.hppPerPorsi,
+        hargaJualPorsi: result.hargaJualPerPorsi,
+        hppPerPcs: result.hppPerPcs,
+        hargaJualPerPcs: result.hargaJualPerPcs,
+        biayaOverhead: result.overheadPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1)
+      }));
+      
+      // Update calculation results for display
+      setCalculationResults({
+        totalHPP: result.totalHPP,
+        hppPerPorsi: result.hppPerPorsi,
+        hargaJualPorsi: result.hargaJualPerPorsi,
+        hppPerPcs: result.hppPerPcs,
+        hargaJualPerPcs: result.hargaJualPerPcs,
+        totalBahanBaku: result.bahanPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1),
+        biayaTenagaKerja: result.tklPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1),
+        biayaOverhead: result.overheadPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1)
+      });
+    }
+  }, [formData.jumlahPorsi, formData.jumlahPcsPerPorsi]);
+
+  // Handle enhanced HPP mode changes
+  const handleEnhancedHppModeChange = React.useCallback((isActive: boolean) => {
+    setIsEnhancedHppActive(isActive);
+  }, []);
 
   const handleInputChange = (field: keyof NewRecipe, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -172,7 +220,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
       return;
     }
 
-    const ingredientToAdd: RecipeIngredient = {
+    const ingredientToAdd: BahanResep = {
       id: selectedBahan.id,
       nama: selectedBahan.nama,
       jumlah: newIngredient.jumlah,
@@ -233,7 +281,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   const refreshIngredientPrices = () => {
     let hasChanges = false;
     const updatedIngredients = formData.bahanResep.map(ingredient => {
-      const currentBahan = bahanBaku.find(b => b.id === ingredient.inventoryId);
+      const currentBahan = bahanBaku.find((b: any) => b.id === ingredient.id);
       if (currentBahan && currentBahan.hargaSatuan !== ingredient.hargaSatuan) {
         hasChanges = true;
         return {
@@ -266,7 +314,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     onSave(formData);
   };
 
-  const totalPcsProduced = formData.jumlahPorsi * formData.jumlahPcsPerPorsi;
+  const totalPcsProduced = formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1);
   const totalIngredientCost = formData.bahanResep.reduce((sum, item) => sum + item.totalHarga, 0);
 
   return (
@@ -454,7 +502,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {ingredient.nama}
-                            {ingredient.isFromInventory && (
+                            {true && ( // Always show for ingredients
                               <Badge variant="secondary" className="text-xs">
                                 Inventory
                               </Badge>
@@ -669,6 +717,45 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
             </CardContent>
           </Card>
         </div>
+
+        {/* Enhanced HPP Feature Alert */}
+        <Alert className="border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-blue-800">
+            <strong>🚀 Fitur Baru:</strong> Sekarang Anda dapat menggunakan overhead otomatis dari menu{' '}
+            <strong>Biaya Operasional</strong>. Aktifkan toggle di bawah untuk menggunakan overhead yang sudah dihitung{' '}
+            berdasarkan dual-mode calculator.
+          </AlertDescription>
+        </Alert>
+
+        {/* Enhanced HPP Integration */}
+        {(() => {
+          // Prepare recipe data for enhanced HPP integration
+          const recipeDataForHpp = {
+            bahanResep: formData.bahanResep,
+            jumlahPorsi: formData.jumlahPorsi,
+            jumlahPcsPerPorsi: formData.jumlahPcsPerPorsi || 1,
+            biayaTenagaKerja: formData.biayaTenagaKerja || 0,
+            biayaOverhead: formData.biayaOverhead || 0,
+            marginKeuntunganPersen: formData.marginKeuntunganPersen || 0,
+          };
+
+          // Legacy HPP result for comparison
+          const legacyHppResult = calculationResults ? {
+            hppPerPcs: calculationResults.hppPerPcs,
+            hargaJualPerPcs: calculationResults.hargaJualPerPcs,
+            totalHPP: calculationResults.totalHPP,
+          } : undefined;
+
+          return (
+            <RecipeHppIntegration
+              recipeData={recipeDataForHpp}
+              legacyHppResult={legacyHppResult}
+              onEnhancedResultChange={handleEnhancedHppChange}
+              onEnhancedModeChange={handleEnhancedHppModeChange}
+            />
+          );
+        })()}
 
         {/* Form Actions */}
         <div className="flex justify-end gap-3 pt-6 border-t">

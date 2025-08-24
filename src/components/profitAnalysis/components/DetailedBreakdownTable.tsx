@@ -8,8 +8,9 @@ import {
 } from '@/components/ui/table';
 import {
   DollarSign, ShoppingCart, Calculator, TrendingUp,
-  Filter, Search
+  Filter, Search, HelpCircle
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { 
   formatCurrency, 
@@ -44,6 +45,7 @@ interface BreakdownSection {
   bgColor: string;
   total: number;
   items: BreakdownItem[];
+  helpText?: string; // Add helpText for tooltips
 }
 
 interface BreakdownItem {
@@ -68,8 +70,26 @@ const MemoizedSectionHeader = React.memo(({ section, sortedItemsLength }: { sect
           <Icon className={`w-5 h-5 ${section.color}`} />
         </div>
         <div>
-          <h4 className={`font-semibold ${section.color}`}>
+          <h4 className={`font-semibold ${section.color} flex items-center gap-2`}>
             {section.title}
+            {section.helpText && (
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info section"
+                    >
+                      <HelpCircle className="w-4 h-4 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>{section.helpText}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </h4>
           <p className="text-sm text-gray-600">
             Total: {formatCurrency(section.total)}
@@ -436,7 +456,25 @@ const DetailedBreakdownTable = ({
       <CardHeader>
         <div className="flex justify-between items-start">
         <div>
-          <CardTitle>📋 Rincian Lengkap Keuangan Warung</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            📋 Rincian Lengkap Keuangan Warung
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button 
+                    type="button"
+                    className="p-1 -m-1 touch-manipulation"
+                    aria-label="Info rincian keuangan"
+                  >
+                    <HelpCircle className="w-4 h-4 text-orange-500 hover:text-orange-700 transition-colors" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p>Tabel detail semua transaksi masuk dan keluar. Gunakan tab untuk melihat kategori tertentu, dan klik kolom untuk mengurutkan data.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardTitle>
           <CardDescription>
             Dari mana uang masuk dan kemana uang keluar untuk periode {currentAnalysis.period} - dalam bahasa yang mudah dipahami
           </CardDescription>
@@ -564,18 +602,54 @@ const DetailedBreakdownTable = ({
           })}
         </div>
 
-        {/* Overall Summary */}
+        {/* Overall Summary with Tooltips */}
         {activeTab === 'all' && breakdownSections.length > 0 && (
           <div className="mt-8 pt-6 border-t">
-            <h4 className="font-semibold text-gray-800 mb-4">Ringkasan Keseluruhan</h4>
+            <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              Ringkasan Keseluruhan
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-1 -m-1 touch-manipulation"
+                      aria-label="Info ringkasan keseluruhan"
+                    >
+                      <HelpCircle className="w-4 h-4 text-orange-500 hover:text-orange-700 transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Ringkasan total semua pemasukan dan pengeluaran untuk menghitung keuntungan bersih warung.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Revenue Summary */}
               <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  <div className="text-sm text-green-600">Total Omset</div>
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button 
+                          type="button"
+                          className="p-1 -m-1 touch-manipulation"
+                          aria-label="Info total omset"
+                        >
+                          <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p>Semua uang yang masuk dari penjualan makanan, minuman, dan layanan lainnya.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <div className="text-2xl font-bold text-green-700 mb-1">
                   {formatCurrency(breakdownSections[0]?.total || 0)}
                 </div>
-                <div className="text-sm text-green-600">  Total Omset</div>
                 <div className="text-xs text-gray-600 mt-1">
                   Dari {Array.isArray(breakdownSections[0]?.items) ? breakdownSections[0].items.length : 0} sumber pemasukan
                 </div>
@@ -583,12 +657,30 @@ const DetailedBreakdownTable = ({
 
               {/* Cost Summary */}
               <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  <div className="text-sm text-red-600">Total Pengeluaran</div>
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button 
+                          type="button"
+                          className="p-1 -m-1 touch-manipulation"
+                          aria-label="Info total pengeluaran"
+                        >
+                          <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p>Gabungan modal bahan baku dan semua biaya tetap bulanan seperti sewa, listrik, gaji.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <div className="text-2xl font-bold text-red-700 mb-1">
                   {formatCurrency(
                     (breakdownSections[1]?.total || 0) + (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-red-600">Total Pengeluaran</div>
                 <div className="text-xs text-gray-600 mt-1">
                   Modal Bahan + Biaya Bulanan
                 </div>
@@ -596,6 +688,25 @@ const DetailedBreakdownTable = ({
 
               {/* Profit Summary */}
               <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  <div className="text-sm text-blue-600">Untung Bersih</div>
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button 
+                          type="button"
+                          className="p-1 -m-1 touch-manipulation"
+                          aria-label="Info untung bersih"
+                        >
+                          <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p>Keuntungan yang benar-benar bisa dibawa pulang setelah dikurangi semua pengeluaran.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <div className="text-2xl font-bold text-blue-700 mb-1">
                   {formatCurrency(
                     (breakdownSections[0]?.total || 0) - 
@@ -603,7 +714,6 @@ const DetailedBreakdownTable = ({
                     (breakdownSections[2]?.total || 0)
                   )}
                 </div>
-                <div className="text-sm text-blue-600">Untung Bersih</div>
                 <div className="text-xs text-gray-600 mt-1">
                   {formatPercentage(
                     breakdownSections[0]?.total > 0

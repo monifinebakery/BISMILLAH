@@ -328,27 +328,39 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
                 {card.title}
-                {/* ✅ TAMBAH: Tooltip untuk semua cards dengan helpText */}
+                {/* ✅ Mobile-friendly tooltip for all cards with helpText */}
                 {(card as any).helpText && (
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="w-3 h-3 text-blue-400 ml-1 cursor-help hover:text-blue-600" />
+                        <button 
+                          type="button"
+                          className="p-1 -m-1 touch-manipulation"
+                          aria-label="Info tooltip"
+                        >
+                          <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-sm">
+                      <TooltipContent side="top" className="max-w-xs text-sm bg-orange-50 border-orange-200 text-orange-900">
                         <p>{(card as any).helpText}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 )}
-                {/* ✅ TAMBAH: Tooltip untuk WAC stock value */}
+                {/* ✅ Mobile-friendly tooltip for WAC stock value */}
                 {card.title === 'Nilai Stok Bahan Baku' && labels?.hppLabel && (
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="w-3 h-3 text-gray-400 ml-1 inline cursor-help" />
+                        <button 
+                          type="button"
+                          className="p-1 -m-1 touch-manipulation"
+                          aria-label="Info WAC"
+                        >
+                          <Info className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-sm">
+                      <TooltipContent side="top" className="max-w-xs text-sm bg-orange-50 border-orange-200 text-orange-900">
                         <p>
                           Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost),
                           yaitu rata-rata harga pembelian terakhir yang sudah termasuk semua pembelian sebelumnya.

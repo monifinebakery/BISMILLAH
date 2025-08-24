@@ -63,6 +63,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isCalculating, setIsCalculating] = useState(false);
   const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const [isEnhancedHppActive, setIsEnhancedHppActive] = useState(false); // Track enhanced HPP state
   const queryClient = useQueryClient();
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -237,8 +238,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     }
   };
 
-  // Auto-calculate HPP when relevant fields change
+  // Enhanced HPP callback to track when enhanced mode is active
+  const handleEnhancedHppModeChange = (isActive: boolean) => {
+    setIsEnhancedHppActive(isActive);
+  };
+
+  // Auto-calculate HPP when relevant fields change (only if enhanced mode is NOT active)
   useEffect(() => {
+    // Skip legacy calculation if enhanced HPP is active
+    if (isEnhancedHppActive) {
+      return;
+    }
+
     if (formData.bahanResep.length > 0 && formData.jumlahPorsi > 0) {
       setIsCalculating(true);
       const timer = setTimeout(() => {
@@ -274,6 +285,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     formData.biayaOverhead,
     formData.marginKeuntunganPersen,
     formData.jumlahPcsPerPorsi,
+    isEnhancedHppActive, // Add dependency to re-run when enhanced mode changes
   ]);
 
   // Validate current step
@@ -287,7 +299,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         if (formData.jumlahPorsi <= 0) {
           stepErrors.jumlahPorsi = 'Jumlah porsi harus lebih dari 0';
         }
-        if (formData.jumlahPcsPerPorsi <= 0) {
+        if ((formData.jumlahPcsPerPorsi || 0) <= 0) {
           stepErrors.jumlahPcsPerPorsi = 'Jumlah pcs per porsi harus lebih dari 0';
         }
         break;
@@ -379,7 +391,12 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       case 'ingredients':
         return <IngredientsStep {...commonProps} />;
       case 'costs':
-        return <CostCalculationStep {...commonProps} />;
+        return (
+          <CostCalculationStep 
+            {...commonProps} 
+            onEnhancedHppModeChange={handleEnhancedHppModeChange}
+          />
+        );
       default:
         return null;
     }
@@ -467,12 +484,12 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             <div className="flex items-center justify-between max-w-4xl mx-auto">
               {/* Left side - HPP Preview (on cost step) */}
               <div className="flex-1">
-                {currentStep === 'costs' && formData.hppPerPorsi > 0 && (
+                {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
                   <div className="flex items-center gap-2 text-sm">
                     <Calculator className="h-4 w-4 text-orange-600" />
                     <span className="text-gray-600">HPP per porsi:</span>
                     <Badge variant="outline" className="text-orange-700 border-orange-300">
-                      Rp {formData.hppPerPorsi.toLocaleString()}
+                      Rp {(formData.hppPerPorsi || 0).toLocaleString()}
                     </Badge>
                     {isCalculating && (
                       <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full" />
@@ -535,12 +552,12 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             >
               <div className="p-4">
                 {/* HPP Preview on mobile */}
-                {currentStep === 'costs' && formData.hppPerPorsi > 0 && (
+                {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
                   <div className="flex items-center justify-center gap-2 text-sm mb-3 py-2 bg-orange-50 rounded-lg">
                     <Calculator className="h-4 w-4 text-orange-600" />
                     <span className="text-gray-600">HPP:</span>
                     <Badge variant="outline" className="text-orange-700 border-orange-300">
-                      Rp {formData.hppPerPorsi.toLocaleString()}
+                      Rp {(formData.hppPerPorsi || 0).toLocaleString()}
                     </Badge>
                     {isCalculating && (
                       <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full" />

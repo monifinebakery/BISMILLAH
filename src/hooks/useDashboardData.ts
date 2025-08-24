@@ -44,7 +44,7 @@ interface DashboardStats {
     profit?: TrendData;
     mostUsedIngredient?: TrendData;
   };
-  // ✅ NEW: Add sync status to show if data is from profit analysis or estimates
+  // ✅ ENHANCED: Add sync status to show if data is from profit analysis or estimates
   isFromProfitAnalysis?: boolean;
   profitAnalysisSync?: {
     currentPeriod: string;
@@ -52,6 +52,8 @@ interface DashboardStats {
     grossMargin: number;
     netMargin: number;
     cogsSource: 'wac' | 'inventory' | 'estimated';
+    isAccurate: boolean;
+    dataQuality: 'high' | 'medium' | 'low';
   };
 }
 
@@ -290,22 +292,29 @@ export const useDashboardData = (dateRange: DateRange) => {
         profit = profitMetrics.netProfit;
         isFromProfitAnalysis = true;
         
-        const cogsSource: 'wac' | 'inventory' | 'estimated' = profitMetrics.totalHPP > 0 ? 'wac' : 
-                          (profitMetrics.cogs > revenue * 0.5 ? 'inventory' : 'estimated');
+        // ✅ IMPROVED: More accurate COGS source detection
+        const cogsSource: 'wac' | 'inventory' | 'estimated' = 
+          profitMetrics.totalHPP > 0 ? 'wac' : 
+          (profitMetrics.cogs > 0 && profitMetrics.cogs <= revenue * 0.8) ? 'inventory' : 
+          'estimated';
         
         profitAnalysisSync = {
           currentPeriod: currentAnalysis.period,
           lastSynced: new Date(),
           grossMargin: profitMetrics.grossMargin,
           netMargin: profitMetrics.netMargin,
-          cogsSource
+          cogsSource,
+          // ✅ ADD: Additional sync quality indicators with proper typing
+          isAccurate: cogsSource !== 'estimated',
+          dataQuality: (cogsSource === 'wac' ? 'high' : cogsSource === 'inventory' ? 'medium' : 'low') as 'high' | 'medium' | 'low'
         };
         
         logger.info('📊 Dashboard using Profit Analysis data:', {
           revenue: profitMetrics.revenue,
           profit: profitMetrics.netProfit,
           grossMargin: profitMetrics.grossMargin,
-          cogsSource
+          cogsSource,
+          dataQuality: profitAnalysisSync.dataQuality
         });
         
         // 🔍 DEBUG: Log integration details

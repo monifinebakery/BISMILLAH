@@ -91,11 +91,21 @@ export function ProfitChart({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900 mb-2">{label}</p>
+        <div className="bg-white p-3 border rounded-lg shadow-lg border-gray-200">
+          <p className="font-semibold text-gray-900 mb-2 text-sm">{label} 2024</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {formatCurrency(entry.value)}
+            <p key={index} className="text-sm flex items-center gap-2" style={{ color: entry.color }}>
+              <span 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: entry.color }}
+              ></span>
+              <span className="font-medium">{entry.name}:</span>
+              <span className="font-semibold">
+                {entry.value >= 1000000 
+                  ? `Rp ${(entry.value / 1000000).toFixed(1)}M`
+                  : `Rp ${(entry.value / 1000).toFixed(0)}K`
+                }
+              </span>
             </p>
           ))}
         </div>
@@ -145,30 +155,38 @@ export function ProfitChart({
         )}
         
         <div className={`${isMobile ? 'overflow-x-auto' : ''}`}>
-          <div className={`${isMobile ? 'min-w-[500px]' : 'w-full'}`}>
-            <ResponsiveContainer width="100%" height={isMobile ? 220 : 280}>
+          <div className={`${isMobile ? 'min-w-[600px]' : 'w-full'}`}>
+            <ResponsiveContainer width="100%" height={isMobile ? 250 : 320}>
               <LineChart
                 data={chartData}
                 margin={{
-                  top: 5,
-                  right: 10,
-                  left: 10,
-                  bottom: 5,
+                  top: 15,
+                  right: 15,
+                  left: isMobile ? 5 : 15,
+                  bottom: 15,
                 }}
               >
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis 
                   dataKey="period" 
-                  axisLine={false}
-                  tickLine={false}
+                  axisLine={true}
+                  tickLine={true}
                   className={isMobile ? 'text-xs' : 'text-sm'}
+                  tick={{ fontSize: isMobile ? 10 : 12 }}
+                  height={40}
                 />
                 <YAxis 
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(value) => formatCurrency(value, { compact: true })}
+                  axisLine={true}
+                  tickLine={true}
+                  tickFormatter={(value) => {
+                    if (value >= 1000000) return `Rp ${(value / 1000000).toFixed(1)}M`;
+                    if (value >= 1000) return `Rp ${(value / 1000).toFixed(0)}K`;
+                    return `Rp ${value.toLocaleString('id-ID')}`;
+                  }}
                   className={isMobile ? 'text-xs' : 'text-sm'}
-                  width={isMobile ? 45 : 60}
+                  tick={{ fontSize: isMobile ? 10 : 12 }}
+                  width={isMobile ? 65 : 80}
+                  domain={['dataMin - 100000', 'dataMax + 100000']}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 

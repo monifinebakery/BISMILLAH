@@ -224,51 +224,51 @@ export function ChartLineMultiple({
           </div>
         )}
         
-        {/* Mobile optimized chart container with horizontal scroll */}
+        {/* Kontainer chart dengan scroll horizontal di mobile */}
         <div className={`${isMobile ? 'overflow-x-auto pb-2' : ''}`} style={{ scrollbarWidth: 'thin' }}>
-          <ChartContainer config={chartConfig}>
-            <div className={`${isMobile ? 'min-w-[600px]' : 'w-full'}`}>
-              <ResponsiveContainer 
-                width="100%" 
-                height={isMobile ? 280 : 350}
-              >
-                <LineChart
-                  data={chartData}
-                  margin={{
-                    left: isMobile ? 10 : 20,
-                    right: isMobile ? 10 : 20,
-                    top: isMobile ? 10 : 20,
-                    bottom: isMobile ? 30 : 20,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis
-                    dataKey="period"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    className={isMobile ? 'text-xs' : 'text-sm'}
-                    interval={isMobile ? 0 : 'preserveStartEnd'}
+          <ChartContainer
+            config={chartConfig}
+            className={`${isMobile ? 'min-w-[600px] h-[280px]' : 'w-full h-[350px]'}`}
+          >
+            <LineChart
+              data={chartData}
+              margin={{
+                left: isMobile ? 10 : 20,
+                right: isMobile ? 10 : 20,
+                top: isMobile ? 10 : 20,
+                bottom: isMobile ? 30 : 20,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <XAxis
+                dataKey="period"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                className={isMobile ? 'text-xs' : 'text-sm'}
+                interval={isMobile ? 0 : 'preserveStartEnd'}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(value) => formatCurrency(value, { compact: true })}
+                className={isMobile ? 'text-xs' : 'text-sm'}
+                width={isMobile ? 50 : 60}
+              />
+              <ChartTooltip
+                cursor={{ strokeDasharray: '3 3' }}
+                content={
+                  <ChartTooltipContent
+                    formatter={(value, name) => [
+                      formatCurrency(value as number),
+                      chartConfig[name as keyof typeof chartConfig]?.label || name,
+                    ]}
                   />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => formatCurrency(value, { compact: true })}
-                    className={isMobile ? 'text-xs' : 'text-sm'}
-                    width={isMobile ? 50 : 60}
-                  />
-                  <ChartTooltip 
-                    cursor={{ strokeDasharray: '3 3' }}
-                    content={<ChartTooltipContent 
-                      formatter={(value, name) => [
-                        formatCurrency(value as number), 
-                        chartConfig[name as keyof typeof chartConfig]?.label || name
-                      ]}
-                    />} 
-                  />
-                  
-                  {/* Revenue Line */}
+                }
+              />
+
+              {/* Garis Omset */}
               <Line
                 dataKey="revenue"
                 type="monotone"
@@ -277,8 +277,8 @@ export function ChartLineMultiple({
                 dot={{ fill: chartConfig.revenue.color, strokeWidth: 2, r: 4 }}
                 activeDot={{ r: 6, strokeWidth: 0 }}
               />
-              
-              {/* COGS Line */}
+
+              {/* Garis HPP */}
               <Line
                 dataKey="cogs"
                 type="monotone"
@@ -288,8 +288,8 @@ export function ChartLineMultiple({
                 activeDot={{ r: 5, strokeWidth: 0 }}
                 strokeDasharray="5 5"
               />
-              
-              {/* Operational Expenses Line */}
+
+              {/* Garis Biaya Operasional */}
               <Line
                 dataKey="opex"
                 type="monotone"
@@ -299,8 +299,8 @@ export function ChartLineMultiple({
                 activeDot={{ r: 5, strokeWidth: 0 }}
                 strokeDasharray="3 3"
               />
-              
-              {/* Gross Profit Line */}
+
+              {/* Garis Laba Kotor */}
               <Line
                 dataKey="grossProfit"
                 type="monotone"
@@ -309,8 +309,8 @@ export function ChartLineMultiple({
                 dot={{ fill: chartConfig.grossProfit.color, strokeWidth: 2, r: 3 }}
                 activeDot={{ r: 5, strokeWidth: 0 }}
               />
-              
-              {/* Net Profit Line - Most prominent */}
+
+              {/* Garis Laba Bersih (paling menonjol) */}
               <Line
                 dataKey="netProfit"
                 type="monotone"
@@ -320,8 +320,6 @@ export function ChartLineMultiple({
                 activeDot={{ r: 7, strokeWidth: 0 }}
               />
             </LineChart>
-          </ResponsiveContainer>
-            </div>
           </ChartContainer>
         </div>
       </CardContent>

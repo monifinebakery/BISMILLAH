@@ -92,12 +92,10 @@ export const PROMO_CALCULATOR_COMPONENTS = {
   // Analytics components
   analytics: () => Promise.all([
     import('./analytics/PromoAnalytics'),
-    import('./analytics/HppAnalysisChart'),
-    import('./analytics/ProfitAnalysisChart')
-  ]).then(([analytics, hpp, profit]) => ({
+    import('./analytics/PromoPerformanceCard')
+  ]).then(([analytics, performance]) => ({
     PromoAnalytics: analytics.default,
-    HppAnalysisChart: hpp.default,
-    ProfitAnalysisChart: profit.default
+    PromoPerformanceCard: performance.default
   })),
   
   // All components

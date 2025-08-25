@@ -78,23 +78,23 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
         </Card>
 
         {/* Operational Summary Card */}
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-orange-200 bg-white">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-green-800 text-base">
+            <CardTitle className="flex items-center gap-2 text-orange-800 text-base">
               <TrendingUp className="h-4 w-4" />
               Biaya Operasional
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button 
+                    <button
                       type="button"
                       className="p-1 -m-1 touch-manipulation"
                       aria-label="Info biaya operasional"
                     >
-                      <DollarSign className="h-3 w-3 text-green-500 hover:text-green-700 transition-colors" />
+                      <DollarSign className="h-3 w-3 text-orange-500 hover:text-orange-700 transition-colors" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-green-50 border-green-200 text-green-900 max-w-xs">
+                  <TooltipContent className="bg-orange-50 border-orange-200 text-orange-900 max-w-xs">
                     <p>Biaya untuk menjalankan bisnis (sewa, gaji, marketing, utilitas)</p>
                   </TooltipContent>
                 </Tooltip>
@@ -102,8 +102,8 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-900">{formatCurrency(operationalCosts)}</div>
-            <p className="text-sm text-green-700 mt-1">
+            <div className="text-2xl font-bold text-orange-900">{formatCurrency(operationalCosts)}</div>
+            <p className="text-sm text-orange-700 mt-1">
               {costs.filter(c => c.group === 'OPERASIONAL').length} item biaya
             </p>
           </CardContent>

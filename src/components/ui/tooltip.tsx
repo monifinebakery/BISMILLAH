@@ -5,7 +5,40 @@ import { cn } from "@/lib/utils"
 
 const TooltipProvider = TooltipPrimitive.Provider
 
-const Tooltip = TooltipPrimitive.Root
+const Tooltip = ({
+  children,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) => {
+  const [open, setOpen] = React.useState(false)
+
+  const isTouchDevice =
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches
+
+  if (isTouchDevice) {
+    return (
+      <TooltipPrimitive.Root open={open} onOpenChange={setOpen} {...props}>
+        {React.Children.map(children, (child) => {
+          if (
+            React.isValidElement(child) &&
+            child.type === TooltipPrimitive.Trigger
+          ) {
+            const originalOnClick = (child.props as { onClick?: React.MouseEventHandler<HTMLElement> }).onClick
+            return React.cloneElement(child, {
+              onClick: (e: React.MouseEvent<HTMLElement>) => {
+                originalOnClick?.(e)
+                setOpen((prev) => !prev)
+              },
+            })
+          }
+          return child
+        })}
+      </TooltipPrimitive.Root>
+    )
+  }
+
+  return <TooltipPrimitive.Root {...props}>{children}</TooltipPrimitive.Root>
+}
 
 const TooltipTrigger = TooltipPrimitive.Trigger
 

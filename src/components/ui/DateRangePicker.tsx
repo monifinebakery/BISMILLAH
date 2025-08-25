@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { id } from 'date-fns/locale';
 
-// ✅ Use new order management structure
-import { safeParseDate, isValidDate, formatDateForDisplay } from '@/components/orders/utils';
+// ✅ Use unified date utilities for consistency
+import { safeParseDate, isValidDate, formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 interface DateRange {
   from: Date;

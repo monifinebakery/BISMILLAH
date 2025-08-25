@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '../../utils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order } from '../../types';
 
@@ -135,7 +135,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   // Update preview when template or order changes
   useEffect(() => {
-    if (selectedTemplate) {
+    if (selectedTemplate && order) {
       setPreviewMessage(generatePreview(selectedTemplate, order));
     }
   }, [selectedTemplate, order]);
@@ -378,7 +378,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                   <h4 className="font-semibold text-blue-800 mb-2">Preview Pesan</h4>
                   <div className="text-sm space-y-1 text-blue-700">
                     <div><strong>Template:</strong> {selectedTemplate.name}</div>
-                    <div><strong>Untuk:</strong> {order.namaPelanggan} ({order.telefonPelanggan})</div>
+                    <div><strong>Untuk:</strong> {order.namaPelanggan} ({order.teleponPelanggan})</div>
                     <div><strong>Pesanan:</strong> #{order.nomorPesanan}</div>
                     <div><strong>Items:</strong> {order.items?.length || 0} jenis item</div>
                   </div>

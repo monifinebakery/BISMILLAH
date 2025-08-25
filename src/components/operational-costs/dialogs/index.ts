@@ -24,3 +24,17 @@ export const AllocationDialog = lazy(() =>
     return { default: () => React.createElement('div', null, 'Error loading dialog') } as any;
   })
 );
+
+export const BulkEditDialog = lazy(() => 
+  import('./BulkEditDialog').catch(() => {
+    console.error('Failed to load BulkEditDialog, using fallback');
+    return { default: () => React.createElement('div', null, 'Error loading dialog') } as any;
+  })
+);
+
+export const BulkDeleteDialog = lazy(() => 
+  import('./BulkDeleteDialog').catch(() => {
+    console.error('Failed to load BulkDeleteDialog, using fallback');
+    return { default: () => React.createElement('div', null, 'Error loading dialog') } as any;
+  })
+);

@@ -130,7 +130,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-gray-200 bg-gray-50">
                   {isSelectionMode && (
                     <th className="text-center py-3 px-2 font-medium text-gray-700 w-12">
                       <Checkbox
@@ -140,12 +140,13 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                       />
                     </th>
                   )}
-                  <th className="text-left py-3 px-2 font-medium text-gray-700">Nama Biaya</th>
-                  <th className="text-right py-3 px-2 font-medium text-gray-700">Jumlah/Bulan</th>
-                  <th className="text-center py-3 px-2 font-medium text-gray-700">Grup</th>
-                  <th className="text-center py-3 px-2 font-medium text-gray-700">Tanggal</th>
-                  <th className="text-center py-3 px-2 font-medium text-gray-700">Catatan</th>
-                  <th className="text-center py-3 px-2 font-medium text-gray-700">Aksi</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Nama Biaya</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700">Jumlah/Bulan</th>
+                  <th className="text-center py-3 px-4 font-medium text-gray-700">Grup</th>
+                  <th className="text-center py-3 px-4 font-medium text-gray-700">Jenis</th>
+                  <th className="text-center py-3 px-4 font-medium text-gray-700">Status</th>
+                  <th className="text-center py-3 px-4 font-medium text-gray-700">Tanggal</th>
+                  <th className="text-center py-3 px-4 font-medium text-gray-700">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,13 +161,18 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                         />
                       </td>
                     )}
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-4">
                       <div className="font-medium text-gray-900">{cost.nama_biaya}</div>
+                      {cost.deskripsi && (
+                        <div className="text-sm text-gray-500 mt-1 truncate max-w-xs">
+                          {cost.deskripsi}
+                        </div>
+                      )}
                     </td>
-                    <td className="py-3 px-2 text-right font-medium">
+                    <td className="py-3 px-4 text-right font-medium">
                       {formatCurrency(cost.jumlah_per_bulan)}
                     </td>
-                    <td className="py-3 px-2 text-center">
+                    <td className="py-3 px-4 text-center">
                       <Badge 
                         variant={cost.group === 'HPP' ? 'default' : 'secondary'}
                         className={cost.group === 'HPP' 
@@ -177,19 +183,38 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                         {cost.group}
                       </Badge>
                     </td>
-                    <td className="py-3 px-2 text-center text-sm text-gray-600">
+                    <td className="py-3 px-4 text-center">
+                      <Badge 
+                        variant="outline"
+                        className={cost.jenis === 'tetap' 
+                          ? 'border-blue-300 text-blue-700' 
+                          : 'border-purple-300 text-purple-700'
+                        }
+                      >
+                        {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <Badge 
+                        variant="outline"
+                        className={cost.status === 'aktif' 
+                          ? 'border-green-300 text-green-700' 
+                          : 'border-red-300 text-red-700'
+                        }
+                      >
+                        {cost.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 text-center text-sm text-gray-600">
                       {formatDate(cost.created_at)}
                     </td>
-                    <td className="py-3 px-2 text-center text-sm text-gray-600 max-w-32 truncate">
-                      {cost.deskripsi || '-'}
-                    </td>
-                    <td className="py-3 px-2 text-center">
+                    <td className="py-3 px-4 text-center">
                       <div className="flex justify-center gap-1">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => onEditCost(cost)}
-                          className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           <Edit2 className="h-3 w-3" />
                         </Button>
@@ -197,7 +222,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onDeleteCost(cost.id)}
-                          className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -209,7 +234,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                 {/* Empty state */}
                 {costs.length === 0 && (
                   <tr>
-                    <td colSpan={isSelectionMode ? 7 : 6} className="py-12 text-center text-gray-500">
+                    <td colSpan={isSelectionMode ? 8 : 7} className="py-12 text-center text-gray-500">
                       <div className="space-y-4 max-w-md mx-auto">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
                           📝
@@ -247,12 +272,13 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                 <tfoot>
                   <tr className="border-t-2 border-gray-300 font-semibold bg-gray-50">
                     {isSelectionMode && <td className="py-3 px-2"></td>}
-                    <td className="py-3 px-2">Total Semua Biaya:</td>
-                    <td className="py-3 px-2 text-right text-lg">{formatCurrency(totalMonthlyCosts)}</td>
-                    <td className="py-3 px-2"></td>
-                    <td className="py-3 px-2"></td>
-                    <td className="py-3 px-2"></td>
-                    <td className="py-3 px-2"></td>
+                    <td className="py-3 px-4">Total Semua Biaya:</td>
+                    <td className="py-3 px-4 text-right text-lg">{formatCurrency(totalMonthlyCosts)}</td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
                   </tr>
                 </tfoot>
               )}

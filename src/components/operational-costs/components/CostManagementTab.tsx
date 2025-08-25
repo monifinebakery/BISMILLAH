@@ -78,23 +78,23 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
         </Card>
 
         {/* Operational Summary Card */}
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-orange-200 bg-white">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-green-800 text-base">
+            <CardTitle className="flex items-center gap-2 text-orange-800 text-base">
               <TrendingUp className="h-4 w-4" />
               Biaya Operasional
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button 
+                    <button
                       type="button"
                       className="p-1 -m-1 touch-manipulation"
                       aria-label="Info biaya operasional"
                     >
-                      <DollarSign className="h-3 w-3 text-green-500 hover:text-green-700 transition-colors" />
+                      <DollarSign className="h-3 w-3 text-orange-500 hover:text-orange-700 transition-colors" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-green-50 border-green-200 text-green-900 max-w-xs">
+                  <TooltipContent className="bg-orange-50 border-orange-200 text-orange-900 max-w-xs">
                     <p>Biaya untuk menjalankan bisnis (sewa, gaji, marketing, utilitas)</p>
                   </TooltipContent>
                 </Tooltip>
@@ -102,8 +102,8 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-900">{formatCurrency(operationalCosts)}</div>
-            <p className="text-sm text-green-700 mt-1">
+            <div className="text-2xl font-bold text-orange-900">{formatCurrency(operationalCosts)}</div>
+            <p className="text-sm text-orange-700 mt-1">
               {costs.filter(c => c.group === 'OPERASIONAL').length} item biaya
             </p>
           </CardContent>
@@ -111,7 +111,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
       </div>
 
       {/* Cost Management Table */}
-      <Card className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+      <Card className="bg-white rounded-xl border border-gray-200/80">
         <CardHeader className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
@@ -150,7 +150,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[800px]">
               <TableHeader className="bg-gray-50 border-b border-gray-200 sticky top-0 z-[1]">
                 <TableRow>
                   {isSelectionMode && (
@@ -195,10 +195,10 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                       {formatCurrency(cost.jumlah_per_bulan)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge 
+                      <Badge
                         variant={cost.group === 'HPP' ? 'default' : 'secondary'}
-                        className={cost.group === 'HPP' 
-                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' 
+                        className={cost.group === 'HPP'
+                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                           : 'bg-green-100 text-green-800 hover:bg-green-200'
                         }
                       >
@@ -206,10 +206,10 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge 
+                      <Badge
                         variant="outline"
-                        className={cost.jenis === 'tetap' 
-                          ? 'border-blue-300 text-blue-700' 
+                        className={cost.jenis === 'tetap'
+                          ? 'border-blue-300 text-blue-700'
                           : 'border-purple-300 text-purple-700'
                         }
                       >
@@ -217,10 +217,10 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge 
+                      <Badge
                         variant="outline"
-                        className={cost.status === 'aktif' 
-                          ? 'border-green-300 text-green-700' 
+                        className={cost.status === 'aktif'
+                          ? 'border-green-300 text-green-700'
                           : 'border-red-300 text-red-700'
                         }
                       >

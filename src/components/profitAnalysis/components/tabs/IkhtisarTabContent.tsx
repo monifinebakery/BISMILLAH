@@ -3,9 +3,9 @@
 import React from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 
-// Use lazy wrappers to keep code-splitting without mixing imports
+// Use new components
 import ProfitBreakdownChart from '../lazy/LazyProfitBreakdownChart';
-import ProfitTrendChart from '../lazy/LazyProfitTrendChart';
+import { MarginAnalysis } from '../../MarginAnalysis';
 
 // ==============================================
 // TYPES
@@ -46,17 +46,12 @@ const IkhtisarTabContent: React.FC<IkhtisarTabContentProps> = ({
           />
         </React.Suspense>
 
-        <React.Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
-          <ProfitTrendChart
-            profitHistory={profitHistory}
-            isLoading={isLoading}
-            chartType="line"
-            showMetrics={['revenue', 'grossProfit', 'netProfit']}
-            // Add effective COGS and labels with fallback
-            effectiveCogs={effectiveCogs ?? currentAnalysis?.cogs_data?.total ?? 0}
-            labels={labels}
-          />
-        </React.Suspense>
+        <MarginAnalysis
+          currentAnalysis={currentAnalysis}
+          isLoading={isLoading}
+          effectiveCogs={effectiveCogs ?? currentAnalysis?.cogs_data?.total ?? 0}
+          labels={labels}
+        />
       </div>
     </TabsContent>
   );

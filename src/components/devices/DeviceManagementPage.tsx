@@ -43,7 +43,7 @@ const DeviceManagementPage: React.FC = () => {
   // ✅ LAZY LOADING STATE
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [useLazyLoading] = useState(true);
   const [paginationInfo, setPaginationInfo] = useState({ totalCount: 0, totalPages: 0 });
   
   // ✅ LAZY LOADING QUERY
@@ -60,7 +60,7 @@ const DeviceManagementPage: React.FC = () => {
       setPaginationInfo({ totalCount: result.totalCount, totalPages: result.totalPages });
       return result;
     },
-    enabled: useLazyLoading && !!user?.id,
+    enabled: !!user?.id,
     staleTime: 30000,
   });
   
@@ -220,7 +220,7 @@ const DeviceManagementPage: React.FC = () => {
           <CardDescription>{errorMessage}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={useLazyLoading ? () => refetchPaginated() : handleRefreshDevices}>Coba Lagi</Button>
+          <Button onClick={() => refetchPaginated()}>Coba Lagi</Button>
         </CardContent>
       </Card>
     );
@@ -234,41 +234,27 @@ const DeviceManagementPage: React.FC = () => {
           Kelola perangkat yang saat ini masuk ke akun Anda
         </p>
         
-        {/* ✅ LAZY LOADING CONTROLS */}
+        {/* Kontrol Paginasi */}
         <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
           <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
             <div className="flex items-center space-x-3">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={useLazyLoading}
-                  onChange={(e) => setUseLazyLoading(e.target.checked)}
-                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                />
-                <span className="text-sm font-medium">Aktifkan Lazy Loading</span>
-              </label>
-              
-              {useLazyLoading && (
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm"
-                >
-                  <option value={5}>5 per halaman</option>
-                  <option value={10}>10 per halaman</option>
-                  <option value={20}>20 per halaman</option>
-                </select>
-              )}
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 border border-gray-300 rounded text-sm"
+              >
+                <option value={5}>5 per halaman</option>
+                <option value={10}>10 per halaman</option>
+                <option value={20}>20 per halaman</option>
+              </select>
             </div>
-            
-            {useLazyLoading && (
-              <div className="text-sm text-gray-600">
-                Total: {paginationInfo.totalCount} perangkat
-              </div>
-            )}
+
+            <div className="text-sm text-gray-600">
+              Total: {paginationInfo.totalCount} perangkat
+            </div>
           </div>
         </div>
       </div>
@@ -528,8 +514,8 @@ const DeviceManagementPage: React.FC = () => {
         </CardContent>
         </Card>
         
-        {/* ✅ PAGINATION CONTROLS */}
-        {useLazyLoading && paginationInfo.totalPages > 1 && (
+        {/* PAGINATION CONTROLS */}
+        {paginationInfo.totalPages > 1 && (
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">

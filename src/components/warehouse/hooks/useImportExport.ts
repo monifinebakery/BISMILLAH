@@ -191,7 +191,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           kategori: FNB_COGS_CATEGORIES[0],
           supplier: 'PT Supplier Terpercaya',
           satuan: 'gram',
-          expiry: '2024-12-31',
+          expiry: '2025-12-31',
           stok: 5000,
           minimum: 1000
         },
@@ -200,7 +200,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           kategori: FNB_COGS_CATEGORIES[1],
           supplier: 'CV Gula Manis',
           satuan: 'gram',
-          expiry: '2024-11-30',
+          expiry: '2025-11-30',
           stok: 3000,
           minimum: 500
         },
@@ -254,7 +254,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           kategori: FNB_COGS_CATEGORIES[0],
           supplier: 'PT Supplier Terpercaya',
           satuan: 'gram',
-          expiry: '2024-12-31',
+          expiry: '2025-12-31',
           stok: 5000,
           minimum: 1000
         },
@@ -263,7 +263,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
           kategori: FNB_COGS_CATEGORIES[1],
           supplier: 'CV Gula Manis',
           satuan: 'gram',
-          expiry: '2024-11-30',
+          expiry: '2025-11-30',
           stok: 3000,
           minimum: 500
         },

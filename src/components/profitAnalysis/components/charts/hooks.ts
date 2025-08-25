@@ -90,14 +90,14 @@ export function useProfitTrendChart({
 
   // Metric configurations
   const metricConfigs = useMemo(() => ({
-    revenue: { key: 'revenue', label: 'Omset', color: CHART_CONFIG.colors.revenue },
-    grossProfit: { key: 'grossProfit', label: 'Untung Kotor', color: CHART_CONFIG.colors.primary },
-    netProfit: { key: 'netProfit', label: 'Untung Bersih', color: '#dc2626' },
-    cogs: { key: 'cogs', label: 'Modal Bahan', color: CHART_CONFIG.colors.cogs },
-    opex: { key: 'opex', label: 'Biaya Tetap', color: CHART_CONFIG.colors.opex },
-    grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.primary },
-    netMargin: { key: 'netMargin', label: 'Margin Bersih', color: '#dc2626' },
-    stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning }
+    revenue: { key: 'revenue', label: 'Omset', color: CHART_CONFIG.colors.revenue, axis: 'left' },
+    grossProfit: { key: 'grossProfit', label: 'Untung Kotor', color: CHART_CONFIG.colors.primary, axis: 'right' },
+    netProfit: { key: 'netProfit', label: 'Untung Bersih', color: '#dc2626', axis: 'right' },
+    cogs: { key: 'cogs', label: 'Modal Bahan', color: CHART_CONFIG.colors.cogs, axis: 'left' },
+    opex: { key: 'opex', label: 'Biaya Tetap', color: CHART_CONFIG.colors.opex, axis: 'left' },
+    grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.primary, axis: 'right', isPercentage: true },
+    netMargin: { key: 'netMargin', label: 'Margin Bersih', color: '#dc2626', axis: 'right', isPercentage: true },
+    stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning, axis: 'left' }
   }), []);
 
   // Auto-update selectedMetrics when viewType changes

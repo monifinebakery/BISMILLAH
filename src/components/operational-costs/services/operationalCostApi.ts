@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from '@/utils/logger';
 // 🔧 IMPROVED: Import centralized date normalization
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
 import { addFinancialTransaction } from '@/components/financial/services/financialApi';
 // 🔄 For cache invalidation - will be used by components
 let globalQueryClient: any = null;
@@ -38,7 +39,7 @@ const createFinancialTransactionForCost = async (cost: OperationalCost, userId: 
       amount: cost.jumlah_per_bulan,
       description: `Biaya Operasional: ${cost.nama_biaya}`,
       category: 'Biaya Operasional',
-      date: new Date(),
+      date: safeParseDate(new Date()) || new Date(),
       relatedId: cost.id,
     }, userId);
     
@@ -238,8 +239,8 @@ export const operationalCostApi = {
         .insert({
           ...insertData,
           user_id: userId, // ✅ Add user_id
-          created_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
-          updated_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
+          created_at: normalizeDateForDatabase(safeParseDate(new Date()) || new Date()) + 'T00:00:00.000Z',
+          updated_at: normalizeDateForDatabase(safeParseDate(new Date()) || new Date()) + 'T00:00:00.000Z',
         })
         .select()
         .single();
@@ -286,7 +287,7 @@ export const operationalCostApi = {
         .from('operational_costs')
         .update({
           ...updateData,
-          updated_at: normalizeDateForDatabase(new Date()) + 'T00:00:00.000Z',
+          updated_at: normalizeDateForDatabase(safeParseDate(new Date()) || new Date()) + 'T00:00:00.000Z',
         })
         .eq('id', id)
         .eq('user_id', userId) // ✅ Add user filter
@@ -506,8 +507,8 @@ export const allocationApi = {
       const dataWithUserId = {
         ...settingsData,
         user_id: userId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: toSafeISOString(safeParseDate(new Date()) || new Date()) || new Date().toISOString(),
+         updated_at: toSafeISOString(safeParseDate(new Date()) || new Date()) || new Date().toISOString(),
       };
 
       const { data, error } = await supabase

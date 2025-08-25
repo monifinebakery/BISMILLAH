@@ -2,12 +2,32 @@
 
 import { logger } from '@/utils/logger';
 import type { RealTimeProfitCalculation } from '@/components/profitAnalysis/types/profitAnalysis.types';
+import { getEffectiveCogs, validateCOGSConsistency, shouldUseWAC } from './cogsCalculation';
 
 export interface ConsistencyCheckResult {
   isConsistent: boolean;
   issues: string[];
   warnings: string[];
   recommendations: string[];
+}
+
+export interface WACValidationResult {
+  isValid: boolean;
+  wacValue: number;
+  apiCogsValue: number;
+  variance: number;
+  variancePercentage: number;
+  severity: 'low' | 'medium' | 'high';
+  issues: string[];
+  recommendations: string[];
+}
+
+export interface DataQualityMetrics {
+  wacAvailability: boolean;
+  apiCogsAvailability: boolean;
+  dataConsistency: number; // 0-100 score
+  lastValidationTime: string;
+  validationCount: number;
 }
 
 /**
@@ -127,6 +147,199 @@ export function monitorProfitAnalysisSync(
   } catch (error) {
     logger.error(`Error monitoring sync in ${context}:`, error);
   }
+}
+
+/**
+ * Validate WAC vs API COGS consistency with detailed analysis
+ */
+export function validateWACConsistency(
+  currentAnalysis: RealTimeProfitCalculation | null,
+  wacCogs: number,
+  revenue: number = 0
+): WACValidationResult {
+  const issues: string[] = [];
+  const recommendations: string[] = [];
+  
+  try {
+    if (!currentAnalysis) {
+      return {
+        isValid: false,
+        wacValue: wacCogs,
+        apiCogsValue: 0,
+        variance: 0,
+        variancePercentage: 0,
+        severity: 'high',
+        issues: ['No profit analysis data available'],
+        recommendations: ['Ensure profit analysis is properly loaded']
+      };
+    }
+
+    const apiCogsValue = currentAnalysis.cogs_data?.total || 0;
+    const variance = Math.abs(wacCogs - apiCogsValue);
+    const variancePercentage = apiCogsValue > 0 ? (variance / apiCogsValue) * 100 : 0;
+    
+    // Determine severity based on variance percentage
+    let severity: 'low' | 'medium' | 'high' = 'low';
+    if (variancePercentage > 50) {
+      severity = 'high';
+    } else if (variancePercentage > 20) {
+      severity = 'medium';
+    }
+
+    // Validation checks
+    if (wacCogs > 0 && apiCogsValue > 0 && variancePercentage > 20) {
+      issues.push(`Significant variance between WAC (${wacCogs}) and API COGS (${apiCogsValue}): ${variancePercentage.toFixed(1)}%`);
+      recommendations.push('Review purchase data and WAC calculations for accuracy');
+    }
+
+    if (wacCogs > 0 && apiCogsValue === 0) {
+      issues.push('WAC data available but API COGS is zero');
+      recommendations.push('Check if financial transactions are properly recorded');
+    }
+
+    if (wacCogs === 0 && apiCogsValue > 0) {
+      issues.push('API COGS available but WAC is zero');
+      recommendations.push('Ensure warehouse data and purchase history are complete');
+    }
+
+    if (revenue > 0 && wacCogs > revenue) {
+      issues.push(`WAC COGS (${wacCogs}) exceeds revenue (${revenue})`);
+      recommendations.push('Review pricing strategy or cost calculations');
+      severity = 'high';
+    }
+
+    if (revenue > 0 && apiCogsValue > revenue) {
+      issues.push(`API COGS (${apiCogsValue}) exceeds revenue (${revenue})`);
+      recommendations.push('Review financial transaction records');
+      severity = 'high';
+    }
+
+    const isValid = issues.length === 0;
+
+    logger.debug('WAC validation completed:', {
+      wacCogs,
+      apiCogsValue,
+      variance,
+      variancePercentage,
+      severity,
+      isValid
+    });
+
+    return {
+      isValid,
+      wacValue: wacCogs,
+      apiCogsValue,
+      variance,
+      variancePercentage,
+      severity,
+      issues,
+      recommendations
+    };
+
+  } catch (error) {
+    logger.error('Error in WAC validation:', error);
+    return {
+      isValid: false,
+      wacValue: wacCogs,
+      apiCogsValue: 0,
+      variance: 0,
+      variancePercentage: 0,
+      severity: 'high',
+      issues: ['WAC validation failed due to error'],
+      recommendations: ['Review data structure and try again']
+    };
+  }
+}
+
+/**
+ * Calculate data quality metrics for WAC and API COGS
+ */
+export function calculateDataQualityMetrics(
+  currentAnalysis: RealTimeProfitCalculation | null,
+  wacCogs: number,
+  validationHistory: WACValidationResult[] = []
+): DataQualityMetrics {
+  const wacAvailability = shouldUseWAC(wacCogs);
+  const apiCogsAvailability = (currentAnalysis?.cogs_data?.total || 0) > 0;
+  
+  // Calculate consistency score based on recent validations
+  let dataConsistency = 100;
+  if (validationHistory.length > 0) {
+    const recentValidations = validationHistory.slice(-10); // Last 10 validations
+    const validCount = recentValidations.filter(v => v.isValid).length;
+    dataConsistency = (validCount / recentValidations.length) * 100;
+  }
+
+  return {
+    wacAvailability,
+    apiCogsAvailability,
+    dataConsistency,
+    lastValidationTime: new Date().toISOString(),
+    validationCount: validationHistory.length
+  };
+}
+
+/**
+ * Comprehensive validation that combines all checks
+ */
+export function performComprehensiveValidation(
+  currentAnalysis: RealTimeProfitCalculation | null,
+  profitMetrics: any,
+  wacCogs: number,
+  revenue: number = 0
+): {
+  consistencyCheck: ConsistencyCheckResult;
+  wacValidation: WACValidationResult;
+  dataQuality: DataQualityMetrics;
+  overallScore: number;
+} {
+  // Run existing consistency check
+  const consistencyCheck = checkProfitAnalysisConsistency({
+    currentAnalysis,
+    profitMetrics,
+    context: 'comprehensive-validation'
+  });
+
+  // Run WAC validation
+  const wacValidation = validateWACConsistency(currentAnalysis, wacCogs, revenue);
+
+  // Calculate data quality
+  const dataQuality = calculateDataQualityMetrics(currentAnalysis, wacCogs);
+
+  // Calculate overall score (0-100)
+  let overallScore = 100;
+  
+  // Deduct points for issues
+  overallScore -= consistencyCheck.issues.length * 20;
+  overallScore -= consistencyCheck.warnings.length * 10;
+  overallScore -= wacValidation.issues.length * 15;
+  
+  // Adjust for WAC validation severity
+  if (wacValidation.severity === 'high') {
+    overallScore -= 30;
+  } else if (wacValidation.severity === 'medium') {
+    overallScore -= 15;
+  }
+
+  // Factor in data quality consistency
+  overallScore = (overallScore + dataQuality.dataConsistency) / 2;
+  
+  // Ensure score is between 0-100
+  overallScore = Math.max(0, Math.min(100, overallScore));
+
+  logger.info('Comprehensive validation completed:', {
+    overallScore,
+    consistencyIssues: consistencyCheck.issues.length,
+    wacValidationSeverity: wacValidation.severity,
+    dataQualityScore: dataQuality.dataConsistency
+  });
+
+  return {
+    consistencyCheck,
+    wacValidation,
+    dataQuality,
+    overallScore
+  };
 }
 
 /**

@@ -5,6 +5,7 @@ import React, { createContext, useContext, useCallback, useReducer, useEffect, u
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
+import { normalizeDateRange } from '@/utils/dateNormalization';
 
 import { 
   ProfitAnalysisContextType,
@@ -195,12 +196,16 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       dispatch({ type: 'SET_ERROR', payload: null });
       logger.info('🔄 Memuat riwayat profit...');
       
+      // Use centralized date utilities for consistency
+      const now = new Date();
+      const defaultDateRange = {
+        from: new Date(now.getFullYear(), 0, 1),
+        to: now,
+        period_type: 'monthly' as const
+      };
+      
       const response = await profitAnalysisApi.getProfitHistory(
-        dateRange || {
-          from: new Date(new Date().getFullYear(), 0, 1),
-          to: new Date(),
-          period_type: 'monthly'
-        }
+        dateRange || defaultDateRange
       );
       
       if (response.error) {

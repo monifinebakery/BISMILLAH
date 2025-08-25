@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { toSafeISOString } from '@/utils/unifiedDateUtils';
 import { PaymentRecord } from '@/services/auth/types';
 import { clearSessionCache } from '../core/session';
 import { getCurrentUserValidated } from '@/services/auth/core/authentication';
@@ -159,7 +160,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     }
 
     // ✅ STEP 4: Update payment (SIMPLIFIED - removed auth_email and linked_at)
-    const now = new Date().toISOString();
+    const now = toSafeISOString(new Date()) || new Date().toISOString();
     const updateData: any = { 
       user_id: finalUserId, // ✅ Use sanitized ID
       updated_at: now

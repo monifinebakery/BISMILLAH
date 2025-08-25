@@ -2,6 +2,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { toSafeISOString } from '@/utils/unifiedDateUtils';
 import type { Order, OrderDB, NewOrder, OrderStatus } from '../types';
 import { transformOrderFromDB, transformOrderToDB } from '../utils';
 
@@ -20,7 +21,7 @@ export const orderApi = {
         .from('orders')
         .update({ 
           status: newStatus,
-          updated_at: new Date().toISOString()
+          updated_at: toSafeISOString(new Date()) || new Date().toISOString()
         })
         .eq('id', orderId)
         .eq('user_id', userId)

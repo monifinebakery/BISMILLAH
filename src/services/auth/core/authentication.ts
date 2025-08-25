@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
+import { toSafeISOString } from '@/utils/unifiedDateUtils';
 import { getCurrentSession, clearSessionCache } from './session';
 
 // ✅ SIMPLIFIED: Check authentication using utility session
@@ -188,7 +189,7 @@ export const debugAuthState = async () => {
     }
     
     const debugInfo = {
-      timestamp: new Date().toISOString(),
+      timestamp: toSafeISOString(new Date()) || new Date().toISOString(),
       utilitySession: {
         hasSession: !!session,
         sessionUserId: session?.user?.id || null,

@@ -8,7 +8,7 @@ const BogoForm = lazy(() => import('./forms/BogoForm'));
 const DiscountForm = lazy(() => import('./forms/DiscountForm'));
 const BundleForm = lazy(() => import('./forms/BundleForm'));
 
-const PromoTypeSelector = ({ selectedType, onTypeChange, onFormSubmit, isCalculating, recipes }) => {
+const PromoTypeSelector = ({ selectedType, onTypeChange, onFormSubmit, isCalculating, recipes }: any) => {
   const promoTypes = [
     {
       id: 'bogo',

@@ -3,7 +3,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const HppAnalysisChart = ({ data }) => {
+const HppAnalysisChart = ({ data }: any) => {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -13,7 +13,7 @@ const HppAnalysisChart = ({ data }) => {
     }).format(value);
   };
 
-  const CustomTooltip = ({ active, payload, label }) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg">

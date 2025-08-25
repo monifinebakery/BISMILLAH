@@ -3,7 +3,7 @@
 import React from 'react';
 import { Trash2, X, CheckSquare } from 'lucide-react';
 
-const BulkActions = ({ selectedCount, onDelete, onDeselect }) => {
+const BulkActions = ({ selectedCount, onDelete, onDeselect }: any) => {
   return (
     <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
       <div className="flex items-center justify-between">

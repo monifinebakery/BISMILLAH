@@ -10,7 +10,7 @@ const PromoCard = ({
   onDuplicate, 
   className = "",
   showActions = true 
-}) => {
+}: any) => {
   // ✅ State untuk mengontrol dropdown
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null); // Untuk mendeteksi klik di luar dropdown

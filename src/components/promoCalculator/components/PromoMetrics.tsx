@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Percent } from 'lucide-react';
 import { formatters, helpers } from '../utils';
 
-const PromoMetrics = ({ calculationResult, className = '' }) => {
+const PromoMetrics = ({ calculationResult, className = '' }: any) => {
   if (!calculationResult) return null;
 
   const marginSafetyLevel = helpers.getMarginSafetyLevel(calculationResult.promoMargin);

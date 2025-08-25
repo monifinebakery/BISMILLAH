@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { promoService } from '@/components/promoCalculator/services/promoService';
 import { logger } from '@/utils/logger';
 
-const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }) => {
+const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }: any) => {
   const queryClient = useQueryClient();
 
   const {

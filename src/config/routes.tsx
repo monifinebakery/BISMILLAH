@@ -27,7 +27,8 @@ import paymentRoutes from '@/routes/payment';
 import promoRoutes from '@/routes/promo';
 import notFoundRoutes from '@/routes/not-found';
 
-const AppRoutes: React.FC = () => (
+// Membuat komponen AppRouter agar dapat diimpor sebagai named export
+export const AppRouter: React.FC = () => (
   <Routes>
     <Route path="/auth" element={<EmailAuthPage />} />
     <Route
@@ -125,4 +126,4 @@ const AppRoutes: React.FC = () => (
   </Routes>
 );
 
-export default AppRoutes;
+export default AppRouter;

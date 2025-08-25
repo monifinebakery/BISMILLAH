@@ -12,16 +12,16 @@ import { OperationalCostProvider, useOperationalCost } from './context';
 import { formatCurrency, formatDate } from './utils/costHelpers';
 import { OperationalCost, AppSettings, CostFormData } from './types/operationalCost.types';
 import { CostFormDialog } from './components/CostFormDialog';
+import { useOperationalCostTable } from './hooks/useOperationalCostTable';
+import { appSettingsApi } from './services';
 import { 
   ProgressSetup, 
   OnboardingModal, 
   OperationalCostHeader, 
   CostManagementTab, 
-  CalculatorTab
+  CalculatorTab,
+  BulkActions
 } from './components';
-import { appSettingsApi } from './services';
-import { useOperationalCostTable } from './hooks/useOperationalCostTable';
-import BulkActions from './components/BulkActions';
 import { toast } from 'sonner';
 
 const OperationalCostContent: React.FC = () => {
@@ -46,6 +46,7 @@ const OperationalCostContent: React.FC = () => {
     clearSelection,
     enterSelectionMode,
     exitSelectionMode,
+    toggleSelectionMode,
   } = useOperationalCostTable(state.costs);
 
   // Auto-refresh data when component mounts
@@ -293,6 +294,7 @@ const OperationalCostContent: React.FC = () => {
               isSelectionMode={isSelectionMode}
               onSelectAll={selectAllCosts}
               isAllSelected={isAllSelected}
+              onToggleSelectionMode={toggleSelectionMode}
             />
           </TabsContent>
 

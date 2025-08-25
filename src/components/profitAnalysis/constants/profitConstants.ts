@@ -46,7 +46,7 @@ export const PROFIT_CONSTANTS = {
   
   // Periode default
   DEFAULT_PERIODS: {
-    CURRENT_MONTH: getCurrentMonth(), // "2024-12"
+    CURRENT_MONTH: getCurrentMonth(), // contoh: "2025-01"
     MONTHS_TO_ANALYZE: 12, // Analisis 12 bulan terakhir
   },
   

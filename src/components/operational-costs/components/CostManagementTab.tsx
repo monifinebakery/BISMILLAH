@@ -111,7 +111,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
       </div>
 
       {/* Cost Management Table */}
-      <Card className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+      <Card className="bg-white rounded-xl border border-gray-200/80">
         <CardHeader className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
@@ -150,7 +150,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[800px]">
               <TableHeader className="bg-gray-50 border-b border-gray-200 sticky top-0 z-[1]">
                 <TableRow>
                   {isSelectionMode && (
@@ -164,10 +164,10 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                   )}
                   <TableHead className="text-left">Nama Biaya</TableHead>
                   <TableHead className="text-right">Jumlah/Bulan</TableHead>
-                  <TableHead className="text-center hidden md:table-cell">Grup</TableHead>
-                  <TableHead className="text-center hidden md:table-cell">Jenis</TableHead>
-                  <TableHead className="text-center hidden md:table-cell">Status</TableHead>
-                  <TableHead className="text-center hidden lg:table-cell">Tanggal</TableHead>
+                  <TableHead className="text-center">Grup</TableHead>
+                  <TableHead className="text-center">Jenis</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Tanggal</TableHead>
                   <TableHead className="text-center">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -194,7 +194,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                     <TableCell className="text-right font-medium">
                       {formatCurrency(cost.jumlah_per_bulan)}
                     </TableCell>
-                    <TableCell className="text-center hidden md:table-cell">
+                    <TableCell className="text-center">
                       <Badge
                         variant={cost.group === 'HPP' ? 'default' : 'secondary'}
                         className={cost.group === 'HPP'
@@ -205,7 +205,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                         {cost.group}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center hidden md:table-cell">
+                    <TableCell className="text-center">
                       <Badge
                         variant="outline"
                         className={cost.jenis === 'tetap'
@@ -216,7 +216,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                         {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center hidden md:table-cell">
+                    <TableCell className="text-center">
                       <Badge
                         variant="outline"
                         className={cost.status === 'aktif'
@@ -227,7 +227,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                         {cost.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center text-sm text-gray-600 hidden lg:table-cell">
+                    <TableCell className="text-center text-sm text-gray-600">
                       {formatDate(cost.created_at)}
                     </TableCell>
                     <TableCell className="text-center">

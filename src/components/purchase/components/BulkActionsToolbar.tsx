@@ -3,13 +3,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { 
-  Trash2, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Clock,
   X,
-  MoreHorizontal 
+  MoreHorizontal
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePurchaseTable } from '../context/PurchaseTableContext';
 import { PurchaseStatus } from '../types/purchase.types';
+import { exportPurchasesToCSV, generatePurchasePrintContent } from '@/utils/purchaseHelpers';
+import { toast } from 'sonner';
 
 const BulkActionsToolbar: React.FC = () => {
   const {
@@ -27,9 +29,12 @@ const BulkActionsToolbar: React.FC = () => {
     clearSelection,
     bulkDelete,
     bulkUpdateStatus,
+    bulkArchive,
     isBulkDeleting,
+    isBulkArchiving,
     setShowBulkDeleteDialog,
     filteredPurchases,
+    suppliers,
   } = usePurchaseTable();
 
   // Don't show toolbar if no items selected
@@ -46,6 +51,54 @@ const BulkActionsToolbar: React.FC = () => {
 
   const handleBulkDelete = () => {
     setShowBulkDeleteDialog(true);
+  };
+
+  const handleBulkExport = () => {
+    const selectedPurchases = filteredPurchases.filter(p => selectedItems.includes(p.id));
+    if (selectedPurchases.length === 0) {
+      toast.error('Tidak ada data untuk diekspor');
+      return;
+    }
+    try {
+      const csv = exportPurchasesToCSV(selectedPurchases, suppliers);
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pembelian-terpilih.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Data berhasil diekspor');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Gagal mengekspor data');
+    }
+  };
+
+  const handleBulkPrint = () => {
+    const selectedPurchases = filteredPurchases.filter(p => selectedItems.includes(p.id));
+    if (selectedPurchases.length === 0) {
+      toast.error('Tidak ada data untuk dicetak');
+      return;
+    }
+    try {
+      const content = generatePurchasePrintContent(selectedPurchases, suppliers);
+      const printWindow = window.open('', '', 'width=800,height=600');
+      if (printWindow) {
+        printWindow.document.write(`<pre>${content}</pre>`);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      toast.error('Gagal mencetak data');
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    await bulkArchive();
   };
 
   return (
@@ -113,24 +166,24 @@ const BulkActionsToolbar: React.FC = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem 
-                  onClick={() => {/* TODO: Export selected */}}
+                <DropdownMenuItem
+                  onClick={handleBulkExport}
                   className="text-blue-600"
                 >
                   Export Data Terpilih
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => {/* TODO: Print selected */}}
+                <DropdownMenuItem
+                  onClick={handleBulkPrint}
                   className="text-blue-600"
                 >
                   Print Data Terpilih
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => {/* TODO: Archive selected */}}
+                <DropdownMenuItem
+                  onClick={handleBulkArchive}
                   className="text-gray-600"
                 >
-                  Arsipkan
+                  {isBulkArchiving ? 'Mengarsipkan...' : 'Arsipkan'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

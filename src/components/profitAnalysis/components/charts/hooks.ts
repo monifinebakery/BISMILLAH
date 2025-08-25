@@ -31,7 +31,13 @@ export function useProfitTrendChart({
   analyzeTrend
 }: UseProfitTrendChartProps) {
   // Basic state
-  const [selectedMetrics, setSelectedMetrics] = useState(['revenue', 'grossProfit', 'netProfit']);
+  const [selectedMetrics, setSelectedMetrics] = useState([
+    'revenue',
+    'grossProfit',
+    'netProfit',
+    'grossMargin',
+    'netMargin'
+  ]);
   const [viewType, setViewType] = useState<'values' | 'margins'>('values');
   
   // Performance optimization state
@@ -106,7 +112,13 @@ export function useProfitTrendChart({
     if (viewType === 'margins') {
       setSelectedMetrics(['grossMargin', 'netMargin']);
     } else {
-      setSelectedMetrics(['revenue', 'grossProfit', 'netProfit']);
+      setSelectedMetrics([
+        'revenue',
+        'grossProfit',
+        'netProfit',
+        'grossMargin',
+        'netMargin'
+      ]);
     }
   }, [viewType]);
 

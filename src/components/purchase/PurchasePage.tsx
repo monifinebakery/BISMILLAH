@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { transformPurchasesFromDB } from './utils/purchaseTransformers';
+import { Purchase } from './types/purchase.types';
 
 // ✅ CONSOLIDATED: Context imports (kept as-is, already optimal)
 import { PurchaseProvider } from './context/PurchaseContext';
@@ -219,19 +221,28 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   } = purchaseContext;
 
   // ✅ NEW: Tentukan data yang akan digunakan berdasarkan mode lazy loading
-  const finalPurchases = useLazyLoading ? (paginatedData?.data || []) : purchases;
+  const finalPurchases: Purchase[] = useLazyLoading
+    ? transformPurchasesFromDB(paginatedData?.data || [])
+    : purchases;
   const finalIsLoading = useLazyLoading ? isPaginatedLoading : purchaseContext.isLoading;
   const finalError = useLazyLoading ? paginatedError : purchaseContext.error;
-  const finalStats = useLazyLoading ? {
-    total: paginationInfo.total,
-    totalValue: finalPurchases.reduce((sum: number, p: any) => sum + Number(p.total_nilai || 0), 0),
-    byStatus: {
-      pending: finalPurchases.filter((p: any) => p.status === 'pending').length,
-      completed: finalPurchases.filter((p: any) => p.status === 'completed').length,
-      cancelled: finalPurchases.filter((p: any) => p.status === 'cancelled').length,
-    },
-    completionRate: paginationInfo.total ? (finalPurchases.filter((p: any) => p.status === 'completed').length / paginationInfo.total) * 100 : 0,
-  } : stats;
+  const finalStats = useLazyLoading
+    ? {
+        total: paginationInfo.total,
+        totalValue: finalPurchases.reduce(
+          (sum, p) => sum + Number(p.totalNilai || 0),
+          0
+        ),
+        byStatus: {
+          pending: finalPurchases.filter(p => p.status === 'pending').length,
+          completed: finalPurchases.filter(p => p.status === 'completed').length,
+          cancelled: finalPurchases.filter(p => p.status === 'cancelled').length,
+        },
+        completionRate: paginationInfo.total
+          ? (finalPurchases.filter(p => p.status === 'completed').length / paginationInfo.total) * 100
+          : 0,
+      }
+    : stats;
 
   // ✅ SINGLE STATE: Consolidated app state
   const [appState, setAppState] = useState<AppState>(initialAppState);

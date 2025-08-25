@@ -33,15 +33,19 @@ const appStartTime = performance.now();
 // ------------------------------
 // Scheduler polyfill (fallback)
 // ------------------------------
-if (typeof globalThis !== "undefined" && !(globalThis as any).scheduler) {
+if (typeof globalThis !== "undefined" && !globalThis.scheduler) {
   if (__CONSOLE_ENABLED__ && effectiveDev) logger.info("Adding scheduler polyfill");
-  (globalThis as any).scheduler = {
-    unstable_scheduleCallback: (_p: any, cb: any) => setTimeout(cb, 0),
-    unstable_cancelCallback: (n: any) => n?.id && clearTimeout(n.id),
+  const schedulerPolyfill: Scheduler = {
+    unstable_scheduleCallback: (_p, cb) => {
+      const id = setTimeout(cb, 0);
+      return { id };
+    },
+    unstable_cancelCallback: (n) => n && clearTimeout(n.id),
     unstable_shouldYield: () => false,
     unstable_requestPaint: () => {},
-    unstable_now: () => (performance as any).now?.() || Date.now(),
-  } as any;
+    unstable_now: () => performance.now(),
+  };
+  globalThis.scheduler = schedulerPolyfill;
 }
 
 // ------------------------------
@@ -70,10 +74,10 @@ logger.info("Initializing React application", {
 // ------------------------------
 const EnhancedErrorBoundary = ({ children }: { children: React.ReactNode }) => (
   <ErrorBoundary
-    onError={(error, errorInfo) => {
+    onError={(error: Error, errorInfo: React.ErrorInfo) => {
       logger.criticalError("React Error Boundary caught error", {
-        error: (error as any)?.message,
-        stack: (error as any)?.stack,
+        error: error.message,
+        stack: error.stack,
         errorInfo,
       });
     }}
@@ -117,9 +121,12 @@ if (effectiveDev) {
   // Debug tools temporarily disabled due to build issues
   console.log("Debug tools available in development mode");
 
-  (window as any).appDebug = {
+  window.appDebug = {
     logger,
-    testLogger: () => ((logger as any).test?.(), logger.info("Logger test completed")),
+    testLogger: () => {
+      logger.test();
+      logger.info("Logger test completed");
+    },
     performance: {
       initTime: appInitTime,
       getCurrentTime: () => performance.now(),
@@ -146,45 +153,47 @@ if (effectiveDev) {
 // ------------------------------
 if (effectiveDev && "performance" in window) {
   window.addEventListener("load", () => {
-    setTimeout(() => {
-      const nav = performance.getEntriesByType("navigation")[0] as any;
-      if (nav) {
-        logger.perf("Page Load", nav.loadEventEnd - nav.fetchStart, {
-          domContentLoaded: nav.domContentLoadedEventEnd - nav.fetchStart,
-          type: "page-load",
-        });
-      }
-    }, 0);
-  });
+      setTimeout(() => {
+        const nav = performance.getEntriesByType("navigation")[0] as
+          | PerformanceNavigationTiming
+          | undefined;
+        if (nav) {
+          logger.perf("Page Load", nav.loadEventEnd - nav.fetchStart, {
+            domContentLoaded: nav.domContentLoadedEventEnd - nav.fetchStart,
+            type: "page-load",
+          });
+        }
+      }, 0);
+    });
 
-  if ((window as any).performance.memory) {
-    setInterval(() => {
-      const m = (window as any).performance.memory;
-      logger.debug("Memory Usage", {
-        used: Math.round(m.usedJSHeapSize / 1048576) + " MB",
-        total: Math.round(m.totalJSHeapSize / 1048576) + " MB",
-        limit: Math.round(m.jsHeapSizeLimit / 1048576) + " MB",
-      });
-    }, 30000);
+    if (window.performance.memory) {
+      setInterval(() => {
+        const m = window.performance.memory;
+        logger.debug("Memory Usage", {
+          used: Math.round(m.usedJSHeapSize / 1048576) + " MB",
+          total: Math.round(m.totalJSHeapSize / 1048576) + " MB",
+          limit: Math.round(m.jsHeapSizeLimit / 1048576) + " MB",
+        });
+      }, 30000);
+    }
   }
-}
 
 // ------------------------------
 // Global error handling
 // ------------------------------
-window.addEventListener("error", (event) => {
+window.addEventListener("error", (event: ErrorEvent) => {
   logger.criticalError("Unhandled JavaScript error", {
-    message: (event as any)?.message,
-    filename: (event as any)?.filename,
-    lineno: (event as any)?.lineno,
-    colno: (event as any)?.colno,
-    error: (event as any)?.error,
+    message: event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+    error: event.error,
   });
 });
 
-window.addEventListener("unhandledrejection", (event) => {
+window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
   logger.criticalError("Unhandled Promise rejection", {
-    reason: (event as any)?.reason,
+    reason: event.reason,
   });
 });
 

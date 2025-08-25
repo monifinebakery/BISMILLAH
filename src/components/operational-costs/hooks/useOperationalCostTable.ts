@@ -58,6 +58,18 @@ export const useOperationalCostTable = (costs: OperationalCost[]) => {
     setIsSelectionMode(false);
   };
 
+  // Toggle selection mode
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(prev => {
+      const next = !prev;
+      if (!next) {
+        // Clear selections when turning off selection mode
+        setSelectedIds([]);
+      }
+      return next;
+    });
+  };
+
   return {
     // State
     selectedIds,
@@ -71,5 +83,6 @@ export const useOperationalCostTable = (costs: OperationalCost[]) => {
     clearSelection,
     enterSelectionMode,
     exitSelectionMode,
+    toggleSelectionMode,
   };
 };

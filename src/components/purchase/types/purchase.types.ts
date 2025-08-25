@@ -22,6 +22,7 @@ export interface Purchase {
   metodePerhitungan: CalculationMethod;
   createdAt: Date;
   updatedAt: Date;
+  isArchived?: boolean;
 }
 
 export type PurchaseStatus = 'pending' | 'completed' | 'cancelled';
@@ -52,6 +53,11 @@ export interface PurchaseStats {
     cancelled: number;
   };
   completionRate: number;
+}
+
+export interface PurchaseStatsProps {
+  stats: PurchaseStats;
+  className?: string;
 }
 
 // ============ API / DB Shapes ============
@@ -106,7 +112,10 @@ export interface PurchaseTableContextType {
 
   // Bulk operations
   bulkDelete: () => Promise<void>;
+  bulkUpdateStatus: (status: PurchaseStatus) => Promise<void>;
+  bulkArchive: () => Promise<void>;
   isBulkDeleting: boolean;
+  isBulkArchiving: boolean;
   showBulkDeleteDialog: boolean;
   setShowBulkDeleteDialog: (show: boolean) => void;
 
@@ -161,8 +170,8 @@ export interface PurchaseContextType {
 }
 
 // Hook aliases
-export interface UsePurchaseReturn extends PurchaseContextType {}
-export interface UsePurchaseTableReturn extends PurchaseTableContextType {}
+export type UsePurchaseReturn = PurchaseContextType;
+export type UsePurchaseTableReturn = PurchaseTableContextType;
 
 export interface UsePurchaseStatsReturn {
   stats: PurchaseStats;
@@ -250,6 +259,13 @@ export interface PurchaseFilters {
   supplierFilter?: string;
   sortBy: 'tanggal' | 'totalNilai' | 'supplier' | 'status';
   sortOrder: 'asc' | 'desc';
+}
+
+export interface PurchaseFiltersProps {
+  filters: PurchaseFilters;
+  onChange: (filters: PurchaseFilters) => void;
+  suppliers?: Array<{ id: string; nama: string }>;
+  className?: string;
 }
 
 export interface PaginationState {

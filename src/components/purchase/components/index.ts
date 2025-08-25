@@ -40,13 +40,13 @@ export const PURCHASE_COMPONENTS_LAZY = {
   BulkActionsToolbar: () => import('./BulkActionsToolbar'),
   BulkDeleteDialog: () => import('./BulkDeleteDialog'),
   StatusChangeConfirmationDialog: () => import('./StatusChangeConfirmationDialog'),
-  
+
+  // Utility components
+  PurchaseFilters: () => import('./PurchaseFilters'),
+  PurchaseStats: () => import('./PurchaseStats'),
+
   // Import dialog
   PurchaseImportDialog: () => import('./dialogs/PurchaseImportDialog')
-  
-  // ❌ REMOVED: Components that don't exist yet
-  // PurchaseFilters: () => import('./PurchaseFilters'), // TODO: Create this component
-  // PurchaseStats: () => import('./PurchaseStats')      // TODO: Create this component
 } as const;
 
 // ✅ COMPONENT GROUPS: For batch loading

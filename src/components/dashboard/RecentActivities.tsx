@@ -3,22 +3,20 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
+import { Activity as ActivityIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
 import { formatDateTime } from '@/utils/unifiedDateUtils';
-
-interface ActivityItem {
-  id: string;
-  title: string;
-  description?: string;
-  timestamp: string | Date;
-  type: string;
-  value?: string | number;
-}
+import type { Activity } from '@/types/activity';
 
 interface Props {
-  activities: ActivityItem[];
+  activities: Activity[];
+  pagination?: {
+    page: number;
+    totalPages: number;
+    totalItems: number;
+  };
+  onPageChange?: (page: number) => void;
   isLoading?: boolean;
   itemsPerPage?: number;
 }
@@ -42,7 +40,7 @@ const calculatePagination = (currentPage: number, totalItems: number, itemsPerPa
 
 // 📝 Activity Row Component
 const ActivityRow: React.FC<{
-  activity: ActivityItem;
+  activity: Activity;
   isLoading?: boolean;
 }> = ({ activity, isLoading = false }) => {
   if (isLoading) {
@@ -66,12 +64,9 @@ const ActivityRow: React.FC<{
 
   // 💰 Determine if this is a financial activity
   const isFinancial = ['keuangan', 'purchase', 'hpp'].includes(activity.type);
-  let amount = 0;
-  
-  if (isFinancial && activity.value) {
-    const parsed = parseFloat(activity.value.toString());
-    amount = isNaN(parsed) ? 0 : parsed;
-  }
+  const amount = activity.value 
+    ? (typeof activity.value === 'string' ? parseFloat(activity.value) || 0 : Number(activity.value) || 0)
+    : 0;
 
   // 🎨 Determine colors based on activity type
   const isIncome = activity.title?.toLowerCase().includes('pemasukan') || 
@@ -186,14 +181,17 @@ const RecentActivities: React.FC<Props> = ({
   // 📋 Current page activities
   const currentActivities = useMemo(() => {
     if (isLoading) {
-      // Return skeleton items
+      // Return skeleton items that match Activity interface
       return Array(itemsPerPage).fill(null).map((_, index) => ({
         id: `skeleton-${index}`,
+        userId: '',
         title: '',
         description: '',
+        type: 'order' as const,
+        value: null,
         timestamp: new Date(),
-        type: '',
-        value: 0
+        createdAt: new Date(),
+        updatedAt: null
       }));
     }
     
@@ -217,7 +215,7 @@ const RecentActivities: React.FC<Props> = ({
       {/* 📝 Header */}
       <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 p-4">
         <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
-          <Activity className="h-5 w-5 text-blue-600" />
+          <ActivityIcon className="h-5 w-5 text-blue-600" />
           <span>Aktivitas Terbaru</span>
           {!isLoading && activities.length > 0 && (
             <span className="text-sm font-normal text-gray-500">
@@ -240,7 +238,7 @@ const RecentActivities: React.FC<Props> = ({
           <TableBody>
             {currentActivities.length > 0 ? (
               currentActivities.map((activity, index) => {
-                const key = generateListKey('activity', activity.id, index, currentPage.toString());
+                const key = generateListKey(activity, index, 'activity');
                 return (
                   <ActivityRow
                     key={key}
@@ -253,7 +251,7 @@ const RecentActivities: React.FC<Props> = ({
               // 📭 Empty State
               <TableRow>
                 <TableCell colSpan={3} className="text-center text-gray-500 py-8">
-                  <Activity className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <ActivityIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="font-medium">Belum ada aktivitas</p>
                   <p className="text-sm mt-1">Aktivitas akan muncul di sini setelah ada transaksi.</p>
                 </TableCell>

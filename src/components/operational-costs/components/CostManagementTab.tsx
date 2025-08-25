@@ -1,6 +1,7 @@
 import React from 'react';
-import { Plus, Edit2, Trash2, DollarSign, Package, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, DollarSign, Package, TrendingUp, AlertTriangle, CheckSquare, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,6 +23,7 @@ interface CostManagementTabProps {
   isSelectionMode?: boolean;
   onSelectAll?: () => void;
   isAllSelected?: boolean;
+  onToggleSelectionMode?: () => void;
 }
 
 const CostManagementTab: React.FC<CostManagementTabProps> = ({
@@ -37,6 +39,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
   isSelectionMode = false,
   onSelectAll,
   isAllSelected = false,
+  onToggleSelectionMode,
 }) => {
   return (
     <div className="space-y-6">
@@ -108,71 +111,90 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
       </div>
 
       {/* Cost Management Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
+      <Card className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+        <CardHeader className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <CardTitle>Kelola Biaya Operasional</CardTitle>
               <p className="text-sm text-gray-600 mt-1">
                 Tambah, edit, atau hapus biaya bulanan untuk bisnis Anda
               </p>
             </div>
-            <Button
-              onClick={onOpenAddDialog}
-              className="bg-orange-600 hover:bg-orange-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Biaya Baru
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isSelectionMode ? 'default' : 'outline'}
+                onClick={onToggleSelectionMode}
+                className={isSelectionMode ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}
+              >
+                {isSelectionMode ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Keluar Mode Pilih
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Mode Pilih
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={onOpenAddDialog}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Biaya Baru
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
+            <Table>
+              <TableHeader className="bg-gray-50 border-b border-gray-200 sticky top-0 z-[1]">
+                <TableRow>
                   {isSelectionMode && (
-                    <th className="text-center py-3 px-2 font-medium text-gray-700 w-12">
+                    <TableHead className="w-12 text-center">
                       <Checkbox
                         checked={isAllSelected}
                         onCheckedChange={onSelectAll}
                         aria-label="Pilih semua biaya"
                       />
-                    </th>
+                    </TableHead>
                   )}
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Nama Biaya</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-700">Jumlah/Bulan</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">Grup</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">Jenis</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">Status</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">Tanggal</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
+                  <TableHead className="text-left">Nama Biaya</TableHead>
+                  <TableHead className="text-right">Jumlah/Bulan</TableHead>
+                  <TableHead className="text-center">Grup</TableHead>
+                  <TableHead className="text-center">Jenis</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Tanggal</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {costs.map((cost) => (
-                  <tr key={cost.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <TableRow key={cost.id} className="hover:bg-gray-50">
                     {isSelectionMode && (
-                      <td className="py-3 px-2 text-center">
+                      <TableCell className="text-center">
                         <Checkbox
                           checked={selectedIds.includes(cost.id)}
                           onCheckedChange={() => onSelectionChange?.(cost.id)}
                           aria-label={`Pilih biaya ${cost.nama_biaya}`}
                         />
-                      </td>
+                      </TableCell>
                     )}
-                    <td className="py-3 px-4">
+                    <TableCell>
                       <div className="font-medium text-gray-900">{cost.nama_biaya}</div>
                       {cost.deskripsi && (
                         <div className="text-sm text-gray-500 mt-1 truncate max-w-xs">
                           {cost.deskripsi}
                         </div>
                       )}
-                    </td>
-                    <td className="py-3 px-4 text-right font-medium">
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
                       {formatCurrency(cost.jumlah_per_bulan)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
+                    </TableCell>
+                    <TableCell className="text-center">
                       <Badge 
                         variant={cost.group === 'HPP' ? 'default' : 'secondary'}
                         className={cost.group === 'HPP' 
@@ -182,8 +204,8 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                       >
                         {cost.group}
                       </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-center">
+                    </TableCell>
+                    <TableCell className="text-center">
                       <Badge 
                         variant="outline"
                         className={cost.jenis === 'tetap' 
@@ -193,8 +215,8 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                       >
                         {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
                       </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-center">
+                    </TableCell>
+                    <TableCell className="text-center">
                       <Badge 
                         variant="outline"
                         className={cost.status === 'aktif' 
@@ -204,11 +226,11 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                       >
                         {cost.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                       </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-center text-sm text-gray-600">
+                    </TableCell>
+                    <TableCell className="text-center text-sm text-gray-600">
                       {formatDate(cost.created_at)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
+                    </TableCell>
+                    <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
                         <Button
                           size="sm"
@@ -227,62 +249,40 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
 
                 {/* Empty state */}
                 {costs.length === 0 && (
-                  <tr>
-                    <td colSpan={isSelectionMode ? 8 : 7} className="py-12 text-center text-gray-500">
-                      <div className="space-y-4 max-w-md mx-auto">
+                  <TableRow>
+                    <TableCell colSpan={isSelectionMode ? 8 : 7} className="text-center h-24">
+                      <div className="py-12 text-gray-500 space-y-4 max-w-md mx-auto">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
                           📝
                         </div>
                         <div>
                           <p className="font-medium text-lg text-gray-700 mb-2">Belum ada biaya yang ditambahkan</p>
                           <p className="text-sm text-gray-600 mb-4">
-                            Mari mulai dengan menambahkan biaya operasional bulanan seperti:
+                            Mulai dengan menambahkan biaya operasional bulanan seperti:
                             <br /><strong>Gas, Sewa, Marketing, Gaji, Internet</strong>
                           </p>
                         </div>
-                        
                         <div className="space-y-3">
-                          <Button
-                            onClick={onOpenAddDialog}
-                            size="lg"
-                            className="bg-orange-600 hover:bg-orange-700 px-6"
-                          >
+                          <Button onClick={onOpenAddDialog} size="lg" className="bg-orange-600 hover:bg-orange-700 px-6">
                             <Plus className="h-4 w-4 mr-2" />
                             Tambah Biaya Pertama
                           </Button>
-                          
                           <div className="text-xs text-gray-500 mt-2">
                             💡 Tip: Gunakan tombol "Setup Cepat" di header untuk template siap pakai
                           </div>
                         </div>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-              
-              {/* Total Row */}
-              {costs.length > 0 && (
-                <tfoot>
-                  <tr className="border-t-2 border-gray-300 font-semibold bg-gray-50">
-                    {isSelectionMode && <td className="py-3 px-2"></td>}
-                    <td className="py-3 px-4">Total Semua Biaya:</td>
-                    <td className="py-3 px-4 text-right text-lg">{formatCurrency(totalMonthlyCosts)}</td>
-                    <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4"></td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

@@ -54,11 +54,109 @@ export const validateForecastData = (currentAnalysis: any) => {
 // ==============================================
 
 /**
- * Generate forecast based on historical data
+ * Generate fallback forecast for businesses with limited historical data
+ */
+const generateFallbackForecast = (currentAnalysis: any, historyLength: number) => {
+  const revenue = currentAnalysis.revenue_data.total || 0;
+  const cogs = currentAnalysis.cogs_data?.total || 0;
+  const opex = currentAnalysis.opex_data?.total || 0;
+  
+  // Calculate current margins
+  const currentMargins = safeCalculateMargins(revenue, cogs, opex);
+  
+  // Conservative growth assumptions for new businesses
+  const conservativeGrowthRates = {
+    monthly: 0.05,    // 5% monthly growth (conservative)
+    quarterly: 0.15,  // 15% quarterly growth
+    yearly: 0.60      // 60% yearly growth (realistic for new business)
+  };
+  
+  // Adjust growth based on available data
+  const dataConfidenceMultiplier = Math.max(0.3, historyLength / 3);
+  const adjustedGrowthRates = {
+    monthly: conservativeGrowthRates.monthly * dataConfidenceMultiplier,
+    quarterly: conservativeGrowthRates.quarterly * dataConfidenceMultiplier,
+    yearly: conservativeGrowthRates.yearly * dataConfidenceMultiplier
+  };
+  
+  // Use current cost structure as baseline
+  const cogsPercentage = revenue > 0 ? (cogs / revenue) : 0.65; // Default 65% for new business
+  const opexPercentage = revenue > 0 ? (opex / revenue) : 0.30; // Default 30% for new business
+  
+  // Calculate predicted values
+  const calculatePredictedProfit = (predictedRevenue: number) => {
+    const predictedCogs = predictedRevenue * cogsPercentage;
+    const predictedOpex = predictedRevenue * opexPercentage;
+    const predictedNetProfit = predictedRevenue - predictedCogs - predictedOpex;
+    const predictedMargin = predictedRevenue > 0 ? (predictedNetProfit / predictedRevenue) * 100 : 0;
+    
+    return {
+      profit: predictedNetProfit,
+      margin: predictedMargin
+    };
+  };
+  
+  const nextMonthRevenue = revenue * (1 + adjustedGrowthRates.monthly);
+  const nextQuarterRevenue = revenue * (1 + adjustedGrowthRates.quarterly);
+  const nextYearRevenue = revenue * (1 + adjustedGrowthRates.yearly);
+  
+  const nextMonth = calculatePredictedProfit(nextMonthRevenue);
+  const nextQuarter = calculatePredictedProfit(nextQuarterRevenue);
+  const nextYear = calculatePredictedProfit(nextYearRevenue);
+  
+  // Conservative confidence levels for limited data
+  const baseConfidence = 40; // Lower base confidence for new businesses
+  const dataBonus = historyLength * 10; // 10% bonus per historical period
+  
+  const calculateConfidence = (periodsAhead: number) => {
+    const timeDecay = periodsAhead * 3; // Less aggressive time decay
+    return Math.max(20, Math.min(70, baseConfidence + dataBonus - timeDecay));
+  };
+  
+  return {
+    nextMonth: {
+      profit: nextMonth.profit,
+      margin: nextMonth.margin,
+      confidence: calculateConfidence(1),
+    },
+    nextQuarter: {
+      profit: nextQuarter.profit,
+      margin: nextQuarter.margin,
+      confidence: calculateConfidence(3),
+    },
+    nextYear: {
+      profit: nextYear.profit,
+      margin: nextYear.margin,
+      confidence: calculateConfidence(12),
+    },
+    metadata: {
+      currentRevenue: revenue,
+      currentNetProfit: currentMargins.netProfit,
+      currentMargin: currentMargins.netMargin,
+      averageGrowthRate: adjustedGrowthRates.monthly * 100,
+      cogsPercentage: cogsPercentage * 100,
+      opexPercentage: opexPercentage * 100,
+      historyLength: historyLength,
+      forecastMethod: 'fallback_conservative',
+      dataConfidence: dataConfidenceMultiplier,
+      validationIssues: [`Data terbatas: ${historyLength} periode tersedia`]
+    }
+  };
+};
+
+/**
+ * Generate forecast based on historical data with fallback for limited data
  */
 export const generateForecastHelper = (profitHistory: any[], currentAnalysis: any) => {
-  if (!currentAnalysis?.revenue_data?.total || !profitHistory?.length || profitHistory.length < 3) {
+  if (!currentAnalysis?.revenue_data?.total) {
     return null;
+  }
+  
+  // Handle limited data scenarios with fallback mechanisms
+  const hasMinimalData = !profitHistory?.length || profitHistory.length < 3;
+  
+  if (hasMinimalData) {
+    return generateFallbackForecast(currentAnalysis, profitHistory?.length || 0);
   }
   
   try {

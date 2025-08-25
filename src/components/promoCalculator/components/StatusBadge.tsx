@@ -1,7 +1,7 @@
 import React from 'react';
 import { helpers } from '../utils';
 
-const StatusBadge = ({ status, className = '' }) => {
+const StatusBadge = ({ status, className = '' }: any) => {
   const statusConfig = helpers.getStatusColor(status);
   
   return (

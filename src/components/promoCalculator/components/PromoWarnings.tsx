@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, AlertCircle, Info } from 'lucide-react';
 
-const PromoWarnings = ({ warnings = [], className = '' }) => {
+const PromoWarnings = ({ warnings = [], className = '' }: any) => {
   if (!warnings || warnings.length === 0) return null;
 
   const getWarningIcon = (type) => {

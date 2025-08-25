@@ -499,9 +499,10 @@ const parseOpExCosts = (costsJson: any): any[] => {
         friendlyName = nameMapping[mappedName];
       }
       
+      const amt = c.amount ?? c.jumlah_per_bulan;
       return {
         nama_biaya: friendlyName,
-        jumlah_per_bulan: Number(c.amount) || 0,
+        jumlah_per_bulan: Number(amt) || 0,
         jenis: c.type || 'tetap',
         cost_category: c.category || 'general'
       };

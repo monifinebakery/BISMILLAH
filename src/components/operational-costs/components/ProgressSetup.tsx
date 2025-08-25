@@ -49,14 +49,14 @@ const ProgressSetup: React.FC<ProgressSetupProps> = ({ costs, appSettings }) => 
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {/* Step 1 */}
             <div className="flex items-center gap-2">
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button 
+                    <button
                       type="button"
                       className="p-1 -m-1 touch-manipulation"
                       aria-label="Info langkah 1"
@@ -73,15 +73,16 @@ const ProgressSetup: React.FC<ProgressSetupProps> = ({ costs, appSettings }) => 
               </TooltipProvider>
               <span className="text-sm font-medium text-green-800">Biaya Ditambahkan</span>
             </div>
-            
-            <div className="w-8 h-1 bg-green-300 rounded"></div>
-            
+
+            <div className="hidden sm:block w-8 h-1 bg-green-300 rounded"></div>
+            <div className="sm:hidden h-8 w-1 bg-green-300 rounded self-center"></div>
+
             {/* Step 2 */}
             <div className="flex items-center gap-2">
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button 
+                    <button
                       type="button"
                       className="p-1 -m-1 touch-manipulation"
                       aria-label="Info langkah 2"
@@ -111,12 +112,12 @@ const ProgressSetup: React.FC<ProgressSetupProps> = ({ costs, appSettings }) => 
               </span>
             </div>
           </div>
-          
-          <div className="text-right">
+
+          <div className="text-left sm:text-right">
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button 
+                  <button
                     type="button"
                     className="p-1 -m-1 touch-manipulation"
                     aria-label="Info ringkasan biaya"

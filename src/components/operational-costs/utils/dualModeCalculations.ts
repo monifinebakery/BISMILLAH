@@ -179,7 +179,7 @@ export const validateDualModeInputs = (
   
   // Monthly amount validation  
   if (!monthlyAmount || monthlyAmount < 1000) {
-    errors.push('Jumlah biaya bulanan harus minimal Rp 1.000');
+    errors.push('Jumlah biaya terlalu kecil. Minimal Rp 1.000 untuk pencatatan yang akurat');
   }
   
   // Cost name validation

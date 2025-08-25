@@ -76,6 +76,22 @@ const transformFromDB = (data: any): FinancialTransaction => {
 // ✅ API FUNCTIONS
 // ===========================================
 
+// Interface untuk pagination response
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+// Interface untuk pagination parameters
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  offset?: number;
+}
+
 export const getFinancialTransactions = async (userId: string): Promise<FinancialTransaction[]> => {
   try {
     const { data, error } = await supabase
@@ -90,6 +106,49 @@ export const getFinancialTransactions = async (userId: string): Promise<Financia
   } catch (error: any) {
     logger.error('Error fetching transactions:', error);
     throw new Error(`Failed to fetch transactions: ${error.message}`);
+  }
+};
+
+// Fungsi baru dengan pagination
+export const getFinancialTransactionsPaginated = async (
+  userId: string,
+  params: PaginationParams = {}
+): Promise<PaginatedResponse<FinancialTransaction>> => {
+  try {
+    const { page = 1, limit = 20 } = params;
+    const offset = (page - 1) * limit;
+
+    // Query untuk mendapatkan total count
+    const { count, error: countError } = await supabase
+      .from('financial_transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (countError) throw countError;
+
+    // Query untuk mendapatkan data dengan pagination
+    const { data, error } = await supabase
+      .from('financial_transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+
+    const total = count || 0;
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      data: (data || []).map(transformFromDB),
+      total,
+      page,
+      limit,
+      totalPages
+    };
+  } catch (error: any) {
+    logger.error('Error fetching paginated transactions:', error);
+    throw new Error(`Failed to fetch paginated transactions: ${error.message}`);
   }
 };
 
@@ -270,6 +329,7 @@ export const bulkDeleteFinancialTransactions = async (
 
 export default {
   getFinancialTransactions,
+  getFinancialTransactionsPaginated,
   addFinancialTransaction,
   updateFinancialTransaction,
   deleteFinancialTransaction,

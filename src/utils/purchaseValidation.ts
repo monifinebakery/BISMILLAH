@@ -62,7 +62,7 @@ export function validatePurchaseData(
 
     // Step 2: Items validation
     const items = purchase.items || [];
-    let correctedItems: PurchaseItem[] = [];
+    const correctedItems: PurchaseItem[] = [];
     let correctedTotal = 0;
 
     if (items.length === 0) {
@@ -77,7 +77,7 @@ export function validatePurchaseData(
     items.forEach((item, index) => {
       const itemErrors: string[] = [];
       const itemWarnings: string[] = [];
-      let correctedItem = { ...item };
+      const correctedItem = { ...item };
 
       // Required fields
       validationRules.REQUIRED_ITEM_FIELDS.forEach(field => {

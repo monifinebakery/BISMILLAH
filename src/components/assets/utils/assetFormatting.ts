@@ -14,19 +14,14 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+// Import from unified date utils for consistency
+import { formatDateForDisplay as unifiedFormatDateForDisplay } from '@/utils/unifiedDateUtils';
+
 /**
- * Format date for display (DD/MM/YYYY)
+ * Format date for display (DD/MM/YYYY) - uses unified date utils
  */
 export const formatDateForDisplay = (date: Date | null | undefined): string => {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-    return 'N/A';
-  }
-  
-  return new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date);
+  return unifiedFormatDateForDisplay(date);
 };
 
 /**

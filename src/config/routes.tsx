@@ -85,14 +85,12 @@ const AdminUpdatesPage = React.lazy(() =>
 );
 
 // ✅ Other misc components
-const [NotFound, Settings, MenuPage, PaymentSuccessPage, InvoicePage, DeviceManagementPage] = [
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/NotFound")),
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/Settings")),
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/MenuPage")),
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/PaymentSuccessPage")),
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/invoice/InvoicePage")),
-  React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/devices/DeviceManagementPage"))
-];
+const NotFound = React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/NotFound"));
+const Settings = React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/Settings"));
+const MenuPage = React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/MenuPage"));
+const PaymentSuccessPage = React.lazy(() => import(/* webpackChunkName: "misc" */ "@/pages/PaymentSuccessPage"));
+const InvoicePage = React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/invoice/InvoicePage"));
+const DeviceManagementPage = React.lazy(() => import(/* webpackChunkName: "misc" */ "@/components/devices/DeviceManagementPage"));
 
 // ✅ Route wrapper with error boundary
 const RouteWrapper: React.FC<{ 

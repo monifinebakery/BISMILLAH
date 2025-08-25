@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus,
@@ -35,6 +36,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   getTransactionsByDateRange,
   deleteFinancialTransaction,
+  getFinancialTransactionsPaginated,
 } from '../services/financialApi'; // ✅ Sesuaikan path ini
 
 // ✅ Types - Sebaiknya diimpor dari file types terpisah jika memungkinkan
@@ -60,6 +62,12 @@ interface TransactionTableProps {
   transactions?: FinancialTransaction[];
   isLoading?: boolean;
   onRefresh?: () => void;
+  // Bulk operations props
+  selectedIds?: string[];
+  onSelectionChange?: (transactionId: string, isSelected: boolean) => void;
+  isSelectionMode?: boolean;
+  onSelectAll?: () => void;
+  isAllSelected?: boolean;
 }
 
 // ✅ Query keys
@@ -70,34 +78,65 @@ const transactionQueryKeys = {
     [...transactionQueryKeys.list(), 'range', from.toISOString(), to?.toISOString()] as const,
 };
 
-// ✅ Custom hook untuk transaction data — menggunakan financialApi langsung
-const useTransactionData = (dateRange?: { from: Date; to?: Date }, userId?: string) => {
+// ✅ Custom hook untuk transaction data dengan server-side pagination
+const useTransactionData = (
+  dateRange?: { from: Date; to?: Date }, 
+  userId?: string,
+  page: number = 1,
+  limit: number = 10,
+  usePagination: boolean = false
+) => {
   const queryClient = useQueryClient();
-  // Hanya fetch jika userId ada dan dateRange valid
-  const enabled = !!userId && !!dateRange?.from;
+  // Hanya fetch jika userId ada
+  const enabled = !!userId;
 
   const {
-    data: transactions = [],
+    data,
     isLoading,
     error,
     refetch,
     dataUpdatedAt,
     isRefetching,
   } = useQuery({
-    queryKey: dateRange
-      ? transactionQueryKeys.byRange(dateRange.from, dateRange.to)
-      : transactionQueryKeys.list(),
-    queryFn: () => {
-      if (!userId || !dateRange?.from || !dateRange?.to) {
-        return Promise.resolve([]);
+    queryKey: usePagination 
+      ? [...transactionQueryKeys.list(), 'paginated', page, limit, dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]
+      : dateRange
+        ? transactionQueryKeys.byRange(dateRange.from, dateRange.to)
+        : transactionQueryKeys.list(),
+    queryFn: async () => {
+      if (!userId) {
+        return usePagination ? { data: [], total: 0, page: 1, limit, totalPages: 0 } : [];
       }
-      return getTransactionsByDateRange(userId, dateRange.from, dateRange.to);
+      
+      if (usePagination) {
+        // Gunakan server-side pagination
+        return await getFinancialTransactionsPaginated(userId, { page, limit });
+      } else {
+        // Gunakan metode lama untuk backward compatibility
+        if (!dateRange?.from || !dateRange?.to) {
+          return [];
+        }
+        return getTransactionsByDateRange(userId, dateRange.from, dateRange.to);
+      }
     },
     enabled,
     staleTime: 2 * 60 * 1000, // 2 menit
     refetchInterval: 5 * 60 * 1000, // Refresh tiap 5 menit
     retry: 1,
   });
+
+  // Extract data based on pagination mode with type guard
+  const isPaginatedResponse = (data: any): data is { data: FinancialTransaction[], total: number, page: number, limit: number, totalPages: number } => {
+    return data && typeof data === 'object' && 'data' in data && 'total' in data;
+  };
+  
+  const transactions = usePagination && isPaginatedResponse(data) ? data.data : (data as FinancialTransaction[] || []);
+  const paginationInfo = usePagination && isPaginatedResponse(data) ? {
+    total: data.total,
+    page: data.page,
+    limit: data.limit,
+    totalPages: data.totalPages
+  } : null;
 
   // Mutation: Hapus transaksi
   const deleteMutation = useMutation({
@@ -126,6 +165,7 @@ const useTransactionData = (dateRange?: { from: Date; to?: Date }, userId?: stri
     lastUpdated: dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
     deleteTransaction: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
+    paginationInfo,
   };
 };
 
@@ -156,30 +196,59 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   transactions: legacyTransactions,
   isLoading: legacyIsLoading,
   onRefresh: legacyOnRefresh,
+  // Bulk operations props
+  selectedIds = [],
+  onSelectionChange,
+  isSelectionMode = false,
+  onSelectAll,
+  isAllSelected = false,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [useLazyLoading, setUseLazyLoading] = useState(false); // Toggle untuk lazy loading
 
   // ✅ Definisikan user TERLEBIH DAHULU sebelum digunakan
   const { user } = useAuth(); // ✅ Harus di sini
 
   // Gunakan data dari useQuery (Supabase) atau dari props
-  const queryData = useTransactionData(dateRange, user?.id); // ✅ Sekarang user sudah didefinisikan
+  const queryData = useTransactionData(
+    dateRange, 
+    user?.id, 
+    currentPage, 
+    itemsPerPage, 
+    useLazyLoading && !legacyTransactions // Gunakan lazy loading hanya jika tidak ada legacy props
+  );
+  
   const transactions = legacyTransactions || queryData.transactions;
   const isLoading = legacyIsLoading ?? queryData.isLoading;
   const onRefresh = legacyOnRefresh || queryData.refetch;
   const lastUpdated = queryData.lastUpdated;
   const isRefetching = queryData.isRefetching;
+  const paginationInfo = queryData.paginationInfo;
 
-  // Pagination logic
+  // Pagination logic - gunakan server-side jika lazy loading aktif
   const currentTransactions = useMemo(() => {
-    const firstItem = (currentPage - 1) * itemsPerPage;
-    return transactions.slice(firstItem, firstItem + itemsPerPage);
-  }, [transactions, currentPage, itemsPerPage]);
+    if (useLazyLoading && paginationInfo && !legacyTransactions) {
+      // Server-side pagination: data sudah dipaginasi dari server
+      return transactions;
+    } else {
+      // Client-side pagination: slice data di client
+      const firstItem = (currentPage - 1) * itemsPerPage;
+      return transactions.slice(firstItem, firstItem + itemsPerPage);
+    }
+  }, [transactions, currentPage, itemsPerPage, useLazyLoading, paginationInfo, legacyTransactions]);
 
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  // Calculate pagination info
+  const totalPages = useLazyLoading && paginationInfo 
+    ? paginationInfo.totalPages 
+    : Math.ceil(transactions.length / itemsPerPage);
+  const totalItems = useLazyLoading && paginationInfo 
+    ? paginationInfo.total 
+    : transactions.length;
   const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, transactions.length);
+  const endItem = useLazyLoading && paginationInfo 
+    ? Math.min(currentPage * itemsPerPage, paginationInfo.total)
+    : Math.min(currentPage * itemsPerPage, transactions.length);
 
   // Reset page saat data berubah
   useEffect(() => {
@@ -262,6 +331,27 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             )}
           </div>
           <div className="flex items-center gap-2">
+            {!legacyTransactions && (
+              <div className="flex items-center gap-2 mr-2">
+                <label className="text-xs text-gray-600 flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useLazyLoading}
+                    onChange={(e) => {
+                      setUseLazyLoading(e.target.checked);
+                      setCurrentPage(1); // Reset ke halaman pertama
+                    }}
+                    className="w-3 h-3"
+                  />
+                  <span>Lazy Loading</span>
+                </label>
+                {useLazyLoading && (
+                  <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                    Server-side
+                  </div>
+                )}
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -279,11 +369,18 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             )}
           </div>
         </div>
-        {lastUpdated && (
-          <p className="text-xs text-gray-400">
-            Terakhir diperbarui: {lastUpdated.toLocaleString('id-ID')}
-          </p>
-        )}
+        <div className="flex items-center justify-between">
+          {lastUpdated && (
+            <p className="text-xs text-gray-400">
+              Terakhir diperbarui: {lastUpdated.toLocaleString('id-ID')}
+            </p>
+          )}
+          {useLazyLoading && paginationInfo && (
+            <p className="text-xs text-blue-600">
+              Mode: Server-side Pagination | Total: {paginationInfo.total} data
+            </p>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
@@ -295,6 +392,15 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
+                  {isSelectionMode && (
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={onSelectAll}
+                        aria-label="Pilih semua transaksi"
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="min-w-[140px]">
                     <div className="flex items-center gap-2">
                       <span>Tanggal & Waktu</span>
@@ -326,6 +432,17 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 {currentTransactions.length > 0 ? (
                   currentTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
+                      {isSelectionMode && (
+                        <TableCell className="w-12">
+                          <Checkbox
+                            checked={selectedIds.includes(transaction.id)}
+                            onCheckedChange={(checked) => 
+                              onSelectionChange?.(transaction.id, checked as boolean)
+                            }
+                            aria-label={`Pilih transaksi ${transaction.description}`}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="min-w-[140px]">
                         {transaction.date ? (() => {
                           try {
@@ -427,7 +544,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
+                    <TableCell colSpan={isSelectionMode ? 7 : 6} className="text-center h-24">
                       <div className="flex flex-col items-center justify-center">
                         <div className="text-gray-400 mb-2">📊</div>
                         <p className="text-gray-500">
@@ -458,7 +575,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between p-4 border-t gap-4">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div>
-              Menampilkan {startItem}-{endItem} dari {transactions.length} transaksi
+              Menampilkan {startItem}-{endItem} dari {totalItems} transaksi
             </div>
             <div className="flex items-center gap-2">
               <span>Per halaman:</span>

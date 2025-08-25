@@ -367,6 +367,9 @@ export const monitorOrderDataQuality = (orders: Order[]): {
   const oldPendingOrders = orders.filter(order => {
     if (order.status !== 'pending') return false;
     const orderDate = new Date(order.tanggal);
+    if (!(orderDate instanceof Date) || isNaN(orderDate.getTime())) {
+      return false; // Skip invalid dates
+    }
     const daysDiff = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
     return daysDiff > 7; // More than 7 days old
   });

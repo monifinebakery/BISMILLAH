@@ -1,8 +1,11 @@
 // src/components/purchase/PurchasePage.tsx - Fixed Delete with Proper Refresh
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 // ✅ CONSOLIDATED: Context imports (kept as-is, already optimal)
 import { PurchaseProvider } from './context/PurchaseContext';
@@ -31,8 +34,8 @@ const PurchaseTable = React.lazy(() =>
   }))
 );
 
-const BulkActionsToolbar = React.lazy(() => 
-  import('./components/BulkActionsToolbar').catch(() => ({
+const BulkActionsBar = React.lazy(() => 
+  import('./components/BulkActionsBar').catch(() => ({
     default: () => null
   }))
 );
@@ -138,6 +141,71 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // ✅ CONTEXTS: Direct usage
   const purchaseContext = usePurchase();
   const { suppliers } = useSupplier();
+  const { user } = useAuth();
+
+  // ✅ NEW: State untuk lazy loading dan paginasi
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [paginationInfo, setPaginationInfo] = useState({ total: 0, totalPages: 0 });
+
+  // ✅ NEW: Fungsi untuk mengambil data purchase dengan paginasi
+  const fetchPurchasesPaginated = async (
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ data: any[]; total: number; totalPages: number }> => {
+    const offset = (page - 1) * limit;
+
+    // Ambil total count
+    const { count, error: countError } = await supabase
+      .from('purchases')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (countError) throw new Error(countError.message);
+
+    // Ambil data dengan paginasi
+    const { data, error } = await supabase
+      .from('purchases')
+      .select('*')
+      .eq('user_id', userId)
+      .order('tanggal', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw new Error(error.message);
+
+    const totalPages = Math.ceil((count || 0) / limit);
+
+    return {
+      data: data || [],
+      total: count || 0,
+      totalPages
+    };
+  };
+
+  // ✅ NEW: Query untuk lazy loading
+  const {
+    data: paginatedData,
+    isLoading: isPaginatedLoading,
+    error: paginatedError,
+    refetch: refetchPaginated
+  } = useQuery({
+    queryKey: ['purchases', 'paginated', user?.id, currentPage, itemsPerPage],
+    queryFn: () => fetchPurchasesPaginated(user!.id, currentPage, itemsPerPage),
+    enabled: useLazyLoading && !!user?.id,
+    staleTime: 30000,
+  });
+
+  // ✅ NEW: Update pagination info ketika data berubah
+  useEffect(() => {
+    if (paginatedData && useLazyLoading) {
+      setPaginationInfo({
+        total: paginatedData.total,
+        totalPages: paginatedData.totalPages
+      });
+    }
+  }, [paginatedData, useLazyLoading]);
 
   // ✅ pakai API dari context langsung
   const {
@@ -149,6 +217,21 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     validatePrerequisites,
     getSupplierName,
   } = purchaseContext;
+
+  // ✅ NEW: Tentukan data yang akan digunakan berdasarkan mode lazy loading
+  const finalPurchases = useLazyLoading ? (paginatedData?.data || []) : purchases;
+  const finalIsLoading = useLazyLoading ? isPaginatedLoading : purchaseContext.isLoading;
+  const finalError = useLazyLoading ? paginatedError : purchaseContext.error;
+  const finalStats = useLazyLoading ? {
+    total: paginationInfo.total,
+    totalValue: finalPurchases.reduce((sum: number, p: any) => sum + Number(p.total_nilai || 0), 0),
+    byStatus: {
+      pending: finalPurchases.filter((p: any) => p.status === 'pending').length,
+      completed: finalPurchases.filter((p: any) => p.status === 'completed').length,
+      cancelled: finalPurchases.filter((p: any) => p.status === 'cancelled').length,
+    },
+    completionRate: paginationInfo.total ? (finalPurchases.filter((p: any) => p.status === 'completed').length / paginationInfo.total) * 100 : 0,
+  } : stats;
 
   // ✅ SINGLE STATE: Consolidated app state
   const [appState, setAppState] = useState<AppState>(initialAppState);
@@ -282,7 +365,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   }, [dataStatus.hasMissingData, dataStatus.missingSuppliers, appState.warnings.dataWarning.hasShownToast]);
 
   // ✅ EARLY RETURNS: Optimized error and loading states
-  if (purchaseContext.error) {
+  if (finalError) {
     return (
       <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
         <div className="text-center py-12">
@@ -293,7 +376,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Gagal memuat data</h3>
-            <p className="text-gray-500 mb-4">{purchaseContext.error}</p>
+            <p className="text-gray-500 mb-4">{finalError instanceof Error ? finalError.message : String(finalError)}</p>
             <button
               onClick={() => window.location.reload()}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -306,7 +389,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     );
   }
 
-  if (purchaseContext.isLoading) {
+  if (finalIsLoading) {
     return (
       <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
         <LoadingState />
@@ -320,13 +403,61 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Data warning banner */}
 
 
+      {/* ✅ NEW: Kontrol Lazy Loading */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="useLazyLoading"
+              checked={useLazyLoading}
+              onChange={(e) => {
+                setUseLazyLoading(e.target.checked);
+                if (e.target.checked) {
+                  setCurrentPage(1);
+                }
+              }}
+              className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+            />
+            <label htmlFor="useLazyLoading" className="text-sm font-medium text-gray-700">
+              Aktifkan Lazy Loading
+            </label>
+          </div>
+
+          {useLazyLoading && (
+            <>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Item per halaman:</label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              <div className="text-sm text-gray-600">
+                Total: {paginationInfo.total} pembelian
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Header */}
       <PurchaseHeader
-        totalPurchases={stats.total}
-        totalValue={stats.totalValue}
-        pendingCount={stats.byStatus.pending}
+        totalPurchases={finalStats.total}
+        totalValue={finalStats.totalValue}
+        pendingCount={finalStats.byStatus.pending}
         onAddPurchase={(intent) => {
-          if (intent === 'import') {
+          if (intent === 'import' as any) {
             dialogActions.import.open();
           } else {
             dialogActions.purchase.openAdd();
@@ -336,31 +467,60 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       />
 
       {/* Main content */}
-      {!purchases.length ? (
+      {!finalPurchases.length ? (
         <EmptyState
           onAddPurchase={dialogActions.purchase.openAdd}
           hasSuppliers={!dataStatus.missingSuppliers}
         />
       ) : (
-        <PurchaseTableProvider purchases={purchases} suppliers={suppliers}>
-          <Suspense fallback={<QuickLoader />}>
-            <BulkActionsToolbar />
-          </Suspense>
+        <>
+          <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
+            <Suspense fallback={<QuickLoader />}>
+              <BulkActionsBar />
+            </Suspense>
 
-          <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
-            <PurchaseTable
-              onEdit={dialogActions.purchase.openEdit}
-              onStatusChange={setStatus}
-              onDelete={businessHandlers.delete}
-              onBulkDelete={businessHandlers.bulkDelete}
-              validateStatusChange={async () => ({ canChange: true, warnings: [], errors: [] })}
-            />
-          </Suspense>
+            <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
+              <PurchaseTable
+                onEdit={dialogActions.purchase.openEdit}
+                onStatusChange={setStatus}
+                onDelete={async (purchaseId: string) => {
+                  await businessHandlers.delete(purchaseId);
+                }}
+                onBulkDelete={businessHandlers.bulkDelete}
+                validateStatusChange={async () => ({ canChange: true, warnings: [], errors: [] })}
+              />
+            </Suspense>
 
-          <Suspense fallback={null}>
-            <BulkDeleteDialog />
-          </Suspense>
-        </PurchaseTableProvider>
+            <Suspense fallback={null}>
+              <BulkDeleteDialog />
+            </Suspense>
+          </PurchaseTableProvider>
+
+          {/* ✅ NEW: Kontrol Paginasi untuk Lazy Loading */}
+          {useLazyLoading && paginationInfo.totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Halaman {currentPage} dari {paginationInfo.totalPages}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Sebelumnya
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
+                  disabled={currentPage === paginationInfo.totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Selanjutnya
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ✅ OPTIMIZED: Conditional dialogs with better loading */}

@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
 
   // 🔎 Build-time visibility (muncul di log Netlify)
   // Hapus kalau sudah tidak perlu debug
-  // eslint-disable-next-line no-console
+   
   console.log("🐛 [VITE CONFIG]", {
     mode,
     isProd,

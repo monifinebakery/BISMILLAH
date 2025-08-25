@@ -11,13 +11,24 @@ export const UpdatesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'critical' | 'high' | 'normal' | 'low'>('all');
+  
+  // Lazy loading state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [paginationInfo, setPaginationInfo] = useState<{
+    total: number;
+    totalPages: number;
+    currentPage: number;
+    hasMore: boolean;
+  } | null>(null);
 
   const fetchAllUpdates = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('app_updates')
-        .select('*')
+        .select('id, version, title, description, release_date, is_active, priority, created_by, created_at, updated_at')
         .eq('is_active', true)
         .order('release_date', { ascending: false });
 
@@ -30,20 +41,84 @@ export const UpdatesPage: React.FC = () => {
     }
   };
 
+  const fetchUpdatesPaginated = async (page: number, limit: number) => {
+    setLoading(true);
+    try {
+      // Get total count
+      const { count, error: countError } = await supabase
+        .from('app_updates')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      if (countError) throw countError;
+
+      // Get paginated data
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      const { data, error } = await supabase
+        .from('app_updates')
+        .select('id, version, title, description, release_date, is_active, priority, created_by, created_at, updated_at')
+        .eq('is_active', true)
+        .order('release_date', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      return {
+        data: data || [],
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+        currentPage: page,
+        hasMore: to < (count || 0) - 1
+      };
+    } catch (error) {
+      console.error('Error fetching paginated updates:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchAllUpdates();
-  }, []);
+    if (useLazyLoading) {
+      loadPaginatedData();
+    } else {
+      fetchAllUpdates();
+    }
+  }, [useLazyLoading, currentPage, itemsPerPage]);
+
+  const loadPaginatedData = async () => {
+    try {
+      const result = await fetchUpdatesPaginated(currentPage, itemsPerPage);
+      setUpdates(result.data);
+      setPaginationInfo({
+        total: result.total,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+        hasMore: result.hasMore
+      });
+    } catch (error) {
+      console.error('Error loading paginated data:', error);
+    }
+  };
 
   const handleRefresh = async () => {
-    await Promise.all([
-      fetchAllUpdates(),
-      refreshUpdates(),
-    ]);
+    if (useLazyLoading) {
+      await loadPaginatedData();
+    } else {
+      await fetchAllUpdates();
+    }
+    await refreshUpdates();
   };
 
   const handleMarkAllAsSeen = async () => {
     await markAllAsSeen();
-    await fetchAllUpdates();
+    if (useLazyLoading) {
+      await loadPaginatedData();
+    } else {
+      await fetchAllUpdates();
+    }
   };
 
   // Filter updates based on selected filters and unread status
@@ -99,6 +174,59 @@ export const UpdatesPage: React.FC = () => {
                 <RefreshCw className="w-4 h-4" />
                 Refresh
               </button>
+            </div>
+          </div>
+
+          {/* Lazy Loading Controls */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={useLazyLoading}
+                    onChange={(e) => {
+                      setUseLazyLoading(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="font-medium">Lazy Loading</span>
+                  {useLazyLoading && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                      Server-side
+                    </span>
+                  )}
+                </label>
+                
+                {useLazyLoading && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <label htmlFor="itemsPerPage">Items per page:</label>
+                    <select
+                      id="itemsPerPage"
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                {useLazyLoading && paginationInfo && (
+                  <span className="text-blue-600 font-medium">
+                    Total: {paginationInfo.total} update
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -158,6 +286,37 @@ export const UpdatesPage: React.FC = () => {
                 isUnread={unseenUpdates.some(u => u.id === update.id)}
               />
             ))}
+          </div>
+        )}
+        
+        {/* Pagination Controls for Lazy Loading */}
+        {useLazyLoading && paginationInfo && paginationInfo.totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Halaman {paginationInfo.currentPage} dari {paginationInfo.totalPages}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Sebelumnya
+              </button>
+              
+              <span className="px-3 py-2 text-sm">
+                {currentPage} / {paginationInfo.totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
+                disabled={currentPage === paginationInfo.totalPages}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Selanjutnya
+              </button>
+            </div>
           </div>
         )}
       </div>

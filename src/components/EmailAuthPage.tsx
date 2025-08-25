@@ -1,26 +1,52 @@
-// src/components/auth/EmailAuthPage.tsx - SIMPLIFIED OTP VERIFICATION
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ TAMBAHKAN INI
-import { Mail, Lock, Clock, RefreshCw, AlertCircle } from 'lucide-react';
-import { sendEmailOtp, verifyEmailOtp } from '@/services/auth';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
-import { useAuth } from '@/contexts/AuthContext';
+// src/components/auth/EmailAuthPage.tsx — OTP + hCaptcha (Preview & Prod)
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Mail, Lock, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { sendEmailOtp, verifyEmailOtp } from "@/services/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { toast } from "sonner";
+import { logger } from "@/utils/logger";
+import { useAuth } from "@/contexts/AuthContext";
 
-// ✅ Dynamic hCaptcha import
+// ─────────────────────────────────────────────────────────────
+// ENV flags (gunakan Vercel System Env yang diexpose otomatis)
+// ─────────────────────────────────────────────────────────────
+const VERCEL_ENV = import.meta.env
+  .VITE_VERCEL_ENV as "production" | "preview" | "development" | undefined;
+
+const HCAPTCHA_SITE_KEY = (import.meta.env.VITE_HCAPTCHA_SITE_KEY ?? "").trim();
+const HCAPTCHA_ENABLED_FLAG =
+  (import.meta.env.VITE_HCAPTCHA_ENABLED ?? "false") === "true";
+
+// Captcha wajib di PREVIEW & PRODUCTION bila flag ON + sitekey ada.
+// Dev lokal tetap OFF.
+const REQUIRE_CAPTCHA =
+  HCAPTCHA_ENABLED_FLAG && !!HCAPTCHA_SITE_KEY && VERCEL_ENV !== "development";
+
+// Dynamic hCaptcha import holder
 let HCaptchaComponent: any = null;
 
-// ✅ Environment variables
-const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "3c246758-c42c-406c-b258-87724508b28a";
-const HCAPTCHA_ENABLED = import.meta.env.VITE_HCAPTCHA_ENABLED !== 'false';
+// ─────────────────────────────────────────────────────────────
 
+type AuthState =
+  | "idle"
+  | "sending"
+  | "sent"
+  | "verifying"
+  | "error"
+  | "expired"
+  | "success";
 
-// ✅ Simplified Props Interface
 interface EmailAuthPageProps {
   appName?: string;
   appDescription?: string;
@@ -31,116 +57,92 @@ interface EmailAuthPageProps {
   redirectUrl?: string;
 }
 
-// ✅ Simplified Auth States
-type AuthState = 'idle' | 'sending' | 'sent' | 'verifying' | 'error' | 'expired' | 'success';
-
 const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
-  appName = 'Sistem HPP',
-  appDescription = 'Hitung Harga Pokok Penjualan dengan mudah',
-  primaryColor = '#ea580c', // Orange-600
-  supportEmail = 'admin@sistemhpp.com',
+  appName = "Sistem HPP",
+  appDescription = "Hitung Harga Pokok Penjualan dengan mudah",
+  primaryColor = "#ea580c",
+  supportEmail = "admin@sistemhpp.com",
   logoUrl,
   onLoginSuccess,
-  redirectUrl = '/',
+  redirectUrl = "/",
 }) => {
-  // ✅ TAMBAHKAN NAVIGATE
   const navigate = useNavigate();
   const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
-  
-  // ✅ Simplified State Management
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [authState, setAuthState] = useState<AuthState>('idle');
-  const [error, setError] = useState('');
+
+  // State
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [authState, setAuthState] = useState<AuthState>("idle");
+  const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
-  
-  // ✅ hCaptcha state
+
+  // hCaptcha state
   const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
   const [hCaptchaKey, setHCaptchaKey] = useState(0);
-  const [hCaptchaLoaded, setHCaptchaLoaded] = useState(false);
+  const [hCaptchaLoaded, setHCaptchaLoaded] = useState(!REQUIRE_CAPTCHA ? true : false);
   const [hCaptchaLoadError, setHCaptchaLoadError] = useState(false);
-  
-  // ✅ Refs for OTP inputs, timer, and mounted state
+
+  // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
 
-  // ✅ Load hCaptcha dynamically with fallback
+  // ─────────────────────────────────────────────────────────────
+  // Load hCaptcha hanya ketika diwajibkan
+  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    if (HCAPTCHA_ENABLED && !HCaptchaComponent) {
-      // Set a timeout to mark hCaptcha as loaded even if it fails (CSP workaround)
+    let timeoutId: NodeJS.Timeout | undefined;
+
+    if (REQUIRE_CAPTCHA && !HCaptchaComponent) {
       timeoutId = setTimeout(() => {
         if (mountedRef.current && !hCaptchaLoaded) {
-          logger.warn('hCaptcha failed to load, likely due to CSP. Proceeding without captcha.');
+          logger.warn("hCaptcha load timeout. Periksa CSP/ad-block/allowlist.");
           setHCaptchaLoadError(true);
-          setHCaptchaLoaded(true);
+          setHCaptchaLoaded(false); // tetap false agar tombol tidak bisa dipencet
         }
-      }, 5000); // 5 second timeout
-      
-      import('@hcaptcha/react-hcaptcha')
-        .then((module) => {
-          if (mountedRef.current) {
-            clearTimeout(timeoutId);
-            HCaptchaComponent = module.default;
-            setHCaptchaLoaded(true);
-            setHCaptchaKey(1);
-          }
+      }, 6000);
+
+      import("@hcaptcha/react-hcaptcha")
+        .then((m) => {
+          if (!mountedRef.current) return;
+          clearTimeout(timeoutId);
+          HCaptchaComponent = m.default;
+          setHCaptchaLoaded(true);
+          setHCaptchaKey((k) => k + 1);
         })
-        .catch((error) => {
-          logger.error('Failed to load hCaptcha:', error);
-          if (mountedRef.current) {
-            clearTimeout(timeoutId);
-            setHCaptchaLoadError(true);
-            setHCaptchaLoaded(true); // Still mark as loaded to proceed
-          }
+        .catch((e) => {
+          logger.error("Failed to load hCaptcha:", e);
+          if (!mountedRef.current) return;
+          clearTimeout(timeoutId);
+          setHCaptchaLoadError(true);
+          setHCaptchaLoaded(false);
         });
-    } else if (!HCAPTCHA_ENABLED) {
-      setHCaptchaLoaded(true);
     }
-    
+
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
 
-  // ✅ Cleanup timer and set mounted state on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
-  // ✅ Simplified Cooldown Timer with mounted check
+  // Cooldown
   const startCooldown = (seconds: number) => {
     if (!mountedRef.current) return;
-    
     setCooldownTime(seconds);
-    
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      if (!mountedRef.current) {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-        return;
-      }
-      
+      if (!mountedRef.current) return clearInterval(timerRef.current!);
       setCooldownTime((prev) => {
         if (prev <= 1) {
-          if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-          }
+          clearInterval(timerRef.current!);
+          timerRef.current = null;
           return 0;
         }
         return prev - 1;
@@ -148,259 +150,228 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }, 1000);
   };
 
-  // ✅ Reset Form State
+  // Reset
+  const resetHCaptcha = () => {
+    if (!mountedRef.current) return;
+    if (REQUIRE_CAPTCHA && hCaptchaLoaded) {
+      setHCaptchaToken(null);
+      setHCaptchaKey((k) => k + 1);
+    }
+  };
+
   const resetForm = () => {
     if (!mountedRef.current) return;
-    
-    setOtp(['', '', '', '', '', '']);
-    setError('');
-    setAuthState('idle');
+    setOtp(["", "", "", "", "", ""]);
+    setError("");
+    setAuthState("idle");
     resetHCaptcha();
   };
 
-  // ✅ Reset hCaptcha
-  const resetHCaptcha = () => {
-    if (!mountedRef.current) return;
-    
-    if (HCAPTCHA_ENABLED && hCaptchaLoaded) {
-      setHCaptchaToken(null);
-      setHCaptchaKey(prev => prev + 1);
-    }
-  };
+  // Validation
+  const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // ✅ Simplified Email Validation
-  const isValidEmail = (email: string) => {
-    return email && email.includes('@') && email.length > 5;
-  };
+  // Tombol kirim aktif kalau:
+  // - email valid
+  // - tidak cooldown & tidak sending
+  // - kalau captcha diwajibkan → harus ada token
+  const canSend =
+    isValidEmail(email) &&
+    cooldownTime === 0 &&
+    authState !== "sending" &&
+    (!REQUIRE_CAPTCHA || !!hCaptchaToken);
 
-  // ✅ Check if form is valid
-  const isFormValid = () => {
-    const emailValid = isValidEmail(email);
-    // If hCaptcha failed to load (likely due to CSP), don't require it
-    const captchaValid = !HCAPTCHA_ENABLED || !hCaptchaLoaded || hCaptchaLoadError || hCaptchaToken;
-    return emailValid && captchaValid;
-  };
-
-  // ✅ Handle Email Change
+  // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
-    if (authState !== 'idle') {
-      resetForm();
-    }
+    if (authState !== "idle") resetForm();
   };
 
-  // ✅ Send OTP with mounted check
   const handleSendOtp = async () => {
     if (!mountedRef.current) return;
-    
+
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
     }
-
     if (!isValidEmail(email)) {
-      toast.error('Masukkan alamat email yang valid.');
+      toast.error("Masukkan alamat email yang valid.");
+      return;
+    }
+    if (REQUIRE_CAPTCHA && !hCaptchaToken) {
+      toast.error("Harap selesaikan verifikasi captcha.");
       return;
     }
 
-    if (HCAPTCHA_ENABLED && hCaptchaLoaded && !hCaptchaLoadError && !hCaptchaToken) {
-      toast.error('Harap selesaikan verifikasi captcha.');
-      return;
-    }
-
-    setAuthState('sending');
-    setError('');
+    setAuthState("sending");
+    setError("");
 
     try {
       const success = await sendEmailOtp(
         email,
-        HCAPTCHA_ENABLED ? hCaptchaToken : null,
+        REQUIRE_CAPTCHA ? hCaptchaToken : null,
         true,
         false
       );
-      
+
       if (!mountedRef.current) return;
-      
+
       if (success) {
-        setAuthState('sent');
+        setAuthState("sent");
         startCooldown(60);
-        toast.success('Kode OTP telah dikirim ke email Anda.');
-        
-        // Focus first OTP input
-        setTimeout(() => {
-          if (mountedRef.current) {
-            inputRefs.current[0]?.focus();
-          }
-        }, 100);
+        toast.success("Kode OTP telah dikirim ke email Anda.");
+        setTimeout(() => inputRefs.current[0]?.focus(), 120);
       } else {
-        setAuthState('error');
-        setError('Gagal mengirim kode OTP. Silakan coba lagi.');
+        setAuthState("error");
+        setError("Gagal mengirim kode OTP. Silakan coba lagi.");
         startCooldown(30);
       }
-    } catch (error) {
-      logger.error('Error sending OTP:', error);
+    } catch (e) {
+      logger.error("Error sending OTP:", e);
       if (mountedRef.current) {
-        setAuthState('error');
-        setError('Terjadi kesalahan saat mengirim kode OTP.');
+        setAuthState("error");
+        setError("Terjadi kesalahan saat mengirim kode OTP.");
         startCooldown(30);
       }
     }
   };
 
-  // ✅ Resend OTP with mounted check
   const handleResendOtp = async () => {
     if (!mountedRef.current) return;
-    
+
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
     }
+    if (REQUIRE_CAPTCHA && !hCaptchaToken) {
+      toast.error("Harap selesaikan verifikasi captcha.");
+      return;
+    }
 
-    setAuthState('sending');
-    setError('');
-    setOtp(['', '', '', '', '', '']);
+    setAuthState("sending");
+    setError("");
+    setOtp(["", "", "", "", "", ""]);
 
     try {
       const success = await sendEmailOtp(
         email,
-        null,
+        REQUIRE_CAPTCHA ? hCaptchaToken : null, // ⬅️ penting: kirim token juga saat resend
         true,
         true
       );
-      
+
       if (!mountedRef.current) return;
-      
+
       if (success) {
-        setAuthState('sent');
+        setAuthState("sent");
         startCooldown(60);
-        toast.success('Kode OTP baru telah dikirim.');
+        toast.success("Kode OTP baru telah dikirim.");
         inputRefs.current[0]?.focus();
       } else {
-        setAuthState('error');
-        setError('Gagal mengirim ulang kode OTP.');
+        setAuthState("error");
+        setError("Gagal mengirim ulang kode OTP.");
         startCooldown(30);
       }
-    } catch (error) {
-      logger.error('Error resending OTP:', error);
+    } catch (e) {
+      logger.error("Error resending OTP:", e);
       if (mountedRef.current) {
-        setAuthState('error');
-        setError('Terjadi kesalahan saat mengirim ulang kode OTP.');
+        setAuthState("error");
+        setError("Terjadi kesalahan saat mengirim ulang kode OTP.");
         startCooldown(30);
       }
     }
   };
 
-  // ✅ Handle OTP Input Change
   const handleOtpChange = (index: number, value: string) => {
     if (!mountedRef.current) return;
-    
-    // Only allow single character
     if (value.length > 1) return;
-    
-    const newOtp = [...otp];
-    newOtp[index] = value.toUpperCase();
-    setOtp(newOtp);
-    setError('');
-    
-    // Auto-focus next input
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
+    const next = [...otp];
+    next[index] = value.toUpperCase();
+    setOtp(next);
+    setError("");
+    if (value && index < 5) inputRefs.current[index + 1]?.focus();
   };
 
-  // ✅ Handle Backspace
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
-  // ✅ Handle Paste
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\s/g, '').toUpperCase();
-    
-    if (pastedData.length === 6 && /^[0-9A-Z]{6}$/.test(pastedData)) {
-      const newOtp = pastedData.split('');
-      setOtp(newOtp);
-      setError('');
+    const pasted = e.clipboardData.getData("text").replace(/\s/g, "").toUpperCase();
+    if (pasted.length === 6 && /^[0-9A-Z]{6}$/.test(pasted)) {
+      setOtp(pasted.split(""));
+      setError("");
     }
   };
 
-  // ✅ SIMPLIFIED: Verify OTP - Let AuthGuard handle redirection completely
   const handleVerifyOtp = async () => {
     if (!mountedRef.current) return;
-    
-    const otpCode = otp.join('');
-    
-    if (otpCode.length !== 6) {
-      setError('Kode OTP harus 6 digit');
+
+    const code = otp.join("");
+    if (code.length !== 6) {
+      setError("Kode OTP harus 6 digit");
       return;
     }
 
-    setAuthState('verifying');
-    setError('');
+    setAuthState("verifying");
+    setError("");
 
     try {
-      logger.debug('EmailAuth: Starting OTP verification...');
-      const result = await verifyEmailOtp(email, otpCode);
-      
+      logger.debug("EmailAuth: Starting OTP verification...");
+      const ok = await verifyEmailOtp(email, code);
+
       if (!mountedRef.current) return;
-      
-        if (result === true) {
-          logger.debug('EmailAuth: OTP verification successful');
 
-          // 🔄 Perbarui user & cek redirect
-          await refreshUser();
-          redirectCheck();
-
-          setAuthState('success');
-          toast.success('Login berhasil! Mengarahkan ke dashboard...');
-          navigate('/', { replace: true });
-
-          if (onLoginSuccess) {
-            onLoginSuccess();
-          }
-
-        } else if (result === 'expired') {
-        setAuthState('expired');
-        setError('Kode OTP sudah kadaluarsa. Silakan minta kode baru.');
-        setOtp(['', '', '', '', '', '']);
+      if (ok === true) {
+        logger.debug("EmailAuth: OTP verification successful");
+        await refreshUser();
+        redirectCheck();
+        setAuthState("success");
+        toast.success("Login berhasil! Mengarahkan ke dashboard...");
+        navigate(redirectUrl, { replace: true });
+        onLoginSuccess?.();
+      } else if (ok === "expired") {
+        setAuthState("expired");
+        setError("Kode OTP sudah kadaluarsa. Silakan minta kode baru.");
+        setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
-      } else if (result === 'rate_limited') {
-        setAuthState('error');
-        setError('Terlalu banyak percobaan. Tunggu beberapa menit.');
-        setOtp(['', '', '', '', '', '']);
+      } else if (ok === "rate_limited") {
+        setAuthState("error");
+        setError("Terlalu banyak percobaan. Tunggu beberapa menit.");
+        setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       } else {
-        setAuthState('error');
-        setError('Kode OTP tidak valid. Silakan coba lagi.');
-        setOtp(['', '', '', '', '', '']);
+        setAuthState("error");
+        setError("Kode OTP tidak valid. Silakan coba lagi.");
+        setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       }
-    } catch (error) {
-      logger.error('Error verifying OTP:', error);
+    } catch (e) {
+      logger.error("Error verifying OTP:", e);
       if (mountedRef.current) {
-        setAuthState('error');
-        setError('Terjadi kesalahan saat verifikasi. Silakan coba lagi.');
-        setOtp(['', '', '', '', '', '']);
+        setAuthState("error");
+        setError("Terjadi kesalahan saat verifikasi. Silakan coba lagi.");
+        setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       }
     }
   };
 
-  // ✅ Get Button States
-  const isLoading = authState === 'sending' || authState === 'verifying';
-  const isSent = authState === 'sent' || authState === 'expired';
-  const canSend = isFormValid() && cooldownTime === 0 && !isLoading;
-  const canVerify = otp.every(digit => digit !== '') && authState !== 'verifying' && authState !== 'success';
+  const isLoading = authState === "sending" || authState === "verifying";
+  const isSent = authState === "sent" || authState === "expired";
+  const canVerify =
+    otp.every((d) => d !== "") &&
+    authState !== "verifying" &&
+    authState !== "success";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
       <Card className="w-full max-w-md border rounded-xl overflow-hidden">
         {/* Header Accent */}
         <div className="h-2 bg-gradient-to-r from-orange-500 to-red-500"></div>
-        
+
         <CardHeader className="space-y-4 pt-8">
           <div className="flex justify-center mb-4">
             {logoUrl ? (
@@ -421,7 +392,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
         <CardContent className="space-y-6">
           {!isSent ? (
-            // ✅ Email Input Form with hCaptcha
+            // Email Input + Captcha
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">
@@ -445,8 +416,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
-              {/* ✅ hCaptcha Widget */}
-              {HCAPTCHA_ENABLED && hCaptchaLoaded && HCaptchaComponent && hCaptchaKey > 0 && (
+              {/* Widget hanya saat diwajibkan */}
+              {REQUIRE_CAPTCHA && hCaptchaLoaded && HCaptchaComponent && hCaptchaKey > 0 && (
                 <div className="flex justify-center">
                   <HCaptchaComponent
                     key={hCaptchaKey}
@@ -454,44 +425,41 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     onVerify={(token: string) => {
                       if (mountedRef.current) {
                         setHCaptchaToken(token);
-                        logger.info('hCaptcha verified');
+                        logger.info("hCaptcha verified");
                       }
                     }}
                     onExpire={() => {
                       if (mountedRef.current) {
                         setHCaptchaToken(null);
-                        logger.info('hCaptcha expired');
+                        logger.info("hCaptcha expired");
                       }
                     }}
-                    onError={(error: any) => {
-              logger.error('hCaptcha error:', error);
-              if (mountedRef.current) {
-                setHCaptchaToken(null);
-                setHCaptchaLoadError(true);
-                // Don't show error toast, just silently disable captcha
-                logger.warn('hCaptcha failed to load, likely due to CSP. Disabling captcha requirement.');
-              }
-            }}
+                    onError={(err: any) => {
+                      logger.error("hCaptcha error:", err);
+                      if (mountedRef.current) {
+                        setHCaptchaToken(null);
+                        setHCaptchaLoadError(true);
+                        setHCaptchaLoaded(false);
+                      }
+                    }}
                     theme="light"
                     size="normal"
                   />
                 </div>
               )}
 
-              {/* ✅ Show message if hCaptcha failed to load */}
-              {HCAPTCHA_ENABLED && !hCaptchaLoaded && (
+              {/* Info status captcha */}
+              {REQUIRE_CAPTCHA && !hCaptchaLoaded && (
                 <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                  ⚠️ Captcha sedang dimuat... Tunggu sebentar.
+                  ⚠️ Captcha sedang dimuat... harap tunggu / pastikan hcaptcha.com tidak diblokir.
                 </div>
               )}
-              
-              {/* ✅ Show message if hCaptcha failed due to CSP */}
-              {HCAPTCHA_ENABLED && hCaptchaLoadError && (
-                <div className="text-center text-sm text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  ℹ️ Sistem mendeteksi pembatasan keamanan browser. Captcha akan dilewati secara otomatis.
+              {REQUIRE_CAPTCHA && hCaptchaLoadError && (
+                <div className="text-center text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
+                  Captcha gagal dimuat. Nonaktifkan ad-blocker / izinkan hcaptcha.com lalu refresh.
                 </div>
               )}
-              
+
               <Button
                 onClick={handleSendOtp}
                 className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg border transition-all duration-200 disabled:opacity-50"
@@ -508,50 +476,58 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     Mengirim Kode...
                   </>
                 ) : (
-                  'Kirim Kode Verifikasi'
+                  "Kirim Kode Verifikasi"
                 )}
               </Button>
+
+              {!REQUIRE_CAPTCHA && (
+                <small className="block text-center text-sm text-muted-foreground">
+                  Captcha dimatikan di environment ini.
+                </small>
+              )}
 
               <p className="text-xs text-center text-gray-500">
                 Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)
               </p>
             </div>
           ) : (
-            // ✅ OTP Verification Form
+            // OTP Verification
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                   <Mail className="h-8 w-8 text-green-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-800">Cek Email Anda</h3>
-                <p className="text-gray-600">
-                  Kode verifikasi telah dikirim ke
-                </p>
+                <p className="text-gray-600">Kode verifikasi telah dikirim ke</p>
                 <p className="font-semibold text-gray-800">{email}</p>
               </div>
 
-              {/* Error Message */}
               {error && (
-                <div className={`border rounded-lg p-3 ${
-                  authState === 'expired' 
-                    ? 'bg-orange-50 border-orange-200' 
-                    : 'bg-red-50 border-red-200'
-                }`}>
+                <div
+                  className={`border rounded-lg p-3 ${
+                    authState === "expired"
+                      ? "bg-orange-50 border-orange-200"
+                      : "bg-red-50 border-red-200"
+                  }`}
+                >
                   <div className="flex items-center">
-                    <AlertCircle className={`w-4 h-4 mr-2 ${
-                      authState === 'expired' ? 'text-orange-600' : 'text-red-600'
-                    }`} />
-                    <span className={`text-sm ${
-                      authState === 'expired' ? 'text-orange-800' : 'text-red-800'
-                    }`}>
+                    <AlertCircle
+                      className={`w-4 h-4 mr-2 ${
+                        authState === "expired" ? "text-orange-600" : "text-red-600"
+                      }`}
+                    />
+                    <span
+                      className={`text-sm ${
+                        authState === "expired" ? "text-orange-800" : "text-red-800"
+                      }`}
+                    >
                       {error}
                     </span>
                   </div>
                 </div>
               )}
 
-              {/* Success Message */}
-              {authState === 'success' && (
+              {authState === "success" && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <div className="flex items-center">
                     <RefreshCw className="w-4 h-4 mr-2 text-green-600 animate-spin" />
@@ -562,7 +538,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               )}
 
-              {/* OTP Input */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-gray-700 block text-center">
                   Masukkan Kode OTP (6 digit)
@@ -581,53 +556,51 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
                       className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
-                      disabled={authState === 'verifying' || authState === 'success'}
+                      disabled={authState === "verifying" || authState === "success"}
                     />
                   ))}
                 </div>
               </div>
 
-              {/* Verify Button */}
               <Button
                 onClick={handleVerifyOtp}
                 disabled={!canVerify}
                 className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg border transition-all duration-200 disabled:opacity-50"
               >
-                {authState === 'verifying' ? (
+                {authState === "verifying" ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Memverifikasi...
                   </>
-                ) : authState === 'success' ? (
+                ) : authState === "success" ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Berhasil! AuthGuard mengarahkan...
                   </>
                 ) : (
-                  'Verifikasi Kode'
+                  "Verifikasi Kode"
                 )}
               </Button>
-              
-              {/* Info & Resend */}
+
               <div className="space-y-3">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                  <strong>Tips:</strong> Kode akan expired dalam 5 menit. Periksa folder spam jika tidak menerima email.
+                  <strong>Tips:</strong> Kode akan expired dalam 5 menit. Periksa folder spam
+                  jika tidak menerima email.
                 </div>
-                
+
                 <Button
                   variant="outline"
                   onClick={handleResendOtp}
-                  disabled={isLoading || cooldownTime > 0 || authState === 'success'}
+                  disabled={isLoading || cooldownTime > 0 || authState === "success"}
                   className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                 >
-                  {cooldownTime > 0 ? `Tunggu ${cooldownTime}s` : 'Kirim Ulang Kode'}
+                  {cooldownTime > 0 ? `Tunggu ${cooldownTime}s` : "Kirim Ulang Kode"}
                 </Button>
               </div>
             </div>
           )}
         </CardContent>
-        
-        {/* Cooldown Message */}
+
         {cooldownTime > 0 && (
           <div className="px-6 pb-6">
             <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200">

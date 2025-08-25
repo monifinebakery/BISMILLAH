@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Edit2, Trash2, DollarSign, Package, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, DollarSign, Package, TrendingUp, AlertTriangle, CheckSquare, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,7 @@ interface CostManagementTabProps {
   isSelectionMode?: boolean;
   onSelectAll?: () => void;
   isAllSelected?: boolean;
+  onToggleSelectionMode?: () => void;
 }
 
 const CostManagementTab: React.FC<CostManagementTabProps> = ({
@@ -37,6 +38,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
   isSelectionMode = false,
   onSelectAll,
   isAllSelected = false,
+  onToggleSelectionMode,
 }) => {
   return (
     <div className="space-y-6">
@@ -108,25 +110,44 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
       </div>
 
       {/* Cost Management Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
+      <Card className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+        <CardHeader className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <CardTitle>Kelola Biaya Operasional</CardTitle>
               <p className="text-sm text-gray-600 mt-1">
                 Tambah, edit, atau hapus biaya bulanan untuk bisnis Anda
               </p>
             </div>
-            <Button
-              onClick={onOpenAddDialog}
-              className="bg-orange-600 hover:bg-orange-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Biaya Baru
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isSelectionMode ? 'default' : 'outline'}
+                onClick={onToggleSelectionMode}
+                className={isSelectionMode ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}
+              >
+                {isSelectionMode ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Keluar Mode Pilih
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Mode Pilih
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={onOpenAddDialog}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Biaya Baru
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

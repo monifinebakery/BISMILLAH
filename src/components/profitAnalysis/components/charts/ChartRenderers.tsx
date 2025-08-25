@@ -3,9 +3,9 @@
 // ==============================================
 
 import React from 'react';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  Legend, AreaChart, Area
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Legend, AreaChart, Area, LegendPayload
 } from 'recharts';
 import { formatLargeNumber } from '../../utils/profitTransformers';
 import { BaseChartProps } from './types';
@@ -130,34 +130,40 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
         />
         
         {/* Enhanced legend */}
-        <Legend 
-          content={(props) => (
-            <div className="flex flex-wrap justify-center gap-6 mt-6 p-4 bg-gray-50 rounded-lg">
-              {props.payload?.map((entry: any, index: number) => {
-                const metricLabelMap = {
-                  revenue: 'Omset',
-                  cogs: 'Modal Bahan',
-                  opex: 'Biaya Tetap',
-                  grossProfit: 'Untung Kotor',
-                  netProfit: 'Untung Bersih',
-                  stockValue: 'Nilai Stok (WAC)',
-                  grossMargin: 'Margin Kotor',
-                  netMargin: 'Margin Bersih'
-                };
-                const dataKey = entry.dataKey as keyof typeof metricLabelMap;
-                const label = metricLabelMap[dataKey] || entry.dataKey;
-                return (
-                  <div key={index} className="flex items-center space-x-3 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <div 
-                      className="w-4 h-4 rounded-full shadow-sm" 
-                      style={{ backgroundColor: entry.color }}
-                    />
-                    <span className="text-sm font-semibold text-gray-800">{label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <Legend
+          content={({ payload }) => {
+            const legendPayload = payload as LegendPayload[] | undefined;
+            return (
+              <div className="flex flex-wrap justify-center gap-6 mt-6 p-4 bg-gray-50 rounded-lg">
+                {legendPayload?.map((entry, index) => {
+                  const metricLabelMap = {
+                    revenue: 'Omset',
+                    cogs: 'Modal Bahan',
+                    opex: 'Biaya Tetap',
+                    grossProfit: 'Untung Kotor',
+                    netProfit: 'Untung Bersih',
+                    stockValue: 'Nilai Stok (WAC)',
+                    grossMargin: 'Margin Kotor',
+                    netMargin: 'Margin Bersih'
+                  };
+                  const dataKey = entry.dataKey as keyof typeof metricLabelMap;
+                  const label = metricLabelMap[dataKey] || entry.dataKey;
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center space-x-3 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
+                    >
+                      <div
+                        className="w-4 h-4 rounded-full shadow-sm"
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      <span className="text-sm font-semibold text-gray-800">{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }}
         />
         
         {/* Render multiple lines with enhanced styling */}
@@ -368,9 +374,25 @@ export const CandlestickChartRenderer: React.FC<BaseChartProps> = ({
     };
   });
 
-  const CandlestickBar = ({ payload, x, y, width, height }: any) => {
+  interface CandlestickPayload {
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    isPositive: boolean;
+  }
+
+  interface CandlestickBarProps {
+    payload: CandlestickPayload;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }
+
+  const CandlestickBar = ({ payload, x, y: _y, width, height: _height }: CandlestickBarProps) => {
     if (!payload) return null;
-    
+
     const { open, high, low, close, isPositive } = payload;
     const color = isPositive ? '#10b981' : '#ef4444';
     const bodyHeight = Math.abs(close - open);
@@ -456,7 +478,16 @@ export const HeatmapChartRenderer: React.FC<BaseChartProps> = ({
     };
   });
 
-  const HeatmapCell = ({ x, y, width, height, value, metric }: any) => {
+  interface HeatmapCellProps {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    value: number;
+    metric: string;
+  }
+
+  const HeatmapCell = ({ x, y, width, height, value, metric }: HeatmapCellProps) => {
     const intensity = Math.min(value || 0, 1);
     const colors = {
       revenue: `rgba(16, 185, 129, ${intensity})`,

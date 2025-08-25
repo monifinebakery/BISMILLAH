@@ -9,6 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { logger } from '@/utils/logger';
 // 🔧 IMPROVED: Import centralized date normalization
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+import { getDateRangePreset, safeParseDate, isValidDate } from '@/utils/unifiedDateUtils';
 
 // 🚀 Lazy load heavy components
 const StatsGrid = lazy(() => import('@/components/dashboard/StatsGrid'));
@@ -30,25 +31,55 @@ const SectionLoader = ({ height = "h-32", className = "" }) => (
 
 // 🗓️ Helper function untuk inisialisasi date range dengan centralized normalization
 const getDefaultDateRange = () => {
-  const today = new Date();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(today.getDate() - 30);
-  
-  return {
-    from: normalizeDateForDatabase(thirtyDaysAgo),
-    to: normalizeDateForDatabase(today)
-  };
+  try {
+    const preset = getDateRangePreset('last30days');
+    return {
+      from: normalizeDateForDatabase(preset.from),
+      to: normalizeDateForDatabase(preset.to)
+    };
+  } catch (error) {
+    logger.error('Dashboard - Error getting default date range:', error);
+    // Fallback to safe date creation
+    const today = safeParseDate(new Date());
+    const thirtyDaysAgo = safeParseDate(new Date());
+    if (today && thirtyDaysAgo) {
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      return {
+        from: normalizeDateForDatabase(thirtyDaysAgo),
+        to: normalizeDateForDatabase(today)
+      };
+    }
+    // Ultimate fallback
+     const fallbackFrom = safeParseDate('2024-01-01');
+     const fallbackTo = safeParseDate('2024-12-31');
+     return {
+       from: normalizeDateForDatabase(fallbackFrom || new Date('2024-01-01')),
+       to: normalizeDateForDatabase(fallbackTo || new Date('2024-12-31'))
+     };
+  }
 };
 
-// 👋 Helper function untuk greeting dengan ownerName
+// 👋 Helper function untuk greeting dengan ownerName - menggunakan safe date parsing
 const getGreeting = (ownerName?: string) => {
-  const hour = new Date().getHours();
-  const name = ownerName && ownerName !== 'Nama Anda' ? `kak ${ownerName}` : 'kak';
+  try {
+    const now = safeParseDate(new Date());
+    if (!now || !isValidDate(now)) {
+      const name = ownerName && ownerName !== 'Nama Anda' ? `kak ${ownerName}` : 'kak';
+      return `Selamat datang, ${name}! 👋`;
+    }
+    
+    const hour = now.getHours();
+    const name = ownerName && ownerName !== 'Nama Anda' ? `kak ${ownerName}` : 'kak';
 
-  if (hour >= 4 && hour < 11) return `Selamat pagi, ${name}! 🌅`;
-  if (hour >= 11 && hour < 15) return `Selamat siang, ${name}! ☀️`;
-  if (hour >= 15 && hour < 19) return `Selamat sore, ${name}! 🌇`;
-  return `Selamat malam, ${name}! 🌙`;
+    if (hour >= 4 && hour < 11) return `Selamat pagi, ${name}! 🌅`;
+    if (hour >= 11 && hour < 15) return `Selamat siang, ${name}! ☀️`;
+    if (hour >= 15 && hour < 19) return `Selamat sore, ${name}! 🌇`;
+    return `Selamat malam, ${name}! 🌙`;
+  } catch (error) {
+    logger.error('Dashboard - Error getting greeting:', error);
+    const name = ownerName && ownerName !== 'Nama Anda' ? `kak ${ownerName}` : 'kak';
+    return `Selamat datang, ${name}! 👋`;
+  }
 };
 
 const Dashboard = () => {
@@ -79,17 +110,17 @@ const Dashboard = () => {
   // 👋 Greeting message
   const greeting = useMemo(() => getGreeting(ownerName), [ownerName]);
 
-  // 🛡️ Safe date range handler
+  // 🛡️ Safe date range handler - menggunakan unified date utils
   const handleDateRangeChange = (newRange: { from: string; to: string }) => {
     if (!newRange || !newRange.from || !newRange.to) {
       logger.error('Dashboard - Invalid date range provided:', newRange);
       return;
     }
 
-    const fromDate = new Date(newRange.from);
-    const toDate = new Date(newRange.to);
+    const fromDate = safeParseDate(newRange.from);
+    const toDate = safeParseDate(newRange.to);
     
-    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    if (!fromDate || !toDate || !isValidDate(fromDate) || !isValidDate(toDate)) {
       logger.error('Dashboard - Invalid date format:', newRange);
       return;
     }

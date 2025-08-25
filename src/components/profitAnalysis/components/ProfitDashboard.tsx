@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
+import { normalizeDateForDatabase } from '@/utils/dateNormalization';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitData } from '../hooks';
@@ -77,6 +78,10 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     profitMetrics,
     labels,
     refreshWACData,
+    // ✅ ADD: WAC Validation properties
+    wacValidation,
+    dataQualityMetrics,
+    validationScore,
   } = useProfitAnalysis({
     defaultPeriod: defaultPeriod || getCurrentPeriod(),
     autoCalculate: true,
@@ -163,6 +168,47 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* ✅ ADD: WAC Validation Alert */}
+      {wacValidation && !wacValidation.isValid && (
+        <Alert variant={wacValidation.severity === 'high' ? 'destructive' : 'default'}>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Deteksi Inkonsistensi Data WAC</p>
+              <p className="text-sm">
+                Variance: {wacValidation.variancePercentage.toFixed(1)}% 
+                (WAC: Rp {wacValidation.wacValue.toLocaleString('id-ID')}, 
+                API COGS: Rp {wacValidation.apiCogsValue.toLocaleString('id-ID')})
+              </p>
+              {wacValidation.issues.length > 0 && (
+                <ul className="text-sm list-disc list-inside space-y-1">
+                  {wacValidation.issues.map((issue, index) => (
+                    <li key={index}>{issue}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* ✅ ADD: Data Quality Score */}
+      {dataQualityMetrics && validationScore < 80 && (
+        <Alert variant="default">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Kualitas Data: {validationScore.toFixed(0)}/100</p>
+              <div className="text-sm space-y-1">
+                <p>Konsistensi Data: {dataQualityMetrics.dataConsistency.toFixed(1)}%</p>
+                <p>Ketersediaan WAC: {dataQualityMetrics.wacAvailability.toFixed(1)}%</p>
+                <p>Ketersediaan API COGS: {dataQualityMetrics.apiCogsAvailability.toFixed(1)}%</p>
+              </div>
+            </div>
+          </AlertDescription>
         </Alert>
       )}
 

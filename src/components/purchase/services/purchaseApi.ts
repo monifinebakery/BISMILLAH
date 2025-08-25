@@ -1,6 +1,7 @@
 // src/components/purchase/services/purchaseApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 import type { Purchase } from '../types/purchase.types';
 import {
   transformPurchasesFromDB,
@@ -88,8 +89,8 @@ export class PurchaseApiService {
           ...purchaseData,
           id: data.id,
           userId,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: safeParseDate(new Date()) || new Date(),
+          updatedAt: safeParseDate(new Date()) || new Date()
         } as Purchase);
       }
       return { success: true, error: null, purchaseId: data?.id };
@@ -216,6 +217,18 @@ export class PurchaseApiService {
             console.log('🔄 [PURCHASE API] Calling applyPurchaseToWarehouse with forceSync...');
             await applyPurchaseToWarehouse(fresh);
             console.log('✅ [PURCHASE API] Warehouse sync completed');
+            
+            // ✅ DISPATCH STATUS CHANGE EVENT: Trigger WAC refresh in profit analysis
+            console.log('🔄 [PURCHASE API] Dispatching purchase status change event for WAC refresh');
+            window.dispatchEvent(new CustomEvent('purchase:status:changed', {
+              detail: { 
+                purchaseId: fresh.id, 
+                supplier: fresh.supplier, 
+                totalValue: fresh.totalNilai,
+                oldStatus: prev.status,
+                newStatus: newStatus
+              }
+            }));
           } else {
             console.log('⏭️ [PURCHASE API] Skipping warehouse sync (shouldSkipWarehouseSync returned true)');
           }

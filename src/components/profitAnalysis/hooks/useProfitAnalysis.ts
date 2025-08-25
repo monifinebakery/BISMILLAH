@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { normalizeDateRange } from '@/utils/dateNormalization';
 
 import { 
   ProfitAnalysis, 
@@ -28,6 +29,14 @@ import { FNB_LABELS } from '../constants/profitConstants';
 import { getEffectiveCogs, shouldUseWAC } from '@/utils/cogsCalculation';
 import { safeCalculateMargins, monitorDataQuality } from '@/utils/profitValidation';
 import { getCurrentPeriod } from '../utils/profitTransformers';
+// ✅ ADD: Import WAC validation utilities
+import { 
+  validateWACConsistency, 
+  performComprehensiveValidation,
+  calculateDataQualityMetrics,
+  type WACValidationResult,
+  type DataQualityMetrics
+} from '@/utils/profitAnalysisConsistency';
 
 
 // Query Keys
@@ -85,6 +94,11 @@ export interface UseProfitAnalysisReturn {
     hppBreakdown: FNBCOGSBreakdown[];
   };
   
+  // ✅ ADD: WAC Validation properties
+  wacValidation: WACValidationResult | null;
+  dataQualityMetrics: DataQualityMetrics | null;
+  validationScore: number; // 0-100 overall data quality score
+  
   // Utilities
   getProfitByPeriod: (period: string) => RealTimeProfitCalculation | undefined;
   isDataStale: boolean;
@@ -115,6 +129,11 @@ export const useProfitAnalysis = (
   const [currentPeriod, setCurrentPeriodState] = useState(defaultPeriod);
   const [profitHistory, setProfitHistory] = useState<RealTimeProfitCalculation[]>([]);
   const [error, setError] = useState<string | null>(null);
+  
+  // ✅ ADD: WAC Validation state
+  const [wacValidation, setWacValidation] = useState<WACValidationResult | null>(null);
+  const [dataQualityMetrics, setDataQualityMetrics] = useState<DataQualityMetrics | null>(null);
+  const [validationScore, setValidationScore] = useState<number>(0);
 
   // ✅ MAIN QUERY: Current analysis (supports harian, bulanan, tahunan)
   const currentAnalysisKey =
@@ -167,11 +186,13 @@ export const useProfitAnalysis = (
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: enableRealTime,
     retry: 2,
-    onError: (err) => {
-      // Bersihkan data agar UI menampilkan keadaan kosong
-      setProfitHistory([]);
-      queryClient.setQueryData(currentAnalysisKey, null);
-      setError(err instanceof Error ? err.message : 'Gagal memuat analisis profit');
+    meta: {
+      onError: (err: Error) => {
+        // Bersihkan data agar UI menampilkan keadaan kosong
+        setProfitHistory([]);
+        queryClient.setQueryData(currentAnalysisKey, null);
+        setError(err instanceof Error ? err.message : 'Gagal memuat analisis profit');
+      }
     }
   });
 
@@ -232,10 +253,10 @@ export const useProfitAnalysis = (
 
   // ✅ FIX #1: Extract primitive values first to avoid nested object references
   const currentData = currentAnalysisQuery.data;
-  const revenue = currentData?.revenue_data?.total ?? 0;
-  const cogs = currentData?.cogs_data?.total ?? 0;
-  const opex = currentData?.opex_data?.total ?? 0;
-  const calculatedAt = currentData?.calculated_at ?? null;
+  const revenue = (currentData && 'revenue_data' in currentData) ? currentData.revenue_data?.total ?? 0 : 0;
+  const cogs = (currentData && 'cogs_data' in currentData) ? currentData.cogs_data?.total ?? 0 : 0;
+  const opex = (currentData && 'opex_data' in currentData) ? currentData.opex_data?.total ?? 0 : 0;
+  const calculatedAt = (currentData && 'calculated_at' in currentData) ? currentData.calculated_at ?? null : null;
 
   // ✅ WAC CALCULATION
   const { totalHPP, hppBreakdown } = useMemo(() => {
@@ -375,6 +396,73 @@ export const useProfitAnalysis = (
     }
   }, [revenue, cogs, opex, currentData, totalHPP, hppBreakdown]); // ✅ Sekarang menggunakan primitive value dan data WAC
 
+  // ✅ ADD: WAC Validation Effect
+  useEffect(() => {
+    if (!enableWAC || !currentData) {
+      setWacValidation(null);
+      setDataQualityMetrics(null);
+      setValidationScore(0);
+      return;
+    }
+
+    try {
+      // Run WAC validation
+      const validation = validateWACConsistency(
+        currentData as RealTimeProfitCalculation,
+        totalHPP,
+        revenue
+      );
+      setWacValidation(validation);
+
+      // Calculate data quality metrics
+      const qualityMetrics = calculateDataQualityMetrics(
+        currentData as RealTimeProfitCalculation,
+        totalHPP
+      );
+      setDataQualityMetrics(qualityMetrics);
+
+      // Run comprehensive validation for overall score
+      const comprehensiveResult = performComprehensiveValidation(
+        currentData as RealTimeProfitCalculation,
+        profitMetrics,
+        totalHPP,
+        revenue
+      );
+      setValidationScore(comprehensiveResult.overallScore);
+
+      // Log validation results
+      if (!validation.isValid) {
+        logger.warn('WAC validation issues detected:', {
+          issues: validation.issues,
+          severity: validation.severity,
+          period: (currentData && 'period' in currentData) ? currentData.period : 'unknown'
+        });
+      }
+
+      if (qualityMetrics.dataConsistency < 80) {
+        logger.warn('Low data consistency detected:', {
+          consistency: qualityMetrics.dataConsistency,
+          wacAvailable: qualityMetrics.wacAvailability,
+          apiCogsAvailable: qualityMetrics.apiCogsAvailability
+        });
+      }
+
+    } catch (error) {
+      logger.error('Error in WAC validation:', error);
+      setWacValidation({
+        isValid: false,
+        wacValue: totalHPP,
+        apiCogsValue: 0,
+        variance: 0,
+        variancePercentage: 0,
+        severity: 'high',
+        issues: ['Validation error occurred'],
+        recommendations: ['Check data integrity and try again']
+      });
+      setValidationScore(0);
+    }
+  }, [enableWAC, currentData, totalHPP, revenue, profitMetrics]);
+
   // ✅ ACTIONS
   const calculateProfit = useCallback(
     async (period?: string): Promise<boolean> => {
@@ -383,9 +471,11 @@ export const useProfitAnalysis = (
       try {
         setError(null);
         if (mode === 'daily') {
+          // Use centralized date utilities for consistency
+          const now = new Date();
           const from =
-            dateRange?.from ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-          const to = dateRange?.to ?? new Date();
+            dateRange?.from ?? new Date(now.getFullYear(), now.getMonth(), 1);
+          const to = dateRange?.to ?? now;
           const res = await calculateProfitAnalysisDaily(from, to);
           if (!res.success) throw new Error(res.error || 'Failed daily calculate');
           setProfitHistory(res.data || []);
@@ -419,12 +509,16 @@ export const useProfitAnalysis = (
       // Bersihkan data sebelumnya agar tidak menampilkan data lama
       setProfitHistory([]);
 
+      // Use centralized date utilities for consistency
+      const now = new Date();
+      const defaultDateRange = {
+        from: new Date(now.getFullYear(), 0, 1),
+        to: now,
+        period_type: 'monthly' as const
+      };
+      
       const response = await profitAnalysisApi.getProfitHistory(
-        dateRange || {
-          from: new Date(new Date().getFullYear(), 0, 1),
-          to: new Date(),
-          period_type: 'monthly'
-        }
+        dateRange || defaultDateRange
       );
 
       if (response.error) {
@@ -538,9 +632,55 @@ export const useProfitAnalysis = (
     loadProfitHistory();
   }, [autoCalculate, loadProfitHistory, mode]);
 
+  // ✅ IMPROVED: Auto-refresh WAC data with smarter intervals
+  useEffect(() => {
+    if (!enableWAC) return;
+    
+    // More frequent refresh during business hours (9 AM - 6 PM)
+    const getRefreshInterval = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const isBusinessHours = hour >= 9 && hour <= 18;
+      
+      // 2 minutes during business hours, 10 minutes otherwise
+      return isBusinessHours ? 2 * 60 * 1000 : 10 * 60 * 1000;
+    };
+    
+    const scheduleNextRefresh = () => {
+      const interval = getRefreshInterval();
+      return setTimeout(() => {
+        refreshWACData();
+        scheduleNextRefresh(); // Schedule next refresh
+      }, interval);
+    };
+    
+    const timeoutId = scheduleNextRefresh();
+    
+    return () => clearTimeout(timeoutId);
+  }, [enableWAC, refreshWACData]);
+  
+  // ✅ NEW: Listen for purchase completion events to trigger immediate WAC refresh
+  useEffect(() => {
+    if (!enableWAC) return;
+    
+    const handlePurchaseCompletion = (event: CustomEvent) => {
+      logger.info('🔄 Purchase completed, refreshing WAC data immediately');
+      refreshWACData();
+    };
+    
+    // Listen for custom purchase completion events
+    window.addEventListener('purchase:completed', handlePurchaseCompletion as EventListener);
+    window.addEventListener('purchase:status:changed', handlePurchaseCompletion as EventListener);
+    
+    return () => {
+      window.removeEventListener('purchase:completed', handlePurchaseCompletion as EventListener);
+      window.removeEventListener('purchase:status:changed', handlePurchaseCompletion as EventListener);
+    };
+  }, [enableWAC, refreshWACData]);
+
   return {
     // State
-    currentAnalysis: currentData || null,
+    currentAnalysis: (currentData && 'period' in currentData) ? currentData as RealTimeProfitCalculation : null,
     profitHistory,
     loading: currentAnalysisQuery.isLoading || calculateProfitMutation.isPending || 
              bahanMapQuery.isLoading || pemakaianQuery.isLoading,
@@ -560,6 +700,11 @@ export const useProfitAnalysis = (
     
     // Computed values
     profitMetrics,
+    
+    // ✅ ADD: WAC Validation properties
+    wacValidation,
+    dataQualityMetrics,
+    validationScore,
     
     // Utilities
     getProfitByPeriod,

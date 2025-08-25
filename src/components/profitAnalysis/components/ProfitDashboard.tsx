@@ -113,7 +113,15 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     : null;
 
   const previousAnalysis = findPreviousAnalysis(currentPeriod, profitHistory);
-  const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
+  const hasRevenue = Boolean(currentAnalysis?.revenue_data?.total);
+  const hasCogs = Boolean(currentAnalysis?.cogs_data?.total);
+  const hasOpex = Boolean(currentAnalysis?.opex_data?.total);
+  const hasAnyData = hasRevenue || hasCogs || hasOpex;
+  const missing = [
+    !hasRevenue && 'pemasukan',
+    !hasCogs && 'HPP',
+    !hasOpex && 'biaya operasional',
+  ].filter(Boolean) as string[];
 
   const handleRefresh = async () => {
     try {
@@ -147,7 +155,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     return (
       <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
         <DashboardHeaderSection
-          hasValidData={hasValidData}
+          hasValidData={hasAnyData}
           isLoading={loading}
         quickStatus={{
           netProfit: footerCalc.netProfit,
@@ -216,17 +224,35 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         <ExecutiveSummarySection data={executiveSummary} isLoading={loading} showAdvancedMetrics={showAdvancedMetrics} />
       </div>
       
-      {hasValidData && (
-        <ProfitSummaryCards 
-          currentAnalysis={currentAnalysis} 
-          previousAnalysis={previousAnalysis} 
-          isLoading={loading} 
+      {hasAnyData && (
+        <ProfitSummaryCards
+          currentAnalysis={currentAnalysis}
+          previousAnalysis={previousAnalysis}
+          isLoading={loading}
           effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
           labels={{
             hppLabel: labels?.hppLabel || 'Modal Bahan',
             hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
           }}
         />
+      )}
+
+      {hasAnyData ? (
+        missing.length > 0 && (
+          <Alert variant="default">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Data berikut belum tersedia: {missing.join(', ')}
+            </AlertDescription>
+          </Alert>
+        )
+      ) : (
+        <Alert variant="default">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Periode ini belum memiliki pemasukan, HPP, maupun biaya operasional
+          </AlertDescription>
+        </Alert>
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -308,7 +334,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           netProfit: footerCalc.netProfit,
           netMargin: footerCalc.netMargin,
         }}
-        hasValidData={hasValidData}
+        hasValidData={hasAnyData}
         isLoading={loading}
         hppLabel={labels?.hppLabel}
         hppHint={labels?.hppHint}

@@ -164,10 +164,10 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                   )}
                   <TableHead className="text-left">Nama Biaya</TableHead>
                   <TableHead className="text-right">Jumlah/Bulan</TableHead>
-                  <TableHead className="text-center">Grup</TableHead>
-                  <TableHead className="text-center">Jenis</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-center">Tanggal</TableHead>
+                  <TableHead className="text-center hidden md:table-cell">Grup</TableHead>
+                  <TableHead className="text-center hidden md:table-cell">Jenis</TableHead>
+                  <TableHead className="text-center hidden md:table-cell">Status</TableHead>
+                  <TableHead className="text-center hidden lg:table-cell">Tanggal</TableHead>
                   <TableHead className="text-center">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -194,40 +194,40 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                     <TableCell className="text-right font-medium">
                       {formatCurrency(cost.jumlah_per_bulan)}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge 
+                    <TableCell className="text-center hidden md:table-cell">
+                      <Badge
                         variant={cost.group === 'HPP' ? 'default' : 'secondary'}
-                        className={cost.group === 'HPP' 
-                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' 
+                        className={cost.group === 'HPP'
+                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                           : 'bg-green-100 text-green-800 hover:bg-green-200'
                         }
                       >
                         {cost.group}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge 
+                    <TableCell className="text-center hidden md:table-cell">
+                      <Badge
                         variant="outline"
-                        className={cost.jenis === 'tetap' 
-                          ? 'border-blue-300 text-blue-700' 
+                        className={cost.jenis === 'tetap'
+                          ? 'border-blue-300 text-blue-700'
                           : 'border-purple-300 text-purple-700'
                         }
                       >
                         {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge 
+                    <TableCell className="text-center hidden md:table-cell">
+                      <Badge
                         variant="outline"
-                        className={cost.status === 'aktif' 
-                          ? 'border-green-300 text-green-700' 
+                        className={cost.status === 'aktif'
+                          ? 'border-green-300 text-green-700'
                           : 'border-red-300 text-red-700'
                         }
                       >
                         {cost.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center text-sm text-gray-600">
+                    <TableCell className="text-center text-sm text-gray-600 hidden lg:table-cell">
                       {formatDate(cost.created_at)}
                     </TableCell>
                     <TableCell className="text-center">

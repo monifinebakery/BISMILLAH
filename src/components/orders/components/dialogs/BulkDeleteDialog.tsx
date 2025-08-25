@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '../../utils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
 import type { Order } from '../../types';
 

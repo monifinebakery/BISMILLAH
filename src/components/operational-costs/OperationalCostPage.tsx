@@ -13,6 +13,7 @@ import { formatCurrency, formatDate } from './utils/costHelpers';
 import { OperationalCost, AppSettings, CostFormData } from './types/operationalCost.types';
 import { CostFormDialog } from './components/CostFormDialog';
 import { useOperationalCostTable } from './hooks/useOperationalCostTable';
+import { useOperationalCostBulkNew } from './hooks/useOperationalCostBulkNew';
 import { appSettingsApi } from './services';
 import { 
   ProgressSetup, 
@@ -20,8 +21,9 @@ import {
   OperationalCostHeader, 
   CostManagementTab, 
   CalculatorTab,
-  BulkActions
+  BulkActionsNew
 } from './components';
+import { BulkEditDialog, BulkDeleteDialog } from './dialogs';
 import { toast } from 'sonner';
 
 const OperationalCostContent: React.FC = () => {
@@ -48,6 +50,19 @@ const OperationalCostContent: React.FC = () => {
     exitSelectionMode,
     toggleSelectionMode,
   } = useOperationalCostTable(state.costs);
+
+  // New bulk operations hook
+  const {
+    isBulkEditDialogOpen,
+    isBulkDeleteDialogOpen,
+    isProcessing,
+    openBulkEditDialog,
+    closeBulkEditDialog,
+    openBulkDeleteDialog,
+    closeBulkDeleteDialog,
+    executeBulkDelete,
+    executeBulkEdit,
+  } = useOperationalCostBulkNew();
 
   // Auto-refresh data when component mounts
   useEffect(() => {
@@ -273,13 +288,16 @@ const OperationalCostContent: React.FC = () => {
 
           {/* Tab Content: Cost Management */}
           <TabsContent value="costs" className="space-y-6">
-            <BulkActions
+            <BulkActionsNew
               selectedCosts={selectedCosts}
               selectedIds={selectedIds}
               onClearSelection={clearSelection}
               onSelectAll={selectAllCosts}
               isAllSelected={isAllSelected}
               totalCount={state.costs.length}
+              onBulkEdit={openBulkEditDialog}
+              onBulkDelete={openBulkDeleteDialog}
+              isProcessing={isProcessing}
             />
             <CostManagementTab
               costs={state.costs}
@@ -319,6 +337,24 @@ const OperationalCostContent: React.FC = () => {
         onSave={handleSaveDialog}
         cost={editingCost}
         isLoading={state.loading.costs}
+      />
+      
+      {/* Bulk Edit Dialog */}
+      <BulkEditDialog
+        isOpen={isBulkEditDialogOpen}
+        onClose={closeBulkEditDialog}
+        onConfirm={(editData) => executeBulkEdit(selectedIds, editData)}
+        selectedCosts={selectedCosts}
+        isProcessing={isProcessing}
+      />
+      
+      {/* Bulk Delete Dialog */}
+      <BulkDeleteDialog
+        isOpen={isBulkDeleteDialogOpen}
+        onClose={closeBulkDeleteDialog}
+        onConfirm={() => executeBulkDelete(selectedIds)}
+        selectedCosts={selectedCosts}
+        isProcessing={isProcessing}
       />
     </div>
     </TooltipProvider>

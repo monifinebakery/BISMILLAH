@@ -18,8 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatCurrency } from '@/utils/formatUtils';
-import type { Order, UseOrderUIReturn } from '../types';
-import { formatDateForDisplay } from '../utils';
+import type { Order, UseOrderUIReturn, OrderStatus } from '../types';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
 // ✅ FIXED: Hooks dipanggil di top level component
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
@@ -31,7 +31,7 @@ interface OrderTableProps {
   loading: boolean;
   onEditOrder: (order: Order) => void;
   onDeleteOrder: (orderId: string) => void;
-  onStatusChange: (orderId: string, newStatus: string) => void;
+  onStatusChange: (orderId: string, newStatus: OrderStatus) => void;
   onNewOrder: () => void;
   onFollowUp?: (order: Order) => void;
   onViewDetail?: (order: Order) => void;
@@ -45,8 +45,8 @@ interface OrderTableProps {
 
 // Status Badge Component (unchanged)
 const StatusBadge: React.FC<{
-  status: string;
-  onChange?: (newStatus: string) => void;
+  status: OrderStatus;
+  onChange?: (newStatus: OrderStatus) => void;
   disabled?: boolean;
 }> = ({ status, onChange, disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,7 +60,7 @@ const StatusBadge: React.FC<{
   }
 
   return (
-    <Select value={status} onValueChange={onChange} open={isOpen} onOpenChange={setIsOpen}>
+    <Select value={status} onValueChange={(value: OrderStatus) => onChange?.(value)} open={isOpen} onOpenChange={setIsOpen}>
       <SelectTrigger
         className={`w-auto h-auto p-0 border-0 bg-transparent hover:bg-transparent focus:ring-0 ${getStatusColor(status)} rounded-full px-2.5 py-0.5 text-xs font-medium`}
         onClick={(e) => e.stopPropagation()}

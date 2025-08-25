@@ -87,18 +87,22 @@ interface OrdersPageState {
   dialogs: {
     orderForm: boolean;
     templateManager: boolean;
+    detail: boolean;
   };
   editingOrder: Order | null;
   selectedOrderForTemplate: Order | null;
+  viewingOrder: Order | null;
 }
 
 const initialState: OrdersPageState = {
   dialogs: {
     orderForm: false,
-    templateManager: false
+    templateManager: false,
+    detail: false
   },
   editingOrder: null,
-  selectedOrderForTemplate: null
+  selectedOrderForTemplate: null,
+  viewingOrder: null
 };
 
 const OrdersPage: React.FC = () => {
@@ -229,6 +233,24 @@ const OrdersPage: React.FC = () => {
         ...prev,
         dialogs: { ...prev.dialogs, templateManager: false },
         selectedOrderForTemplate: null
+      }));
+    },
+
+    openDetail: (order: Order) => {
+      logger.component('OrdersPage', 'Opening order detail dialog', { orderId: order.id, nomorPesanan: order.nomorPesanan });
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, detail: true },
+        viewingOrder: order
+      }));
+    },
+
+    closeDetail: () => {
+      logger.component('OrdersPage', 'Closing order detail dialog');
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, detail: false },
+        viewingOrder: null
       }));
     }
   }), []);
@@ -477,23 +499,12 @@ const OrdersPage: React.FC = () => {
 
   // ✅ ENHANCED: View detail handler
   const handleViewDetail = useCallback((order: Order) => {
-    logger.component('OrdersPage', 'View detail requested:', { 
-      orderId: order.id, 
-      nomorPesanan: order.nomorPesanan 
+    logger.component('OrdersPage', 'View detail requested:', {
+      orderId: order.id,
+      nomorPesanan: order.nomorPesanan
     });
-    
-    // Set order for template manager (could be used for template preview)
-    setPageState(prev => ({
-      ...prev,
-      selectedOrderForTemplate: order
-    }));
-    
-    // Placeholder for detail view - can be developed further
-    toast.info(`Detail pesanan #${order.nomorPesanan} - Coming soon!`);
-    
-    // TODO: Implement detail modal or navigate to detail page
-    logger.debug('Order detail view - feature coming soon');
-  }, []);
+    dialogHandlers.openDetail(order);
+  }, [dialogHandlers]);
 
   // ✅ DEBUG: Test function for status update (development only)
   const debugStatusUpdate = useCallback(async () => {
@@ -723,9 +734,12 @@ const OrdersPage: React.FC = () => {
           editingOrder={pageState.editingOrder}
           showTemplateManager={pageState.dialogs.templateManager}
           selectedOrderForTemplate={pageState.selectedOrderForTemplate}
+          showDetailDialog={pageState.dialogs.detail}
+          detailOrder={pageState.viewingOrder}
           onSubmitOrder={businessHandlers.submitOrder}
           onCloseOrderForm={dialogHandlers.closeOrderForm}
           onCloseTemplateManager={dialogHandlers.closeTemplateManager}
+          onCloseDetail={dialogHandlers.closeDetail}
         />
       </Suspense>
     </div>

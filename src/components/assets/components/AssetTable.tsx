@@ -98,16 +98,11 @@ export const AssetTable: React.FC<AssetTableProps> = ({
     <>
       {/* Bulk Actions */}
       {isSelectionMode && (
-        <BulkActions
-          selectedCount={selectedIds.length}
-          onBulkEdit={() => console.log('Bulk edit not implemented yet')}
-          onBulkDelete={() => console.log('Bulk delete not implemented yet')}
-          onClearSelection={() => {
-            // Clear selection logic would go here
-            console.log('Clear selection');
-          }}
-          isProcessing={false}
-        />
+        <div className="bg-blue-50 p-3 rounded-lg">
+          <p className="text-sm text-blue-700">
+            {selectedIds.length} asset(s) selected
+          </p>
+        </div>
       )}
       
       <ScrollArea className="w-full">

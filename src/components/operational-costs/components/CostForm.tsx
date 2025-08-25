@@ -243,8 +243,8 @@ const CostForm: React.FC<CostFormProps> = ({
               id="jumlah_per_bulan"
               value={formData.jumlah_per_bulan || ''}
               onChange={(e) => handleInputChange('jumlah_per_bulan', Number(e.target.value))}
-              placeholder="0"
-              min="0"
+              placeholder="1000"
+              min="1000"
               step="1000"
               className={`w-full pl-10 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                 errors.jumlah_per_bulan ? 'border-red-300' : 'border-gray-300'

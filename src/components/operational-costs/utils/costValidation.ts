@@ -24,9 +24,9 @@ export const validateCostForm = (data: CostFormData): ValidationResult => {
     errors.nama_biaya = 'Nama biaya maksimal 255 karakter';
   }
 
-  // Validate jumlah_per_bulan
-  if (!data.jumlah_per_bulan || data.jumlah_per_bulan <= 0) {
-    errors.jumlah_per_bulan = 'Jumlah biaya harus lebih besar dari 0';
+  // Validate jumlah_per_bulan (minimum Rp 1.000)
+  if (!data.jumlah_per_bulan || data.jumlah_per_bulan < 1000) {
+    errors.jumlah_per_bulan = 'Jumlah biaya bulanan harus minimal Rp 1.000';
   } else if (data.jumlah_per_bulan > 999999999999) {
     errors.jumlah_per_bulan = 'Jumlah biaya terlalu besar';
   } else if (data.jumlah_per_bulan > 100000000) {

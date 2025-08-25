@@ -289,7 +289,7 @@ export const getDateRangePreset = (key: string): { from: Date, to: Date } => {
   
   if (!isValidDate(today)) {
     console.error('System date is invalid!');
-    const fallbackDate = new Date('2024-01-01');
+    const fallbackDate = new Date('2025-01-01');
     return { from: fallbackDate, to: fallbackDate };
   }
   

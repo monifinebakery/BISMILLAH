@@ -113,9 +113,9 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
   const downloadTemplate = () => {
     const csvContent = [
       'tanggal;supplier;nama;jumlah;satuan;total',
-      '2024-01-15;PT. Maju Jaya;tepung terigu;10;kg;120000',
-      '2024-01-16;CV. Sumber Rejeki;gula pasir;5;kg;75000',
-      '2024-01-17;Toko Bahan Kue;minyak goreng;2;liter;40000'
+      '2025-01-15;PT. Maju Jaya;tepung terigu;10;kg;120000',
+      '2025-01-16;CV. Sumber Rejeki;gula pasir;5;kg;75000',
+      '2025-01-17;Toko Bahan Kue;minyak goreng;2;liter;40000'
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

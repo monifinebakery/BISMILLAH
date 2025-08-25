@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { transformPurchasesFromDB } from './utils/purchaseTransformers';
+import { Purchase } from './types/purchase.types';
 
 // ✅ CONSOLIDATED: Context imports (kept as-is, already optimal)
 import { PurchaseProvider } from './context/PurchaseContext';
@@ -146,7 +148,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // ✅ NEW: State untuk lazy loading dan paginasi
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [useLazyLoading] = useState(true);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, totalPages: 0 });
 
   // ✅ NEW: Fungsi untuk mengambil data purchase dengan paginasi
@@ -193,19 +195,19 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   } = useQuery({
     queryKey: ['purchases', 'paginated', user?.id, currentPage, itemsPerPage],
     queryFn: () => fetchPurchasesPaginated(user!.id, currentPage, itemsPerPage),
-    enabled: useLazyLoading && !!user?.id,
+    enabled: !!user?.id,
     staleTime: 30000,
   });
 
   // ✅ NEW: Update pagination info ketika data berubah
   useEffect(() => {
-    if (paginatedData && useLazyLoading) {
+    if (paginatedData) {
       setPaginationInfo({
         total: paginatedData.total,
         totalPages: paginatedData.totalPages
       });
     }
-  }, [paginatedData, useLazyLoading]);
+  }, [paginatedData]);
 
   // ✅ pakai API dari context langsung
   const {
@@ -219,19 +221,28 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   } = purchaseContext;
 
   // ✅ NEW: Tentukan data yang akan digunakan berdasarkan mode lazy loading
-  const finalPurchases = useLazyLoading ? (paginatedData?.data || []) : purchases;
+  const finalPurchases: Purchase[] = useLazyLoading
+    ? transformPurchasesFromDB(paginatedData?.data || [])
+    : purchases;
   const finalIsLoading = useLazyLoading ? isPaginatedLoading : purchaseContext.isLoading;
   const finalError = useLazyLoading ? paginatedError : purchaseContext.error;
-  const finalStats = useLazyLoading ? {
-    total: paginationInfo.total,
-    totalValue: finalPurchases.reduce((sum: number, p: any) => sum + Number(p.total_nilai || 0), 0),
-    byStatus: {
-      pending: finalPurchases.filter((p: any) => p.status === 'pending').length,
-      completed: finalPurchases.filter((p: any) => p.status === 'completed').length,
-      cancelled: finalPurchases.filter((p: any) => p.status === 'cancelled').length,
-    },
-    completionRate: paginationInfo.total ? (finalPurchases.filter((p: any) => p.status === 'completed').length / paginationInfo.total) * 100 : 0,
-  } : stats;
+  const finalStats = useLazyLoading
+    ? {
+        total: paginationInfo.total,
+        totalValue: finalPurchases.reduce(
+          (sum, p) => sum + Number(p.totalNilai || 0),
+          0
+        ),
+        byStatus: {
+          pending: finalPurchases.filter(p => p.status === 'pending').length,
+          completed: finalPurchases.filter(p => p.status === 'completed').length,
+          cancelled: finalPurchases.filter(p => p.status === 'cancelled').length,
+        },
+        completionRate: paginationInfo.total
+          ? (finalPurchases.filter(p => p.status === 'completed').length / paginationInfo.total) * 100
+          : 0,
+      }
+    : stats;
 
   // ✅ SINGLE STATE: Consolidated app state
   const [appState, setAppState] = useState<AppState>(initialAppState);
@@ -403,51 +414,29 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Data warning banner */}
 
 
-      {/* ✅ NEW: Kontrol Lazy Loading */}
+      {/* Kontrol Paginasi */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="useLazyLoading"
-              checked={useLazyLoading}
+            <label className="text-sm text-gray-600">Item per halaman:</label>
+            <select
+              value={itemsPerPage}
               onChange={(e) => {
-                setUseLazyLoading(e.target.checked);
-                if (e.target.checked) {
-                  setCurrentPage(1);
-                }
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
               }}
-              className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-            />
-            <label htmlFor="useLazyLoading" className="text-sm font-medium text-gray-700">
-              Aktifkan Lazy Loading
-            </label>
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
           </div>
 
-          {useLazyLoading && (
-            <>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Item per halaman:</label>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-              </div>
-
-              <div className="text-sm text-gray-600">
-                Total: {paginationInfo.total} pembelian
-              </div>
-            </>
-          )}
+          <div className="text-sm text-gray-600">
+            Total: {paginationInfo.total} pembelian
+          </div>
         </div>
       </div>
 
@@ -496,8 +485,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             </Suspense>
           </PurchaseTableProvider>
 
-          {/* ✅ NEW: Kontrol Paginasi untuk Lazy Loading */}
-          {useLazyLoading && paginationInfo.totalPages > 1 && (
+          {/* Kontrol Paginasi */}
+          {paginationInfo.totalPages > 1 && (
             <div className="mt-6 flex items-center justify-between">
               <div className="text-sm text-gray-600">
                 Halaman {currentPage} dari {paginationInfo.totalPages}

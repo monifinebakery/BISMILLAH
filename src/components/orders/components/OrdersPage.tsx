@@ -126,7 +126,7 @@ const OrdersPage: React.FC = () => {
   // ✅ LAZY LOADING STATE: State untuk kontrol lazy loading
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [useLazyLoading] = useState(true);
   const [paginationInfo, setPaginationInfo] = useState({ totalCount: 0, totalPages: 0 });
 
   // ✅ LAZY LOADING QUERY: Fetch paginated data when lazy loading is enabled
@@ -141,7 +141,7 @@ const OrdersPage: React.FC = () => {
       if (!user?.id) throw new Error('User not authenticated');
       return fetchOrdersPaginated(user.id, currentPage, itemsPerPage);
     },
-    enabled: useLazyLoading && !!user?.id,
+    enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -149,25 +149,25 @@ const OrdersPage: React.FC = () => {
   const { getWhatsappUrl } = useOrderFollowUp();
 
   // ✅ DATA SELECTION: Pilih data berdasarkan mode lazy loading
-  const finalOrders = useLazyLoading ? (paginatedData?.orders || []) : orders;
-  const finalIsLoading = useLazyLoading ? isPaginatedLoading : loading;
-  const finalError = useLazyLoading ? paginatedError : null;
+  const finalOrders = paginatedData?.orders || [];
+  const finalIsLoading = isPaginatedLoading;
+  const finalError = paginatedError;
 
   // ✅ STATS CALCULATION: Hitung statistik berdasarkan data yang dipilih
   const finalStats = useMemo(() => {
-    const dataToUse = useLazyLoading ? (paginatedData?.orders || []) : orders;
+    const dataToUse = paginatedData?.orders || [];
     return {
-      total: useLazyLoading ? paginationInfo.totalCount : orders.length,
+      total: paginationInfo.totalCount,
       totalValue: dataToUse.reduce((sum: number, order: Order) => sum + (order.totalPesanan || 0), 0),
       byStatus: dataToUse.reduce((acc: Record<string, number>, order: Order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
-      completionRate: dataToUse.length > 0 
+      completionRate: dataToUse.length > 0
         ? Math.round((dataToUse.filter((o: Order) => o.status === 'completed').length / dataToUse.length) * 100)
         : 0
     };
-  }, [useLazyLoading, paginatedData, orders, paginationInfo.totalCount]);
+  }, [paginatedData, paginationInfo.totalCount]);
 
   // ✅ UPDATE PAGINATION INFO: Update when data changes
   React.useEffect(() => {
@@ -662,10 +662,10 @@ const OrdersPage: React.FC = () => {
         />
         
         {/* ✅ PAGINATION CONTROLS: Untuk mode lazy loading */}
-        {useLazyLoading && paginationInfo.totalPages > 1 && (
+        {paginationInfo.totalPages > 1 && (
           <div className="flex items-center justify-between mt-6 p-4 bg-white rounded-lg border">
             <div className="text-sm text-gray-600">
-              Halaman {currentPage} dari {paginationInfo.totalPages} 
+              Halaman {currentPage} dari {paginationInfo.totalPages}
               ({paginationInfo.totalCount} total pesanan)
             </div>
             <div className="flex items-center gap-2">

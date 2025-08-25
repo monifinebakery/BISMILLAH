@@ -3,9 +3,9 @@
 // ==============================================
 
 import React from 'react';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  Legend, AreaChart, Area
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Legend, AreaChart, Area, LegendPayload
 } from 'recharts';
 import { formatLargeNumber } from '../../utils/profitTransformers';
 import { BaseChartProps } from './types';
@@ -48,11 +48,16 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
     stockValue: { ...metricConfigs.stockValue, color: enhancedColors.stockValue }
   };
 
+  const activeMetrics = selectedMetrics.filter(metric => !hiddenMetrics.has(metric));
+  const showLeftAxis = activeMetrics.some(metric => enhancedMetricConfigs[metric]?.axis !== 'right');
+  const showRightAxis = activeMetrics.some(metric => enhancedMetricConfigs[metric]?.axis === 'right');
+  const rightAxisIsPercentage = activeMetrics.some(metric => enhancedMetricConfigs[metric]?.axis === 'right' && enhancedMetricConfigs[metric]?.isPercentage);
+
   return (
     <ResponsiveContainer width="100%" height={400}>
       <LineChart 
         data={trendData} 
-        margin={{ top: 30, right: 40, left: 20, bottom: 20 }}
+        margin={{ top: 30, right: 60, left: 20, bottom: 20 }}
       >
         {/* Enhanced grid with subtle styling */}
         <CartesianGrid 
@@ -77,18 +82,36 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
           dy={10}
         />
         
-        {/* Enhanced Y-axis */}
-        <YAxis 
-          tick={{ 
-            fontSize: 11, 
-            fill: '#6b7280',
-            fontWeight: 500
-          }}
-          tickFormatter={(value) => viewType === 'margins' ? `${value}%` : formatLargeNumber(value)}
-          axisLine={false}
-          tickLine={false}
-          dx={-10}
-        />
+        {showLeftAxis && (
+          <YAxis
+            yAxisId="left"
+            tick={{
+              fontSize: 11,
+              fill: '#6b7280',
+              fontWeight: 500
+            }}
+            tickFormatter={(value) => formatLargeNumber(value)}
+            axisLine={false}
+            tickLine={false}
+            dx={-10}
+          />
+        )}
+
+        {showRightAxis && (
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tick={{
+              fontSize: 11,
+              fill: '#6b7280',
+              fontWeight: 500
+            }}
+            tickFormatter={(value) => rightAxisIsPercentage ? `${value}%` : formatLargeNumber(value)}
+            axisLine={false}
+            tickLine={false}
+            dx={10}
+          />
+        )}
         
         {/* Enhanced tooltip */}
         <Tooltip 
@@ -107,34 +130,40 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
         />
         
         {/* Enhanced legend */}
-        <Legend 
-          content={(props) => (
-            <div className="flex flex-wrap justify-center gap-6 mt-6 p-4 bg-gray-50 rounded-lg">
-              {props.payload?.map((entry: any, index: number) => {
-                const metricLabelMap = {
-                  revenue: 'Omset',
-                  cogs: 'Modal Bahan',
-                  opex: 'Biaya Tetap',
-                  grossProfit: 'Untung Kotor',
-                  netProfit: 'Untung Bersih',
-                  stockValue: 'Nilai Stok (WAC)',
-                  grossMargin: 'Margin Kotor',
-                  netMargin: 'Margin Bersih'
-                };
-                const dataKey = entry.dataKey as keyof typeof metricLabelMap;
-                const label = metricLabelMap[dataKey] || entry.dataKey;
-                return (
-                  <div key={index} className="flex items-center space-x-3 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <div 
-                      className="w-4 h-4 rounded-full shadow-sm" 
-                      style={{ backgroundColor: entry.color }}
-                    />
-                    <span className="text-sm font-semibold text-gray-800">{label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <Legend
+          content={({ payload }) => {
+            const legendPayload = payload as LegendPayload[] | undefined;
+            return (
+              <div className="flex flex-wrap justify-center gap-6 mt-6 p-4 bg-gray-50 rounded-lg">
+                {legendPayload?.map((entry, index) => {
+                  const metricLabelMap = {
+                    revenue: 'Omset',
+                    cogs: 'Modal Bahan',
+                    opex: 'Biaya Tetap',
+                    grossProfit: 'Untung Kotor',
+                    netProfit: 'Untung Bersih',
+                    stockValue: 'Nilai Stok (WAC)',
+                    grossMargin: 'Margin Kotor',
+                    netMargin: 'Margin Bersih'
+                  };
+                  const dataKey = entry.dataKey as keyof typeof metricLabelMap;
+                  const label = metricLabelMap[dataKey] || entry.dataKey;
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center space-x-3 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
+                    >
+                      <div
+                        className="w-4 h-4 rounded-full shadow-sm"
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      <span className="text-sm font-semibold text-gray-800">{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }}
         />
         
         {/* Render multiple lines with enhanced styling */}
@@ -168,16 +197,16 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
               strokeWidth={isHighlighted ? 4 : 3}
               strokeOpacity={baseOpacity}
               strokeDasharray={lineStyle.strokeDasharray}
-              dot={{ 
-                fill: config.color, 
+              dot={{
+                fill: config.color,
                 stroke: '#ffffff',
-                strokeWidth: 2, 
+                strokeWidth: 2,
                 r: isHighlighted ? 6 : 4,
                 fillOpacity: baseOpacity
               }}
-              activeDot={{ 
-                r: 8, 
-                stroke: config.color, 
+              activeDot={{
+                r: 8,
+                stroke: config.color,
                 strokeWidth: 3,
                 fill: '#ffffff',
                 fillOpacity: 1,
@@ -187,9 +216,10 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
               }}
               name={config.label}
               connectNulls={false}
+              yAxisId={config.axis === 'right' ? 'right' : 'left'}
             />
-          );
-        }).filter(Boolean)}
+         );
+       }).filter(Boolean)}
       </LineChart>
     </ResponsiveContainer>
   );
@@ -344,9 +374,25 @@ export const CandlestickChartRenderer: React.FC<BaseChartProps> = ({
     };
   });
 
-  const CandlestickBar = ({ payload, x, y, width, height }: any) => {
+  interface CandlestickPayload {
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    isPositive: boolean;
+  }
+
+  interface CandlestickBarProps {
+    payload: CandlestickPayload;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }
+
+  const CandlestickBar = ({ payload, x, y: _y, width, height: _height }: CandlestickBarProps) => {
     if (!payload) return null;
-    
+
     const { open, high, low, close, isPositive } = payload;
     const color = isPositive ? '#10b981' : '#ef4444';
     const bodyHeight = Math.abs(close - open);
@@ -432,7 +478,16 @@ export const HeatmapChartRenderer: React.FC<BaseChartProps> = ({
     };
   });
 
-  const HeatmapCell = ({ x, y, width, height, value, metric }: any) => {
+  interface HeatmapCellProps {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    value: number;
+    metric: string;
+  }
+
+  const HeatmapCell = ({ x, y, width, height, value, metric }: HeatmapCellProps) => {
     const intensity = Math.min(value || 0, 1);
     const colors = {
       revenue: `rgba(16, 185, 129, ${intensity})`,

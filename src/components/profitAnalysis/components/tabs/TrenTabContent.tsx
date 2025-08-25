@@ -1,10 +1,12 @@
 // src/components/profitAnalysis/components/tabs/TrenTabContent.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { BarChart3, LineChart, Activity } from 'lucide-react';
 
-// Use lazy wrapper to keep code-splitting without mixing imports
-import ProfitTrendChart from '../lazy/LazyProfitTrendChart';
+// Use the new simple chart
+import { ProfitChart } from '../../ProfitChart';
 
 // ==============================================
 // TYPES
@@ -29,17 +31,13 @@ const TrenTabContent: React.FC<TrenTabContentProps> = ({
 }) => {
   return (
     <TabsContent value="tren" className="space-y-4 sm:space-y-6 mt-6">
-      <React.Suspense fallback={<div className="animate-pulse bg-gray-200 h-96 rounded-lg" />}>
-        <ProfitTrendChart
-          profitHistory={profitHistory}
-          isLoading={isLoading}
-          chartType="area"
-          showMetrics={['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex']}
-          // Add effective COGS and labels with fallback
-          effectiveCogs={effectiveCogs ?? 0}
-          labels={labels}
-        />
-      </React.Suspense>
+      <ProfitChart
+        profitHistory={profitHistory}
+        isLoading={isLoading}
+        effectiveCogs={effectiveCogs ?? 0}
+        labels={labels}
+        className="w-full"
+      />
     </TabsContent>
   );
 };

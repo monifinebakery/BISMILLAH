@@ -7,7 +7,7 @@ import { normalizeDateForDatabase } from '@/utils/dateNormalization';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitData } from '../hooks';
-import { getCurrentPeriod, generatePeriodOptions } from '../utils/profitTransformers';
+import { getCurrentPeriod } from '../utils/profitTransformers';
 // Removed unused calculateMargins import - using safeCalculateMargins for consistency
 import { safeCalculateMargins } from '@/utils/profitValidation';
 
@@ -152,25 +152,25 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   // ✅ IMPROVED: Use centralized calculation for consistency
   const footerCalc = safeCalculateMargins(safeRevenue, safeCogs, safeOpex);
 
-    return (
-      <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
-        <DashboardHeaderSection
-          hasValidData={hasAnyData}
-          isLoading={loading}
-        quickStatus={{
-          netProfit: footerCalc.netProfit,
-          cogsPercentage: (safeCogs / Math.max(safeRevenue, 1)) * 100,
-          revenue: safeRevenue
-        }}
-        statusIndicators={[
-          ...(isDataStale ? [{ type: 'stale' as const, label: 'Data usang' }] : []),
-          ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
-          ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
-        ]}
-          onRefresh={handleRefresh}
-          dateRange={range}
-          onDateRangeChange={handleDateRangeChange}
-        />
+  return (
+    <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
+          <DashboardHeaderSection
+            hasValidData={hasAnyData}
+            isLoading={loading}
+            quickStatus={{
+              netProfit: footerCalc.netProfit,
+              cogsPercentage: (safeCogs / Math.max(safeRevenue, 1)) * 100,
+              revenue: safeRevenue
+            }}
+            statusIndicators={[
+              ...(isDataStale ? [{ type: 'stale' as const, label: 'Data usang' }] : []),
+              ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
+              ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
+            ]}
+            onRefresh={handleRefresh}
+            dateRange={range}
+            onDateRangeChange={handleDateRangeChange}
+          />
       
       {error && (
         <Alert variant="destructive">
@@ -338,9 +338,9 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         isLoading={loading}
         hppLabel={labels?.hppLabel}
         hppHint={labels?.hppHint}
-      />
-    </div>
-  );
+        />
+      </div>
+    );
 };
 
 export default ProfitDashboard;

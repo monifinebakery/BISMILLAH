@@ -145,26 +145,26 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
       {advancedAnalytics && (
         <>
           <Button
-            variant='default'
+            variant={showForecast ? 'default' : 'outline'}
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowForecast(!showForecast)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
           >
             {isMobile ? 'Prediksi' : 'Prediksi'}
           </Button>
           <Button
-            variant='default'
+            variant={showAnomalies ? 'default' : 'outline'}
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowAnomalies(!showAnomalies)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
           >
             {isMobile ? 'Anomali' : 'Anomali'}
           </Button>
           <Button
-            variant='default'
+            variant={showComparison ? 'default' : 'outline'}
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowComparison(!showComparison)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
           >
             {isMobile ? 'Bandingkan' : 'Bandingkan'}
           </Button>

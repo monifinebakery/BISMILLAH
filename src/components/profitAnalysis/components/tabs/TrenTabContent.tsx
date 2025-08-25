@@ -30,12 +30,17 @@ const TrenTabContent: React.FC<TrenTabContentProps> = ({
   effectiveCogs,
   labels
 }) => {
-  const [chartVariant, setChartVariant] = useState<'advanced' | 'multiple'>('advanced');
+  const [chartVariant, setChartVariant] = useState<'advanced' | 'multiple'>('multiple');
+  
+  console.log('TrenTabContent - chartVariant:', chartVariant);
   
   return (
     <TabsContent value="tren" className="space-y-3 sm:space-y-6 mt-4 sm:mt-6">
-      {/* Mobile-optimized Chart Type Selector */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 p-2 sm:p-3 bg-orange-50 border border-orange-200 rounded-lg">
+      {/* Chart Type Selector - Always visible with debug */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 p-3 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
+        <div className="w-full text-xs text-gray-600 mb-1">
+          Debug: Current chart = {chartVariant}
+        </div>
         <div className="flex items-center gap-2 text-xs sm:text-sm text-orange-700 font-medium mb-2 sm:mb-0 sm:mr-4">
           <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="whitespace-nowrap">Jenis Grafik:</span>

@@ -67,26 +67,35 @@ export function ChartLineMultiple({
   const [showLegend, setShowLegend] = React.useState(false);
   
   // Generate demo data for better visualization when no real data
-  const generateDemoData = () => {
+  const generateDemoData = React.useCallback(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const baseData = [
+      { base: 2200000, cogsRate: 0.45, opexRate: 0.18 },
+      { base: 2800000, cogsRate: 0.42, opexRate: 0.16 },
+      { base: 2400000, cogsRate: 0.48, opexRate: 0.19 },
+      { base: 3200000, cogsRate: 0.40, opexRate: 0.15 },
+      { base: 2900000, cogsRate: 0.43, opexRate: 0.17 },
+      { base: 3500000, cogsRate: 0.39, opexRate: 0.14 },
+    ];
+    
     return months.map((month, index) => {
-      const baseRevenue = 2000000 + (Math.random() * 1000000);
-      const revenue = baseRevenue + (index * 200000) + (Math.sin(index) * 300000);
-      const cogs = revenue * (0.4 + Math.random() * 0.2); // 40-60% dari revenue
-      const opex = revenue * (0.15 + Math.random() * 0.1); // 15-25% dari revenue
+      const data = baseData[index];
+      const revenue = data.base;
+      const cogs = Math.round(revenue * data.cogsRate);
+      const opex = Math.round(revenue * data.opexRate);
       const grossProfit = revenue - cogs;
       const netProfit = grossProfit - opex;
       
       return {
         period: month,
-        revenue: Math.round(revenue),
-        cogs: Math.round(cogs),
-        opex: Math.round(opex),
-        grossProfit: Math.round(grossProfit),
-        netProfit: Math.round(netProfit),
+        revenue,
+        cogs,
+        opex,
+        grossProfit,
+        netProfit,
       };
     });
-  };
+  }, []);
   
   // Process profit history data for the chart
   const chartData = React.useMemo(() => {
@@ -128,6 +137,13 @@ export function ChartLineMultiple({
   
   const isMobile = windowWidth < 768;
   const isSmallMobile = windowWidth < 480;
+  
+  console.log('ChartLineMultiple render:', { 
+    isMobile, 
+    windowWidth, 
+    chartDataLength: chartData.length, 
+    isLoading 
+  });
   
   // Calculate trend
   const trend = React.useMemo(() => {

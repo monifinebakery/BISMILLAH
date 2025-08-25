@@ -168,6 +168,8 @@ export const sanitizeCostForm = (data: CostFormData): CostFormData => {
     jumlah_per_bulan: Math.max(0, Number(data.jumlah_per_bulan) || 0),
     jenis: data.jenis || 'tetap',
     status: data.status || 'aktif',
+    group: data.group || 'OPERASIONAL',
+    deskripsi: data.deskripsi || undefined,
   };
 };
 

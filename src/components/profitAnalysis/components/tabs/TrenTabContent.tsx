@@ -33,39 +33,43 @@ const TrenTabContent: React.FC<TrenTabContentProps> = ({
   const [chartVariant, setChartVariant] = useState<'advanced' | 'multiple'>('advanced');
   
   return (
-    <TabsContent value="tren" className="space-y-4 sm:space-y-6 mt-6">
-      {/* Chart Type Selector */}
-      <div className="flex flex-wrap gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-        <div className="flex items-center gap-2 text-sm text-orange-700 font-medium mr-4">
-          <BarChart3 className="w-4 h-4" />
-          Jenis Grafik:
+    <TabsContent value="tren" className="space-y-3 sm:space-y-6 mt-4 sm:mt-6">
+      {/* Mobile-optimized Chart Type Selector */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 p-2 sm:p-3 bg-orange-50 border border-orange-200 rounded-lg">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-orange-700 font-medium mb-2 sm:mb-0 sm:mr-4">
+          <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="whitespace-nowrap">Jenis Grafik:</span>
         </div>
-        <Button
-          variant={chartVariant === 'advanced' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setChartVariant('advanced')}
-          className={`text-xs ${
-            chartVariant === 'advanced' 
-              ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-              : 'border-orange-300 text-orange-700 hover:bg-orange-100'
-          }`}
-        >
-          <Activity className="w-3 h-3 mr-1" />
-          Advanced Chart
-        </Button>
-        <Button
-          variant={chartVariant === 'multiple' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setChartVariant('multiple')}
-          className={`text-xs ${
-            chartVariant === 'multiple' 
-              ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-              : 'border-orange-300 text-orange-700 hover:bg-orange-100'
-          }`}
-        >
-          <LineChart className="w-3 h-3 mr-1" />
-          Multi-Line Chart
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant={chartVariant === 'advanced' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setChartVariant('advanced')}
+            className={`flex-1 sm:flex-none text-xs px-2 py-1.5 h-auto ${
+              chartVariant === 'advanced' 
+                ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                : 'border-orange-300 text-orange-700 hover:bg-orange-100'
+            }`}
+          >
+            <Activity className="w-3 h-3 mr-1" />
+            <span className="hidden xs:inline">Advanced Chart</span>
+            <span className="xs:hidden">Advanced</span>
+          </Button>
+          <Button
+            variant={chartVariant === 'multiple' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setChartVariant('multiple')}
+            className={`flex-1 sm:flex-none text-xs px-2 py-1.5 h-auto ${
+              chartVariant === 'multiple' 
+                ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                : 'border-orange-300 text-orange-700 hover:bg-orange-100'
+            }`}
+          >
+            <LineChart className="w-3 h-3 mr-1" />
+            <span className="hidden xs:inline">Multi-Line Chart</span>
+            <span className="xs:hidden">Multi-Line</span>
+          </Button>
+        </div>
       </div>
       
       {/* Chart Content */}

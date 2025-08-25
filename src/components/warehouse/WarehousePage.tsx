@@ -405,7 +405,7 @@ const WarehousePageContent: React.FC = () => {
   // 🎯 NEW: Lazy loading state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [useLazyLoading] = useState(true);
 
   // ✅ TAMBAH: Use warehouse data hook with pagination support
   const warehouseData = useWarehouseData(currentPage, itemsPerPage, useLazyLoading);
@@ -621,52 +621,32 @@ const WarehousePageContent: React.FC = () => {
             isPagePartiallySelected={core.selection?.isPagePartiallySelected}
           />
 
-          {/* Lazy Loading Controls */}
+          {/* Kontrol Paginasi */}
           <div className="p-4 border-t border-gray-200 bg-gray-50">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={useLazyLoading}
+                <div className="flex items-center gap-2 text-sm">
+                  <label htmlFor="itemsPerPage">Items per page:</label>
+                  <select
+                    id="itemsPerPage"
+                    value={itemsPerPage}
                     onChange={(e) => {
-                      setUseLazyLoading(e.target.checked);
-                      setCurrentPage(1); // Reset ke halaman 1 saat toggle
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
                     }}
-                    className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                  />
-                  <span className="font-medium">Lazy Loading</span>
-                  {useLazyLoading && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                      Server-side
-                    </span>
-                  )}
-                </label>
-                
-                {useLazyLoading && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <label htmlFor="itemsPerPage">Items per page:</label>
-                    <select
-                      id="itemsPerPage"
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm"
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </div>
-                )}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
               </div>
-              
+
               <div className="text-sm text-gray-600">
                 Terakhir diperbarui: {warehouseData.lastUpdated ? new Date(warehouseData.lastUpdated).toLocaleString('id-ID') : 'Tidak diketahui'}
-                {useLazyLoading && warehouseData.paginationInfo && (
+                {warehouseData.paginationInfo && (
                   <span className="ml-2 text-blue-600 font-medium">
                     (Total: {warehouseData.paginationInfo.total} data)
                   </span>
@@ -676,66 +656,33 @@ const WarehousePageContent: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          {useLazyLoading ? (
-            // Server-side pagination
-            warehouseData.paginationInfo && warehouseData.paginationInfo.totalPages > 1 && (
-              <div className="p-4 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-sm text-gray-600">
-                    Menampilkan {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, warehouseData.paginationInfo.total)} dari {warehouseData.paginationInfo.total} item
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                    >
-                      Sebelumnya
-                    </button>
-                    <span className="px-3 py-1 text-sm font-medium">
-                      Halaman {currentPage} dari {warehouseData.paginationInfo.totalPages}
-                    </span>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(warehouseData.paginationInfo!.totalPages, prev + 1))}
-                      disabled={currentPage === warehouseData.paginationInfo.totalPages}
-                      className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                    >
-                      Selanjutnya
-                    </button>
-                  </div>
+          {warehouseData.paginationInfo && warehouseData.paginationInfo.totalPages > 1 && (
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600">
+                  Menampilkan {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, warehouseData.paginationInfo.total)} dari {warehouseData.paginationInfo.total} item
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  >
+                    Sebelumnya
+                  </button>
+                  <span className="px-3 py-1 text-sm font-medium">
+                    Halaman {currentPage} dari {warehouseData.paginationInfo.totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(warehouseData.paginationInfo!.totalPages, prev + 1))}
+                    disabled={currentPage === warehouseData.paginationInfo.totalPages}
+                    className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  >
+                    Selanjutnya
+                  </button>
                 </div>
               </div>
-            )
-          ) : (
-            // Client-side pagination
-            (core.filters?.filteredItems?.length || 0) > 0 && (
-              <div className="p-4 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-sm text-gray-600">
-                    Menampilkan {(core.pagination?.startIndex || 0) + 1}-{Math.min(core.pagination?.endIndex || 0, core.filters?.filteredItems?.length || 0)} dari {core.filters?.filteredItems?.length || 0} item
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => core.pagination?.setPage?.((core.pagination?.page || 1) - 1)}
-                      disabled={(core.pagination?.page || 1) === 1}
-                      className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                    >
-                      Sebelumnya
-                    </button>
-                    <span className="px-3 py-1 text-sm font-medium">
-                      Halaman {core.pagination?.page || 1} dari {core.pagination?.totalPages || 1}
-                    </span>
-                    <button
-                      onClick={() => core.pagination?.setPage?.((core.pagination?.page || 1) + 1)}
-                      disabled={(core.pagination?.page || 1) === (core.pagination?.totalPages || 1)}
-                      className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                    >
-                      Selanjutnya
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )
+            </div>
           )}
         </div>
       )}

@@ -15,7 +15,7 @@ export const UpdatesPage: React.FC = () => {
   // Lazy loading state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [useLazyLoading] = useState(true);
   const [paginationInfo, setPaginationInfo] = useState<{
     total: number;
     totalPages: number;
@@ -23,23 +23,6 @@ export const UpdatesPage: React.FC = () => {
     hasMore: boolean;
   } | null>(null);
 
-  const fetchAllUpdates = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('app_updates')
-        .select('id, version, title, description, release_date, is_active, priority, created_by, created_at, updated_at')
-        .eq('is_active', true)
-        .order('release_date', { ascending: false });
-
-      if (error) throw error;
-      setUpdates(data || []);
-    } catch (error) {
-      console.error('Error fetching updates:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchUpdatesPaginated = async (page: number, limit: number) => {
     setLoading(true);
@@ -81,12 +64,8 @@ export const UpdatesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (useLazyLoading) {
-      loadPaginatedData();
-    } else {
-      fetchAllUpdates();
-    }
-  }, [useLazyLoading, currentPage, itemsPerPage]);
+    loadPaginatedData();
+  }, [currentPage, itemsPerPage]);
 
   const loadPaginatedData = async () => {
     try {
@@ -104,21 +83,13 @@ export const UpdatesPage: React.FC = () => {
   };
 
   const handleRefresh = async () => {
-    if (useLazyLoading) {
-      await loadPaginatedData();
-    } else {
-      await fetchAllUpdates();
-    }
+    await loadPaginatedData();
     await refreshUpdates();
   };
 
   const handleMarkAllAsSeen = async () => {
     await markAllAsSeen();
-    if (useLazyLoading) {
-      await loadPaginatedData();
-    } else {
-      await fetchAllUpdates();
-    }
+    await loadPaginatedData();
   };
 
   // Filter updates based on selected filters and unread status
@@ -177,51 +148,31 @@ export const UpdatesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Lazy Loading Controls */}
+          {/* Kontrol Paginasi */}
           <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={useLazyLoading}
+                <div className="flex items-center gap-2 text-sm">
+                  <label htmlFor="itemsPerPage">Items per page:</label>
+                  <select
+                    id="itemsPerPage"
+                    value={itemsPerPage}
                     onChange={(e) => {
-                      setUseLazyLoading(e.target.checked);
+                      setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="font-medium">Lazy Loading</span>
-                  {useLazyLoading && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                      Server-side
-                    </span>
-                  )}
-                </label>
-                
-                {useLazyLoading && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <label htmlFor="itemsPerPage">Items per page:</label>
-                    <select
-                      id="itemsPerPage"
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm"
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </div>
-                )}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
               </div>
-              
+
               <div className="text-sm text-gray-600">
-                {useLazyLoading && paginationInfo && (
+                {paginationInfo && (
                   <span className="text-blue-600 font-medium">
                     Total: {paginationInfo.total} update
                   </span>
@@ -289,8 +240,8 @@ export const UpdatesPage: React.FC = () => {
           </div>
         )}
         
-        {/* Pagination Controls for Lazy Loading */}
-        {useLazyLoading && paginationInfo && paginationInfo.totalPages > 1 && (
+        {/* Pagination Controls */}
+        {paginationInfo && paginationInfo.totalPages > 1 && (
           <div className="mt-8 flex items-center justify-between">
             <div className="text-sm text-gray-600">
               Halaman {paginationInfo.currentPage} dari {paginationInfo.totalPages}

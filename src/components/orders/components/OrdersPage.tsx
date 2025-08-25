@@ -87,18 +87,22 @@ interface OrdersPageState {
   dialogs: {
     orderForm: boolean;
     templateManager: boolean;
+    detail: boolean;
   };
   editingOrder: Order | null;
   selectedOrderForTemplate: Order | null;
+  viewingOrder: Order | null;
 }
 
 const initialState: OrdersPageState = {
   dialogs: {
     orderForm: false,
-    templateManager: false
+    templateManager: false,
+    detail: false
   },
   editingOrder: null,
-  selectedOrderForTemplate: null
+  selectedOrderForTemplate: null,
+  viewingOrder: null
 };
 
 const OrdersPage: React.FC = () => {
@@ -122,7 +126,7 @@ const OrdersPage: React.FC = () => {
   // ✅ LAZY LOADING STATE: State untuk kontrol lazy loading
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [useLazyLoading] = useState(true);
   const [paginationInfo, setPaginationInfo] = useState({ totalCount: 0, totalPages: 0 });
 
   // ✅ LAZY LOADING QUERY: Fetch paginated data when lazy loading is enabled
@@ -137,7 +141,7 @@ const OrdersPage: React.FC = () => {
       if (!user?.id) throw new Error('User not authenticated');
       return fetchOrdersPaginated(user.id, currentPage, itemsPerPage);
     },
-    enabled: useLazyLoading && !!user?.id,
+    enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -145,25 +149,25 @@ const OrdersPage: React.FC = () => {
   const { getWhatsappUrl } = useOrderFollowUp();
 
   // ✅ DATA SELECTION: Pilih data berdasarkan mode lazy loading
-  const finalOrders = useLazyLoading ? (paginatedData?.orders || []) : orders;
-  const finalIsLoading = useLazyLoading ? isPaginatedLoading : loading;
-  const finalError = useLazyLoading ? paginatedError : null;
+  const finalOrders = paginatedData?.orders || [];
+  const finalIsLoading = isPaginatedLoading;
+  const finalError = paginatedError;
 
   // ✅ STATS CALCULATION: Hitung statistik berdasarkan data yang dipilih
   const finalStats = useMemo(() => {
-    const dataToUse = useLazyLoading ? (paginatedData?.orders || []) : orders;
+    const dataToUse = paginatedData?.orders || [];
     return {
-      total: useLazyLoading ? paginationInfo.totalCount : orders.length,
+      total: paginationInfo.totalCount,
       totalValue: dataToUse.reduce((sum: number, order: Order) => sum + (order.totalPesanan || 0), 0),
       byStatus: dataToUse.reduce((acc: Record<string, number>, order: Order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
-      completionRate: dataToUse.length > 0 
+      completionRate: dataToUse.length > 0
         ? Math.round((dataToUse.filter((o: Order) => o.status === 'completed').length / dataToUse.length) * 100)
         : 0
     };
-  }, [useLazyLoading, paginatedData, orders, paginationInfo.totalCount]);
+  }, [paginatedData, paginationInfo.totalCount]);
 
   // ✅ UPDATE PAGINATION INFO: Update when data changes
   React.useEffect(() => {
@@ -229,6 +233,24 @@ const OrdersPage: React.FC = () => {
         ...prev,
         dialogs: { ...prev.dialogs, templateManager: false },
         selectedOrderForTemplate: null
+      }));
+    },
+
+    openDetail: (order: Order) => {
+      logger.component('OrdersPage', 'Opening order detail dialog', { orderId: order.id, nomorPesanan: order.nomorPesanan });
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, detail: true },
+        viewingOrder: order
+      }));
+    },
+
+    closeDetail: () => {
+      logger.component('OrdersPage', 'Closing order detail dialog');
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, detail: false },
+        viewingOrder: null
       }));
     }
   }), []);
@@ -477,23 +499,12 @@ const OrdersPage: React.FC = () => {
 
   // ✅ ENHANCED: View detail handler
   const handleViewDetail = useCallback((order: Order) => {
-    logger.component('OrdersPage', 'View detail requested:', { 
-      orderId: order.id, 
-      nomorPesanan: order.nomorPesanan 
+    logger.component('OrdersPage', 'View detail requested:', {
+      orderId: order.id,
+      nomorPesanan: order.nomorPesanan
     });
-    
-    // Set order for template manager (could be used for template preview)
-    setPageState(prev => ({
-      ...prev,
-      selectedOrderForTemplate: order
-    }));
-    
-    // Placeholder for detail view - can be developed further
-    toast.info(`Detail pesanan #${order.nomorPesanan} - Coming soon!`);
-    
-    // TODO: Implement detail modal or navigate to detail page
-    logger.debug('Order detail view - feature coming soon');
-  }, []);
+    dialogHandlers.openDetail(order);
+  }, [dialogHandlers]);
 
   // ✅ DEBUG: Test function for status update (development only)
   const debugStatusUpdate = useCallback(async () => {
@@ -566,43 +577,6 @@ const OrdersPage: React.FC = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-          {/* ✅ LAZY LOADING CONTROLS */}
-          <div className="flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-lg backdrop-blur-sm">
-            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useLazyLoading}
-                onChange={(e) => {
-                  setUseLazyLoading(e.target.checked);
-                  if (e.target.checked) {
-                    setCurrentPage(1);
-                  }
-                }}
-                className="rounded"
-              />
-              Lazy Loading
-            </label>
-            {useLazyLoading && (
-              <>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="ml-2 px-2 py-1 text-sm bg-white bg-opacity-20 border border-white border-opacity-30 rounded text-white"
-                >
-                  <option value={5} className="text-gray-800">5/halaman</option>
-                  <option value={10} className="text-gray-800">10/halaman</option>
-                  <option value={20} className="text-gray-800">20/halaman</option>
-                  <option value={50} className="text-gray-800">50/halaman</option>
-                </select>
-                <span className="text-sm ml-2">
-                  Total: {paginationInfo.totalCount} pesanan
-                </span>
-              </>
-            )}
-          </div>
 
           {/* ✅ DEBUG: Debug button for development */}
           {import.meta.env.DEV && (
@@ -688,10 +662,10 @@ const OrdersPage: React.FC = () => {
         />
         
         {/* ✅ PAGINATION CONTROLS: Untuk mode lazy loading */}
-        {useLazyLoading && paginationInfo.totalPages > 1 && (
+        {paginationInfo.totalPages > 1 && (
           <div className="flex items-center justify-between mt-6 p-4 bg-white rounded-lg border">
             <div className="text-sm text-gray-600">
-              Halaman {currentPage} dari {paginationInfo.totalPages} 
+              Halaman {currentPage} dari {paginationInfo.totalPages}
               ({paginationInfo.totalCount} total pesanan)
             </div>
             <div className="flex items-center gap-2">
@@ -723,9 +697,12 @@ const OrdersPage: React.FC = () => {
           editingOrder={pageState.editingOrder}
           showTemplateManager={pageState.dialogs.templateManager}
           selectedOrderForTemplate={pageState.selectedOrderForTemplate}
+          showDetailDialog={pageState.dialogs.detail}
+          detailOrder={pageState.viewingOrder}
           onSubmitOrder={businessHandlers.submitOrder}
           onCloseOrderForm={dialogHandlers.closeOrderForm}
           onCloseTemplateManager={dialogHandlers.closeTemplateManager}
+          onCloseDetail={dialogHandlers.closeDetail}
         />
       </Suspense>
     </div>

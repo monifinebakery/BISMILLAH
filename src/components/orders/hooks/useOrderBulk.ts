@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/contexts/AuthContext';
+import * as orderService from '../services/orderService';
 import type { Order } from '../types';
 
 interface BulkEditData {
@@ -30,40 +32,37 @@ export const useOrderBulk = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // Bulk delete mutation
   const bulkDeleteMutation = useMutation({
     mutationFn: async (orderIds: string[]) => {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
       setIsProcessing(true);
       setProgress({ total: orderIds.length, completed: 0, failed: 0, errors: [] });
-      
-      const results = [];
-      
+
+      const results = [] as { id: string; success: boolean; error?: string }[];
+
       for (let i = 0; i < orderIds.length; i++) {
         const orderId = orderIds[i];
         try {
-          // TODO: Replace with actual API call
-          const response = await fetch(`/api/orders/${orderId}`, {
-            method: 'DELETE',
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
+          await orderService.deleteOrder(user.id, orderId);
           results.push({ id: orderId, success: true });
           setProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
         } catch (error: any) {
           logger.error(`Failed to delete order ${orderId}:`, error);
           results.push({ id: orderId, success: false, error: error.message });
-          setProgress(prev => ({ 
-            ...prev, 
+          setProgress(prev => ({
+            ...prev,
             failed: prev.failed + 1,
             errors: [...prev.errors, `Gagal menghapus pesanan ${orderId}: ${error.message}`]
           }));
         }
       }
-      
+
       setIsProcessing(false);
       return results;
     },
@@ -91,40 +90,41 @@ export const useOrderBulk = () => {
   // Bulk edit mutation
   const bulkEditMutation = useMutation({
     mutationFn: async ({ orderIds, editData }: { orderIds: string[], editData: BulkEditData }) => {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
       setIsProcessing(true);
       setProgress({ total: orderIds.length, completed: 0, failed: 0, errors: [] });
-      
-      const results = [];
-      
+
+      const results = [] as { id: string; success: boolean; error?: string }[];
+
       for (let i = 0; i < orderIds.length; i++) {
         const orderId = orderIds[i];
         try {
-          // TODO: Replace with actual API call
-          const response = await fetch(`/api/orders/${orderId}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(editData),
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+          const updateData: Partial<Order> = {
+            ...(editData.status !== undefined && { status: editData.status }),
+            ...(editData.catatan !== undefined && { catatan: editData.catatan }),
+          };
+
+          if (editData.tanggalPengiriman !== undefined) {
+            (updateData as any).tanggalPengiriman = editData.tanggalPengiriman;
           }
-          
+
+          await orderService.updateOrder(user.id, orderId, updateData);
           results.push({ id: orderId, success: true });
           setProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
         } catch (error: any) {
           logger.error(`Failed to update order ${orderId}:`, error);
           results.push({ id: orderId, success: false, error: error.message });
-          setProgress(prev => ({ 
-            ...prev, 
+          setProgress(prev => ({
+            ...prev,
             failed: prev.failed + 1,
             errors: [...prev.errors, `Gagal memperbarui pesanan ${orderId}: ${error.message}`]
           }));
         }
       }
-      
+
       setIsProcessing(false);
       return results;
     },

@@ -44,5 +44,5 @@ export const supabase = createClient<Database>(
 
 // Optional: expose in dev for easier debugging
 if (import.meta.env.DEV) {
-  (window as any).supabase = supabase;
+  window.supabase = supabase;
 }

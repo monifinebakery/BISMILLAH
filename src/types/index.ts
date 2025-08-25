@@ -22,6 +22,8 @@ export interface BahanBaku {
   userId?: string;
 }
 
+export type PurchaseStatus = 'pending' | 'completed' | 'cancelled';
+
 export interface Purchase {
   id: string;
   tanggal: Date;
@@ -36,12 +38,33 @@ export interface Purchase {
     totalHarga: number;
   }[];
   totalNilai: number;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: PurchaseStatus;
   metodePerhitungan: 'Average';
   catatan: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
+
+export const PURCHASE_STATUS_CONFIG: Record<
+  PurchaseStatus,
+  { label: string; color: string; icon: string }
+> = {
+  pending: {
+    label: 'Menunggu',
+    color: 'bg-yellow-100 text-yellow-800',
+    icon: '⏳',
+  },
+  completed: {
+    label: 'Selesai',
+    color: 'bg-green-100 text-green-800',
+    icon: '✅',
+  },
+  cancelled: {
+    label: 'Dibatalkan',
+    color: 'bg-red-100 text-red-800',
+    icon: '❌',
+  },
+};
 
 export interface HPPResult {
   id: string;

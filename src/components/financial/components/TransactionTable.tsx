@@ -205,7 +205,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(false); // Toggle untuk lazy loading
+  const [useLazyLoading] = useState(true);
 
   // ✅ Definisikan user TERLEBIH DAHULU sebelum digunakan
   const { user } = useAuth(); // ✅ Harus di sini
@@ -216,7 +216,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     user?.id, 
     currentPage, 
     itemsPerPage, 
-    useLazyLoading && !legacyTransactions // Gunakan lazy loading hanya jika tidak ada legacy props
+    !legacyTransactions // Gunakan lazy loading hanya jika tidak ada legacy props
   );
   
   const transactions = legacyTransactions || queryData.transactions;
@@ -228,25 +228,22 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
   // Pagination logic - gunakan server-side jika lazy loading aktif
   const currentTransactions = useMemo(() => {
-    if (useLazyLoading && paginationInfo && !legacyTransactions) {
-      // Server-side pagination: data sudah dipaginasi dari server
+    if (!legacyTransactions && paginationInfo) {
       return transactions;
     } else {
-      // Client-side pagination: slice data di client
       const firstItem = (currentPage - 1) * itemsPerPage;
       return transactions.slice(firstItem, firstItem + itemsPerPage);
     }
-  }, [transactions, currentPage, itemsPerPage, useLazyLoading, paginationInfo, legacyTransactions]);
+  }, [transactions, currentPage, itemsPerPage, paginationInfo, legacyTransactions]);
 
-  // Calculate pagination info
-  const totalPages = useLazyLoading && paginationInfo 
-    ? paginationInfo.totalPages 
+  const totalPages = !legacyTransactions && paginationInfo
+    ? paginationInfo.totalPages
     : Math.ceil(transactions.length / itemsPerPage);
-  const totalItems = useLazyLoading && paginationInfo 
-    ? paginationInfo.total 
+  const totalItems = !legacyTransactions && paginationInfo
+    ? paginationInfo.total
     : transactions.length;
   const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = useLazyLoading && paginationInfo 
+  const endItem = !legacyTransactions && paginationInfo
     ? Math.min(currentPage * itemsPerPage, paginationInfo.total)
     : Math.min(currentPage * itemsPerPage, transactions.length);
 
@@ -331,27 +328,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {!legacyTransactions && (
-              <div className="flex items-center gap-2 mr-2">
-                <label className="text-xs text-gray-600 flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useLazyLoading}
-                    onChange={(e) => {
-                      setUseLazyLoading(e.target.checked);
-                      setCurrentPage(1); // Reset ke halaman pertama
-                    }}
-                    className="w-3 h-3"
-                  />
-                  <span>Lazy Loading</span>
-                </label>
-                {useLazyLoading && (
-                  <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                    Server-side
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Kontrol Lazy Loading dihapus */}
             <Button
               variant="outline"
               size="sm"
@@ -375,7 +352,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
               Terakhir diperbarui: {lastUpdated.toLocaleString('id-ID')}
             </p>
           )}
-          {useLazyLoading && paginationInfo && (
+          {paginationInfo && (
             <p className="text-xs text-blue-600">
               Mode: Server-side Pagination | Total: {paginationInfo.total} data
             </p>

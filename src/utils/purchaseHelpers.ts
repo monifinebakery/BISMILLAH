@@ -489,6 +489,55 @@ export const preparePurchasesForExport = (
   });
 };
 
+export const exportPurchasesToCSV = (
+  purchases: Purchase[],
+  suppliers: Array<{ id: string; nama: string }>
+): string => {
+  const data = preparePurchasesForExport(purchases, suppliers);
+  if (data.length === 0) return '';
+  const headers = Object.keys(data[0]);
+  const csv = [
+    headers.join(','),
+    ...data.map(row =>
+      headers
+        .map(h => {
+          const value = (row as any)[h] ?? '';
+          return typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r'))
+            ? `"${value.replace(/"/g, '""')}"`
+            : value;
+        })
+        .join(',')
+    )
+  ].join('\n');
+  return csv;
+};
+
+export const generatePurchasePrintContent = (
+  purchases: Purchase[],
+  suppliers: Array<{ id: string; nama: string }>
+): string => {
+  const data = preparePurchasesForExport(purchases, suppliers);
+  if (data.length === 0) return '';
+  return data
+    .map((row, idx) =>
+      `${idx + 1}. ` +
+      Object.entries(row)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(' | ')
+    )
+    .join('\n');
+};
+
+export const markPurchasesAsArchived = (
+  purchases: Purchase[],
+  ids: string[]
+): Purchase[] => {
+  const idSet = new Set(ids);
+  return purchases.map(p =>
+    idSet.has(p.id) ? { ...p, isArchived: true } : p
+  );
+};
+
 // 🔍 Search Optimization
 export const createSearchIndex = (purchases: Purchase[], suppliers: Array<{ id: string; nama: string }>) => {
   return purchases.map(purchase => {

@@ -7,7 +7,7 @@ import { normalizeDateForDatabase } from '@/utils/dateNormalization';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitData } from '../hooks';
-import { getCurrentPeriod, generatePeriodOptions } from '../utils/profitTransformers';
+import { getCurrentPeriod } from '../utils/profitTransformers';
 // Removed unused calculateMargins import - using safeCalculateMargins for consistency
 import { safeCalculateMargins } from '@/utils/profitValidation';
 
@@ -155,22 +155,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   // ✅ IMPROVED: Use centralized calculation for consistency
   const footerCalc = safeCalculateMargins(safeRevenue, safeCogs, safeOpex);
 
-  useEffect(() => {
-    const seen = localStorage.getItem('profit-analysis-onboarding-seen');
-    if (!seen) {
-      setShowOnboarding(true);
-    }
-  }, []);
-
-  const handleCloseOnboarding = () => {
-    localStorage.setItem('profit-analysis-onboarding-seen', 'true');
-    setShowOnboarding(false);
-  };
-
-    return (
-      <>
-        <ProfitAnalysisOnboarding isOpen={showOnboarding} onClose={handleCloseOnboarding} />
-        <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
+  return (
+    <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
           <DashboardHeaderSection
             hasValidData={hasAnyData}
             isLoading={loading}
@@ -187,7 +173,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
             onRefresh={handleRefresh}
             dateRange={range}
             onDateRangeChange={handleDateRangeChange}
-            onStartOnboarding={() => setShowOnboarding(true)}
           />
       
       {error && (
@@ -356,10 +341,9 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         isLoading={loading}
         hppLabel={labels?.hppLabel}
         hppHint={labels?.hppHint}
-      />
-    </div>
-  </>
-  );
+        />
+      </div>
+    );
 };
 
 export default ProfitDashboard;

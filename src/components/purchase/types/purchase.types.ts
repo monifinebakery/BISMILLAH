@@ -22,6 +22,7 @@ export interface Purchase {
   metodePerhitungan: CalculationMethod;
   createdAt: Date;
   updatedAt: Date;
+  isArchived?: boolean;
 }
 
 export type PurchaseStatus = 'pending' | 'completed' | 'cancelled';
@@ -111,7 +112,10 @@ export interface PurchaseTableContextType {
 
   // Bulk operations
   bulkDelete: () => Promise<void>;
+  bulkUpdateStatus: (status: PurchaseStatus) => Promise<void>;
+  bulkArchive: () => Promise<void>;
   isBulkDeleting: boolean;
+  isBulkArchiving: boolean;
   showBulkDeleteDialog: boolean;
   setShowBulkDeleteDialog: (show: boolean) => void;
 

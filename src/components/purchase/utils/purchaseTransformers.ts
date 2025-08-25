@@ -69,6 +69,7 @@ type DbPurchaseRow = {
   metode_perhitungan: 'AVERAGE';
   created_at: string;
   updated_at: string;
+  is_archived?: boolean;
 };
 
 /** ==== FRONTEND <- DB ==== */
@@ -120,6 +121,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       metodePerhitungan: row.metode_perhitungan,
       createdAt: safeParseDate(row.created_at) ?? new Date(),
       updatedAt: safeParseDate(row.updated_at) ?? new Date(),
+      isArchived: row.is_archived ?? false,
     };
   } catch (error) {
     logger.error('Error transforming purchase from DB:', error);
@@ -152,6 +154,7 @@ export const transformPurchaseForDB = (
     items: (p.items ?? []).map(mapItemForDB),
     status: p.status ?? 'pending',
     metode_perhitungan: p.metodePerhitungan ?? 'AVERAGE',
+    is_archived: p.isArchived ?? false,
   };
 };
 
@@ -164,6 +167,7 @@ export const transformPurchaseUpdateForDB = (p: Partial<Purchase>) => {
   if (p.totalNilai !== undefined) out.total_nilai = Math.max(0, Number(p.totalNilai) || 0);
   if (p.status !== undefined) out.status = p.status;
   if (p.metodePerhitungan !== undefined) out.metode_perhitungan = p.metodePerhitungan;
+  if (p.isArchived !== undefined) out.is_archived = p.isArchived;
 
   if (p.items !== undefined) {
     // ✅ HARDENED: Gunakan mapper yang robust untuk update juga

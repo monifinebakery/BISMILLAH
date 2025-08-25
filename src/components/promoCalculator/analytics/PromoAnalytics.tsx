@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, DollarSign, Percent, Calendar, Filter, X } from 'lucide-react';
-import HppAnalysisChart from './HppAnalysisChart';
-import ProfitAnalysisChart from './ProfitAnalysisChart';
 import PromoPerformanceCard from './PromoPerformanceCard';
 import { usePromoAnalytics } from '../hooks/usePromoAnalytics';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -212,29 +210,6 @@ const PromoAnalytics = () => {
         </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6">
-        {/* HPP Analysis Chart */}
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
-            Analisis HPP vs Harga Jual
-          </h3>
-          <div className="h-64 sm:h-80">
-            <HppAnalysisChart data={analyticsData?.hppAnalysis || []} />
-          </div>
-        </div>
-
-        {/* Profit Analysis Chart */}
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
-            Trend Profit Margin
-          </h3>
-          <div className="h-64 sm:h-80">
-            <ProfitAnalysisChart data={analyticsData?.profitTrend || []} />
-          </div>
-        </div>
-      </div>
-
       {/* Performance Cards */}
       <div>
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
@@ -270,3 +245,4 @@ const PromoAnalytics = () => {
 };
 
 export default PromoAnalytics;
+

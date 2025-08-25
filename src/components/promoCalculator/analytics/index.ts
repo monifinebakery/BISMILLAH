@@ -6,10 +6,8 @@
  * Dependencies reduced from 8 to 4 - 50% reduction!
  */
 
-// ✅ CORE ANALYTICS COMPONENTS: Essential analytics functionality (4 exports)
+// ✅ CORE ANALYTICS COMPONENTS: Essential analytics functionality
 export { default as PromoAnalytics } from './PromoAnalytics';
-export { default as HppAnalysisChart } from './HppAnalysisChart';
-export { default as ProfitAnalysisChart } from './ProfitAnalysisChart';
 export { default as PromoPerformanceCard } from './PromoPerformanceCard';
 
 // ❌ REMOVED - Better code splitting (4+ exports removed):
@@ -20,7 +18,6 @@ export { default as PromoPerformanceCard } from './PromoPerformanceCard';
 //
 // Use direct imports for better tree-shaking:
 // import { chartConfig } from './PromoAnalytics';
-// import { analyticsHelpers } from './HppAnalysisChart';
 
 // ✅ ANALYTICS GROUPS: For batch loading related components
 export const PROMO_ANALYTICS_GROUPS = {
@@ -32,38 +29,23 @@ export const PROMO_ANALYTICS_GROUPS = {
     PromoAnalytics: analytics.default,
     PromoPerformanceCard: performance.default
   })),
-  
-  // Chart components - analysis charts
-  charts: () => Promise.all([
-    import('./HppAnalysisChart'),
-    import('./ProfitAnalysisChart')
-  ]).then(([hpp, profit]) => ({
-    HppAnalysisChart: hpp.default,
-    ProfitAnalysisChart: profit.default
-  })),
-  
+
   // Complete analytics - all components
   complete: () => Promise.all([
     import('./PromoAnalytics'),
-    import('./HppAnalysisChart'),
-    import('./ProfitAnalysisChart'),
     import('./PromoPerformanceCard')
-  ]).then(([analytics, hpp, profit, performance]) => ({
+  ]).then(([analytics, performance]) => ({
     PromoAnalytics: analytics.default,
-    HppAnalysisChart: hpp.default,
-    ProfitAnalysisChart: profit.default,
     PromoPerformanceCard: performance.default
   }))
 } as const;
 
+
 // ✅ ANALYTICS TYPES: For different analysis needs
 export const PROMO_ANALYTICS_TYPES = {
-  // Financial analysis - HPP and profit charts
-  financial: () => PROMO_ANALYTICS_GROUPS.charts(),
-  
   // Performance analysis - analytics with performance metrics
   performance: () => PROMO_ANALYTICS_GROUPS.core(),
-  
+
   // Comprehensive analysis - all analytics components
   comprehensive: () => PROMO_ANALYTICS_GROUPS.complete()
 } as const;
@@ -71,28 +53,26 @@ export const PROMO_ANALYTICS_TYPES = {
 // ✅ ANALYTICS UTILITIES: Helper functions for analytics management
 export const PROMO_ANALYTICS_UTILS = {
   // Get components by analysis type
-  getComponentsByAnalysisType: async (type: 'financial' | 'performance' | 'comprehensive') => {
+  getComponentsByAnalysisType: async (type: 'performance' | 'comprehensive') => {
     return await PROMO_ANALYTICS_TYPES[type]();
   },
-  
+
   // Check if component is data-heavy (needs lazy loading)
   isDataHeavyComponent: (componentName: string): boolean => {
-    const dataHeavyComponents = ['PromoAnalytics', 'HppAnalysisChart', 'ProfitAnalysisChart'];
+    const dataHeavyComponents = ['PromoAnalytics'];
     return dataHeavyComponents.includes(componentName);
   },
-  
+
   // Get component loading strategy
   getLoadingStrategy: (componentName: string): 'eager' | 'lazy' | 'onDemand' => {
     const strategyMap: Record<string, 'eager' | 'lazy' | 'onDemand'> = {
       PromoAnalytics: 'lazy',
-      HppAnalysisChart: 'onDemand',
-      ProfitAnalysisChart: 'onDemand', 
       PromoPerformanceCard: 'eager'
     };
-    
+
     return strategyMap[componentName] || 'lazy';
   },
-  
+
   // Preload based on user access level
   preloadByAccessLevel: async (accessLevel: 'basic' | 'advanced' | 'admin') => {
     switch (accessLevel) {
@@ -116,11 +96,9 @@ export const PROMO_ANALYTICS_UTILS = {
   getBundlePriority: (componentName: string): 'high' | 'medium' | 'low' => {
     const sizeMap: Record<string, 'high' | 'medium' | 'low'> = {
       PromoAnalytics: 'high',
-      HppAnalysisChart: 'medium',
-      ProfitAnalysisChart: 'medium',
       PromoPerformanceCard: 'low'
     };
-    
+
     return sizeMap[componentName] || 'medium';
   }
 } as const;
@@ -130,24 +108,18 @@ export const ANALYTICS_CONSTANTS = {
   // Component types
   componentTypes: {
     PromoAnalytics: 'dashboard',
-    HppAnalysisChart: 'chart',
-    ProfitAnalysisChart: 'chart',
     PromoPerformanceCard: 'metric'
   },
-  
+
   // Data refresh intervals (in ms)
   refreshIntervals: {
     PromoAnalytics: 30000,      // 30 seconds
-    HppAnalysisChart: 60000,    // 1 minute
-    ProfitAnalysisChart: 60000, // 1 minute
     PromoPerformanceCard: 15000 // 15 seconds
   },
-  
+
   // Loading messages
   loading: {
     PromoAnalytics: 'Memuat dashboard analytics...',
-    HppAnalysisChart: 'Menghitung analisis HPP...',
-    ProfitAnalysisChart: 'Menganalisis profitabilitas...',
     PromoPerformanceCard: 'Memuat metrik performa...'
   },
   
@@ -176,29 +148,20 @@ export const ANALYTICS_CONSTANTS = {
 export const PROMO_ANALYTICS_MIGRATION = {
   instructions: `
     // CURRENT (essential components - still exported):
-    import { 
-      PromoAnalytics, 
-      HppAnalysisChart, 
-      ProfitAnalysisChart, 
-      PromoPerformanceCard 
+    import {
+      PromoAnalytics,
+      PromoPerformanceCard
     } from '@/components/promoCalculator/analytics';
-    
-    // REMOVED (wildcard re-exports):
-    // export * from './PromoAnalytics';         // ❌ No longer available
-    // export * from './HppAnalysisChart';       // ❌ No longer available
-    
+
     // FOR INTERNAL EXPORTS (direct import):
     import { chartConfig } from '@/components/promoCalculator/analytics/PromoAnalytics';
-    import { analyticsHelpers } from '@/components/promoCalculator/analytics/HppAnalysisChart';
-    
+
     // OR (group loading - batch imports):
     const coreAnalytics = await PROMO_ANALYTICS_GROUPS.core();
-    const allCharts = await PROMO_ANALYTICS_GROUPS.charts();
-    
+
     // OR (by analysis type):
-    const financialAnalytics = await PROMO_ANALYTICS_TYPES.financial();
     const comprehensiveAnalytics = await PROMO_ANALYTICS_TYPES.comprehensive();
-    
+
     // OR (by access level):
     const components = await PROMO_ANALYTICS_UTILS.preloadByAccessLevel('advanced');
   `,
@@ -220,15 +183,13 @@ export const PROMO_ANALYTICS_MIGRATION = {
   
   // Get optimized setup for common scenarios
   getOptimizedSetups: async () => {
-    const [financial, performance, comprehensive] = await Promise.all([
-      PROMO_ANALYTICS_TYPES.financial(),
+    const [performance, comprehensive] = await Promise.all([
       PROMO_ANALYTICS_TYPES.performance(),
       PROMO_ANALYTICS_TYPES.comprehensive()
     ]);
-    
+
     return {
-      financial,
-      performance, 
+      performance,
       comprehensive,
       utils: PROMO_ANALYTICS_UTILS,
       constants: ANALYTICS_CONSTANTS

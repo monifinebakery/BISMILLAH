@@ -48,11 +48,16 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
     stockValue: { ...metricConfigs.stockValue, color: enhancedColors.stockValue }
   };
 
+  const activeMetrics = selectedMetrics.filter(metric => !hiddenMetrics.has(metric));
+  const showLeftAxis = activeMetrics.some(metric => enhancedMetricConfigs[metric]?.axis !== 'right');
+  const showRightAxis = activeMetrics.some(metric => enhancedMetricConfigs[metric]?.axis === 'right');
+  const rightAxisIsPercentage = activeMetrics.some(metric => enhancedMetricConfigs[metric]?.axis === 'right' && enhancedMetricConfigs[metric]?.isPercentage);
+
   return (
     <ResponsiveContainer width="100%" height={400}>
       <LineChart 
         data={trendData} 
-        margin={{ top: 30, right: 40, left: 20, bottom: 20 }}
+        margin={{ top: 30, right: 60, left: 20, bottom: 20 }}
       >
         {/* Enhanced grid with subtle styling */}
         <CartesianGrid 
@@ -77,18 +82,36 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
           dy={10}
         />
         
-        {/* Enhanced Y-axis */}
-        <YAxis 
-          tick={{ 
-            fontSize: 11, 
-            fill: '#6b7280',
-            fontWeight: 500
-          }}
-          tickFormatter={(value) => viewType === 'margins' ? `${value}%` : formatLargeNumber(value)}
-          axisLine={false}
-          tickLine={false}
-          dx={-10}
-        />
+        {showLeftAxis && (
+          <YAxis
+            yAxisId="left"
+            tick={{
+              fontSize: 11,
+              fill: '#6b7280',
+              fontWeight: 500
+            }}
+            tickFormatter={(value) => formatLargeNumber(value)}
+            axisLine={false}
+            tickLine={false}
+            dx={-10}
+          />
+        )}
+
+        {showRightAxis && (
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tick={{
+              fontSize: 11,
+              fill: '#6b7280',
+              fontWeight: 500
+            }}
+            tickFormatter={(value) => rightAxisIsPercentage ? `${value}%` : formatLargeNumber(value)}
+            axisLine={false}
+            tickLine={false}
+            dx={10}
+          />
+        )}
         
         {/* Enhanced tooltip */}
         <Tooltip 
@@ -168,16 +191,16 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
               strokeWidth={isHighlighted ? 4 : 3}
               strokeOpacity={baseOpacity}
               strokeDasharray={lineStyle.strokeDasharray}
-              dot={{ 
-                fill: config.color, 
+              dot={{
+                fill: config.color,
                 stroke: '#ffffff',
-                strokeWidth: 2, 
+                strokeWidth: 2,
                 r: isHighlighted ? 6 : 4,
                 fillOpacity: baseOpacity
               }}
-              activeDot={{ 
-                r: 8, 
-                stroke: config.color, 
+              activeDot={{
+                r: 8,
+                stroke: config.color,
                 strokeWidth: 3,
                 fill: '#ffffff',
                 fillOpacity: 1,
@@ -187,9 +210,10 @@ export const LineChartRenderer: React.FC<BaseChartProps> = ({
               }}
               name={config.label}
               connectNulls={false}
+              yAxisId={config.axis === 'right' ? 'right' : 'left'}
             />
-          );
-        }).filter(Boolean)}
+         );
+       }).filter(Boolean)}
       </LineChart>
     </ResponsiveContainer>
   );

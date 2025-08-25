@@ -14,10 +14,13 @@ import { recipeApi } from '@/components/recipe/services/recipeApi';
 // Hooks
 import { useRecipeFiltering } from '@/components/recipe/hooks/useRecipeFiltering';
 import { useRecipeStats } from '@/components/recipe/hooks/useRecipeStats';
+import { useRecipeTable } from '@/components/recipe/hooks/useRecipeTable';
 
 // Components
 import { EmptyState } from '@/components/recipe/components/shared/EmptyState';
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
+import BulkActions from '@/components/recipe/components/BulkActions';
+
 
 // Types
 import type { Recipe, NewRecipe } from '@/components/recipe/types';
@@ -174,6 +177,9 @@ const Recipes: React.FC = () => {
     recipe?: Recipe | null;
     isEdit?: boolean;
   }>({ type: 'none' });
+
+  // ✅ Recipe table hook for bulk operations
+  const recipeTable = useRecipeTable();
 
   // ✅ ROBUST: useQuery for Recipes with better error handling
   const recipesQuery = useQuery({
@@ -467,6 +473,18 @@ const Recipes: React.FC = () => {
               </Suspense>
             </div>
 
+            {/* ✅ Bulk Actions */}
+            <BulkActions
+              isVisible={recipeTable.isSelectionMode}
+              selectedCount={recipeTable.selectedIds.size}
+              totalFilteredCount={filtering.filteredAndSortedRecipes.length}
+              onCancel={recipeTable.exitSelectionMode}
+              onSelectAll={recipeTable.selectAll}
+              onBulkEdit={recipeTable.showBulkOperations}
+              onBulkDelete={recipeTable.showBulkOperations}
+              recipes={filtering.filteredAndSortedRecipes.filter(recipe => recipeTable.selectedIds.has(recipe.id))}
+            />
+
             {/* ✅ Content */}
             {filtering.filteredAndSortedRecipes.length === 0 ? (
               <div className="p-6">
@@ -494,6 +512,11 @@ const Recipes: React.FC = () => {
                   onDelete={handleDeleteRecipe}
                   searchTerm={filtering.searchTerm}
                   isLoading={isProcessing}
+                  selectedIds={recipeTable.selectedIds}
+                  onSelectionChange={recipeTable.toggleSelection}
+                  isSelectionMode={recipeTable.isSelectionMode}
+                  onSelectAll={recipeTable.selectAll}
+                  isAllSelected={recipeTable.isAllSelected}
                 />
               </Suspense>
             )}
@@ -568,6 +591,8 @@ const Recipes: React.FC = () => {
             refreshRecipes={handleRefresh}
           />
         )}
+
+
       </Suspense>
     </div>
   );

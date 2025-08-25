@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/utils/formatUtils';
-import { formatDateForDisplay } from '../../utils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../../constants';
 import { logger } from '@/utils/logger';
 import type { Order, OrderStatus } from '../../types';
@@ -26,7 +26,7 @@ import type { Order, OrderStatus } from '../../types';
 interface BulkEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (newStatus: string) => Promise<void>;
+  onConfirm: (newStatus: OrderStatus) => Promise<void>;
   selectedOrders: Order[];
   selectedCount: number;
 }
@@ -46,7 +46,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
     
     setLoading(true);
     try {
-      await onConfirm(newStatus);
+      await onConfirm(newStatus as OrderStatus);
       onClose();
       setNewStatus(''); // Reset
     } catch (error) {
@@ -123,7 +123,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
           {/* New Status Selection */}
           <div className="space-y-2">
             <Label htmlFor="newStatus">Status Baru: *</Label>
-            <Select value={newStatus} onValueChange={setNewStatus}>
+            <Select value={newStatus} onValueChange={(value: OrderStatus) => setNewStatus(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Pilih status baru..." />
               </SelectTrigger>

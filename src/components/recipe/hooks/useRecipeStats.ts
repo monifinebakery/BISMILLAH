@@ -162,8 +162,14 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const recentRecipes = recipes.filter(r => r.createdAt >= thirtyDaysAgo);
-    const thisWeekRecipes = recipes.filter(r => r.createdAt >= sevenDaysAgo);
+    const recentRecipes = recipes.filter(r => {
+      const createdAt = new Date(r.createdAt);
+      return createdAt instanceof Date && !isNaN(createdAt.getTime()) && createdAt >= thirtyDaysAgo;
+    });
+    const thisWeekRecipes = recipes.filter(r => {
+      const createdAt = new Date(r.createdAt);
+      return createdAt instanceof Date && !isNaN(createdAt.getTime()) && createdAt >= sevenDaysAgo;
+    });
 
     return {
       totalRecipes: recipes.length,

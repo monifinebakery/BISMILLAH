@@ -23,6 +23,7 @@ export type {
 // 
 // import PurchaseDialog from './PurchaseDialog';
 // import PurchaseTable from './PurchaseTable';
+// import BulkActions from './BulkActions';
 // import BulkActionsToolbar from './BulkActionsToolbar';
 // import BulkDeleteDialog from './BulkDeleteDialog';
 // import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
@@ -33,6 +34,7 @@ export const PURCHASE_COMPONENTS_LAZY = {
   // Main components (heavy - load on demand)
   PurchaseDialog: () => import('./PurchaseDialog'),
   PurchaseTable: () => import('./PurchaseTable'),
+  BulkActions: () => import('./BulkActions'),
   
   // Action components (medium - load when needed)
   BulkActionsToolbar: () => import('./BulkActionsToolbar'),
@@ -59,6 +61,7 @@ export const PURCHASE_COMPONENTS_GROUPS = {
   // Table related - load together
   table: () => Promise.all([
     import('./PurchaseTable'),
+    import('./BulkActions'),
     import('./BulkActionsToolbar')
   ]),
   
@@ -86,10 +89,12 @@ export const PURCHASE_COMPONENTS_MIGRATION = {
     // NEW (direct import - better code splitting):
     import PurchaseDialog from '@/components/purchase/components/PurchaseDialog';
     import PurchaseTable from '@/components/purchase/components/PurchaseTable';
+    import BulkActions from '@/components/purchase/components/BulkActions';
     
     // OR (lazy import - best performance):
     const PurchaseDialog = React.lazy(() => import('@/components/purchase/components/PurchaseDialog'));
     const PurchaseTable = React.lazy(() => import('@/components/purchase/components/PurchaseTable'));
+    const BulkActions = React.lazy(() => import('@/components/purchase/components/BulkActions'));
   `,
   
   // Quick migration function

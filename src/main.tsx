@@ -14,23 +14,16 @@ declare const __PROD__: boolean;
 declare const __CONSOLE_ENABLED__: boolean;
 
 // ------------------------------
-// Helper: detect dev domain
+// Env detection (Vercel-aware)
 // ------------------------------
-const isDevDomain = () => {
-  if (typeof window === "undefined") return false;
-  const host = window.location.hostname;
-  return (
-    host === "localhost" ||
-    host.startsWith("127.") ||
-    host.endsWith(".local") ||
-    (host.startsWith("dev3--gleaming-peony") && host.endsWith("netlify.app"))
-  );
-};
+const VERCEL_ENV = import.meta.env.VITE_VERCEL_ENV as
+  | "production"
+  | "preview"
+  | "development"
+  | undefined;
 
-// ------------------------------
-// Effective dev mode override
-// ------------------------------
-const effectiveDev = import.meta.env.DEV || isDevDomain();
+// efektif dianggap "dev tools ON" untuk: vite dev (lokal) atau preview vercel
+const effectiveDev = import.meta.env.DEV || VERCEL_ENV === "preview";
 
 // ------------------------------
 // App start timer
@@ -41,14 +34,10 @@ const appStartTime = performance.now();
 // Scheduler polyfill (fallback)
 // ------------------------------
 if (typeof globalThis !== "undefined" && !(globalThis as any).scheduler) {
-  if (__CONSOLE_ENABLED__ && effectiveDev) {
-    logger.info("Adding scheduler polyfill");
-  }
+  if (__CONSOLE_ENABLED__ && effectiveDev) logger.info("Adding scheduler polyfill");
   (globalThis as any).scheduler = {
-    unstable_scheduleCallback: (_priority: any, callback: any) =>
-      setTimeout(callback, 0),
-    unstable_cancelCallback: (node: any) =>
-      node?.id && clearTimeout(node.id),
+    unstable_scheduleCallback: (_p: any, cb: any) => setTimeout(cb, 0),
+    unstable_cancelCallback: (n: any) => n?.id && clearTimeout(n.id),
     unstable_shouldYield: () => false,
     unstable_requestPaint: () => {},
     unstable_now: () => (performance as any).now?.() || Date.now(),
@@ -71,6 +60,7 @@ logger.info("Initializing React application", {
   viteMode: import.meta.env.MODE,
   isDev: import.meta.env.DEV,
   isProd: import.meta.env.PROD,
+  vercelEnv: VERCEL_ENV,
   effectiveDev,
   hostname: window.location.hostname,
 });
@@ -116,54 +106,20 @@ root.render(
 const appInitTime = performance.now() - appStartTime;
 logger.perf("App Initialization", appInitTime, {
   viteMode: import.meta.env.MODE,
+  vercelEnv: VERCEL_ENV,
   effectiveDev,
-  hasDevtools: effectiveDev,
 });
 
 // ------------------------------
-// Dev-only debug tools
+// Dev-only debug tools (DEV local & Preview)
 // ------------------------------
 if (effectiveDev) {
-  // Import warehouse sync test utility
-  import('@/utils/testWarehouseSync').then(({ testWarehouseSync }) => {
-    (window as any).testWarehouseSync = testWarehouseSync;
-    console.log('🧪 Warehouse sync test utility loaded');
-  }).catch(error => {
-    console.warn('Could not load warehouse sync test:', error);
-  });
-  
-  // Import imported purchase sync test utility
-  import('@/utils/testImportedPurchaseSync').then(({ testImportedPurchaseSync }) => {
-    (window as any).testImportedPurchaseSync = testImportedPurchaseSync;
-    console.log('🧪 Imported purchase sync test utility loaded');
-  }).catch(error => {
-    console.warn('Could not load imported purchase sync test:', error);
-  });
-  
-  // Import price calculation debug utilities
-  import('@/utils/debugPriceCalculation').then(({ debugPriceCalculation, testQuickCalculation }) => {
-    (window as any).debugPriceCalculation = debugPriceCalculation;
-    (window as any).testQuickCalculation = testQuickCalculation;
-    console.log('🔍 Price calculation debug utilities loaded');
-  }).catch(error => {
-    console.warn('Could not load price calculation debug utilities:', error);
-  });
-  
-  // Import import calculation test utilities
-  import('@/utils/testImportCalculation').then(({ testImportCalculation, testManualVsImportComparison }) => {
-    (window as any).testImportCalculation = testImportCalculation;
-    (window as any).testManualVsImportComparison = testManualVsImportComparison;
-    console.log('🧪 Import calculation test utilities loaded');
-  }).catch(error => {
-    console.warn('Could not load import calculation test utilities:', error);
-  });
-  
+  // Debug tools temporarily disabled due to build issues
+  console.log("Debug tools available in development mode");
+
   (window as any).appDebug = {
     logger,
-    testLogger: () => {
-      (logger as any).test?.();
-      logger.info("Logger test completed");
-    },
+    testLogger: () => ((logger as any).test?.(), logger.info("Logger test completed")),
     performance: {
       initTime: appInitTime,
       getCurrentTime: () => performance.now(),
@@ -171,6 +127,7 @@ if (effectiveDev) {
     },
     environment: {
       mode: import.meta.env.MODE,
+      vercelEnv: VERCEL_ENV,
       isDev: import.meta.env.DEV,
       isProd: import.meta.env.PROD,
       effectiveDev,
@@ -185,7 +142,7 @@ if (effectiveDev) {
 }
 
 // ------------------------------
-// Perf monitoring (only in dev)
+// Perf monitoring (only in dev/preview)
 // ------------------------------
 if (effectiveDev && "performance" in window) {
   window.addEventListener("load", () => {
@@ -199,17 +156,16 @@ if (effectiveDev && "performance" in window) {
       }
     }, 0);
   });
-  
-  // Add memory usage monitoring in dev
+
   if ((window as any).performance.memory) {
     setInterval(() => {
-      const memory = (window as any).performance.memory;
+      const m = (window as any).performance.memory;
       logger.debug("Memory Usage", {
-        used: Math.round(memory.usedJSHeapSize / 1048576) + " MB",
-        total: Math.round(memory.totalJSHeapSize / 1048576) + " MB",
-        limit: Math.round(memory.jsHeapSizeLimit / 1048576) + " MB",
+        used: Math.round(m.usedJSHeapSize / 1048576) + " MB",
+        total: Math.round(m.totalJSHeapSize / 1048576) + " MB",
+        limit: Math.round(m.jsHeapSizeLimit / 1048576) + " MB",
       });
-    }, 30000); // Log every 30 seconds
+    }, 30000);
   }
 }
 
@@ -232,12 +188,10 @@ window.addEventListener("unhandledrejection", (event) => {
   });
 });
 
-// ------------------------------
-// Final success log
-// ------------------------------
 logger.success("React application initialized successfully", {
   initTime: appInitTime,
   timestamp: new Date().toISOString(),
+  vercelEnv: VERCEL_ENV,
   effectiveDev,
   hostname: window.location.hostname,
 });

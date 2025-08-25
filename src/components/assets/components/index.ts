@@ -10,3 +10,4 @@ export * from './AssetDeleteDialog';
 export * from './AssetActions';
 export * from './AssetConditionBadge';
 export * from './AssetCategoryBadge';
+export * from './BulkActions';

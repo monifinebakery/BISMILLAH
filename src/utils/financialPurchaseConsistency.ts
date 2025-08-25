@@ -114,6 +114,12 @@ export function checkFinancialPurchaseConsistency(
       const purchaseDate = new Date(purchase.tanggal);
       const transactionDate = new Date(relatedTransaction.date!);
       
+      // Validate dates before using getTime()
+      if (!(purchaseDate instanceof Date) || isNaN(purchaseDate.getTime()) ||
+          !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
+        return false; // Skip invalid dates
+      }
+      
       // Allow 1 day difference for transaction recording delays
       const dayDiff = Math.abs(purchaseDate.getTime() - transactionDate.getTime()) / (1000 * 60 * 60 * 24);
       return dayDiff > 1;

@@ -13,6 +13,13 @@ export { default as CostSummaryCard } from './CostSummaryCard';
 export { default as AllocationSettings } from './AllocationSettings';
 export { default as LoadingState } from './LoadingState';
 export { default as EmptyState } from './EmptyState';
+export { default as ProgressSetup } from './ProgressSetup';
+export { default as OnboardingModal } from './OnboardingModal';
+export { default as OperationalCostHeader } from './OperationalCostHeader';
+export { default as CostManagementTab } from './CostManagementTab';
+export { default as CalculatorTab } from './CalculatorTab';
+export { default as DualModeCalculator } from './DualModeCalculator';
+export { default as BulkActionsNew } from './BulkActionsNew';
 
 // ❌ REMOVED: Lazy loaded components - use direct imports when needed
 // - CostFormLazy, CostListLazy, etc.

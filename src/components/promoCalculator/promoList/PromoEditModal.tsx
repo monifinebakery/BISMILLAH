@@ -3,7 +3,7 @@ import { X, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-const PromoEditModal = ({ isOpen, promo, onClose, onSave }) => {
+const PromoEditModal = ({ isOpen, promo, onClose, onSave }: any) => {
   const [formData, setFormData] = useState({
     namaPromo: '',
     status: 'aktif',

@@ -80,16 +80,16 @@ export const loadComponentGroup = async (groupName: keyof typeof PROMO_COMPONENT
 // INDIVIDUAL COMPONENT LOADERS - Static imports with proper extensions
 // ============================================
 export const loadComponent = {
-  PromoCard: () => import('./PromoCard.jsx'),
-  PromoMetrics: () => import('./PromoMetrics.jsx'),
-  PromoTypeBadge: () => import('./PromoTypeBadge.jsx'),
-  StatusBadge: () => import('./StatusBadge.jsx'),
-  BreakevenAnalysis: () => import('./BreakevenAnalysis.jsx'),
-  LoadingSpinner: () => import('./LoadingSpinner.jsx'),
-  EmptyState: () => import('./EmptyState.jsx'),
-  ConfirmDialog: () => import('./ConfirmDialog.jsx'),
-  PromoWarnings: () => import('./PromoWarnings.jsx'),
-  SearchInput: () => import('./SearchInput.jsx'),
+  PromoCard: () => import('./PromoCard.tsx'),
+  PromoMetrics: () => import('./PromoMetrics.tsx'),
+  PromoTypeBadge: () => import('./PromoTypeBadge.tsx'),
+  StatusBadge: () => import('./StatusBadge.tsx'),
+  BreakevenAnalysis: () => import('./BreakevenAnalysis.tsx'),
+  LoadingSpinner: () => import('./LoadingSpinner.tsx'),
+  EmptyState: () => import('./EmptyState.tsx'),
+  ConfirmDialog: () => import('./ConfirmDialog.tsx'),
+  PromoWarnings: () => import('./PromoWarnings.tsx'),
+  SearchInput: () => import('./SearchInput.tsx'),
 } as const;
 
 // ============================================

@@ -3,7 +3,7 @@ import { Gift, Percent, Package } from 'lucide-react';
 import { helpers } from '../utils/helpers';
 import { PROMO_TYPES } from '@/components/promoCalculator/constants/constants';
 
-const PromoTypeBadge = ({ type, showIcon = true, className = '' }) => {
+const PromoTypeBadge = ({ type, showIcon = true, className = '' }: any) => {
   const typeConfig = helpers.getPromoTypeColor(type);
   
   const getIcon = (promoType) => {

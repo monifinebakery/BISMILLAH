@@ -4,7 +4,7 @@ const LoadingSpinner = ({
   size = 'default', 
   text = 'Memuat...', 
   className = '' 
-}) => {
+}: any) => {
   const sizeClasses = {
     small: 'h-4 w-4',
     default: 'h-8 w-8',

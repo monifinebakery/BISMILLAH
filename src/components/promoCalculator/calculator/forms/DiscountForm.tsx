@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Percent, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const DiscountForm = ({ onSubmit, isLoading, recipes = [] }) => {
+const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
   const [formData, setFormData] = useState({
     namaPromo: '',
     resep: '',

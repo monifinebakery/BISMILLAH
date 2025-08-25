@@ -11,7 +11,7 @@ const ConfirmDialog = ({
   cancelText = 'Batal',
   type = 'default', // 'default', 'danger', 'warning'
   isLoading = false 
-}) => {
+}: any) => {
   if (!isOpen) return null;
 
   const getTypeStyles = () => {

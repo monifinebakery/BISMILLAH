@@ -1,6 +1,6 @@
 // src/components/profitAnalysis/components/ProfitDashboard.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
@@ -37,6 +37,7 @@ import {
 import ProfitSummaryCards from './ProfitSummaryCards';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import ProfitAnalysisOnboarding from './ProfitAnalysisOnboarding';
 
 // ==============================================
 // TYPES
@@ -61,6 +62,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
+
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
 

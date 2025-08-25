@@ -3,7 +3,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RotateCw, CheckCircle, AlertTriangle, Target, BarChart3 } from 'lucide-react';
+import { RotateCw, CheckCircle, AlertTriangle, Target, BarChart3, Info } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -38,6 +38,7 @@ export interface DashboardHeaderSectionProps {
 
   dateRange?: { from: Date; to: Date };
   onDateRangeChange?: (range: { from: Date; to: Date } | undefined) => void;
+  onStartOnboarding: () => void;
 }
 
 // ==============================================
@@ -54,6 +55,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   onRefresh,
   dateRange,
   onDateRangeChange,
+  onStartOnboarding,
 }) => {
   const isMobile = useIsMobile();
   

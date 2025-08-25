@@ -3,7 +3,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RotateCw, CheckCircle, AlertTriangle, Target, BarChart3 } from 'lucide-react';
+import { RotateCw, CheckCircle, AlertTriangle, Target, BarChart3, Info } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -35,9 +35,10 @@ export interface DashboardHeaderSectionProps {
   quickStatus?: QuickStatusData;
   statusIndicators?: StatusIndicator[];
   onRefresh: () => void;
-  
+
   dateRange?: { from: Date; to: Date };
   onDateRangeChange?: (range: { from: Date; to: Date } | undefined) => void;
+  onStartOnboarding: () => void;
 }
 
 // ==============================================
@@ -54,6 +55,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   onRefresh,
   dateRange,
   onDateRangeChange,
+  onStartOnboarding,
 }) => {
   const isMobile = useIsMobile();
   
@@ -81,6 +83,13 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
       </div>
 
       {/* Action Buttons */}
+      <Button
+        onClick={onStartOnboarding}
+        className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm w-full md:w-auto justify-center"
+      >
+        <Info className="w-4 h-4" />
+        Mulai Panduan
+      </Button>
       <Button
         onClick={onRefresh}
         disabled={isLoading}

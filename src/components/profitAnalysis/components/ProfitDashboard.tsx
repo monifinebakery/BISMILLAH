@@ -1,6 +1,6 @@
 // src/components/profitAnalysis/components/ProfitDashboard.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
@@ -37,6 +37,7 @@ import {
 import ProfitSummaryCards from './ProfitSummaryCards';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import ProfitAnalysisOnboarding from './ProfitAnalysisOnboarding';
 
 // ==============================================
 // TYPES
@@ -61,6 +62,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
+
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
 
@@ -152,25 +155,40 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   // ✅ IMPROVED: Use centralized calculation for consistency
   const footerCalc = safeCalculateMargins(safeRevenue, safeCogs, safeOpex);
 
+  useEffect(() => {
+    const seen = localStorage.getItem('profit-analysis-onboarding-seen');
+    if (!seen) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const handleCloseOnboarding = () => {
+    localStorage.setItem('profit-analysis-onboarding-seen', 'true');
+    setShowOnboarding(false);
+  };
+
     return (
-      <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
-        <DashboardHeaderSection
-          hasValidData={hasAnyData}
-          isLoading={loading}
-        quickStatus={{
-          netProfit: footerCalc.netProfit,
-          cogsPercentage: (safeCogs / Math.max(safeRevenue, 1)) * 100,
-          revenue: safeRevenue
-        }}
-        statusIndicators={[
-          ...(isDataStale ? [{ type: 'stale' as const, label: 'Data usang' }] : []),
-          ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
-          ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
-        ]}
-          onRefresh={handleRefresh}
-          dateRange={range}
-          onDateRangeChange={handleDateRangeChange}
-        />
+      <>
+        <ProfitAnalysisOnboarding isOpen={showOnboarding} onClose={handleCloseOnboarding} />
+        <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
+          <DashboardHeaderSection
+            hasValidData={hasAnyData}
+            isLoading={loading}
+            quickStatus={{
+              netProfit: footerCalc.netProfit,
+              cogsPercentage: (safeCogs / Math.max(safeRevenue, 1)) * 100,
+              revenue: safeRevenue
+            }}
+            statusIndicators={[
+              ...(isDataStale ? [{ type: 'stale' as const, label: 'Data usang' }] : []),
+              ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
+              ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
+            ]}
+            onRefresh={handleRefresh}
+            dateRange={range}
+            onDateRangeChange={handleDateRangeChange}
+            onStartOnboarding={() => setShowOnboarding(true)}
+          />
       
       {error && (
         <Alert variant="destructive">
@@ -340,6 +358,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         hppHint={labels?.hppHint}
       />
     </div>
+  </>
   );
 };
 

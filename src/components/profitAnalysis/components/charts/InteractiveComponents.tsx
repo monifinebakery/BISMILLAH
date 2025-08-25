@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, BarChart3 } from 'lucide-react';
-import { InteractiveLegendProps, ChartControlsProps } from './types';
+import { InteractiveLegendProps, ChartControlsProps, MetricConfigs } from './types';
 
 // ==============================================
 // INTERACTIVE LEGEND COMPONENT
@@ -183,7 +183,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
 
 export interface MetricTogglesProps {
   viewType: 'values' | 'margins';
-  metricConfigs: any;
+  metricConfigs: MetricConfigs;
   selectedMetrics: string[];
   onToggleMetric: (metric: string) => void;
   isMobile: boolean;
@@ -196,8 +196,8 @@ export const MetricToggles: React.FC<MetricTogglesProps> = ({
   onToggleMetric,
   isMobile
 }) => {
-  const metrics = viewType === 'values' 
-    ? ['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex', 'stockValue'] 
+  const metrics = viewType === 'values'
+    ? ['revenue', 'grossProfit', 'netProfit', 'cogs', 'opex', 'stockValue', 'grossMargin', 'netMargin']
     : ['grossMargin', 'netMargin'];
 
   return (

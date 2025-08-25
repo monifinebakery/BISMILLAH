@@ -29,24 +29,24 @@ export const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label, 
         <p className="font-bold text-gray-900 text-base">{String(label)}</p>
       </div>
       <div className="space-y-2">
-        {payload && payload.length > 0 && payload.map((entry: any, index: number) => {
+        {payload?.map((entry, index) => {
           if (!entry || entry.value === undefined) return null;
-          
+
           const dataKey = entry.dataKey as keyof typeof metricLabelMap;
           const label = metricLabelMap[dataKey] || entry.dataKey;
           const value = entry.value !== undefined ? entry.value : 0;
-          
+
           return (
             <div key={index} className="flex items-center justify-between space-x-3 py-1">
               <div className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full shadow-sm" 
+                <div
+                  className="w-3 h-3 rounded-full shadow-sm"
                   style={{ backgroundColor: entry.color || '#000000' }}
                 />
                 <span className="text-sm font-medium text-gray-700">{label}</span>
               </div>
               <span className="text-sm font-bold text-gray-900 min-w-0">
-                {viewType === 'margins' && (dataKey === 'grossMargin' || dataKey === 'netMargin') 
+                {viewType === 'margins' && (dataKey === 'grossMargin' || dataKey === 'netMargin')
                   ? `${Number(value).toFixed(1)}%`
                   : formatCurrency(Number(value))
                 }

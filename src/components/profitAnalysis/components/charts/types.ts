@@ -2,6 +2,7 @@
 
 import { RealTimeProfitCalculation } from '../../types/profitAnalysis.types';
 import { ForecastResult, StatisticalAnalysis, AnomalyDetectionResult } from '../../utils/advancedAnalytics';
+import type { TooltipProps as RechartsTooltipProps } from 'recharts';
 
 // ==============================================
 // CHART COMPONENT TYPES
@@ -38,6 +39,8 @@ export interface MetricConfig {
   key: string;
   label: string;
   color: string;
+  axis?: 'left' | 'right';
+  isPercentage?: boolean;
 }
 
 export interface MetricConfigs {
@@ -128,9 +131,6 @@ export interface TrendAnalysis {
 // CHART RENDERER TYPES
 // ==============================================
 
-export interface TooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string | number;
+export interface TooltipProps extends RechartsTooltipProps<number, string> {
   viewType?: 'values' | 'margins';
 }

@@ -236,15 +236,15 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
           </div>
         ) : (
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart 
-                data={data} 
-                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+            <ResponsiveContainer width="100%" height="100%" style={{ overflow: 'visible' }}>
+              <ComposedChart
+                data={data}
+                margin={{ top: 5, right: 20, left: 40, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis 
-                  dataKey={useDailyData ? "date" : "month"} 
-                  tick={{ fontSize: 12 }} 
+                <XAxis
+                  dataKey={useDailyData ? "date" : "month"}
+                  tick={{ fontSize: 12 }}
                 />
                 <YAxis 
                   tickFormatter={(tick) => formatLargeNumber(tick)} 

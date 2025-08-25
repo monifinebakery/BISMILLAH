@@ -38,6 +38,8 @@ export interface MetricConfig {
   key: string;
   label: string;
   color: string;
+  axis?: 'left' | 'right';
+  isPercentage?: boolean;
 }
 
 export interface MetricConfigs {

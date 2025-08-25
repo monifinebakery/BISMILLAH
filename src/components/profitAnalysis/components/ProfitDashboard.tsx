@@ -1,13 +1,13 @@
 // src/components/profitAnalysis/components/ProfitDashboard.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitData } from '../hooks';
-import { getCurrentPeriod, generatePeriodOptions } from '../utils/profitTransformers';
+import { getCurrentPeriod } from '../utils/profitTransformers';
 // Removed unused calculateMargins import - using safeCalculateMargins for consistency
 import { safeCalculateMargins } from '@/utils/profitValidation';
 
@@ -37,6 +37,7 @@ import {
 import ProfitSummaryCards from './ProfitSummaryCards';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import ProfitAnalysisOnboarding from './ProfitAnalysisOnboarding';
 
 // ==============================================
 // TYPES
@@ -61,6 +62,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const [lastCalculated, setLastCalculated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState('ikhtisar');
   const [selectedChartType, setSelectedChartType] = useState('bar');
+
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
 
@@ -113,7 +116,15 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     : null;
 
   const previousAnalysis = findPreviousAnalysis(currentPeriod, profitHistory);
-  const hasValidData = Boolean(currentAnalysis?.revenue_data?.total);
+  const hasRevenue = Boolean(currentAnalysis?.revenue_data?.total);
+  const hasCogs = Boolean(currentAnalysis?.cogs_data?.total);
+  const hasOpex = Boolean(currentAnalysis?.opex_data?.total);
+  const hasAnyData = hasRevenue || hasCogs || hasOpex;
+  const missing = [
+    !hasRevenue && 'pemasukan',
+    !hasCogs && 'HPP',
+    !hasOpex && 'biaya operasional',
+  ].filter(Boolean) as string[];
 
   const handleRefresh = async () => {
     try {
@@ -144,25 +155,25 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   // ✅ IMPROVED: Use centralized calculation for consistency
   const footerCalc = safeCalculateMargins(safeRevenue, safeCogs, safeOpex);
 
-    return (
-      <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
-        <DashboardHeaderSection
-          hasValidData={hasValidData}
-          isLoading={loading}
-        quickStatus={{
-          netProfit: footerCalc.netProfit,
-          cogsPercentage: (safeCogs / Math.max(safeRevenue, 1)) * 100,
-          revenue: safeRevenue
-        }}
-        statusIndicators={[
-          ...(isDataStale ? [{ type: 'stale' as const, label: 'Data usang' }] : []),
-          ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
-          ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
-        ]}
-          onRefresh={handleRefresh}
-          dateRange={range}
-          onDateRangeChange={handleDateRangeChange}
-        />
+  return (
+    <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
+          <DashboardHeaderSection
+            hasValidData={hasAnyData}
+            isLoading={loading}
+            quickStatus={{
+              netProfit: footerCalc.netProfit,
+              cogsPercentage: (safeCogs / Math.max(safeRevenue, 1)) * 100,
+              revenue: safeRevenue
+            }}
+            statusIndicators={[
+              ...(isDataStale ? [{ type: 'stale' as const, label: 'Data usang' }] : []),
+              ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
+              ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
+            ]}
+            onRefresh={handleRefresh}
+            dateRange={range}
+            onDateRangeChange={handleDateRangeChange}
+          />
       
       {error && (
         <Alert variant="destructive">
@@ -216,17 +227,35 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         <ExecutiveSummarySection data={executiveSummary} isLoading={loading} showAdvancedMetrics={showAdvancedMetrics} />
       </div>
       
-      {hasValidData && (
-        <ProfitSummaryCards 
-          currentAnalysis={currentAnalysis} 
-          previousAnalysis={previousAnalysis} 
-          isLoading={loading} 
+      {hasAnyData && (
+        <ProfitSummaryCards
+          currentAnalysis={currentAnalysis}
+          previousAnalysis={previousAnalysis}
+          isLoading={loading}
           effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
           labels={{
             hppLabel: labels?.hppLabel || 'Modal Bahan',
             hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
           }}
         />
+      )}
+
+      {hasAnyData ? (
+        missing.length > 0 && (
+          <Alert variant="default">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Data berikut belum tersedia: {missing.join(', ')}
+            </AlertDescription>
+          </Alert>
+        )
+      ) : (
+        <Alert variant="default">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Periode ini belum memiliki pemasukan, HPP, maupun biaya operasional
+          </AlertDescription>
+        </Alert>
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -308,13 +337,13 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
           netProfit: footerCalc.netProfit,
           netMargin: footerCalc.netMargin,
         }}
-        hasValidData={hasValidData}
+        hasValidData={hasAnyData}
         isLoading={loading}
         hppLabel={labels?.hppLabel}
         hppHint={labels?.hppHint}
-      />
-    </div>
-  );
+        />
+      </div>
+    );
 };
 
 export default ProfitDashboard;

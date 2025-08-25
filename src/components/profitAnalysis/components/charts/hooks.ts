@@ -1,7 +1,7 @@
 // src/components/profitAnalysis/components/charts/hooks.ts
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { TrendData, AdvancedAnalytics, PeriodComparison } from './types';
+import { TrendData, AdvancedAnalytics, PeriodComparison, TrendAnalysis } from './types';
 import { RealTimeProfitCalculation } from '../../types/profitAnalysis.types';
 import { CHART_CONFIG } from '../../constants/profitConstants';
 import { 
@@ -20,7 +20,7 @@ export interface UseProfitTrendChartProps {
   effectiveCogs?: number;
   wacStockValue?: number;
   processTrendData: (history: RealTimeProfitCalculation[], cogs?: number, wac?: number) => TrendData[];
-  analyzeTrend: (data: TrendData[]) => any;
+  analyzeTrend: (data: TrendData[]) => TrendAnalysis;
 }
 
 export function useProfitTrendChart({
@@ -31,13 +31,19 @@ export function useProfitTrendChart({
   analyzeTrend
 }: UseProfitTrendChartProps) {
   // Basic state
-  const [selectedMetrics, setSelectedMetrics] = useState(['revenue', 'grossProfit', 'netProfit']);
+  const [selectedMetrics, setSelectedMetrics] = useState([
+    'revenue',
+    'grossProfit',
+    'netProfit',
+    'grossMargin',
+    'netMargin'
+  ]);
   const [viewType, setViewType] = useState<'values' | 'margins'>('values');
   
   // Performance optimization state
-  const dataProcessingRef = useRef<{ cache: Map<string, any>, isProcessing: boolean }>({ 
-    cache: new Map(), 
-    isProcessing: false 
+  const dataProcessingRef = useRef<{ cache: Map<string, TrendData[]>, isProcessing: boolean }>({
+    cache: new Map(),
+    isProcessing: false
   });
   const [isDataReady, setIsDataReady] = useState(false);
   
@@ -90,14 +96,15 @@ export function useProfitTrendChart({
 
   // Metric configurations
   const metricConfigs = useMemo(() => ({
-    revenue: { key: 'revenue', label: 'Omset', color: CHART_CONFIG.colors.revenue },
-    grossProfit: { key: 'grossProfit', label: 'Untung Kotor', color: CHART_CONFIG.colors.primary },
-    netProfit: { key: 'netProfit', label: 'Untung Bersih', color: '#dc2626' },
-    cogs: { key: 'cogs', label: 'Modal Bahan', color: CHART_CONFIG.colors.cogs },
-    opex: { key: 'opex', label: 'Biaya Tetap', color: CHART_CONFIG.colors.opex },
-    grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.primary },
-    netMargin: { key: 'netMargin', label: 'Margin Bersih', color: '#dc2626' },
-    stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning }
+    revenue: { key: 'revenue', label: 'Omset', color: CHART_CONFIG.colors.revenue, axis: 'left' },
+    // Profit metrics share the same skala dengan revenue sehingga ditempatkan di sumbu kiri
+    grossProfit: { key: 'grossProfit', label: 'Untung Kotor', color: CHART_CONFIG.colors.primary, axis: 'left' },
+    netProfit: { key: 'netProfit', label: 'Untung Bersih', color: '#dc2626', axis: 'left' },
+    cogs: { key: 'cogs', label: 'Modal Bahan', color: CHART_CONFIG.colors.cogs, axis: 'left' },
+    opex: { key: 'opex', label: 'Biaya Tetap', color: CHART_CONFIG.colors.opex, axis: 'left' },
+    grossMargin: { key: 'grossMargin', label: 'Margin Kotor', color: CHART_CONFIG.colors.primary, axis: 'right', isPercentage: true },
+    netMargin: { key: 'netMargin', label: 'Margin Bersih', color: '#dc2626', axis: 'right', isPercentage: true },
+    stockValue: { key: 'stockValue', label: 'Nilai Stok (WAC)', color: CHART_CONFIG.colors.warning, axis: 'left' }
   }), []);
 
   // Auto-update selectedMetrics when viewType changes
@@ -105,7 +112,13 @@ export function useProfitTrendChart({
     if (viewType === 'margins') {
       setSelectedMetrics(['grossMargin', 'netMargin']);
     } else {
-      setSelectedMetrics(['revenue', 'grossProfit', 'netProfit']);
+      setSelectedMetrics([
+        'revenue',
+        'grossProfit',
+        'netProfit',
+        'grossMargin',
+        'netMargin'
+      ]);
     }
   }, [viewType]);
 

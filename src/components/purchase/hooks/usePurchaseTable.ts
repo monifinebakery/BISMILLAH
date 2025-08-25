@@ -73,6 +73,7 @@ export const usePurchaseTable = ({
   
   // Bulk operations state
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkArchiving, setIsBulkArchiving] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   // Filtered and sorted purchases
@@ -192,6 +193,39 @@ export const usePurchaseTable = ({
     }
   }, [selectedItems, updatePurchase]);
 
+  const bulkArchive = useCallback(async () => {
+    if (selectedItems.length === 0) {
+      toast.warning('Pilih item yang akan diarsipkan');
+      return;
+    }
+
+    setIsBulkArchiving(true);
+
+    try {
+      const archivePromises = selectedItems.map(id =>
+        updatePurchase(id, { isArchived: true })
+      );
+
+      const results = await Promise.allSettled(archivePromises);
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+      const failed = results.length - successful;
+
+      if (successful > 0) {
+        toast.success(`${successful} pembelian berhasil diarsipkan`);
+        setSelectedItems([]);
+      }
+
+      if (failed > 0) {
+        toast.error(`${failed} pembelian gagal diarsipkan`);
+      }
+    } catch (error) {
+      logger.error('Bulk archive error:', error);
+      toast.error('Terjadi kesalahan saat mengarsipkan pembelian');
+    } finally {
+      setIsBulkArchiving(false);
+    }
+  }, [selectedItems, updatePurchase]);
+
   // Helper function to get supplier name
   const getSupplierName = useCallback((supplierId: string): string => {
     const supplier = suppliers.find(
@@ -227,7 +261,9 @@ export const usePurchaseTable = ({
     // Bulk operations
     bulkDelete,
     bulkUpdateStatus,
+    bulkArchive,
     isBulkDeleting,
+    isBulkArchiving,
     
     // Modal state
     showBulkDeleteDialog,

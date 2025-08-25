@@ -3,7 +3,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Gift, Percent, Package } from 'lucide-react';
 
-const PromoPerformanceCard = ({ promo }) => {
+const PromoPerformanceCard = ({ promo }: any) => {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',

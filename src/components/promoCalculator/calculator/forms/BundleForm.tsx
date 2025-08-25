@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Package, Plus, X, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BundleForm = ({ onSubmit, isLoading, recipes }) => {
+const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
   const [formData, setFormData] = useState({
     namaPromo: '',
     resepBundle: [], // Array of {resepId, quantity}

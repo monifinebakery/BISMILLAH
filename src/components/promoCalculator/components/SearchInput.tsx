@@ -8,7 +8,7 @@ const SearchInput = ({
   placeholder = 'Cari...', 
   debounceMs = 300,
   className = '' 
-}) => {
+}: any) => {
   const [localValue, setLocalValue] = useState(value);
 
   // Debounced onChange

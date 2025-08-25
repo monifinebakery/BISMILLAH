@@ -6,7 +6,7 @@ const EmptyState = ({
   description, 
   action = null,
   className = '' 
-}) => {
+}: any) => {
   return (
     <div className={`text-center py-12 ${className}`}>
       <div className="flex justify-center mb-4">

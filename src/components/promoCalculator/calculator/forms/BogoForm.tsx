@@ -4,7 +4,7 @@ import { Gift, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
-const BogoForm = ({ onSubmit, isLoading, recipes = [] }) => {
+const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
   const [formData, setFormData] = useState({
     namaPromo: '',
     resepUtama: '',
@@ -110,7 +110,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }) => {
     setShowDropdown, 
     placeholder,
     excludeId = null 
-  }) => {
+  }: any) => {
     const selectedRecipe = getRecipeById(value);
 
     return (

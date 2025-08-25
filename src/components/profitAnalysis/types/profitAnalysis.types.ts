@@ -43,7 +43,7 @@ export interface PemakaianBahan {
 export interface ProfitAnalysis {
   id: string;
   user_id: string;
-  period: string; // "2024-01" format (YYYY-MM)
+  period: string; // format "YYYY-MM" (contoh: "2025-01")
   period_type: 'daily' | 'monthly' | 'quarterly' | 'yearly';
   
   // Revenue Data

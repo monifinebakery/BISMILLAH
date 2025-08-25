@@ -577,43 +577,6 @@ const OrdersPage: React.FC = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-          {/* ✅ LAZY LOADING CONTROLS */}
-          <div className="flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-lg backdrop-blur-sm">
-            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useLazyLoading}
-                onChange={(e) => {
-                  setUseLazyLoading(e.target.checked);
-                  if (e.target.checked) {
-                    setCurrentPage(1);
-                  }
-                }}
-                className="rounded"
-              />
-              Lazy Loading
-            </label>
-            {useLazyLoading && (
-              <>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="ml-2 px-2 py-1 text-sm bg-white bg-opacity-20 border border-white border-opacity-30 rounded text-white"
-                >
-                  <option value={5} className="text-gray-800">5/halaman</option>
-                  <option value={10} className="text-gray-800">10/halaman</option>
-                  <option value={20} className="text-gray-800">20/halaman</option>
-                  <option value={50} className="text-gray-800">50/halaman</option>
-                </select>
-                <span className="text-sm ml-2">
-                  Total: {paginationInfo.totalCount} pesanan
-                </span>
-              </>
-            )}
-          </div>
 
           {/* ✅ DEBUG: Debug button for development */}
           {import.meta.env.DEV && (

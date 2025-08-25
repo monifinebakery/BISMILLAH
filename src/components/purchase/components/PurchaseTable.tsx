@@ -33,6 +33,7 @@ import {
   StatusDropdown,
   ActionButtons,
 } from './table';
+import BulkActions from './BulkActions';
 
 // Hook imports
 import { usePurchaseTableState } from '../hooks/usePurchaseTableState';
@@ -268,6 +269,15 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
 
   return (
     <div className="space-y-4">
+      {/* Bulk Actions */}
+      <BulkActions
+        selectedCount={selectedItems.length}
+        onBulkEdit={() => console.log('Bulk edit not implemented yet')}
+        onBulkDelete={actionHandlers.bulkDelete || (() => {})}
+        onClearSelection={clearSelection}
+        isProcessing={false}
+      />
+      
       {/* Filters and Search */}
       <TableFilters
         searchQuery={searchQuery}

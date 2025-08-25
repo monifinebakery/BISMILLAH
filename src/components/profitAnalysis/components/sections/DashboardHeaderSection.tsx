@@ -82,22 +82,14 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
         </Suspense>
       </div>
 
-      {/* Action Buttons */}
-      <Button
-        onClick={onStartOnboarding}
-        className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm w-full md:w-auto justify-center"
-      >
-        <Info className="w-4 h-4" />
-        Mulai Panduan
-      </Button>
-      <Button
-        onClick={onRefresh}
-        disabled={isLoading}
-        className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm w-full md:w-auto justify-center"
-      >
-        <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-        Refresh
-      </Button>
+        <Button
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm w-full md:w-auto justify-center"
+        >
+          <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
     </>
   );
 

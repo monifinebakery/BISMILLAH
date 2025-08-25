@@ -22,6 +22,79 @@ const PROMO_QUERY_KEYS = {
   detail: (id) => [...PROMO_QUERY_KEYS.all, 'detail', id],
 };
 
+interface PromoCalculationResult {
+  finalPrice: number;
+  promoMargin: number;
+  savings: number;
+  profit: number;
+}
+
+const calculatePromo = (data: any): PromoCalculationResult | null => {
+  try {
+    switch (data.tipePromo) {
+      case 'discount': {
+        const base = parseFloat(data.hargaProduk ?? data.hargaAsli ?? '');
+        const cost = parseFloat(data.hpp ?? '0');
+        const disc = parseFloat(data.nilaiDiskon ?? '');
+        if (!Number.isFinite(base) || base <= 0) {
+          throw new Error('Harga produk tidak valid');
+        }
+        if (!Number.isFinite(disc)) {
+          throw new Error('Nilai diskon tidak valid');
+        }
+        const finalPrice = base * (1 - disc / 100);
+        const profit = finalPrice - (Number.isFinite(cost) ? cost : 0);
+        const promoMargin = finalPrice !== 0 ? (profit / finalPrice) * 100 : 0;
+        const savings = base - finalPrice;
+        if ([finalPrice, promoMargin, savings, profit].some(n => !Number.isFinite(n))) {
+          throw new Error('Perhitungan tidak valid');
+        }
+        return { finalPrice, promoMargin, savings, profit };
+      }
+      case 'bogo': {
+        const price = parseFloat(data.hargaProduk ?? '');
+        const cost = parseFloat(data.hpp ?? '0');
+        const buy = parseFloat(data.beli ?? '1');
+        const get = parseFloat(data.gratis ?? '1');
+        if (!Number.isFinite(price) || price <= 0) {
+          throw new Error('Harga produk tidak valid');
+        }
+        const finalPrice = price * buy / (buy + get);
+        const profit = finalPrice - (Number.isFinite(cost) ? cost : 0);
+        const promoMargin = finalPrice !== 0 ? (profit / finalPrice) * 100 : 0;
+        const savings = price - finalPrice;
+        if ([finalPrice, promoMargin, savings, profit].some(n => !Number.isFinite(n))) {
+          throw new Error('Perhitungan tidak valid');
+        }
+        return { finalPrice, promoMargin, savings, profit };
+      }
+      case 'bundle': {
+        const normal = parseFloat(data.hargaNormal ?? '');
+        const bundle = parseFloat(data.hargaBundle ?? '');
+        const cost = parseFloat(data.hpp ?? '0');
+        if (!Number.isFinite(normal) || normal <= 0) {
+          throw new Error('Harga normal tidak valid');
+        }
+        if (!Number.isFinite(bundle) || bundle <= 0) {
+          throw new Error('Harga bundle tidak valid');
+        }
+        const profit = bundle - (Number.isFinite(cost) ? cost : 0);
+        const promoMargin = bundle !== 0 ? (profit / bundle) * 100 : 0;
+        const savings = normal - bundle;
+        if ([bundle, promoMargin, savings, profit].some(n => !Number.isFinite(n))) {
+          throw new Error('Perhitungan tidak valid');
+        }
+        return { finalPrice: bundle, promoMargin, savings, profit };
+      }
+      default:
+        throw new Error('Tipe promo tidak valid');
+    }
+  } catch (error) {
+    console.error('calculatePromo error:', error);
+    return null;
+  }
+};
+
 const PromoFullCalculator = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Untuk mode edit
@@ -147,41 +220,31 @@ const PromoFullCalculator = () => {
       return;
     }
 
-    // TODO: Tambahkan logika kalkulasi promo di sini sebelum menyimpan
-    // Misalnya: const result = calculatePromo(formData);
-    // setCalculationResult(result);
-    // if (!result) {
-    //   toast.error("Perhitungan promo gagal. Silakan periksa input.");
-    //   return;
-    // }
-
-    // Untuk contoh ini, kita asumsikan kalkulasi sudah dilakukan
-    // dan `calculationResult` sudah ada.
-    if (!calculationResult) {
-        toast.warning("Lakukan perhitungan terlebih dahulu.");
-        // return; // Uncomment jika ingin memaksa kalkulasi dulu
+    let result = calculationResult;
+    if (!result) {
+      result = calculatePromo(formData);
+      if (!result) {
+        toast.error("Perhitungan promo gagal. Silakan periksa input.");
+        return;
+      }
+      setCalculationResult(result);
     }
 
     await savePromoMutation.mutateAsync(formData);
   };
 
-  // ✅ Handler untuk tombol kalkulasi (placeholder)
+  // ✅ Handler untuk tombol kalkulasi
   const handleCalculate = () => {
     setIsCalculating(true);
-    // Simulasi proses kalkulasi
-    setTimeout(() => {
-      // Di sini Anda akan memanggil fungsi kalkulasi sebenarnya
-      // Contoh hasil kalkulasi dummy:
-      const dummyResult = {
-        finalPrice: 15000,
-        promoMargin: 12.5,
-        savings: 2000,
-        profit: 1800
-      };
-      setCalculationResult(dummyResult);
+    const result = calculatePromo(formData);
+    if (!result) {
       setIsCalculating(false);
-      toast.success("Perhitungan promo selesai!");
-    }, 1500);
+      toast.error("Perhitungan promo gagal. Silakan periksa input.");
+      return;
+    }
+    setCalculationResult(result);
+    setIsCalculating(false);
+    toast.success("Perhitungan promo selesai!");
   };
 
   const isLoading = promoQuery.isLoading || savePromoMutation.isPending;

@@ -50,11 +50,11 @@ const getDefaultDateRange = () => {
       };
     }
     // Ultimate fallback
-     const fallbackFrom = safeParseDate('2024-01-01');
-     const fallbackTo = safeParseDate('2024-12-31');
+     const fallbackFrom = safeParseDate('2025-01-01');
+     const fallbackTo = safeParseDate('2025-12-31');
      return {
-       from: normalizeDateForDatabase(fallbackFrom || new Date('2024-01-01')),
-       to: normalizeDateForDatabase(fallbackTo || new Date('2024-12-31'))
+       from: normalizeDateForDatabase(fallbackFrom || new Date('2025-01-01')),
+       to: normalizeDateForDatabase(fallbackTo || new Date('2025-12-31'))
      };
   }
 };

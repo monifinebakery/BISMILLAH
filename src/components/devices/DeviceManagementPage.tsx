@@ -159,6 +159,13 @@ const DeviceManagementPage: React.FC = () => {
   const getDeviceStatus = useCallback((device: any) => {
     const lastActive = new Date(device.last_active);
     const now = new Date();
+    
+    // Validate dates before using getTime()
+    if (!(lastActive instanceof Date) || isNaN(lastActive.getTime()) ||
+        !(now instanceof Date) || isNaN(now.getTime())) {
+      return { status: 'unknown', label: 'Tidak Diketahui', color: 'gray', hours: 0 };
+    }
+    
     const hoursAgo = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60));
     
     if (device.is_current) {

@@ -19,6 +19,7 @@ export { default as OperationalCostHeader } from './OperationalCostHeader';
 export { default as CostManagementTab } from './CostManagementTab';
 export { default as CalculatorTab } from './CalculatorTab';
 export { default as DualModeCalculator } from './DualModeCalculator';
+export { default as BulkActions } from './BulkActions';
 
 // ❌ REMOVED: Lazy loaded components - use direct imports when needed
 // - CostFormLazy, CostListLazy, etc.

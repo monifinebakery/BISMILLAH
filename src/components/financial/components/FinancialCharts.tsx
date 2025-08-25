@@ -17,6 +17,9 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { formatCurrency, formatLargeNumber } from '@/utils/formatUtils';
+// ✅ IMPROVED: Import centralized date normalization for consistency
+import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+import { logger } from '@/utils/logger';
 
 // ✅ TAMBAH: Props enhancement untuk useQuery support
 interface FinancialChartsProps {
@@ -73,62 +76,88 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
 }) => {
   const { transactionData, dailyData } = useMemo(() => {
     const result = {
-      transactionData: [],
-      dailyData: []
+      transactionData: [] as Array<{
+        month: string;
+        Pemasukan: number;
+        Pengeluaran: number;
+        Saldo: number;
+        date: Date;
+      }>,
+      dailyData: [] as Array<{
+        date: string;
+        Pemasukan: number;
+        Pengeluaran: number;
+        Saldo: number;
+      }>
     };
 
     if (!filteredTransactions || filteredTransactions.length === 0) {
       return result;
     }
 
-    const monthlyData = {};
-    const dailyDataMap = {};
+    const monthlyData: Record<string, { income: number; expense: number; date: Date }> = {};
+    const dailyDataMap: Record<string, { income: number; expense: number; date: Date }> = {};
 
-    // Process transactions
+    // ✅ IMPROVED: Process transactions with consistent date handling
     filteredTransactions.forEach(t => {
+      if (!t.date) return;
+      
       const transactionDate = new Date(t.date);
-      if (transactionDate) {
-        // Monthly data
-        const monthStart = startOfMonth(transactionDate);
-        const monthYearKey = format(monthStart, 'yyyy-MM');
-        if (!monthlyData[monthYearKey]) {
-          monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart };
-        }
-        if (t.type === 'income') {
-          monthlyData[monthYearKey].income += t.amount || 0;
-        } else {
-          monthlyData[monthYearKey].expense += t.amount || 0;
-        }
+      if (!transactionDate || !(transactionDate instanceof Date) || isNaN(transactionDate.getTime())) {
+        logger.warn('Invalid transaction date in chart processing:', t.date);
+        return;
+      }
+      
+      // Monthly data with normalized date keys
+      const monthStart = startOfMonth(transactionDate);
+      const monthYearKey = format(monthStart, 'yyyy-MM');
+      if (!monthlyData[monthYearKey]) {
+        monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart };
+      }
+      if (t.type === 'income') {
+        monthlyData[monthYearKey].income += t.amount || 0;
+      } else {
+        monthlyData[monthYearKey].expense += t.amount || 0;
+      }
 
-        // Daily data
-        const dayKey = format(transactionDate, 'yyyy-MM-dd');
-        if (!dailyDataMap[dayKey]) {
-          dailyDataMap[dayKey] = { income: 0, expense: 0, date: transactionDate };
-        }
-        if (t.type === 'income') {
-          dailyDataMap[dayKey].income += t.amount || 0;
-        } else {
-          dailyDataMap[dayKey].expense += t.amount || 0;
-        }
+      // Daily data with consistent date normalization
+      const dayKey = normalizeDateForDatabase(transactionDate);
+      if (!dailyDataMap[dayKey]) {
+        dailyDataMap[dayKey] = { income: 0, expense: 0, date: transactionDate };
+      }
+      if (t.type === 'income') {
+        dailyDataMap[dayKey].income += t.amount || 0;
+      } else {
+        dailyDataMap[dayKey].expense += t.amount || 0;
       }
     });
 
-    // Transform monthly data
+    // Transform monthly data with proper typing
     result.transactionData = Object.values(monthlyData)
-      .map((value: any) => ({
+      .map((value) => ({
         month: format(value.date, 'MMM yyyy', { locale: id }),
         Pemasukan: value.income,
         Pengeluaran: value.expense,
         Saldo: value.income - value.expense,
         date: value.date
       }))
-      .sort((a, b) => a.date - b.date);
+      .sort((a, b) => {
+        // Validasi objek Date sebelum memanggil getTime
+        if (!(a.date instanceof Date) || isNaN(a.date.getTime())) {
+          return 1; // a.date tidak valid, pindahkan ke belakang
+        }
+        if (!(b.date instanceof Date) || isNaN(b.date.getTime())) {
+          return -1; // b.date tidak valid, pindahkan ke belakang
+        }
+        
+        return a.date.getTime() - b.date.getTime();
+      });
 
-    // Transform daily data (last 30 days)
+    // Transform daily data (last 30 days) with consistent date handling
     const today = endOfDay(new Date());
     for (let i = 0; i < 30; i++) {
       const currentDate = startOfDay(subDays(today, 29 - i));
-      const dayKey = format(currentDate, 'yyyy-MM-dd');
+      const dayKey = normalizeDateForDatabase(currentDate);
       const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
       result.dailyData.push({
         date: format(currentDate, 'd MMM', { locale: id }),
@@ -143,6 +172,8 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
 
   // Determine which data to use
   const useDailyData = dateRange?.from && dateRange?.to && 
+    dateRange.from instanceof Date && dateRange.to instanceof Date &&
+    !isNaN(dateRange.from.getTime()) && !isNaN(dateRange.to.getTime()) &&
     (dateRange.to.getTime() - dateRange.from.getTime()) < 31 * 24 * 60 * 60 * 1000;
   
   const data = useDailyData ? dailyData : transactionData;
@@ -169,7 +200,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
                 {filteredTransactions.length} transaksi
                 {lastUpdated && (
                   <span className="ml-2">
-                    • Diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
+                    • Diperbarui: {format(lastUpdated, 'HH:mm', { locale: id })}
                   </span>
                 )}
               </p>

@@ -29,6 +29,8 @@ export interface ForecastData {
     opexPercentage: number;
     historyLength: number;
     validationIssues: string[];
+    forecastMethod?: string;
+    dataConfidence?: number;
   };
 }
 
@@ -107,21 +109,122 @@ const ForecastSection: React.FC<ForecastSectionProps> = ({
   title = '🔮 Prediksi Untung Rugi',
   description = 'Perkiraan performa bisnis berdasarkan tren historis'
 }) => {
-  // Don't render if no data, loading, or insufficient history
-  if (!data || isLoading) {
+  // Don't render if loading
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>
-            {isLoading ? 'Memuat prediksi...' : 'Butuh data historis minimal 3 bulan untuk prediksi'}
+            Memuat prediksi...
           </CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
+  // Show fallback visual when no data or insufficient history
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>
+            Butuh data historis minimal 3 bulan untuk prediksi
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-50 rounded-lg">
+            <div className="text-4xl mb-4">📊</div>
+            <h4 className="font-semibold text-lg mb-2">Data Belum Cukup untuk Prediksi</h4>
+            <p className="text-gray-600 mb-4">
+              Untuk mendapatkan prediksi yang akurat, kami membutuhkan data historis minimal 3 bulan.
+              Silakan kumpulkan data keuangan selama beberapa bulan ke depan untuk melihat prediksi performa bisnis Anda.
+            </p>
+            <div className="bg-blue-100 p-4 rounded-lg max-w-md">
+              <p className="text-sm text-blue-800">
+                <span className="font-medium">Tips:</span> Pastikan Anda mencatat semua transaksi keuangan secara rutin 
+                setiap bulan untuk mendapatkan prediksi yang lebih akurat.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const currentProfit = data.metadata?.currentNetProfit ?? 0;
+
+  // Check if using fallback forecast method
+  const isFallbackForecast = data.metadata?.forecastMethod === 'fallback_conservative';
+  const hasSufficientHistory = data.metadata?.historyLength && data.metadata.historyLength >= 3;
+  
+  // Show enhanced fallback forecast for limited data
+  if (isFallbackForecast || !hasSufficientHistory) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {title}
+              <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                Prediksi Konservatif
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Prediksi berdasarkan asumsi konservatif untuk bisnis dengan data terbatas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="text-yellow-600 text-lg">⚠️</div>
+                <div>
+                  <h4 className="font-medium text-yellow-800 mb-1">Prediksi Berdasarkan Data Terbatas</h4>
+                  <p className="text-sm text-yellow-700 mb-2">
+                    Saat ini tersedia {data.metadata?.historyLength || 0} periode data historis. 
+                    Prediksi menggunakan asumsi konservatif untuk bisnis baru.
+                  </p>
+                  <p className="text-xs text-yellow-600">
+                    Tingkat kepercayaan: {data.metadata?.dataConfidence ? Math.round(data.metadata.dataConfidence * 100) : 30}% 
+                    • Kumpulkan data 3+ bulan untuk prediksi yang lebih akurat
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Show forecast cards with conservative predictions */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <ForecastCard 
+                period="Bulan Depan" 
+                data={data.nextMonth} 
+                currentProfit={currentProfit}
+              />
+              <ForecastCard 
+                period="3 Bulan Ke Depan" 
+                data={data.nextQuarter} 
+                currentProfit={currentProfit}
+              />
+              <ForecastCard 
+                period="Tahun Depan" 
+                data={data.nextYear} 
+                currentProfit={currentProfit}
+              />
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Show methodology info for fallback forecast */}
+        {data.metadata && (
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+            <strong>Metodologi prediksi konservatif:</strong> Pertumbuhan bulanan {data.metadata.averageGrowthRate.toFixed(1)}%, 
+            COGS {data.metadata.cogsPercentage.toFixed(0)}%, OPEX {data.metadata.opexPercentage.toFixed(0)}% dari revenue. 
+            Tingkat kepercayaan disesuaikan dengan ketersediaan data historis.
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

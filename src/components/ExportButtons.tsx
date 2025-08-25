@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
 
 interface ExportButtonsProps {
   data: any[];
@@ -19,7 +20,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       }
 
       let content = `${filename.toUpperCase()}\n`;
-      content += `Generated on: ${new Date().toLocaleDateString('id-ID')}\n\n`;
+      content += `Generated on: ${(safeParseDate(new Date()) || new Date()).toLocaleDateString('id-ID')}\n\n`;
       
       data.forEach((item, index) => {
         content += `${index + 1}. `;
@@ -42,7 +43,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filename}-${new Date().toISOString().split('T')[0]}.txt`;
+      a.download = `${filename}-${(toSafeISOString(new Date()) || new Date().toISOString()).split('T')[0]}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -113,7 +114,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `${filename}-${(toSafeISOString(new Date()) || new Date().toISOString()).split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

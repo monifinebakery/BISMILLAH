@@ -44,7 +44,7 @@ const transformForDB = (
     amount: transaction.amount,
     description: transaction.description || null,
     related_id: transaction.relatedId || null,
-    date: transaction.date ? new Date(transaction.date).toISOString() : null,
+    date: transaction.date ? (safeParseDate(transaction.date)?.toISOString() || new Date(transaction.date).toISOString()) : null,
   };
 
   if (userId) {

@@ -15,6 +15,7 @@ const OrderForm = React.lazy(() => import('./dialogs/OrderForm'));
 const FollowUpTemplateManager = React.lazy(() => import('./dialogs/FollowUpTemplateManager'));
 const BulkDeleteDialog = React.lazy(() => import('./dialogs/BulkDeleteDialog'));
 const BulkEditDialog = React.lazy(() => import('./dialogs/BulkEditDialog'));
+const OrderDetailDialog = React.lazy(() => import('./dialogs/OrderDetailDialog'));
 
 // ❌ REMOVED: Unnecessary imports - already optimized
 
@@ -30,6 +31,11 @@ interface OrderDialogsProps {
   showTemplateManager: boolean;
   selectedOrderForTemplate: Order | null;
   onCloseTemplateManager: () => void;
+
+  // Detail dialog
+  showDetailDialog?: boolean;
+  detailOrder?: Order | null;
+  onCloseDetail?: () => void;
   
   // Bulk operations (optional - for future use)
   showBulkDeleteDialog?: boolean;
@@ -53,6 +59,11 @@ const OrderDialogs: React.FC<OrderDialogsProps> = ({
   showTemplateManager,
   selectedOrderForTemplate,
   onCloseTemplateManager,
+
+  // Detail dialog props
+  showDetailDialog = false,
+  detailOrder = null,
+  onCloseDetail,
   
   // Bulk operations props (optional)
   showBulkDeleteDialog = false,
@@ -130,6 +141,17 @@ const OrderDialogs: React.FC<OrderDialogsProps> = ({
             onClose={onCloseTemplateManager}
             order={selectedOrderForTemplate}
             onSendWhatsApp={handleSendWhatsApp}
+          />
+        </Suspense>
+      )}
+
+      {/* ✅ ORDER DETAIL DIALOG: Informasi detail pesanan */}
+      {showDetailDialog && detailOrder && (
+        <Suspense fallback={<DialogLoader message="Memuat detail pesanan..." />}>
+          <OrderDetailDialog
+            open={showDetailDialog}
+            order={detailOrder}
+            onOpenChange={onCloseDetail || (() => {})}
           />
         </Suspense>
       )}

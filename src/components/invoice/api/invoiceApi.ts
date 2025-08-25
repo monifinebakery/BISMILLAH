@@ -1,6 +1,7 @@
 // src/components/invoice/api/invoiceApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { toSafeISOString } from '@/utils/unifiedDateUtils';
 import type { OrderData } from '../types';
 
 export const invoiceApi = {
@@ -73,7 +74,7 @@ export const invoiceApi = {
       alamatPelanggan: 'Jl. Customer Address No. 123\nKelurahan ABC, Kecamatan DEF\nKota GHI 12345',
       telefonPelanggan: '+62 123 456 789',
       emailPelanggan: 'customer@email.com',
-      tanggal: new Date().toISOString(),
+      tanggal: toSafeISOString(new Date()) || new Date().toISOString(),
       items: [
         { id: 1, namaBarang: 'Product 1', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 },
         { id: 2, namaBarang: 'Product 2', quantity: 1, hargaSatuan: 75000, totalHarga: 75000 }

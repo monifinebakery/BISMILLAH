@@ -426,6 +426,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             queryKey: ['profit-analysis'] 
           });
           
+          // ✅ DISPATCH PURCHASE COMPLETION EVENT: Trigger WAC refresh in profit analysis
+          console.log('🔄 Dispatching purchase completion event for WAC refresh');
+          window.dispatchEvent(new CustomEvent('purchase:completed', {
+            detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.totalNilai }
+          }));
+          
           // ✅ INVALIDATE FINANCIAL REPORTS: Purchase completion creates financial transaction
           console.log('💰 Invalidating financial transaction cache after purchase completion');
           queryClient.invalidateQueries({ 

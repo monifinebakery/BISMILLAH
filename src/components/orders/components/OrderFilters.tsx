@@ -18,6 +18,7 @@ import {
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { safeParseDate } from '@/utils/unifiedDateUtils';
 import type { UseOrderUIReturn } from '../types';
 import { ORDER_STATUSES, getStatusText } from '../constants';
 
@@ -153,7 +154,7 @@ const DateRangeFilter: React.FC<{
             mode="single"
             selected={dateFrom || undefined}
             onSelect={handleFromSelect}
-            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+            disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate("1900-01-01") || new Date("1900-01-01"))}
             initialFocus
           />
         </PopoverContent>
@@ -176,7 +177,7 @@ const DateRangeFilter: React.FC<{
             mode="single"
             selected={dateTo || undefined}
             onSelect={handleToSelect}
-            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+            disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate("1900-01-01") || new Date("1900-01-01"))}
             initialFocus
           />
         </PopoverContent>

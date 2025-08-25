@@ -3,6 +3,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { toSafeISOString } from '@/utils/unifiedDateUtils';
 import { 
   Notification, 
   NotificationSettings, 
@@ -131,7 +132,7 @@ export const markAsRead = async (notificationId: string): Promise<boolean> => {
       .from('notifications')
       .update({ 
         is_read: true, 
-        updated_at: new Date().toISOString() 
+        updated_at: toSafeISOString(new Date()) || new Date().toISOString() 
       })
       .eq('id', notificationId);
 
@@ -150,7 +151,7 @@ export const markAllAsRead = async (userId: string): Promise<boolean> => {
       .from('notifications')
       .update({ 
         is_read: true, 
-        updated_at: new Date().toISOString() 
+        updated_at: toSafeISOString(new Date()) || new Date().toISOString() 
       })
       .eq('user_id', userId)
       .eq('is_read', false);
@@ -186,7 +187,7 @@ export const archiveNotification = async (notificationId: string): Promise<boole
       .from('notifications')
       .update({ 
         is_archived: true, 
-        updated_at: new Date().toISOString() 
+        updated_at: toSafeISOString(new Date()) || new Date().toISOString() 
       })
       .eq('id', notificationId);
 
@@ -279,7 +280,7 @@ export const updateNotificationSettings = async (
       .upsert({
         user_id: userId,
         ...settings,
-        updated_at: new Date().toISOString()
+        updated_at: toSafeISOString(new Date()) || new Date().toISOString()
       }, {
         onConflict: 'user_id', // Specify conflict resolution
         ignoreDuplicates: false // Always update if conflict

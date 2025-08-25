@@ -104,7 +104,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
     if (formData.jumlah_per_bulan <= 0) {
       newErrors.jumlah_per_bulan = 'Jumlah harus lebih dari 0';
     } else if (formData.jumlah_per_bulan < 1000) {
-      newErrors.jumlah_per_bulan = 'Jumlah minimal Rp 1.000';
+      newErrors.jumlah_per_bulan = 'Jumlah biaya terlalu kecil. Minimal Rp 1.000 untuk pencatatan yang akurat';
     }
 
     if (formData.jumlah_per_bulan > 999999999) {

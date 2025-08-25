@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PromoCard from './components/PromoCard';
 import { logger } from '@/utils/logger';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 // Import services
 import { promoService } from './services/promoService';
@@ -179,6 +180,17 @@ const PromoCalculatorLayout = () => {
     }
   });
 
+  const createPromoMutation = useMutation({
+    mutationFn: (data) => promoService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['promos']);
+      toast.success('Promo berhasil diduplikat');
+    },
+    onError: (error) => {
+      toast.error(`Gagal menduplikat promo: ${error.message}`);
+    }
+  });
+
   // Utility functions
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
@@ -230,7 +242,7 @@ const PromoCalculatorLayout = () => {
   // ✅ Promo action handlers with mutations
   const handleEditPromo = (promo) => {
     logger.context('PromoCalculatorLayout', 'Edit promo:', promo);
-    // TODO: Implement edit functionality - could navigate to calculator with pre-filled data
+    navigate(`/promo/edit/${promo.id}`);
   };
 
   const handleDeletePromo = async (promo) => {
@@ -241,20 +253,23 @@ const PromoCalculatorLayout = () => {
 
   const handleViewPromo = (promo) => {
     logger.context('PromoCalculatorLayout', 'View promo:', promo);
-    // TODO: Implement view functionality - could show detailed modal
+    navigate(`/promo/edit/${promo.id}`);
   };
 
   const handleDuplicatePromo = (promo) => {
     const duplicatedData = {
-      ...promo,
       namaPromo: `${promo.namaPromo} (Copy)`,
+      tipePromo: promo.tipePromo,
       status: 'draft',
-      tanggalMulai: '',
-      tanggalSelesai: ''
+      deskripsi: promo.deskripsi,
+      tanggalMulai: null,
+      tanggalSelesai: null,
+      dataPromo: promo.dataPromo,
+      calculationResult: promo.calculationResult
     };
-    
-    // TODO: Use create mutation to save duplicated promo
+
     logger.context('PromoCalculatorLayout', 'Duplicate promo:', duplicatedData);
+    createPromoMutation.mutate(duplicatedData);
   };
 
   // Enhanced Loading Component
@@ -372,62 +387,61 @@ const PromoCalculatorLayout = () => {
   if (currentView === 'dashboard') {
     return (
       <div className={styles.containerLayout}>
-        <div className={styles.mainContent}>
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-orange-100 rounded-xl">
-                  <Calculator className="h-8 w-8 text-orange-600" />
+        <div className="bg-white border-b sticky top-0 z-10">
+          <div className="w-full px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                  <Calculator className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Kalkulator Promo</h1>
-                  <p className="text-gray-600 mt-1">
-                    Hitung profit margin dan dampak promo dengan akurat
-                  </p>
+                  <h1 className="text-lg font-semibold text-gray-900">Kalkulator Promo</h1>
+                  <p className="text-xs text-gray-500">Hitung profit margin dan dampak promo dengan akurat</p>
                 </div>
               </div>
               <div className="hidden md:flex gap-3">
                 <Button
-              onClick={() => navigate('/promo/list')}
-                  className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+                  onClick={() => navigate('/promo/list')}
+                  variant="outline"
+                  className="flex items-center gap-2"
                 >
                   <List className="h-4 w-4" />
                   Lihat Semua
                 </Button>
                 <Button
-              onClick={() => navigate('/promo/create')}
-                  className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
+                  onClick={() => navigate('/promo/create')}
+                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
                 >
                   <Plus className="h-4 w-4" />
                   Buat Promo
                 </Button>
               </div>
             </div>
-
-            <div className="flex md:hidden flex-col gap-3 mt-6">
+            <div className="flex md:hidden flex-col gap-3 mt-4">
               <Button
-              onClick={() => navigate('/promo/list')}
-                className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+                onClick={() => navigate('/promo/list')}
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2"
               >
                 <List className="h-4 w-4" />
                 Lihat Semua
               </Button>
               <Button
-              onClick={() => navigate('/promo/create')}
-                className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"
+                onClick={() => navigate('/promo/create')}
+                className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
               >
                 <Plus className="h-4 w-4" />
                 Buat Promo
               </Button>
             </div>
           </div>
-
+        </div>
+        <div className={styles.mainContent}>
           {/* Content */}
           {isLoading ? (
             <LoadingFallback message="Memuat promo..." size="large" />
           ) : promosError ? (
-            <ErrorDisplay 
+            <ErrorDisplay
               title="Gagal Memuat Data Promo"
               message="Terjadi kesalahan saat memuat data promo. Silakan coba lagi."
               onRetry={refetchPromos}
@@ -463,19 +477,20 @@ const PromoCalculatorLayout = () => {
   if (currentView === 'calculator') {
     return (
       <div className={styles.containerLayout}>
-        <div className={styles.mainContent}>
-          <div className="mb-6">
-            <button 
-              onClick={handleBack} 
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+        <div className="bg-white border-b sticky top-0 z-10">
+          <div className="w-full px-4 py-4">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
               <span className="text-sm font-medium">Kembali</span>
             </button>
           </div>
-          
+        </div>
+        <div className={styles.mainContent}>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <LazyComponent 
+            <LazyComponent
               fallback={<LoadingFallback message="Memuat kalkulator promo..." />}
               onRetry={handleRetry}
               componentName="Kalkulator Promo"

@@ -91,20 +91,20 @@ const SupplierManagement: React.FC = () => {
   // 🎯 NEW: Lazy loading state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading, setUseLazyLoading] = useState(false);
+  const [useLazyLoading] = useState(true);
 
   // 🎯 NEW: Paginated query for lazy loading
   const paginatedQuery = useQuery({
     queryKey: [...supplierQueryKeys.list(), 'paginated', currentPage, itemsPerPage],
     queryFn: () => fetchSuppliersPaginated(user!.id, currentPage, itemsPerPage),
-    enabled: useLazyLoading && !!user?.id,
+    enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Use paginated data when lazy loading is enabled, otherwise use regular data
-  const displaySuppliers = useLazyLoading ? (paginatedQuery.data?.data || []) : suppliers;
-  const displayLoading = useLazyLoading ? paginatedQuery.isLoading : isLoading;
-  const paginationInfo = useLazyLoading ? paginatedQuery.data : null;
+  const displaySuppliers = paginatedQuery.data?.data || [];
+  const displayLoading = paginatedQuery.isLoading;
+  const paginationInfo = paginatedQuery.data;
 
   const {
     searchTerm,
@@ -123,11 +123,11 @@ const SupplierManagement: React.FC = () => {
   } = useSupplierTable(displaySuppliers);
   
   // Override pagination controls when lazy loading is enabled
-  const finalItemsPerPage = useLazyLoading ? itemsPerPage : tableItemsPerPage;
-  const finalCurrentPage = useLazyLoading ? currentPage : tablePage;
-  const finalTotalPages = useLazyLoading ? (paginationInfo?.totalPages || 1) : totalPages;
-  const finalCurrentSuppliers = useLazyLoading ? displaySuppliers : currentSuppliers;
-  const finalFilteredSuppliers = useLazyLoading ? displaySuppliers : filteredSuppliers;
+  const finalItemsPerPage = itemsPerPage;
+  const finalCurrentPage = currentPage;
+  const finalTotalPages = paginationInfo?.totalPages || 1;
+  const finalCurrentSuppliers = displaySuppliers;
+  const finalFilteredSuppliers = displaySuppliers;
 
   const handleEdit = (supplier: Supplier) => {
     setEditingSupplier(supplier);
@@ -205,51 +205,31 @@ const SupplierManagement: React.FC = () => {
 
       {/* Main Table Card */}
       <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
-        {/* Lazy Loading Controls */}
+        {/* Kontrol Paginasi */}
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={useLazyLoading}
+              <div className="flex items-center gap-2 text-sm">
+                <label htmlFor="itemsPerPage">Items per page:</label>
+                <select
+                  id="itemsPerPage"
+                  value={itemsPerPage}
                   onChange={(e) => {
-                    setUseLazyLoading(e.target.checked);
-                    setCurrentPage(1); // Reset ke halaman 1 saat toggle
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
                   }}
-                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                />
-                <span className="font-medium">Lazy Loading</span>
-                {useLazyLoading && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                    Server-side
-                  </span>
-                )}
-              </label>
-              
-              {useLazyLoading && (
-                <div className="flex items-center gap-2 text-sm">
-                  <label htmlFor="itemsPerPage">Items per page:</label>
-                  <select
-                    id="itemsPerPage"
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                </div>
-              )}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
-            
+
             <div className="text-sm text-gray-600">
-              {useLazyLoading && paginationInfo && (
+              {paginationInfo && (
                 <span className="text-blue-600 font-medium">
                   Total: {paginationInfo.total} supplier
                 </span>
@@ -263,21 +243,12 @@ const SupplierManagement: React.FC = () => {
           searchTerm={searchTerm}
           onSearchChange={(term) => {
             setSearchTerm(term);
-            if (useLazyLoading) {
-              setCurrentPage(1);
-            } else {
-              setTablePage(1);
-            }
+            setCurrentPage(1);
           }}
           itemsPerPage={finalItemsPerPage}
           onItemsPerPageChange={(count) => {
-            if (useLazyLoading) {
-              setItemsPerPage(count);
-              setCurrentPage(1);
-            } else {
-              setTableItemsPerPage(count);
-              setTablePage(1);
-            }
+            setItemsPerPage(count);
+            setCurrentPage(1);
           }}
           isSelectionMode={isSelectionMode}
           onSelectionModeChange={setIsSelectionMode}
@@ -296,7 +267,7 @@ const SupplierManagement: React.FC = () => {
           currentPage={finalCurrentPage}
           totalPages={finalTotalPages}
           itemsPerPage={finalItemsPerPage}
-          onPageChange={useLazyLoading ? setCurrentPage : setTablePage}
+          onPageChange={setCurrentPage}
           onAddFirst={openAddDialog}
           searchTerm={searchTerm}
         />

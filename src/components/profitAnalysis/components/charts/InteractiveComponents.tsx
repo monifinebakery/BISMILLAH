@@ -121,54 +121,57 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
   isMobile
 }) => {
   return (
-    <div className="flex flex-wrap gap-1.5 sm:gap-2">
-      <Button
-        variant={viewType === 'values' ? 'default' : 'outline'}
-        size={isMobile ? 'sm' : 'sm'}
-        onClick={() => setViewType('values')}
-        className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
-      >
-        <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-        {isMobile ? 'Nilai' : 'Nilai'}
-      </Button>
-      <Button
-        variant={viewType === 'margins' ? 'default' : 'outline'}
-        size={isMobile ? 'sm' : 'sm'}
-        onClick={() => setViewType('margins')}
-        className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
-      >
-        <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-        {isMobile ? 'Margin' : 'Margin'}
-      </Button>
-      
+    <div className="flex flex-wrap items-center gap-2">
+      {/* View Type Controls */}
+      <div className="flex gap-1.5 sm:gap-2">
+        <Button
+          variant={viewType === 'values' ? 'default' : 'outline'}
+          size={isMobile ? 'sm' : 'sm'}
+          onClick={() => setViewType('values')}
+          className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+        >
+          <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+          {isMobile ? 'Nilai' : 'Nilai'}
+        </Button>
+        <Button
+          variant={viewType === 'margins' ? 'default' : 'outline'}
+          size={isMobile ? 'sm' : 'sm'}
+          onClick={() => setViewType('margins')}
+          className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
+        >
+          <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+          {isMobile ? 'Margin' : 'Margin'}
+        </Button>
+      </div>
+
       {/* Advanced Analytics Controls */}
       {advancedAnalytics && (
-        <>
+        <div className="flex gap-1.5 sm:gap-2 pl-2 sm:pl-3 border-l border-gray-300">
           <Button
-            variant='default'
+            variant={showForecast ? 'default' : 'outline'}
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowForecast(!showForecast)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
           >
             {isMobile ? 'Prediksi' : 'Prediksi'}
           </Button>
           <Button
-            variant='default'
+            variant={showAnomalies ? 'default' : 'outline'}
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowAnomalies(!showAnomalies)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
           >
             {isMobile ? 'Anomali' : 'Anomali'}
           </Button>
           <Button
-            variant='default'
+            variant={showComparison ? 'default' : 'outline'}
             size={isMobile ? 'sm' : 'sm'}
             onClick={() => setShowComparison(!showComparison)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 bg-black text-white hover:bg-gray-800"
+            className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2"
           >
             {isMobile ? 'Bandingkan' : 'Bandingkan'}
           </Button>
-        </>
+        </div>
       )}
     </div>
   );

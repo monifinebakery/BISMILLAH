@@ -34,8 +34,8 @@ const PurchaseTable = React.lazy(() =>
   }))
 );
 
-const BulkActionsToolbar = React.lazy(() => 
-  import('./components/BulkActionsToolbar').catch(() => ({
+const BulkActionsBar = React.lazy(() => 
+  import('./components/BulkActionsBar').catch(() => ({
     default: () => null
   }))
 );
@@ -476,7 +476,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         <>
           <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
             <Suspense fallback={<QuickLoader />}>
-              <BulkActionsToolbar />
+              <BulkActionsBar />
             </Suspense>
 
             <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>

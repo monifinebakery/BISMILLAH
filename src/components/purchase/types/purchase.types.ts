@@ -54,6 +54,11 @@ export interface PurchaseStats {
   completionRate: number;
 }
 
+export interface PurchaseStatsProps {
+  stats: PurchaseStats;
+  className?: string;
+}
+
 // ============ API / DB Shapes ============
 // Baris item untuk disimpan ke DB (snake_case). Ini yang dibaca manual sync.
 export interface PurchaseItemDB {
@@ -161,8 +166,8 @@ export interface PurchaseContextType {
 }
 
 // Hook aliases
-export interface UsePurchaseReturn extends PurchaseContextType {}
-export interface UsePurchaseTableReturn extends PurchaseTableContextType {}
+export type UsePurchaseReturn = PurchaseContextType;
+export type UsePurchaseTableReturn = PurchaseTableContextType;
 
 export interface UsePurchaseStatsReturn {
   stats: PurchaseStats;
@@ -250,6 +255,13 @@ export interface PurchaseFilters {
   supplierFilter?: string;
   sortBy: 'tanggal' | 'totalNilai' | 'supplier' | 'status';
   sortOrder: 'asc' | 'desc';
+}
+
+export interface PurchaseFiltersProps {
+  filters: PurchaseFilters;
+  onChange: (filters: PurchaseFilters) => void;
+  suppliers?: Array<{ id: string; nama: string }>;
+  className?: string;
 }
 
 export interface PaginationState {

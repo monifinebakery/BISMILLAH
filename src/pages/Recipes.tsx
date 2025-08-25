@@ -91,7 +91,7 @@ const RecipeStats = React.lazy(() =>
 
 // ✅ Better Loading Fallback
 const RecipeLoadingFallback: React.FC = () => (
-  <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+  <div className="min-h-screen bg-gray-50">
     <div className="w-full p-4 sm:p-6">
       <div className="space-y-6">
         {/* Header Skeleton */}
@@ -127,7 +127,7 @@ const RecipeErrorFallback: React.FC<{ error?: string; onRetry?: () => void }> = 
   error, 
   onRetry 
 }) => (
-  <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
     <Card className="max-w-md w-full">
       <CardContent className="p-8 text-center">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -385,29 +385,25 @@ const Recipes: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-      <div className="w-full p-4 sm:p-6 space-y-6">
-        
-        {/* ✅ Header - Matching Warehouse Design */}
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white border">
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b sticky top-0 z-10">
+        <div className="w-full px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-                <ChefHat className="h-8 w-8 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                <ChefHat className="h-4 w-4 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold mb-2">Manajemen Resep</h1>
-                <p className="text-white opacity-90">
-                  Kelola resep dan hitung HPP dengan mudah
-                </p>
+                <h1 className="text-lg font-semibold text-gray-900">Manajemen Resep</h1>
+                <p className="text-xs text-gray-500">Kelola resep dan hitung HPP dengan mudah</p>
               </div>
             </div>
-
             <div className="hidden md:flex gap-3">
               <Button
                 onClick={() => setDialogState({ type: 'category' })}
                 disabled={isProcessing}
-                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+                variant="outline"
+                className="flex items-center gap-2"
               >
                 <List className="h-4 w-4" />
                 Kelola Kategori
@@ -415,19 +411,19 @@ const Recipes: React.FC = () => {
               <Button
                 onClick={handleAddRecipe}
                 disabled={isProcessing}
-                className="flex items-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-2 rounded-lg transition-all"
+                className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
               >
                 <Plus className="h-4 w-4" />
                 Tambah Resep
               </Button>
             </div>
           </div>
-
-          <div className="flex md:hidden flex-col gap-3 mt-6">
+          <div className="flex md:hidden flex-col gap-3 mt-4">
             <Button
               onClick={() => setDialogState({ type: 'category' })}
               disabled={isProcessing}
-              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
             >
               <List className="h-4 w-4" />
               Kelola Kategori
@@ -435,13 +431,15 @@ const Recipes: React.FC = () => {
             <Button
               onClick={handleAddRecipe}
               disabled={isProcessing}
-              className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 hover:bg-gray-100 font-medium px-4 py-3 rounded-lg transition-all"
+              className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
             >
               <Plus className="h-4 w-4" />
               Tambah Resep
             </Button>
           </div>
         </div>
+      </div>
+      <div className="w-full p-4 sm:p-6 space-y-6">
 
         {/* ✅ Statistics Cards */}
         <Suspense fallback={<div />}>
@@ -451,7 +449,7 @@ const Recipes: React.FC = () => {
         {/* ✅ Main Content Card */}
         <Card className="border border-gray-200 bg-white/90 backdrop-blur-sm">
           <CardContent className="p-0">
-            
+
             {/* ✅ Filters */}
             <div className="p-6 pb-0">
               <Suspense fallback={<div />}>

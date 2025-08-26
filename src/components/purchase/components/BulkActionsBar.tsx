@@ -78,6 +78,17 @@ const BulkActionsBar: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
+            className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-700 text-xs sm:text-sm h-8 sm:h-9"
+            onClick={() => setShowBulkEditDialog(true)}
+            disabled={isProcessing || isBulkDeleting}
+          >
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Edit</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             className="flex items-center justify-center gap-2 text-xs sm:text-sm h-8 sm:h-9"
             onClick={() => handleStatus('completed')}
             disabled={isProcessing || isBulkDeleting}
@@ -113,18 +124,6 @@ const BulkActionsBar: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            className="flex items-center justify-center gap-2 text-xs sm:text-sm h-8 sm:h-9"
-            onClick={() => setShowBulkEditDialog(true)}
-            disabled={isProcessing || isBulkDeleting}
-          >
-            <Settings className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-            <span className="hidden sm:inline">Edit</span>
-            <span className="sm:hidden">Edit</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
             className="flex items-center justify-center gap-2 text-red-600 hover:text-red-700 text-xs sm:text-sm h-8 sm:h-9"
             onClick={() => setShowBulkDeleteDialog(true)}
             disabled={isProcessing || isBulkDeleting}
@@ -153,11 +152,11 @@ const BulkActionsBar: React.FC = () => {
         </div>
       )}
     </Card>
-
+    
     <BulkEditDialog
-      isOpen={showBulkEditDialog}
-      onClose={() => setShowBulkEditDialog(false)}
-    />
+       isOpen={showBulkEditDialog}
+       onClose={() => setShowBulkEditDialog(false)}
+     />
     </>
   );
 };

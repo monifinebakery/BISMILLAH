@@ -1,4 +1,3 @@
-// src/components/purchase/components/BulkEditDialog.tsx
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -15,20 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Loader2, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePurchaseTable } from '../context/PurchaseTableContext';
 import { useSupplier } from '@/contexts/SupplierContext';
-import type { PurchaseStatus, CalculationMethod } from '../types/purchase.types';
-
-interface BulkEditData {
-  supplier?: string;
-  status?: PurchaseStatus;
-  metodePerhitungan?: CalculationMethod;
-}
+import type { PurchaseStatus } from '../types/purchase.types';
 
 interface BulkEditDialogProps {
   isOpen: boolean;
@@ -36,19 +28,14 @@ interface BulkEditDialogProps {
 }
 
 const BulkEditDialog: React.FC<BulkEditDialogProps> = ({ isOpen, onClose }) => {
-  const { selectedItems, bulkUpdatePurchases } = usePurchaseTable();
+  const { selectedItems, bulkUpdateStatus } = usePurchaseTable();
   const { suppliers } = useSupplier();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [editData, setEditData] = useState<BulkEditData>({
-    supplier: undefined,
-    status: undefined,
-    metodePerhitungan: undefined,
-  });
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<PurchaseStatus | ''>('');
 
   const handleBulkEdit = async () => {
-    // Validate that at least one field is being edited
-    const hasChanges = editData.supplier || editData.status || editData.metodePerhitungan;
-    if (!hasChanges) {
+    if (!selectedSupplier && !selectedStatus) {
       toast.error('Pilih minimal satu field untuk diedit');
       return;
     }
@@ -56,23 +43,20 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({ isOpen, onClose }) => {
     try {
       setIsProcessing(true);
       
-      // Filter out undefined values
-      const cleanedData = Object.entries(editData).reduce((acc, [key, value]) => {
-        if (value !== undefined && value !== '') {
-          acc[key as keyof BulkEditData] = value;
-        }
-        return acc;
-      }, {} as BulkEditData);
-
-      await bulkUpdatePurchases(selectedItems, cleanedData);
+      // Update status jika dipilih
+      if (selectedStatus) {
+        await bulkUpdateStatus(selectedStatus);
+      }
+      
+      // TODO: Implementasi update supplier jika diperlukan
+      if (selectedSupplier) {
+        toast.info('Update supplier akan diimplementasikan dalam versi berikutnya');
+      }
       
       toast.success(`${selectedItems.length} pembelian berhasil diupdate`);
       onClose();
-      setEditData({
-        supplier: undefined,
-        status: undefined,
-        metodePerhitungan: undefined,
-      });
+      setSelectedSupplier('');
+      setSelectedStatus('');
     } catch (error) {
       console.error('Bulk edit failed:', error);
       toast.error('Gagal mengupdate pembelian');
@@ -84,11 +68,8 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({ isOpen, onClose }) => {
   const handleClose = () => {
     if (!isProcessing) {
       onClose();
-      setEditData({
-        supplier: undefined,
-        status: undefined,
-        metodePerhitungan: undefined,
-      });
+      setSelectedSupplier('');
+      setSelectedStatus('');
     }
   };
 
@@ -109,13 +90,8 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({ isOpen, onClose }) => {
           <div className="space-y-2">
             <Label htmlFor="bulk-supplier">Supplier</Label>
             <Select
-              value={editData.supplier || ''}
-              onValueChange={(value) => 
-                setEditData(prev => ({ 
-                  ...prev, 
-                  supplier: value || undefined 
-                }))
-              }
+              value={selectedSupplier}
+              onValueChange={setSelectedSupplier}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Pilih supplier (opsional)" />
@@ -134,13 +110,8 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({ isOpen, onClose }) => {
           <div className="space-y-2">
             <Label htmlFor="bulk-status">Status</Label>
             <Select
-              value={editData.status || ''}
-              onValueChange={(value) => 
-                setEditData(prev => ({ 
-                  ...prev, 
-                  status: value as PurchaseStatus || undefined 
-                }))
-              }
+              value={selectedStatus}
+              onValueChange={(value) => setSelectedStatus(value as PurchaseStatus | '')}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Pilih status (opsional)" />
@@ -150,27 +121,6 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({ isOpen, onClose }) => {
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="completed">Selesai</SelectItem>
                 <SelectItem value="cancelled">Dibatalkan</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bulk-method">Metode Perhitungan</Label>
-            <Select
-              value={editData.metodePerhitungan || ''}
-              onValueChange={(value) => 
-                setEditData(prev => ({ 
-                  ...prev, 
-                  metodePerhitungan: value as CalculationMethod || undefined 
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih metode (opsional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Tidak diubah</SelectItem>
-                <SelectItem value="AVERAGE">Average (Rata-rata)</SelectItem>
               </SelectContent>
             </Select>
           </div>

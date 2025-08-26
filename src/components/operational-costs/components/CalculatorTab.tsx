@@ -33,15 +33,15 @@ const CalculatorTab: React.FC<CalculatorTabProps> = ({
                 <p className="font-medium text-orange-800">Belum ada data biaya</p>
                 <p className="text-sm text-orange-700">Tambahkan biaya operasional dulu di tab "Kelola Biaya"</p>
               </div>
-              <TooltipProvider delayDuration={100}>
+                  <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       onClick={onSwitchToManagementTab}
                       size="sm"
-                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 min-w-fit"
                     >
-                      Ke Tab Kelola Biaya
+                      <span className="whitespace-nowrap">Ke Tab Kelola Biaya</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent className="bg-orange-50 border-orange-200 text-orange-900 max-w-xs">

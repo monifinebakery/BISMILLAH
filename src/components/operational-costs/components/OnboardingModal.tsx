@@ -57,6 +57,14 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSk
       toast.success(`Setup ${type} berhasil!`, {
         description: `${successCount} biaya contoh telah ditambahkan. Silakan edit sesuai kebutuhan.`
       });
+      
+      // Trigger explicit data refresh to ensure costs are immediately visible
+      try {
+        await actions.refreshData();
+      } catch (error) {
+        console.warn('Warning: Could not refresh data after quick setup:', error);
+      }
+      
       onClose();
     }
   };

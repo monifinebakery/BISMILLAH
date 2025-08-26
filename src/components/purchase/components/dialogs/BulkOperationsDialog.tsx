@@ -140,8 +140,24 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg border w-full max-w-2xl max-h-[90vh] overflow-hidden">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+      style={{ zIndex: 9999 }}
+      onClick={(e) => {
+        // Close dialog when clicking backdrop
+        if (e.target === e.currentTarget && !isLoading) {
+          onCancel();
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-lg border w-full max-w-2xl max-h-[90vh] overflow-hidden relative" 
+        style={{ zIndex: 10000 }}
+        onClick={(e) => {
+          // Prevent backdrop click when clicking inside dialog
+          e.stopPropagation();
+        }}
+      >
         
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -167,17 +183,20 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
               </p>
             </div>
           </div>
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 h-auto"
             disabled={isLoading}
           >
             <X className="w-6 h-6" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]" style={{ position: 'relative', zIndex: 1 }}>
           
           {/* Selected Items Preview */}
           <div className="mb-6">
@@ -214,7 +233,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
           {/* Bulk Edit Form */}
           {isEditMode ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <Edit className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -244,7 +263,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih supplier (kosong = tidak diubah)" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[10001]">
                       <SelectItem value="__no_change__">-- Tidak diubah --</SelectItem>
                       {suppliers.map((supplier) => (
                         <SelectItem key={supplier.id} value={supplier.id}>
@@ -268,7 +287,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih status (kosong = tidak diubah)" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[10001]">
                       <SelectItem value="__no_change__">-- Tidak diubah --</SelectItem>
                       {STATUS_OPTIONS.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
@@ -310,14 +329,14 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih metode (kosong = tidak diubah)" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[10001]">
                       <SelectItem value="__no_change__">-- Tidak diubah --</SelectItem>
                       <SelectItem value="AVERAGE">Average (Rata-rata)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-            </form>
+            </div>
           ) : (
             /* Bulk Delete Confirmation */
             <div className="space-y-6">
@@ -382,7 +401,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50" style={{ position: 'relative', zIndex: 1 }}>
           <Button
             type="button"
             variant="outline"

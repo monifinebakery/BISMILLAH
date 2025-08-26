@@ -444,7 +444,7 @@ const FinancialReportPage: React.FC = () => {
     <AuthGuard>
       <div className="p-4 sm:p-6 space-y-6">
         <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white border">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
                 <TrendingUp className="h-8 w-8 text-white" />
@@ -481,7 +481,7 @@ const FinancialReportPage: React.FC = () => {
                   onDateRangeChange={handleDateRangeChange}
                   placeholder="Pilih periode laporan"
                   isMobile={isMobile}
-                  className="bg-white text-gray-900 border-none hover:bg-gray-100"
+                  className="bg-white text-gray-900 border-none hover:bg-gray-100 w-full"
                 />
               </div>
             </div>

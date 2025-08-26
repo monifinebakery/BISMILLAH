@@ -281,5 +281,51 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
+  
+  /* iPad sidebar behavior */
+  .sidebar-ipad-overlay {
+    z-index: 50;
+    position: fixed;
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(2px);
+  }
+  
+  .sidebar-ipad-default-collapsed {
+    /* Default collapsed state for iPad */
+    width: var(--sidebar-width-icon);
+  }
+  
+  .sidebar-ipad-overlay-expanded {
+    /* Overlay mode when expanded on iPad */
+    position: fixed;
+    z-index: 60;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    background: white;
+    border-right: 1px solid theme('colors.border');
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* iPad content shift prevention */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .sidebar-content-no-shift {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      transition: none !important;
+    }
+    
+    .sidebar-overlay-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 55;
+      backdrop-filter: blur(2px);
+    }
+  }
 }
 

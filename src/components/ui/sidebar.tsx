@@ -4,6 +4,7 @@ import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useIPadSidebar } from "@/hooks/use-ipad-sidebar"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,8 +52,12 @@ const SidebarProvider = React.forwardRef<
   }
 >(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
   const isMobile = useIsMobile()
+  const { shouldDefaultCollapse } = useIPadSidebar()
   const [openMobile, setOpenMobile] = React.useState(false)
-  const [_open, _setOpen] = React.useState(defaultOpen)
+  
+  // Default to collapsed on iPad, expanded on desktop
+  const initialDefaultOpen = shouldDefaultCollapse ? false : defaultOpen
+  const [_open, _setOpen] = React.useState(initialDefaultOpen)
   const open = openProp ?? _open
   const setOpen = React.useCallback((value: boolean | ((value: boolean) => boolean)) => {
     const openState = typeof value === "function" ? value(open) : value
@@ -104,6 +109,7 @@ const Sidebar = React.forwardRef<
   React.ComponentProps<"div"> & { side?: "left" | "right"; variant?: "sidebar" | "floating" | "inset"; collapsible?: "offcanvas" | "icon" | "none" }
 >(({ side = "left", variant = "sidebar", collapsible = "offcanvas", className, children, ...props }, ref) => {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isIPad, shouldUseOverlay } = useIPadSidebar()
 
   if (collapsible === "none") {
     return (
@@ -137,6 +143,7 @@ const Sidebar = React.forwardRef<
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
       data-side={side}
+      data-ipad-overlay={isIPad && shouldUseOverlay ? 'true' : 'false'}
     >
       {/* spacer */}
       <div
@@ -151,13 +158,17 @@ const Sidebar = React.forwardRef<
       />
       <div
         className={cn(
-          "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
+          "duration-200 fixed inset-y-0 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
+          // iPad overlay mode - higher z-index
+          isIPad && shouldUseOverlay ? "z-60" : "z-10",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
             : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+          // iPad overlay shadow
+          isIPad && shouldUseOverlay && state === "expanded" && "shadow-lg",
           className
         )}
         {...props}

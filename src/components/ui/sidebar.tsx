@@ -149,6 +149,8 @@ const Sidebar = React.forwardRef<
       <div
         className={cn(
           "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
+          // ⬇️ NEW: di iPad (md) spacer hanya selebar rail ikon → overlay tidak ngedorong konten
+          "md:w-[--sidebar-width-icon] lg:w-[--sidebar-width]",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"

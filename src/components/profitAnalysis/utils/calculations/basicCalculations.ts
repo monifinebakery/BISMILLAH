@@ -66,8 +66,11 @@ export function calcHPP(
 
 /**
  * Calculate profit margins with validation
+ * @deprecated Use safeCalculateMargins from @/utils/profitValidation for centralized calculations
  */
 export const calculateMargins = (revenue: number, cogs: number, opex: number) => {
+  console.warn('[DEPRECATED] basicCalculations.calculateMargins is deprecated. Use safeCalculateMargins from @/utils/profitValidation instead.');
+  
   const validRevenue = Math.max(0, Number(revenue) || 0);
   const validCOGS = Math.max(0, Number(cogs) || 0);
   const validOpEx = Math.max(0, Number(opex) || 0);

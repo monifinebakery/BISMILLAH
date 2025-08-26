@@ -50,6 +50,12 @@ export interface ProfitDashboardProps {
 }
 
 // ==============================================
+// HELPER FUNCTIONS
+// ==============================================
+
+
+
+// ==============================================
 // MAIN COMPONENT
 // ==============================================
 
@@ -173,6 +179,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
             onRefresh={handleRefresh}
             dateRange={range}
             onDateRangeChange={handleDateRangeChange}
+            onStartOnboarding={() => setShowOnboarding(true)}
           />
       
       {error && (
@@ -214,9 +221,9 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
             <div className="space-y-2">
               <p className="font-medium">Kualitas Data: {validationScore.toFixed(0)}/100</p>
               <div className="text-sm space-y-1">
-                <p>Konsistensi Data: {dataQualityMetrics.dataConsistency.toFixed(1)}%</p>
-                <p>Ketersediaan WAC: {dataQualityMetrics.wacAvailability.toFixed(1)}%</p>
-                <p>Ketersediaan API COGS: {dataQualityMetrics.apiCogsAvailability.toFixed(1)}%</p>
+                <p>Konsistensi Data: {Number(dataQualityMetrics?.dataConsistency || 0).toFixed(1)}%</p>
+                <p>Ketersediaan WAC: {Number(dataQualityMetrics?.wacAvailability || 0).toFixed(1)}%</p>
+                <p>Ketersediaan API COGS: {Number(dataQualityMetrics?.apiCogsAvailability || 0).toFixed(1)}%</p>
               </div>
             </div>
           </AlertDescription>
@@ -228,16 +235,20 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
       </div>
       
       {hasAnyData && (
-        <ProfitSummaryCards
-          currentAnalysis={currentAnalysis}
-          previousAnalysis={previousAnalysis}
-          isLoading={loading}
-          effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
-          labels={{
-            hppLabel: labels?.hppLabel || 'Modal Bahan',
-            hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
-          }}
-        />
+        <>
+          <ProfitSummaryCards
+            currentAnalysis={currentAnalysis}
+            previousAnalysis={previousAnalysis}
+            isLoading={loading}
+            effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
+            labels={{
+              hppLabel: labels?.hppLabel || 'Modal Bahan',
+              hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
+            }}
+          />
+          
+
+        </>
       )}
 
       {hasAnyData ? (

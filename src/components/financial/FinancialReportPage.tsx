@@ -82,6 +82,62 @@ const BulkActions = React.lazy(() =>
   })
 );
 
+const DailyCashFlowTracker = React.lazy(() => 
+  import('./components/DailyCashFlowTracker').catch((error) => {
+    logger.error('Failed to load DailyCashFlowTracker component:', error);
+    return { default: () => <div>Error loading cash flow tracker</div> };
+  })
+);
+
+const ProfitLossSimple = React.lazy(() => 
+  import('./components/ProfitLossSimple').catch((error) => {
+    logger.error('Failed to load ProfitLossSimple component:', error);
+    return { default: () => <div>Error loading profit loss</div> };
+  })
+);
+
+const DailySummaryWidget = React.lazy(() => 
+  import('./components/DailySummaryWidget').catch((error) => {
+    logger.error('Failed to load DailySummaryWidget component:', error);
+    return { default: () => <div>Error loading daily summary</div> };
+  })
+);
+
+const UMKMExpenseCategories = React.lazy(() => 
+  import('./components/UMKMExpenseCategories').catch((error) => {
+    logger.error('Failed to load UMKMExpenseCategories component:', error);
+    return { default: () => <div>Error loading UMKM expense categories</div> };
+  })
+);
+
+const SavingsGoalTracker = React.lazy(() => 
+  import('./components/SavingsGoalTracker').catch((error) => {
+    logger.error('Failed to load SavingsGoalTracker component:', error);
+    return { default: () => <div>Error loading savings goal tracker</div> };
+  })
+);
+
+const DebtTracker = React.lazy(() => 
+  import('./components/DebtTracker').catch((error) => {
+    logger.error('Failed to load DebtTracker component:', error);
+    return { default: () => <div>Error loading debt tracker</div> };
+  })
+);
+
+const ExpenseAlerts = React.lazy(() => 
+  import('./components/ExpenseAlerts').catch((error) => {
+    logger.error('Failed to load ExpenseAlerts component:', error);
+    return { default: () => <div>Error loading expense alerts</div> };
+  })
+);
+
+const SimpleBusinessReport = React.lazy(() => 
+  import('./components/SimpleBusinessReport').catch((error) => {
+    logger.error('Failed to load SimpleBusinessReport component:', error);
+    return { default: () => <div>Error loading business report</div> };
+  })
+);
+
 // Loading components
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
@@ -467,11 +523,12 @@ const FinancialReportPage: React.FC = () => {
           isLoading={isLoading}
         />
 
-        {/* ✅ SIMPLIFIED TABBED INTERFACE - Only Charts and Transactions */}
+        {/* ✅ ENHANCED TABBED INTERFACE - Charts, Transactions, and UMKM Features */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="charts">Charts & Reports</TabsTrigger>
             <TabsTrigger value="transactions">Transaksi</TabsTrigger>
+            <TabsTrigger value="umkm">Fitur UMKM</TabsTrigger>
           </TabsList>
 
           {/* ✅ CHARTS TAB - Financial charts and category charts */}
@@ -523,6 +580,66 @@ const FinancialReportPage: React.FC = () => {
                 isSelectionMode={transactionTable.isSelectionMode}
                 onSelectAll={transactionTable.handleSelectAll}
                 isAllSelected={transactionTable.isAllSelected}
+              />
+            </Suspense>
+          </TabsContent>
+
+          {/* ✅ UMKM FEATURES TAB - Optimized Layout */}
+          <TabsContent value="umkm" className="space-y-4">
+            {/* Daily Summary Widget - Full Width */}
+            <Suspense fallback={<ChartSkeleton />}>
+              <DailySummaryWidget 
+                transactions={filteredTransactions}
+              />
+            </Suspense>
+
+            {/* Main Grid - 3 Columns on Large Screens, 2 on Medium, 1 on Small */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {/* Daily Cash Flow Tracker */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <DailyCashFlowTracker 
+                  transactions={filteredTransactions}
+                />
+              </Suspense>
+
+              {/* Simple Profit Loss */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <ProfitLossSimple 
+                  transactions={filteredTransactions}
+                />
+              </Suspense>
+
+              {/* UMKM Expense Categories */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <UMKMExpenseCategories 
+                  transactions={filteredTransactions}
+                />
+              </Suspense>
+
+              {/* Savings Goal Tracker */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <SavingsGoalTracker 
+                  transactions={filteredTransactions}
+                />
+              </Suspense>
+
+              {/* Debt Tracker */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <DebtTracker />
+              </Suspense>
+
+              {/* Expense Alerts */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <ExpenseAlerts 
+                  transactions={filteredTransactions}
+                />
+              </Suspense>
+            </div>
+
+            {/* Simple Business Report - Full Width at Bottom */}
+            <Suspense fallback={<ChartSkeleton />}>
+              <SimpleBusinessReport 
+                transactions={filteredTransactions}
               />
             </Suspense>
           </TabsContent>

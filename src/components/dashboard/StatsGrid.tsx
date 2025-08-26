@@ -218,7 +218,7 @@ const StatCard: React.FC<{
         <div className="relative h-full flex flex-col">
           {/* 🎨 Icon dan Trend - Top row */}
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <div className="border-[1.5px] border-orange-200 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
+            <div className="border-[1.5px] border-orange-200 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300 flex items-center justify-center">
               <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>
                 {icon}
               </div>

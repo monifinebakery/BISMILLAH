@@ -268,7 +268,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   // ✅ EARLY RETURNS: Optimized error and loading states
   if (finalError) {
     return (
-      <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
+      <div className={`max-w-screen-xl mx-auto p-4 sm:p-8 ${className}`}>
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
@@ -292,14 +292,14 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
 
   if (finalIsLoading) {
     return (
-      <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
+      <div className={`max-w-screen-xl mx-auto p-4 sm:p-8 ${className}`}>
         <LoadingState />
       </div>
     );
   }
 
   return (
-    <div className={`container mx-auto p-4 sm:p-8 ${className}`}>
+    <div className={`max-w-screen-xl mx-auto p-4 sm:p-8 ${className}`}>
       
       {/* Data warning banner */}
 

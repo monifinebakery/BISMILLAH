@@ -9,14 +9,16 @@ import { formatCurrency } from '@/utils/formatUtils';
 import type { Purchase, PurchaseStatus } from '../../types/purchase.types';
 
 interface BulkOperationsDialogProps {
+  type: 'edit' | 'delete';
   isOpen: boolean;
-  onClose: () => void;
-  operation: 'edit' | 'delete';
-  selectedItems: string[];
-  selectedItemsData: Purchase[];
+  isLoading: boolean;
+  selectedCount: number;
+  selectedItems: Purchase[];
+  bulkEditData?: any;
+  onBulkEditDataChange?: (data: any) => void;
   onConfirm: (data?: any) => Promise<void>;
-  isProcessing: boolean;
-  availableSuppliers: Array<{ id: string; nama: string }>;
+  onCancel: () => void;
+  suppliers?: Array<{ id: string; nama: string }>;
 }
 
 // BulkEditData interface matching Purchase field names
@@ -40,30 +42,35 @@ const STATUS_OPTIONS: Array<{ value: PurchaseStatus; label: string; color: strin
  * Compatible with Purchase types and provides bulk edit/delete functionality
  */
 const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
+  type,
   isOpen,
-  onClose,
-  operation,
+  isLoading,
+  selectedCount,
   selectedItems,
-  selectedItemsData,
+  bulkEditData: externalBulkEditData,
+  onBulkEditDataChange,
   onConfirm,
-  isProcessing,
-  availableSuppliers,
+  onCancel,
+  suppliers = [],
 }) => {
-  const [bulkEditData, setBulkEditData] = useState<BulkEditData>({});
-
-  const isEditMode = operation === 'edit';
-  const selectedCount = selectedItems.length;
+  const [internalBulkEditData, setInternalBulkEditData] = useState<BulkEditData>({});
+  
+  const isEditMode = type === 'edit';
+  const bulkEditData = externalBulkEditData || internalBulkEditData;
+  const setBulkEditData = onBulkEditDataChange || setInternalBulkEditData;
 
   // Reset form when dialog opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && setBulkEditData) {
       setBulkEditData({});
     }
-  }, [isOpen]);
+  }, [isOpen, setBulkEditData]);
 
   // Handle form field changes
   const handleFieldChange = (field: keyof BulkEditData, value: string | undefined) => {
-    setBulkEditData(prev => ({ ...prev, [field]: value }));
+    if (setBulkEditData) {
+      setBulkEditData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   // Handle form submission
@@ -107,16 +114,26 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Calculate totals for selected purchases
   const calculateTotals = (purchases: Purchase[]) => {
+    if (!purchases || !Array.isArray(purchases)) {
+      return {
+        totalValue: 0,
+        totalItems: 0,
+        pendingCount: 0,
+        completedCount: 0,
+        cancelledCount: 0,
+      };
+    }
+    
     return {
       totalValue: purchases.reduce((sum, p) => sum + (Number(p.totalNilai) || 0), 0),
-      totalItems: purchases.reduce((sum, p) => sum + (p.items?.length || 0), 0),
+      totalItems: purchases.reduce((sum, p) => sum + (Array.isArray(p.items) ? p.items.length : 0), 0),
       pendingCount: purchases.filter(p => p.status === 'pending').length,
       completedCount: purchases.filter(p => p.status === 'completed').length,
       cancelledCount: purchases.filter(p => p.status === 'cancelled').length,
     };
   };
 
-  const totals = calculateTotals(selectedItemsData);
+  const totals = calculateTotals(selectedItems);
 
   if (!isOpen) return null;
 
@@ -149,9 +166,9 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={onCancel}
             className="text-gray-400 hover:text-gray-600 transition-colors"
-            disabled={isProcessing}
+            disabled={isLoading}
           >
             <X className="w-6 h-6" />
           </button>
@@ -167,7 +184,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             </h3>
             <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {selectedItemsData.slice(0, 10).map((purchase) => {
+                {selectedItems.slice(0, 10).map((purchase) => {
                   const statusColor = STATUS_OPTIONS.find(opt => opt.value === purchase.status)?.color || 'text-gray-600';
                   
                   return (
@@ -220,14 +237,14 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   <Select
                     value={bulkEditData.supplier || ''}
                     onValueChange={(value) => handleFieldChange('supplier', value || undefined)}
-                    disabled={isProcessing}
+                    disabled={isLoading}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih supplier (kosong = tidak diubah)" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">-- Tidak diubah --</SelectItem>
-                      {availableSuppliers.map((supplier) => (
+                      {suppliers.map((supplier) => (
                         <SelectItem key={supplier.id} value={supplier.id}>
                           {supplier.nama}
                         </SelectItem>
@@ -244,7 +261,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   <Select
                     value={bulkEditData.status || ''}
                     onValueChange={(value) => handleFieldChange('status', value as PurchaseStatus || undefined)}
-                    disabled={isProcessing}
+                    disabled={isLoading}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih status (kosong = tidak diubah)" />
@@ -270,7 +287,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     value={bulkEditData.tanggal || ''}
                     onChange={(e) => handleFieldChange('tanggal', e.target.value || undefined)}
                     className="w-full"
-                    disabled={isProcessing}
+                    disabled={isLoading}
                     max={new Date().toISOString().split('T')[0]}
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -286,7 +303,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   <Select
                     value={bulkEditData.metodePerhitungan || ''}
                     onValueChange={(value) => handleFieldChange('metodePerhitungan', value as 'AVERAGE' || undefined)}
-                    disabled={isProcessing}
+                    disabled={isLoading}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih metode (kosong = tidak diubah)" />
@@ -367,22 +384,21 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
-            disabled={isProcessing}
+            onClick={onCancel}            disabled={isLoading}
           >
             Batal
           </Button>
           <Button
             type="submit"
             onClick={handleSubmit}
-            disabled={isProcessing}
+            disabled={isLoading}
             className={`flex items-center gap-2 ${
               isEditMode 
                 ? 'bg-blue-600 hover:bg-blue-700' 
                 : 'bg-red-600 hover:bg-red-700'
             }`}
           >
-            {isProcessing ? (
+            {isLoading ? (
               <>
                 <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                 {isEditMode ? 'Menyimpan...' : 'Menghapus...'}

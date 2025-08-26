@@ -36,11 +36,7 @@ const PurchaseTable = React.lazy(() =>
   }))
 );
 
-const BulkActionsBar = React.lazy(() => 
-  import('./components/BulkActionsBar').catch(() => ({
-    default: () => null
-  }))
-);
+
 
 const PurchaseDialog = React.lazy(() => 
   import('./components/PurchaseDialog').catch(() => ({
@@ -80,11 +76,7 @@ const PurchaseImportDialog = React.lazy(() =>
   }))
 );
 
-const BulkDeleteDialog = React.lazy(() =>
-  import('./components/BulkDeleteDialog').catch(() => ({
-    default: () => null
-  }))
-);
+
 
 // ✅ UTILITY: Keep essential utility
 
@@ -97,7 +89,6 @@ interface AppState {
   dialogs: {
     purchase: { isOpen: boolean; editing: any; mode: 'create' | 'edit' };
     import: { isOpen: boolean }; // ✅ NEW: Import dialog state
-    bulkDelete: { isOpen: boolean; selectedIds: string[] };
   };
   warnings: {
     dataWarning: { isVisible: boolean; hasShownToast: boolean };
@@ -111,7 +102,6 @@ const initialAppState: AppState = {
   dialogs: {
     purchase: { isOpen: false, editing: null, mode: 'create' },
     import: { isOpen: false }, // ✅ NEW: Import dialog state
-    bulkDelete: { isOpen: false, selectedIds: [] }
   },
   warnings: {
     dataWarning: { isVisible: false, hasShownToast: false }
@@ -215,7 +205,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     stats,
     setStatus,
     deletePurchase,
-    bulkDelete,
     validatePrerequisites,
     getSupplierName,
   } = purchaseContext;
@@ -333,29 +322,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       } finally {
         setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
       }
-    },
-
-    bulkDelete: async (purchaseIds: string[]) => {
-      if (!purchaseIds.length) return;
-
-      setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: true } }));
-
-      try {
-        // ✅ REALTIME BLOCKING: Prevent spam during bulk operations
-        purchaseContext.setBulkProcessing(true);
-        
-        await bulkDelete(purchaseIds);
-        toast.success(`${purchaseIds.length} pembelian berhasil dihapus`);
-      } catch (error) {
-        logger.error('Bulk delete failed:', error);
-        toast.error('Gagal menghapus pembelian: ' + ((error as any).message || 'Unknown error'));
-      } finally {
-        purchaseContext.setBulkProcessing(false);
-        setAppState(prev => ({ ...prev, ui: { ...prev.ui, isDeleting: false } }));
-      }
-    },
-
-  }), [deletePurchase, bulkDelete, purchaseContext]);
+    }
+  }), [deletePurchase, purchaseContext]);
 
   // ✅ OPTIMIZED: Warning effect with cleanup
   useEffect(() => {
@@ -464,10 +432,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       ) : (
         <>
           <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
-            <Suspense fallback={<QuickLoader />}>
-              <BulkActionsBar />
-            </Suspense>
-
             <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
               <PurchaseTable
                 onEdit={dialogActions.purchase.openEdit}
@@ -475,13 +439,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
                 onDelete={async (purchaseId: string) => {
                   await businessHandlers.delete(purchaseId);
                 }}
-                onBulkDelete={businessHandlers.bulkDelete}
                 validateStatusChange={async () => ({ canChange: true, warnings: [], errors: [] })}
               />
-            </Suspense>
-
-            <Suspense fallback={null}>
-              <BulkDeleteDialog />
             </Suspense>
           </PurchaseTableProvider>
 

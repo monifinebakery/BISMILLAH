@@ -165,7 +165,7 @@ const Sidebar = React.forwardRef<
         <div
           aria-hidden
           onClick={() => setOpen(false)}
-          className="fixed inset-0 bg-black/20 z-50 hidden md:block lg:hidden"
+          className="fixed inset-0 bg-black/20 z-[50] hidden md:block lg:hidden"
         />
       )}
 
@@ -173,7 +173,7 @@ const Sidebar = React.forwardRef<
       <div
         className={cn(
           "duration-200 fixed inset-y-0 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
-          "md:z-50 lg:z-10",
+          "md:z-[60] lg:z-10",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -186,7 +186,7 @@ const Sidebar = React.forwardRef<
       >
         <div
           data-sidebar="sidebar"
-          className="flex h-full w-full flex-col bg-sidebar pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border"
+          className="flex h-full w-full flex-col bg-white dark:bg-zinc-950 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border"
         >
           {children}
         </div>

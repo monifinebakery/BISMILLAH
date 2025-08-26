@@ -237,7 +237,7 @@ const StatCard: React.FC<{
 
           {/* 🏷️ Label - Full width */}
           <div className="mb-2 sm:mb-3">
-            <div className="flex items-start gap-1">
+            <div className="flex items-start gap-2">
               <div className="card-label-responsive uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2">
                 {shortLabel || label}
               </div>

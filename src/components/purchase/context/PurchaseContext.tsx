@@ -625,24 +625,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user, deleteMutation]);
 
-  // Bulk ops (loop saja, manfaatkan optimistic dari mutation)
-  const bulkDelete = useCallback(async (ids: string[]) => {
-    let success = 0;
-    for (const id of ids) {
-      const ok = await deletePurchaseAction(id);
-      if (ok) success++;
-    }
-    toast.success(`${success}/${ids.length} pembelian terhapus`);
-  }, [deletePurchaseAction]);
 
-  const bulkStatusUpdate = useCallback(async (ids: string[], newStatus: PurchaseStatus) => {
-    let success = 0;
-    for (const id of ids) {
-      const ok = await setStatus(id, newStatus);
-      if (ok) success++;
-    }
-    toast.success(`${success}/${ids.length} status berhasil diubah`);
-  }, [setStatus]);
 
   // Prasyarat data (buat tombol "Tambah")
   const validatePrerequisites = useCallback(() => {
@@ -659,8 +642,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ------------------- Realtime (debounced/guarded) -------------------
   const blockRealtimeRef = useRef(false);
-  // blok sementara saat bulk
-  const setBulkProcessing = useCallback((v: boolean) => { blockRealtimeRef.current = v; }, []);
 
   const debounceTimerRef = useRef<number | null>(null);
 
@@ -714,11 +695,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // merged core api
     stats,
     setStatus,
-    bulkDelete,
-    bulkStatusUpdate,
     findPurchase,
     validatePrerequisites,
-    setBulkProcessing,
     getSupplierName,
   }), [
     purchases,
@@ -734,11 +712,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     refreshPurchases,
     stats,
     setStatus,
-    bulkDelete,
-    bulkStatusUpdate,
     findPurchase,
     validatePrerequisites,
-    setBulkProcessing,
     getSupplierName,
   ]);
 

@@ -111,13 +111,7 @@ export interface PurchaseTableContextType {
   toggleSelectItem: (id: string) => void;
 
   // Bulk operations
-  bulkDelete: () => Promise<void>;
-  bulkUpdateStatus: (status: PurchaseStatus) => Promise<void>;
-  bulkArchive: () => Promise<void>;
-  isBulkDeleting: boolean;
-  isBulkArchiving: boolean;
-  showBulkDeleteDialog: boolean;
-  setShowBulkDeleteDialog: (show: boolean) => void;
+
 
   // Filtering and searching
   filteredPurchases: Purchase[];
@@ -158,15 +152,8 @@ export interface PurchaseContextType {
   // Status handling (manual sync untuk stok & WAC)
   setStatus: (id: string, status: PurchaseStatus) => Promise<boolean>;
 
-  // Bulk ops
-  bulkDelete: (ids: string[]) => Promise<void>;
-  bulkStatusUpdate: (ids: string[], status: PurchaseStatus) => Promise<void>;
-
   // Finders
   findPurchase: (id: string) => Purchase | undefined;
-
-  // Realtime guard (opsional dipakai saat bulk)
-  setBulkProcessing: (v: boolean) => void;
 }
 
 // Hook aliases
@@ -208,7 +195,7 @@ export interface PurchaseTablePropsExtended {
   onEdit: (purchase: Purchase) => void;
   onStatusChange?: (purchaseId: string, newStatus: PurchaseStatus) => Promise<void>;
   onDelete?: (purchaseId: string) => Promise<void>;
-  onBulkDelete?: (purchaseIds: string[]) => Promise<void>;
+
   validateStatusChange?: (
     purchaseId: string,
     newStatus: PurchaseStatus
@@ -239,14 +226,7 @@ export interface StatusDropdownProps {
 }
 
 // Bulk actions props
-export interface BulkActionsToolbarProps {
-  selectedCount: number;
-  onClearSelection: () => void;
-  onBulkDelete: () => void;
-  onBulkExport?: () => void;
-  onBulkStatusChange?: (status: PurchaseStatus) => void;
-  isDeleting?: boolean;
-}
+
 
 // Filters / Pagination / Export
 export interface PurchaseFilters {
@@ -299,7 +279,7 @@ export interface PurchaseValidationResult {
 // Events
 export type PurchaseEventHandler<T = void> = (purchase: Purchase) => T;
 export type PurchaseStatusEventHandler = (purchaseId: string, newStatus: PurchaseStatus) => Promise<void>;
-export type PurchaseBulkEventHandler = (purchaseIds: string[]) => Promise<void>;
+
 
 // Loading states
 export interface LoadingStates {

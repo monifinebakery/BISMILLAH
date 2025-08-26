@@ -33,7 +33,7 @@ import {
   StatusDropdown,
   ActionButtons,
 } from './table';
-import BulkActions from './BulkActions';
+
 
 // Hook imports
 import { usePurchaseTableState } from '../hooks/usePurchaseTableState';
@@ -47,7 +47,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   onEdit, 
   onStatusChange,
   onDelete,
-  onBulkDelete,
   validateStatusChange
 }) => {
   // ✅ Context
@@ -207,31 +206,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     setCurrentPage
   ]);
 
-  // ✅ Bulk delete confirmation handler
-  const handleBulkDeleteConfirm = useCallback(async () => {
-    if (selectedItems.length === 0 || !onBulkDelete) return;
 
-    try {
-      setBulkDeleteLoading(true);
-      await onBulkDelete(selectedItems);
-      
-      // Clear selection after bulk delete
-      setSelectedItems([]);
-      resetBulkDelete();
-      toast.success(`${selectedItems.length} pembelian berhasil dihapus`);
-    } catch (error) {
-      logger.error('Bulk delete failed:', error);
-      toast.error('Gagal menghapus pembelian');
-    } finally {
-      setBulkDeleteLoading(false);
-    }
-  }, [
-    selectedItems, 
-    onBulkDelete, 
-    setBulkDeleteLoading, 
-    resetBulkDelete,
-    setSelectedItems
-  ]);
 
   // ✅ Dialog handlers
   const dialogHandlers = {
@@ -463,28 +438,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={dialogState.bulkDeleteConfirmation.isOpen} onOpenChange={(open) => !open && dialogHandlers.cancelBulkDelete()}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Massal</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus {selectedItems.length} pembelian yang dipilih? 
-              Tindakan ini tidak dapat dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={dialogHandlers.cancelBulkDelete}>
-              Batal
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleBulkDeleteConfirm}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Hapus Semua
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </div>
   );
 };

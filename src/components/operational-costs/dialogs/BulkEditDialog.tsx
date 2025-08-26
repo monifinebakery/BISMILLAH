@@ -22,7 +22,7 @@ interface BulkEditDialogProps {
   onConfirm: (editData: {
     jenis?: 'tetap' | 'variabel';
     status?: 'aktif' | 'nonaktif';
-    group?: 'HPP' | 'OPERASIONAL';
+    group?: 'hpp' | 'operasional';
     deskripsi?: string;
   }) => void;
   selectedCosts: OperationalCost[];
@@ -39,7 +39,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
   const [editData, setEditData] = useState({
     jenis: undefined as 'tetap' | 'variabel' | undefined,
     status: undefined as 'aktif' | 'nonaktif' | undefined,
-    group: undefined as 'HPP' | 'OPERASIONAL' | undefined,
+    group: undefined as 'hpp' | 'operasional' | undefined,
     deskripsi: undefined as string | undefined
   });
 
@@ -136,7 +136,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
                 onValueChange={(value) => 
                   setEditData(prev => ({ 
                     ...prev, 
-                    group: value === 'HPP' || value === 'OPERASIONAL' ? value : undefined 
+                    group: value === 'hpp' || value === 'operasional' ? value : undefined 
                   }))
                 }
               >
@@ -144,8 +144,8 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
                   <SelectValue placeholder="Pilih kelompok (opsional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="HPP">Overhead Pabrik (HPP)</SelectItem>
-                  <SelectItem value="OPERASIONAL">Biaya Operasional</SelectItem>
+                  <SelectItem value="hpp">Overhead Pabrik (HPP)</SelectItem>
+                  <SelectItem value="operasional">Biaya Operasional</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -19,11 +19,11 @@ interface UseCostClassificationReturn {
   classifyCost: (costName: string) => ClassificationSuggestion;
   getSuggestionForCost: (costName: string) => void;
   clearSuggestion: () => void;
-  applySuggestion: () => 'HPP' | 'OPERASIONAL' | null;
+  applySuggestion: () => 'hpp' | 'operasional' | null;
   
   // Utilities
-  getGroupLabel: (group: 'HPP' | 'OPERASIONAL') => string;
-  getGroupDescription: (group: 'HPP' | 'OPERASIONAL') => string;
+  getGroupLabel: (group: 'hpp' | 'operasional') => string;
+  getGroupDescription: (group: 'hpp' | 'operasional') => string;
   showClassificationToast: (suggestion: ClassificationSuggestion) => void;
 }
 
@@ -83,7 +83,7 @@ export const useCostClassification = (): UseCostClassificationReturn => {
   /**
    * Apply the current suggestion and return the group
    */
-  const applySuggestion = useCallback((): 'HPP' | 'OPERASIONAL' | null => {
+  const applySuggestion = useCallback((): 'hpp' | 'operasional' | null => {
     if (!suggestion || !suggestion.suggested_group) {
       return null;
     }
@@ -102,14 +102,14 @@ export const useCostClassification = (): UseCostClassificationReturn => {
   /**
    * Get user-friendly group label
    */
-  const getGroupLabel = useCallback((group: 'HPP' | 'OPERASIONAL'): string => {
+  const getGroupLabel = useCallback((group: 'hpp' | 'operasional'): string => {
     return getCostGroupLabel(group);
   }, []);
 
   /**
    * Get group description for tooltips
    */
-  const getGroupDescription = useCallback((group: 'HPP' | 'OPERASIONAL'): string => {
+  const getGroupDescription = useCallback((group: 'hpp' | 'operasional'): string => {
     return getCostGroupDescription(group);
   }, []);
 

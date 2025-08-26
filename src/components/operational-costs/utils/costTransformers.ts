@@ -13,7 +13,7 @@ export const transformApiToCost = (apiData: any): OperationalCost => {
     jumlah_per_bulan: Number(apiData.jumlah_per_bulan) || 0,
     jenis: apiData.jenis || 'tetap',
     status: apiData.status || 'aktif',
-    group: apiData.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // New: Dual-mode support
+    group: apiData.group as 'hpp' | 'operasional' || 'operasional', // New: Dual-mode support
     deskripsi: apiData.deskripsi || undefined,
     cost_category: apiData.cost_category as 'fixed' | 'variable' | 'other' || 'other',
     created_at: apiData.created_at,
@@ -104,8 +104,8 @@ export const transformCostsToSummary = (costs: OperationalCost[]): CostSummary =
     .reduce((sum, cost) => sum + Number(cost.jumlah_per_bulan), 0);
 
   // New: Dual-mode summaries
-  const hppCosts = activeCosts.filter(cost => cost.group === 'HPP');
-  const operasionalCosts = activeCosts.filter(cost => cost.group === 'OPERASIONAL');
+  const hppCosts = activeCosts.filter(cost => cost.group === 'hpp');
+  const operasionalCosts = activeCosts.filter(cost => cost.group === 'operasional');
   
   const totalHppGroup = hppCosts.reduce(
     (sum, cost) => sum + Number(cost.jumlah_per_bulan), 0
@@ -147,7 +147,7 @@ export const transformCostsForTable = (costs: OperationalCost[]) => {
     status: cost.status,
     status_label: cost.status === 'aktif' ? 'Aktif' : 'Non Aktif',
     group: cost.group,
-    group_label: cost.group === 'HPP' ? 'Overhead Pabrik (HPP)' : 'Biaya Operasional',
+    group_label: cost.group === 'hpp' ? 'Overhead Pabrik (HPP)' : 'Biaya Operasional',
     created_at: cost.created_at,
     created_at_formatted: new Date(cost.created_at).toLocaleDateString('id-ID'),
     updated_at: cost.updated_at,
@@ -163,7 +163,7 @@ export const transformCostsForExport = (costs: OperationalCost[]) => {
     'Jumlah per Bulan': cost.jumlah_per_bulan,
     'Jenis': cost.jenis === 'tetap' ? 'Tetap' : 'Variabel',
     'Status': cost.status === 'aktif' ? 'Aktif' : 'Non Aktif',
-    'Kelompok': cost.group === 'HPP' ? 'Overhead Pabrik (HPP)' : 'Biaya Operasional',
+    'Kelompok': cost.group === 'hpp' ? 'Overhead Pabrik (HPP)' : 'Biaya Operasional',
     'Tanggal Dibuat': new Date(cost.created_at).toLocaleDateString('id-ID'),
     'Terakhir Update': new Date(cost.updated_at).toLocaleDateString('id-ID'),
   }));
@@ -235,6 +235,8 @@ export const transformBulkImportData = (importData: any[]): CostFormData[] => {
       ? 'variabel' : 'tetap',
     status: (String(row['Status'] || row.status || 'aktif').toLowerCase() === 'nonaktif') 
       ? 'nonaktif' : 'aktif',
+    group: (String(row['Kelompok'] || row.group || 'operasional').toLowerCase() === 'hpp') 
+      ? 'hpp' : 'operasional',
   }));
 };
 

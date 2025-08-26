@@ -72,7 +72,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
           <CardContent>
             <div className="text-2xl font-bold text-blue-900">{formatCurrency(hppCosts)}</div>
             <p className="text-sm text-blue-700 mt-1">
-              {costs.filter(c => c.group === 'HPP').length} item biaya
+              {costs.filter(c => c.group === 'hpp').length} item biaya
             </p>
           </CardContent>
         </Card>
@@ -104,7 +104,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
           <CardContent>
             <div className="text-2xl font-bold text-orange-900">{formatCurrency(operationalCosts)}</div>
             <p className="text-sm text-orange-700 mt-1">
-              {costs.filter(c => c.group === 'OPERASIONAL').length} item biaya
+              {costs.filter(c => c.group === 'operasional').length} item biaya
             </p>
           </CardContent>
         </Card>
@@ -196,8 +196,8 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
-                        variant={cost.group === 'HPP' ? 'default' : 'secondary'}
-                        className={cost.group === 'HPP'
+                        variant={cost.group === 'hpp' ? 'default' : 'secondary'}
+                  className={cost.group === 'hpp'
                           ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                           : 'bg-green-100 text-green-800 hover:bg-green-200'
                         }

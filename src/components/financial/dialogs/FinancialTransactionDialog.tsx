@@ -178,7 +178,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="dialog-responsive form-dialog">
         <DialogHeader>
           <DialogTitle>
             {transaction ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}

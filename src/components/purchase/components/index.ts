@@ -34,13 +34,15 @@ export const PURCHASE_COMPONENTS_LAZY = {
   
   // Action components (medium - load when needed)
   StatusChangeConfirmationDialog: () => import('./StatusChangeConfirmationDialog'),
+  BulkActions: () => import('./BulkActions'),
 
   // Utility components
   PurchaseFilters: () => import('./PurchaseFilters'),
   PurchaseStats: () => import('./PurchaseStats'),
 
   // Import dialog
-  PurchaseImportDialog: () => import('./dialogs/PurchaseImportDialog')
+  PurchaseImportDialog: () => import('./dialogs/PurchaseImportDialog'),
+  BulkOperationsDialog: () => import('./dialogs/BulkOperationsDialog')
 } as const;
 
 // ✅ COMPONENT GROUPS: For batch loading

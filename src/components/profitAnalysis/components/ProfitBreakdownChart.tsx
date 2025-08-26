@@ -479,8 +479,8 @@ const ProfitBreakdownChart = ({
           {chartType === 'bar' ? renderBarChart() : renderPieChart()}
         </div>
 
-        {/* Summary Cards with Tooltips */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 border-t">
+        {/* Summary Cards with Tooltips - Responsive grid for all screen sizes */}
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 border-t">
           <div className="text-center">
             <div className="flex items-center justify-center gap-1">
               <div className="text-xs sm:text-sm text-gray-600">Total Omset</div>

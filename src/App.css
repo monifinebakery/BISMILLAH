@@ -1,12 +1,15 @@
-/* Root container - responsive layout */
 #root {
-  width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile */
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Safe mobile responsive adjustments */
+@media (max-width: 768px) {
+  #root {
+    padding: 1rem;
+  }
 }
 
 /* Logo responsive styles */

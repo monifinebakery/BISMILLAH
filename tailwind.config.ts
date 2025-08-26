@@ -9,29 +9,8 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "1rem",
-      screens: { 
-        "xs": "475px",
-        "sm": "640px",
-        "md": "768px",
-        "lg": "1024px",
-        "xl": "1280px",
-        "2xl": "1400px"
-      },
-    },
-    screens: {
-      'xs': '320px',
-      // => @media (min-width: 320px) { ... } - Mobile portrait
-      'sm': '640px',
-      // => @media (min-width: 640px) { ... } - Mobile landscape
-      'md': '768px',
-      // => @media (min-width: 768px) { ... } - Tablet portrait (iPad)
-      'lg': '1024px',
-      // => @media (min-width: 1024px) { ... } - Tablet landscape (iPad)
-      'xl': '1280px',
-      // => @media (min-width: 1280px) { ... } - Desktop
-      '2xl': '1536px',
-      // => @media (min-width: 1536px) { ... } - Large desktop
+      padding: "2rem",
+      screens: { "2xl": "1400px" },
     },
     extend: {
       colors: {

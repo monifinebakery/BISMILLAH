@@ -20,35 +20,29 @@ const BottomTabBar = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50 safe-area-bottom md:hidden">
-      <div className="flex justify-around items-center h-14 xs:h-16 px-2 max-w-screen-sm mx-auto">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 md:hidden">
+      <div className="flex justify-around items-center h-16 px-2 max-w-md mx-auto">
         {tabs.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path;
           return (
             <NavLink
               key={path}
               to={path}
-              className={`
-                flex flex-col items-center justify-center min-w-0 flex-1 
-                py-2 px-1 xs:px-2 rounded-lg transition-all duration-200 
-                touch-target active:scale-95
-                ${
-                  isActive
-                    ? 'text-orange-600 bg-orange-50 shadow-sm'
-                    : 'text-gray-600 hover:text-orange-600 hover:bg-gray-50'
-                }
-              `}
+              className={`flex flex-col items-center justify-center min-w-0 flex-1 py-2 px-1 rounded-lg transition-colors touch-manipulation ${
+                isActive
+                  ? 'text-orange-600 bg-orange-50'
+                  : 'text-gray-600 hover:text-orange-600 hover:bg-gray-50 active:bg-orange-100'
+              }`}
+              style={{ minHeight: '44px', minWidth: '44px' }} // Touch-friendly iOS guidelines
             >
-              <Icon className="h-4 w-4 xs:h-5 xs:w-5 mb-0.5 xs:mb-1 flex-shrink-0" />
-              <span className="text-[10px] xs:text-xs font-medium truncate leading-tight max-w-full">
+              <Icon className="h-5 w-5 mb-1" />
+              <span className="text-xs font-medium truncate">
                 {label}
               </span>
             </NavLink>
           );
         })}
       </div>
-      {/* Add safe area spacing for devices with home indicator */}
-      <div className="h-[env(safe-area-inset-bottom)] bg-white/95" />
     </div>
   );
 };

@@ -102,7 +102,12 @@ const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'crea
     .eq('id', res.purchaseId)
     .eq('user_id', userId)
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === 'PGRST116') {
+      throw new Error('Pembelian tidak ditemukan setelah dibuat');
+    }
+    throw new Error(error.message);
+  }
   return transformPurchaseFromDB(data);
 };
 
@@ -115,7 +120,12 @@ const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId:
     .eq('id', id)
     .eq('user_id', userId)
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === 'PGRST116') {
+      throw new Error('Pembelian tidak ditemukan');
+    }
+    throw new Error(error.message);
+  }
   return transformPurchaseFromDB(data);
 };
 
@@ -129,7 +139,12 @@ const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatu
     .eq('id', id)
     .eq('user_id', userId)
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === 'PGRST116') {
+      throw new Error('Pembelian tidak ditemukan');
+    }
+    throw new Error(error.message);
+  }
   return transformPurchaseFromDB(data);
 };
 

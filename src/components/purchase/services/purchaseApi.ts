@@ -58,7 +58,13 @@ export class PurchaseApiService {
         .eq('user_id', userId)
         .single();
 
-      if (error) throw new Error(error.message);
+      // Handle PGRST116 error (no rows found) gracefully
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return { data: null, error: null }; // No data found, but not an error
+        }
+        throw new Error(error.message);
+      }
       return { data: data ? transformPurchaseFromDB(data) : null, error: null };
     } catch (err: any) {
       logger.error('Error fetching purchase:', err);
@@ -118,7 +124,12 @@ export class PurchaseApiService {
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-      if (fetchErr) throw new Error(fetchErr.message);
+      if (fetchErr) {
+        if (fetchErr.code === 'PGRST116') {
+          return { success: false, error: 'Pembelian tidak ditemukan' };
+        }
+        throw new Error(fetchErr.message);
+      }
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
       // If existing was completed, reverse its effects first
@@ -142,7 +153,9 @@ export class PurchaseApiService {
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-      if (fetchUpdatedErr) throw new Error(fetchUpdatedErr.message);
+      if (fetchUpdatedErr && fetchUpdatedErr.code !== 'PGRST116') {
+        throw new Error(fetchUpdatedErr.message);
+      }
       const updated = updatedRow ? transformPurchaseFromDB(updatedRow) : null;
 
       if (updated && updated.status === 'completed' && !this.shouldSkipWarehouseSync(updated, false)) {
@@ -177,7 +190,12 @@ export class PurchaseApiService {
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-      if (fetchErr) throw new Error(fetchErr.message);
+      if (fetchErr) {
+        if (fetchErr.code === 'PGRST116') {
+          return { success: false, error: 'Pembelian tidak ditemukan' };
+        }
+        throw new Error(fetchErr.message);
+      }
       const prev = existingRow ? transformPurchaseFromDB(existingRow) : null;
       
       logger.debug('🔄 [PURCHASE API] Previous purchase data:', prev);
@@ -201,12 +219,15 @@ export class PurchaseApiService {
         if (newStatus === 'completed') {
           logger.info('🔄 [PURCHASE API] Applying to warehouse...');
           // Fetch fresh row to reflect any concurrent changes
-          const { data: newRow } = await supabase
+          const { data: newRow, error: freshErr } = await supabase
             .from('purchases')
             .select('*')
             .eq('id', id)
             .eq('user_id', userId)
             .single();
+          if (freshErr && freshErr.code !== 'PGRST116') {
+            logger.warn('Warning: Could not fetch fresh purchase data:', freshErr.message);
+          }
           const fresh = newRow ? transformPurchaseFromDB(newRow) : prev;
           
           logger.debug('🔄 [PURCHASE API] Fresh purchase data for warehouse sync:', fresh);
@@ -269,12 +290,17 @@ export class PurchaseApiService {
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
       // Fetch existing to reverse if needed
-      const { data: existingRow } = await supabase
+      const { data: existingRow, error: fetchErr } = await supabase
         .from('purchases')
         .select('*')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
+      
+      // If record doesn't exist, that's fine for deletion
+      if (fetchErr && fetchErr.code !== 'PGRST116') {
+        logger.warn('Warning fetching purchase for deletion:', fetchErr.message);
+      }
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
       if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing, false)) {

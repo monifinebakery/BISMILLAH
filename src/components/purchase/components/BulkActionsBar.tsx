@@ -3,8 +3,9 @@ import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckSquare, Square, CheckCircle, Clock, XCircle, Trash2, X } from 'lucide-react';
+import { CheckSquare, Square, CheckCircle, Clock, XCircle, Trash2, X, Settings } from 'lucide-react';
 import { usePurchaseTable } from '../context/PurchaseTableContext';
+import BulkEditDialog from './BulkEditDialog';
 import type { PurchaseStatus } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
 
@@ -21,6 +22,7 @@ const BulkActionsBar: React.FC = () => {
   } = usePurchaseTable();
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
 
   if (selectedItems.length === 0) return null;
 
@@ -42,6 +44,7 @@ const BulkActionsBar: React.FC = () => {
   };
 
   return (
+    <>
     <Card className="mb-6 border-orange-200 bg-orange-50">
       <div className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Left: selection and summary */}
@@ -110,6 +113,18 @@ const BulkActionsBar: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
+            className="flex items-center justify-center gap-2 text-xs sm:text-sm h-8 sm:h-9"
+            onClick={() => setShowBulkEditDialog(true)}
+            disabled={isProcessing || isBulkDeleting}
+          >
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+            <span className="hidden sm:inline">Edit</span>
+            <span className="sm:hidden">Edit</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             className="flex items-center justify-center gap-2 text-red-600 hover:text-red-700 text-xs sm:text-sm h-8 sm:h-9"
             onClick={() => setShowBulkDeleteDialog(true)}
             disabled={isProcessing || isBulkDeleting}
@@ -138,6 +153,12 @@ const BulkActionsBar: React.FC = () => {
         </div>
       )}
     </Card>
+
+    <BulkEditDialog
+      isOpen={showBulkEditDialog}
+      onClose={() => setShowBulkEditDialog(false)}
+    />
+    </>
   );
 };
 

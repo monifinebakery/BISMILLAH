@@ -134,7 +134,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   };
 
   // ✅ Handle status change
-  const handleStatusChange = useCallback(async (purchaseId: string, newStatus: PurchaseStatus) => {
+  const handleStatusChange = useCallback(async (purchaseId: string, newStatus: string) => {
     const purchase = filteredPurchases.find(p => p.id === purchaseId);
     if (!purchase) return;
 
@@ -144,18 +144,18 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     }
 
     try {
-      let validation = { canChange: true, warnings: [], errors: [] };
+      let validation: { canChange: boolean; warnings: string[]; errors: string[] } = { canChange: true, warnings: [], errors: [] };
       if (validateStatusChange) {
         validation = await validateStatusChange(purchaseId, newStatus);
       }
 
       if (validation.canChange && validation.warnings.length === 0) {
         if (onStatusChange) {
-          await onStatusChange(purchaseId, newStatus);
+          await onStatusChange(purchaseId, newStatus as PurchaseStatus);
         }
         setEditingStatusId(null);
       } else {
-        openStatus(purchase, newStatus, validation);
+        openStatus(purchase, newStatus as PurchaseStatus, validation);
       }
     } catch (error) {
       logger.error('Status change validation failed:', error);
@@ -408,15 +408,15 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       {/* ✅ Dialogs */}
       <StatusChangeConfirmationDialog
         isOpen={dialogState.statusConfirmation.isOpen}
-        onOpenChange={(open) => !open && dialogHandlers.cancelStatusChange()}
         purchase={dialogState.statusConfirmation.purchase}
-        newStatus={dialogState.statusConfirmation.newStatus}
+        newStatus={dialogState.statusConfirmation.newStatus!}
         validation={dialogState.statusConfirmation.validation}
+        isUpdating={false}
         onConfirm={dialogHandlers.confirmStatusChange}
         onCancel={dialogHandlers.cancelStatusChange}
       />
 
-      <AlertDialog open={dialogState.deleteConfirmation.isOpen} onOpenChange={(open) => !open && dialogHandlers.cancelDelete()}>
+      <AlertDialog open={dialogState.deleteConfirmation.isOpen} onOpenChange={(open: boolean) => !open && dialogHandlers.cancelDelete()}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>

@@ -443,17 +443,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // Expose debug values (development only)
     if (import.meta.env.DEV) {
-      // @ts-ignore
       window.__DEBUG_AUTH_USER__ = user;
-      // @ts-ignore
       window.__DEBUG_AUTH_READY__ = isReady;
-      // @ts-ignore
       window.__DEBUG_AUTH_LOADING__ = isLoading;
-      // @ts-ignore
       window.__DEBUG_AUTH_SESSION__ = session;
-      // @ts-ignore - ✅ Expose authUtils functions
       window.__DEBUG_AUTH_VALIDATE__ = validateSessionWrapper;
-      // @ts-ignore
       window.__DEBUG_AUTH_DEBUG__ = debugAuthWrapper;
 
       console.log('🔧 [AuthContext] Debug values set:', {

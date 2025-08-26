@@ -94,7 +94,7 @@ body {
   
   /* Global dialog container with better iPad support */
   .dialog-content {
-    @apply my-8 max-w-lg w-full px-4;
+    @apply my-8 max-w-lg w-full mx-auto px-4;
   }
   
   /* Mobile phones (up to 640px) */
@@ -173,9 +173,8 @@ body {
   
   /* Large form dialogs for complex forms */
   .form-dialog-large {
-    @apply bg-white border border-gray-200 rounded-xl shadow-xl px-12 sm:px-16;
+    @apply bg-white border border-gray-200 rounded-xl shadow-xl px-12 sm:px-16 mx-auto;
     max-width: 800px;
-    width: 100%;
   }
   
   @media (max-width: 640px) {

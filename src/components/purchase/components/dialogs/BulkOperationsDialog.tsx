@@ -69,7 +69,9 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   // Handle form field changes
   const handleFieldChange = (field: keyof BulkEditData, value: string | undefined) => {
     if (setBulkEditData) {
-      setBulkEditData(prev => ({ ...prev, [field]: value }));
+      // Convert __no_change__ back to undefined to indicate no change
+      const processedValue = value === '__no_change__' ? undefined : value;
+      setBulkEditData(prev => ({ ...prev, [field]: processedValue }));
     }
   };
 
@@ -235,15 +237,15 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     Supplier
                   </label>
                   <Select
-                    value={bulkEditData.supplier || ''}
-                    onValueChange={(value) => handleFieldChange('supplier', value || undefined)}
+                    value={bulkEditData.supplier || '__no_change__'}
+                    onValueChange={(value) => handleFieldChange('supplier', value)}
                     disabled={isLoading}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih supplier (kosong = tidak diubah)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- Tidak diubah --</SelectItem>
+                      <SelectItem value="__no_change__">-- Tidak diubah --</SelectItem>
                       {suppliers.map((supplier) => (
                         <SelectItem key={supplier.id} value={supplier.id}>
                           {supplier.nama}
@@ -259,15 +261,15 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     Status
                   </label>
                   <Select
-                    value={bulkEditData.status || ''}
-                    onValueChange={(value) => handleFieldChange('status', value as PurchaseStatus || undefined)}
+                    value={bulkEditData.status || '__no_change__'}
+                    onValueChange={(value) => handleFieldChange('status', value as PurchaseStatus)}
                     disabled={isLoading}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih status (kosong = tidak diubah)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- Tidak diubah --</SelectItem>
+                      <SelectItem value="__no_change__">-- Tidak diubah --</SelectItem>
                       {STATUS_OPTIONS.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
                           <span className={status.color}>{status.label}</span>
@@ -301,15 +303,15 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     Metode Perhitungan
                   </label>
                   <Select
-                    value={bulkEditData.metodePerhitungan || ''}
-                    onValueChange={(value) => handleFieldChange('metodePerhitungan', value as 'AVERAGE' || undefined)}
+                    value={bulkEditData.metodePerhitungan || '__no_change__'}
+                    onValueChange={(value) => handleFieldChange('metodePerhitungan', value as 'AVERAGE')}
                     disabled={isLoading}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Pilih metode (kosong = tidak diubah)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- Tidak diubah --</SelectItem>
+                      <SelectItem value="__no_change__">-- Tidak diubah --</SelectItem>
                       <SelectItem value="AVERAGE">Average (Rata-rata)</SelectItem>
                     </SelectContent>
                   </Select>

@@ -102,7 +102,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
     
     try {
       // Validate inputs
-      const validation = validateDualModeInputs(targetOutput, 0, 'Calculator');
+      const validation = validateDualModeInputs(targetOutput, undefined, 'Calculator');
       if (!validation.isValid) {
         toast.error('Input tidak valid', {
           description: validation.errors.join(', ')

@@ -209,16 +209,16 @@ const StatCard: React.FC<{
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-2 border-gray-200 dark:border-gray-700 relative group h-full">
+    <Card className="bg-white border-[1.5px] border-gray-200 dark:border-gray-700 relative group h-full">
       <CardContent className="card-stats h-full relative">
         {/* Inset Border Effect */}
-        <div className="absolute inset-0 rounded-lg border-2 border-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+        <div className="absolute inset-0 rounded-lg border-[1.5px] border-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
         
         {/* Content */}
         <div className="relative h-full flex flex-col">
           {/* 🎨 Icon dan Trend - Top row */}
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <div className="border-2 border-orange-200 p-2 sm:p-2.5 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
+            <div className="border-[1.5px] border-orange-200 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
               <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>
                 {icon}
               </div>

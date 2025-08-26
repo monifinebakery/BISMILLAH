@@ -41,7 +41,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
           </div>
           
           {/* Right actions */}
-          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
             {/* Import button */}
             <Button
               onClick={() => onAddPurchase('import')}

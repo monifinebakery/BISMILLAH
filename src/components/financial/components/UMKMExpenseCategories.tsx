@@ -40,43 +40,43 @@ interface CategoryData {
 const UMKM_CATEGORIES = {
   'Pembelian Bahan Baku': {
     friendlyName: 'Beli Bahan',
-    icon: <ShoppingCart className="h-5 w-5" />,
-    color: 'bg-blue-500',
+    icon: <ShoppingCart className="h-4 w-4" />,
+    color: 'bg-gray-600',
     tips: 'Coba beli dalam jumlah besar untuk dapat harga lebih murah'
   },
   'Utilitas': {
     friendlyName: 'Bayar Listrik & Air',
-    icon: <Zap className="h-5 w-5" />,
-    color: 'bg-yellow-500',
+    icon: <Zap className="h-4 w-4" />,
+    color: 'bg-gray-500',
     tips: 'Matikan peralatan yang tidak dipakai untuk hemat listrik'
   },
   'Gaji Karyawan': {
     friendlyName: 'Gaji Karyawan',
-    icon: <Users className="h-5 w-5" />,
-    color: 'bg-green-500',
+    icon: <Users className="h-4 w-4" />,
+    color: 'bg-gray-700',
     tips: 'Karyawan yang senang akan bekerja lebih produktif'
   },
   'Transportasi': {
     friendlyName: 'Ongkos Kirim & Transport',
-    icon: <Truck className="h-5 w-5" />,
-    color: 'bg-purple-500',
+    icon: <Truck className="h-4 w-4" />,
+    color: 'bg-gray-600',
     tips: 'Cari ekspedisi dengan harga terbaik untuk hemat ongkir'
   },
   'Marketing': {
     friendlyName: 'Promosi & Iklan',
-    icon: <Megaphone className="h-5 w-5" />,
-    color: 'bg-pink-500',
+    icon: <Megaphone className="h-4 w-4" />,
+    color: 'bg-gray-500',
     tips: 'Manfaatkan media sosial gratis untuk promosi lebih hemat'
   },
   'Sewa Tempat': {
     friendlyName: 'Sewa Tempat',
-    icon: <Home className="h-5 w-5" />,
-    color: 'bg-indigo-500',
+    icon: <Home className="h-4 w-4" />,
+    color: 'bg-gray-700',
     tips: 'Pertimbangkan lokasi strategis vs budget yang tersedia'
   },
   'Lainnya': {
     friendlyName: 'Pengeluaran Lain',
-    icon: <MoreHorizontal className="h-5 w-5" />,
+    icon: <MoreHorizontal className="h-4 w-4" />,
     color: 'bg-gray-500',
     tips: 'Catat detail pengeluaran lain agar lebih mudah dikontrol'
   }
@@ -148,80 +148,85 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
           Lihat kemana aja uang keluar bulan ini dan tips hemat
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {/* Total Pengeluaran */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-red-600 font-medium">Total Pengeluaran Bulan Ini</p>
-              <p className="text-2xl font-bold text-red-700">{formatCurrency(totalExpense)}</p>
+              <p className="text-xs text-gray-600 font-medium">Total Pengeluaran Bulan Ini</p>
+              <p className="text-lg font-bold text-gray-800">{formatCurrency(totalExpense)}</p>
             </div>
-            <div className="text-red-500">
-              <Calculator className="h-8 w-8" />
+            <div className="text-gray-500">
+              <Calculator className="h-6 w-6" />
             </div>
           </div>
         </div>
 
         {/* Kategori Pengeluaran */}
-        <div className="space-y-3">
-          <h4 className="font-medium text-gray-800">Rincian Pengeluaran:</h4>
+        <div className="space-y-2">
+          <h4 className="font-medium text-gray-800 text-sm">Rincian Pengeluaran:</h4>
           
           {categoryAnalysis.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calculator className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Belum ada pengeluaran bulan ini</p>
-              <p className="text-sm">Mulai catat pengeluaran untuk analisis yang lebih baik</p>
+            <div className="text-center py-6 text-gray-500">
+              <Calculator className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Belum ada pengeluaran bulan ini</p>
+              <p className="text-xs">Mulai catat pengeluaran untuk analisis yang lebih baik</p>
             </div>
           ) : (
-            categoryAnalysis.map((category, index) => (
-              <div key={category.name} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-lg text-white", category.color)}>
+            categoryAnalysis.slice(0, 5).map((category, index) => (
+              <div key={category.name} className="bg-white border rounded-lg p-3 hover:shadow-sm transition-shadow">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={cn("p-1.5 rounded text-white", category.color)}>
                       {category.icon}
                     </div>
                     <div>
-                      <h5 className="font-medium text-gray-800">{category.friendlyName}</h5>
-                      <p className="text-sm text-gray-500">{category.name}</p>
+                      <h5 className="font-medium text-gray-800 text-sm">{category.friendlyName}</h5>
+                      <p className="text-xs text-gray-500">{category.percentage.toFixed(1)}%</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-800">{formatCurrency(category.amount)}</p>
-                    <p className="text-sm text-gray-500">{category.percentage.toFixed(1)}%</p>
+                    <p className="font-semibold text-gray-800 text-sm">{formatCurrency(category.amount)}</p>
                   </div>
                 </div>
                 
                 {/* Progress Bar */}
-                <div className="mb-3">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="mb-2">
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
                     <div 
-                      className={cn("h-2 rounded-full", category.color)}
+                      className={cn("h-1.5 rounded-full", category.color)}
                       style={{ width: `${Math.min(category.percentage, 100)}%` }}
                     />
                   </div>
                 </div>
 
-                {/* Tips */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-sm text-blue-700">
-                    <span className="font-medium">💡 Tips Hemat: </span>
+                {/* Tips - Compact */}
+                <div className="bg-gray-50 border border-gray-100 rounded p-2">
+                  <p className="text-xs text-gray-600">
+                    <span className="font-medium">💡 </span>
                     {category.tips}
                   </p>
                 </div>
               </div>
             ))
           )}
+          
+          {/* Show more indicator if there are more categories */}
+          {categoryAnalysis.length > 5 && (
+            <div className="text-center py-2">
+              <p className="text-xs text-gray-500">+{categoryAnalysis.length - 5} kategori lainnya</p>
+            </div>
+          )}
         </div>
 
-        {/* Tips Umum */}
+        {/* Tips Umum - Compact */}
         {categoryAnalysis.length > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h5 className="font-medium text-green-800 mb-2">🎯 Tips Mengatur Pengeluaran UMKM:</h5>
-            <ul className="text-sm text-green-700 space-y-1">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <h5 className="font-medium text-gray-800 mb-2 text-sm">🎯 Tips Mengatur Pengeluaran:</h5>
+            <ul className="text-xs text-gray-600 space-y-0.5">
               <li>• Catat semua pengeluaran, sekecil apapun</li>
               <li>• Bandingkan harga supplier sebelum beli bahan</li>
-              <li>• Sisihkan 10-20% dari keuntungan untuk dana darurat</li>
-              <li>• Review pengeluaran setiap bulan untuk cari yang bisa dihemat</li>
+              <li>• Sisihkan 10-20% keuntungan untuk dana darurat</li>
             </ul>
           </div>
         )}

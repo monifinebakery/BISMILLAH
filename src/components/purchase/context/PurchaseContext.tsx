@@ -94,8 +94,10 @@ const fetchPurchasesPaginated = async (
 
 // CREATE via service (manual warehouse sync handled in service), then fetch the created row
 const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string) => {
+  console.log('🆕 apiCreatePurchase called');
   const res = await PurchaseApiService.createPurchase(payload, userId);
   if (!res.success || !res.purchaseId) throw new Error(res.error || 'Gagal membuat pembelian');
+  console.log('🔍 apiCreatePurchase fetching created record:', res.purchaseId);
   const { data, error } = await supabase
     .from('purchases')
     .select('*')
@@ -103,17 +105,21 @@ const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'crea
     .eq('user_id', userId)
     .single();
   if (error) {
+    console.log('⚠️ apiCreatePurchase error:', { code: error.code, message: error.message, purchaseId: res.purchaseId });
     if (error.code === 'PGRST116') {
       throw new Error('Pembelian tidak ditemukan setelah dibuat');
     }
     throw new Error(error.message);
   }
+  console.log('✅ apiCreatePurchase success');
   return transformPurchaseFromDB(data);
 };
 
 const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId: string) => {
+  console.log('✏️ apiUpdatePurchase called:', { id });
   const res = await PurchaseApiService.updatePurchase(id, updates, userId);
   if (!res.success) throw new Error(res.error || 'Gagal memperbarui pembelian');
+  console.log('🔍 apiUpdatePurchase fetching updated record:', id);
   const { data, error } = await supabase
     .from('purchases')
     .select('*')
@@ -121,18 +127,22 @@ const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId:
     .eq('user_id', userId)
     .single();
   if (error) {
+    console.log('⚠️ apiUpdatePurchase error:', { code: error.code, message: error.message, id });
     if (error.code === 'PGRST116') {
       throw new Error('Pembelian tidak ditemukan');
     }
     throw new Error(error.message);
   }
+  console.log('✅ apiUpdatePurchase success');
   return transformPurchaseFromDB(data);
 };
 
 // Status via service (service handles manual warehouse sync), then fetch fresh row
 const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatus) => {
+  console.log('📊 apiSetStatus called:', { id, newStatus });
   const res = await PurchaseApiService.setPurchaseStatus(id, userId, newStatus);
   if (!res.success) throw new Error(res.error || 'Gagal update status');
+  console.log('🔍 apiSetStatus fetching updated record:', id);
   const { data, error } = await supabase
     .from('purchases')
     .select('*')
@@ -140,11 +150,13 @@ const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatu
     .eq('user_id', userId)
     .single();
   if (error) {
+    console.log('⚠️ apiSetStatus error:', { code: error.code, message: error.message, id, newStatus });
     if (error.code === 'PGRST116') {
       throw new Error('Pembelian tidak ditemukan');
     }
     throw new Error(error.message);
   }
+  console.log('✅ apiSetStatus success');
   return transformPurchaseFromDB(data);
 };
 

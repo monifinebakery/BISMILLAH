@@ -51,6 +51,7 @@ export class PurchaseApiService {
   /** Get one purchase */
   static async fetchPurchaseById(id: string, userId: string): Promise<{ data: Purchase | null; error: string | null }> {
     try {
+      console.log('🔍 fetchPurchaseById called with:', { id, userId });
       const { data, error } = await supabase
         .from('purchases')
         .select('*')
@@ -60,13 +61,17 @@ export class PurchaseApiService {
 
       // Handle PGRST116 error (no rows found) gracefully
       if (error) {
+        console.log('⚠️ fetchPurchaseById error:', { code: error.code, message: error.message, id, userId });
         if (error.code === 'PGRST116') {
+          console.log('ℹ️ PGRST116 handled gracefully in fetchPurchaseById');
           return { data: null, error: null }; // No data found, but not an error
         }
         throw new Error(error.message);
       }
+      console.log('✅ fetchPurchaseById success:', { hasData: !!data, id });
       return { data: data ? transformPurchaseFromDB(data) : null, error: null };
     } catch (err: any) {
+      console.error('❌ fetchPurchaseById catch:', { err, id, userId });
       logger.error('Error fetching purchase:', err);
       return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }

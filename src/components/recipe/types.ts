@@ -21,6 +21,7 @@ export interface RecipeDB {
   kategori_resep?: string;
   deskripsi?: string;
   foto_url?: string;
+  foto_base64?: string;
   bahan_resep: BahanResep[];
   biaya_tenaga_kerja: number;
   biaya_overhead: number;
@@ -44,6 +45,7 @@ export interface Recipe {
   kategoriResep?: string;
   deskripsi?: string;
   fotoUrl?: string;
+  fotoBase64?: string;
   bahanResep: BahanResep[];
   biayaTenagaKerja: number;
   biayaOverhead: number;
@@ -62,6 +64,7 @@ export interface NewRecipe {
   kategoriResep?: string;
   deskripsi?: string;
   fotoUrl?: string;
+  fotoBase64?: string;
   bahanResep: BahanResep[];
   biayaTenagaKerja: number;
   biayaOverhead: number;

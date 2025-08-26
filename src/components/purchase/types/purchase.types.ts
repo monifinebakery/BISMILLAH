@@ -22,7 +22,6 @@ export interface Purchase {
   metodePerhitungan: CalculationMethod;
   createdAt: Date;
   updatedAt: Date;
-  isArchived?: boolean;
 }
 
 export type PurchaseStatus = 'pending' | 'completed' | 'cancelled';

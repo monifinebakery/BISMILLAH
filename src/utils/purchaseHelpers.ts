@@ -528,15 +528,6 @@ export const generatePurchasePrintContent = (
     .join('\n');
 };
 
-export const markPurchasesAsArchived = (
-  purchases: Purchase[],
-  ids: string[]
-): Purchase[] => {
-  const idSet = new Set(ids);
-  return purchases.map(p =>
-    idSet.has(p.id) ? { ...p, isArchived: true } : p
-  );
-};
 
 // 🔍 Search Optimization
 export const createSearchIndex = (purchases: Purchase[], suppliers: Array<{ id: string; nama: string }>) => {

@@ -130,6 +130,7 @@ export class PurchaseApiService {
         .eq('user_id', userId)
         .single();
       if (fetchErr) {
+        console.log('⚠️ updatePurchase fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
         if (fetchErr.code === 'PGRST116') {
           return { success: false, error: 'Pembelian tidak ditemukan' };
         }
@@ -158,8 +159,13 @@ export class PurchaseApiService {
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-      if (fetchUpdatedErr && fetchUpdatedErr.code !== 'PGRST116') {
-        throw new Error(fetchUpdatedErr.message);
+      if (fetchUpdatedErr) {
+        console.log('⚠️ updatePurchase fetchUpdatedErr:', { code: fetchUpdatedErr.code, message: fetchUpdatedErr.message, id, userId });
+        if (fetchUpdatedErr.code !== 'PGRST116') {
+          throw new Error(fetchUpdatedErr.message);
+        }
+        // PGRST116 means row not found after update, which shouldn't happen but we'll handle it gracefully
+        console.log('ℹ️ PGRST116 after purchase update - purchase may have been deleted by another process');
       }
       const updated = updatedRow ? transformPurchaseFromDB(updatedRow) : null;
 
@@ -196,6 +202,7 @@ export class PurchaseApiService {
         .eq('user_id', userId)
         .single();
       if (fetchErr) {
+        console.log('⚠️ setPurchaseStatus fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
         if (fetchErr.code === 'PGRST116') {
           return { success: false, error: 'Pembelian tidak ditemukan' };
         }
@@ -230,8 +237,13 @@ export class PurchaseApiService {
             .eq('id', id)
             .eq('user_id', userId)
             .single();
-          if (freshErr && freshErr.code !== 'PGRST116') {
-            logger.warn('Warning: Could not fetch fresh purchase data:', freshErr.message);
+          if (freshErr) {
+            console.log('⚠️ setPurchaseStatus freshErr:', { code: freshErr.code, message: freshErr.message, id, userId });
+            if (freshErr.code !== 'PGRST116') {
+              logger.warn('Warning: Could not fetch fresh purchase data:', freshErr.message);
+            } else {
+              logger.info('ℹ️ PGRST116 when fetching fresh purchase data - purchase may have been deleted');
+            }
           }
           const fresh = newRow ? transformPurchaseFromDB(newRow) : prev;
           
@@ -303,8 +315,13 @@ export class PurchaseApiService {
         .single();
       
       // If record doesn't exist, that's fine for deletion
-      if (fetchErr && fetchErr.code !== 'PGRST116') {
-        logger.warn('Warning fetching purchase for deletion:', fetchErr.message);
+      if (fetchErr) {
+        console.log('⚠️ deletePurchase fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
+        if (fetchErr.code !== 'PGRST116') {
+          logger.warn('Warning fetching purchase for deletion:', fetchErr.message);
+        } else {
+          logger.info('ℹ️ PGRST116 when fetching purchase for deletion - purchase already deleted or not found');
+        }
       }
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 

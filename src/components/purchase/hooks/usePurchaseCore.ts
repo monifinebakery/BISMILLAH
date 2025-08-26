@@ -2,10 +2,9 @@
 import { useMemo, useCallback, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { purchaseApi } from '../services/purchaseApi';
 import { useAuth } from '@/contexts/AuthContext';
 // ✅ STANDARDIZED: Import centralized validation utilities
-import { validateStatusChange, validatePurchaseData } from '@/utils/purchaseValidation';
+import { validateStatusChange } from '@/utils/purchaseValidation';
 
 interface UsePurchaseCoreProps {
   purchaseContext: any;   // tetap fleksibel
@@ -17,7 +16,7 @@ export const usePurchaseCore = ({
   suppliers
 }: UsePurchaseCoreProps) => {
   const { user } = useAuth();
-  const { purchases, updatePurchase, deletePurchase } = purchaseContext;
+  const { purchases, updatePurchase, deletePurchase, setStatus } = purchaseContext;
 
   // processing state
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -120,7 +119,7 @@ export const usePurchaseCore = ({
   }, [isProcessing]);
 
   // ---------- Actions ----------
-  /** Ubah status via API khusus supaya manual sync jalan */
+  /** Ubah status via context supaya cache & sinkronisasi gudang terjaga */
   const updateStatus = useCallback(async (purchaseId: string, newStatus: 'pending'|'completed'|'cancelled'): Promise<boolean> => {
     const v = validateStatusChangeLocal(purchaseId, newStatus);
     if (!v.canChange) {
@@ -132,12 +131,12 @@ export const usePurchaseCore = ({
     addProcessing(purchaseId);
     try {
       if (!user?.id) throw new Error('User belum login');
-      const res = await purchaseApi.setPurchaseStatus(purchaseId, user.id, newStatus);
-      if (res.success) {
+      const ok = await setStatus(purchaseId, newStatus);
+      if (ok) {
         toast.success(`Status berhasil diubah ke ${getStatusDisplayText(newStatus)}. Stok gudang akan tersinkron otomatis.`);
         return true;
       }
-      throw new Error(res.error || 'Gagal update status');
+      throw new Error('Gagal update status');
     } catch (e: any) {
       logger.error('Error updating status', e);
       toast.error(e?.message || 'Gagal mengubah status');
@@ -145,7 +144,7 @@ export const usePurchaseCore = ({
     } finally {
       removeProcessing(purchaseId);
     }
-  }, [user?.id, addProcessing, removeProcessing, validateStatusChange, getStatusDisplayText]);
+  }, [user?.id, addProcessing, removeProcessing, validateStatusChangeLocal, getStatusDisplayText, setStatus]);
 
   /** Edit purchase (boleh setelah completed) — gunakan context.updatePurchase */
   const updatePurchasePatch = useCallback(async (id: string, patch: any): Promise<boolean> => {
@@ -219,7 +218,7 @@ export const usePurchaseCore = ({
     canEdit,
     canDelete,
     validateStatusChange,
-    updateStatus,             // pakai purchaseApi.setPurchaseStatus
+    updateStatus,             // pakai context.setStatus
     updatePurchase: updatePurchasePatch,
 
     // Core ops

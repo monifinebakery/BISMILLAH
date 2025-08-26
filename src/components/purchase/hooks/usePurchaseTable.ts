@@ -43,7 +43,6 @@ interface UsePurchaseTableReturn {
   // Bulk operations
   bulkDelete: () => Promise<void>;
   bulkUpdateStatus: (status: PurchaseStatus) => Promise<void>;
-  bulkUpdatePurchases: (ids: string[], data: Partial<Purchase>) => Promise<void>;
   bulkArchive: () => Promise<void>;
   isBulkDeleting: boolean;
   isBulkArchiving: boolean;
@@ -196,34 +195,7 @@ export const usePurchaseTable = ({
     }
   }, [selectedItems, updatePurchase]);
 
-  const bulkUpdatePurchases = useCallback(async (ids: string[], data: Partial<Purchase>) => {
-    if (ids.length === 0) {
-      toast.warning('Pilih item yang akan diubah');
-      return;
-    }
 
-    try {
-      const updatePromises = ids.map(id => 
-        updatePurchase(id, data)
-      );
-      
-      const results = await Promise.allSettled(updatePromises);
-      const successful = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
-      const failed = results.length - successful;
-
-      if (successful > 0) {
-        toast.success(`${successful} pembelian berhasil diubah`);
-        setSelectedItems([]);
-      }
-      
-      if (failed > 0) {
-        toast.error(`${failed} pembelian gagal diubah`);
-      }
-    } catch (error) {
-      logger.error('Bulk update error:', error);
-      toast.error('Terjadi kesalahan saat mengubah pembelian');
-    }
-  }, [updatePurchase]);
 
   const bulkArchive = useCallback(async () => {
     if (selectedItems.length === 0) {
@@ -293,7 +265,6 @@ export const usePurchaseTable = ({
     // Bulk operations
     bulkDelete,
     bulkUpdateStatus,
-    bulkUpdatePurchases,
     bulkArchive,
     isBulkDeleting,
     isBulkArchiving,

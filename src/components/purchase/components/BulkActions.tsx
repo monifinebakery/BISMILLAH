@@ -1,18 +1,17 @@
 // src/components/purchase/components/BulkActions.tsx
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface BulkActionsProps {
   selectedCount: number;
-  onBulkEdit: () => void;
   onBulkDelete: () => void;
   onClearSelection: () => void;
   isProcessing: boolean;
 }
 
 const BulkActions: React.FC<BulkActionsProps> = ({
-  selectedCount, onBulkEdit, onBulkDelete, onClearSelection, isProcessing
+  selectedCount, onBulkDelete, onClearSelection, isProcessing
 }) => (
   <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 mb-6">
     <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
@@ -27,17 +26,6 @@ const BulkActions: React.FC<BulkActionsProps> = ({
         )}
       </div>
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        <Button 
-          onClick={onBulkEdit} 
-          variant="outline" 
-          size="sm" 
-          className="flex items-center justify-center gap-2 text-xs sm:text-sm h-8 sm:h-9" 
-          disabled={isProcessing || selectedCount === 0}
-        >
-          <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Edit Bulk</span>
-          <span className="sm:hidden">Edit</span>
-        </Button>
         <Button 
           onClick={onBulkDelete} 
           variant="outline" 

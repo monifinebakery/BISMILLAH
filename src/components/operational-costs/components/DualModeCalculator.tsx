@@ -294,10 +294,10 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
           {/* Group Selection */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Pilih Kelompok Biaya</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                   variant={selectedGroup === 'hpp' ? 'default' : 'outline'}
-                  className="flex-1 flex items-center gap-2"
+                  className="w-full sm:flex-1 flex items-center gap-2 justify-center py-3"
                   onClick={() => setSelectedGroup('hpp')}
               >
                 <Package className="h-4 w-4" />
@@ -305,7 +305,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
               </Button>
               <Button
                   variant={selectedGroup === 'operasional' ? 'default' : 'outline'}
-                  className="flex-1 flex items-center gap-2"
+                  className="w-full sm:flex-1 flex items-center gap-2 justify-center py-3"
                   onClick={() => setSelectedGroup('operasional')}
               >
                 <TrendingUp className="h-4 w-4" />
@@ -319,7 +319,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
             <Button
               onClick={handleCalculate}
               disabled={isCalculating || targetOutput <= 0}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="w-full bg-orange-600 hover:bg-orange-700 py-3"
             >
               {isCalculating ? (
                 <>

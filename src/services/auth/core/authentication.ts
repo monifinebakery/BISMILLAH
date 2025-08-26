@@ -1,9 +1,10 @@
 // src/services/auth/core/authentication.ts - OPTIMIZED FOR AUTHCONTEXT
 import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 import { toSafeISOString } from '@/utils/unifiedDateUtils';
 import { getCurrentSession, clearSessionCache } from './session';
+import { getErrorMessage } from '@/services/auth/utils';
 
 // ✅ SIMPLIFIED: Check authentication using utility session
 export const isAuthenticated = async (): Promise<boolean> => {
@@ -45,10 +46,15 @@ export const getCurrentUser = async () => {
       setTimeout(() => reject(new Error('getUser timeout')), 5000)
     );
     
-    const { data: { user }, error } = await Promise.race([
-      userPromise,
-      timeoutPromise
-    ]) as any;
+    interface UserResult {
+      data: { user: User | null };
+      error: unknown;
+    }
+
+    const { data: { user }, error } = await Promise.race<UserResult>([
+      userPromise as Promise<UserResult>,
+      timeoutPromise as Promise<UserResult>
+    ]);
     
     if (error) {
       logger.error('[Auth] Direct getUser() error:', error);
@@ -110,10 +116,15 @@ export const refreshCurrentUser = async () => {
       setTimeout(() => reject(new Error('Refresh timeout')), 10000)
     );
     
-    const { data: { session }, error } = await Promise.race([
-      refreshPromise,
-      timeoutPromise
-    ]) as any;
+    interface SessionResult {
+      data: { session: Session | null };
+      error: unknown;
+    }
+
+    const { data: { session }, error } = await Promise.race<SessionResult>([
+      refreshPromise as Promise<SessionResult>,
+      timeoutPromise as Promise<SessionResult>
+    ]);
     
     if (error) {
       logger.error('[Auth] Session refresh error:', error);
@@ -152,10 +163,14 @@ export const signOut = async (): Promise<boolean> => {
       setTimeout(() => reject(new Error('SignOut timeout')), 5000)
     );
     
-    const { error } = await Promise.race([
-      signOutPromise,
-      timeoutPromise
-    ]) as any;
+    interface SignOutResult {
+      error: unknown;
+    }
+
+    const { error } = await Promise.race<SignOutResult>([
+      signOutPromise as Promise<SignOutResult>,
+      timeoutPromise as Promise<SignOutResult>
+    ]);
     
     if (error) {
       logger.error('[Auth] Sign out error:', error);
@@ -227,7 +242,7 @@ export const debugAuthState = async () => {
     return debugInfo;
   } catch (error) {
     logger.error('[Auth] Debug auth state error:', error);
-    return { error: error.message };
+    return { error: getErrorMessage(error) };
   }
 };
 

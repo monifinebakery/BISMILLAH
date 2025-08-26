@@ -1,4 +1,3 @@
-// ===== 1. src/services/auth/types.ts =====
 export interface PaymentRecord {
   id: string;
   order_id: string;
@@ -18,3 +17,15 @@ export interface UserAccessStatus {
   needsOrderVerification: boolean;
   needsLinking: boolean;
   message: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
+export interface OtpOptions {
+  shouldCreateUser: boolean;
+  captchaToken?: string;
+}
+

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { validateEmail, getErrorMessage } from '@/services/auth/utils';
+import type { OtpOptions } from '@/services/auth/types';
 
 export const sendEmailOtp = async (
   email: string, 
@@ -18,7 +19,7 @@ export const sendEmailOtp = async (
 
     logger.api('/auth/otp', 'Sending OTP to:', { email, allowSignup, skipCaptcha });
     
-    const otpOptions: any = {
+    const otpOptions: OtpOptions = {
       shouldCreateUser: allowSignup,
     };
     

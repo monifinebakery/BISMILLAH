@@ -3,12 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { toSafeISOString } from '@/utils/unifiedDateUtils';
-import { PaymentRecord } from '@/services/auth/types';
+import type { AuthUser, PaymentRecord } from '@/services/auth/types';
 import { clearSessionCache } from '../core/session';
 import { getCurrentUserValidated } from '@/services/auth/core/authentication';
+import { getErrorMessage } from '@/services/auth/utils';
+import type { QueryClient } from '@tanstack/react-query';
 
 // ✅ UUID Sanitization function
-const sanitizeUserId = (userId: any): string | null => {
+const sanitizeUserId = (userId: unknown): string | null => {
   // Handle various "null" representations
   if (userId === null || 
       userId === undefined || 
@@ -37,8 +39,12 @@ const forceRefreshCache = async () => {
   try {
     clearSessionCache();
     
-    if (typeof window !== 'undefined' && (window as any).queryClient) {
-      const queryClient = (window as any).queryClient;
+    interface WindowWithQueryClient extends Window {
+      queryClient?: QueryClient;
+    }
+
+    if (typeof window !== 'undefined' && (window as WindowWithQueryClient).queryClient) {
+      const queryClient = (window as WindowWithQueryClient).queryClient!;
       await queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
       await queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
       logger.debug('React Query cache refreshed');
@@ -51,7 +57,7 @@ const forceRefreshCache = async () => {
   }
 };
 
-export const linkPaymentToUser = async (orderId: string, user: any): Promise<PaymentRecord> => {
+export const linkPaymentToUser = async (orderId: string, user: AuthUser): Promise<PaymentRecord> => {
   try {
     // ✅ ENHANCED: Validate user object with sanitization
     if (!user) {
@@ -161,7 +167,7 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
 
     // ✅ STEP 4: Update payment (SIMPLIFIED - removed auth_email and linked_at)
     const now = toSafeISOString(new Date()) || new Date().toISOString();
-    const updateData: any = { 
+    const updateData: Partial<PaymentRecord> = {
       user_id: finalUserId, // ✅ Use sanitized ID
       updated_at: now
     };
@@ -227,10 +233,11 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     
     return updatedPayment;
     
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     logger.error('Error linking payment to user:', error);
-    toast.error(error.message);
-    throw error;
+    toast.error(message);
+    throw error instanceof Error ? error : new Error(message);
   }
 };
 
@@ -265,7 +272,7 @@ export const getPaymentLinkingHistory = async (userId: string) => {
 // ✅ FIXED: Check user has payment with sanitization
 export const checkUserHasPayment = async (email: string, userId: string): Promise<{
   hasPayment: boolean;
-  payment?: any;
+  payment?: PaymentRecord | null;
 }> => {
   try {
     const sanitizedUserId = sanitizeUserId(userId);

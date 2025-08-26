@@ -13,7 +13,7 @@ const QuickActionCard: React.FC<{
   iconColor: string;
 }> = ({ to, icon, label, iconColor }) => {
   return (
-    <Card className="bg-white border-2 border-gray-200 hover:border-orange-300 transition-all duration-300 overflow-hidden group">
+    <Card className="bg-white border-[1.5px] border-gray-300 dark:border-gray-600 hover:border-orange-400 hover:shadow-md transition-all duration-300 overflow-hidden group">
       <Link 
         to={to} 
         className="block p-6 h-full relative"
@@ -21,7 +21,7 @@ const QuickActionCard: React.FC<{
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {/* Icon with Outline Design */}
-            <div className="border-2 border-orange-200 p-3 rounded-xl mr-4 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
+            <div className="border-[1.5px] border-orange-200 p-3 rounded-xl mr-4 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
               <div className={`h-6 w-6 ${iconColor} group-hover:scale-110 transition-transform duration-300`}>
                 {icon}
               </div>

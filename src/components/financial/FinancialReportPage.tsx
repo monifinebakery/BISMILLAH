@@ -584,16 +584,17 @@ const FinancialReportPage: React.FC = () => {
             </Suspense>
           </TabsContent>
 
-          {/* ✅ UMKM FEATURES TAB */}
-          <TabsContent value="umkm" className="space-y-6">
-            {/* Daily Summary Widget */}
+          {/* ✅ UMKM FEATURES TAB - Optimized Layout */}
+          <TabsContent value="umkm" className="space-y-4">
+            {/* Daily Summary Widget - Full Width */}
             <Suspense fallback={<ChartSkeleton />}>
               <DailySummaryWidget 
                 transactions={filteredTransactions}
               />
             </Suspense>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Main Grid - 3 Columns on Large Screens, 2 on Medium, 1 on Small */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {/* Daily Cash Flow Tracker */}
               <Suspense fallback={<ChartSkeleton />}>
                 <DailyCashFlowTracker 
@@ -607,9 +608,7 @@ const FinancialReportPage: React.FC = () => {
                   transactions={filteredTransactions}
                 />
               </Suspense>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* UMKM Expense Categories */}
               <Suspense fallback={<ChartSkeleton />}>
                 <UMKMExpenseCategories 
@@ -623,21 +622,21 @@ const FinancialReportPage: React.FC = () => {
                   transactions={filteredTransactions}
                 />
               </Suspense>
+
+              {/* Debt Tracker */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <DebtTracker />
+              </Suspense>
+
+              {/* Expense Alerts */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <ExpenseAlerts 
+                  transactions={filteredTransactions}
+                />
+              </Suspense>
             </div>
 
-            {/* Debt Tracker */}
-            <Suspense fallback={<ChartSkeleton />}>
-              <DebtTracker />
-            </Suspense>
-
-            {/* Expense Alerts */}
-            <Suspense fallback={<ChartSkeleton />}>
-              <ExpenseAlerts 
-                transactions={filteredTransactions}
-              />
-            </Suspense>
-
-            {/* Simple Business Report */}
+            {/* Simple Business Report - Full Width at Bottom */}
             <Suspense fallback={<ChartSkeleton />}>
               <SimpleBusinessReport 
                 transactions={filteredTransactions}

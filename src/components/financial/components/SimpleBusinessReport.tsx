@@ -249,127 +249,106 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Business Health Status */}
-        <div className={cn("border rounded-lg p-4", getHealthColor(businessAnalysis.businessHealth))}>
-          <div className="flex items-center gap-2 mb-2">
-            <Target className="h-5 w-5" />
-            <h4 className="font-medium">Status Bisnis</h4>
+        {/* Business Health Status - Compact */}
+        <div className={cn("border rounded-lg p-3", getHealthColor(businessAnalysis.businessHealth))}>
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            <h4 className="font-medium text-sm">{getHealthMessage(businessAnalysis.businessHealth)}</h4>
           </div>
-          <p className="text-lg font-semibold">{getHealthMessage(businessAnalysis.businessHealth)}</p>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium text-green-800">Pendapatan</h4>
-              <DollarSign className="h-4 w-4 text-green-600" />
+        {/* Key Metrics - Compact Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-xs font-medium text-gray-700">Pendapatan</h4>
+              <DollarSign className="h-3 w-3 text-gray-600" />
             </div>
-            <p className="text-xl font-bold text-green-700">
+            <p className="text-lg font-bold text-gray-800">
               {formatCurrency(businessAnalysis.thisMonth.income)}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {businessAnalysis.changes.income > 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-3 w-3 text-gray-600" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-600" />
+                <TrendingDown className="h-3 w-3 text-gray-500" />
               )}
               <span className={cn(
-                "text-sm font-medium",
-                businessAnalysis.changes.income > 0 ? "text-green-600" : "text-red-600"
+                "text-xs font-medium",
+                businessAnalysis.changes.income > 0 ? "text-gray-600" : "text-gray-500"
               )}>
                 {formatPercentage(businessAnalysis.changes.income)}
               </span>
-              <span className="text-xs text-gray-600">vs bulan lalu</span>
+              <span className="text-xs text-gray-500">vs bulan lalu</span>
             </div>
           </div>
 
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium text-red-800">Pengeluaran</h4>
-              <TrendingDown className="h-4 w-4 text-red-600" />
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-xs font-medium text-gray-700">Pengeluaran</h4>
+              <TrendingDown className="h-3 w-3 text-gray-600" />
             </div>
-            <p className="text-xl font-bold text-red-700">
+            <p className="text-lg font-bold text-gray-800">
               {formatCurrency(businessAnalysis.thisMonth.expense)}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {businessAnalysis.changes.expense > 0 ? (
-                <TrendingUp className="h-4 w-4 text-red-600" />
+                <TrendingUp className="h-3 w-3 text-gray-500" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-green-600" />
+                <TrendingDown className="h-3 w-3 text-gray-600" />
               )}
               <span className={cn(
-                "text-sm font-medium",
-                businessAnalysis.changes.expense > 0 ? "text-red-600" : "text-green-600"
+                "text-xs font-medium",
+                businessAnalysis.changes.expense > 0 ? "text-gray-500" : "text-gray-600"
               )}>
                 {formatPercentage(businessAnalysis.changes.expense)}
               </span>
-              <span className="text-xs text-gray-600">vs bulan lalu</span>
+              <span className="text-xs text-gray-500">vs bulan lalu</span>
             </div>
           </div>
 
-          <div className={cn(
-            "border rounded-lg p-4",
-            businessAnalysis.thisMonth.profit > 0 
-              ? "bg-blue-50 border-blue-200" 
-              : "bg-orange-50 border-orange-200"
-          )}>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className={cn(
-                "text-sm font-medium",
-                businessAnalysis.thisMonth.profit > 0 ? "text-blue-800" : "text-orange-800"
-              )}>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-xs font-medium text-gray-700">
                 {businessAnalysis.thisMonth.profit > 0 ? 'Untung' : 'Rugi'}
               </h4>
-              <Target className={cn(
-                "h-4 w-4",
-                businessAnalysis.thisMonth.profit > 0 ? "text-blue-600" : "text-orange-600"
-              )} />
+              <Target className="h-3 w-3 text-gray-600" />
             </div>
-            <p className={cn(
-              "text-xl font-bold",
-              businessAnalysis.thisMonth.profit > 0 ? "text-blue-700" : "text-orange-700"
-            )}>
+            <p className="text-lg font-bold text-gray-800">
               {formatCurrency(Math.abs(businessAnalysis.thisMonth.profit))}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {businessAnalysis.changes.profit > 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-3 w-3 text-gray-600" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-600" />
+                <TrendingDown className="h-3 w-3 text-gray-500" />
               )}
-              <span className={cn(
-                "text-sm font-medium",
-                businessAnalysis.changes.profit > 0 ? "text-green-600" : "text-red-600"
-              )}>
+              <span className="text-xs font-medium text-gray-600">
                 {formatPercentage(businessAnalysis.changes.profit)}
               </span>
-              <span className="text-xs text-gray-600">vs bulan lalu</span>
+              <span className="text-xs text-gray-500">vs bulan lalu</span>
             </div>
           </div>
         </div>
 
-        {/* Top Expense Categories */}
+        {/* Top Expense Categories - Compact */}
         {businessAnalysis.topExpenseCategories.length > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="font-medium text-gray-800 mb-3">Pengeluaran Terbesar Bulan Ini:</h4>
-            <div className="space-y-2">
-              {businessAnalysis.topExpenseCategories.map(([category, amount], index) => {
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <h4 className="font-medium text-gray-800 mb-2 text-sm">Pengeluaran Terbesar:</h4>
+            <div className="space-y-1">
+              {businessAnalysis.topExpenseCategories.slice(0, 2).map(([category, amount], index) => {
                 const percentage = (amount / businessAnalysis.thisMonth.expense) * 100;
                 return (
                   <div key={category} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white",
-                        index === 0 ? "bg-red-500" : index === 1 ? "bg-orange-500" : "bg-yellow-500"
-                      )}>
+                      <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold text-white bg-gray-500">
                         {index + 1}
                       </span>
-                      <span className="text-sm font-medium">{category}</span>
+                      <span className="text-xs font-medium">{category}</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium">{formatCurrency(amount)}</p>
-                      <p className="text-xs text-gray-600">{percentage.toFixed(1)}%</p>
+                      <p className="text-xs font-medium">{formatCurrency(amount)}</p>
+                      <p className="text-xs text-gray-500">{percentage.toFixed(1)}%</p>
                     </div>
                   </div>
                 );
@@ -378,86 +357,64 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
           </div>
         )}
 
-        {/* Daily Average */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-800 mb-3">Rata-rata Harian (7 hari terakhir):</h4>
-          <div className="grid grid-cols-2 gap-4">
+        {/* Daily Average - Compact */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <h4 className="font-medium text-gray-800 mb-2 text-sm">Rata-rata Harian (7 hari):</h4>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-sm text-blue-700">Pendapatan per hari:</p>
-              <p className="text-lg font-bold text-blue-800">{formatCurrency(businessAnalysis.avgDaily.income)}</p>
+              <p className="text-xs text-gray-600">Pendapatan/hari:</p>
+              <p className="text-sm font-bold text-gray-800">{formatCurrency(businessAnalysis.avgDaily.income)}</p>
             </div>
             <div>
-              <p className="text-sm text-blue-700">Pengeluaran per hari:</p>
-              <p className="text-lg font-bold text-blue-800">{formatCurrency(businessAnalysis.avgDaily.expense)}</p>
+              <p className="text-xs text-gray-600">Pengeluaran/hari:</p>
+              <p className="text-sm font-bold text-gray-800">{formatCurrency(businessAnalysis.avgDaily.expense)}</p>
             </div>
           </div>
         </div>
 
-        {/* Insights & Recommendations */}
-        <div className="space-y-3">
-          <h4 className="font-medium text-gray-800 flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-yellow-600" />
-            Insights & Rekomendasi:
+        {/* Insights & Tips - Compact Combined */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <h4 className="font-medium text-gray-800 flex items-center gap-2 mb-2 text-sm">
+            <Lightbulb className="h-4 w-4 text-gray-600" />
+            Tips & Rekomendasi:
           </h4>
           
-          {businessAnalysis.insights.map((insight, index) => (
-            <div key={index} className={cn(
-              "border rounded-lg p-4",
-              insight.type === 'positive' ? "bg-green-50 border-green-200" :
-              insight.type === 'warning' ? "bg-orange-50 border-orange-200" :
-              "bg-blue-50 border-blue-200"
-            )}>
-              <div className="flex items-start gap-2">
-                {insight.type === 'positive' ? (
-                  <TrendingUp className="h-5 w-5 text-green-600 mt-0.5" />
-                ) : insight.type === 'warning' ? (
-                  <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
-                ) : (
-                  <Lightbulb className="h-5 w-5 text-blue-600 mt-0.5" />
-                )}
-                <div>
-                  <h5 className={cn(
-                    "font-medium mb-1",
-                    insight.type === 'positive' ? "text-green-800" :
-                    insight.type === 'warning' ? "text-orange-800" :
-                    "text-blue-800"
-                  )}>
-                    {insight.title}
-                  </h5>
-                  <p className={cn(
-                    "text-sm",
-                    insight.type === 'positive' ? "text-green-700" :
-                    insight.type === 'warning' ? "text-orange-700" :
-                    "text-blue-700"
-                  )}>
-                    {insight.message}
-                  </p>
+          <div className="space-y-2">
+            {businessAnalysis.insights.slice(0, 2).map((insight, index) => (
+              <div key={index} className="bg-white border border-gray-100 rounded p-2">
+                <div className="flex items-start gap-2">
+                  <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <h5 className="font-medium text-xs text-gray-700 mb-1">
+                      {insight.title}
+                    </h5>
+                    <p className="text-xs text-gray-600">
+                      {insight.message}
+                    </p>
+                  </div>
                 </div>
               </div>
+            ))}
+            
+            {/* Quick Action Tips */}
+            <div className="bg-white border border-gray-100 rounded p-2">
+              <h5 className="font-medium text-xs text-gray-700 mb-1">💡 Aksi Bulan Depan:</h5>
+              <ul className="text-xs text-gray-600 space-y-0.5">
+                {businessAnalysis.thisMonth.profit > 0 ? (
+                  <>
+                    <li>• Pertahankan strategi yang berhasil</li>
+                    <li>• Investasi untuk pengembangan</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• Review dan potong pengeluaran tidak perlu</li>
+                    <li>• Fokus produk/layanan terlaris</li>
+                  </>
+                )}
+                <li>• Monitor cash flow harian</li>
+              </ul>
             </div>
-          ))}
-        </div>
-
-        {/* Action Tips */}
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h5 className="font-medium text-purple-800 mb-2">💡 Tips Aksi Bulan Depan:</h5>
-          <ul className="text-sm text-purple-700 space-y-1">
-            {businessAnalysis.thisMonth.profit > 0 ? (
-              <>
-                <li>• Pertahankan strategi yang sudah berhasil</li>
-                <li>• Investasikan sebagian keuntungan untuk pengembangan</li>
-                <li>• Coba ekspansi ke produk/layanan baru</li>
-              </>
-            ) : (
-              <>
-                <li>• Review semua pengeluaran, potong yang tidak perlu</li>
-                <li>• Fokus pada produk/layanan yang paling laku</li>
-                <li>• Tingkatkan marketing untuk boost penjualan</li>
-              </>
-            )}
-            <li>• Set target yang realistis untuk bulan depan</li>
-            <li>• Monitor cash flow setiap hari</li>
-          </ul>
+          </div>
         </div>
       </CardContent>
     </Card>

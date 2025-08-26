@@ -114,7 +114,7 @@ export const operationalCostApi = {
         ...item,
         jenis: item.jenis as 'tetap' | 'variabel',
         status: item.status as 'aktif' | 'nonaktif',
-        group: item.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
+        group: item.group as 'hpp' | 'operasional' || 'operasional', // Default to operasional
         cost_category: item.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: item.deskripsi || undefined
       }));
@@ -177,7 +177,7 @@ export const operationalCostApi = {
         ...item,
         jenis: item.jenis as 'tetap' | 'variabel',
         status: item.status as 'aktif' | 'nonaktif',
-        group: item.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
+        group: item.group as 'hpp' | 'operasional' || 'operasional', // Default to operasional
         cost_category: item.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: item.deskripsi || undefined // Convert null to undefined
       }));
@@ -211,7 +211,7 @@ export const operationalCostApi = {
         ...data,
         jenis: data.jenis as 'tetap' | 'variabel',
         status: data.status as 'aktif' | 'nonaktif',
-        group: data.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
+        group: data.group as 'hpp' | 'operasional' || 'operasional', // Default to operasional
         cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: data.deskripsi || undefined // Convert null to undefined
       };
@@ -252,7 +252,7 @@ export const operationalCostApi = {
         ...data,
         jenis: data.jenis as 'tetap' | 'variabel',
         status: data.status as 'aktif' | 'nonaktif',
-        group: data.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
+        group: data.group as 'hpp' | 'operasional' || 'operasional', // Default to operasional
         cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: data.deskripsi || undefined // Convert null to undefined
       };
@@ -301,7 +301,7 @@ export const operationalCostApi = {
         ...data,
         jenis: data.jenis as 'tetap' | 'variabel',
         status: data.status as 'aktif' | 'nonaktif',
-        group: data.group as 'HPP' | 'OPERASIONAL' || 'OPERASIONAL', // Default to OPERASIONAL
+        group: data.group as 'hpp' | 'operasional' || 'operasional', // Default to operasional
         cost_category: data.cost_category as 'fixed' | 'variable' | 'other',
         deskripsi: data.deskripsi || undefined // Convert null to undefined
       };
@@ -418,8 +418,8 @@ export const operationalCostApi = {
       const inactiveCosts = costs.filter(c => c.status === 'nonaktif');
       
       // Filter by group
-      const hppCosts = activeCosts.filter(c => c.group === 'HPP');
-      const operasionalCosts = activeCosts.filter(c => c.group === 'OPERASIONAL');
+      const hppCosts = activeCosts.filter(c => c.group === 'hpp');
+      const operasionalCosts = activeCosts.filter(c => c.group === 'operasional');
       
       const summary: CostSummary = {
         total_biaya_aktif: activeCosts

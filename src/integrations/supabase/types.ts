@@ -472,6 +472,7 @@ export type Database = {
           cost_category: string | null
           created_at: string
           deskripsi: string | null
+          effective_date: string | null
           group: string
           id: string
           jenis: string
@@ -485,6 +486,7 @@ export type Database = {
           cost_category?: string | null
           created_at?: string
           deskripsi?: string | null
+          effective_date?: string | null
           group?: string
           id?: string
           jenis: string
@@ -498,6 +500,7 @@ export type Database = {
           cost_category?: string | null
           created_at?: string
           deskripsi?: string | null
+          effective_date?: string | null
           group?: string
           id?: string
           jenis?: string

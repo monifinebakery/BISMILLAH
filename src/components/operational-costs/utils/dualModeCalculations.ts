@@ -14,7 +14,7 @@ import { OperationalCost, DualModeCalculationResult, AppSettings } from '../type
  */
 export const calculateCostPerUnit = (
   costs: OperationalCost[],
-  group: 'HPP' | 'OPERASIONAL',
+  group: 'hpp' | 'operasional',
   targetOutputMonthly: number
 ): DualModeCalculationResult => {
   // Filter costs by group and active status
@@ -31,11 +31,11 @@ export const calculateCostPerUnit = (
   const validationErrors: string[] = [];
   
   if (targetOutputMonthly <= 0) {
-    validationErrors.push('Target produksi harus lebih dari 0');
+    validationErrors.push('Target produksi harus lebih dari 0 pcs');
   }
   
   if (totalCosts < 1000) {
-    validationErrors.push('Total biaya harus minimal Rp 1.000');
+    validationErrors.push('Total biaya harus minimal 1.000');
   }
   
   // Calculate cost per unit
@@ -62,8 +62,8 @@ export const calculateDualModeCosts = (
   operasional: DualModeCalculationResult;
 } => {
   return {
-    hpp: calculateCostPerUnit(costs, 'HPP', targetOutputMonthly),
-    operasional: calculateCostPerUnit(costs, 'OPERASIONAL', targetOutputMonthly)
+    hpp: calculateCostPerUnit(costs, 'hpp', targetOutputMonthly),
+    operasional: calculateCostPerUnit(costs, 'operasional', targetOutputMonthly)
   };
 };
 
@@ -167,7 +167,7 @@ export const calculateSellingPrice = (
  */
 export const validateDualModeInputs = (
   targetOutput: number,
-  monthlyAmount: number,
+  monthlyAmount?: number | null,
   costName: string
 ): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
@@ -177,9 +177,11 @@ export const validateDualModeInputs = (
     errors.push('Target produksi harus lebih dari 0 pcs');
   }
   
-  // Monthly amount validation  
-  if (!monthlyAmount || monthlyAmount < 1000) {
-    errors.push('Jumlah biaya terlalu kecil. Minimal Rp 1.000 untuk pencatatan yang akurat');
+  // Monthly amount validation
+  if (monthlyAmount != null) {
+    if (!monthlyAmount || monthlyAmount < 1000) {
+      errors.push('Jumlah biaya terlalu kecil. Minimal 1.000 untuk pencatatan yang akurat');
+    }
   }
   
   // Cost name validation
@@ -232,7 +234,7 @@ export const verifyExampleCalculations = (): {
       jumlah_per_bulan: 690000,
       jenis: 'tetap',
       status: 'aktif',
-      group: 'HPP',
+      group: 'hpp',
       cost_category: 'fixed',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -244,7 +246,7 @@ export const verifyExampleCalculations = (): {
       jumlah_per_bulan: 1500000,
       jenis: 'tetap',
       status: 'aktif',
-      group: 'HPP',
+      group: 'hpp',
       cost_category: 'fixed',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -259,7 +261,7 @@ export const verifyExampleCalculations = (): {
       jumlah_per_bulan: 4000000,
       jenis: 'variabel',
       status: 'aktif',
-      group: 'OPERASIONAL',
+      group: 'operasional',
       cost_category: 'variable',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -268,8 +270,8 @@ export const verifyExampleCalculations = (): {
   
   const targetOutput = 3000;
   
-  const overhead = calculateCostPerUnit([...mockOverheadCosts], 'HPP', targetOutput);
-  const operasional = calculateCostPerUnit([...mockOperasionalCosts], 'OPERASIONAL', targetOutput);
+  const overhead = calculateCostPerUnit([...mockOverheadCosts], 'hpp', targetOutput);
+  const operasional = calculateCostPerUnit([...mockOperasionalCosts], 'operasional', targetOutput);
   
   return {
     overhead,

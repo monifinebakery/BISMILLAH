@@ -42,7 +42,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
     nama_biaya: '',
     jumlah_per_bulan: 0,
     jenis: 'tetap' as 'tetap' | 'variabel',
-    group: 'OPERASIONAL' as 'HPP' | 'OPERASIONAL', // Default to OPERASIONAL
+    group: 'operasional' as 'hpp' | 'operasional', // Default to operasional
     status: 'aktif' as 'aktif' | 'nonaktif',
     deskripsi: ''
   });
@@ -71,7 +71,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           nama_biaya: cost.nama_biaya,
           jumlah_per_bulan: cost.jumlah_per_bulan,
           jenis: cost.jenis as 'tetap' | 'variabel',
-          group: cost.group || 'OPERASIONAL', // Include group field
+          group: cost.group || 'operasional', // Include group field
           status: cost.status as 'aktif' | 'nonaktif',
           deskripsi: cost.deskripsi || ''
         });
@@ -81,7 +81,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           nama_biaya: '',
           jumlah_per_bulan: 0,
           jenis: 'tetap',
-          group: 'OPERASIONAL', // Default for new costs
+          group: 'operasional', // Default for new costs
           status: 'aktif',
           deskripsi: ''
         });
@@ -104,7 +104,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
     if (formData.jumlah_per_bulan <= 0) {
       newErrors.jumlah_per_bulan = 'Jumlah harus lebih dari 0';
     } else if (formData.jumlah_per_bulan < 1000) {
-      newErrors.jumlah_per_bulan = 'Jumlah biaya terlalu kecil. Minimal Rp 1.000 untuk pencatatan yang akurat';
+      newErrors.jumlah_per_bulan = 'Jumlah biaya terlalu kecil. Minimal 1.000 untuk pencatatan yang akurat';
     }
 
     if (formData.jumlah_per_bulan > 999999999) {
@@ -266,7 +266,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             </Label>
             <Select
               value={formData.group}
-              onValueChange={(value: 'HPP' | 'OPERASIONAL') => 
+              onValueChange={(value: 'hpp' | 'operasional') => 
                 setFormData(prev => ({ ...prev, group: value }))
               }
               disabled={isSubmitting}
@@ -275,7 +275,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                 <SelectValue placeholder="Pilih kelompok biaya" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="HPP">
+                <SelectItem value="hpp">
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4 text-purple-600" />
                     <div className="flex flex-col">
@@ -284,7 +284,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                     </div>
                   </div>
                 </SelectItem>
-                <SelectItem value="OPERASIONAL">
+                <SelectItem value="operasional">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-blue-600" />
                     <div className="flex flex-col">
@@ -318,7 +318,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                     </p>
                     <Badge 
                       className={`mb-2 ${
-                        suggestion.suggested_group === 'HPP' 
+                        suggestion.suggested_group === 'hpp' 
                           ? 'bg-purple-100 text-purple-800' 
                           : 'bg-blue-100 text-blue-800'
                       }`}

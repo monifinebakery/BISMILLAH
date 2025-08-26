@@ -501,7 +501,7 @@ const parseOpExCosts = (costsJson: any): any[] => {
       
       return {
         nama_biaya: friendlyName,
-        jumlah_per_bulan: Number(c.amount) || 0,
+        jumlah_per_bulan: Number(c.jumlah_per_bulan ?? c.amount) || 0,
         jenis: c.type || 'tetap',
         cost_category: c.category || 'general'
       };

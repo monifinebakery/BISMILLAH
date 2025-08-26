@@ -33,8 +33,20 @@ import {
   generateForecastHelper
 } from '../utils/dashboardHelpers';
 
+// Import efficiency metrics
+import { calculateEfficiencyMetrics, getBenchmarkForBusinessType } from '../utils/efficiencyMetrics';
+import { BusinessType } from '../utils/config/profitConfig';
+
 // Import main components
 import ProfitSummaryCards from './ProfitSummaryCards';
+import EfficiencyMetricsCard from './EfficiencyMetricsCard';
+import IndustryBenchmarkCard from './IndustryBenchmarkCard';
+import RecommendationSystemCard from './RecommendationSystemCard';
+import CashFlowAnalysisCard from './CashFlowAnalysisCard';
+import SeasonalAnalysisCard from './SeasonalAnalysisCard';
+import CostOptimizationCard from './CostOptimizationCard';
+import ProfitabilityAlertsCard from './ProfitabilityAlertsCard';
+import { IngredientCost } from '../utils/costOptimization';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import ProfitAnalysisOnboarding from './ProfitAnalysisOnboarding';
@@ -48,6 +60,135 @@ export interface ProfitDashboardProps {
   defaultPeriod?: string;
   showAdvancedMetrics?: boolean;
 }
+
+// ==============================================
+// HELPER FUNCTIONS
+// ==============================================
+
+const generateSimulatedIngredients = (): IngredientCost[] => {
+  return [
+    {
+      id: 'beef-1',
+      name: 'Daging Sapi Premium',
+      category: 'protein',
+      unitCost: 150000,
+      unitType: 'kg',
+      monthlyUsage: 200,
+      totalMonthlyCost: 30000000,
+      wastePercentage: 8,
+      supplierName: 'Supplier Daging Utama',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'chicken-1',
+      name: 'Ayam Fillet',
+      category: 'protein',
+      unitCost: 45000,
+      unitType: 'kg',
+      monthlyUsage: 500,
+      totalMonthlyCost: 22500000,
+      wastePercentage: 5,
+      supplierName: 'Supplier Ayam Segar',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'rice-1',
+      name: 'Beras Premium',
+      category: 'grains',
+      unitCost: 15000,
+      unitType: 'kg',
+      monthlyUsage: 800,
+      totalMonthlyCost: 12000000,
+      wastePercentage: 2,
+      supplierName: 'Supplier Beras Berkah',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'vegetables-1',
+      name: 'Sayuran Segar Mix',
+      category: 'vegetables',
+      unitCost: 8000,
+      unitType: 'kg',
+      monthlyUsage: 600,
+      totalMonthlyCost: 4800000,
+      wastePercentage: 15,
+      supplierName: 'Supplier Sayur Hijau',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'oil-1',
+      name: 'Minyak Goreng',
+      category: 'other',
+      unitCost: 18000,
+      unitType: 'liter',
+      monthlyUsage: 300,
+      totalMonthlyCost: 5400000,
+      wastePercentage: 3,
+      supplierName: 'Supplier Minyak Sehat',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'spices-1',
+      name: 'Bumbu Dapur',
+      category: 'spices',
+      unitCost: 25000,
+      unitType: 'kg',
+      monthlyUsage: 100,
+      totalMonthlyCost: 2500000,
+      wastePercentage: 10,
+      supplierName: 'Supplier Bumbu Nusantara',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'dairy-1',
+      name: 'Susu dan Keju',
+      category: 'dairy',
+      unitCost: 35000,
+      unitType: 'kg',
+      monthlyUsage: 150,
+      totalMonthlyCost: 5250000,
+      wastePercentage: 12,
+      supplierName: 'Supplier Dairy Fresh',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'beverages-1',
+      name: 'Minuman Base',
+      category: 'beverages',
+      unitCost: 12000,
+      unitType: 'liter',
+      monthlyUsage: 400,
+      totalMonthlyCost: 4800000,
+      wastePercentage: 7,
+      supplierName: 'Supplier Minuman Segar',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'packaging-1',
+      name: 'Kemasan Takeaway',
+      category: 'packaging',
+      unitCost: 2500,
+      unitType: 'piece',
+      monthlyUsage: 2000,
+      totalMonthlyCost: 5000000,
+      wastePercentage: 5,
+      supplierName: 'Supplier Kemasan Eco',
+      lastUpdated: new Date()
+    },
+    {
+      id: 'seafood-1',
+      name: 'Ikan dan Seafood',
+      category: 'protein',
+      unitCost: 80000,
+      unitType: 'kg',
+      monthlyUsage: 180,
+      totalMonthlyCost: 14400000,
+      wastePercentage: 18,
+      supplierName: 'Supplier Seafood Laut',
+      lastUpdated: new Date()
+    }
+  ];
+};
 
 // ==============================================
 // MAIN COMPONENT
@@ -173,6 +314,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
             onRefresh={handleRefresh}
             dateRange={range}
             onDateRangeChange={handleDateRangeChange}
+            onStartOnboarding={() => setShowOnboarding(true)}
           />
       
       {error && (
@@ -214,9 +356,9 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
             <div className="space-y-2">
               <p className="font-medium">Kualitas Data: {validationScore.toFixed(0)}/100</p>
               <div className="text-sm space-y-1">
-                <p>Konsistensi Data: {dataQualityMetrics.dataConsistency.toFixed(1)}%</p>
-                <p>Ketersediaan WAC: {dataQualityMetrics.wacAvailability.toFixed(1)}%</p>
-                <p>Ketersediaan API COGS: {dataQualityMetrics.apiCogsAvailability.toFixed(1)}%</p>
+                <p>Konsistensi Data: {dataQualityMetrics?.dataConsistency && typeof dataQualityMetrics.dataConsistency === 'number' ? dataQualityMetrics.dataConsistency.toFixed(1) : dataQualityMetrics?.dataConsistency || 0}%</p>
+                <p>Ketersediaan WAC: {dataQualityMetrics?.wacAvailability && typeof dataQualityMetrics.wacAvailability === 'number' ? dataQualityMetrics.wacAvailability.toFixed(1) : dataQualityMetrics?.wacAvailability || 0}%</p>
+                <p>Ketersediaan API COGS: {dataQualityMetrics?.apiCogsAvailability && typeof dataQualityMetrics.apiCogsAvailability === 'number' ? dataQualityMetrics.apiCogsAvailability.toFixed(1) : dataQualityMetrics?.apiCogsAvailability || 0}%</p>
               </div>
             </div>
           </AlertDescription>
@@ -228,16 +370,89 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
       </div>
       
       {hasAnyData && (
-        <ProfitSummaryCards
-          currentAnalysis={currentAnalysis}
-          previousAnalysis={previousAnalysis}
-          isLoading={loading}
-          effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
-          labels={{
-            hppLabel: labels?.hppLabel || 'Modal Bahan',
-            hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
-          }}
-        />
+        <>
+          <ProfitSummaryCards
+            currentAnalysis={currentAnalysis}
+            previousAnalysis={previousAnalysis}
+            isLoading={loading}
+            effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
+            labels={{
+              hppLabel: labels?.hppLabel || 'Modal Bahan',
+              hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
+            }}
+          />
+          
+          <EfficiencyMetricsCard
+             metrics={currentAnalysis ? calculateEfficiencyMetrics(
+               currentAnalysis,
+               {
+                 workingDaysPerMonth: 26,
+                 averagePortionsPerDay: Math.max(1, Math.round((currentAnalysis.revenue_data?.total || 0) / 30000)),
+                 totalCustomers: Math.max(1, Math.round((currentAnalysis.revenue_data?.total || 0) / 50000)),
+                 inventoryValue: currentAnalysis.cogs_data?.total || 0,
+                 laborCosts: (currentAnalysis.opex_data?.total || 0) * 0.4,
+                 marketingCosts: (currentAnalysis.opex_data?.total || 0) * 0.1
+               },
+               BusinessType.FNB_RESTAURANT
+             ) : null}
+             businessType={BusinessType.FNB_RESTAURANT}
+             isLoading={loading}
+             className=""
+           />
+           
+           <IndustryBenchmarkCard
+             currentAnalysis={currentAnalysis}
+             businessType={BusinessType.FNB_RESTAURANT}
+             isLoading={loading}
+             className=""
+           />
+           
+           {currentAnalysis && (
+             <RecommendationSystemCard
+               analysis={currentAnalysis}
+               businessType={BusinessType.FNB_RESTAURANT}
+               className=""
+             />
+           )}
+
+           {/* Cash Flow Analysis */}
+           {currentAnalysis && (
+             <CashFlowAnalysisCard 
+               currentAnalysis={currentAnalysis}
+               businessType={BusinessType.FNB_RESTAURANT}
+               additionalData={{
+                 currentCash: 50000000, // Simulasi data cash saat ini
+                 accountsReceivable: 15000000, // Simulasi piutang
+                 inventory: 25000000, // Simulasi inventory
+                 accountsPayable: 20000000 // Simulasi hutang
+               }}
+             />
+           )}
+
+           {/* Seasonal Analysis */}
+          <SeasonalAnalysisCard
+            historicalData={profitHistory}
+            businessType={BusinessType.FNB_RESTAURANT}
+            currentMonth={new Date().getMonth() + 1}
+          />
+
+          {/* Cost Optimization */}
+          <CostOptimizationCard
+            ingredients={generateSimulatedIngredients()}
+            businessType={BusinessType.FNB_RESTAURANT}
+          />
+          
+          {currentAnalysis && (
+            <ProfitabilityAlertsCard
+              currentData={currentAnalysis}
+              historicalData={profitHistory.slice(-6)} // Last 6 periods for historical analysis
+              businessType={BusinessType.FNB_CAFE}
+              onConfigChange={(config) => {
+                console.log('Alert configuration updated:', config);
+              }}
+            />
+          )}
+        </>
       )}
 
       {hasAnyData ? (

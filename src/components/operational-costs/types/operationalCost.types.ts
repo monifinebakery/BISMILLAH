@@ -7,7 +7,7 @@ export interface OperationalCost {
   jumlah_per_bulan: number;
   jenis: 'tetap' | 'variabel';
   status: 'aktif' | 'nonaktif';
-  group: 'HPP' | 'OPERASIONAL'; // New: Dual-mode cost group
+  group: 'hpp' | 'operasional'; // New: Dual-mode cost group
   deskripsi?: string;
   cost_category: 'fixed' | 'variable' | 'other'; // Generated column
   created_at: string;
@@ -28,7 +28,7 @@ export interface CostFormData {
   jumlah_per_bulan: number;
   jenis: 'tetap' | 'variabel';
   status: 'aktif' | 'nonaktif';
-  group: 'HPP' | 'OPERASIONAL'; // New: Dual-mode cost group
+  group: 'hpp' | 'operasional'; // New: Dual-mode cost group
   deskripsi?: string;
   // Note: cost_category is not included as it's a generated column
 }
@@ -54,7 +54,7 @@ export interface CostSummary {
 export interface CostFilters {
   jenis?: 'tetap' | 'variabel';
   status?: 'aktif' | 'nonaktif';
-  group?: 'HPP' | 'OPERASIONAL'; // New: Filter by cost group
+  group?: 'hpp' | 'operasional'; // New: Filter by cost group
   search?: string;
 }
 
@@ -90,12 +90,12 @@ export interface CostListResponse {
 
 export interface DualModeCalculatorData {
   costs: OperationalCost[];
-  selectedGroup: 'HPP' | 'OPERASIONAL';
+  selectedGroup: 'hpp' | 'operasional';
   targetOutputMonthly: number; // Target produksi per bulan
 }
 
 export interface DualModeCalculationResult {
-  group: 'HPP' | 'OPERASIONAL';
+  group: 'hpp' | 'operasional';
   totalCosts: number;
   targetOutput: number;
   costPerUnit: number; // Biaya per pcs
@@ -129,12 +129,12 @@ export interface AppSettingsFormData {
 
 export interface CostClassificationRule {
   keywords: string[];
-  group: 'HPP' | 'OPERASIONAL';
+  group: 'hpp' | 'operasional';
   description: string;
 }
 
 export interface ClassificationSuggestion {
-  suggested_group: 'HPP' | 'OPERASIONAL';
+  suggested_group: 'hpp' | 'operasional';
   confidence: 'high' | 'medium' | 'low';
   reason: string;
   matched_keywords: string[];

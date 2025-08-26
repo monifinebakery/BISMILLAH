@@ -68,12 +68,12 @@ export const OPERASIONAL_KEYWORDS = [
 export const COST_CLASSIFICATION_RULES: CostClassificationRule[] = [
   {
     keywords: HPP_KEYWORDS,
-    group: 'HPP',
+    group: 'hpp',
     description: 'Overhead Pabrik (masuk HPP): Biaya produksi tidak langsung yang terkait dengan proses pembuatan produk'
   },
   {
     keywords: OPERASIONAL_KEYWORDS,
-    group: 'OPERASIONAL',
+    group: 'operasional',
     description: 'Biaya Operasional (di luar HPP): Biaya untuk menjalankan bisnis yang tidak terkait langsung dengan produksi'
   }
 ];
@@ -86,7 +86,7 @@ export const COST_CLASSIFICATION_RULES: CostClassificationRule[] = [
  * Classify cost based on name using keyword matching
  */
 export const classifyCostByKeywords = (costName: string): {
-  suggested_group: 'HPP' | 'OPERASIONAL' | null;
+  suggested_group: 'hpp' | 'operasional' | null;
   confidence: 'high' | 'medium' | 'low';
   reason: string;
   matched_keywords: string[];
@@ -107,7 +107,7 @@ export const classifyCostByKeywords = (costName: string): {
   if (hppMatches.length > operasionalMatches.length) {
     const confidence = hppMatches.length >= 2 ? 'high' : 'medium';
     return {
-      suggested_group: 'HPP',
+      suggested_group: 'hpp',
       confidence,
       reason: `Cocok dengan kata kunci Overhead Pabrik: ${hppMatches.join(', ')}`,
       matched_keywords: hppMatches
@@ -115,7 +115,7 @@ export const classifyCostByKeywords = (costName: string): {
   } else if (operasionalMatches.length > hppMatches.length) {
     const confidence = operasionalMatches.length >= 2 ? 'high' : 'medium';
     return {
-      suggested_group: 'OPERASIONAL',
+      suggested_group: 'operasional',
       confidence,
       reason: `Cocok dengan kata kunci Biaya Operasional: ${operasionalMatches.join(', ')}`,
       matched_keywords: operasionalMatches
@@ -142,10 +142,10 @@ export const classifyCostByKeywords = (costName: string): {
 /**
  * Get user-friendly group labels in Indonesian
  */
-export const getCostGroupLabel = (group: 'HPP' | 'OPERASIONAL'): string => {
+export const getCostGroupLabel = (group: 'hpp' | 'operasional'): string => {
   const labels = {
-    'HPP': 'Overhead Pabrik (masuk HPP)',
-    'OPERASIONAL': 'Biaya Operasional (di luar HPP)'
+    'hpp': 'Overhead Pabrik (masuk HPP)',
+    'operasional': 'Biaya Operasional (di luar HPP)'
   };
   return labels[group];
 };
@@ -153,10 +153,10 @@ export const getCostGroupLabel = (group: 'HPP' | 'OPERASIONAL'): string => {
 /**
  * Get group descriptions for UI tooltips
  */
-export const getCostGroupDescription = (group: 'HPP' | 'OPERASIONAL'): string => {
+export const getCostGroupDescription = (group: 'hpp' | 'operasional'): string => {
   const descriptions = {
-    'HPP': 'Biaya tidak langsung yang terkait dengan proses produksi, seperti gas oven, sewa dapur, dan supervisi produksi. Biaya ini akan ditambahkan ke HPP produk.',
-    'OPERASIONAL': 'Biaya untuk menjalankan operasional bisnis yang tidak terkait langsung dengan produksi, seperti marketing, administrasi, dan marketplace. Biaya ini tidak menambah HPP, tetapi digunakan untuk analisis BEP dan pricing.'
+    'hpp': 'Biaya tidak langsung yang terkait dengan proses produksi, seperti gas oven, sewa dapur, dan supervisi produksi. Biaya ini akan ditambahkan ke HPP produk.',
+    'operasional': 'Biaya untuk menjalankan operasional bisnis yang tidak terkait langsung dengan produksi, seperti marketing, administrasi, dan marketplace. Biaya ini tidak menambah HPP, tetapi digunakan untuk analisis BEP dan pricing.'
   };
   return descriptions[group];
 };

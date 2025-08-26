@@ -99,7 +99,7 @@ const CalculatorTab: React.FC<CalculatorTabProps> = ({
                     >
                       <p className="text-sm">
                         💡 <strong>Data biaya:</strong> {costs.length} item biaya siap dihitung
-                        ({costs.filter(c => c.group === 'HPP').length} HPP + {costs.filter(c => c.group === 'OPERASIONAL').length} Operasional)
+                        ({costs.filter(c => c.group === 'hpp').length} HPP + {costs.filter(c => c.group === 'operasional').length} Operasional)
                       </p>
                     </button>
                   </TooltipTrigger>

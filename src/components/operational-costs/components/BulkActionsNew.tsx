@@ -108,14 +108,14 @@ const BulkActionsNew: React.FC<BulkActionsNewProps> = ({
         <div className="text-xs text-orange-700">
           <span className="font-medium">Ringkasan:</span>
           {' '}
-          {selectedCosts.filter(c => c.group === 'HPP').length > 0 && (
+          {selectedCosts.filter(c => c.group === 'hpp').length > 0 && (
             <span className="mr-3">
-              HPP: {selectedCosts.filter(c => c.group === 'HPP').length} item
+              HPP: {selectedCosts.filter(c => c.group === 'hpp').length} item
             </span>
           )}
-          {selectedCosts.filter(c => c.group === 'OPERASIONAL').length > 0 && (
+          {selectedCosts.filter(c => c.group === 'operasional').length > 0 && (
             <span>
-              Operasional: {selectedCosts.filter(c => c.group === 'OPERASIONAL').length} item
+              Operasional: {selectedCosts.filter(c => c.group === 'operasional').length} item
             </span>
           )}
         </div>

@@ -138,9 +138,17 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onDeleteCategory(category.name)}
+              onClick={() => {
+                console.log('🗑️ Delete button clicked for category:', category.name, {
+                  canDelete: category.canDelete,
+                  isCustom: category.isCustom,
+                  count: category.count
+                });
+                onDeleteCategory(category.name);
+              }}
               disabled={isLoading}
               className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
+              title={`Hapus kategori "${category.name}"`}
             >
               <Trash2 className="h-3 w-3 text-red-600" />
             </Button>

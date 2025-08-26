@@ -125,7 +125,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                 variant={isSelectionMode ? 'default' : 'outline'}
                 onClick={onToggleSelectionMode}
                 className={`flex-1 sm:flex-none ${isSelectionMode ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}`}
-                size="sm"
+                size="default"
               >
                 {isSelectionMode ? (
                   <>
@@ -142,7 +142,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
               <Button
                 onClick={onOpenAddDialog}
                 className="flex-1 sm:flex-none bg-orange-600 hover:bg-orange-700"
-                size="sm"
+                size="default"
               >
                 <Plus className="h-4 w-4 mr-2 flex-shrink-0" />
                 <span className="truncate">Tambah Biaya</span>

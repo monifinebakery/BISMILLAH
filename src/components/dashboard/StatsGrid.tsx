@@ -210,7 +210,7 @@ const StatCard: React.FC<{
 
   const cardContent = (
     <Card className="bg-white border-0 relative group h-full">
-      <CardContent className="p-3 sm:p-4 lg:p-5 h-full relative">
+      <CardContent className="card-stats h-full relative">
         {/* Inset Border Effect */}
         <div className="absolute inset-0 rounded-lg border-2 border-orange-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
         <div className="absolute inset-0 rounded-lg border border-gray-200"></div>
@@ -239,7 +239,7 @@ const StatCard: React.FC<{
           {/* 🏷️ Label - Full width */}
           <div className="mb-2 sm:mb-3">
             <div className="flex items-start gap-1">
-              <div className="text-xs text-gray-500 uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2">
+              <div className="card-label-responsive uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2">
                 {shortLabel || label}
               </div>
               {tooltip && (
@@ -254,7 +254,7 @@ const StatCard: React.FC<{
               <div className="h-6 sm:h-7 lg:h-8 bg-gray-200 animate-pulse rounded w-full"></div>
             ) : (
               <div className="w-full">
-                <p className={`text-base sm:text-lg lg:text-xl font-bold ${valueColor} break-words leading-tight`}>
+                <p className={`card-value-responsive ${valueColor} text-overflow-safe leading-tight`}>
                   {value}
                 </p>
               </div>
@@ -264,7 +264,7 @@ const StatCard: React.FC<{
           {/* 📝 Description */}
           {description && (
             <div className="mt-auto">
-              <p className="text-xs text-gray-500 leading-tight break-words">
+              <p className="card-description-responsive leading-tight break-words">
                 {description}
               </p>
             </div>
@@ -392,7 +392,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-8">
+    <div className="stats-grid-responsive mb-8">
       {statsConfig.map((stat) => (
         <StatCard
           key={stat.key}

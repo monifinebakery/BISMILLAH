@@ -182,5 +182,104 @@
       @apply max-w-4xl p-8;
     }
   }
+  
+  /* Card responsive utilities */
+  .card-responsive {
+    @apply w-full;
+  }
+  
+  .card-stats {
+    @apply p-3 sm:p-4 md:p-5 lg:p-6;
+  }
+  
+  .card-content-responsive {
+    @apply p-3 sm:p-4 md:p-5;
+  }
+  
+  .card-header-responsive {
+    @apply px-3 py-2 sm:px-4 sm:py-3 md:px-5 md:py-4;
+  }
+  
+  /* Card text and number responsive sizing */
+  .card-title-responsive {
+    @apply text-sm sm:text-base md:text-lg font-semibold;
+  }
+  
+  .card-value-responsive {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold;
+  }
+  
+  .card-label-responsive {
+    @apply text-xs sm:text-sm text-gray-600;
+  }
+  
+  .card-description-responsive {
+    @apply text-xs sm:text-sm text-gray-500;
+  }
+  
+  /* Icon sizing in cards */
+  .card-icon-responsive {
+    @apply w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6;
+  }
+  
+  .card-icon-container-responsive {
+    @apply w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center;
+  }
+  
+  /* Stats grid responsive */
+  .stats-grid-responsive {
+    @apply grid gap-3 sm:gap-4 md:gap-5 lg:gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  /* Mobile: 1 column, iPad Portrait: 2 columns, iPad Landscape/Desktop: 3-4 columns */
+  @media (max-width: 640px) {
+    .stats-grid-responsive {
+      @apply grid-cols-1;
+    }
+  }
+  
+  @media (min-width: 641px) and (max-width: 768px) {
+    .stats-grid-responsive {
+      @apply grid-cols-2;
+    }
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .stats-grid-responsive {
+      @apply grid-cols-2;
+    }
+  }
+  
+  @media (min-width: 1025px) {
+    .stats-grid-responsive {
+      @apply grid-cols-4;
+    }
+  }
+  
+  /* Header responsive utilities */
+  .header-responsive {
+    @apply px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5;
+  }
+  
+  .header-title-responsive {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold;
+  }
+  
+  .header-subtitle-responsive {
+    @apply text-sm sm:text-base text-gray-600;
+  }
+  
+  /* Button group responsive */
+  .button-group-responsive {
+    @apply flex flex-wrap gap-2 sm:gap-3 md:gap-4;
+  }
+  
+  /* Prevent number/text overflow in cards */
+  .text-overflow-safe {
+    @apply break-words overflow-hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
 }
 

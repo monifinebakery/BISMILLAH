@@ -120,6 +120,13 @@ logger.perf("App Initialization", appInitTime, {
 if (effectiveDev) {
   // Debug tools temporarily disabled due to build issues
   console.log("Debug tools available in development mode");
+  
+  // Import sample operational costs utility for testing
+  import('@/utils/addSampleOperationalCosts').then(() => {
+    logger.info('🔧 Sample operational costs utility loaded');
+  }).catch((err) => {
+    logger.warn('Failed to load operational costs utility:', err);
+  });
 
   window.appDebug = {
     logger,

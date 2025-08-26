@@ -122,33 +122,33 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
   };
 
   const getProgressColor = () => {
-    if (savingsData.progress >= 100) return 'bg-gray-700';
-    if (savingsData.progress >= 75) return 'bg-gray-600';
-    if (savingsData.progress >= 50) return 'bg-gray-500';
-    return 'bg-gray-400';
+    if (savingsData.progress >= 100) return 'bg-orange-600';
+    if (savingsData.progress >= 75) return 'bg-orange-500';
+    if (savingsData.progress >= 50) return 'bg-orange-400';
+    return 'bg-orange-300';
   };
 
   const getStatusMessage = () => {
     if (savingsData.currentSavings >= savingsData.monthlyTarget) {
       return {
         message: '🎉 Selamat! Target tabungan bulan ini sudah tercapai!',
-        color: 'text-gray-700',
-        bgColor: 'bg-gray-50 border-gray-200'
+        color: 'text-orange-700',
+        bgColor: 'bg-orange-50 border-orange-200'
       };
     }
     
     if (savingsData.isOnTrack) {
       return {
         message: '👍 Bagus! Kamu on track untuk mencapai target bulan ini',
-        color: 'text-gray-700',
-        bgColor: 'bg-gray-50 border-gray-200'
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50 border-orange-200'
       };
     }
     
     return {
       message: '⚠️ Perlu usaha lebih untuk mencapai target bulan ini',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50 border-gray-200'
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50 border-orange-200'
     };
   };
 
@@ -158,10 +158,10 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Target className="h-5 w-5 text-gray-600" />
+          <Target className="h-5 w-5 text-orange-600" />
           Target Nabung Bulan Ini
         </CardTitle>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-orange-600">
           Atur target tabungan dan pantau progress harian
         </p>
       </CardHeader>
@@ -169,7 +169,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
         {/* Target Setting */}
         <div className="bg-gray-50 border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-gray-800">Target Tabungan Bulanan</h4>
+            <h4 className="font-medium text-orange-800">Target Tabungan Bulanan</h4>
             {!isEditingTarget && (
               <Button 
                 variant="outline" 
@@ -184,8 +184,8 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
           </div>
           
           {isEditingTarget ? (
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <div className="flex-1 w-full">
                 <Label htmlFor="target">Target (Rupiah)</Label>
                 <Input
                   id="target"
@@ -196,7 +196,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
                   className="mt-1"
                 />
               </div>
-              <div className="flex gap-1 mt-6">
+              <div className="flex gap-1 mt-2 sm:mt-6">
                 <Button size="sm" onClick={handleSaveTarget}>
                   <Check className="h-4 w-4" />
                 </Button>
@@ -206,7 +206,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
               </div>
             </div>
           ) : (
-            <p className="text-2xl font-bold text-gray-700">
+            <p className="text-2xl font-bold text-orange-700">
               {formatCurrency(monthlyTarget)}
             </p>
           )}
@@ -215,7 +215,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
         {/* Progress */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-800">Progress Bulan Ini</h4>
+            <h4 className="font-medium text-orange-800">Progress Bulan Ini</h4>
             <span className="text-sm text-gray-500">
               {savingsData.progress.toFixed(1)}%
             </span>
@@ -229,9 +229,9 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
             />
           </div>
           
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Terkumpul: {formatCurrency(savingsData.currentSavings)}</span>
-            <span className="text-gray-600">Target: {formatCurrency(monthlyTarget)}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm">
+            <span className="text-orange-600">Terkumpul: {formatCurrency(savingsData.currentSavings)}</span>
+            <span className="text-orange-600">Target: {formatCurrency(monthlyTarget)}</span>
           </div>
         </div>
 
@@ -243,23 +243,23 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
         </div>
 
         {/* Detailed Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-800">Pemasukan</span>
+              <TrendingUp className="h-4 w-4 text-orange-600" />
+              <span className="text-sm font-medium text-orange-800">Pemasukan</span>
             </div>
-            <p className="text-lg font-bold text-gray-700">
+            <p className="text-lg font-bold text-orange-700">
               {formatCurrency(savingsData.monthlyIncome)}
             </p>
           </div>
           
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-gray-600 rotate-180" />
-              <span className="text-sm font-medium text-gray-800">Pengeluaran</span>
+              <TrendingUp className="h-4 w-4 text-orange-600 rotate-180" />
+              <span className="text-sm font-medium text-orange-800">Pengeluaran</span>
             </div>
-            <p className="text-lg font-bold text-gray-700">
+            <p className="text-lg font-bold text-orange-700">
               {formatCurrency(savingsData.monthlyExpense)}
             </p>
           </div>
@@ -269,13 +269,13 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
         {savingsData.currentSavings < monthlyTarget && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Calendar className="h-4 w-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-800">Target Harian Tersisa</span>
+              <Calendar className="h-4 w-4 text-orange-600" />
+              <span className="text-sm font-medium text-orange-800">Target Harian Tersisa</span>
             </div>
-            <p className="text-lg font-bold text-gray-700">
+            <p className="text-lg font-bold text-orange-700">
               {formatCurrency(savingsData.dailyTargetRemaining)}
             </p>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-orange-600 mt-1">
               Untuk {savingsData.remainingDays} hari tersisa bulan ini
             </p>
           </div>
@@ -283,11 +283,11 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
 
         {/* Tips */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
-            <PiggyBank className="h-4 w-4" />
+          <h5 className="font-medium text-orange-800 mb-2 flex items-center gap-2">
+            <PiggyBank className="h-4 w-4 text-orange-600" />
             Tips Mencapai Target Nabung:
           </h5>
-          <ul className="text-sm text-gray-700 space-y-1">
+          <ul className="text-sm text-orange-700 space-y-1">
             <li>• Set target yang realistis (10-20% dari keuntungan)</li>
             <li>• Sisihkan uang tabungan di awal bulan, bukan di akhir</li>
             <li>• Kurangi pengeluaran yang tidak penting</li>

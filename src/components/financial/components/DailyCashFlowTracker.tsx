@@ -108,31 +108,31 @@ const DailyCashFlowTracker: React.FC<DailyCashFlowProps> = ({
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Calendar className="h-5 w-5 text-gray-600" />
+          <Calendar className="h-5 w-5 text-orange-600" />
           Arus Kas 7 Hari Terakhir
         </CardTitle>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-orange-600">
           Lihat uang masuk dan keluar setiap hari dengan mudah
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Ringkasan Total */}
-        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-orange-50 rounded-lg">
           <div className="text-center">
-              <p className="text-xs text-gray-500 mb-1">Total Masuk</p>
-              <p className="font-semibold text-gray-600 text-sm">
+              <p className="text-xs text-orange-500 mb-1">Total Masuk</p>
+              <p className="font-semibold text-orange-600 text-sm">
                 +{formatCurrency(totalMasuk)}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-500 mb-1">Total Keluar</p>
-              <p className="font-semibold text-gray-600 text-sm">
+              <p className="text-xs text-orange-500 mb-1">Total Keluar</p>
+              <p className="font-semibold text-orange-600 text-sm">
                 -{formatCurrency(totalKeluar)}
               </p>
             </div>
           <div className="text-center">
-            <p className="text-xs text-gray-500 mb-1">Selisih</p>
-            <p className="font-bold text-sm text-gray-600">
+            <p className="text-xs text-orange-500 mb-1">Selisih</p>
+            <p className="font-bold text-sm text-orange-600">
               {formatCurrency(totalSaldo)}
             </p>
           </div>
@@ -140,21 +140,21 @@ const DailyCashFlowTracker: React.FC<DailyCashFlowProps> = ({
 
         {/* Data Harian */}
         <div className="space-y-2">
-          <h4 className="font-medium text-sm text-gray-700 mb-3">
+          <h4 className="font-medium text-sm text-orange-700 mb-3">
             Rincian Per Hari:
           </h4>
           {dailyData.map((day, index) => (
             <div 
               key={day.date} 
               className={cn(
-                "flex items-center justify-between p-3 rounded-lg border",
+                "flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border gap-2",
                 index === dailyData.length - 1 ? "bg-gray-50 border-gray-200" : "bg-white"
               )}
             >
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "w-2 h-2 rounded-full",
-                  day.saldo >= 0 ? "bg-gray-600" : "bg-gray-400"
+                  day.saldo >= 0 ? "bg-orange-600" : "bg-orange-400"
                 )} />
                 <div>
                   <p className="font-medium text-sm">{formatDate(day.date)}</p>
@@ -164,26 +164,29 @@ const DailyCashFlowTracker: React.FC<DailyCashFlowProps> = ({
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1 text-gray-600">
-                  <TrendingUp className="h-3 w-3" />
-                  <span className="font-medium">
-                    {day.masuk > 0 ? formatCurrency(day.masuk) : '-'}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm ml-5 sm:ml-0">
+                <div className="flex items-center justify-between sm:justify-start gap-1">
+                  <span className="text-orange-500 text-xs sm:hidden">Masuk:</span>
+                  <span className="font-medium text-orange-600">
+                    {day.masuk > 0 ? '+' + formatCurrency(day.masuk) : '-'}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-1 text-gray-600">
-                  <TrendingDown className="h-3 w-3" />
-                  <span className="font-medium">
-                    {day.keluar > 0 ? formatCurrency(day.keluar) : '-'}
+                <div className="flex items-center justify-between sm:justify-start gap-1">
+                  <span className="text-orange-500 text-xs sm:hidden">Keluar:</span>
+                  <span className="font-medium text-orange-600">
+                    {day.keluar > 0 ? '-' + formatCurrency(day.keluar) : '-'}
                   </span>
                 </div>
                 
-                <div className={cn(
-                  "font-semibold min-w-[80px] text-right",
-                  day.saldo >= 0 ? "text-gray-700" : "text-gray-500"
-                )}>
-                  {formatCurrency(day.saldo)}
+                <div className="flex items-center justify-between sm:justify-start gap-1">
+                  <span className="text-orange-500 text-xs sm:hidden">Saldo:</span>
+                  <div className={cn(
+                    "font-semibold",
+                    day.saldo >= 0 ? "text-orange-700" : "text-orange-500"
+                  )}>
+                    {formatCurrency(day.saldo)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -191,14 +194,14 @@ const DailyCashFlowTracker: React.FC<DailyCashFlowProps> = ({
         </div>
 
         {/* Tips Sederhana */}
-        <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
           <div className="flex items-start gap-2">
-            <DollarSign className="h-4 w-4 text-gray-600 mt-0.5" />
+            <DollarSign className="h-4 w-4 text-orange-600 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-gray-800 mb-1">
+              <p className="text-sm font-medium text-orange-800 mb-1">
                 Tips Arus Kas:
               </p>
-              <p className="text-xs text-gray-700">
+              <p className="text-xs text-orange-700">
                 {totalSaldo >= 0 
                   ? "Bagus! Uang masuk lebih besar dari keluar. Sisihkan sebagian untuk tabungan."
                   : "Hati-hati! Pengeluaran lebih besar dari pemasukan. Coba kurangi pengeluaran yang tidak penting."

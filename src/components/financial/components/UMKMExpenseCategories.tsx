@@ -141,22 +141,22 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5 text-gray-600" />
+          <Calculator className="h-5 w-5 text-orange-600" />
           Pengeluaran Bulan Ini
         </CardTitle>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-orange-600">
           Lihat kemana aja uang keluar bulan ini dan tips hemat
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Total Pengeluaran */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-          <div className="flex items-center justify-between">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <p className="text-xs text-gray-600 font-medium">Total Pengeluaran Bulan Ini</p>
-              <p className="text-lg font-bold text-gray-800">{formatCurrency(totalExpense)}</p>
+              <p className="text-xs text-orange-600 font-medium">Total Pengeluaran Bulan Ini</p>
+              <p className="text-lg font-bold text-orange-800">{formatCurrency(totalExpense)}</p>
             </div>
-            <div className="text-gray-500">
+            <div className="text-orange-500 self-start sm:self-auto">
               <Calculator className="h-6 w-6" />
             </div>
           </div>
@@ -164,10 +164,10 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
 
         {/* Kategori Pengeluaran */}
         <div className="space-y-2">
-          <h4 className="font-medium text-gray-800 text-sm">Rincian Pengeluaran:</h4>
+          <h4 className="font-medium text-orange-800 text-sm">Rincian Pengeluaran:</h4>
           
           {categoryAnalysis.length === 0 ? (
-            <div className="text-center py-6 text-gray-500">
+            <div className="text-center py-6 text-orange-500">
               <Calculator className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">Belum ada pengeluaran bulan ini</p>
               <p className="text-xs">Mulai catat pengeluaran untuk analisis yang lebih baik</p>
@@ -192,7 +192,7 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
                 
                 {/* Progress Bar */}
                 <div className="mb-2">
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  <div className="w-full bg-orange-200 rounded-full h-1.5">
                     <div 
                       className={cn("h-1.5 rounded-full", category.color)}
                       style={{ width: `${Math.min(category.percentage, 100)}%` }}
@@ -201,8 +201,8 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
                 </div>
 
                 {/* Tips - Compact */}
-                <div className="bg-gray-50 border border-gray-100 rounded p-2">
-                  <p className="text-xs text-gray-600">
+                <div className="bg-orange-50 border border-orange-100 rounded p-2">
+                  <p className="text-xs text-orange-600">
                     <span className="font-medium">💡 </span>
                     {category.tips}
                   </p>
@@ -214,16 +214,16 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
           {/* Show more indicator if there are more categories */}
           {categoryAnalysis.length > 5 && (
             <div className="text-center py-2">
-              <p className="text-xs text-gray-500">+{categoryAnalysis.length - 5} kategori lainnya</p>
+              <p className="text-xs text-orange-500">+{categoryAnalysis.length - 5} kategori lainnya</p>
             </div>
           )}
         </div>
 
         {/* Tips Umum - Compact */}
         {categoryAnalysis.length > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-            <h5 className="font-medium text-gray-800 mb-2 text-sm">🎯 Tips Mengatur Pengeluaran:</h5>
-            <ul className="text-xs text-gray-600 space-y-0.5">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <h5 className="font-medium text-orange-800 mb-2 text-sm">🎯 Tips Mengatur Pengeluaran:</h5>
+            <ul className="text-xs text-orange-600 space-y-0.5">
               <li>• Catat semua pengeluaran, sekecil apapun</li>
               <li>• Bandingkan harga supplier sebelum beli bahan</li>
               <li>• Sisihkan 10-20% keuntungan untuk dana darurat</li>

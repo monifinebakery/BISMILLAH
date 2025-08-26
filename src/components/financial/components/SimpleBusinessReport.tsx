@@ -220,10 +220,10 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
 
   const getHealthColor = (health: string) => {
     switch (health) {
-      case 'excellent': return 'text-gray-700 bg-gray-50 border-gray-200';
-      case 'good': return 'text-gray-700 bg-gray-50 border-gray-200';
-      case 'improving': return 'text-gray-700 bg-gray-50 border-gray-200';
-      default: return 'text-gray-700 bg-gray-50 border-gray-200';
+      case 'excellent': return 'text-orange-700 bg-orange-50 border-orange-200';
+      case 'good': return 'text-orange-700 bg-orange-50 border-orange-200';
+      case 'improving': return 'text-orange-700 bg-orange-50 border-orange-200';
+      default: return 'text-orange-700 bg-orange-50 border-orange-200';
     }
   };
 
@@ -240,10 +240,10 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-gray-600" />
+          <BarChart3 className="h-5 w-5 text-orange-600" />
           Gimana Bisnis Bulan Ini?
         </CardTitle>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-orange-600">
           Laporan sederhana dengan insights yang mudah dipahami
         </p>
       </CardHeader>
@@ -258,90 +258,90 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
         </div>
 
         {/* Key Metrics - Compact Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
-              <h4 className="text-xs font-medium text-gray-700">Pendapatan</h4>
-              <DollarSign className="h-3 w-3 text-gray-600" />
+              <h4 className="text-xs font-medium text-orange-700">Pendapatan</h4>
+              <DollarSign className="h-3 w-3 text-orange-600" />
             </div>
-            <p className="text-lg font-bold text-gray-800">
+            <p className="text-lg font-bold text-orange-800">
               {formatCurrency(businessAnalysis.thisMonth.income)}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {businessAnalysis.changes.income > 0 ? (
-                <TrendingUp className="h-3 w-3 text-gray-600" />
+                <TrendingUp className="h-3 w-3 text-orange-600" />
               ) : (
-                <TrendingDown className="h-3 w-3 text-gray-500" />
+                <TrendingDown className="h-3 w-3 text-orange-500" />
               )}
               <span className={cn(
                 "text-xs font-medium",
-                businessAnalysis.changes.income > 0 ? "text-gray-600" : "text-gray-500"
+                businessAnalysis.changes.income > 0 ? "text-orange-600" : "text-orange-500"
               )}>
                 {formatPercentage(businessAnalysis.changes.income)}
               </span>
-              <span className="text-xs text-gray-500">vs bulan lalu</span>
+              <span className="text-xs text-orange-500">vs bulan lalu</span>
             </div>
           </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
-              <h4 className="text-xs font-medium text-gray-700">Pengeluaran</h4>
-              <TrendingDown className="h-3 w-3 text-gray-600" />
+              <h4 className="text-xs font-medium text-orange-700">Pengeluaran</h4>
+              <TrendingDown className="h-3 w-3 text-orange-600" />
             </div>
-            <p className="text-lg font-bold text-gray-800">
+            <p className="text-lg font-bold text-orange-800">
               {formatCurrency(businessAnalysis.thisMonth.expense)}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {businessAnalysis.changes.expense > 0 ? (
-                <TrendingUp className="h-3 w-3 text-gray-500" />
+                <TrendingUp className="h-3 w-3 text-orange-500" />
               ) : (
-                <TrendingDown className="h-3 w-3 text-gray-600" />
+                <TrendingDown className="h-3 w-3 text-orange-600" />
               )}
               <span className={cn(
                 "text-xs font-medium",
-                businessAnalysis.changes.expense > 0 ? "text-gray-500" : "text-gray-600"
+                businessAnalysis.changes.expense > 0 ? "text-orange-500" : "text-orange-600"
               )}>
                 {formatPercentage(businessAnalysis.changes.expense)}
               </span>
-              <span className="text-xs text-gray-500">vs bulan lalu</span>
+              <span className="text-xs text-orange-500">vs bulan lalu</span>
             </div>
           </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
-              <h4 className="text-xs font-medium text-gray-700">
+              <h4 className="text-xs font-medium text-orange-700">
                 {businessAnalysis.thisMonth.profit > 0 ? 'Untung' : 'Rugi'}
               </h4>
-              <Target className="h-3 w-3 text-gray-600" />
+              <Target className="h-3 w-3 text-orange-600" />
             </div>
-            <p className="text-lg font-bold text-gray-800">
+            <p className="text-lg font-bold text-orange-800">
               {formatCurrency(Math.abs(businessAnalysis.thisMonth.profit))}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {businessAnalysis.changes.profit > 0 ? (
-                <TrendingUp className="h-3 w-3 text-gray-600" />
+                <TrendingUp className="h-3 w-3 text-orange-600" />
               ) : (
-                <TrendingDown className="h-3 w-3 text-gray-500" />
+                <TrendingDown className="h-3 w-3 text-orange-500" />
               )}
-              <span className="text-xs font-medium text-gray-600">
+              <span className="text-xs font-medium text-orange-600">
                 {formatPercentage(businessAnalysis.changes.profit)}
               </span>
-              <span className="text-xs text-gray-500">vs bulan lalu</span>
+              <span className="text-xs text-orange-500">vs bulan lalu</span>
             </div>
           </div>
         </div>
 
         {/* Top Expense Categories - Compact */}
         {businessAnalysis.topExpenseCategories.length > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-            <h4 className="font-medium text-gray-800 mb-2 text-sm">Pengeluaran Terbesar:</h4>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <h4 className="font-medium text-orange-800 mb-2 text-sm">Pengeluaran Terbesar:</h4>
             <div className="space-y-1">
               {businessAnalysis.topExpenseCategories.slice(0, 2).map(([category, amount], index) => {
                 const percentage = (amount / businessAnalysis.thisMonth.expense) * 100;
                 return (
                   <div key={category} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold text-white bg-gray-500">
+                      <span className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold text-white bg-orange-500">
                         {index + 1}
                       </span>
                       <span className="text-xs font-medium">{category}</span>
@@ -358,37 +358,37 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
         )}
 
         {/* Daily Average - Compact */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-          <h4 className="font-medium text-gray-800 mb-2 text-sm">Rata-rata Harian (7 hari):</h4>
-          <div className="grid grid-cols-2 gap-3">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <h4 className="font-medium text-orange-800 mb-2 text-sm">Rata-rata Harian (7 hari):</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <p className="text-xs text-gray-600">Pendapatan/hari:</p>
-              <p className="text-sm font-bold text-gray-800">{formatCurrency(businessAnalysis.avgDaily.income)}</p>
+              <p className="text-xs text-orange-600">Pendapatan/hari:</p>
+              <p className="text-sm font-bold text-orange-800">{formatCurrency(businessAnalysis.avgDaily.income)}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-600">Pengeluaran/hari:</p>
-              <p className="text-sm font-bold text-gray-800">{formatCurrency(businessAnalysis.avgDaily.expense)}</p>
+              <p className="text-xs text-orange-600">Pengeluaran/hari:</p>
+              <p className="text-sm font-bold text-orange-800">{formatCurrency(businessAnalysis.avgDaily.expense)}</p>
             </div>
           </div>
         </div>
 
         {/* Insights & Tips - Compact Combined */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-          <h4 className="font-medium text-gray-800 flex items-center gap-2 mb-2 text-sm">
-            <Lightbulb className="h-4 w-4 text-gray-600" />
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <h4 className="font-medium text-orange-800 flex items-center gap-2 mb-2 text-sm">
+            <Lightbulb className="h-4 w-4 text-orange-600" />
             Tips & Rekomendasi:
           </h4>
           
           <div className="space-y-2">
             {businessAnalysis.insights.slice(0, 2).map((insight, index) => (
-              <div key={index} className="bg-white border border-gray-100 rounded p-2">
+              <div key={index} className="bg-white border border-orange-100 rounded p-2">
                 <div className="flex items-start gap-2">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                  <div className="w-1 h-1 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
                   <div>
-                    <h5 className="font-medium text-xs text-gray-700 mb-1">
+                    <h5 className="font-medium text-xs text-orange-700 mb-1">
                       {insight.title}
                     </h5>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-orange-600">
                       {insight.message}
                     </p>
                   </div>
@@ -397,9 +397,9 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
             ))}
             
             {/* Quick Action Tips */}
-            <div className="bg-white border border-gray-100 rounded p-2">
-              <h5 className="font-medium text-xs text-gray-700 mb-1">💡 Aksi Bulan Depan:</h5>
-              <ul className="text-xs text-gray-600 space-y-0.5">
+            <div className="bg-white border border-orange-100 rounded p-2">
+              <h5 className="font-medium text-xs text-orange-700 mb-1">💡 Aksi Bulan Depan:</h5>
+              <ul className="text-xs text-orange-600 space-y-0.5">
                 {businessAnalysis.thisMonth.profit > 0 ? (
                   <>
                     <li>• Pertahankan strategi yang berhasil</li>

@@ -73,7 +73,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSk
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-xl max-w-lg w-full mx-12 sm:mx-16 md:mx-auto max-h-[70vh] overflow-y-auto shadow-xl">
+      <div className="bg-white rounded-xl max-w-lg w-full px-12 sm:px-16 max-h-[70vh] overflow-y-auto shadow-xl">
         <div className="p-6">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

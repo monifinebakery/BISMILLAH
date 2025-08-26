@@ -245,6 +245,42 @@ Pastikan test di:
 - iPad Pro 11" (834x1194) - Menggunakan breakpoint iPad Landscape
 - iPad Pro 12.9" (1024x1366) - Menggunakan breakpoint iPad Landscape
 
+## Sidebar iPad Behavior
+
+### ✅ Default Collapsed di iPad
+Sidebar otomatis dalam mode **collapsed** (icon-only) ketika dibuka di iPad untuk menghemat ruang layar.
+
+### ✅ Overlay Mode
+Ketika sidebar di-expand di iPad:
+- **Tidak menggeser content** utama ke kanan
+- **Muncul sebagai overlay** dengan backdrop blur
+- **Z-index tinggi** (z-60) di atas content
+- **Shadow** untuk visual depth yang lebih baik
+- **Backdrop click** untuk menutup sidebar
+
+### ✅ Auto Detection
+Sistem otomatis mendeteksi iPad berdasarkan:
+- **Screen size**: 641px - 1024px
+- **User agent**: iPad atau MacOS dengan touch
+- **Touch capability**: `ontouchend` detection
+
+### Implementasi Sidebar
+
+```jsx
+// Hook iPad detection
+const { isIPad, shouldUseOverlay, shouldDefaultCollapse } = useIPadSidebar();
+
+// SidebarProvider dengan default collapsed di iPad
+<SidebarProvider defaultOpen={!shouldDefaultCollapse}>
+  <IPadOverlayWrapper>
+    <AppSidebar /> {/* Otomatis overlay mode di iPad */}
+    <SidebarInset className="sidebar-content-no-shift">
+      {/* Content tidak bergeser di iPad */}
+    </SidebarInset>
+  </IPadOverlayWrapper>
+</SidebarProvider>
+```
+
 ## Migrasi Bertahap
 
 Anda bisa mengganti dialog/komponen satu per satu tanpa risiko:
@@ -253,5 +289,14 @@ Anda bisa mengganti dialog/komponen satu per satu tanpa risiko:
 2. **Fase 2**: Ganti dialog kompleks dengan `form-dialog-large` 
 3. **Fase 3**: Gunakan `container-responsive` untuk layout umum
 4. **Fase 4**: Gunakan `responsive-grid` untuk grid layouts
+5. **Fase 5**: Sidebar behavior otomatis aktif untuk iPad
 
 Dengan utilities ini, masalah responsiveness di iPad akan teratasi tanpa merusak komponen yang sudah berfungsi baik di mobile dan desktop.
+
+## Hasil Akhir
+
+✅ **Sidebar**: Default collapsed, overlay mode ketika expanded  
+✅ **Dialogs**: Responsive dengan iPad-specific breakpoints  
+✅ **Cards**: Typography dan spacing optimal di iPad  
+✅ **Headers**: Padding dan sizing yang konsisten  
+✅ **Content**: Tidak pernah tergeser atau terpotong  

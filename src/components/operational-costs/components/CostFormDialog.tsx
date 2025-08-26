@@ -168,7 +168,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+      <DialogContent className="w-full sm:max-w-md max-h-[70vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             {cost ? '✏️ Edit Biaya Operasional' : '➕ Tambah Biaya Operasional'}

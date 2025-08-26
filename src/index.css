@@ -83,7 +83,8 @@
 @layer components {
   /* Universal dialog base - safe for all components */
   .dialog-responsive {
-    @apply w-full max-h-[90vh] overflow-y-auto;
+    @apply mx-12 sm:mx-16 md:mx-auto max-h-[85vh] sm:max-h-[80vh] overflow-auto;
+    padding: 1rem;
   }
   
   /* Global dialog container with better iPad support */
@@ -142,7 +143,9 @@
   
   /* Form dialog with enhanced iPad support */
   .form-dialog {
-    @apply w-full max-w-md mx-6 sm:mx-8 md:mx-auto p-4 rounded-xl shadow-xl;
+    @apply bg-white border border-gray-200 mx-12 sm:mx-16 md:mx-auto rounded-xl shadow-xl;
+    max-width: 500px;
+    width: 100%;
   }
   
   @media (max-width: 640px) {
@@ -165,7 +168,9 @@
   
   /* Large form dialogs for complex forms */
   .form-dialog-large {
-    @apply w-full mx-6 sm:mx-8 md:mx-auto p-4 rounded-xl shadow-xl;
+    @apply bg-white border border-gray-200 mx-12 sm:mx-16 md:mx-auto rounded-xl shadow-xl;
+    max-width: 800px;
+    width: 100%;
   }
   
   @media (max-width: 640px) {

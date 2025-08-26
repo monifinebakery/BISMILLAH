@@ -64,7 +64,7 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
             
             {/* ✅ Mobile Modal - Fixed dimensions and positioning */}
             <div className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] z-50">
-              <div className="bg-gray-900 text-white rounded-xl border border-gray-700 animate-in fade-in-0 zoom-in-95 duration-200 mx-6 sm:mx-8 md:mx-auto shadow-xl">
+              <div className="bg-gray-900 text-white rounded-xl border border-gray-700 animate-in fade-in-0 zoom-in-95 duration-200 mx-12 sm:mx-16 md:mx-auto shadow-xl">
                 {/* ✅ Fixed width container with proper padding */}
                 <div className="w-80 max-w-[90vw] max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
                   {/* ✅ Content area with consistent spacing */}

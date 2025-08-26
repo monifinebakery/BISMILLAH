@@ -179,10 +179,10 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-purple-600" />
+              <Users className="h-5 w-5 text-orange-600" />
               Hutang Piutang
             </CardTitle>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-orange-600">
               Catat siapa yang ngutang dan kapan harus bayar
             </p>
           </div>
@@ -257,7 +257,7 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
                   />
                 </div>
                 
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-col sm:flex-row gap-2 pt-4">
                   <Button type="submit" className="flex-1">Simpan</Button>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
                 </div>
@@ -269,27 +269,27 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
       
       <CardContent className="space-y-6">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-800 mb-1">Total Hutang</h4>
-            <p className="text-xl font-bold text-gray-700">{formatCurrency(debtAnalysis.totalHutang)}</p>
-            <p className="text-xs text-gray-600">Yang harus kita bayar</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-orange-800 mb-1">Total Hutang</h4>
+            <p className="text-xl font-bold text-orange-700">{formatCurrency(debtAnalysis.totalHutang)}</p>
+            <p className="text-xs text-orange-600">Yang harus kita bayar</p>
           </div>
           
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-800 mb-1">Total Piutang</h4>
-            <p className="text-xl font-bold text-gray-700">{formatCurrency(debtAnalysis.totalPiutang)}</p>
-            <p className="text-xs text-gray-600">Yang harus dibayar ke kita</p>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-orange-800 mb-1">Total Piutang</h4>
+            <p className="text-xl font-bold text-orange-700">{formatCurrency(debtAnalysis.totalPiutang)}</p>
+            <p className="text-xs text-orange-600">Yang harus dibayar ke kita</p>
           </div>
           
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-800 mb-1">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-orange-800 mb-1">
               Posisi Bersih
             </h4>
-            <p className="text-xl font-bold text-gray-700">
+            <p className="text-xl font-bold text-orange-700">
               {formatCurrency(Math.abs(debtAnalysis.netPosition))}
             </p>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-orange-600">
               {debtAnalysis.netPosition >= 0 ? "Lebih banyak piutang" : "Lebih banyak hutang"}
             </p>
           </div>
@@ -297,24 +297,24 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
 
         {/* Alerts */}
         {debtAnalysis.overdue.length > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-5 w-5 text-gray-600" />
-              <h4 className="font-medium text-gray-800">Sudah Lewat Jatuh Tempo!</h4>
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <h4 className="font-medium text-orange-800">Sudah Lewat Jatuh Tempo!</h4>
             </div>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-orange-700">
               Ada {debtAnalysis.overdue.length} item yang sudah lewat jatuh tempo. Segera tindak lanjuti!
             </p>
           </div>
         )}
 
         {debtAnalysis.dueSoon.length > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-5 w-5 text-gray-600" />
-              <h4 className="font-medium text-gray-800">Jatuh Tempo Minggu Ini</h4>
+              <Clock className="h-5 w-5 text-orange-600" />
+              <h4 className="font-medium text-orange-800">Jatuh Tempo Minggu Ini</h4>
             </div>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-orange-700">
               Ada {debtAnalysis.dueSoon.length} item yang jatuh tempo dalam 7 hari ke depan.
             </p>
           </div>
@@ -322,10 +322,10 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
 
         {/* Debt List */}
         <div className="space-y-3">
-          <h4 className="font-medium text-gray-800">Daftar Hutang Piutang Aktif:</h4>
+          <h4 className="font-medium text-orange-800">Daftar Hutang Piutang Aktif:</h4>
           
           {debtAnalysis.activeDebts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-orange-500">
               <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>Belum ada data hutang piutang</p>
               <p className="text-sm">Klik tombol "Tambah" untuk mulai mencatat</p>
@@ -336,7 +336,7 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
               
               return (
                 <div key={debt.id} className={cn("border rounded-lg p-4", getStatusColor(debt))}>
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={cn(
@@ -347,24 +347,24 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
                         )}>
                           {debt.type === 'hutang' ? 'Hutang' : 'Piutang'}
                         </span>
-                        <h5 className="font-medium text-gray-800">{debt.name}</h5>
+                        <h5 className="font-medium text-orange-800">{debt.name}</h5>
                       </div>
                       
-                      <p className="text-lg font-bold text-gray-900">{formatCurrency(debt.amount)}</p>
+                      <p className="text-lg font-bold text-orange-900">{formatCurrency(debt.amount)}</p>
                       
                       {debt.description && (
-                        <p className="text-sm text-gray-600 mt-1">{debt.description}</p>
+                        <p className="text-sm text-orange-600 mt-1">{debt.description}</p>
                       )}
                       
-                      <div className="flex items-center gap-4 mt-2 text-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-sm">
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">
+                          <Calendar className="h-4 w-4 text-orange-500" />
+                          <span className="text-orange-600">
                             {formatDate(debt.dueDate)}
                           </span>
                         </div>
                         
-                        <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                        <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700">
                           {daysUntilDue < 0 ? `Telat ${Math.abs(daysUntilDue)} hari` :
                            daysUntilDue === 0 ? 'Jatuh tempo hari ini' :
                            `${daysUntilDue} hari lagi`}
@@ -372,11 +372,11 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
                       </div>
                     </div>
                     
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex flex-col sm:flex-row gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0">
                       <Button
                         size="sm"
                         onClick={() => markAsPaid(debt.id)}
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-1 w-full sm:w-auto"
                       >
                         <CheckCircle className="h-4 w-4" />
                         Lunas
@@ -385,7 +385,7 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
                         size="sm"
                         variant="outline"
                         onClick={() => deleteDebt(debt.id)}
-                        className="flex items-center gap-1 text-gray-600 hover:text-gray-700"
+                        className="flex items-center gap-1 text-orange-600 hover:text-orange-700 w-full sm:w-auto"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -398,9 +398,9 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
         </div>
 
         {/* Tips */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <h5 className="font-medium text-gray-800 mb-2">💡 Tips Kelola Hutang Piutang:</h5>
-          <ul className="text-sm text-gray-700 space-y-1">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <h5 className="font-medium text-orange-800 mb-2">💡 Tips Kelola Hutang Piutang:</h5>
+          <ul className="text-sm text-orange-700 space-y-1">
             <li>• Catat semua hutang piutang, jangan andalkan ingatan</li>
             <li>• Set reminder sebelum jatuh tempo</li>
             <li>• Untuk piutang, follow up secara sopan tapi tegas</li>

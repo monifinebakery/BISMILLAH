@@ -144,74 +144,59 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
     <Card className={cn("w-full", className)}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Calendar className="h-5 w-5 text-blue-600" />
+          <Calendar className="h-5 w-5 text-gray-600" />
           Ringkasan Hari Ini
         </CardTitle>
         <p className="text-sm text-gray-600">{currentDate}</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Status Saldo Hari Ini */}
-        <div className={cn(
-          "p-4 rounded-lg text-center",
-          saldoStatus.color === 'green' ? 'bg-green-50 border border-green-200' :
-          saldoStatus.color === 'red' ? 'bg-red-50 border border-red-200' :
-          'bg-gray-50 border border-gray-200'
-        )}>
+        <div className="p-4 rounded-lg text-center bg-gray-50 border border-gray-200">
           <div className="text-2xl mb-2">{saldoStatus.icon}</div>
-          <h3 className={cn(
-            "font-semibold text-lg mb-1",
-            saldoStatus.color === 'green' ? 'text-green-800' :
-            saldoStatus.color === 'red' ? 'text-red-800' :
-            'text-gray-800'
-          )}>
+          <h3 className="font-semibold text-lg mb-1 text-gray-800">
             {saldoStatus.message}
           </h3>
-          <p className={cn(
-            "text-2xl font-bold",
-            saldoStatus.color === 'green' ? 'text-green-600' :
-            saldoStatus.color === 'red' ? 'text-red-600' :
-            'text-gray-600'
-          )}>
+          <p className="text-2xl font-bold text-gray-600">
             {formatCurrency(Math.abs(todayData.saldo))}
           </p>
         </div>
 
         {/* Rincian Uang Masuk & Keluar */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <ArrowUp className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-800">
+              <ArrowUp className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-800">
                 Uang Masuk
               </span>
             </div>
-            <p className="text-lg font-bold text-green-600">
+            <p className="text-lg font-bold text-gray-600">
               {formatCurrency(todayData.masuk)}
             </p>
           </div>
           
-          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <ArrowDown className="h-4 w-4 text-red-600" />
-              <span className="text-sm font-medium text-red-800">
+              <ArrowDown className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-800">
                 Uang Keluar
               </span>
             </div>
-            <p className="text-lg font-bold text-red-600">
+            <p className="text-lg font-bold text-gray-600">
               {formatCurrency(todayData.keluar)}
             </p>
           </div>
         </div>
 
         {/* Info Transaksi */}
-        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">
+            <Wallet className="h-4 w-4 text-gray-600" />
+            <span className="text-sm font-medium text-gray-800">
               Total Transaksi Hari Ini
             </span>
           </div>
-          <span className="text-lg font-bold text-blue-600">
+          <span className="text-lg font-bold text-gray-600">
             {todayData.jumlahTransaksi}
           </span>
         </div>
@@ -234,12 +219,7 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
                   {formatTime(todayData.transaksiTerakhir.date)}
                 </p>
               </div>
-              <p className={cn(
-                "font-semibold",
-                todayData.transaksiTerakhir.type === 'income' 
-                  ? 'text-green-600' 
-                  : 'text-red-600'
-              )}>
+              <p className="font-semibold text-gray-600">
                 {todayData.transaksiTerakhir.type === 'income' ? '+' : '-'}
                 {formatCurrency(todayData.transaksiTerakhir.amount)}
               </p>
@@ -248,8 +228,8 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
         )}
 
         {/* Pesan Motivasi */}
-        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800 text-center font-medium">
+        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-sm text-gray-800 text-center font-medium">
             {getMotivationalMessage()}
           </p>
         </div>

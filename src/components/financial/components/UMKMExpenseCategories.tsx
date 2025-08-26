@@ -141,7 +141,7 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5 text-blue-600" />
+          <Calculator className="h-5 w-5 text-gray-600" />
           Pengeluaran Bulan Ini
         </CardTitle>
         <p className="text-sm text-gray-600">

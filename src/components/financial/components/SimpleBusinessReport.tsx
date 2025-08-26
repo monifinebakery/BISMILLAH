@@ -220,10 +220,10 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
 
   const getHealthColor = (health: string) => {
     switch (health) {
-      case 'excellent': return 'text-green-700 bg-green-50 border-green-200';
-      case 'good': return 'text-blue-700 bg-blue-50 border-blue-200';
-      case 'improving': return 'text-yellow-700 bg-yellow-50 border-yellow-200';
-      default: return 'text-red-700 bg-red-50 border-red-200';
+      case 'excellent': return 'text-gray-700 bg-gray-50 border-gray-200';
+      case 'good': return 'text-gray-700 bg-gray-50 border-gray-200';
+      case 'improving': return 'text-gray-700 bg-gray-50 border-gray-200';
+      default: return 'text-gray-700 bg-gray-50 border-gray-200';
     }
   };
 
@@ -240,7 +240,7 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-blue-600" />
+          <BarChart3 className="h-5 w-5 text-gray-600" />
           Gimana Bisnis Bulan Ini?
         </CardTitle>
         <p className="text-sm text-gray-600">

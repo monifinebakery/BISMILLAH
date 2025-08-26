@@ -61,7 +61,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
   const [targetOutput, setTargetOutput] = useState<number>(
     currentSettings?.target_output_monthly || 3000
   );
-  const [selectedGroup, setSelectedGroup] = useState<'HPP' | 'OPERASIONAL'>('HPP');
+  const [selectedGroup, setSelectedGroup] = useState<'hpp' | 'operasional'>('hpp');
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isFetchingProduction, setIsFetchingProduction] = useState(false);
@@ -89,11 +89,11 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
 
   // Group summaries
   const hppCosts = useMemo(() => 
-    costs.filter(c => c.group === 'HPP' && c.status === 'aktif'), [costs]
+    costs.filter(c => c.group === 'hpp' && c.status === 'aktif'), [costs]
   );
   
   const operasionalCosts = useMemo(() => 
-    costs.filter(c => c.group === 'OPERASIONAL' && c.status === 'aktif'), [costs]
+    costs.filter(c => c.group === 'operasional' && c.status === 'aktif'), [costs]
   );
 
   // Handle calculation trigger
@@ -102,7 +102,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
     
     try {
       // Validate inputs
-      const validation = validateDualModeInputs(targetOutput, 0, 'Calculator');
+      const validation = validateDualModeInputs(targetOutput, undefined, 'Calculator');
       if (!validation.isValid) {
         toast.error('Input tidak valid', {
           description: validation.errors.join(', ')
@@ -211,8 +211,8 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
   };
 
   // Get current group result
-  const currentResult = selectedGroup === 'HPP' ? results.hpp : results.operasional;
-  const currentCosts = selectedGroup === 'HPP' ? hppCosts : operasionalCosts;
+  const currentResult = selectedGroup === 'hpp' ? results.hpp : results.operasional;
+  const currentCosts = selectedGroup === 'hpp' ? hppCosts : operasionalCosts;
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -296,19 +296,17 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
             <Label className="text-sm font-medium">Pilih Kelompok Biaya</Label>
             <div className="flex gap-2">
               <Button
-                variant={selectedGroup === 'HPP' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedGroup('HPP')}
-                className="flex items-center gap-2"
+                  variant={selectedGroup === 'hpp' ? 'default' : 'outline'}
+                  className="flex-1 flex items-center gap-2"
+                  onClick={() => setSelectedGroup('hpp')}
               >
                 <Package className="h-4 w-4" />
                 Overhead Pabrik ({hppCosts.length})
               </Button>
               <Button
-                variant={selectedGroup === 'OPERASIONAL' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedGroup('OPERASIONAL')}
-                className="flex items-center gap-2"
+                  variant={selectedGroup === 'operasional' ? 'default' : 'outline'}
+                  className="flex-1 flex items-center gap-2"
+                  onClick={() => setSelectedGroup('operasional')}
               >
                 <TrendingUp className="h-4 w-4" />
                 Operasional ({operasionalCosts.length})
@@ -345,7 +343,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-green-600" />
-              Ringkasan {selectedGroup === 'HPP' ? 'Overhead Pabrik' : 'Biaya Operasional'}
+              Ringkasan {selectedGroup === 'hpp' ? 'Overhead Pabrik' : 'Biaya Operasional'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -528,7 +526,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Belum ada biaya {selectedGroup === 'HPP' ? 'Overhead Pabrik' : 'Operasional'} yang aktif. 
+            Belum ada biaya {selectedGroup === 'hpp' ? 'Overhead Pabrik' : 'Operasional'} yang aktif. 
             Tambahkan biaya terlebih dahulu untuk melakukan kalkulasi.
           </AlertDescription>
         </Alert>

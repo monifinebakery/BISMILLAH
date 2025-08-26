@@ -9,14 +9,8 @@ import { useRecipe } from '@/contexts/RecipeContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { filterByDateRange, calculateGrossRevenue } from '@/components/financial/utils/financialCalculations';
 
-  // ✅ NEW: Import Profit Analysis functionality for real data sync (removed unused calculateMargins for consistency)
-import { useProfitAnalysis } from '@/components/profitAnalysis/hooks/useProfitAnalysis';
 import { formatCurrency } from '@/utils/formatUtils';
 import { logger } from '@/utils/logger';
-// ✅ ENHANCED: Ensure all dependencies are imported properly
-import type { ProfitAnalysis } from '@/components/profitAnalysis/types/profitAnalysis.types';
-// 🔍 DEBUG: Import debug utilities
-import { debugProfitIntegration } from '@/utils/debugProfitIntegration';
 
 interface DateRange {
   from: string;
@@ -132,29 +126,19 @@ export const useDashboardData = (dateRange: DateRange) => {
   const { recipes = [] } = useRecipe() || {};
   const { settings = {} } = useUserSettings() || {};
 
-  // ✅ NEW: Profit Analysis Hook for accurate data sync
+  // Manual calculation without useProfitAnalysis to avoid duplicate WAC refresh
   const currentPeriod = dateRangeToPeriod(dateRange);
-  const {
-    currentAnalysis,
-    profitMetrics,
-    loading: profitLoading,
-    error: profitError,
-    labels,
-    refreshAnalysis
-  } = useProfitAnalysis({
-    defaultPeriod: currentPeriod,
-    enableWAC: true,
-    autoCalculate: true
-  });
+  const profitLoading = false;
+  const profitError = null;
 
   // ⏳ Loading State Management
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
-      setIsLoading(activitiesLoading || profitLoading);
+      setIsLoading(activitiesLoading);
     }, 500);
 
     return () => clearTimeout(loadingTimeout);
-  }, [activitiesLoading, profitLoading]);
+  }, [activitiesLoading]);
 
   // 📅 Previous Period Calculation
   const previousPeriod = useMemo(() => {
@@ -283,73 +267,12 @@ export const useDashboardData = (dateRange: DateRange) => {
       const ordersCount = filteredOrders.length;
       
       // ✅ NEW: Use profit analysis data if available and current, otherwise fallback to estimate
-      let profit = 0;
-      let isFromProfitAnalysis = false;
-      let profitAnalysisSync = undefined;
+      // Simple profit estimation (30% of revenue)
+      const profit = revenue * 0.3;
+      const isFromProfitAnalysis = false;
+      const profitAnalysisSync = undefined;
       
-      if (currentAnalysis && profitMetrics && currentAnalysis.period === currentPeriod) {
-        // Use accurate profit from profit analysis
-        profit = profitMetrics.netProfit;
-        isFromProfitAnalysis = true;
-        
-        // ✅ IMPROVED: More accurate COGS source detection
-        const cogsSource: 'wac' | 'inventory' | 'estimated' = 
-          profitMetrics.totalHPP > 0 ? 'wac' : 
-          (profitMetrics.cogs > 0 && profitMetrics.cogs <= revenue * 0.8) ? 'inventory' : 
-          'estimated';
-        
-        profitAnalysisSync = {
-          currentPeriod: currentAnalysis.period,
-          lastSynced: new Date(),
-          grossMargin: profitMetrics.grossMargin,
-          netMargin: profitMetrics.netMargin,
-          cogsSource,
-          // ✅ ADD: Additional sync quality indicators with proper typing
-          isAccurate: cogsSource !== 'estimated',
-          dataQuality: (cogsSource === 'wac' ? 'high' : cogsSource === 'inventory' ? 'medium' : 'low') as 'high' | 'medium' | 'low'
-        };
-        
-        logger.info('📊 Dashboard using Profit Analysis data:', {
-          revenue: profitMetrics.revenue,
-          profit: profitMetrics.netProfit,
-          grossMargin: profitMetrics.grossMargin,
-          cogsSource,
-          dataQuality: profitAnalysisSync.dataQuality
-        });
-        
-        // 🔍 DEBUG: Log integration details
-        debugProfitIntegration({
-          timestamp: new Date(),
-          period: currentPeriod,
-          revenue,
-          profit,
-          isFromProfitAnalysis: true,
-          cogsSource,
-          margins: {
-            gross: profitMetrics.grossMargin,
-            net: profitMetrics.netMargin
-          },
-          rawData: {
-            cogs: profitMetrics.cogs,
-            opex: profitMetrics.opex,
-            totalHPP: profitMetrics.totalHPP
-          }
-        });
-      } else {
-        // Fallback to simple estimation
-        profit = revenue * 0.3;
-        logger.warn('📊 Dashboard using estimated profit (30%)', { revenue, profit });
-        
-        // 🔍 DEBUG: Log fallback usage
-        debugProfitIntegration({
-          timestamp: new Date(),
-          period: currentPeriod,
-          revenue,
-          profit,
-          isFromProfitAnalysis: false,
-          cogsSource: 'estimated'
-        });
-      }
+      logger.info('📊 Dashboard using estimated profit (30%)', { revenue, profit });
 
       return {
         revenue,
@@ -369,7 +292,7 @@ export const useDashboardData = (dateRange: DateRange) => {
         isFromProfitAnalysis: false
       };
     }
-  }, [currentData, currentMostUsedIngredient, currentAnalysis, profitMetrics, currentPeriod]);
+  }, [currentData, currentMostUsedIngredient, currentPeriod]);
 
   // 📊 Previous Stats Calculation (using simple estimation for comparison)
   const previousStats = useMemo(() => {
@@ -428,13 +351,8 @@ export const useDashboardData = (dateRange: DateRange) => {
 
   // ✅ NEW: Sync function to refresh profit analysis data
   const syncWithProfitAnalysis = useCallback(async () => {
-    try {
-      logger.info('🔄 Syncing dashboard with profit analysis...');
-      await refreshAnalysis();
-    } catch (err) {
-      logger.error('❌ Dashboard sync with profit analysis failed:', err);
-    }
-  }, [refreshAnalysis]);
+    logger.info('🔄 Dashboard sync placeholder (profit analysis removed)');
+  }, []);
 
   // 🏆 Best Selling Products
   const bestSellingProducts: ProductSale[] = useMemo(() => {
@@ -533,9 +451,6 @@ export const useDashboardData = (dateRange: DateRange) => {
     error: combinedError,
     
     // ✅ NEW: Profit analysis integration
-    profitAnalysisData: currentAnalysis,
-    profitMetrics,
-    labels,
     syncWithProfitAnalysis,
     
     // Raw data (for components that need it)

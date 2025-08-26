@@ -2,7 +2,7 @@
 // 🧪 Comprehensive Dual-Mode System Tests (Revision 9)
 // Tests using example data to verify all calculations work correctly
 
-import { describe, it, expect, beforeEach } from 'vitest';
+// Testing functions are available globally
 import {
   calculateDualModeCosts,
   calculateCostPerUnit,
@@ -41,7 +41,7 @@ const EXAMPLE_DATA = {
       jumlah_per_bulan: 690000,
       jenis: 'tetap' as const,
       status: 'aktif' as const,
-      group: 'HPP' as const,
+      group: 'hpp' as const,
       cost_category: 'fixed' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -53,7 +53,7 @@ const EXAMPLE_DATA = {
       jumlah_per_bulan: 1500000,
       jenis: 'tetap' as const,
       status: 'aktif' as const,
-      group: 'HPP' as const,
+      group: 'hpp' as const,
       cost_category: 'fixed' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -69,7 +69,7 @@ const EXAMPLE_DATA = {
       jumlah_per_bulan: 4000000,
       jenis: 'variabel' as const,
       status: 'aktif' as const,
-      group: 'OPERASIONAL' as const,
+      group: 'operasional' as const,
       cost_category: 'variable' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -100,11 +100,11 @@ describe('Dual-Mode Cost Calculations', () => {
     it('should calculate HPP group cost per unit correctly', () => {
       const result = calculateCostPerUnit(
         EXAMPLE_DATA.overheadCosts,
-        'HPP',
+        'hpp',
         EXAMPLE_DATA.targetOutput
       );
       
-      expect(result.group).toBe('HPP');
+      expect(result.group).toBe('hpp');
       expect(result.totalCosts).toBe(2190000); // 690000 + 1500000
       expect(result.targetOutput).toBe(3000);
       expect(result.costPerUnit).toBe(730); // 2190000 / 3000
@@ -115,11 +115,11 @@ describe('Dual-Mode Cost Calculations', () => {
     it('should calculate Operasional group cost per unit correctly', () => {
       const result = calculateCostPerUnit(
         EXAMPLE_DATA.operasionalCosts,
-        'OPERASIONAL',
+        'operasional',
         EXAMPLE_DATA.targetOutput
       );
       
-      expect(result.group).toBe('OPERASIONAL');
+      expect(result.group).toBe('operasional');
       expect(result.totalCosts).toBe(4000000);
       expect(result.targetOutput).toBe(3000);
       expect(result.costPerUnit).toBe(1333); // 4000000 / 3000, rounded
@@ -129,19 +129,19 @@ describe('Dual-Mode Cost Calculations', () => {
     it('should handle invalid target output', () => {
       const result = calculateCostPerUnit(
         EXAMPLE_DATA.overheadCosts,
-        'HPP',
+        'hpp',
         0 // Invalid target output
       );
       
       expect(result.isValid).toBe(false);
-      expect(result.validationErrors).toContain('Target produksi harus lebih dari 0');
+      expect(result.validationErrors).toContain('Target produksi harus lebih dari 0 pcs');
       expect(result.costPerUnit).toBe(0);
     });
     
     it('should handle empty cost list', () => {
       const result = calculateCostPerUnit(
         [],
-        'HPP',
+        'hpp',
         EXAMPLE_DATA.targetOutput
       );
       
@@ -227,18 +227,18 @@ describe('Cost Classification', () => {
   describe('classifyCostByKeywords', () => {
     it('should classify overhead costs correctly', () => {
       const gasOvenResult = classifyCostByKeywords('Gas Oven');
-      expect(gasOvenResult.suggested_group).toBe('HPP');
+      expect(gasOvenResult.suggested_group).toBe('hpp');
       expect(gasOvenResult.confidence).toBe('medium');
       expect(gasOvenResult.matched_keywords).toContain('oven');
       
       const sewaDapurResult = classifyCostByKeywords('Sewa Dapur');
-      expect(sewaDapurResult.suggested_group).toBe('HPP');
+      expect(sewaDapurResult.suggested_group).toBe('hpp');
       expect(sewaDapurResult.matched_keywords).toContain('sewa dapur');
     });
     
     it('should classify operational costs correctly', () => {
       const marketingResult = classifyCostByKeywords('Marketing');
-      expect(marketingResult.suggested_group).toBe('OPERASIONAL');
+      expect(marketingResult.suggested_group).toBe('operasional');
       expect(marketingResult.confidence).toBe('medium');
       expect(marketingResult.matched_keywords).toContain('marketing');
     });
@@ -259,8 +259,8 @@ describe('Cost Classification', () => {
   
   describe('getCostGroupLabel', () => {
     it('should return correct Indonesian labels', () => {
-      expect(getCostGroupLabel('HPP')).toBe('Overhead Pabrik (masuk HPP)');
-      expect(getCostGroupLabel('OPERASIONAL')).toBe('Biaya Operasional (di luar HPP)');
+      expect(getCostGroupLabel('hpp')).toBe('Overhead Pabrik (masuk HPP)');
+      expect(getCostGroupLabel('operasional')).toBe('Biaya Operasional (di luar HPP)');
     });
   });
 });
@@ -281,7 +281,7 @@ describe('Validation System', () => {
     it('should reject zero or negative values', () => {
       const zeroResult = validateTargetOutput(0);
       expect(zeroResult.isValid).toBe(false);
-      expect(zeroResult.errors[0]).toContain('Target produksi harus lebih dari 0');
+      expect(zeroResult.errors[0]).toContain('Target produksi tidak boleh 0 pcs');
       
       const negativeResult = validateTargetOutput(-100);
       expect(negativeResult.isValid).toBe(false);
@@ -302,7 +302,7 @@ describe('Validation System', () => {
     it('should reject amounts below minimum', () => {
       const result = validateMonthlyAmount(500);
       expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('minimal Rp 1.000');
+      expect(result.errors[0]).toContain('minimal 1.000');
     });
   });
   
@@ -312,7 +312,7 @@ describe('Validation System', () => {
         nama_biaya: 'Gas Oven',
         jumlah_per_bulan: 500000,
         jenis: 'tetap',
-        group: 'HPP'
+        group: 'hpp'
       };
       
       const result = validateCostForm(validData);
@@ -397,15 +397,15 @@ describe('System Integration', () => {
     const gasClassification = classifyCostByKeywords('Gas Oven');
     const marketingClassification = classifyCostByKeywords('Marketing');
     
-    expect(gasClassification.suggested_group).toBe('HPP');
-    expect(marketingClassification.suggested_group).toBe('OPERASIONAL');
+    expect(gasClassification.suggested_group).toBe('hpp');
+    expect(marketingClassification.suggested_group).toBe('operasional');
     
     // 2. Validate costs
     const gasValidation = validateCostForm({
       nama_biaya: 'Gas Oven',
       jumlah_per_bulan: 690000,
       jenis: 'tetap',
-      group: 'HPP'
+      group: 'hpp'
     });
     
     expect(gasValidation.isValid).toBe(true);
@@ -437,13 +437,13 @@ describe('System Integration', () => {
 describe('Error Handling', () => {
   
   it('should handle division by zero gracefully', () => {
-    const result = calculateCostPerUnit(EXAMPLE_DATA.overheadCosts, 'HPP', 0);
+    const result = calculateCostPerUnit(EXAMPLE_DATA.overheadCosts, 'hpp', 0);
     expect(result.isValid).toBe(false);
     expect(result.costPerUnit).toBe(0);
   });
   
   it('should handle empty cost arrays', () => {
-    const result = calculateCostPerUnit([], 'HPP', 3000);
+    const result = calculateCostPerUnit([], 'hpp', 3000);
     expect(result.totalCosts).toBe(0);
     expect(result.costPerUnit).toBe(0);
   });
@@ -455,7 +455,7 @@ describe('Error Handling', () => {
     }];
     
     // Should filter out invalid costs or handle gracefully
-    const result = calculateCostPerUnit(invalidCosts, 'HPP', 3000);
+    const result = calculateCostPerUnit(invalidCosts, 'hpp', 3000);
     expect(result.totalCosts).toBe(0); // Should exclude negative amounts
   });
 });

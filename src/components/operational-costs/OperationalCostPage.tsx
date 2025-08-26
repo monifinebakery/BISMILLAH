@@ -178,25 +178,25 @@ const OperationalCostContent: React.FC = () => {
   const handleQuickSetup = async (type: 'bakery' | 'restaurant' | 'cafe') => {
     const costTemplates = {
       bakery: [
-        { nama_biaya: 'Gas Oven', jumlah_per_bulan: 500000, jenis: 'tetap' as const, group: 'HPP' as const },
-        { nama_biaya: 'Listrik Oven', jumlah_per_bulan: 300000, jenis: 'tetap' as const, group: 'HPP' as const },
-        { nama_biaya: 'Sewa Dapur', jumlah_per_bulan: 1000000, jenis: 'tetap' as const, group: 'HPP' as const },
-        { nama_biaya: 'Marketing', jumlah_per_bulan: 2000000, jenis: 'variabel' as const, group: 'OPERASIONAL' as const },
-        { nama_biaya: 'Admin/Kasir', jumlah_per_bulan: 1500000, jenis: 'tetap' as const, group: 'OPERASIONAL' as const }
+        { nama_biaya: 'Gas Oven', jumlah_per_bulan: 500000, jenis: 'tetap' as const, group: 'hpp' as const },
+    { nama_biaya: 'Listrik Oven', jumlah_per_bulan: 300000, jenis: 'tetap' as const, group: 'hpp' as const },
+    { nama_biaya: 'Sewa Dapur', jumlah_per_bulan: 1000000, jenis: 'tetap' as const, group: 'hpp' as const },
+    { nama_biaya: 'Marketing', jumlah_per_bulan: 2000000, jenis: 'variabel' as const, group: 'operasional' as const },
+    { nama_biaya: 'Admin/Kasir', jumlah_per_bulan: 1500000, jenis: 'tetap' as const, group: 'operasional' as const }
       ],
       restaurant: [
-        { nama_biaya: 'Gas Kompor', jumlah_per_bulan: 400000, jenis: 'tetap' as const, group: 'HPP' as const },
-        { nama_biaya: 'Sewa Dapur', jumlah_per_bulan: 1500000, jenis: 'tetap' as const, group: 'HPP' as const },
-        { nama_biaya: 'Gaji Koki', jumlah_per_bulan: 3000000, jenis: 'tetap' as const, group: 'HPP' as const },
-        { nama_biaya: 'Marketing', jumlah_per_bulan: 3000000, jenis: 'variabel' as const, group: 'OPERASIONAL' as const },
-        { nama_biaya: 'Internet & Listrik Toko', jumlah_per_bulan: 500000, jenis: 'tetap' as const, group: 'OPERASIONAL' as const }
+        { nama_biaya: 'Gas Kompor', jumlah_per_bulan: 400000, jenis: 'tetap' as const, group: 'hpp' as const },
+    { nama_biaya: 'Sewa Dapur', jumlah_per_bulan: 1500000, jenis: 'tetap' as const, group: 'hpp' as const },
+    { nama_biaya: 'Gaji Koki', jumlah_per_bulan: 3000000, jenis: 'tetap' as const, group: 'hpp' as const },
+    { nama_biaya: 'Marketing', jumlah_per_bulan: 3000000, jenis: 'variabel' as const, group: 'operasional' as const },
+    { nama_biaya: 'Internet & Listrik Toko', jumlah_per_bulan: 500000, jenis: 'tetap' as const, group: 'operasional' as const }
       ],
       cafe: [
-        { nama_biaya: 'Listrik Coffee Machine', jumlah_per_bulan: 200000, jenis: 'tetap' as const, group: 'HPP' as const },
-        { nama_biaya: 'Sewa Tempat', jumlah_per_bulan: 2000000, jenis: 'tetap' as const, group: 'OPERASIONAL' as const },
-        { nama_biaya: 'Gaji Barista', jumlah_per_bulan: 2500000, jenis: 'tetap' as const, group: 'HPP' as const },
-        { nama_biaya: 'Marketing & Promo', jumlah_per_bulan: 1500000, jenis: 'variabel' as const, group: 'OPERASIONAL' as const },
-        { nama_biaya: 'Internet & Musik', jumlah_per_bulan: 300000, jenis: 'tetap' as const, group: 'OPERASIONAL' as const }
+        { nama_biaya: 'Listrik Coffee Machine', jumlah_per_bulan: 200000, jenis: 'tetap' as const, group: 'hpp' as const },
+    { nama_biaya: 'Sewa Tempat', jumlah_per_bulan: 2000000, jenis: 'tetap' as const, group: 'operasional' as const },
+    { nama_biaya: 'Gaji Barista', jumlah_per_bulan: 2500000, jenis: 'tetap' as const, group: 'hpp' as const },
+    { nama_biaya: 'Marketing & Promo', jumlah_per_bulan: 1500000, jenis: 'variabel' as const, group: 'operasional' as const },
+    { nama_biaya: 'Internet & Musik', jumlah_per_bulan: 300000, jenis: 'tetap' as const, group: 'operasional' as const }
       ]
     };
 
@@ -302,8 +302,8 @@ const OperationalCostContent: React.FC = () => {
             <CostManagementTab
               costs={state.costs}
               totalMonthlyCosts={totalMonthlyCosts}
-              hppCosts={state.costs.filter(c => c.group === 'HPP' && c.status === 'aktif').reduce((sum, c) => sum + c.jumlah_per_bulan, 0)}
-              operationalCosts={state.costs.filter(c => c.group === 'OPERASIONAL' && c.status === 'aktif').reduce((sum, c) => sum + c.jumlah_per_bulan, 0)}
+              hppCosts={state.costs.filter(c => c.group === 'hpp' && c.status === 'aktif').reduce((sum, c) => sum + c.jumlah_per_bulan, 0)}
+        operationalCosts={state.costs.filter(c => c.group === 'operasional' && c.status === 'aktif').reduce((sum, c) => sum + c.jumlah_per_bulan, 0)}
               onOpenAddDialog={handleOpenAddDialog}
               onEditCost={handleOpenEditDialog}
               onDeleteCost={handleDeleteCost}

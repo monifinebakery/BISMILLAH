@@ -9,7 +9,7 @@ import type { OperationalCost } from '../types/operationalCost.types';
 interface BulkEditData {
   jenis?: 'tetap' | 'variabel';
   status?: 'aktif' | 'nonaktif';
-  group?: 'HPP' | 'OPERASIONAL';
+  group?: 'hpp' | 'operasional';
   deskripsi?: string;
 }
 

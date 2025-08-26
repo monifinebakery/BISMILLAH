@@ -22,8 +22,8 @@ export const useProgressSetup = (
       appSettings?.overhead_per_pcs && appSettings?.operasional_per_pcs
     );
     
-    const hppCosts = costs.filter(c => c.group === 'HPP').length;
-    const operationalCosts = costs.filter(c => c.group === 'OPERASIONAL').length;
+    const hppCosts = costs.filter(c => c.group === 'hpp').length;
+    const operationalCosts = costs.filter(c => c.group === 'operasional').length;
     const totalCosts = costs.length;
     
     const isSetupComplete = isStep1Complete && isStep2Complete;

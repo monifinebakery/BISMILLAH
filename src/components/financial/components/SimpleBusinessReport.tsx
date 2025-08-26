@@ -28,6 +28,16 @@ interface SimpleBusinessReportProps {
 // ==============================================
 
 const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transactions, className }) => {
+  // Helper function untuk format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   // Analisis bisnis komprehensif
   const businessAnalysis = useMemo(() => {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -202,15 +212,6 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
       insights: generateInsights()
     };
   }, [transactions]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   const formatPercentage = (value: number) => {
     const sign = value > 0 ? '+' : '';

@@ -3,9 +3,8 @@ import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckSquare, Square, CheckCircle, Clock, XCircle, Trash2, X, Settings } from 'lucide-react';
+import { CheckSquare, Square, CheckCircle, Clock, XCircle, Trash2, X } from 'lucide-react';
 import { usePurchaseTable } from '../context/PurchaseTableContext';
-import BulkEditDialog from './BulkEditDialog';
 import type { PurchaseStatus } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
 
@@ -22,7 +21,6 @@ const BulkActionsBar: React.FC = () => {
   } = usePurchaseTable();
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
 
   if (selectedItems.length === 0) return null;
 
@@ -75,17 +73,6 @@ const BulkActionsBar: React.FC = () => {
 
         {/* Right: actions */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-700 text-xs sm:text-sm h-8 sm:h-9"
-            onClick={() => setShowBulkEditDialog(true)}
-            disabled={isProcessing || isBulkDeleting}
-          >
-            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Edit</span>
-          </Button>
-
           <Button
             variant="outline"
             size="sm"
@@ -152,11 +139,6 @@ const BulkActionsBar: React.FC = () => {
         </div>
       )}
     </Card>
-    
-    <BulkEditDialog
-       isOpen={showBulkEditDialog}
-       onClose={() => setShowBulkEditDialog(false)}
-     />
     </>
   );
 };

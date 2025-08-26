@@ -47,7 +47,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
     // State
     isLoading,
     categoryToDelete,
-    setCategoryToDelete,
 
     // Derived data
     categoryStats,
@@ -58,15 +57,21 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
     handleEditCategory,
     handleDeleteCategory,
     handleRefresh,
+    openDeleteConfirmation,
     closeDeleteConfirmation
   } = useCategoryManager({ recipes, updateRecipe, refreshRecipes });
 
   // Handle delete confirmation
   const handleDeleteConfirm = async () => {
-    if (!categoryToDelete) return;
+    if (!categoryToDelete) {
+      console.log('⚠️ No category to delete');
+      return;
+    }
     
+    console.log('✅ Confirming delete for category:', categoryToDelete);
     try {
       await handleDeleteCategory(categoryToDelete);
+      console.log('✅ Category deleted successfully:', categoryToDelete);
     } catch (error) {
       console.error('Delete confirmation failed:', error);
     }
@@ -137,7 +142,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                 categories={categoryStats}
                 isLoading={isLoading}
                 onEditCategory={handleEditCategory}
-                onDeleteCategory={setCategoryToDelete}
+                onDeleteCategory={openDeleteConfirmation}
               />
             </div>
           </CardContent>

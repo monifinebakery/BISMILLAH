@@ -56,17 +56,26 @@
     @apply container-mobile sm:container-tablet lg:container-desktop;
   }
   
-  /* Restore essential borders */
+  /* Enhanced borders for better visibility */
   .border-safe {
-    @apply border border-border;
+    @apply border-2 border-gray-300 dark:border-gray-600;
   }
   
   .card-border {
-    @apply border border-gray-200 rounded-lg;
+    @apply border-2 border-gray-300 dark:border-gray-600 rounded-lg;
   }
   
   .button-border {
-    @apply border border-gray-300 rounded-md;
+    @apply border-2 border-gray-400 dark:border-gray-500 rounded-md;
+  }
+  
+  /* Strong borders for important elements */
+  .border-strong {
+    @apply border-2 border-gray-400 dark:border-gray-500;
+  }
+  
+  .border-accent {
+    @apply border-2 border-orange-300 dark:border-orange-600;
   }
 }
 
@@ -226,34 +235,49 @@
     @apply w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center;
   }
   
-  /* Stats grid responsive */
+  /* Stats grid responsive - optimized for iPad */
   .stats-grid-responsive {
-    @apply grid gap-3 sm:gap-4 md:gap-5 lg:gap-6;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    @apply grid gap-3 sm:gap-4 md:gap-4 lg:gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
   
-  /* Mobile: 1 column, iPad Portrait: 2 columns, iPad Landscape/Desktop: 3-4 columns */
+  /* Mobile phones (up to 640px): 1 column */
   @media (max-width: 640px) {
     .stats-grid-responsive {
-      @apply grid-cols-1;
+      @apply grid-cols-1 gap-3;
+      grid-template-columns: 1fr;
     }
   }
   
+  /* iPad Portrait (641px - 768px): 2 columns */
   @media (min-width: 641px) and (max-width: 768px) {
     .stats-grid-responsive {
-      @apply grid-cols-2;
+      @apply grid-cols-2 gap-3;
+      grid-template-columns: repeat(2, 1fr);
     }
   }
   
+  /* iPad Landscape (769px - 1024px): 2 columns with more space */
   @media (min-width: 769px) and (max-width: 1024px) {
     .stats-grid-responsive {
-      @apply grid-cols-2;
+      @apply grid-cols-2 gap-4;
+      grid-template-columns: repeat(2, minmax(250px, 1fr));
     }
   }
   
-  @media (min-width: 1025px) {
+  /* Small Desktop (1025px - 1280px): 3 columns */
+  @media (min-width: 1025px) and (max-width: 1280px) {
     .stats-grid-responsive {
-      @apply grid-cols-4;
+      @apply grid-cols-3 gap-5;
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  /* Large Desktop (1281px+): 4 columns */
+  @media (min-width: 1281px) {
+    .stats-grid-responsive {
+      @apply grid-cols-4 gap-6;
+      grid-template-columns: repeat(4, 1fr);
     }
   }
   

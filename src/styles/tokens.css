@@ -8,12 +8,21 @@
   filter: none !important;
 }
 
-/* Enforce consistent borders wherever shadow classes appear (cleanup safety net) */
+/* Enforce stronger borders wherever shadow classes appear (cleanup safety net) */
 /* Matches any element that includes a tailwind shadow class token */
 [class*="shadow"], [class*="drop-shadow"] {
-  border-width: 1px !important;
+  border-width: 2px !important;
   border-style: solid !important;
   border-color: hsl(var(--border)) !important;
+}
+
+/* Enhanced border colors for better visibility */
+:root {
+  --border-enhanced: 220 13% 85%; /* Slightly darker than default */
+}
+
+.dark {
+  --border-enhanced: 217.2 32.6% 25%; /* Slightly lighter in dark mode */
 }
 
 /* Chart color variables consumed by shadcn/ui chart helpers */

@@ -209,11 +209,10 @@ const StatCard: React.FC<{
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-0 relative group h-full">
+    <Card className="bg-white border-2 border-gray-200 dark:border-gray-700 relative group h-full">
       <CardContent className="card-stats h-full relative">
         {/* Inset Border Effect */}
-        <div className="absolute inset-0 rounded-lg border-2 border-orange-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-        <div className="absolute inset-0 rounded-lg border border-gray-200"></div>
+        <div className="absolute inset-0 rounded-lg border-2 border-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
         
         {/* Content */}
         <div className="relative h-full flex flex-col">

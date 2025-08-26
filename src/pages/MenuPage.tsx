@@ -245,7 +245,7 @@ const MenuPage = () => {
 
       {/* Logout Confirmation Dialog */}
       <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-        <AlertDialogContent className="max-w-sm mx-auto">
+        <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg">Konfirmasi Keluar</AlertDialogTitle>
             <AlertDialogDescription className="text-sm">

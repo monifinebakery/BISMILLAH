@@ -70,6 +70,51 @@ Setelah mengalami masalah responsiveness di iPad, kami telah menambahkan utiliti
 .form-dialog-large /* Untuk form kompleks (max-w-2xl sampai 4xl) */
 ```
 
+## Card Responsive Classes
+
+### Card Layout Utilities
+
+```css
+.card-content-responsive /* Padding yang adaptif untuk card content */
+.card-header-responsive  /* Padding yang adaptif untuk card header */
+.card-stats             /* Khusus untuk stats card dengan padding optimal */
+```
+
+### Card Typography
+
+```css
+.card-title-responsive       /* Title yang responsive (sm-lg) */
+.card-value-responsive       /* Nilai/angka besar (lg-3xl) optimal di iPad */
+.card-label-responsive       /* Label kecil (xs-sm) untuk deskripsi */
+.card-description-responsive /* Deskripsi tambahan (xs-sm) */
+```
+
+### Card Icons
+
+```css
+.card-icon-responsive           /* Icon sizing (4-6) yang optimal */
+.card-icon-container-responsive /* Container icon (8-12) yang adaptif */
+```
+
+### Grid Layouts
+
+```css
+.stats-grid-responsive /* Grid khusus stats card:
+                         - Mobile: 1 kolom
+                         - iPad Portrait: 2 kolom
+                         - iPad Landscape: 2 kolom  
+                         - Desktop: 4 kolom */
+```
+
+### Text Safety
+
+```css
+.text-overflow-safe /* Mencegah text overflow di card:
+                      - break-words
+                      - word-wrap: break-word
+                      - overflow-wrap: break-word */
+```
+
 ## Cara Penggunaan
 
 ### 1. Untuk Dialog yang Belum Responsive
@@ -156,6 +201,34 @@ Tambahkan class global tanpa mengubah struktur:
 
 // Sesudah - menggunakan utility global
 <DialogContent className="dialog-responsive form-dialog">
+```
+
+### ✅ StatsGrid - Stats Cards Responsive
+```jsx
+// Sebelum
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-8">
+<CardContent className="p-3 sm:p-4 lg:p-5 h-full relative">
+<p className="text-base sm:text-lg lg:text-xl font-bold">
+
+// Sesudah - menggunakan utility global
+<div className="stats-grid-responsive mb-8">
+<CardContent className="card-stats h-full relative">
+<p className="card-value-responsive text-overflow-safe">
+```
+
+### ✅ CategoryStatsCards - Category Stats Responsive
+```jsx
+// Sebelum
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+<CardContent className="p-4">
+<p className="text-sm text-orange-700 font-medium">
+<p className="text-2xl font-semibold text-orange-900">
+
+// Sesudah - menggunakan utility global
+<div className="responsive-grid">
+<CardContent className="card-content-responsive">
+<p className="card-label-responsive text-orange-700 font-medium">
+<p className="card-value-responsive font-semibold text-orange-900 text-overflow-safe">
 ```
 
 ## Status Build & Testing

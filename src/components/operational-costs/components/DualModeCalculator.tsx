@@ -319,7 +319,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
             <Button
               onClick={handleCalculate}
               disabled={isCalculating || targetOutput <= 0}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="w-full bg-orange-600 hover:bg-orange-700"
             >
               {isCalculating ? (
                 <>

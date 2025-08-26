@@ -135,71 +135,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   const { suppliers } = useSupplier();
   const { user } = useAuth();
 
-  // ✅ NEW: State untuk lazy loading dan paginasi
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading] = useState(true);
-  const [paginationInfo, setPaginationInfo] = useState({ total: 0, totalPages: 0 });
-
-  // ✅ NEW: Fungsi untuk mengambil data purchase dengan paginasi
-  const fetchPurchasesPaginated = async (
-    userId: string,
-    page: number = 1,
-    limit: number = 10
-  ): Promise<{ data: any[]; total: number; totalPages: number }> => {
-    const offset = (page - 1) * limit;
-
-    // Ambil total count
-    const { count, error: countError } = await supabase
-      .from('purchases')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    if (countError) throw new Error(countError.message);
-
-    // Ambil data dengan paginasi
-    const { data, error } = await supabase
-      .from('purchases')
-      .select('*')
-      .eq('user_id', userId)
-      .order('tanggal', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) throw new Error(error.message);
-
-    const totalPages = Math.ceil((count || 0) / limit);
-
-    return {
-      data: data || [],
-      total: count || 0,
-      totalPages
-    };
-  };
-
-  // ✅ NEW: Query untuk lazy loading
-  const {
-    data: paginatedData,
-    isLoading: isPaginatedLoading,
-    error: paginatedError,
-    refetch: refetchPaginated
-  } = useQuery({
-    queryKey: ['purchases', 'paginated', user?.id, currentPage, itemsPerPage],
-    queryFn: () => fetchPurchasesPaginated(user!.id, currentPage, itemsPerPage),
-    enabled: !!user?.id,
-    staleTime: 30000,
-  });
-
-  // ✅ NEW: Update pagination info ketika data berubah
-  useEffect(() => {
-    if (paginatedData) {
-      setPaginationInfo({
-        total: paginatedData.total,
-        totalPages: paginatedData.totalPages
-      });
-    }
-  }, [paginatedData]);
-
-  // ✅ pakai API dari context langsung
+  // ✅ SIMPLIFIED: Use only context data, remove dual query system
   const {
     purchases,
     stats,
@@ -207,31 +143,15 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     deletePurchase,
     validatePrerequisites,
     getSupplierName,
+    isLoading,
+    error,
   } = purchaseContext;
 
-  // ✅ NEW: Tentukan data yang akan digunakan berdasarkan mode lazy loading
-  const finalPurchases: Purchase[] = useLazyLoading
-    ? transformPurchasesFromDB(paginatedData?.data || [])
-    : purchases;
-  const finalIsLoading = useLazyLoading ? isPaginatedLoading : purchaseContext.isLoading;
-  const finalError = useLazyLoading ? paginatedError : purchaseContext.error;
-  const finalStats = useLazyLoading
-    ? {
-        total: paginationInfo.total,
-        totalValue: finalPurchases.reduce(
-          (sum, p) => sum + Number(p.totalNilai || 0),
-          0
-        ),
-        byStatus: {
-          pending: finalPurchases.filter(p => p.status === 'pending').length,
-          completed: finalPurchases.filter(p => p.status === 'completed').length,
-          cancelled: finalPurchases.filter(p => p.status === 'cancelled').length,
-        },
-        completionRate: paginationInfo.total
-          ? (finalPurchases.filter(p => p.status === 'completed').length / paginationInfo.total) * 100
-          : 0,
-      }
-    : stats;
+  // ✅ FIXED: Use context data directly
+  const finalPurchases: Purchase[] = purchases;
+  const finalIsLoading = isLoading;
+  const finalError = error;
+  const finalStats = stats;
 
   // ✅ SINGLE STATE: Consolidated app state
   const [appState, setAppState] = useState<AppState>(initialAppState);
@@ -293,6 +213,8 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             import: { isOpen: false }
           }
         }));
+        // ✅ FIXED: Refresh purchases after import
+        purchaseContext.refreshPurchases?.();
       }
     },
     warning: {
@@ -382,31 +304,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Data warning banner */}
 
 
-      {/* Kontrol Paginasi */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Item per halaman:</label>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-          </div>
-
-          <div className="text-sm text-gray-600">
-            Total: {paginationInfo.total} pembelian
-          </div>
-        </div>
-      </div>
 
       {/* Header */}
       <PurchaseHeader
@@ -444,30 +341,6 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             </Suspense>
           </PurchaseTableProvider>
 
-          {/* Kontrol Paginasi */}
-          {paginationInfo.totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Halaman {currentPage} dari {paginationInfo.totalPages}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Sebelumnya
-                </button>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
-                  disabled={currentPage === paginationInfo.totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Selanjutnya
-                </button>
-              </div>
-            </div>
-          )}
         </>
       )}
 

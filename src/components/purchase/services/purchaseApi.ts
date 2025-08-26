@@ -303,6 +303,7 @@ export class PurchaseApiService {
   * Delete purchase.
   * Manual warehouse synchronization: if purchase was completed,
   * manually reverse stock and WAC changes before deletion.
+  * Also cleans up related financial transactions.
   */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
@@ -325,10 +326,46 @@ export class PurchaseApiService {
       }
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
+      // ✅ FIXED: Clean up related financial transactions BEFORE deleting purchase
+      logger.info('💰 [PURCHASE API] Cleaning up financial transactions for purchase:', id);
+      try {
+        const { data: financialTxns, error: financialFetchErr } = await supabase
+          .from('financial_transactions')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('related_id', id)
+          .eq('type', 'expense');
+        
+        if (financialFetchErr) {
+          logger.warn('Warning fetching financial transactions for cleanup:', financialFetchErr.message);
+        } else if (financialTxns && financialTxns.length > 0) {
+          logger.info(`🗑️ [PURCHASE API] Found ${financialTxns.length} financial transaction(s) to delete`);
+          const { error: deleteFinancialErr } = await supabase
+            .from('financial_transactions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('related_id', id)
+            .eq('type', 'expense');
+          
+          if (deleteFinancialErr) {
+            logger.warn('Warning deleting financial transactions:', deleteFinancialErr.message);
+          } else {
+            logger.info('✅ [PURCHASE API] Financial transactions cleaned up successfully');
+          }
+        } else {
+          logger.info('ℹ️ [PURCHASE API] No financial transactions found for cleanup');
+        }
+      } catch (financialErr) {
+        logger.warn('Error during financial transaction cleanup:', financialErr);
+        // Continue with purchase deletion even if financial cleanup fails
+      }
+
+      // Reverse warehouse changes if needed
       if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing, false)) {
         await reversePurchaseFromWarehouse(existing);
       }
 
+      // Delete the purchase
       const { error } = await supabase
         .from('purchases')
         .delete()
@@ -336,6 +373,7 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+      logger.info('✅ [PURCHASE API] Purchase and related data deleted successfully:', id);
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error deleting purchase:', err);

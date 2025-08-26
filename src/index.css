@@ -6,28 +6,181 @@
 
 /* Safe responsive improvements */
 @layer utilities {
-  /* Safe mobile utilities */
+  /* Device-specific utilities */
   .mobile-only {
     @apply block md:hidden;
   }
   
+  .tablet-only {
+    @apply hidden sm:block lg:hidden;
+  }
+  
   .desktop-only {
-    @apply hidden md:block;
+    @apply hidden lg:block;
   }
   
-  /* Safe responsive grid */
+  .not-mobile {
+    @apply hidden sm:block;
+  }
+  
+  /* Safe responsive grid with iPad support */
   .responsive-grid {
-    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+    @apply grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
   }
   
-  /* Safe responsive padding */
+  /* Enhanced responsive padding for all devices */
   .responsive-padding {
-    @apply p-4 md:p-6;
+    @apply p-3 sm:p-4 md:p-5 lg:p-6;
   }
   
-  /* Safe responsive text */
+  /* iPad-friendly text sizing */
   .responsive-text {
-    @apply text-sm md:text-base;
+    @apply text-sm sm:text-base md:text-base lg:text-lg;
+  }
+  
+  /* Container utilities for different screen sizes */
+  .container-mobile {
+    @apply w-full px-4;
+  }
+  
+  .container-tablet {
+    @apply w-full max-w-3xl mx-auto px-6;
+  }
+  
+  .container-desktop {
+    @apply w-full max-w-6xl mx-auto px-8;
+  }
+  
+  /* Responsive container that adapts */
+  .container-responsive {
+    @apply container-mobile sm:container-tablet lg:container-desktop;
+  }
+  
+  /* Restore essential borders */
+  .border-safe {
+    @apply border border-border;
+  }
+  
+  .card-border {
+    @apply border border-gray-200 rounded-lg;
+  }
+  
+  .button-border {
+    @apply border border-gray-300 rounded-md;
+  }
+}
+
+/* Enhanced dialog responsive styles */
+@layer components {
+  /* Universal dialog base - safe for all components */
+  .dialog-responsive {
+    @apply w-full max-h-[90vh] overflow-y-auto;
+  }
+  
+  /* Global dialog container with better iPad support */
+  .dialog-content {
+    @apply mx-4 my-8 max-w-lg w-full;
+  }
+  
+  /* Mobile phones (up to 640px) */
+  @media (max-width: 640px) {
+    .dialog-content {
+      @apply mx-3 my-4 max-w-none;
+    }
+    
+    .dialog-responsive {
+      @apply max-h-[95vh] p-4;
+    }
+  }
+  
+  /* iPad Portrait & small tablets (641px - 768px) */
+  @media (min-width: 641px) and (max-width: 768px) {
+    .dialog-content {
+      @apply mx-8 my-8 max-w-xl;
+    }
+    
+    .dialog-responsive {
+      @apply max-h-[85vh] p-6;
+    }
+  }
+  
+  /* iPad Landscape & medium tablets (769px - 1024px) */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .dialog-content {
+      @apply mx-12 my-8 max-w-2xl;
+    }
+    
+    .dialog-responsive {
+      @apply max-h-[80vh] p-6;
+    }
+  }
+  
+  /* Desktop (1025px+) */
+  @media (min-width: 1025px) {
+    .dialog-content {
+      @apply mx-auto my-8 max-w-3xl;
+    }
+    
+    .dialog-responsive {
+      @apply max-h-[75vh] p-8;
+    }
+  }
+  
+  /* Modal wrapper with iPad optimization */
+  .modal-wrapper {
+    @apply p-4 sm:p-5 md:p-6 lg:p-8;
+  }
+  
+  /* Form dialog with enhanced iPad support */
+  .form-dialog {
+    @apply w-full max-w-md mx-auto p-4;
+  }
+  
+  @media (max-width: 640px) {
+    .form-dialog {
+      @apply max-w-none p-3;
+    }
+  }
+  
+  @media (min-width: 641px) and (max-width: 768px) {
+    .form-dialog {
+      @apply max-w-lg p-5;
+    }
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .form-dialog {
+      @apply max-w-xl p-6;
+    }
+  }
+  
+  /* Large form dialogs for complex forms */
+  .form-dialog-large {
+    @apply w-full mx-auto p-4;
+  }
+  
+  @media (max-width: 640px) {
+    .form-dialog-large {
+      @apply max-w-none p-3;
+    }
+  }
+  
+  @media (min-width: 641px) and (max-width: 768px) {
+    .form-dialog-large {
+      @apply max-w-2xl p-5;
+    }
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .form-dialog-large {
+      @apply max-w-3xl p-6;
+    }
+  }
+  
+  @media (min-width: 1025px) {
+    .form-dialog-large {
+      @apply max-w-4xl p-8;
+    }
   }
 }
 

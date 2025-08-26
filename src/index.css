@@ -83,19 +83,18 @@
 @layer components {
   /* Universal dialog base - safe for all components */
   .dialog-responsive {
-    @apply mx-12 sm:mx-16 md:mx-auto max-h-[85vh] sm:max-h-[80vh] overflow-auto;
-    padding: 1rem;
+    @apply max-h-[85vh] sm:max-h-[80vh] overflow-auto py-4 px-12 sm:px-16;
   }
   
   /* Global dialog container with better iPad support */
   .dialog-content {
-    @apply mx-4 my-8 max-w-lg w-full;
+    @apply my-8 max-w-lg w-full px-4;
   }
   
   /* Mobile phones (up to 640px) */
   @media (max-width: 640px) {
     .dialog-content {
-      @apply mx-3 my-4 max-w-none;
+      @apply my-4 max-w-none px-3;
     }
     
     .dialog-responsive {
@@ -106,7 +105,7 @@
   /* iPad Portrait & small tablets (641px - 768px) */
   @media (min-width: 641px) and (max-width: 768px) {
     .dialog-content {
-      @apply mx-8 my-8 max-w-xl;
+      @apply my-8 max-w-xl px-8;
     }
     
     .dialog-responsive {
@@ -117,7 +116,7 @@
   /* iPad Landscape & medium tablets (769px - 1024px) */
   @media (min-width: 769px) and (max-width: 1024px) {
     .dialog-content {
-      @apply mx-12 my-8 max-w-2xl;
+      @apply my-8 max-w-2xl px-12;
     }
     
     .dialog-responsive {
@@ -128,7 +127,7 @@
   /* Desktop (1025px+) */
   @media (min-width: 1025px) {
     .dialog-content {
-      @apply mx-auto my-8 max-w-3xl;
+      @apply my-8 max-w-3xl px-0;
     }
     
     .dialog-responsive {
@@ -143,7 +142,7 @@
   
   /* Form dialog with enhanced iPad support */
   .form-dialog {
-    @apply bg-white border border-gray-200 mx-12 sm:mx-16 md:mx-auto rounded-xl shadow-xl;
+    @apply bg-white border border-gray-200 rounded-xl shadow-xl px-12 sm:px-16;
     max-width: 500px;
     width: 100%;
   }
@@ -168,7 +167,7 @@
   
   /* Large form dialogs for complex forms */
   .form-dialog-large {
-    @apply bg-white border border-gray-200 mx-12 sm:mx-16 md:mx-auto rounded-xl shadow-xl;
+    @apply bg-white border border-gray-200 rounded-xl shadow-xl px-12 sm:px-16;
     max-width: 800px;
     width: 100%;
   }

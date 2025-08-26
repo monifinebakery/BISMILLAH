@@ -39,7 +39,7 @@ const DashboardHeader: React.FC<Props> = ({
   return (
     <div className="w-full">
       {/* 🌟 Content Container - Simplified */}
-      <div className="w-full bg-gradient-to-br from-orange-50 via-white to-red-50 border-2 border-orange-100 rounded-2xl p-6 sm:p-8 mb-8">
+      <div className="w-full bg-gradient-to-br from-orange-50 via-white to-red-50 border-2 border-orange-200 dark:border-orange-700 rounded-2xl p-6 sm:p-8 mb-8">
         
         {/* 🏠 Main Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">

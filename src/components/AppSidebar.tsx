@@ -149,24 +149,32 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar 
-      collapsible="icon" 
-      className="border-r transition-all duration-300 ease-in-out hidden md:flex md:flex-col"
+    <Sidebar collapsible="icon" className="border-r transition-all duration-300 ease-in-out">
+      {/* Header */}
+<SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-0">
+  <div
+    className="
+      flex items-center w-full
+      group-data-[collapsible=icon]:w-auto
+      group-data-[collapsible=icon]:justify-center
+      group-data-[collapsible=icon]:mx-auto
+    "
+  >
+    <div
+      className="
+        w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg
+        flex items-center justify-center text-white flex-shrink-0
+        group-data-[collapsible=icon]:mx-auto
+      "
     >
-      {/* Header - Responsive */}
-      <SidebarHeader className="p-3 md:p-4 border-b group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
-        <div className="flex items-center w-full group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mx-auto">
-          <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0 group-data-[collapsible=icon]:mx-auto">
-            <TrendingUp className="h-4 w-4 md:h-6 md:w-6" />
-          </div>
-          <div className="ml-2 md:ml-3 opacity-100 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
-            <h2 className="text-sm md:text-lg font-bold whitespace-nowrap leading-tight">
-              <span className="hidden lg:inline">HPP by Monifine</span>
-              <span className="lg:hidden">HPP</span>
-            </h2>
-          </div>
-        </div>
-      </SidebarHeader>
+      <TrendingUp className="h-6 w-6" />
+    </div>
+
+    <div className="ml-3 opacity-100 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
+      <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
+    </div>
+  </div>
+</SidebarHeader>
 
 
       {/* Content — hilangkan padding horizontal saat collapsed */}

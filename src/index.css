@@ -4,200 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base responsive styles */
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
-  
-  html {
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-    /* Prevent zoom on iOS Safari */
-    touch-action: manipulation;
-  }
-  
-  body {
-    min-height: 100vh;
-    min-height: 100dvh; /* Dynamic viewport height for mobile */
-    font-family: system-ui, -apple-system, sans-serif;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-  }
-  
-  #root {
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Responsive image styles */
-  img {
-    max-width: 100%;
-    height: auto;
-  }
-  
-  /* Responsive table styles */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  /* Touch-friendly button styles */
-  button, [role="button"] {
-    min-height: 44px; /* iOS minimum touch target */
-    min-width: 44px;
-  }
-  
-  /* Responsive input styles */
-  input, textarea, select {
-    max-width: 100%;
-  }
-  
-  /* Prevent horizontal scroll */
-  * {
-    max-width: 100%;
-  }
-}
-
-/* Responsive component utilities */
-@layer components {
-  /* Mobile-first container */
-  .container-responsive {
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  @media (min-width: 640px) {
-    .container-responsive {
-      max-width: 640px;
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-    }
-  }
-  
-  @media (min-width: 768px) {
-    .container-responsive {
-      max-width: 768px;
-      padding-left: 2rem;
-      padding-right: 2rem;
-    }
-  }
-  
-  @media (min-width: 1024px) {
-    .container-responsive {
-      max-width: 1024px;
-    }
-  }
-  
-  @media (min-width: 1280px) {
-    .container-responsive {
-      max-width: 1280px;
-    }
-  }
-  
-  /* Mobile navigation styles */
-  .mobile-nav {
-    @apply fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden;
-  }
-  
-  /* Desktop sidebar styles */
-  .desktop-sidebar {
-    @apply hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0;
-  }
-  
-  /* Main content with responsive padding */
-  .main-content {
-    @apply flex-1 px-4 py-6 md:px-6 md:py-8 lg:px-8;
-  }
-  
-  /* Responsive card grid */
-  .card-grid {
-    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
-  }
-  
-  /* Responsive text sizes */
-  .text-responsive-xs {
-    @apply text-xs sm:text-sm;
-  }
-  
-  .text-responsive-sm {
-    @apply text-sm sm:text-base;
-  }
-  
-  .text-responsive-base {
-    @apply text-sm sm:text-base md:text-lg;
-  }
-  
-  .text-responsive-lg {
-    @apply text-lg sm:text-xl md:text-2xl;
-  }
-  
-  .text-responsive-xl {
-    @apply text-xl sm:text-2xl md:text-3xl;
-  }
-}
-
-/* Responsive utilities */
+/* Safe responsive improvements */
 @layer utilities {
-  /* Safe area insets for mobile */
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top);
-  }
-  
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  
-  .safe-area-left {
-    padding-left: env(safe-area-inset-left);
-  }
-  
-  .safe-area-right {
-    padding-right: env(safe-area-inset-right);
-  }
-  
-  /* Mobile-specific utilities */
+  /* Safe mobile utilities */
   .mobile-only {
     @apply block md:hidden;
   }
   
-  .tablet-only {
-    @apply hidden md:block lg:hidden;
-  }
-  
   .desktop-only {
-    @apply hidden lg:block;
-  }
-  
-  .mobile-tablet {
-    @apply block lg:hidden;
-  }
-  
-  .tablet-desktop {
     @apply hidden md:block;
   }
   
-  /* Responsive spacing */
-  .space-responsive {
-    @apply space-y-4 md:space-y-6 lg:space-y-8;
+  /* Safe responsive grid */
+  .responsive-grid {
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
   }
   
-  /* Responsive flex utilities */
-  .flex-responsive {
-    @apply flex flex-col md:flex-row;
+  /* Safe responsive padding */
+  .responsive-padding {
+    @apply p-4 md:p-6;
   }
   
-  /* Touch-friendly sizing */
-  .touch-target {
-    @apply min-h-[44px] min-w-[44px] p-2;
+  /* Safe responsive text */
+  .responsive-text {
+    @apply text-sm md:text-base;
   }
 }
 

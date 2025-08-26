@@ -1,16 +1,23 @@
 import React, { useState } from "react";
-import { 
-  Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, 
-  SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, 
+import {
+  Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel,
+  SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton,
   SidebarFooter
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
-import { Calculator, ChefHat, Package, Users, ShoppingCart, FileText, TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell, BarChart3 } from "lucide-react";
+import {
+  Calculator, ChefHat, Package, Users, ShoppingCart, FileText,
+  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell,
+  BarChart3
+} from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { performSignOut } from "@/lib/authUtils";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 
 import { usePaymentContext } from "@/contexts/PaymentContext";
 import { useBahanBaku } from "@/components/warehouse/context/WarehouseContext";
@@ -48,7 +55,6 @@ export function AppSidebar() {
   const { suppliers } = useSupplier();
   const { purchases } = usePurchase();
   const { recipes } = useRecipe();
-  // Note: hppResults may not be available in current context
   const { activities } = useActivity();
   const { orders } = useOrder();
   const { financialTransactions } = useFinancial();
@@ -56,7 +62,8 @@ export function AppSidebar() {
   const { state: operationalCostState } = useOperationalCost();
 
   const { assets, isLoading: assetsLoading } = useAssetQuery({ userId: user?.id, enableRealtime: false });
-  const { currentAnalysis: profitAnalysis, profitHistory, loading: profitLoading } = useProfitAnalysis({ autoCalculate: false, enableRealTime: false });
+  const { currentAnalysis: profitAnalysis, profitHistory, loading: profitLoading } =
+    useProfitAnalysis({ autoCalculate: false, enableRealTime: false });
 
   const menuGroups = [
     { label: "Dashboard", items: [
@@ -92,7 +99,7 @@ export function AppSidebar() {
     else toast.error("Gagal keluar");
   };
 
-  // Expanded: rata kiri — Collapsed: center via data attrs (tanpa padding)
+  // Expanded: rata kiri — Collapsed: center (tanpa padding, tombol jadi square)
   const baseMenuButtonClass =
     "w-full justify-start text-left px-3 py-2 gap-3 transition-all duration-200 relative group " +
     "group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 " +
@@ -151,33 +158,18 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r transition-all duration-300 ease-in-out">
       {/* Header */}
-<SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-0">
-  <div
-    className="
-      flex items-center w-full
-      group-data-[collapsible=icon]:w-auto
-      group-data-[collapsible=icon]:justify-center
-      group-data-[collapsible=icon]:mx-auto
-    "
-  >
-    <div
-      className="
-        w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg
-        flex items-center justify-center text-white flex-shrink-0
-        group-data-[collapsible=icon]:mx-auto
-      "
-    >
-      <TrendingUp className="h-6 w-6" />
-    </div>
+      <SidebarHeader className="p-4 border-b group-data-[collapsible=icon]:px-0">
+        <div className="flex items-center w-full group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mx-auto">
+          <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white flex-shrink-0 group-data-[collapsible=icon]:mx-auto">
+            <TrendingUp className="h-6 w-6" />
+          </div>
+          <div className="ml-3 opacity-100 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
+            <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
+          </div>
+        </div>
+      </SidebarHeader>
 
-    <div className="ml-3 opacity-100 transition-opacity duration-300 group-data-[collapsible=icon]:hidden">
-      <h2 className="text-lg font-bold whitespace-nowrap">HPP by Monifine</h2>
-    </div>
-  </div>
-</SidebarHeader>
-
-
-      {/* Content — hilangkan padding horizontal saat collapsed */}
+      {/* Content */}
       <SidebarContent className="flex flex-col flex-grow px-2 py-4 group-data-[collapsible=icon]:px-0">
         {menuGroups.map((group, gi) => (
           <SidebarGroup key={group.label} className={cn("mb-4 w-full", `delay-[${gi * 50}ms]`)}>
@@ -203,16 +195,18 @@ export function AppSidebar() {
           <SidebarMenuItem className="w-full">
             {renderActionButton(() => handleExportAllData('xlsx'), Download, (assetsLoading || profitLoading) ? "Memuat Data..." : "Export Semua Data")}
           </SidebarMenuItem>
-          {[
-            { title: "Pengaturan", url: "/pengaturan", icon: Settings },
-            { title: "Pembaruan", url: "/updates", icon: Bell },
-          ].map((item) => (
+          {settingsItems.map((item) => (
             <SidebarMenuItem key={item.title} className="w-full">
               {renderMenuItem(item, location.pathname === item.url)}
             </SidebarMenuItem>
           ))}
           <SidebarMenuItem className="w-full">
-            {renderActionButton(() => setShowLogoutConfirm(true), LogOut, "Keluar", "text-red-500 [&:hover]:!bg-red-50 [&:hover]:!text-red-600 [&:active]:!bg-red-200 [&:active]:!text-red-700")}
+            {renderActionButton(
+              () => setShowLogoutConfirm(true),
+              LogOut,
+              "Keluar",
+              "text-red-500 [&:hover]:!bg-red-50 [&:hover]:!text-red-600 [&:active]:!bg-red-200 [&:active]:!text-red-700"
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

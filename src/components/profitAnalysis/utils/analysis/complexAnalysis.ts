@@ -8,6 +8,8 @@ import { safeCalculateMargins } from '@/utils/profitValidation';
 import { filterTransactionsByPeriod, filterTransactionsByDateRange } from '../filters/dataFilters';
 import { getMarginRating, getCOGSEfficiencyRating } from '../ratings/profitRatings';
 import { logger } from '@/utils/logger';
+import { getUsageRateForBusiness, detectBusinessType, BusinessType, ProfitAnalysisConfig, getValidationThresholds } from '../config/profitConfig';
+import { calculateDetailedOverhead } from '../calculations/overheadCalculations';
 
 /**
  * Calculate real-time profit analysis with actual schema
@@ -18,7 +20,8 @@ export const calculateRealTimeProfit = (
   transactions: FinancialTransactionActual[],
   materials: BahanBakuActual[],
   operationalCosts: OperationalCostActual[],
-  dateRange?: { from: Date; to: Date }
+  dateRange?: { from: Date; to: Date },
+  config?: ProfitAnalysisConfig
 ): RealTimeProfitCalculation => {
   logger.info('🔄 Calculating real-time profit (IMPROVED):', { 
     period, 
@@ -42,20 +45,41 @@ export const calculateRealTimeProfit = (
   const revenueTransactions = periodTransactions.filter(t => t.type === 'income');
   const totalRevenue = revenueTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   
-  // Calculate COGS using effective price (WAC)
+  // Auto-detect business type or use provided config
+  let finalConfig = config;
+  if (!finalConfig) {
+    const detectedBusinessType = detectBusinessType(revenueTransactions);
+    finalConfig = {
+      businessType: detectedBusinessType,
+      usageRate: getUsageRateForBusiness(detectedBusinessType),
+      validationThresholds: getValidationThresholds(detectedBusinessType),
+      autoDetectBusinessType: true
+    };
+    logger.debug('Auto-detected business type and config:', finalConfig);
+  }
+  
+  // Calculate COGS using configurable usage rate
+  const usageRate = finalConfig.usageRate;
   const {
     totalHPP: totalCOGS,
     breakdown: materialBreakdown
   } = calcHPP(
     materials.map(m => ({ 
       bahan_baku_id: m.id, 
-      qty_base: (Number(m.stok) || 0) * 0.1 // Estimasi pemakaian 10%
+      qty_base: (Number(m.stok) || 0) * usageRate // Configurable usage rate
     })),
     Object.fromEntries(materials.map(m => [m.id, m]))
   );
 
+  // Calculate detailed overhead using new utility
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
-  const totalOpEx = activeCosts.reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
+  const overheadResult = calculateDetailedOverhead(
+    activeCosts,
+    totalRevenue,
+    1, // Production volume (could be configurable)
+    finalConfig.businessType
+  );
+  const totalOpEx = overheadResult.totalOverhead;
 
   const enhancedRevenueTransactions = revenueTransactions.map(t => ({
     category: t.category || 'Uncategorized',

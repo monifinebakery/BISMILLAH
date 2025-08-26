@@ -221,9 +221,9 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
             <div className="space-y-2">
               <p className="font-medium">Kualitas Data: {validationScore.toFixed(0)}/100</p>
               <div className="text-sm space-y-1">
-                <p>Konsistensi Data: {dataQualityMetrics?.dataConsistency && typeof dataQualityMetrics.dataConsistency === 'number' ? dataQualityMetrics.dataConsistency.toFixed(1) : dataQualityMetrics?.dataConsistency || 0}%</p>
-                <p>Ketersediaan WAC: {dataQualityMetrics?.wacAvailability && typeof dataQualityMetrics.wacAvailability === 'number' ? dataQualityMetrics.wacAvailability.toFixed(1) : dataQualityMetrics?.wacAvailability || 0}%</p>
-                <p>Ketersediaan API COGS: {dataQualityMetrics?.apiCogsAvailability && typeof dataQualityMetrics.apiCogsAvailability === 'number' ? dataQualityMetrics.apiCogsAvailability.toFixed(1) : dataQualityMetrics?.apiCogsAvailability || 0}%</p>
+                <p>Konsistensi Data: {Number(dataQualityMetrics?.dataConsistency || 0).toFixed(1)}%</p>
+                <p>Ketersediaan WAC: {Number(dataQualityMetrics?.wacAvailability || 0).toFixed(1)}%</p>
+                <p>Ketersediaan API COGS: {Number(dataQualityMetrics?.apiCogsAvailability || 0).toFixed(1)}%</p>
               </div>
             </div>
           </AlertDescription>

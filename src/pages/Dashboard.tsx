@@ -212,12 +212,12 @@ const Dashboard = () => {
             </Suspense>
           </div>
 
-          {/* 📈 Main Content Grid */}
-          <div className="space-y-8">
+          {/* 📈 Main Content Grid - iPad Optimized */}
+          <div className="space-y-6 md:space-y-8">
             
-            {/* First Row: Best Selling + Recent Activities */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              <div className="xl:col-span-2">
+            {/* First Row: Best Selling + Recent Activities - iPad Responsive */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="lg:col-span-2">
                 <Suspense fallback={<SectionLoader height="h-80" />}>
                   <BestSellingProducts
                     products={bestSellingProducts}
@@ -228,7 +228,7 @@ const Dashboard = () => {
                 </Suspense>
               </div>
 
-              <div className="xl:col-span-1">
+              <div className="lg:col-span-1">
                 <Suspense fallback={<SectionLoader height="h-80" />}>
                   <RecentActivities
                     activities={recentActivities}
@@ -240,8 +240,8 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Second Row: Critical Stock + Worst Selling */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Second Row: Critical Stock + Worst Selling - iPad Responsive */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div>
                 <Suspense fallback={<SectionLoader height="h-64" />}>
                   <CriticalStock

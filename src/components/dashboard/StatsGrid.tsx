@@ -209,17 +209,16 @@ const StatCard: React.FC<{
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-0 relative group h-full">
-      <CardContent className="p-3 sm:p-4 lg:p-5 h-full relative">
+    <Card className="bg-white border-[1.5px] border-gray-200 dark:border-gray-700 relative group h-full">
+      <CardContent className="card-stats h-full relative">
         {/* Inset Border Effect */}
-        <div className="absolute inset-0 rounded-lg border-2 border-orange-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-        <div className="absolute inset-0 rounded-lg border border-gray-200"></div>
+        <div className="absolute inset-0 rounded-lg border-[1.5px] border-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
         
         {/* Content */}
         <div className="relative h-full flex flex-col">
           {/* 🎨 Icon dan Trend - Top row */}
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <div className="border-2 border-orange-200 p-2 sm:p-2.5 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
+            <div className="border-[1.5px] border-orange-200 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300">
               <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>
                 {icon}
               </div>
@@ -238,8 +237,8 @@ const StatCard: React.FC<{
 
           {/* 🏷️ Label - Full width */}
           <div className="mb-2 sm:mb-3">
-            <div className="flex items-start gap-1">
-              <div className="text-xs text-gray-500 uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2">
+            <div className="flex items-start gap-2">
+              <div className="card-label-responsive uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2">
                 {shortLabel || label}
               </div>
               {tooltip && (
@@ -254,7 +253,7 @@ const StatCard: React.FC<{
               <div className="h-6 sm:h-7 lg:h-8 bg-gray-200 animate-pulse rounded w-full"></div>
             ) : (
               <div className="w-full">
-                <p className={`text-base sm:text-lg lg:text-xl font-bold ${valueColor} break-words leading-tight`}>
+                <p className={`card-value-responsive ${valueColor} text-overflow-safe leading-tight`}>
                   {value}
                 </p>
               </div>
@@ -264,7 +263,7 @@ const StatCard: React.FC<{
           {/* 📝 Description */}
           {description && (
             <div className="mt-auto">
-              <p className="text-xs text-gray-500 leading-tight break-words">
+              <p className="card-description-responsive leading-tight break-words">
                 {description}
               </p>
             </div>
@@ -392,7 +391,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-8">
+    <div className="stats-grid-responsive mb-8">
       {statsConfig.map((stat) => (
         <StatCard
           key={stat.key}

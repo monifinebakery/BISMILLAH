@@ -269,7 +269,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   // ✅ LOADING STATE
   if (isLoading) {
     return (
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -290,7 +290,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
   // ✅ NO DATA STATE
   if (!currentAnalysis) {
     return (
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
         {cards.map((card, index) => {
           const Icon = card.icon;
           return (
@@ -318,7 +318,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
 
   // ✅ MAIN RENDER
   return (
-    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
+    <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
       {cards.map((card, index) => {
         const Icon = card.icon;
         const hasChange = card.change !== undefined && previousAnalysis;

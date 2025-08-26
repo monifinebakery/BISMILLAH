@@ -98,7 +98,7 @@ const UpgradePopup = () => {
 
   return (
     <Dialog open={showUpgradePopup} onOpenChange={setShowUpgradePopup}>
-      <DialogContent className="max-w-md mx-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-center">
             <Zap className="h-6 w-6 text-yellow-500" />

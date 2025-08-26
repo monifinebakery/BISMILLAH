@@ -101,7 +101,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
           aria-describedby="dialog-description"
         >
           {/* Header */}
-          <div className="flex flex-col space-y-1.5 text-center sm:text-left">
+          <div className="flex flex-col space-y-1.5 text-center">
             <DialogPrimitive.Title 
               id="dialog-title"
               className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2"

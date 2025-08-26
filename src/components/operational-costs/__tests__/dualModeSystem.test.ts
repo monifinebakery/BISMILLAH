@@ -134,7 +134,7 @@ describe('Dual-Mode Cost Calculations', () => {
       );
       
       expect(result.isValid).toBe(false);
-      expect(result.validationErrors).toContain('Target produksi harus lebih dari 0');
+      expect(result.validationErrors).toContain('Target produksi harus lebih dari 0 pcs');
       expect(result.costPerUnit).toBe(0);
     });
     
@@ -281,7 +281,7 @@ describe('Validation System', () => {
     it('should reject zero or negative values', () => {
       const zeroResult = validateTargetOutput(0);
       expect(zeroResult.isValid).toBe(false);
-      expect(zeroResult.errors[0]).toContain('Target produksi harus lebih dari 0');
+      expect(zeroResult.errors[0]).toContain('Target produksi tidak boleh 0 pcs');
       
       const negativeResult = validateTargetOutput(-100);
       expect(negativeResult.isValid).toBe(false);
@@ -302,7 +302,7 @@ describe('Validation System', () => {
     it('should reject amounts below minimum', () => {
       const result = validateMonthlyAmount(500);
       expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('minimal Rp 1.000');
+      expect(result.errors[0]).toContain('minimal 1.000');
     });
   });
   

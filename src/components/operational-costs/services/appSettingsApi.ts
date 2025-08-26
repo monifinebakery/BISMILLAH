@@ -260,7 +260,7 @@ export const appSettingsApi = {
       if (targetOutput <= 0) {
         return {
           data: {} as AppSettings,
-          error: 'Target produksi harus lebih dari 0'
+          error: 'Target produksi harus lebih dari 0 pcs'
         };
       }
 

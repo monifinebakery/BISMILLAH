@@ -31,11 +31,11 @@ export const calculateCostPerUnit = (
   const validationErrors: string[] = [];
   
   if (targetOutputMonthly <= 0) {
-    validationErrors.push('Target produksi harus lebih dari 0');
+    validationErrors.push('Target produksi harus lebih dari 0 pcs');
   }
   
   if (totalCosts < 1000) {
-    validationErrors.push('Total biaya harus minimal Rp 1.000');
+    validationErrors.push('Total biaya harus minimal 1.000');
   }
   
   // Calculate cost per unit
@@ -167,7 +167,7 @@ export const calculateSellingPrice = (
  */
 export const validateDualModeInputs = (
   targetOutput: number,
-  monthlyAmount: number,
+  monthlyAmount?: number | null,
   costName: string
 ): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
@@ -177,9 +177,11 @@ export const validateDualModeInputs = (
     errors.push('Target produksi harus lebih dari 0 pcs');
   }
   
-  // Monthly amount validation  
-  if (!monthlyAmount || monthlyAmount < 1000) {
-    errors.push('Jumlah biaya terlalu kecil. Minimal Rp 1.000 untuk pencatatan yang akurat');
+  // Monthly amount validation
+  if (monthlyAmount != null) {
+    if (!monthlyAmount || monthlyAmount < 1000) {
+      errors.push('Jumlah biaya terlalu kecil. Minimal 1.000 untuk pencatatan yang akurat');
+    }
   }
   
   // Cost name validation

@@ -111,16 +111,16 @@ export const MICROCOPY = {
     // Specific validation messages
     TARGET_OUTPUT_TOO_LOW: 'Target produksi terlalu rendah. Untuk bisnis UMKM, minimal 100 pcs per bulan disarankan.',
     TARGET_OUTPUT_TOO_HIGH: 'Target produksi sangat tinggi. Pastikan angka sudah benar.',
-    AMOUNT_TOO_LOW: 'Jumlah biaya terlalu kecil. Minimal Rp 1.000 untuk pencatatan yang akurat.',
-    AMOUNT_TOO_HIGH: 'Jumlah biaya sangat besar. Pastikan angka sudah benar.',
-    COST_NAME_EMPTY: 'Nama biaya tidak boleh kosong',
-    COST_NAME_TOO_SHORT: 'Nama biaya terlalu pendek. Minimal 3 karakter untuk kejelasan.',
-    
-    // Calculation specific
-    DIVISION_BY_ZERO: 'Target produksi tidak boleh 0. Masukkan jumlah produk yang akan dibuat per bulan.',
-    NEGATIVE_RESULT: 'Hasil kalkulasi tidak boleh negatif. Periksa kembali input Anda.',
-    PERCENTAGE_TOO_HIGH: 'Persentase terlalu tinggi. Maksimal 1000% untuk keamanan kalkulasi.'
-  },
+    AMOUNT_TOO_LOW: 'Jumlah biaya terlalu kecil. Minimal 1.000 untuk pencatatan yang akurat.',
+      AMOUNT_TOO_HIGH: 'Jumlah biaya sangat besar. Pastikan angka sudah benar.',
+      COST_NAME_EMPTY: 'Nama biaya tidak boleh kosong',
+      COST_NAME_TOO_SHORT: 'Nama biaya terlalu pendek. Minimal 3 karakter untuk kejelasan.',
+
+      // Calculation specific
+      DIVISION_BY_ZERO: 'Target produksi tidak boleh 0 pcs. Masukkan jumlah produk yang akan dibuat per bulan.',
+      NEGATIVE_RESULT: 'Hasil kalkulasi tidak boleh negatif. Periksa kembali input Anda.',
+      PERCENTAGE_TOO_HIGH: 'Persentase terlalu tinggi. Maksimal 1000% untuk keamanan kalkulasi.'
+    },
   
   // Success messages
   SUCCESS: {

@@ -4,6 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body {
+  overflow-x: hidden;
+  touch-action: pan-y;
+}
+
 /* Safe responsive improvements */
 @layer utilities {
   /* Device-specific utilities */
@@ -83,7 +89,7 @@
 @layer components {
   /* Universal dialog base - safe for all components */
   .dialog-responsive {
-    @apply max-h-[85vh] sm:max-h-[80vh] overflow-auto py-4 px-12 sm:px-16;
+    @apply max-h-[85vh] sm:max-h-[80vh] overflow-y-auto overflow-x-hidden py-4 px-12 sm:px-16;
   }
   
   /* Global dialog container with better iPad support */

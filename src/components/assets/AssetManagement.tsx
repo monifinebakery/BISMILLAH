@@ -209,7 +209,7 @@ export const AssetManagement: React.FC = () => {
                     Tambah Aset
                   </Button>
                 </DialogTrigger>
-                <DialogContent className={`${isMobile ? 'w-[95vw] max-w-sm h-[90vh]' : 'w-[95vw] max-w-md max-h-[90vh]'} mx-auto`}>
+                <DialogContent className={`${isMobile ? 'w-[95vw] max-w-sm h-[90vh]' : 'w-[95vw] max-w-md max-h-[90vh]'}`}>
                   <DialogHeader>
                     <DialogTitle className="text-orange-600">
                       {editingAsset ? 'Edit Aset' : 'Tambah Aset Baru'}

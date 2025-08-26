@@ -101,28 +101,28 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
       return {
         status: 'untung',
         icon: CheckCircle,
-        color: 'green',
+        color: 'gray',
         message: 'Alhamdulillah! Bisnis untung bulan ini',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-200'
+        bgColor: 'bg-gray-50',
+        borderColor: 'border-gray-200'
       };
     } else if (monthlyAnalysis.untungRugi < 0) {
       return {
         status: 'rugi',
         icon: AlertCircle,
-        color: 'red',
+        color: 'gray',
         message: 'Hati-hati! Bisnis rugi bulan ini',
-        bgColor: 'bg-red-50',
-        borderColor: 'border-red-200'
+        bgColor: 'bg-gray-50',
+        borderColor: 'border-gray-200'
       };
     } else {
       return {
         status: 'impas',
         icon: AlertCircle,
-        color: 'yellow',
+        color: 'gray',
         message: 'Bisnis impas (tidak untung tidak rugi)',
-        bgColor: 'bg-yellow-50',
-        borderColor: 'border-yellow-200'
+        bgColor: 'bg-gray-50',
+        borderColor: 'border-gray-200'
       };
     }
   };
@@ -159,7 +159,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <TrendingUp className="h-5 w-5 text-blue-600" />
+          <TrendingUp className="h-5 w-5 text-gray-600" />
           Untung Rugi Bulan {currentMonth}
         </CardTitle>
         <p className="text-sm text-gray-600">
@@ -187,8 +187,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
               </h3>
               <p className={cn(
                 "text-2xl font-bold mt-1",
-                statusInfo.color === 'green' ? 'text-green-600' : 
-                statusInfo.color === 'red' ? 'text-red-600' : 'text-yellow-600'
+                'text-gray-700'
               )}>
                 {formatCurrency(Math.abs(monthlyAnalysis.untungRugi))}
               </p>
@@ -207,32 +206,32 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
 
         {/* Rincian Angka */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-800">
+              <TrendingUp className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-800">
                 Uang Masuk
               </span>
             </div>
-            <p className="text-lg font-bold text-green-600">
+            <p className="text-lg font-bold text-gray-700">
               {formatCurrency(monthlyAnalysis.totalMasuk)}
             </p>
-            <p className="text-xs text-green-600 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               Rata-rata: {formatCurrency(monthlyAnalysis.rataHarian)} /hari
             </p>
           </div>
           
-          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingDown className="h-4 w-4 text-red-600" />
-              <span className="text-sm font-medium text-red-800">
+              <TrendingDown className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-800">
                 Uang Keluar
               </span>
             </div>
-            <p className="text-lg font-bold text-red-600">
+            <p className="text-lg font-bold text-gray-700">
               {formatCurrency(monthlyAnalysis.totalKeluar)}
             </p>
-            <p className="text-xs text-red-600 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               Terbesar: {monthlyAnalysis.kategoriTerbesar}
             </p>
           </div>
@@ -250,7 +249,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
             <p className="text-xs text-gray-500">Rata-rata Harian</p>
             <p className={cn(
               "font-semibold",
-              monthlyAnalysis.rataHarian >= 0 ? 'text-green-600' : 'text-red-600'
+              monthlyAnalysis.rataHarian >= 0 ? 'text-gray-700' : 'text-gray-500'
             )}>
               {formatCurrency(monthlyAnalysis.rataHarian)}
             </p>
@@ -258,14 +257,14 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
         </div>
 
         {/* Tips Praktis */}
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
           <div className="flex items-start gap-2">
-            <Lightbulb className="h-4 w-4 text-blue-600 mt-0.5" />
+            <Lightbulb className="h-4 w-4 text-gray-600 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-blue-800 mb-1">
+              <p className="text-sm font-medium text-gray-800 mb-1">
                 Tips Untuk Bulan Depan:
               </p>
-              <p className="text-xs text-blue-700">
+              <p className="text-xs text-gray-700">
                 {getTips()}
               </p>
             </div>

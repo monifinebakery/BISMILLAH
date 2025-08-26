@@ -24,6 +24,7 @@ import {
   Upload,
   X
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { RECIPE_CATEGORIES, type NewRecipe, type RecipeFormStepProps } from '../../types';
 
 type BasicInfoStepProps = Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'>;
@@ -74,16 +75,20 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     if (file) {
       processImageFile(file);
     }
+    // Reset input untuk memungkinkan pilih file yang sama lagi
+    event.target.value = '';
   };
 
   const processImageFile = (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      toast.error('Format file tidak didukung. Pilih file JPG, PNG, atau GIF.');
       return;
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
+      toast.error('Ukuran file terlalu besar. Maksimal 2MB.');
       return;
     }
 
@@ -93,6 +98,10 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
       setImagePreview(result);
       onUpdate('fotoBase64', result);
       onUpdate('fotoUrl', ''); // Clear URL if base64 is set
+      toast.success('Foto berhasil diupload!');
+    };
+    reader.onerror = () => {
+      toast.error('Gagal membaca file. Coba pilih file lain.');
     };
     reader.readAsDataURL(file);
   };
@@ -338,12 +347,13 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       atau klik tombol di bawah untuk pilih file
                     </p>
                   </div>
-                  <label>
-                    <Input
+                  <div>
+                    <input
+                      id="recipe-photo-upload"
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
-                      className="sr-only"
+                      className="hidden"
                       disabled={isLoading}
                     />
                     <Button
@@ -352,11 +362,12 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       size="sm"
                       disabled={isLoading}
                       className="cursor-pointer"
+                      onClick={() => document.getElementById('recipe-photo-upload')?.click()}
                     >
                       <Image className="w-4 h-4 mr-2" />
                       Pilih Foto
                     </Button>
-                  </label>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -379,12 +390,13 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   <X className="w-4 h-4" />
                 </Button>
                 <div className="mt-2 flex gap-2">
-                  <label className="flex-1">
-                    <Input
+                  <div className="flex-1">
+                    <input
+                      id="recipe-photo-replace"
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
-                      className="sr-only"
+                      className="hidden"
                       disabled={isLoading}
                     />
                     <Button
@@ -393,11 +405,12 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       size="sm"
                       disabled={isLoading}
                       className="w-full cursor-pointer"
+                      onClick={() => document.getElementById('recipe-photo-replace')?.click()}
                     >
                       <Image className="w-4 h-4 mr-2" />
                       Ganti Foto
                     </Button>
-                  </label>
+                  </div>
                 </div>
               </div>
             )}

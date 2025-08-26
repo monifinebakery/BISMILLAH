@@ -344,7 +344,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         related_id: newRow.id,
         action_url: '/pembelian',
         is_read: false,
-        is_archived: false,
       });
     },
     onError: (err, _payload, ctx) => {
@@ -537,7 +536,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           related_id: id,
           action_url: '/pembelian',
           is_read: false,
-          is_archived: false,
         });
       }
     },

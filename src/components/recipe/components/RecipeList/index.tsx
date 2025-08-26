@@ -3,6 +3,8 @@
 import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { List, Grid3X3 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ✅ CONSOLIDATED: Auth and utilities (kept as needed)
@@ -20,6 +22,7 @@ import type { Recipe, NewRecipe } from '../../types';
 
 // ✅ LOCAL COMPONENTS: Direct imports (no barrel exports)
 import RecipeTable from './RecipeTable';
+import RecipeCardView from './RecipeCardView';
 import RecipeFilters from './RecipeFilters';
 import RecipeStats from './RecipeStats';
 import { LoadingState } from '../shared/LoadingState';
@@ -56,6 +59,7 @@ const RecipeList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   
   // ✅ SIMPLIFIED: Dialog states as single object
   const [dialogStates, setDialogStates] = useState<DialogStates>(initialDialogStates);
@@ -266,23 +270,55 @@ const RecipeList: React.FC = () => {
         <Card className="border bg-white/90 backdrop-blur-sm">
           <CardContent className="p-0">
             
-            {/* Filters */}
-            <div className="p-6 pb-0">
-              <RecipeFilters
-                searchTerm={filtering.searchTerm}
-                onSearchChange={filtering.setSearchTerm}
-                categoryFilter={filtering.categoryFilter}
-                onCategoryFilterChange={filtering.setCategoryFilter}
-                categories={filtering.availableCategories}
-                sortBy={filtering.sortBy}
-                onSortByChange={filtering.setSortBy}
-                sortOrder={filtering.sortOrder}
-                onSortOrderChange={filtering.setSortOrder}
-                hasActiveFilters={filtering.hasActiveFilters}
-                onClearFilters={filtering.clearFilters}
-                totalResults={filtering.filteredAndSortedRecipes.length}
-                onSort={filtering.handleSort}
-              />
+            {/* Filters and View Toggle */}
+            <div className="p-6 pb-0 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <RecipeFilters
+                    searchTerm={filtering.searchTerm}
+                    onSearchChange={filtering.setSearchTerm}
+                    categoryFilter={filtering.categoryFilter}
+                    onCategoryFilterChange={filtering.setCategoryFilter}
+                    categories={filtering.availableCategories}
+                    sortBy={filtering.sortBy}
+                    onSortByChange={filtering.setSortBy}
+                    sortOrder={filtering.sortOrder}
+                    onSortOrderChange={filtering.setSortOrder}
+                    hasActiveFilters={filtering.hasActiveFilters}
+                    onClearFilters={filtering.clearFilters}
+                    totalResults={filtering.filteredAndSortedRecipes.length}
+                    onSort={filtering.handleSort}
+                  />
+                </div>
+                
+                {/* View Mode Toggle */}
+                {!showEmptyState && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Tampilan:</span>
+                    <ToggleGroup 
+                      type="single" 
+                      value={viewMode} 
+                      onValueChange={(value) => value && setViewMode(value as 'table' | 'cards')}
+                      className="border border-gray-200 rounded-lg"
+                    >
+                      <ToggleGroupItem 
+                        value="table" 
+                        aria-label="Tampilan tabel"
+                        className="data-[state=on]:bg-orange-100 data-[state=on]:text-orange-700"
+                      >
+                        <List className="h-4 w-4" />
+                      </ToggleGroupItem>
+                      <ToggleGroupItem 
+                        value="cards" 
+                        aria-label="Tampilan kartu"
+                        className="data-[state=on]:bg-orange-100 data-[state=on]:text-orange-700"
+                      >
+                        <Grid3X3 className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Results */}
@@ -300,17 +336,33 @@ const RecipeList: React.FC = () => {
                 />
               </div>
             ) : (
-              <RecipeTable
-                recipes={filtering.filteredAndSortedRecipes}
-                onSort={filtering.handleSort}
-                sortBy={filtering.sortBy}
-                sortOrder={filtering.sortOrder}
-                onEdit={dialogHandlers.openForm}
-                onDuplicate={dialogHandlers.openDuplicate}
-                onDelete={dialogHandlers.openDelete}
-                searchTerm={filtering.searchTerm}
-                isLoading={recipeOperations.isLoading}
-              />
+              <div className="p-6 pt-0">
+                {viewMode === 'table' ? (
+                  <RecipeTable
+                    recipes={filtering.filteredAndSortedRecipes}
+                    onSort={filtering.handleSort}
+                    sortBy={filtering.sortBy}
+                    sortOrder={filtering.sortOrder}
+                    onEdit={dialogHandlers.openForm}
+                    onDuplicate={dialogHandlers.openDuplicate}
+                    onDelete={dialogHandlers.openDelete}
+                    searchTerm={filtering.searchTerm}
+                    isLoading={recipeOperations.isLoading}
+                  />
+                ) : (
+                  <RecipeCardView
+                    recipes={filtering.filteredAndSortedRecipes}
+                    onSort={filtering.handleSort}
+                    sortBy={filtering.sortBy}
+                    sortOrder={filtering.sortOrder}
+                    onEdit={dialogHandlers.openForm}
+                    onDuplicate={dialogHandlers.openDuplicate}
+                    onDelete={dialogHandlers.openDelete}
+                    searchTerm={filtering.searchTerm}
+                    isLoading={recipeOperations.isLoading}
+                  />
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

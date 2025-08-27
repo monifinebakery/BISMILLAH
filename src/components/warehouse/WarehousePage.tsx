@@ -299,7 +299,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
     queryFn: usePagination 
       ? () => fetchWarehouseItemsPaginated(page, limit)
       : fetchWarehouseItems,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes cache for performance
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) {
         return false;

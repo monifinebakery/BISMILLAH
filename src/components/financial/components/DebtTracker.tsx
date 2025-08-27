@@ -194,8 +194,7 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
                 Tambah
               </Button>
             </DialogTrigger>
-            <DialogContent className="dialog-overlay-center">
-              <div className="dialog-panel">
+            <DialogContent centerMode="overlay" size="md">
                 <DialogHeader className="dialog-header-pad">
                   <DialogTitle>Tambah Hutang/Piutang Baru</DialogTitle>
                 </DialogHeader>
@@ -261,12 +260,11 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
                   
                   </div>
                   
-                  <DialogFooter className="dialog-footer-pad pt-4">
+                <DialogFooter className="dialog-footer-pad pt-4">
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
                     <Button type="submit">Simpan</Button>
                   </DialogFooter>
                 </form>
-              </div>
             </DialogContent>
           </Dialog>
         </div>

@@ -77,7 +77,7 @@ const DialogContent = React.forwardRef<
     // Mode translate: direct panel styling (shadcn-compatible)
     translate:
       `fixed left-1/2 top-1/2 z-[75] w-full ${sizeClasses[size]} -translate-x-1/2 -translate-y-1/2 ` +
-      "border bg-background shadow-2xl duration-200 mx-4 rounded-xl " +
+      "border bg-background shadow-2xl duration-200 mx-auto rounded-xl " +
       // Enhanced animations
       "data-[state=open]:animate-in data-[state=closed]:animate-out " +
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 " +
@@ -96,18 +96,51 @@ const DialogContent = React.forwardRef<
         className={cn(baseClassByMode[centerMode], className)}
         {...mergedProps}
       >
-        {children}
-        {!hideCloseButton && (
-          <DialogPrimitive.Close className={cn(
-            "absolute right-4 top-4 z-10 rounded-sm opacity-70 ring-offset-background",
-            "transition-all duration-200 hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800", 
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            "disabled:pointer-events-none p-1",
-            centerMode === "overlay" && "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          )}>
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
+        {centerMode === "overlay" ? (
+          <div
+            className={cn(
+              "relative w-full mx-auto",
+              sizeClasses[size],
+              "border bg-background shadow-2xl duration-200 rounded-xl",
+              "data-[state=open]:animate-in data-[state=closed]:animate-out",
+              "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+              "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+              "max-h-[90dvh] overflow-hidden flex flex-col"
+            )}
+          >
+            {children}
+            {!hideCloseButton && (
+              <DialogPrimitive.Close
+                className={cn(
+                  "absolute right-4 top-4 z-10 rounded-sm opacity-70 ring-offset-background",
+                  "transition-all duration-200 hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800",
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                  "disabled:pointer-events-none p-1",
+                  "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                )}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </DialogPrimitive.Close>
+            )}
+          </div>
+        ) : (
+          <>
+            {children}
+            {!hideCloseButton && (
+              <DialogPrimitive.Close
+                className={cn(
+                  "absolute right-4 top-4 z-10 rounded-sm opacity-70 ring-offset-background",
+                  "transition-all duration-200 hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800",
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                  "disabled:pointer-events-none p-1"
+                )}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </DialogPrimitive.Close>
+            )}
+          </>
         )}
       </DialogPrimitive.Content>
     </DialogPortal>

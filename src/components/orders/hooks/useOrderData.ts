@@ -201,8 +201,18 @@ export const useOrderOperations = () => {
       }
       toast.error(`Gagal mengubah status: ${err.message}`);
     },
-    onSuccess: (_, { status }) => {
+    onSuccess: (updatedOrder, { status }) => {
       toast.success(`Status berhasil diubah ke ${status}`);
+      // ✅ INVALIDATE PROFIT ANALYSIS: Order status changes affect profit calculations
+      console.log('📈 Invalidating profit analysis cache after order status change');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
+      });
+      
+      // Log order completion for revenue tracking
+      if (status === 'completed') {
+        console.log('🎉 Order completed - revenue will be included in profit calculations');
+      }
     },
   });
 
@@ -242,6 +252,11 @@ export const useOrderOperations = () => {
     },
     onSuccess: () => {
       toast.success('Pesanan berhasil dihapus');
+      // ✅ INVALIDATE PROFIT ANALYSIS: Order deletion affects profit calculations
+      console.log('📈 Invalidating profit analysis cache after order deletion');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
+      });
     },
   });
 

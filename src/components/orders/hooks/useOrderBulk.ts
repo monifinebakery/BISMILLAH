@@ -74,6 +74,11 @@ export const useOrderBulk = () => {
         toast.success(`${successCount} pesanan berhasil dihapus`);
         // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ['orders'] });
+        // ✅ INVALIDATE PROFIT ANALYSIS: Bulk order deletion affects profit calculations
+        console.log('📈 Invalidating profit analysis cache after bulk order deletion');
+        queryClient.invalidateQueries({ 
+          queryKey: ['profit-analysis'] 
+        });
       }
       
       if (failedCount > 0) {
@@ -136,6 +141,11 @@ export const useOrderBulk = () => {
         toast.success(`${successCount} pesanan berhasil diperbarui`);
         // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ['orders'] });
+        // ✅ INVALIDATE PROFIT ANALYSIS: Bulk order updates affect profit calculations
+        console.log('📈 Invalidating profit analysis cache after bulk order update');
+        queryClient.invalidateQueries({ 
+          queryKey: ['profit-analysis'] 
+        });
       }
       
       if (failedCount > 0) {

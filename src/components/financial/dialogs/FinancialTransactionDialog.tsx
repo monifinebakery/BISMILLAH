@@ -178,16 +178,18 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-responsive form-dialog">
-        <DialogHeader>
-          <DialogTitle>
-            {transaction ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          {/* Transaction Type */}
-          <div className="grid grid-cols-2 gap-4">
+      <DialogContent centerMode="overlay" className="dialog-overlay-center">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle>
+              {transaction ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit}>
+            <div className="dialog-body space-y-4 py-4">
+              {/* Transaction Type */}
+              <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="type">Tipe</Label>
               <Select
@@ -314,25 +316,27 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               </p>
             </div>
           </div>
+          </div>
 
           {/* Footer */}
-          <DialogFooter className="pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
+          <DialogFooter className="dialog-footer-pad pt-4">
+            <Button
+              type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
             >
               Batal
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </DialogFooter>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -316,25 +316,26 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
               </p>
             </div>
           </div>
+          </div>
 
           {/* Footer */}
-            <DialogFooter className="dialog-footer-pad pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-              >
-                Batal
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-              </Button>
-            </DialogFooter>
-          </form>
+          <DialogFooter className="dialog-footer-pad pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </DialogFooter>
+        </form>
         </div>
       </DialogContent>
     </Dialog>

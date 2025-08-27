@@ -6,7 +6,9 @@ import { Activity } from '@/types/activity';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { useAuth } from './AuthContext';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
+// ✅ UPDATED: Import unified date handler for consistency
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
 
 // ===== QUERY KEYS =====
 export const activityQueryKeys = {
@@ -43,15 +45,21 @@ const activityApi = {
       throw new Error('Gagal memuat riwayat aktivitas: ' + error.message);
     }
 
+    // Helper function to safely parse dates using UnifiedDateHandler
+    const safeParseDateUnified = (dateInput: any): Date => {
+      const result = UnifiedDateHandler.parseDate(dateInput);
+      return result.isValid && result.date ? result.date : new Date();
+    };
+
     return data ? data.map((item) => ({
        id: item.id,
        title: item.title,
        description: item.description,
        type: item.type as Activity['type'],
        value: item.value,
-       timestamp: safeParseDate(item.created_at) || new Date(),
+       timestamp: safeParseDateUnified(item.created_at),
        userId: item.user_id,
-       createdAt: safeParseDate(item.created_at) || new Date(),
+       createdAt: safeParseDateUnified(item.created_at),
        updatedAt: null,
      })) : [];
   },
@@ -85,15 +93,21 @@ const activityApi = {
 
     const totalCount = count || 0;
     const totalPages = Math.ceil(totalCount / limit);
+    // Helper function to safely parse dates using UnifiedDateHandler
+    const safeParseDateUnified = (dateInput: any): Date => {
+      const result = UnifiedDateHandler.parseDate(dateInput);
+      return result.isValid && result.date ? result.date : new Date();
+    };
+
     const activities = data ? data.map((item): Activity => ({
       id: item.id,
       title: item.title,
       description: item.description,
       type: item.type as Activity['type'],
       value: item.value,
-      timestamp: safeParseDate(item.created_at) || new Date(),
+      timestamp: safeParseDateUnified(item.created_at),
       userId: item.user_id,
-      createdAt: safeParseDate(item.created_at) || new Date(),
+      createdAt: safeParseDateUnified(item.created_at),
       updatedAt: null,
     })) : [];
 
@@ -125,15 +139,21 @@ const activityApi = {
       throw new Error('Gagal menambahkan aktivitas: ' + error.message);
     }
 
+    // Helper function to safely parse dates using UnifiedDateHandler
+    const safeParseDateUnified = (dateInput: any): Date => {
+      const result = UnifiedDateHandler.parseDate(dateInput);
+      return result.isValid && result.date ? result.date : new Date();
+    };
+
     return {
        id: data.id,
        title: data.title,
        description: data.description,
        type: data.type as Activity['type'],
        value: data.value,
-       timestamp: safeParseDate(data.created_at) || new Date(),
+       timestamp: safeParseDateUnified(data.created_at),
        userId: data.user_id,
-       createdAt: safeParseDate(data.created_at) || new Date(),
+       createdAt: safeParseDateUnified(data.created_at),
        updatedAt: null,
      };
   }

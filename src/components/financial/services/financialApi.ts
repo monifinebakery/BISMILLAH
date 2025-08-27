@@ -3,9 +3,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
-// 🔧 IMPROVED: Import centralized date normalization
-import { normalizeDateRange, normalizeDateForDatabase } from '@/utils/dateNormalization';
+// ✅ UPDATED: Import unified date utilities for consistency
+import { UnifiedDateHandler, normalizeDateForDatabase } from '@/utils/unifiedDateHandler';
+import { normalizeDateRange } from '@/utils/dateNormalization'; // Keep for backward compatibility
 import { 
   FinancialTransaction, 
   CreateTransactionData, 
@@ -44,7 +44,7 @@ const transformForDB = (
     amount: transaction.amount,
     description: transaction.description || null,
     related_id: transaction.relatedId || null,
-    date: transaction.date ? (safeParseDate(transaction.date)?.toISOString() || new Date(transaction.date).toISOString()) : null,
+    date: transaction.date ? UnifiedDateHandler.toDatabaseTimestamp(transaction.date) : null,
   };
 
   if (userId) {
@@ -58,6 +58,12 @@ const transformForDB = (
 };
 
 const transformFromDB = (data: any): FinancialTransaction => {
+  // Helper to safely parse dates using UnifiedDateHandler
+  const safeParseDateUnified = (dateInput: any): Date | null => {
+    const result = UnifiedDateHandler.parseDate(dateInput);
+    return result.isValid ? result.date || null : null;
+  };
+  
   return {
     id: data.id,
     userId: data.user_id,
@@ -65,10 +71,10 @@ const transformFromDB = (data: any): FinancialTransaction => {
     category: data.category,
     amount: data.amount,
     description: data.description,
-    date: safeParseDate(data.date),
+    date: safeParseDateUnified(data.date),
     relatedId: data.related_id,
-    createdAt: safeParseDate(data.created_at),
-    updatedAt: safeParseDate(data.updated_at),
+    createdAt: safeParseDateUnified(data.created_at),
+    updatedAt: safeParseDateUnified(data.updated_at),
   };
 };
 

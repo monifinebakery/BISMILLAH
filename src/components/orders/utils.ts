@@ -11,7 +11,9 @@ import { logger } from '@/utils/logger';
 import { generateOrderNumber } from '@/utils/formatUtils'; // ✅ FIXED: Import order number generator
 import { VALIDATION_LIMITS } from './constants'; // ✅ Added: Import validation limits from constants
 
-// ✅ DATE UTILITIES: Optimized with better error handling
+// ✅ DATE UTILITIES: Using UnifiedDateHandler for consistency
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+
 export const isValidDate = (date: any): boolean => {
   try {
     return date instanceof Date && !isNaN(date.getTime()) && date.getTime() > 0;
@@ -21,30 +23,18 @@ export const isValidDate = (date: any): boolean => {
 };
 
 export const safeParseDate = (dateInput: any): Date | null => {
-  if (!dateInput) return null;
-  
-  try {
-    // Direct Date instance check
-    if (dateInput instanceof Date) {
-      return isValidDate(dateInput) ? dateInput : null;
-    }
-    
-    // String/number parsing with validation
-    const parsed = new Date(dateInput);
-    return isValidDate(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
+  const result = UnifiedDateHandler.parseDate(dateInput);
+  return result.isValid && result.date ? result.date : null;
 };
 
 export const toSafeISOString = (date: Date | null): string => {
   try {
     if (!date || !isValidDate(date)) {
-      return new Date().toISOString();
+      return UnifiedDateHandler.toDatabaseTimestamp(new Date());
     }
-    return date.toISOString();
+    return UnifiedDateHandler.toDatabaseTimestamp(date);
   } catch {
-    return new Date().toISOString();
+    return UnifiedDateHandler.toDatabaseTimestamp(new Date());
   }
 };
 
@@ -121,16 +111,16 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
       }
     });
 
-    // ✅ ENHANCED: Date handling for order date
+    // ✅ ENHANCED: Date handling for order date using UnifiedDateHandler
     if (data.tanggal !== undefined) {
       const parsedDate = safeParseDate(data.tanggal);
-      dbData.tanggal = toSafeISOString(parsedDate || new Date());
+      dbData.tanggal = UnifiedDateHandler.toDatabaseTimestamp(parsedDate || new Date());
     }
     
-    // ✅ NEW: Date handling for completion date
+    // ✅ NEW: Date handling for completion date using UnifiedDateHandler
     if (data.tanggalSelesai !== undefined) {
       const parsedCompletionDate = safeParseDate(data.tanggalSelesai);
-      dbData.tanggal_selesai = parsedCompletionDate ? toSafeISOString(parsedCompletionDate) : null;
+      dbData.tanggal_selesai = parsedCompletionDate ? UnifiedDateHandler.toDatabaseTimestamp(parsedCompletionDate) : null;
     }
     
     return dbData;
@@ -143,7 +133,7 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
       nama_pelanggan: String(data.namaPelanggan || 'Error'),
       status: data.status || 'pending',
       total_pesanan: Number(data.totalPesanan) || 0,
-      tanggal: toSafeISOString(new Date()),
+      tanggal: UnifiedDateHandler.toDatabaseTimestamp(new Date()),
       tanggal_selesai: null, // ✅ FIXED: Use null for database compatibility
       telepon_pelanggan: '' // ✅ FIXED: Add required field with default
     };

@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
 import OrderContext from './OrderContext';
-import { safeParseDate, isValidDate } from '@/utils/unifiedDateUtils';
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { safeParseDate, isValidDate } from '@/utils/unifiedDateUtils'; // Keep for transition
 import { transformOrderFromDB } from '../utils';
 import type { Order, NewOrder, OrderStatus } from '../types';
 import { useOrderConnection } from '../hooks/useOrderConnection';
@@ -178,7 +179,8 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
   const getOrdersByDateRange = useCallback((start: Date, end: Date) => {
     if (!isValidDate(start) || !isValidDate(end)) return [];
     return orders.filter(o => {
-      const d = safeParseDate(o.tanggal);
+      const result = UnifiedDateHandler.parseDate(o.tanggal);
+      const d = result.isValid && result.date ? result.date : null;
       return d && d >= start && d <= end;
     });
   }, [orders]);

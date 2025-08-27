@@ -1,7 +1,8 @@
 // src/components/financial/utils/financialCalculations.ts
 // ✅ FIXED - Correct import path for types
 
-import { safeParseDate } from '@/utils/unifiedDateUtils';
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
 import { logger } from '@/utils/logger';
 
 // ✅ FIXED: Correct import path for types
@@ -26,8 +27,11 @@ export const filterByDateRange = <T extends Record<string, any>>(
   if (!items?.length || !dateRange?.from) return [];
 
   try {
-    const fromDate = safeParseDate(dateRange.from);
-    const toDate = dateRange.to ? safeParseDate(dateRange.to) : fromDate;
+    const fromResult = UnifiedDateHandler.parseDate(dateRange.from);
+    const fromDate = fromResult.isValid && fromResult.date ? fromResult.date : null;
+    
+    const toResult = dateRange.to ? UnifiedDateHandler.parseDate(dateRange.to) : fromResult;
+    const toDate = toResult.isValid && toResult.date ? toResult.date : fromDate;
 
     if (!fromDate) {
       logger.warn('Invalid from date in filterByDateRange');
@@ -41,7 +45,8 @@ export const filterByDateRange = <T extends Record<string, any>>(
       const itemDateValue = item[dateKey];
       if (!itemDateValue) return false;
 
-      const itemDate = safeParseDate(itemDateValue);
+      const itemResult = UnifiedDateHandler.parseDate(itemDateValue);
+      const itemDate = itemResult.isValid && itemResult.date ? itemResult.date : null;
       if (!itemDate) return false;
 
       const itemTime = itemDate.getTime();
@@ -234,7 +239,8 @@ export const formatCurrency = (amount: number): string => {
 
 export const formatDate = (date: Date | string | null): string => {
   if (!date) return '-';
-  const parsedDate = safeParseDate(date);
+  const result = UnifiedDateHandler.parseDate(date);
+  const parsedDate = result.isValid && result.date ? result.date : null;
   if (!parsedDate) return 'Format tidak valid';
   
   try {
@@ -335,8 +341,10 @@ export const sortTransactions = (
     
     switch (sortBy) {
       case 'date':
-        const dateA = safeParseDate(a.date)?.getTime() || 0;
-        const dateB = safeParseDate(b.date)?.getTime() || 0;
+        const dateAResult = UnifiedDateHandler.parseDate(a.date);
+        const dateBResult = UnifiedDateHandler.parseDate(b.date);
+        const dateA = dateAResult.isValid && dateAResult.date ? dateAResult.date.getTime() : 0;
+        const dateB = dateBResult.isValid && dateBResult.date ? dateBResult.date.getTime() : 0;
         comparison = dateA - dateB;
         break;
       case 'amount':

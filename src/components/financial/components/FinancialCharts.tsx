@@ -17,8 +17,9 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { formatCurrency, formatLargeNumber } from '@/utils/formatUtils';
-// ✅ IMPROVED: Import centralized date normalization for consistency
-import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+// ✅ IMPROVED: Import UnifiedDateHandler for consistency
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { normalizeDateForDatabase } from '@/utils/dateNormalization'; // Keep for transition
 import { logger } from '@/utils/logger';
 
 // ✅ TAMBAH: Props enhancement untuk useQuery support
@@ -120,8 +121,8 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
         monthlyData[monthYearKey].expense += t.amount || 0;
       }
 
-      // Daily data with consistent date normalization
-      const dayKey = normalizeDateForDatabase(transactionDate);
+      // Daily data with consistent date normalization using UnifiedDateHandler
+      const dayKey = UnifiedDateHandler.toDatabaseString(transactionDate);
       if (!dailyDataMap[dayKey]) {
         dailyDataMap[dayKey] = { income: 0, expense: 0, date: transactionDate };
       }
@@ -153,11 +154,11 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
         return a.date.getTime() - b.date.getTime();
       });
 
-    // Transform daily data (last 30 days) with consistent date handling
+    // Transform daily data (last 30 days) with consistent date handling using UnifiedDateHandler
     const today = endOfDay(new Date());
     for (let i = 0; i < 30; i++) {
       const currentDate = startOfDay(subDays(today, 29 - i));
-      const dayKey = normalizeDateForDatabase(currentDate);
+      const dayKey = UnifiedDateHandler.toDatabaseString(currentDate);
       const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
       result.dailyData.push({
         date: format(currentDate, 'd MMM', { locale: id }),

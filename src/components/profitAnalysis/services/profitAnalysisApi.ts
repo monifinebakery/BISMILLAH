@@ -27,8 +27,9 @@ import { safeCalculateMargins } from '@/utils/profitValidation';
 import { transformToFNBCOGSBreakdown, getCurrentPeriod } from '../utils/profitTransformers';
 // 🍽️ Import F&B constants
 import { FNB_THRESHOLDS, FNB_LABELS } from '../constants/profitConstants';
-// 🔧 Import date utilities for accuracy
-import { normalizeDateRange, generateDayList, calculateDailyOpEx, normalizeDateForDatabase } from '@/utils/dateNormalization';
+// ✅ UPDATED: Import unified date utilities for consistency
+import { UnifiedDateHandler, ProfitAnalysisDateUtils, normalizeDateForDatabase } from '@/utils/unifiedDateHandler';
+import { generateDayList, calculateDailyOpEx } from '@/utils/dateNormalization';
 
 /**
  * Get current user ID
@@ -251,7 +252,7 @@ export async function calculateProfitAnalysisDaily(
     if (!authUserId) return { data: [], success: false, error: 'Not authenticated' };
 
     // Use centralized date normalization to ensure consistency
-    const { startDate, endDate, startYMD, endYMD } = normalizeDateRange(from, to);
+    const { startDate, endDate, startYMD, endYMD } = ProfitAnalysisDateUtils.normalizeDateRange(from, to);
 
     logger.info('📅 Daily profit analysis (IMPROVED):', { 
       startYMD, 

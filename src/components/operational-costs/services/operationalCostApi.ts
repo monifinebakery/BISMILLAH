@@ -2,9 +2,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from '@/utils/logger';
-// 🔧 IMPROVED: Import centralized date normalization
-import { normalizeDateForDatabase } from '@/utils/dateNormalization';
-import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
+// ✅ UPDATED: Import unified date utilities for consistency
+import { UnifiedDateHandler, normalizeDateForDatabase } from '@/utils/unifiedDateHandler';
+import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; // Keep for transition compatibility
 import { addFinancialTransaction } from '@/components/financial/services/financialApi';
 // 🔄 For cache invalidation - will be used by components
 let globalQueryClient: any = null;
@@ -88,8 +88,8 @@ export const operationalCostApi = {
         return { data: [], error: 'User tidak ditemukan. Silakan login kembali.' };
       }
 
-      const startYMD = normalizeDateForDatabase(startDate);
-      const endYMD = normalizeDateForDatabase(endDate);
+      const startYMD = UnifiedDateHandler.toDatabaseString(startDate) || '';
+      const endYMD = UnifiedDateHandler.toDatabaseString(endDate) || '';
 
       console.log('🔍 Fetching operational costs by date range:', {
         startDate: startYMD,
@@ -239,8 +239,8 @@ export const operationalCostApi = {
         .insert({
           ...insertData,
           user_id: userId, // ✅ Add user_id
-          created_at: normalizeDateForDatabase(safeParseDate(new Date()) || new Date()) + 'T00:00:00.000Z',
-          updated_at: normalizeDateForDatabase(safeParseDate(new Date()) || new Date()) + 'T00:00:00.000Z',
+          created_at: UnifiedDateHandler.toDatabaseTimestamp(new Date()),
+          updated_at: UnifiedDateHandler.toDatabaseTimestamp(new Date()),
         })
         .select()
         .single();
@@ -287,7 +287,7 @@ export const operationalCostApi = {
         .from('operational_costs')
         .update({
           ...updateData,
-          updated_at: normalizeDateForDatabase(safeParseDate(new Date()) || new Date()) + 'T00:00:00.000Z',
+          updated_at: UnifiedDateHandler.toDatabaseTimestamp(new Date()),
         })
         .eq('id', id)
         .eq('user_id', userId) // ✅ Add user filter

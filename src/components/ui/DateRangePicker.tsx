@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { id } from 'date-fns/locale';
 
-// ✅ Use unified date utilities for consistency
-import { safeParseDate, isValidDate, formatDateForDisplay } from '@/utils/unifiedDateUtils';
+// ✅ UPDATED: Use unified date handler for consistency
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { safeParseDate, isValidDate, formatDateForDisplay } from '@/utils/unifiedDateUtils'; // Keep for transition
 
 interface DateRange {
   from: Date;
@@ -59,11 +60,11 @@ const getPreset = (key: string) => {
   }
 };
 
-// Simple format function
+// Simple format function using UnifiedDateHandler
 const formatRange = (range?: DateRange) => {
   if (!range?.from) return '';
-  const from = formatDateForDisplay(range.from);
-  const to = formatDateForDisplay(range.to);
+  const from = UnifiedDateHandler.toDisplayString(range.from);
+  const to = UnifiedDateHandler.toDisplayString(range.to);
   return from === to ? from : `${from} - ${to}`;
 };
 
@@ -90,7 +91,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Handle calendar changes
+  // Handle calendar changes using UnifiedDateHandler
   const handleCalendarChange = useCallback((newRange: any) => {
     if (!onDateRangeChange) return;
     
@@ -99,11 +100,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       return;
     }
 
-    const from = safeParseDate(newRange.from);
-    const to = safeParseDate(newRange.to || newRange.from);
+    const fromResult = UnifiedDateHandler.parseDate(newRange.from);
+    const toResult = UnifiedDateHandler.parseDate(newRange.to || newRange.from);
     
-    if (from && to && isValidDate(from) && isValidDate(to)) {
-      onDateRangeChange({ from, to });
+    if (fromResult.isValid && toResult.isValid && fromResult.date && toResult.date) {
+      onDateRangeChange({ from: fromResult.date, to: toResult.date });
       onPageChange?.(1);
     }
   }, [onDateRangeChange, onPageChange]);
@@ -122,12 +123,13 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     onPageChange?.(1);
   }, [onDateRangeChange, onPageChange]);
 
-  // Convert for calendar
+  // Convert for calendar using UnifiedDateHandler
   const calendarRange = useMemo(() => {
     if (!dateRange?.from) return undefined;
-    const from = safeParseDate(dateRange.from);
-    const to = safeParseDate(dateRange.to);
-    return from && to ? { from, to } : undefined;
+    const fromResult = UnifiedDateHandler.parseDate(dateRange.from);
+    const toResult = UnifiedDateHandler.parseDate(dateRange.to);
+    return fromResult.isValid && toResult.isValid && fromResult.date && toResult.date ? 
+      { from: fromResult.date, to: toResult.date } : undefined;
   }, [dateRange]);
 
   const displayText = formatRange(dateRange) || placeholder;

@@ -1,29 +1,21 @@
 // src/components/assets/utils/assetTransformers.ts
 
 import { Asset, AssetCreateInput, AssetUpdateInput, DatabaseAsset, DatabaseAssetInput, DatabaseAssetUpdate } from '../types';
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 
 /**
- * Parse date safely from various formats
+ * Parse date safely from various formats using UnifiedDateHandler
  */
 export const safeParseDate = (dateValue: string | Date | null | undefined): Date | null => {
-  if (!dateValue) return null;
-  
-  if (dateValue instanceof Date) {
-    return isNaN(dateValue.getTime()) ? null : dateValue;
-  }
-  
-  const parsed = new Date(dateValue);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  const result = UnifiedDateHandler.parseDate(dateValue);
+  return result.isValid && result.date ? result.date : null;
 };
 
 /**
- * Format date to YYYY-MM-DD for database storage
+ * Format date to YYYY-MM-DD for database storage using UnifiedDateHandler
  */
 export const formatDateForDB = (date: Date | null): string | null => {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-    return null;
-  }
-  return date.toISOString().split('T')[0];
+  return date ? UnifiedDateHandler.toDatabaseString(date) : null;
 };
 
 /**

@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePWA } from '@/utils/pwaUtils';
-import { Download, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Download, Wifi, WifiOff, RefreshCw, Smartphone } from 'lucide-react';
+import MobilePWAInstructions from './MobilePWAInstructions';
 
 interface PWAInstallButtonProps {
   className?: string;
@@ -22,16 +23,37 @@ export default function PWAInstallButton({
 
   const [isInstalling, setIsInstalling] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
+  const [showMobileInstructions, setShowMobileInstructions] = React.useState(false);
+  const [isMobileDevice, setIsMobileDevice] = React.useState(false);
+
+  React.useEffect(() => {
+    // Detect if mobile device
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|iphone|ipad|ipod|windows phone/.test(userAgent);
+    setIsMobileDevice(isMobile);
+  }, []);
 
   const handleInstall = async () => {
+    // On mobile, show instructions instead of trying direct install
+    if (isMobileDevice && !canInstall) {
+      setShowMobileInstructions(true);
+      return;
+    }
+
     setIsInstalling(true);
     try {
       const success = await install();
       if (success) {
         console.log('PWA installed successfully');
+      } else if (isMobileDevice) {
+        // If install failed on mobile, show instructions
+        setShowMobileInstructions(true);
       }
     } catch (error) {
       console.error('PWA installation failed:', error);
+      if (isMobileDevice) {
+        setShowMobileInstructions(true);
+      }
     } finally {
       setIsInstalling(false);
     }
@@ -95,6 +117,18 @@ export default function PWAInstallButton({
         </button>
       )}
 
+      {/* Mobile Install Button (when install prompt not available) */}
+      {!canInstall && !isInstalled && isMobileDevice && (
+        <button
+          onClick={() => setShowMobileInstructions(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-lg transition-colors"
+          title="Lihat cara install aplikasi"
+        >
+          <Smartphone className="w-4 h-4" />
+          <span className="hidden sm:inline">Install App</span>
+        </button>
+      )}
+
       {/* Installed Indicator */}
       {isInstalled && !updateAvailable && showNetworkStatus && (
         <div className="flex items-center gap-1 text-sm text-green-600">
@@ -102,6 +136,12 @@ export default function PWAInstallButton({
           <span className="hidden sm:inline">Installed</span>
         </div>
       )}
+      
+      {/* Mobile PWA Instructions Modal */}
+      <MobilePWAInstructions 
+        isOpen={showMobileInstructions}
+        onClose={() => setShowMobileInstructions(false)}
+      />
     </div>
   );
 }

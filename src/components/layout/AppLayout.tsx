@@ -8,6 +8,7 @@ import { MobileLayout } from "./MobileLayout";
 import { DesktopLayout } from "./DesktopLayout";
 import { AppLoader } from "@/components/loaders";
 import { AutoLinkingPopup } from "@/components/popups";
+import { PWAStatus } from "@/components/pwa/PWAInstallButton";
 import { logger } from "@/utils/logger";
 
 export const AppLayout = () => {
@@ -171,6 +172,9 @@ export const AppLayout = () => {
         supabaseClient={supabaseClient}
         onSuccess={handleAutoLinked}
       />
+      
+      {/* PWA Debug Status */}
+      <PWAStatus />
     </>
   );
 };

@@ -148,7 +148,22 @@ export default function PWAInstallButton({
 
 // PWA Status Component for debugging
 export function PWAStatus() {
-  const { canInstall, isInstalled, isOnline, updateAvailable } = usePWA();
+  const { canInstall, isInstalled, isOnline, updateAvailable, isPotentiallyInstallable } = usePWA();
+  const [deviceInfo, setDeviceInfo] = React.useState({
+    userAgent: '',
+    isHTTPS: false,
+    hasServiceWorker: false,
+    hasManifest: false
+  });
+
+  React.useEffect(() => {
+    setDeviceInfo({
+      userAgent: navigator.userAgent.toLowerCase(),
+      isHTTPS: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
+      hasServiceWorker: 'serviceWorker' in navigator,
+      hasManifest: !!document.querySelector('link[rel="manifest"]')
+    });
+  }, []);
 
   // Show in development and preview modes
   const shouldShow = import.meta.env.DEV || 
@@ -158,14 +173,34 @@ export function PWAStatus() {
     return null;
   }
 
+  const isMobile = /android|iphone|ipad|ipod/.test(deviceInfo.userAgent);
+  const browserType = deviceInfo.userAgent.includes('chrome') ? 'Chrome' : 
+                     deviceInfo.userAgent.includes('safari') ? 'Safari' : 
+                     deviceInfo.userAgent.includes('firefox') ? 'Firefox' : 'Other';
+
   return (
-    <div className="fixed bottom-4 right-4 bg-black/80 text-white p-3 rounded-lg text-xs font-mono z-50">
+    <div className="fixed bottom-4 right-4 bg-black/90 text-white p-3 rounded-lg text-xs font-mono z-50 max-w-xs">
       <div className="space-y-1">
-        <div>PWA Status:</div>
-        <div>• Can Install: {canInstall ? '✅' : '❌'}</div>
+        <div className="font-bold text-yellow-300">PWA Debug Status:</div>
+        <div>• Can Install (Prompt): {canInstall ? '✅' : '❌'}</div>
+        <div>• Potentially Installable: {isPotentiallyInstallable() ? '✅' : '❌'}</div>
         <div>• Is Installed: {isInstalled ? '✅' : '❌'}</div>
         <div>• Is Online: {isOnline ? '✅' : '❌'}</div>
         <div>• Update Available: {updateAvailable ? '✅' : '❌'}</div>
+        <div className="border-t border-gray-600 pt-1 mt-2">
+          <div>• HTTPS: {deviceInfo.isHTTPS ? '✅' : '❌'}</div>
+          <div>• Service Worker: {deviceInfo.hasServiceWorker ? '✅' : '❌'}</div>
+          <div>• Manifest: {deviceInfo.hasManifest ? '✅' : '❌'}</div>
+        </div>
+        <div className="border-t border-gray-600 pt-1 mt-2">
+          <div>• Device: {isMobile ? 'Mobile 📱' : 'Desktop 💻'}</div>
+          <div>• Browser: {browserType}</div>
+        </div>
+        {!canInstall && isPotentiallyInstallable() && (
+          <div className="border-t border-yellow-600 pt-1 mt-2 text-yellow-300">
+            <div>ℹ️ Manual install available</div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -295,14 +295,16 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
       }
       onClose();
     }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5" />
-            Kelola Kategori Keuangan
-          </DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
+      <DialogContent centerMode="overlay" className="dialog-overlay-center">
+        <div className="dialog-panel max-w-4xl max-h-[90vh]">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Kelola Kategori Keuangan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="dialog-body overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
           <CategorySection
             title="Kategori Pemasukan"
             categories={settings?.financialCategories?.income || []}
@@ -323,6 +325,8 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
             onAddCategory={handleAddExpenseCategory}
             onDeleteCategory={handleDeleteExpenseCategory}
           />
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

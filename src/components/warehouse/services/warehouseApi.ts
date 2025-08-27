@@ -1,7 +1,8 @@
 // src/components/warehouse/services/warehouseApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+// ✅ UPDATED: Import unified date utilities for consistency
+import { UnifiedDateHandler, WarehouseDateUtils } from '@/utils/unifiedDateHandler';
 import type { BahanBaku, BahanBakuFrontend } from '../types';
 
 export interface ServiceConfig {
@@ -140,10 +141,10 @@ class CrudService {
     endDate: Date
   ): Promise<BahanBakuFrontend[]> {
     try {
-      const startYMD = normalizeDateForDatabase(startDate);
-      const endYMD = normalizeDateForDatabase(endDate);
+      const startYMD = UnifiedDateHandler.toDatabaseString(startDate) || '';
+      const endYMD = UnifiedDateHandler.toDatabaseString(endDate) || '';
 
-      console.log('🔍 Fetching warehouse materials by date range:', {
+      console.log('🔍 Fetching warehouse materials by date range (IMPROVED):', {
         startDate: startYMD,
         endDate: endYMD,
         userId: this.config.userId
@@ -165,7 +166,7 @@ class CrudService {
 
       const materials = (data || []).map((item: any) => transformToFrontend(item));
 
-      console.log('🔍 Filtered warehouse materials result:', {
+      console.log('🔍 Filtered warehouse materials result (IMPROVED):', {
         totalMaterials: materials.length,
         dateRange: { startYMD, endYMD },
         materials: materials.slice(0, 3).map(m => ({

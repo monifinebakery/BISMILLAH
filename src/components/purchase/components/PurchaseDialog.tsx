@@ -41,7 +41,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
 
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
@@ -348,7 +349,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         mode="single"
                         selected={formData.tanggal ? new Date(formData.tanggal) : undefined}
                         onSelect={(date) => updateFormField('tanggal', date?.toISOString() || '')}
-                        disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate('1900-01-01') || new Date('1900-01-01'))}
+                        disabled={(date) => {
+                          const today = UnifiedDateHandler.parseDate(new Date());
+                          const minDate = UnifiedDateHandler.parseDate('1900-01-01');
+                          return date > (today.isValid && today.date ? today.date : new Date()) || 
+                                 date < (minDate.isValid && minDate.date ? minDate.date : new Date('1900-01-01'));
+                        }}
                         initialFocus
                         locale={id}
                       />

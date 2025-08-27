@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils';
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; // Keep for transition
 
 interface ExportButtonsProps {
   data: any[];
@@ -20,7 +21,8 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       }
 
       let content = `${filename.toUpperCase()}\n`;
-      content += `Generated on: ${(safeParseDate(new Date()) || new Date()).toLocaleDateString('id-ID')}\n\n`;
+      const today = UnifiedDateHandler.parseDate(new Date());
+      content += `Generated on: ${(today.isValid && today.date ? today.date : new Date()).toLocaleDateString('id-ID')}\n\n`;
       
       data.forEach((item, index) => {
         content += `${index + 1}. `;
@@ -43,7 +45,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filename}-${(toSafeISOString(new Date()) || new Date().toISOString()).split('T')[0]}.txt`;
+      a.download = `${filename}-${UnifiedDateHandler.toDatabaseString(new Date())}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -114,7 +116,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filename}-${(toSafeISOString(new Date()) || new Date().toISOString()).split('T')[0]}.csv`;
+      a.download = `${filename}-${UnifiedDateHandler.toDatabaseString(new Date())}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

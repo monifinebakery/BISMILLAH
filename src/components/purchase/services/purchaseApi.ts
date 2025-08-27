@@ -1,7 +1,7 @@
 // src/components/purchase/services/purchaseApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
+import { UnifiedDateHandler, PurchaseDateUtils } from '@/utils/unifiedDateHandler';
 import type { Purchase } from '../types/purchase.types';
 import {
   transformPurchasesFromDB,
@@ -11,7 +11,119 @@ import {
 } from '../utils/purchaseTransformers';
 import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 
+// ✅ NEW: Atomic transaction utilities for sync reliability
+interface AtomicSyncOptions {
+  maxRetries?: number;
+  retryDelay?: number;
+  forceSync?: boolean;
+}
+
+class SyncError extends Error {
+  constructor(message: string, public originalError?: Error, public context?: any) {
+    super(message);
+    this.name = 'SyncError';
+  }
+}
+
 export class PurchaseApiService {
+  // ✅ NEW: Atomic transaction wrapper for purchase-warehouse sync
+  private static async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    options: AtomicSyncOptions = {}
+  ): Promise<T> {
+    const { maxRetries = 3, retryDelay = 1000 } = options;
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        logger.warn(`🔄 Retry attempt ${attempt}/${maxRetries} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
+        }
+      }
+    }
+    
+    throw new SyncError(
+      `Operation failed after ${maxRetries} attempts`,
+      lastError,
+      { maxRetries, retryDelay }
+    );
+  }
+
+  // ✅ NEW: Atomic purchase completion with warehouse sync
+  private static async atomicPurchaseCompletion(
+    purchaseId: string,
+    userId: string,
+    options: AtomicSyncOptions = {}
+  ): Promise<{ purchase: Purchase; syncApplied: boolean }> {
+    return this.executeWithRetry(async () => {
+      // Step 1: Update purchase status to completed
+      const { error: updateError } = await supabase
+        .from('purchases')
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .eq('id', purchaseId)
+        .eq('user_id', userId);
+
+      if (updateError) {
+        throw new SyncError('Failed to update purchase status', updateError);
+      }
+
+      // Step 2: Fetch updated purchase
+      const { data: purchaseData, error: fetchError } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', purchaseId)
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchError || !purchaseData) {
+        throw new SyncError('Failed to fetch updated purchase', fetchError);
+      }
+
+      const purchase = transformPurchaseFromDB(purchaseData);
+
+      // Step 3: Apply warehouse sync if needed
+      let syncApplied = false;
+      if (!this.shouldSkipWarehouseSync(purchase, options.forceSync)) {
+        try {
+          await applyPurchaseToWarehouse(purchase);
+          syncApplied = true;
+          logger.info('✅ Atomic purchase completion: warehouse sync applied', purchaseId);
+        } catch (syncError) {
+          // Rollback purchase status if warehouse sync fails
+          await supabase
+            .from('purchases')
+            .update({ status: 'pending', updated_at: new Date().toISOString() })
+            .eq('id', purchaseId)
+            .eq('user_id', userId);
+          
+          throw new SyncError('Warehouse sync failed, purchase rolled back', syncError as Error);
+        }
+      }
+
+      return { purchase, syncApplied };
+    }, options);
+  }
+
+  // ✅ NEW: Atomic purchase reversal with warehouse sync
+  private static async atomicPurchaseReversal(
+    purchase: Purchase,
+    options: AtomicSyncOptions = {}
+  ): Promise<boolean> {
+    return this.executeWithRetry(async () => {
+      if (!this.shouldSkipWarehouseSync(purchase, options.forceSync)) {
+        await reversePurchaseFromWarehouse(purchase);
+        logger.info('✅ Atomic purchase reversal: warehouse sync applied', purchase.id);
+        return true;
+      }
+      return false;
+    }, options);
+  }
+
   private static shouldSkipWarehouseSync(purchase: Purchase | null | undefined, forceSync: boolean = false): boolean {
     logger.debug('🔄 [PURCHASE API] shouldSkipWarehouseSync called with:', { purchase: purchase?.id, forceSync });
     
@@ -100,8 +212,8 @@ export class PurchaseApiService {
           ...purchaseData,
           id: data.id,
           userId,
-          createdAt: safeParseDate(new Date()) || new Date(),
-          updatedAt: safeParseDate(new Date()) || new Date()
+          createdAt: new Date(),
+          updatedAt: new Date()
         } as Purchase);
       }
       return { success: true, error: null, purchaseId: data?.id };
@@ -180,11 +292,8 @@ export class PurchaseApiService {
   }
 
   /**
-   * Set status (pending/completed/cancelled).
-   * Manual warehouse synchronization when status changes to 'completed':
-   * - menambah stok,
-   * - hitung WAC (harga_rata_rata),
-   * - dan pada edit/delete berikutnya, stok akan dikoreksi otomatis.
+   * ✅ NEW: Atomic purchase status update with robust sync handling
+   * Set status (pending/completed/cancelled) with atomic warehouse sync
    */
   static async setPurchaseStatus(
     id: string,
@@ -194,13 +303,14 @@ export class PurchaseApiService {
     try {
       logger.debug('🔄 [PURCHASE API] setPurchaseStatus called:', { id, userId, newStatus });
       
-      // Fetch current
+      // Fetch current purchase
       const { data: existingRow, error: fetchErr } = await supabase
         .from('purchases')
         .select('*')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
+      
       if (fetchErr) {
         console.log('⚠️ setPurchaseStatus fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
         if (fetchErr.code === 'PGRST116') {
@@ -208,88 +318,102 @@ export class PurchaseApiService {
         }
         throw new Error(fetchErr.message);
       }
+      
       const prev = existingRow ? transformPurchaseFromDB(existingRow) : null;
+      if (!prev) {
+        return { success: false, error: 'Data pembelian tidak valid' };
+      }
       
       logger.debug('🔄 [PURCHASE API] Previous purchase data:', prev);
-
-      // Update status
-
-      const { error } = await supabase
-        .from('purchases')
-        .update({ status: newStatus })
-        .eq('id', id)
-        .eq('user_id', userId);
-
-      if (error) throw new Error(error.message);
       
-      logger.info('✅ [PURCHASE API] Status updated in database');
-
-      // Manual apply/reverse after status change
-      if (prev && prev.status !== newStatus) {
-        logger.info('🔄 [PURCHASE API] Status changed', { from: prev.status, to: newStatus });
-        
-        if (newStatus === 'completed') {
-          logger.info('🔄 [PURCHASE API] Applying to warehouse...');
-          // Fetch fresh row to reflect any concurrent changes
-          const { data: newRow, error: freshErr } = await supabase
-            .from('purchases')
-            .select('*')
-            .eq('id', id)
-            .eq('user_id', userId)
-            .single();
-          if (freshErr) {
-            console.log('⚠️ setPurchaseStatus freshErr:', { code: freshErr.code, message: freshErr.message, id, userId });
-            if (freshErr.code !== 'PGRST116') {
-              logger.warn('Warning: Could not fetch fresh purchase data:', freshErr.message);
-            } else {
-              logger.info('ℹ️ PGRST116 when fetching fresh purchase data - purchase may have been deleted');
-            }
-          }
-          const fresh = newRow ? transformPurchaseFromDB(newRow) : prev;
+      // Skip if no status change
+      if (prev.status === newStatus) {
+        logger.info('⏭️ [PURCHASE API] No status change, skipping');
+        return { success: true, error: null };
+      }
+      
+      // Handle different status transitions atomically
+      if (newStatus === 'completed') {
+        // Use atomic completion with retry logic
+        try {
+          const result = await this.atomicPurchaseCompletion(id, userId, { forceSync: true });
           
-          logger.debug('🔄 [PURCHASE API] Fresh purchase data for warehouse sync:', fresh);
-          
-          // Force sync for manual status changes (even for imported items)
-          const forceSync = true;
-          if (!this.shouldSkipWarehouseSync(fresh, forceSync)) {
-            logger.debug('🔄 [PURCHASE API] Calling applyPurchaseToWarehouse with forceSync...');
-            await applyPurchaseToWarehouse(fresh);
-            logger.info('✅ [PURCHASE API] Warehouse sync completed');
-            
-            // ✅ DISPATCH STATUS CHANGE EVENT: Trigger WAC refresh in profit analysis
-            logger.info('🔄 [PURCHASE API] Dispatching purchase status change event for WAC refresh');
+          // Dispatch status change event for WAC refresh
+          logger.info('🔄 [PURCHASE API] Dispatching purchase status change event');
+          if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('purchase:status:changed', {
               detail: { 
-                purchaseId: fresh.id, 
-                supplier: fresh.supplier, 
-                totalValue: fresh.totalNilai,
+                purchaseId: result.purchase.id, 
+                supplier: result.purchase.supplier, 
+                totalValue: result.purchase.totalNilai,
                 oldStatus: prev.status,
-                newStatus: newStatus
+                newStatus: newStatus,
+                syncApplied: result.syncApplied
               }
             }));
-          } else {
-            logger.info('⏭️ [PURCHASE API] Skipping warehouse sync (shouldSkipWarehouseSync returned true)');
           }
-        } else if (prev.status === 'completed') {
-          logger.info('🔄 [PURCHASE API] Reversing from warehouse...');
-          // Force sync for manual status changes (even for imported items) 
-          const forceSync = true;
-          if (!this.shouldSkipWarehouseSync(prev, forceSync)) {
-            await reversePurchaseFromWarehouse(prev);
-            logger.info('✅ [PURCHASE API] Warehouse reverse completed');
-          } else {
-            logger.info('⏭️ [PURCHASE API] Skipping warehouse reverse (shouldSkipWarehouseSync returned true)');
+          
+          logger.info('✅ [PURCHASE API] Atomic purchase completion successful:', {
+            purchaseId: id,
+            syncApplied: result.syncApplied
+          });
+          
+          return { success: true, error: null };
+        } catch (error) {
+          if (error instanceof SyncError) {
+            logger.error('❌ [PURCHASE API] Atomic completion failed:', error.message);
+            return { success: false, error: `Gagal menyelesaikan pembelian: ${error.message}` };
           }
+          throw error;
+        }
+      } else if (prev.status === 'completed') {
+        // Reverse warehouse changes before changing from completed
+        try {
+          await this.atomicPurchaseReversal(prev, { forceSync: true });
+          
+          // Then update the status
+          const { error } = await supabase
+            .from('purchases')
+            .update({ status: newStatus, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .eq('user_id', userId);
+          
+          if (error) throw new Error(error.message);
+          
+          logger.info('✅ [PURCHASE API] Purchase status reversed and updated:', {
+            purchaseId: id,
+            from: prev.status,
+            to: newStatus
+          });
+          
+          return { success: true, error: null };
+        } catch (error) {
+          if (error instanceof SyncError) {
+            logger.error('❌ [PURCHASE API] Atomic reversal failed:', error.message);
+            return { success: false, error: `Gagal mengubah status: ${error.message}` };
+          }
+          throw error;
         }
       } else {
-        logger.info('⏭️ [PURCHASE API] No status change, skipping warehouse sync');
+        // Simple status change (no warehouse sync needed)
+        const { error } = await supabase
+          .from('purchases')
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .eq('user_id', userId);
+        
+        if (error) throw new Error(error.message);
+        
+        logger.info('✅ [PURCHASE API] Simple status update completed:', {
+          purchaseId: id,
+          from: prev.status,
+          to: newStatus
+        });
+        
+        return { success: true, error: null };
       }
-
-
-
-      return { success: true, error: null };
     } catch (err: any) {
-      logger.error('Error updating status:', err);
+      logger.error('❌ [PURCHASE API] Error updating status:', err);
       return { success: false, error: err.message || 'Gagal update status' };
     }
   }

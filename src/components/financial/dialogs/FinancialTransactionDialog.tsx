@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils';
+// ✅ UPDATED: Import unified date handler for consistency
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
 import { logger } from '@/utils/logger';
 
 // ✅ UPDATED: Support both category formats
@@ -106,16 +108,17 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     }
   }, [categories, isOpen]);
 
-  // Initialize form data when dialog opens or transaction changes
+  // Initialize form data when dialog opens or transaction changes using UnifiedDateHandler
   useEffect(() => {
     if (isOpen) {
       if (transaction) {
+        const dateResult = UnifiedDateHandler.parseDate(transaction.date);
         setFormData({
           type: transaction.type,
           amount: transaction.amount,
           category: transaction.category,
           description: transaction.description,
-          date: transaction.date ? safeParseDate(transaction.date) || new Date() : new Date(),
+          date: dateResult.isValid && dateResult.date ? dateResult.date : new Date(),
         });
       } else {
         setFormData(getInitialFormState());

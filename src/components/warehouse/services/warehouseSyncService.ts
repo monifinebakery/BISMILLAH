@@ -6,9 +6,17 @@ import { logger } from '@/utils/logger';
 import type { BahanBakuFrontend } from '../types';
 import type { Purchase } from '@/components/purchase/types/purchase.types';
 
+// ✅ IMPROVED: Enhanced WAC calculation with edge case handling
+export interface WACCalculationResult {
+  newWac: number;
+  newStock: number;
+  preservedPrice?: number; // Last known price when stock hits zero
+  validationWarnings: string[];
+}
+
 /**
- * Calculate new Weighted Average Cost (WAC)
- * Handles both addition and subtraction of stock (qty can be negative)
+ * Enhanced Weighted Average Cost (WAC) calculation
+ * Handles edge cases: negative values, zero stock scenarios, price preservation
  */
 export const calculateNewWac = (
   oldWac: number = 0,
@@ -16,12 +24,104 @@ export const calculateNewWac = (
   qty: number = 0,
   unitPrice: number = 0
 ): number => {
-  const previousValue = (Number(oldStock) || 0) * (Number(oldWac) || 0);
-  const deltaValue = (Number(qty) || 0) * (Number(unitPrice) || 0);
-  const newStock = (Number(oldStock) || 0) + (Number(qty) || 0);
+  // ✅ ENHANCED: Input validation and normalization
+  const safeOldWac = Math.max(0, Number(oldWac) || 0);
+  const safeOldStock = Math.max(0, Number(oldStock) || 0);
+  const safeQty = Number(qty) || 0;
+  const safeUnitPrice = Math.max(0, Number(unitPrice) || 0);
+  
+  // Calculate new stock first
+  const newStock = safeOldStock + safeQty;
+  
+  // ✅ EDGE CASE: Negative or zero stock handling
+  if (newStock <= 0) {
+    // Preserve the last known price if we had valid pricing before
+    return safeOldWac > 0 ? safeOldWac : safeUnitPrice;
+  }
+  
+  // ✅ EDGE CASE: Initial stock with no previous WAC
+  if (safeOldStock <= 0) {
+    return safeUnitPrice;
+  }
+  
+  // ✅ EDGE CASE: Adding stock with zero unit price
+  if (safeQty > 0 && safeUnitPrice <= 0) {
+    // Don't change WAC if adding stock with no valid price
+    return safeOldWac;
+  }
+  
+  // ✅ STANDARD WAC CALCULATION
+  const previousValue = safeOldStock * safeOldWac;
+  const deltaValue = safeQty * safeUnitPrice;
+  const newWac = (previousValue + deltaValue) / newStock;
+  
+  // ✅ VALIDATION: Ensure result is reasonable
+  if (!isFinite(newWac) || newWac < 0) {
+    logger.warn('⚠️ WAC calculation resulted in invalid value:', {
+      oldWac: safeOldWac,
+      oldStock: safeOldStock,
+      qty: safeQty,
+      unitPrice: safeUnitPrice,
+      result: newWac
+    });
+    return safeOldWac > 0 ? safeOldWac : safeUnitPrice;
+  }
+  
+  return newWac;
+};
 
-  if (newStock <= 0) return 0;
-  return (previousValue + deltaValue) / newStock;
+/**
+ * ✅ NEW: Enhanced WAC calculation with detailed results
+ */
+export const calculateEnhancedWac = (
+  oldWac: number = 0,
+  oldStock: number = 0,
+  qty: number = 0,
+  unitPrice: number = 0
+): WACCalculationResult => {
+  const warnings: string[] = [];
+  
+  // Input validation
+  const safeOldWac = Math.max(0, Number(oldWac) || 0);
+  const safeOldStock = Math.max(0, Number(oldStock) || 0);
+  const safeQty = Number(qty) || 0;
+  const safeUnitPrice = Math.max(0, Number(unitPrice) || 0);
+  
+  if (oldWac < 0 || oldStock < 0 || unitPrice < 0) {
+    warnings.push('Negative values detected and normalized');
+  }
+  
+  const newStock = safeOldStock + safeQty;
+  let newWac: number;
+  let preservedPrice: number | undefined;
+  
+  if (newStock <= 0) {
+    preservedPrice = safeOldWac > 0 ? safeOldWac : safeUnitPrice;
+    newWac = preservedPrice;
+    warnings.push('Stock reached zero or negative, price preserved');
+  } else if (safeOldStock <= 0) {
+    newWac = safeUnitPrice;
+    warnings.push('Initial stock entry');
+  } else if (safeQty > 0 && safeUnitPrice <= 0) {
+    newWac = safeOldWac;
+    warnings.push('Stock added with zero price, WAC unchanged');
+  } else {
+    const previousValue = safeOldStock * safeOldWac;
+    const deltaValue = safeQty * safeUnitPrice;
+    newWac = (previousValue + deltaValue) / newStock;
+    
+    if (!isFinite(newWac) || newWac < 0) {
+      newWac = safeOldWac > 0 ? safeOldWac : safeUnitPrice;
+      warnings.push('Invalid calculation result, fallback applied');
+    }
+  }
+  
+  return {
+    newWac,
+    newStock,
+    preservedPrice,
+    validationWarnings: warnings
+  };
 };
 
 /**
@@ -134,51 +234,110 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
 };
 
 /**
- * Reverse a purchase from warehouse stock and WAC
- * Used when a purchase is cancelled or deleted
+ * ✅ IMPROVED: Reverse a purchase from warehouse stock and WAC
+ * Uses enhanced WAC calculation with better edge case handling
  */
 export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
-  if (!purchase || !Array.isArray(purchase.items)) return;
+  if (!purchase || !Array.isArray(purchase.items)) {
+    logger.warn('⚠️ [WAREHOUSE SYNC] Invalid purchase data for reversal:', purchase?.id);
+    return;
+  }
+
+  logger.info('🔄 [WAREHOUSE SYNC] Starting reversePurchaseFromWarehouse for purchase:', purchase.id);
+
+  // Helper: derive unit price from any available fields  
+  const deriveUnitPrice = (it: any, qty: number): number => {
+    const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
+    const explicit = toNum(it.hargaSatuan ?? it.harga_per_satuan ?? it.harga_satuan);
+    if (explicit > 0) return explicit;
+    const subtotal = toNum(it.subtotal);
+    if (qty > 0 && subtotal > 0) return subtotal / qty;
+    return 0;
+  };
 
   for (const item of purchase.items) {
     const itemId =
       (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
-    const unitPrice = (() => {
-      const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
-      const explicit = toNum((item as any).hargaSatuan ?? (item as any).harga_per_satuan ?? (item as any).harga_satuan);
-      if (explicit > 0) return explicit;
-      const subtotal = toNum((item as any).subtotal);
-      if (qty > 0 && subtotal > 0) return subtotal / qty;
-      return 0;
-    })();
+    const unitPrice = deriveUnitPrice(item as any, qty);
 
-    if (!itemId || qty <= 0) continue;
+    if (!itemId || qty <= 0) {
+      logger.warn('⚠️ [WAREHOUSE SYNC] Skipping invalid item in reversal:', { itemId, qty });
+      continue;
+    }
 
-    const { data: existing, error } = await supabase
-      .from('bahan_baku')
-      .select('id, stok, harga_rata_rata, harga_satuan')
-      .eq('id', itemId)
-      .eq('user_id', purchase.userId)
-      .maybeSingle();
+    try {
+      const { data: existing, error: fetchError } = await supabase
+        .from('bahan_baku')
+        .select('id, stok, harga_rata_rata, harga_satuan')
+        .eq('id', itemId)
+        .eq('user_id', purchase.userId)
+        .maybeSingle();
 
-    if (error || !existing) continue;
+      if (fetchError) {
+        logger.error('❌ [WAREHOUSE SYNC] Error fetching item for reversal:', fetchError);
+        continue;
+      }
 
-    const oldStock = existing.stok ?? 0;
-    const oldWac = existing.harga_rata_rata ?? existing.harga_satuan ?? 0;
-    const newStock = Math.max(0, oldStock - qty);
-    const newWac = newStock > 0 ? calculateNewWac(oldWac, oldStock, -qty, unitPrice) : 0;
+      if (!existing) {
+        logger.warn('⚠️ [WAREHOUSE SYNC] Item not found for reversal, skipping:', itemId);
+        continue;
+      }
 
-    await supabase
-      .from('bahan_baku')
-      .update({
-        stok: newStock,
-        harga_rata_rata: newWac,
+      const oldStock = existing.stok ?? 0;
+      const oldWac = existing.harga_rata_rata ?? existing.harga_satuan ?? 0;
+      
+      // ✅ IMPROVED: Use enhanced WAC calculation for reversal
+      const wacResult = calculateEnhancedWac(oldWac, oldStock, -qty, unitPrice);
+      
+      logger.debug('🔄 [WAREHOUSE SYNC] Reversal calculation:', {
+        itemId,
+        oldStock,
+        qty: -qty,
+        newStock: wacResult.newStock,
+        oldWac,
+        newWac: wacResult.newWac,
+        warnings: wacResult.validationWarnings
+      });
+
+      // Log warnings if any
+      if (wacResult.validationWarnings.length > 0) {
+        logger.warn('⚠️ [WAREHOUSE SYNC] WAC reversal warnings for item ' + itemId + ':', wacResult.validationWarnings);
+      }
+
+      const updateData: any = {
+        stok: wacResult.newStock,
+        harga_rata_rata: wacResult.newWac,
         updated_at: new Date().toISOString()
-      })
-      .eq('id', itemId)
-      .eq('user_id', purchase.userId);
+      };
+
+      // ✅ ENHANCED: Preserve price information when stock hits zero
+      if (wacResult.preservedPrice !== undefined) {
+        logger.info('🔄 [WAREHOUSE SYNC] Preserving price for zero stock item:', {
+          itemId,
+          preservedPrice: wacResult.preservedPrice
+        });
+        // Keep the preserved price in WAC even when stock is zero
+        updateData.harga_rata_rata = wacResult.preservedPrice;
+      }
+
+      const { error: updateError } = await supabase
+        .from('bahan_baku')
+        .update(updateData)
+        .eq('id', itemId)
+        .eq('user_id', purchase.userId);
+      
+      if (updateError) {
+        logger.error('❌ [WAREHOUSE SYNC] Error updating item during reversal:', updateError);
+      } else {
+        logger.info('✅ [WAREHOUSE SYNC] Successfully reversed item:', itemId);
+      }
+    } catch (error) {
+      logger.error('❌ [WAREHOUSE SYNC] Unexpected error during item reversal:', error);
+    }
   }
+  
+  logger.info('✅ [WAREHOUSE SYNC] Completed reversePurchaseFromWarehouse for purchase:', purchase.id);
 };
 
 export interface SyncResult {

@@ -1,7 +1,8 @@
 // components/dashboard/DashboardHeader.tsx - Simplified Clean Version
 
 import React, { lazy, Suspense } from 'react';
-import { formatDateRange, parseDate, safeParseDate } from '@/utils/unifiedDateUtils';
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { formatDateRange, parseDate, safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
 import { Calendar, BarChart3, Clock } from 'lucide-react';
 
 // 🚀 Lazy load DateRangePicker (heavy component)
@@ -22,7 +23,8 @@ const DashboardHeader: React.FC<Props> = ({
 }) => {
   // 🕐 Get current time and date for mobile
   const currentDateTime = React.useMemo(() => {
-    const now = safeParseDate(new Date()) || new Date();
+    const result = UnifiedDateHandler.parseDate(new Date());
+    const now = result.isValid && result.date ? result.date : new Date();
     const time = now.toLocaleTimeString('id-ID', { 
       hour: '2-digit', 
       minute: '2-digit' 

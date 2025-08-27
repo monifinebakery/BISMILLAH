@@ -13,7 +13,8 @@ import { useActivity } from './ActivityContext';
 import { useNotification } from './NotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { supabase } from '@/integrations/supabase/client';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
+import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
+import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
 
 // Interface
 interface AssetContextType {
@@ -41,20 +42,26 @@ const transformAssetFromDB = (dbAsset: any): Asset | null => {
       return null;
     }
 
+    // Helper function to safely parse dates using UnifiedDateHandler
+    const safeParseDateUnified = (dateInput: any): Date | null => {
+      const result = UnifiedDateHandler.parseDate(dateInput);
+      return result.isValid && result.date ? result.date : null;
+    };
+
     return {
       id: dbAsset.id,
       nama: dbAsset.nama || '',
       kategori: dbAsset.kategori || null,
       nilaiAwal: parseFloat(dbAsset.nilai_awal) || 0,
       nilaiSaatIni: parseFloat(dbAsset.nilai_sekarang) || 0,
-      tanggalPembelian: safeParseDate(dbAsset.tanggal_beli),
+      tanggalPembelian: safeParseDateUnified(dbAsset.tanggal_beli),
       kondisi: dbAsset.kondisi || null,
       lokasi: dbAsset.lokasi || '',
       deskripsi: dbAsset.deskripsi || null,
       depresiasi: dbAsset.depresiasi ? parseFloat(dbAsset.depresiasi) : null,
       userId: dbAsset.user_id,
-      createdAt: safeParseDate(dbAsset.created_at),
-      updatedAt: safeParseDate(dbAsset.updated_at),
+      createdAt: safeParseDateUnified(dbAsset.created_at),
+      updatedAt: safeParseDateUnified(dbAsset.updated_at),
     };
   } catch (error) {
     logger.error('AssetContext - Error transforming asset from DB:', error);
@@ -69,7 +76,9 @@ const transformAssetToDB = (asset: Partial<Asset>) => {
   if (asset.kategori !== undefined) updateData.kategori = asset.kategori;
   if (asset.nilaiAwal !== undefined) updateData.nilai_awal = asset.nilaiAwal;
   if (asset.nilaiSaatIni !== undefined) updateData.nilai_sekarang = asset.nilaiSaatIni;
-  if (asset.tanggalPembelian !== undefined) updateData.tanggal_beli = asset.tanggalPembelian;
+  if (asset.tanggalPembelian !== undefined) {
+    updateData.tanggal_beli = asset.tanggalPembelian ? UnifiedDateHandler.toDatabaseString(asset.tanggalPembelian) : null;
+  }
   if (asset.kondisi !== undefined) updateData.kondisi = asset.kondisi;
   if (asset.lokasi !== undefined) updateData.lokasi = asset.lokasi?.trim();
   if (asset.deskripsi !== undefined) updateData.deskripsi = asset.deskripsi?.trim() || null;

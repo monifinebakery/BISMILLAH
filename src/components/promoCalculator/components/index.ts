@@ -21,76 +21,26 @@ export { default as PromoWarnings } from './PromoWarnings';
 export { default as SearchInput } from './SearchInput';
 
 // ============================================
-// STATIC COMPONENT GROUPS - No dynamic imports
+// STATIC COMPONENT GROUPS - Removed dynamic imports
 // ============================================
 export const PROMO_COMPONENT_GROUPS = {
-  // Essential components - pre-imported
-  essential: {
-    PromoCard: () => import('./PromoCard'),
-    PromoTypeBadge: () => import('./PromoTypeBadge'),
-    StatusBadge: () => import('./StatusBadge'),
-  },
-  
-  // Display components - pre-imported
-  display: {
-    PromoCard: () => import('./PromoCard'),
-    PromoMetrics: () => import('./PromoMetrics'),
-    PromoTypeBadge: () => import('./PromoTypeBadge'),
-    StatusBadge: () => import('./StatusBadge'),
-  },
-  
-  // Analysis components - pre-imported
-  analysis: {
-    BreakevenAnalysis: () => import('./BreakevenAnalysis'),
-    PromoMetrics: () => import('./PromoMetrics'),
-  },
-  
-  // Utility components - pre-imported
-  utilities: {
-    LoadingSpinner: () => import('./LoadingSpinner'),
-    EmptyState: () => import('./EmptyState'),
-    ConfirmDialog: () => import('./ConfirmDialog'),
-  },
-  
-  // Form components - pre-imported
-  forms: {
-    PromoWarnings: () => import('./PromoWarnings'),
-    SearchInput: () => import('./SearchInput'),
-  }
+  essential: ['PromoCard', 'PromoTypeBadge', 'StatusBadge'],
+  display: ['PromoCard', 'PromoMetrics', 'PromoTypeBadge', 'StatusBadge'],
+  analysis: ['BreakevenAnalysis', 'PromoMetrics'],
+  utilities: ['LoadingSpinner', 'EmptyState', 'ConfirmDialog'],
+  forms: ['PromoWarnings', 'SearchInput']
 } as const;
 
 // ============================================
-// COMPONENT LOADERS - Async loading helpers
+// COMPONENT LOADERS - Removed to fix dynamic imports
 // ============================================
-export const loadComponentGroup = async (groupName: keyof typeof PROMO_COMPONENT_GROUPS) => {
-  const group = PROMO_COMPONENT_GROUPS[groupName];
-  const componentEntries = Object.entries(group);
-  
-  const loadedComponents = await Promise.all(
-    componentEntries.map(async ([name, loader]) => {
-      const module = await loader();
-      return [name, module.default];
-    })
-  );
-  
-  return Object.fromEntries(loadedComponents);
-};
+// Use direct imports instead: import { PromoCard } from './PromoCard';
 
 // ============================================
-// INDIVIDUAL COMPONENT LOADERS - Static imports with proper extensions
+// REMOVED: Individual loaders to fix dynamic import conflicts
+// Use direct imports instead:
+// import PromoCard from './PromoCard';
 // ============================================
-export const loadComponent = {
-  PromoCard: () => import('./PromoCard.tsx'),
-  PromoMetrics: () => import('./PromoMetrics.tsx'),
-  PromoTypeBadge: () => import('./PromoTypeBadge.tsx'),
-  StatusBadge: () => import('./StatusBadge.tsx'),
-  BreakevenAnalysis: () => import('./BreakevenAnalysis.tsx'),
-  LoadingSpinner: () => import('./LoadingSpinner.tsx'),
-  EmptyState: () => import('./EmptyState.tsx'),
-  ConfirmDialog: () => import('./ConfirmDialog.tsx'),
-  PromoWarnings: () => import('./PromoWarnings.tsx'),
-  SearchInput: () => import('./SearchInput.tsx'),
-} as const;
 
 // ============================================
 // PAGE-SPECIFIC PRESETS - Using static loaders
@@ -206,37 +156,12 @@ export const getPageComponents = (page: keyof typeof PROMO_PAGE_COMPONENTS) => {
 };
 
 // ============================================
-// BATCH LOADING UTILITIES - Safe async loading
+// BATCH LOADING UTILITIES - Removed to fix dynamic imports
 // ============================================
-export const loadPageComponents = async (page: keyof typeof PROMO_PAGE_COMPONENTS) => {
-  const componentNames = getPageComponents(page);
-  const loadPromises = componentNames.map(async (name) => {
-    const loader = loadComponent[name as keyof typeof loadComponent];
-    if (loader) {
-      const module = await loader();
-      return [name, module.default];
-    }
-    return [name, null];
-  });
-  
-  const results = await Promise.all(loadPromises);
-  return Object.fromEntries(results.filter(([_, component]) => component !== null));
-};
-
-export const loadCriticalComponents = async () => {
-  const criticalNames = getCriticalComponents();
-  const loadPromises = criticalNames.map(async (name) => {
-    const loader = loadComponent[name as keyof typeof loadComponent];
-    if (loader) {
-      const module = await loader();
-      return [name, module.default];
-    }
-    return [name, null];
-  });
-  
-  const results = await Promise.all(loadPromises);
-  return Object.fromEntries(results.filter(([_, component]) => component !== null));
-};
+// Use direct imports instead:
+// import { PromoCard, StatusBadge } from './components';
+// Or use React.lazy for dynamic loading:
+// const PromoCard = React.lazy(() => import('./PromoCard'));
 
 // ============================================
 // TYPE DEFINITIONS - TypeScript support

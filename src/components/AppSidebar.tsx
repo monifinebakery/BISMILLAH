@@ -47,7 +47,7 @@ export function AppSidebar() {
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
 
-  let bahanBaku: any[] = [];
+  let bahanBaku: Array<{ id: string; nama: string; jumlah: number; satuan: string; hargaSatuan: number }> = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -127,7 +127,7 @@ export function AppSidebar() {
     }, settings.businessName, format);
   };
 
-  const renderMenuItem = (item: any, isActive: boolean) => {
+  const renderMenuItem = (item: { title: string; url: string; icon: React.ElementType }, isActive: boolean) => {
     const isUpdatesMenu = item.url === "/updates";
     return (
       <SidebarMenuButton
@@ -143,7 +143,7 @@ export function AppSidebar() {
     );
   };
 
-  const renderActionButton = (onClick: any, Icon: React.ElementType, text: string, className = "") => (
+  const renderActionButton = (onClick: () => void, Icon: React.ElementType, text: string, className = "") => (
     <SidebarMenuButton
       tooltip={text}
       onClick={onClick}

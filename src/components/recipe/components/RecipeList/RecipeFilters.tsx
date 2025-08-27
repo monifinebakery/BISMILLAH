@@ -225,10 +225,9 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
                   <SelectValue placeholder="Semua Level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Level</SelectItem>
+                  <SelectItem value="all">Semua Level</SelectItem>
                   <SelectItem value="high">Tinggi (≥30%)</SelectItem>
                   <SelectItem value="medium">Sedang (15-29%)</SelectItem>
-                  {/* FIX: Escaped the '<' character */}
                   <SelectItem value="low">Rendah (&lt;15%)</SelectItem>
                 </SelectContent>
               </Select>
@@ -267,7 +266,7 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
                   <SelectValue placeholder="Semua Waktu" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Waktu</SelectItem>
+                  <SelectItem value="all">Semua Waktu</SelectItem>
                   <SelectItem value="today">Hari Ini</SelectItem>
                   <SelectItem value="week">Minggu Ini</SelectItem>
                   <SelectItem value="month">Bulan Ini</SelectItem>
@@ -312,11 +311,11 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
             </Badge>
           )}
           
-          {profitabilityFilter && (
+          {profitabilityFilter && profitabilityFilter !== 'all' && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Profit: {profitabilityFilter}
               <Button
-                variant="ghost" size="sm" onClick={() => onProfitabilityFilterChange('')} className="h-4 w-4 p-0 hover:bg-transparent"> <X className="h-3 w-3" /> </Button>
+                variant="ghost" size="sm" onClick={() => onProfitabilityFilterChange('all')} className="h-4 w-4 p-0 hover:bg-transparent"> <X className="h-3 w-3" /> </Button>
             </Badge>
           )}
 
@@ -328,11 +327,11 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
             </Badge>
           )}
 
-          {dateRangeFilter && (
+          {dateRangeFilter && dateRangeFilter !== 'all' && (
              <Badge variant="secondary" className="flex items-center gap-1">
               Tanggal: {getDateRangeLabel(dateRangeFilter)}
               <Button
-                variant="ghost" size="sm" onClick={() => onDateRangeFilterChange('')} className="h-4 w-4 p-0 hover:bg-transparent"> <X className="h-3 w-3" /> </Button>
+                variant="ghost" size="sm" onClick={() => onDateRangeFilterChange('all')} className="h-4 w-4 p-0 hover:bg-transparent"> <X className="h-3 w-3" /> </Button>
             </Badge>
           )}
 

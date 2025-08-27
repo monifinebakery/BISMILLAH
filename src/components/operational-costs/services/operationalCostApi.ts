@@ -101,7 +101,7 @@ export const operationalCostApi = {
       // AND are currently active
       const { data, error } = await supabase
         .from('operational_costs')
-        .select('*')
+        .select('id, user_id, nama_biaya, jenis, jumlah_per_bulan, status, deskripsi, created_at, updated_at, cost_category, group, effective_date')
         .eq('user_id', resolvedUserId)
         .eq('status', 'aktif') // Only active costs
         .lte('created_at', endYMD + 'T23:59:59.999Z') // Created before or during the period
@@ -151,7 +151,7 @@ export const operationalCostApi = {
 
       let query = supabase
         .from('operational_costs')
-        .select('*')
+        .select('id, user_id, nama_biaya, jenis, jumlah_per_bulan, status, deskripsi, created_at, updated_at, cost_category, group, effective_date')
         .eq('user_id', resolvedUserId) // ✅ Add user filter
         .order('created_at', { ascending: false });
 
@@ -199,7 +199,7 @@ export const operationalCostApi = {
 
       const { data, error } = await supabase
         .from('operational_costs')
-        .select('*')
+        .select('id, user_id, nama_biaya, jenis, jumlah_per_bulan, status, deskripsi, created_at, updated_at, cost_category, group, effective_date')
         .eq('id', id)
         .eq('user_id', userId) // ✅ Add user filter
         .single();

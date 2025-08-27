@@ -85,7 +85,7 @@ class RecipeApiService {
       logger.debug('RecipeAPI: Fetching recipes with filters:', filters);
       let query = supabase
         .from(this.tableName)
-        .select('*')
+        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs')
         .eq('user_id', userId);
       // Apply filters
       if (filters?.category) {
@@ -164,7 +164,7 @@ class RecipeApiService {
       // Query untuk mendapatkan data dengan pagination
       let dataQuery = supabase
         .from(this.tableName)
-        .select('*')
+        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs')
         .eq('user_id', userId);
       
       // Apply filters untuk data
@@ -228,7 +228,7 @@ class RecipeApiService {
       logger.debug('RecipeAPI: Fetching recipe by ID:', id);
       const { data, error } = await supabase
         .from(this.tableName)
-        .select('*')
+        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs')
         .eq('id', id)
         .eq('user_id', userId)
         .single();

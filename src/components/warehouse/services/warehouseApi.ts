@@ -218,7 +218,7 @@ class CrudService {
 
   async getBahanBakuById(id: string): Promise<BahanBakuFrontend | null> {
     try {
-      let query = supabase.from('bahan_baku').select('*').eq('id', id);
+      let query = supabase.from('bahan_baku').select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at').eq('id', id);
       if (this.config.userId) query = query.eq('user_id', this.config.userId);
 
       const { data, error } = await query.maybeSingle();

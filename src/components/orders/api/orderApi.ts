@@ -25,7 +25,7 @@ export const orderApi = {
         })
         .eq('id', orderId)
         .eq('user_id', userId)
-        .select('*')
+        .select('id, user_id, nomor_pesanan, created_at, updated_at, tanggal, nama_pelanggan, telepon_pelanggan, email_pelanggan, alamat_pengiriman, items, status, catatan, subtotal, pajak, total_pesanan')
         .single();
 
       if (error) {
@@ -60,7 +60,7 @@ export const orderApi = {
       
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select('id, user_id, nomor_pesanan, created_at, updated_at, tanggal, nama_pelanggan, telepon_pelanggan, email_pelanggan, alamat_pengiriman, items, status, catatan, subtotal, pajak, total_pesanan')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -102,7 +102,7 @@ export const orderApi = {
       
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select('id, user_id, nomor_pesanan, created_at, updated_at, tanggal, nama_pelanggan, telepon_pelanggan, email_pelanggan, alamat_pengiriman, items, status, catatan, subtotal, pajak, total_pesanan')
         .eq('id', orderId)
         .eq('user_id', userId)
         .single();
@@ -192,7 +192,7 @@ export const orderApi = {
         })
         .eq('id', id)
         .eq('user_id', userId)
-        .select('*')
+        .select('id, user_id, nomor_pesanan, created_at, updated_at, tanggal, nama_pelanggan, telepon_pelanggan, email_pelanggan, alamat_pengiriman, items, status, catatan, subtotal, pajak, total_pesanan')
         .single();
       
       if (error) {
@@ -451,7 +451,7 @@ export const orderApi = {
       
       let query = supabase
         .from('orders')
-        .select('*')
+        .select('id, user_id, nomor_pesanan, created_at, updated_at, tanggal, nama_pelanggan, telepon_pelanggan, email_pelanggan, alamat_pengiriman, items, status, catatan, subtotal, pajak, total_pesanan')
         .eq('user_id', userId);
 
       // Apply filters

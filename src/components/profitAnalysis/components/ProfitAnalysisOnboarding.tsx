@@ -11,9 +11,9 @@ const ProfitAnalysisOnboarding: React.FC<ProfitAnalysisOnboardingProps> = ({ isO
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+    <div className="dialog-overlay-center p-4">
+      <div className="dialog-panel max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="dialog-body">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Info className="h-8 w-8 text-orange-600" />

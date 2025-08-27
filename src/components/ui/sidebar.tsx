@@ -165,7 +165,7 @@ const Sidebar = React.forwardRef<
         <div
           aria-hidden
           onClick={() => setOpen(false)}
-          className="fixed inset-0 bg-black/20 z-[50] hidden md:block lg:hidden"
+          className="dialog-overlay-center bg-opacity-20 z-[50] hidden md:block lg:hidden"
         />
       )}
 

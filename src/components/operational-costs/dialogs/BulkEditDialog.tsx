@@ -57,15 +57,16 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-blue-600" />
-            Edit Massal Biaya Operasional
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
+      <DialogContent className="dialog-overlay-center max-w-md">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-blue-600" />
+              Edit Massal Biaya Operasional
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="dialog-body space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Ringkasan biaya yang akan diedit:</h4>
             <div className="space-y-1 text-sm">
@@ -162,25 +163,26 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
               />
             </div>
           </div>
+          </div>
+          
+          <DialogFooter className="dialog-footer-pad">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isProcessing}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={isProcessing}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Edit {selectedCount} Biaya
+            </Button>
+          </DialogFooter>
         </div>
-        
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isProcessing}
-          >
-            Batal
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={isProcessing}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Edit {selectedCount} Biaya
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

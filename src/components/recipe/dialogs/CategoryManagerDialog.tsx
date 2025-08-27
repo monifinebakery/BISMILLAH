@@ -4,6 +4,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,24 +82,24 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <CardHeader className="border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Tag className="w-4 h-4 text-orange-600" />
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="dialog-overlay-center">
+          <div className="dialog-panel w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <DialogHeader className="dialog-header-pad border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Tag className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl text-gray-900">
+                      Kelola Kategori Resep
+                    </DialogTitle>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Buat dan atur kategori sesuai kebutuhan Anda
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-xl text-gray-900">
-                    Kelola Kategori Resep
-                  </CardTitle>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Buat dan atur kategori sesuai kebutuhan Anda
-                  </p>
-                </div>
-              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -120,9 +121,9 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                 </Button>
               </div>
             </div>
-          </CardHeader>
+          </DialogHeader>
           
-          <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <div className="dialog-body p-0 overflow-y-auto max-h-[calc(90vh-120px)]">
             <div className="p-6 space-y-6">
               {/* Statistics */}
               <CategoryStatsCards
@@ -145,9 +146,10 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                 onDeleteCategory={openDeleteConfirmation}
               />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && closeDeleteConfirmation()}>

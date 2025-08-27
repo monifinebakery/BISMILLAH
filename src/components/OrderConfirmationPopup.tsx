@@ -196,8 +196,9 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="dialog-overlay-center">
+      <div className="dialog-panel w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="dialog-body">
         <h2 className="text-xl font-bold mb-4 text-gray-800">Hubungkan Pembayaran Anda</h2>
         
         <p className="text-gray-600 mb-4">
@@ -325,6 +326,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
             Debug: Order="{orderId}" | Length={orderId.length} | Verifying={isVerifying ? 'Yes' : 'No'} | Verified={verificationResult?.success ? 'Yes' : 'No'} | Loading={isLoading ? 'Yes' : 'No'}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

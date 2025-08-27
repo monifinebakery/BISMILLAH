@@ -413,8 +413,8 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   const showDebugInfo = import.meta.env.DEV && currentUser;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-xl border w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+    <div className="dialog-overlay-center p-2 sm:p-4">
+      <div className="dialog-panel w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         {/* Header with Enhanced Debug Info */}
         <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-200">
           <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">

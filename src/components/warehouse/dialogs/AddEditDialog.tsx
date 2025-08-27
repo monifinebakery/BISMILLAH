@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { X, Plus, Edit2, Save, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -220,51 +221,44 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     unit.value.toLowerCase().includes(formData.satuan.toLowerCase())
   );
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div 
-        className="bg-white rounded-lg w-full max-w-4xl flex flex-col border"
-        style={{ height: 'calc(100vh - 160px)', maxHeight: '90vh', minHeight: '500px' }}
-      >
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              {isEditMode ? <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />}
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold">{isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}</h2>
-              <p className="text-xs sm:text-sm text-gray-600">{isEditMode ? 'Ubah data master bahan baku' : 'Tambah data master bahan baku baru'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isSubmitting}>
-              <RefreshCw className={`w-4 h-4 ${suppliersLoading ? 'animate-spin' : ''}`} />
-            </Button>
-            <button onClick={onClose} disabled={isSubmitting} className="text-gray-400 hover:text-gray-600">
-              <X className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          </div>
-        </div>
-
-        {errors.length > 0 && (
-          <div className="p-3 sm:p-4 bg-red-50 border-b border-red-200 flex-shrink-0">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mt-0.5" />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="dialog-overlay-center max-w-4xl" style={{ height: 'calc(100vh - 160px)', maxHeight: '90vh', minHeight: '500px' }}>
+        <div className="dialog-panel flex flex-col h-full">
+          <DialogHeader className="dialog-header-pad">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                {isEditMode ? <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />}
+              </div>
               <div>
-                <h3 className="text-xs sm:text-sm font-medium text-red-800 mb-1">Kesalahan pada form:</h3>
-                <ul className="text-xs sm:text-sm text-red-700 space-y-1">
-                  {errors.map((error, index) => <li key={index}>• {error}</li>)}
-                </ul>
+                <DialogTitle className="text-lg sm:text-xl font-semibold">{isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}</DialogTitle>
+                <p className="text-xs sm:text-sm text-gray-600">{isEditMode ? 'Ubah data master bahan baku' : 'Tambah data master bahan baku baru'}</p>
               </div>
             </div>
-          </div>
-        )}
+            <div className="flex items-center gap-2 absolute top-4 right-4">
+              <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isSubmitting}>
+                <RefreshCw className={`w-4 h-4 ${suppliersLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="h-full flex flex-col">
-            <div className="flex-1 p-3 sm:p-6">
+          <div className="dialog-body flex-1 overflow-y-auto">
+            {errors.length > 0 && (
+              <div className="p-3 sm:p-4 bg-red-50 border-b border-red-200 flex-shrink-0">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mt-0.5" />
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-medium text-red-800 mb-1">Kesalahan pada form:</h3>
+                    <ul className="text-xs sm:text-sm text-red-700 space-y-1">
+                      {errors.map((error, index) => <li key={index}>• {error}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <form id="warehouse-form" onSubmit={handleSubmit} className="h-full flex flex-col">
+              <div className="flex-1 p-3 sm:p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 {/* Left Column - Basic Info */}
                 <div className="space-y-4 sm:space-y-6">
@@ -499,43 +493,42 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
               </div>
             </div>
 
-            <div 
-              className="flex items-center justify-end gap-2 sm:gap-3 p-3 sm:p-6 border-t bg-gray-50 flex-shrink-0" 
-              style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
+            </form>
+          </div>
+
+          <DialogFooter className="dialog-footer-pad" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+            <Button 
+              variant="outline" 
+              onClick={onClose} 
+              disabled={isSubmitting}
+              size="sm"
+              className="text-xs sm:text-sm"
             >
-              <Button 
-                variant="outline" 
-                onClick={onClose} 
-                disabled={isSubmitting}
-                size="sm"
-                className="text-xs sm:text-sm"
-              >
-                Batal
-              </Button>
-              <Button 
-                type="submit" 
-                onClick={handleSubmit} 
-                disabled={isSubmitting} 
-                size="sm"
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {isEditMode ? 'Simpan Perubahan' : 'Tambah Item'}
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
+              Batal
+            </Button>
+            <Button 
+              type="submit" 
+              form="warehouse-form"
+              disabled={isSubmitting} 
+              size="sm"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="w-3 h-3 sm:w-4 sm:h-4" />
+                  {isEditMode ? 'Simpan Perubahan' : 'Tambah Item'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

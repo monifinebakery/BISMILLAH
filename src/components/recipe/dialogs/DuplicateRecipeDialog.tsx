@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { 
   Copy, 
@@ -78,10 +79,10 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
   const isValid = !error && newName.trim().length > 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg bg-white border">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-blue-50">
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel w-full max-w-lg">
+          <DialogHeader className="dialog-header-pad border-b border-gray-200 bg-blue-50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <Copy className="w-5 h-5 text-blue-600" />
@@ -94,7 +95,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                 Buat salinan resep dengan nama baru
               </p>
             </div>
-          </div>
+          </DialogHeader>
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
@@ -284,9 +285,10 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
               )}
             </Button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   X, 
   ChevronLeft, 
@@ -405,28 +406,20 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white">
-        {/* Header */}
-        <CardHeader className="border-b bg-gradient-to-r from-orange-50 to-red-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl font-bold text-gray-900">
-                {isEditMode ? 'Edit Resep' : 'Tambah Resep Baru'}
-              </CardTitle>
-              <p className="text-sm text-gray-600 mt-1">
-                {STEPS[currentStepIndex].description}
-              </p>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel w-full max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader className="dialog-header-pad border-b bg-gradient-to-r from-orange-50 to-red-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900">
+                  {isEditMode ? 'Edit Resep' : 'Tambah Resep Baru'}
+                </DialogTitle>
+                <p className="text-sm text-gray-600 mt-1">
+                  {STEPS[currentStepIndex].description}
+                </p>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
           {/* Step Progress */}
           <div className="flex items-center gap-4 mt-4">
             {STEPS.map((step, index) => (
@@ -631,8 +624,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
             </div>
           )}
         </div>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

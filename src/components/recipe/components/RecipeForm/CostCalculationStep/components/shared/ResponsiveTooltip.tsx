@@ -53,7 +53,7 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
           <>
             {/* ✅ Backdrop overlay */}
             <div 
-              className="fixed inset-0 bg-black bg-opacity-30 z-40"
+              className="dialog-overlay-center bg-opacity-30 z-40"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

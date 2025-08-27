@@ -5,7 +5,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -295,8 +295,8 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
       }
       onClose();
     }}>
-      <DialogContent centerMode="overlay" className="dialog-overlay-center">
-        <div className="dialog-panel max-w-4xl max-h-[90vh]">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
@@ -327,6 +327,26 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
           />
             </div>
           </div>
+          
+          <DialogFooter className="dialog-footer-pad">
+            <div className="flex items-center justify-between w-full">
+              <Button variant="outline" onClick={() => onClose()}>
+                Batal
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Apply any pending changes
+                  if (refreshSettings) {
+                    refreshSettings();
+                  }
+                  onClose();
+                }}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Simpan
+              </Button>
+            </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

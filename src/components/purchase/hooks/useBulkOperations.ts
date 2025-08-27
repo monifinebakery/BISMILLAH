@@ -142,29 +142,62 @@ export const useBulkOperations = ({
       let failed = 0;
       const results = [];
       
-      // ✅ FIX: Process status changes sequentially for better reliability
+      // ✅ OPTIMIZED: Use limited concurrency for better performance while maintaining reliability
       if (updates.status && Object.keys(updates).length === 1) {
-        console.log('🔄 [BULK DEBUG] Processing status changes sequentially...');
+        console.log('🔄 [BULK DEBUG] Processing status changes with limited concurrency...');
         
-        for (const id of selectedItems) {
-          try {
-            console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
-            console.log(`📊 [BULK DEBUG] setStatus function exists:`, typeof setStatus === 'function');
-            
-            const result = await setStatus(id, updates.status);
-            if (result) {
-              successful++;
-              results.push({ status: 'fulfilled', value: true });
-              console.log(`✅ [BULK DEBUG] Successfully updated status for purchase ${id}`);
+        // Dynamic batch sizing based on total items for optimal performance
+        const batchSize = selectedItems.length <= 6 ? 2 : 
+                         selectedItems.length <= 12 ? 3 : 
+                         Math.min(4, Math.ceil(selectedItems.length / 4));
+        
+        console.log(`📦 [BULK DEBUG] Using batch size: ${batchSize} for ${selectedItems.length} items`);
+        const batches = [];
+        for (let i = 0; i < selectedItems.length; i += batchSize) {
+          batches.push(selectedItems.slice(i, i + batchSize));
+        }
+        
+        for (const batch of batches) {
+          console.log(`📦 [BULK DEBUG] Processing batch of ${batch.length} purchases`);
+          
+          const batchPromises = batch.map(async (id) => {
+            try {
+              console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
+              const result = await setStatus(id, updates.status);
+              return { id, success: result, error: null };
+            } catch (error) {
+              console.error(`❌ [BULK DEBUG] Error updating status for purchase ${id}:`, error);
+              return { id, success: false, error };
+            }
+          });
+          
+          const batchResults = await Promise.allSettled(batchPromises);
+          
+          // Process batch results
+          for (const result of batchResults) {
+            if (result.status === 'fulfilled') {
+              const { id, success, error } = result.value;
+              if (success) {
+                successful++;
+                results.push({ status: 'fulfilled', value: true });
+                console.log(`✅ [BULK DEBUG] Successfully updated status for purchase ${id}`);
+              } else {
+                failed++;
+                results.push({ status: 'fulfilled', value: false });
+                console.log(`❌ [BULK DEBUG] Failed to update status for purchase ${id}:`, error);
+              }
             } else {
               failed++;
-              results.push({ status: 'fulfilled', value: false });
-              console.log(`❌ [BULK DEBUG] Failed to update status for purchase ${id}`);
+              results.push({ status: 'rejected', reason: result.reason });
             }
-          } catch (error) {
-            failed++;
-            results.push({ status: 'rejected', reason: error });
-            console.error(`❌ [BULK DEBUG] Error updating status for purchase ${id}:`, error);
+          }
+          
+          // Adaptive delay between batches based on total items and server load
+          if (batches.indexOf(batch) < batches.length - 1) {
+            const delay = selectedItems.length <= 6 ? 50 : // Small items: 50ms delay
+                         selectedItems.length <= 15 ? 100 : // Medium items: 100ms delay  
+                         150; // Large items: 150ms delay
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
       } else {

@@ -86,32 +86,28 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
         <DialogContent centerMode="overlay" size="xl">
           <div className="dialog-panel dialog-panel-xl dialog-no-overflow">
             <DialogHeader className="dialog-header">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Tag className="w-4 h-4 text-orange-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <DialogTitle className="text-lg sm:text-xl text-gray-900 text-overflow-safe">
-                      Kelola Kategori Resep
-                    </DialogTitle>
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1 text-overflow-safe">
-                      Buat dan atur kategori sesuai kebutuhan Anda
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3 pr-12"> {/* Add right padding to avoid close button */}
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Tag className="w-4 h-4 text-orange-600" />
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={isLoading}
-                    className="h-8 w-8 p-0 input-mobile-safe"
-                    title="Muat ulang data"
-                  >
-                    <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  </Button>
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="text-lg sm:text-xl text-gray-900 text-overflow-safe">
+                    Kelola Kategori Resep
+                  </DialogTitle>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 text-overflow-safe">
+                    Buat dan atur kategori sesuai kebutuhan Anda
+                  </p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                  className="h-8 w-8 p-0 input-mobile-safe flex-shrink-0"
+                  title="Muat ulang data"
+                >
+                  <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
               </div>
             </DialogHeader>
             

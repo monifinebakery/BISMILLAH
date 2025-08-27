@@ -263,7 +263,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       <DialogContent centerMode="overlay" size="xl">
         <div className="dialog-panel dialog-panel-xl dialog-no-overflow">
           <DialogHeader className="dialog-header">
-            <DialogTitle className="flex items-center gap-3">
+            <DialogTitle className="flex items-center gap-3 pr-12"> {/* Add right padding to avoid close button */}
               <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <ShoppingCart className="w-4 h-4 text-orange-600" />
               </div>

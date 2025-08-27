@@ -20,11 +20,14 @@ class PWAManager {
   }
 
   private init() {
+    console.log('[PWA] Initializing PWA manager...');
+    
     // Listen for beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e: Event) => {
+      console.log('[PWA] beforeinstallprompt event fired!');
       e.preventDefault();
       this.installPrompt = e as BeforeInstallPromptEvent;
-      console.log('[PWA] Install prompt ready');
+      console.log('[PWA] Install prompt ready', { hasPrompt: !!this.installPrompt });
     });
 
     // Listen for app installed event
@@ -36,6 +39,14 @@ class PWAManager {
 
     // Check if app is already installed
     this.checkInstallStatus();
+    
+    // Debug: Log initial state
+    console.log('[PWA] Initial state:', {
+      canInstall: this.canInstall(),
+      isInstalled: this.isInstalled,
+      hasServiceWorker: 'serviceWorker' in navigator,
+      isHTTPS: window.location.protocol === 'https:'
+    });
   }
 
   /**

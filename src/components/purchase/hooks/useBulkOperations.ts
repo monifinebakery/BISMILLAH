@@ -134,15 +134,20 @@ export const useBulkOperations = ({
       logger.debug('📝 Bulk edit updates:', updates);
 
       // ✅ ENHANCED: Handle status changes specially to trigger financial sync
+      console.log('📝 [BULK DEBUG] Prepared updates:', updates);
+      console.log('📝 [BULK DEBUG] Selected items:', selectedItems);
+      console.log('📝 [BULK DEBUG] Update keys:', Object.keys(updates));
+      
       const updatePromises = selectedItems.map(id => {
-        logger.debug(`🔄 Updating purchase: ${id}`);
+        console.log(`🔄 [BULK DEBUG] Processing purchase: ${id}`);
         
         // If only status is being changed, use setStatus for proper financial sync
         if (updates.status && Object.keys(updates).length === 1) {
-          logger.debug(`📊 Using setStatus for purchase ${id} to ensure financial sync`);
+          console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
+          console.log(`📊 [BULK DEBUG] setStatus function exists:`, typeof setStatus === 'function');
           return setStatus(id, updates.status);
         } else {
-          // For other updates or mixed updates, use regular updatePurchase
+          console.log(`🔄 [BULK DEBUG] Using updatePurchase for purchase ${id} (mixed updates)`);
           return updatePurchase(id, updates);
         }
       });

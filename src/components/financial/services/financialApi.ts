@@ -44,7 +44,7 @@ const transformForDB = (
     amount: transaction.amount,
     description: transaction.description || null,
     related_id: transaction.relatedId || null,
-    date: transaction.date ? UnifiedDateHandler.toDatabaseTimestamp(transaction.date) : null,
+    date: transaction.date ? UnifiedDateHandler.toDatabaseString(transaction.date) : null,
   };
 
   if (userId) {

@@ -11,6 +11,32 @@ html, body {
 }
 
 /* ============================
+   Z-Index Hierarchy
+   ============================ */
+/*
+Z-Index Scale (from lowest to highest):
+- z-10: Base elements, subtle shadows
+- z-20: Sticky headers, cards above content
+- z-30: Fixed navigation, sidebars
+- z-40: Mobile headers
+- z-50: Bottom navigation, notifications, overlays
+- z-60: iPad sidebar overlays
+- z-75: Modal dialogs, alert dialogs
+- z-100: Legacy overlays (deprecated)
+- z-9999: Popovers, dropdowns, selects, toasts (highest priority)
+
+Important: Always use z-[9999] for:
+- Popovers
+- Dropdown menus  
+- Select dropdowns
+- Tooltips
+- Context menus
+- Toast notifications
+
+This ensures they appear above ALL other UI elements.
+*/
+
+/* ============================
    Utilities
    ============================ */
 @layer utilities {

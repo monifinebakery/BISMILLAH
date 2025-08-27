@@ -9,6 +9,7 @@ import { logger } from '@/utils/logger';
 interface UseBulkOperationsProps {
   updatePurchase: (id: string, updates: Partial<Purchase>) => Promise<boolean>;
   deletePurchase: (id: string) => Promise<boolean>;
+  setStatus: (id: string, newStatus: PurchaseStatus) => Promise<boolean>; // ✅ NEW: For proper financial sync
   bulkDeletePurchases?: (ids: string[]) => Promise<boolean>; // Optional bulk method
   selectedItems: string[];
   clearSelection: () => void;
@@ -49,6 +50,7 @@ const defaultBulkEditData: BulkEditData = {
 export const useBulkOperations = ({
   updatePurchase,
   deletePurchase,
+  setStatus,
   bulkDeletePurchases,
   selectedItems,
   clearSelection,
@@ -131,10 +133,18 @@ export const useBulkOperations = ({
 
       logger.debug('📝 Bulk edit updates:', updates);
 
-      // Apply updates to all selected items
+      // ✅ ENHANCED: Handle status changes specially to trigger financial sync
       const updatePromises = selectedItems.map(id => {
         logger.debug(`🔄 Updating purchase: ${id}`);
-        return updatePurchase(id, updates);
+        
+        // If only status is being changed, use setStatus for proper financial sync
+        if (updates.status && Object.keys(updates).length === 1) {
+          logger.debug(`📊 Using setStatus for purchase ${id} to ensure financial sync`);
+          return setStatus(id, updates.status);
+        } else {
+          // For other updates or mixed updates, use regular updatePurchase
+          return updatePurchase(id, updates);
+        }
       });
       
       const results = await Promise.allSettled(updatePromises);
@@ -175,7 +185,7 @@ export const useBulkOperations = ({
     } finally {
       setIsBulkEditing(false);
     }
-  }, [selectedItems, bulkEditData, validateBulkEditData, updatePurchase, clearSelection, resetBulkEditData]);
+  }, [selectedItems, bulkEditData, validateBulkEditData, updatePurchase, setStatus, clearSelection, resetBulkEditData]);
 
   // Enhanced handleBulkDelete with fallback logic
   const handleBulkDelete = useCallback(async (): Promise<boolean> => {

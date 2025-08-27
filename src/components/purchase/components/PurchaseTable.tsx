@@ -67,6 +67,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   const {
     updatePurchase,
     deletePurchase,
+    setStatus,
     getSupplierName: getSupplierNameFromContext
   } = usePurchase();
 
@@ -132,6 +133,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   } = useBulkOperations({
     updatePurchase,
     deletePurchase,
+    setStatus, // ✅ ADD: For proper financial auto-sync in bulk operations
     selectedItems,
     clearSelection,
   });

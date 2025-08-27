@@ -31,17 +31,21 @@ const AllocationDialog: React.FC<AllocationDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Pengaturan Alokasi Biaya</DialogTitle>
-        </DialogHeader>
-        
-        <div className="mt-4">
-          <AllocationSettingsComponent
-            settings={settings}
-            costSummary={costSummary}
-            onSave={handleSave}
-          />
+      <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle>Pengaturan Alokasi Biaya</DialogTitle>
+          </DialogHeader>
+
+          <div className="dialog-body overflow-y-auto">
+            <div className="mt-4">
+              <AllocationSettingsComponent
+                settings={settings}
+                costSummary={costSummary}
+                onSave={handleSave}
+              />
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

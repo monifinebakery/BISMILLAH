@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { formatCurrency } from '@/utils/formatUtils'; // ✅ Fallback import
@@ -176,47 +177,36 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
     }).length;
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg border w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              isEditMode ? 'bg-blue-100' : 'bg-red-100'
-            }`}>
-              {isEditMode ? (
-                <Settings2 className={`w-5 h-5 ${isEditMode ? 'text-blue-600' : 'text-red-600'}`} />
-              ) : (
-                <Trash2 className="w-5 h-5 text-red-600" />
-              )}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-2xl max-h-[90vh] flex flex-col h-full">
+          <DialogHeader className="dialog-header-pad">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                isEditMode ? 'bg-blue-100' : 'bg-red-100'
+              }`}>
+                {isEditMode ? (
+                  <Settings2 className={`w-5 h-5 ${isEditMode ? 'text-blue-600' : 'text-red-600'}`} />
+                ) : (
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                )}
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-semibold text-gray-900">
+                  {isEditMode ? 'Edit Massal' : 'Hapus Massal'}
+                </DialogTitle>
+                <p className="text-sm text-gray-600">
+                  {isEditMode 
+                    ? `Ubah ${selectedCount} item yang dipilih` 
+                    : `Hapus ${selectedCount} item yang dipilih`
+                  }
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {isEditMode ? 'Edit Massal' : 'Hapus Massal'}
-              </h2>
-              <p className="text-sm text-gray-600">
-                {isEditMode 
-                  ? `Ubah ${selectedCount} item yang dipilih` 
-                  : `Hapus ${selectedCount} item yang dipilih`
-                }
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            disabled={isProcessing}
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+          </DialogHeader>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          <div className="dialog-body overflow-y-auto flex-1">
           
           {/* Selected Items Preview */}
           <div className="mb-6">
@@ -453,50 +443,51 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={isProcessing}
-          >
-            Batal
-          </Button>
-          <Button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={isProcessing}
-            className={`flex items-center gap-2 ${
-              isEditMode 
-                ? 'bg-blue-600 hover:bg-blue-700' 
-                : 'bg-red-600 hover:bg-red-700'
-            }`}
-          >
-            {isProcessing ? (
-              <>
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                {isEditMode ? 'Menyimpan...' : 'Menghapus...'}
-              </>
-            ) : (
-              <>
-                {isEditMode ? (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Simpan Perubahan
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Hapus {selectedCount} Item
-                  </>
-                )}
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-    </div>
+          </div>
+
+          <DialogFooter className="dialog-footer-pad">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isProcessing}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={isProcessing}
+              className={`flex items-center gap-2 ${
+                isEditMode 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : 'bg-red-600 hover:bg-red-700'
+              }`}
+            >
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  {isEditMode ? 'Menyimpan...' : 'Menghapus...'}
+                </>
+              ) : (
+                <>
+                  {isEditMode ? (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Simpan Perubahan
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Hapus {selectedCount} Item
+                    </>
+                  )}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

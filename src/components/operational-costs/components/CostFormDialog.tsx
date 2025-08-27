@@ -168,14 +168,26 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {cost ? '✏️ Edit Biaya Operasional' : '➕ Tambah Biaya Operasional'}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Package className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-semibold">
+                  {cost ? 'Edit Biaya Operasional' : 'Tambah Biaya Operasional'}
+                </DialogTitle>
+                <p className="text-sm text-gray-600">
+                  {cost ? 'Perbarui informasi biaya' : 'Tambahkan biaya operasional baru'}
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="dialog-body overflow-y-auto">
+            <form id="cost-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Nama Biaya */}
           <div className="space-y-2">
             <Label htmlFor="nama_biaya" className="text-sm font-medium">
@@ -403,7 +415,10 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+            </form>
+          </div>
+          
+          <DialogFooter className="dialog-footer">
             <Button
               type="button"
               variant="outline"
@@ -417,6 +432,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
               type="submit"
               disabled={isSubmitting || isLoading}
               className="w-full sm:w-auto order-1 sm:order-2 bg-orange-600 hover:bg-orange-700"
+              form="cost-form"
             >
               {isSubmitting ? (
                 <>
@@ -428,7 +444,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
               )}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

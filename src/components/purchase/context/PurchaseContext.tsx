@@ -94,42 +94,69 @@ const fetchPurchasesPaginated = async (
 
 // CREATE via service (manual warehouse sync handled in service), then fetch the created row
 const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string) => {
+  console.log('🆕 apiCreatePurchase called');
   const res = await PurchaseApiService.createPurchase(payload, userId);
   if (!res.success || !res.purchaseId) throw new Error(res.error || 'Gagal membuat pembelian');
+  console.log('🔍 apiCreatePurchase fetching created record:', res.purchaseId);
   const { data, error } = await supabase
     .from('purchases')
     .select('*')
     .eq('id', res.purchaseId)
     .eq('user_id', userId)
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.log('⚠️ apiCreatePurchase error:', { code: error.code, message: error.message, purchaseId: res.purchaseId });
+    if (error.code === 'PGRST116') {
+      throw new Error('Pembelian tidak ditemukan setelah dibuat');
+    }
+    throw new Error(error.message);
+  }
+  console.log('✅ apiCreatePurchase success');
   return transformPurchaseFromDB(data);
 };
 
 const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId: string) => {
+  console.log('✏️ apiUpdatePurchase called:', { id });
   const res = await PurchaseApiService.updatePurchase(id, updates, userId);
   if (!res.success) throw new Error(res.error || 'Gagal memperbarui pembelian');
+  console.log('🔍 apiUpdatePurchase fetching updated record:', id);
   const { data, error } = await supabase
     .from('purchases')
     .select('*')
     .eq('id', id)
     .eq('user_id', userId)
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.log('⚠️ apiUpdatePurchase error:', { code: error.code, message: error.message, id });
+    if (error.code === 'PGRST116') {
+      throw new Error('Pembelian tidak ditemukan');
+    }
+    throw new Error(error.message);
+  }
+  console.log('✅ apiUpdatePurchase success');
   return transformPurchaseFromDB(data);
 };
 
 // Status via service (service handles manual warehouse sync), then fetch fresh row
 const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatus) => {
+  console.log('📊 apiSetStatus called:', { id, newStatus });
   const res = await PurchaseApiService.setPurchaseStatus(id, userId, newStatus);
   if (!res.success) throw new Error(res.error || 'Gagal update status');
+  console.log('🔍 apiSetStatus fetching updated record:', id);
   const { data, error } = await supabase
     .from('purchases')
     .select('*')
     .eq('id', id)
     .eq('user_id', userId)
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.log('⚠️ apiSetStatus error:', { code: error.code, message: error.message, id, newStatus });
+    if (error.code === 'PGRST116') {
+      throw new Error('Pembelian tidak ditemukan');
+    }
+    throw new Error(error.message);
+  }
+  console.log('✅ apiSetStatus success');
   return transformPurchaseFromDB(data);
 };
 
@@ -212,14 +239,17 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryKey: purchaseQueryKeys.list(user?.id),
     queryFn: () => fetchPurchases(user!.id),
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0, // ✅ FIXED: Set to 0 for immediate refresh
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: (count, err: any) => {
       const code = err?.code ?? err?.status;
       return code && code >= 400 && code < 500 ? false : count < 3;
     },
     retryDelay: (i) => Math.min(1000 * 2 ** i, 30000),
-    // keepPreviousData is deprecated in newer versions, use placeholderData instead
-    placeholderData: [],
+    // ✅ FIXED: Remove placeholderData to prevent empty array display
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: false, // Prevent excessive refetching
+    refetchOnReconnect: true, // Refetch when reconnecting
   });
 
   // ------------------- Optimistic helpers -------------------
@@ -275,6 +305,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { prev, tempId: temp.id };
     },
     onSuccess: async (newRow, _payload, ctx) => {
+      console.log('✅ Create mutation success:', newRow.id);
       // swap temp with real
       setCacheList((old) => [newRow, ...old.filter((p) => p.id !== ctx?.tempId)]);
 
@@ -317,7 +348,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         related_id: newRow.id,
         action_url: '/pembelian',
         is_read: false,
-        is_archived: false,
       });
     },
     onError: (err, _payload, ctx) => {
@@ -340,6 +370,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { prev, id };
     },
     onSuccess: (fresh, _vars, ctx) => {
+      console.log('✅ Update mutation success:', fresh.id);
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
       // ✅ INVALIDATE WAREHOUSE
@@ -491,14 +522,52 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCacheList((old) => old.filter((p) => p.id !== id));
       return { prev, id };
     },
-    onSuccess: (_res, id, ctx) => {
+    onSuccess: async (_res, id, ctx) => {
       // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
+      
       const p = ctx?.prev?.find((x) => x.id === id);
       if (p) {
+        // ✅ FIXED: Delete related financial transactions when purchase is deleted
+        console.log('💰 Cleaning up financial transactions for deleted purchase:', id);
+        try {
+          const { data, error } = await supabase
+            .from('financial_transactions')
+            .select('id')
+            .eq('user_id', user!.id)
+            .eq('related_id', id)
+            .eq('type', 'expense');
+          
+          if (error) {
+            console.error('⚠️ Error fetching financial transactions for cleanup:', error);
+          } else if (data && data.length > 0) {
+            console.log(`🗑️ Found ${data.length} financial transaction(s) to delete for purchase:`, id);
+            const deletePromises = data.map((transaction: any) => 
+              deleteFinancialTransaction(transaction.id)
+            );
+            await Promise.all(deletePromises);
+            console.log('✅ Financial transactions cleaned up successfully');
+            
+            // ✅ INVALIDATE FINANCIAL REPORTS: Financial transaction deletion affects reports
+            queryClient.invalidateQueries({ 
+              queryKey: ['financial'] 
+            });
+            
+            // ✅ INVALIDATE PROFIT ANALYSIS: Financial transaction deletion affects profit calculations
+            queryClient.invalidateQueries({ 
+              queryKey: ['profit-analysis'] 
+            });
+          } else {
+            console.log('ℹ️ No financial transactions found for purchase:', id);
+          }
+        } catch (e) {
+          console.error('⚠️ Failed to cleanup financial transactions for deleted purchase:', e);
+          logger.warn('Gagal membersihkan transaksi keuangan saat hapus purchase:', e);
+        }
+        
         const supplierName = getSupplierName(p.supplier);
         const totalValue = formatCurrency(p.totalNilai);
-        toast.success('Pembelian dihapus. Stok gudang disesuaikan otomatis.');
+        toast.success('Pembelian dan transaksi keuangan terkait berhasil dihapus.');
         addActivity?.({ title: 'Pembelian Dihapus', description: `Pembelian dari ${supplierName} telah dihapus.`, type: 'purchase', value: null });
         addNotification?.({
           title: '🗑️ Pembelian Dihapus',
@@ -510,7 +579,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           related_id: id,
           action_url: '/pembelian',
           is_read: false,
-          is_archived: false,
         });
       }
     },
@@ -625,24 +693,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user, deleteMutation]);
 
-  // Bulk ops (loop saja, manfaatkan optimistic dari mutation)
-  const bulkDelete = useCallback(async (ids: string[]) => {
-    let success = 0;
-    for (const id of ids) {
-      const ok = await deletePurchaseAction(id);
-      if (ok) success++;
-    }
-    toast.success(`${success}/${ids.length} pembelian terhapus`);
-  }, [deletePurchaseAction]);
 
-  const bulkStatusUpdate = useCallback(async (ids: string[], newStatus: PurchaseStatus) => {
-    let success = 0;
-    for (const id of ids) {
-      const ok = await setStatus(id, newStatus);
-      if (ok) success++;
-    }
-    toast.success(`${success}/${ids.length} status berhasil diubah`);
-  }, [setStatus]);
 
   // Prasyarat data (buat tombol "Tambah")
   const validatePrerequisites = useCallback(() => {
@@ -654,13 +705,15 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [suppliers?.length]);
 
   const refreshPurchases = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
+    console.log('🔄 Manual refresh purchases triggered');
+    await queryClient.invalidateQueries({ 
+      queryKey: purchaseQueryKeys.list(user?.id),
+      refetchType: 'active' // Force active queries to refetch immediately
+    });
   }, [queryClient, user?.id]);
 
   // ------------------- Realtime (debounced/guarded) -------------------
   const blockRealtimeRef = useRef(false);
-  // blok sementara saat bulk
-  const setBulkProcessing = useCallback((v: boolean) => { blockRealtimeRef.current = v; }, []);
 
   const debounceTimerRef = useRef<number | null>(null);
 
@@ -673,8 +726,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         window.clearTimeout(debounceTimerRef.current);
       }
       debounceTimerRef.current = window.setTimeout(() => {
-        // ringan: cukup soft-invalidate
-        queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user.id) });
+        console.log('🔄 Realtime invalidating purchase data');
+        // ✅ FIXED: Force refetch for realtime updates
+        queryClient.invalidateQueries({ 
+          queryKey: purchaseQueryKeys.list(user.id),
+          refetchType: 'active' // Force active queries to refetch
+        });
         // ✅ JUGA INVALIDATE WAREHOUSE: Karena realtime change bisa jadi dari user lain/trigger
         invalidateWarehouseData();
         debounceTimerRef.current = null;
@@ -714,11 +771,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // merged core api
     stats,
     setStatus,
-    bulkDelete,
-    bulkStatusUpdate,
     findPurchase,
     validatePrerequisites,
-    setBulkProcessing,
     getSupplierName,
   }), [
     purchases,
@@ -734,11 +788,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     refreshPurchases,
     stats,
     setStatus,
-    bulkDelete,
-    bulkStatusUpdate,
     findPurchase,
     validatePrerequisites,
-    setBulkProcessing,
     getSupplierName,
   ]);
 

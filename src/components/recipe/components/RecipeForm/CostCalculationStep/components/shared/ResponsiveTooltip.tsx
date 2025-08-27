@@ -53,7 +53,7 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
           <>
             {/* ✅ Backdrop overlay */}
             <div 
-              className="fixed inset-0 bg-black bg-opacity-30 z-40"
+              className="dialog-overlay-center bg-opacity-30 z-40"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -63,10 +63,10 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
             />
             
             {/* ✅ Mobile Modal - Fixed dimensions and positioning */}
-            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-              <div className="bg-gray-900 text-white rounded-xl border border-gray-700 animate-in fade-in-0 zoom-in-95 duration-200 mx-4">
+            <div className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] z-50">
+              <div className="bg-gray-900 text-white rounded-xl border border-gray-700 animate-in fade-in-0 zoom-in-95 duration-200 mx-12 sm:mx-16 md:mx-auto shadow-xl">
                 {/* ✅ Fixed width container with proper padding */}
-                <div className="w-80 max-w-[90vw] max-h-[70vh] overflow-y-auto">
+                <div className="w-80 max-w-[90vw] max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
                   {/* ✅ Content area with consistent spacing */}
                   <div className="p-5 text-sm leading-relaxed">
                     {content}

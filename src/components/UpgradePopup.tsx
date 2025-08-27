@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';  
 import { CheckCircle, ExternalLink, Zap, Clock } from 'lucide-react';
@@ -98,15 +98,16 @@ const UpgradePopup = () => {
 
   return (
     <Dialog open={showUpgradePopup} onOpenChange={setShowUpgradePopup}>
-      <DialogContent className="max-w-md mx-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-center">
-            <Zap className="h-6 w-6 text-yellow-500" />
-            Upgrade ke Premium
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle className="flex items-center gap-2 text-center">
+              <Zap className="h-6 w-6 text-yellow-500" />
+              Upgrade ke Premium
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="dialog-body space-y-4 py-4">
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600 mb-1">
               Rp 145.000
@@ -151,10 +152,25 @@ const UpgradePopup = () => {
           </div>
 
           <div className="space-y-2">
+
+            </div>
+            
+            <p className="text-xs text-gray-500 text-center">
+              Setelah pembayaran selesai, refresh halaman untuk mengaktifkan akun premium
+            </p>
+          </div>
+          
+          <DialogFooter className="dialog-footer-pad pt-4">
             <Button 
+              onClick={() => setShowUpgradePopup(false)}
+              variant="outline"
+            >
+              Nanti Saja
+            </Button>
+            <Button
               onClick={handleUpgrade}
               disabled={isProcessing}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold"
             >
               {isProcessing ? (
                 <>
@@ -168,19 +184,7 @@ const UpgradePopup = () => {
                 </>
               )}
             </Button>
-
-            <Button 
-              onClick={() => setShowUpgradePopup(false)}
-              variant="outline"
-              className="w-full"
-            >
-              Nanti Saja
-            </Button>
-          </div>
-
-          <p className="text-xs text-gray-500 text-center">
-            Setelah pembayaran selesai, refresh halaman untuk mengaktifkan akun premium
-          </p>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

@@ -1,5 +1,5 @@
-// src/components/purchase/components/BulkActions.tsx
-import React, { useState } from 'react';
+// src/components/purchase/components/BulkActions.tsx  
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings, AlertTriangle } from 'lucide-react';
 
@@ -18,11 +18,11 @@ const BulkActions: React.FC<BulkActionsProps> = ({
     <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         <span className="font-medium text-orange-900 text-sm sm:text-base">
-          {selectedCount > 0 ? `${selectedCount} item dipilih` : 'Mode pilih aktif - Pilih item untuk operasi massal'}
+          {selectedCount > 0 ? `${selectedCount} pembelian dipilih` : 'Mode pilih aktif - Pilih pembelian untuk operasi massal'}
         </span>
         {selectedCount === 0 && (
           <span className="text-xs sm:text-sm text-orange-700 bg-orange-100 px-2 py-1 rounded inline-block">
-            Klik checkbox untuk memilih item
+            Klik checkbox untuk memilih pembelian
           </span>
         )}
       </div>

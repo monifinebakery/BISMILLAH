@@ -24,6 +24,12 @@ interface CategoryStats {
  * Get all available categories with statistics
  */
 export const getCategoryStats = (recipes: Recipe[], customCategories: string[]): CategoryStats[] => {
+  console.log('📊 getCategoryStats called with:', {
+    recipesCount: recipes.length,
+    customCategories,
+    customCount: customCategories.length
+  });
+  
   // Get all categories used in recipes
   const categoryGroups = new Map<string, Recipe[]>();
   
@@ -36,21 +42,35 @@ export const getCategoryStats = (recipes: Recipe[], customCategories: string[]):
 
   // Get all available categories
   const allCategories = getAllAvailableCategories(recipes);
+  console.log('🏷️ All available categories:', allCategories);
   
   // Build stats for each category
-  return allCategories.map((categoryName) => {
+  const stats = allCategories.map((categoryName) => {
     const recipesInCategory = categoryGroups.get(categoryName) || [];
     const isCustom = customCategories.includes(categoryName);
+    const canDelete = isCustom && recipesInCategory.length === 0;
     
-    return {
+    const stat = {
       name: categoryName,
       count: recipesInCategory.length,
       isCustom,
-      canDelete: isCustom && recipesInCategory.length === 0,
+      canDelete,
       canEdit: isCustom,
       recipes: recipesInCategory,
     };
+    
+    console.log(`📊 Category "${categoryName}":`, {
+      isCustom,
+      count: recipesInCategory.length,
+      canDelete,
+      canEdit: isCustom
+    });
+    
+    return stat;
   });
+  
+  console.log('📊 Final category stats:', stats);
+  return stats;
 };
 
 /**

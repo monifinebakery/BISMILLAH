@@ -164,18 +164,24 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {getValidationIcon()}
-            Validasi Stok Pesanan
-          </DialogTitle>
-          <DialogDescription>
-            Pesanan #{order?.nomorPesanan} - {order?.namaPelanggan}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <div className="flex items-center gap-3">
+              {getValidationIcon()}
+              <div>
+                <DialogTitle className="text-xl font-semibold">
+                  Validasi Stok Pesanan
+                </DialogTitle>
+                <DialogDescription className="text-sm text-gray-600">
+                  Pesanan #{order?.nomorPesanan} - {order?.namaPelanggan}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
 
-        <div className="space-y-4">
+          <div className="dialog-body overflow-y-auto">
+            <div className="space-y-4">
           {/* Validation Status */}
           <Alert className={
             isValidating ? 'border-blue-200 bg-blue-50' :
@@ -273,9 +279,10 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
               </AlertDescription>
             </Alert>
           )}
-        </div>
+            </div>
+          </div>
 
-        <DialogFooter className="flex items-center gap-2">
+          <DialogFooter className="dialog-footer-pad flex items-center gap-2">
           <Button
             variant="outline"
             onClick={handleClose}
@@ -320,7 +327,8 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
               'Selesaikan Pesanan'
             )}
           </Button>
-        </DialogFooter>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { X, Upload, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { usePurchaseImport } from '../../hooks/usePurchaseImport';
 import { toast } from 'sonner';
@@ -58,24 +59,22 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg border w-full max-w-5xl max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Upload className="w-5 h-5 text-green-600" />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Upload className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-semibold">Import Data Pembelian</DialogTitle>
+                <p className="text-sm text-gray-600">Upload file Excel atau CSV</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-semibold">Import Data Pembelian</h2>
-              <p className="text-sm text-gray-600">Upload file Excel atau CSV</p>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={loading}>
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+          </DialogHeader>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          <div className="dialog-body overflow-y-auto">
           {!preview ? (
             <div className="space-y-6">
               <div 
@@ -234,54 +233,55 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
               </div>
             </div>
           )}
-        </div>
+          </div>
 
-        <div className="flex items-center justify-between p-6 border-t bg-gray-50">
-          <div className="flex gap-3">
-            {!preview && (
-              <>
-                <Button 
-                  variant="outline" 
-                  onClick={downloadTemplate}
-                  disabled={loading}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Template
-                </Button>
-              </>
-            )}
-          </div>
-          
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose} disabled={loading}>
-              Batal
-            </Button>
-            {preview && (
-              <Button
-                onClick={async () => {
-                  const success = await executeImport();
-                  if (success) {
-                    toast.success(`${preview.valid.length} pembelian berhasil diimport!`);
-                    onClose();
-                  }
-                }}
-                disabled={!preview.valid.length || loading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                    Mengimpor...
-                  </>
-                ) : (
-                  `Import ${preview.valid.length} Data`
+          <DialogFooter className="dialog-footer-pad">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex gap-3">
+                {!preview && (
+                  <Button 
+                    variant="outline" 
+                    onClick={downloadTemplate}
+                    disabled={loading}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Template
+                  </Button>
                 )}
-              </Button>
-            )}
-          </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={onClose} disabled={loading}>
+                  Batal
+                </Button>
+                {preview && (
+                  <Button
+                    onClick={async () => {
+                      const success = await executeImport();
+                      if (success) {
+                        toast.success(`${preview.valid.length} pembelian berhasil diimport!`);
+                        onClose();
+                      }
+                    }}
+                    disabled={!preview.valid.length || loading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        Mengimpor...
+                      </>
+                    ) : (
+                      `Import ${preview.valid.length} Data`
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogFooter>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

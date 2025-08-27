@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   AlertTriangle, 
   Trash2, 
@@ -53,35 +54,25 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
   if (!isOpen || !recipe) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md bg-white border">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-red-50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent centerMode="overlay" size="lg">
+        <DialogHeader className="dialog-header bg-red-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold text-red-900">
+                  Hapus Resep
+                </DialogTitle>
+                <p className="text-sm text-red-700">
+                  Tindakan ini tidak dapat dibatalkan
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-red-900">
-                Hapus Resep
-              </h2>
-              <p className="text-sm text-red-700">
-                Tindakan ini tidak dapat dibatalkan
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-            className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        </DialogHeader>
 
-        <CardContent className="p-6">
+        <div className="dialog-body">
           
           {/* Warning Message */}
           <div className="mb-6">
@@ -217,20 +208,22 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
+        </div>
+
+        {/* Footer with Action Buttons */}
+        <DialogFooter className="dialog-footer">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="flex-1"
+              className="w-full sm:w-auto"
             >
               Batal
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={!isConfirmEnabled || isLoading}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
             >
               {isLoading ? (
                 <>
@@ -244,10 +237,9 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                 </>
               )}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

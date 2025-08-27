@@ -51,6 +51,7 @@ export class PurchaseApiService {
   /** Get one purchase */
   static async fetchPurchaseById(id: string, userId: string): Promise<{ data: Purchase | null; error: string | null }> {
     try {
+      console.log('🔍 fetchPurchaseById called with:', { id, userId });
       const { data, error } = await supabase
         .from('purchases')
         .select('*')
@@ -58,9 +59,19 @@ export class PurchaseApiService {
         .eq('user_id', userId)
         .single();
 
-      if (error) throw new Error(error.message);
+      // Handle PGRST116 error (no rows found) gracefully
+      if (error) {
+        console.log('⚠️ fetchPurchaseById error:', { code: error.code, message: error.message, id, userId });
+        if (error.code === 'PGRST116') {
+          console.log('ℹ️ PGRST116 handled gracefully in fetchPurchaseById');
+          return { data: null, error: null }; // No data found, but not an error
+        }
+        throw new Error(error.message);
+      }
+      console.log('✅ fetchPurchaseById success:', { hasData: !!data, id });
       return { data: data ? transformPurchaseFromDB(data) : null, error: null };
     } catch (err: any) {
+      console.error('❌ fetchPurchaseById catch:', { err, id, userId });
       logger.error('Error fetching purchase:', err);
       return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
@@ -118,7 +129,13 @@ export class PurchaseApiService {
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-      if (fetchErr) throw new Error(fetchErr.message);
+      if (fetchErr) {
+        console.log('⚠️ updatePurchase fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
+        if (fetchErr.code === 'PGRST116') {
+          return { success: false, error: 'Pembelian tidak ditemukan' };
+        }
+        throw new Error(fetchErr.message);
+      }
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
       // If existing was completed, reverse its effects first
@@ -142,7 +159,14 @@ export class PurchaseApiService {
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-      if (fetchUpdatedErr) throw new Error(fetchUpdatedErr.message);
+      if (fetchUpdatedErr) {
+        console.log('⚠️ updatePurchase fetchUpdatedErr:', { code: fetchUpdatedErr.code, message: fetchUpdatedErr.message, id, userId });
+        if (fetchUpdatedErr.code !== 'PGRST116') {
+          throw new Error(fetchUpdatedErr.message);
+        }
+        // PGRST116 means row not found after update, which shouldn't happen but we'll handle it gracefully
+        console.log('ℹ️ PGRST116 after purchase update - purchase may have been deleted by another process');
+      }
       const updated = updatedRow ? transformPurchaseFromDB(updatedRow) : null;
 
       if (updated && updated.status === 'completed' && !this.shouldSkipWarehouseSync(updated, false)) {
@@ -177,7 +201,13 @@ export class PurchaseApiService {
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-      if (fetchErr) throw new Error(fetchErr.message);
+      if (fetchErr) {
+        console.log('⚠️ setPurchaseStatus fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
+        if (fetchErr.code === 'PGRST116') {
+          return { success: false, error: 'Pembelian tidak ditemukan' };
+        }
+        throw new Error(fetchErr.message);
+      }
       const prev = existingRow ? transformPurchaseFromDB(existingRow) : null;
       
       logger.debug('🔄 [PURCHASE API] Previous purchase data:', prev);
@@ -201,12 +231,20 @@ export class PurchaseApiService {
         if (newStatus === 'completed') {
           logger.info('🔄 [PURCHASE API] Applying to warehouse...');
           // Fetch fresh row to reflect any concurrent changes
-          const { data: newRow } = await supabase
+          const { data: newRow, error: freshErr } = await supabase
             .from('purchases')
             .select('*')
             .eq('id', id)
             .eq('user_id', userId)
             .single();
+          if (freshErr) {
+            console.log('⚠️ setPurchaseStatus freshErr:', { code: freshErr.code, message: freshErr.message, id, userId });
+            if (freshErr.code !== 'PGRST116') {
+              logger.warn('Warning: Could not fetch fresh purchase data:', freshErr.message);
+            } else {
+              logger.info('ℹ️ PGRST116 when fetching fresh purchase data - purchase may have been deleted');
+            }
+          }
           const fresh = newRow ? transformPurchaseFromDB(newRow) : prev;
           
           logger.debug('🔄 [PURCHASE API] Fresh purchase data for warehouse sync:', fresh);
@@ -265,22 +303,69 @@ export class PurchaseApiService {
   * Delete purchase.
   * Manual warehouse synchronization: if purchase was completed,
   * manually reverse stock and WAC changes before deletion.
+  * Also cleans up related financial transactions.
   */
   static async deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
     try {
       // Fetch existing to reverse if needed
-      const { data: existingRow } = await supabase
+      const { data: existingRow, error: fetchErr } = await supabase
         .from('purchases')
         .select('*')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
+      
+      // If record doesn't exist, that's fine for deletion
+      if (fetchErr) {
+        console.log('⚠️ deletePurchase fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
+        if (fetchErr.code !== 'PGRST116') {
+          logger.warn('Warning fetching purchase for deletion:', fetchErr.message);
+        } else {
+          logger.info('ℹ️ PGRST116 when fetching purchase for deletion - purchase already deleted or not found');
+        }
+      }
       const existing = existingRow ? transformPurchaseFromDB(existingRow) : null;
 
+      // ✅ FIXED: Clean up related financial transactions BEFORE deleting purchase
+      logger.info('💰 [PURCHASE API] Cleaning up financial transactions for purchase:', id);
+      try {
+        const { data: financialTxns, error: financialFetchErr } = await supabase
+          .from('financial_transactions')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('related_id', id)
+          .eq('type', 'expense');
+        
+        if (financialFetchErr) {
+          logger.warn('Warning fetching financial transactions for cleanup:', financialFetchErr.message);
+        } else if (financialTxns && financialTxns.length > 0) {
+          logger.info(`🗑️ [PURCHASE API] Found ${financialTxns.length} financial transaction(s) to delete`);
+          const { error: deleteFinancialErr } = await supabase
+            .from('financial_transactions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('related_id', id)
+            .eq('type', 'expense');
+          
+          if (deleteFinancialErr) {
+            logger.warn('Warning deleting financial transactions:', deleteFinancialErr.message);
+          } else {
+            logger.info('✅ [PURCHASE API] Financial transactions cleaned up successfully');
+          }
+        } else {
+          logger.info('ℹ️ [PURCHASE API] No financial transactions found for cleanup');
+        }
+      } catch (financialErr) {
+        logger.warn('Error during financial transaction cleanup:', financialErr);
+        // Continue with purchase deletion even if financial cleanup fails
+      }
+
+      // Reverse warehouse changes if needed
       if (existing && existing.status === 'completed' && !this.shouldSkipWarehouseSync(existing, false)) {
         await reversePurchaseFromWarehouse(existing);
       }
 
+      // Delete the purchase
       const { error } = await supabase
         .from('purchases')
         .delete()
@@ -288,6 +373,7 @@ export class PurchaseApiService {
         .eq('user_id', userId);
 
       if (error) throw new Error(error.message);
+      logger.info('✅ [PURCHASE API] Purchase and related data deleted successfully:', id);
       return { success: true, error: null };
     } catch (err: any) {
       logger.error('Error deleting purchase:', err);

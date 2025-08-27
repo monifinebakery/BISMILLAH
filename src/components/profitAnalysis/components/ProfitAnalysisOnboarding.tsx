@@ -1,5 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
 interface ProfitAnalysisOnboardingProps {
@@ -8,12 +9,10 @@ interface ProfitAnalysisOnboardingProps {
 }
 
 const ProfitAnalysisOnboarding: React.FC<ProfitAnalysisOnboardingProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent centerMode="overlay" size="md">
+        <div className="dialog-body">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Info className="h-8 w-8 text-orange-600" />
@@ -45,8 +44,8 @@ const ProfitAnalysisOnboarding: React.FC<ProfitAnalysisOnboardingProps> = ({ isO
             Mulai Analisis
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
@@ -178,161 +179,209 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-responsive form-dialog">
-        <DialogHeader>
-          <DialogTitle>
-            {transaction ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          {/* Transaction Type */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="type">Tipe</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value: TransactionType) => handleFieldChange('type', value)}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="expense">Pengeluaran</SelectItem>
-                  <SelectItem value="income">Pemasukan</SelectItem>
-                </SelectContent>
-              </Select>
+      <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel dialog-panel-md-plus">
+          <DialogHeader className="dialog-header border-b">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Plus className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl text-gray-900">
+                  {transaction ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}
+                </DialogTitle>
+                <p className="text-sm text-gray-500 mt-1">
+                  {transaction ? 'Perbarui detail transaksi keuangan' : 'Catat transaksi pemasukan atau pengeluaran'}
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="dialog-no-overflow">
+            <div className="dialog-body">
+              <div className="space-y-4 sm:space-y-6">
+                {/* Transaction Type and Amount Row */}
+                <div className="dialog-responsive-grid">
+                  <div className="space-y-2">
+                    <Label htmlFor="type" className="text-sm font-medium text-overflow-safe">
+                      Tipe Transaksi
+                    </Label>
+                    <Select
+                      value={formData.type}
+                      onValueChange={(value: TransactionType) => handleFieldChange('type', value)}
+                    >
+                      <SelectTrigger id="type" className="w-full input-mobile-safe">
+                        <SelectValue placeholder="Pilih tipe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="expense">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
+                            <span className="text-overflow-safe">Pengeluaran</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="income">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
+                            <span className="text-overflow-safe">Pemasukan</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="amount" className="text-sm font-medium text-overflow-safe">
+                      Jumlah (Rp)
+                    </Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.amount || ''}
+                      onChange={(e) => handleFieldChange('amount', parseFloat(e.target.value) || 0)}
+                      placeholder="Masukkan jumlah"
+                      className="text-right input-mobile-safe"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="text-sm font-medium text-overflow-safe">
+                    Kategori
+                  </Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => handleFieldChange('category', value)}
+                  >
+                    <SelectTrigger id="category" className="w-full input-mobile-safe">
+                      <SelectValue placeholder="Pilih kategori..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentCategoryList.length > 0 ? (
+                        currentCategoryList.map((categoryItem) => {
+                          const { id, name } = getCategoryInfo(categoryItem);
+                          const color = getCategoryColor(categoryItem);
+                          
+                          return (
+                            <SelectItem key={id} value={id}>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full border flex-shrink-0"
+                                  style={{ backgroundColor: color }}
+                                ></div>
+                                <span className="text-overflow-safe truncate">{name}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })
+                      ) : (
+                        <SelectItem value="" disabled>
+                          <span className="text-overflow-safe">Tidak ada kategori tersedia</span>
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-sm font-medium text-overflow-safe">
+                    Deskripsi
+                  </Label>
+                  <Input
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => handleFieldChange('description', e.target.value)}
+                    placeholder="Contoh: Beli tepung terigu untuk produksi"
+                    className="input-mobile-safe"
+                    required
+                  />
+                </div>
+
+                {/* Date and Time Row */}
+                <div className="dialog-responsive-grid">
+                  <div className="space-y-2">
+                    <Label htmlFor="date" className="text-sm font-medium text-overflow-safe">
+                      Tanggal
+                    </Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formatDateToYYYYMMDD(formData.date)}
+                      onChange={(e) => {
+                        const newDate = new Date(e.target.value);
+                        // Preserve existing time when changing date
+                        const currentTime = formData.date;
+                        if (currentTime) {
+                          newDate.setHours(currentTime.getHours());
+                          newDate.setMinutes(currentTime.getMinutes());
+                        }
+                        handleFieldChange('date', newDate);
+                      }}
+                      className="input-mobile-safe"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="time" className="text-sm font-medium text-overflow-safe">
+                      Waktu (opsional)
+                    </Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={formData.date ? 
+                        `${String(formData.date.getHours()).padStart(2, '0')}:${String(formData.date.getMinutes()).padStart(2, '0')}` 
+                        : ''
+                      }
+                      onChange={(e) => {
+                        const [hours, minutes] = e.target.value.split(':').map(Number);
+                        const newDate = new Date(formData.date);
+                        newDate.setHours(hours || 0);
+                        newDate.setMinutes(minutes || 0);
+                        newDate.setSeconds(0);
+                        handleFieldChange('date', newDate);
+                      }}
+                      placeholder="HH:MM"
+                      className="input-mobile-safe"
+                    />
+                    <p className="text-xs text-gray-500 mt-1 text-overflow-safe">
+                      Kosongkan untuk waktu saat ini
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Amount */}
-            <div>
-              <Label htmlFor="amount">Jumlah (Rp)</Label>
-              <Input
-                id="amount"
-                type="number"
-                min="0"
-                step="1"
-                value={formData.amount}
-                onChange={(e) => handleFieldChange('amount', parseFloat(e.target.value) || 0)}
-                placeholder="0"
-                required
-              />
-            </div>
-          </div>
-
-          {/* ✅ FIXED: Category with object support */}
-          <div>
-            <Label htmlFor="category">Kategori</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(value) => handleFieldChange('category', value)}
-            >
-              <SelectTrigger id="category">
-                <SelectValue placeholder="Pilih kategori..." />
-              </SelectTrigger>
-              <SelectContent>
-                {currentCategoryList.length > 0 ? (
-                  currentCategoryList.map((categoryItem) => {
-                    const { id, name } = getCategoryInfo(categoryItem);
-                    const color = getCategoryColor(categoryItem);
-                    
-                    return (
-                      <SelectItem key={id} value={id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full border"
-                            style={{ backgroundColor: color }}
-                          ></div>
-                          <span>{name}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })
-                ) : (
-                  <SelectItem value="" disabled>
-                    Tidak ada kategori tersedia
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Description */}
-          <div>
-            <Label htmlFor="description">Deskripsi</Label>
-            <Input
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleFieldChange('description', e.target.value)}
-              placeholder="Contoh: Beli Tepung Terigu"
-              required
-            />
-          </div>
-
-          {/* Date and Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="date">Tanggal</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formatDateToYYYYMMDD(formData.date)}
-                onChange={(e) => {
-                  const newDate = new Date(e.target.value);
-                  // Preserve existing time when changing date
-                  const currentTime = formData.date;
-                  if (currentTime) {
-                    newDate.setHours(currentTime.getHours());
-                    newDate.setMinutes(currentTime.getMinutes());
-                  }
-                  handleFieldChange('date', newDate);
-                }}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="time">Waktu (opsional)</Label>
-              <Input
-                id="time"
-                type="time"
-                value={formData.date ? 
-                  `${String(formData.date.getHours()).padStart(2, '0')}:${String(formData.date.getMinutes()).padStart(2, '0')}` 
-                  : ''
-                }
-                onChange={(e) => {
-                  const [hours, minutes] = e.target.value.split(':').map(Number);
-                  const newDate = new Date(formData.date);
-                  newDate.setHours(hours || 0);
-                  newDate.setMinutes(minutes || 0);
-                  newDate.setSeconds(0);
-                  handleFieldChange('date', newDate);
-                }}
-                placeholder="HH:MM"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Kosongkan jika hanya ingin menyimpan tanggal
-              </p>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <DialogFooter className="pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Batal
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-            </Button>
-          </DialogFooter>
-        </form>
+            {/* Footer */}
+            <DialogFooter className="dialog-footer">
+              <div className="dialog-responsive-buttons">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="input-mobile-safe"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="input-mobile-safe"
+                >
+                  <span className="text-overflow-safe">
+                    {isSubmitting ? 'Menyimpan...' : (transaction ? 'Perbarui' : 'Simpan')}
+                  </span>
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

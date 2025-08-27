@@ -272,15 +272,23 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={handleCloseDialogs}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Massal Transaksi</DialogTitle>
-            <DialogDescription>
-              Edit {selectedIds.length} transaksi sekaligus. Kosongkan field yang tidak ingin diubah.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
+        <DialogContent centerMode="overlay" size="md">
+          <div className="dialog-panel dialog-panel-md">
+            <DialogHeader className="dialog-header border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Edit3 className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl text-gray-900">Edit Massal Transaksi</DialogTitle>
+                  <DialogDescription className="text-sm text-gray-500 mt-1">
+                    Edit {selectedIds.length} transaksi sekaligus. Kosongkan field yang tidak ingin diubah.
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            
+            <div className="dialog-body space-y-4">
             <div className="space-y-2">
               <Label htmlFor="bulk-type">Tipe Transaksi</Label>
               <Select
@@ -343,25 +351,26 @@ const BulkActions: React.FC<BulkActionsProps> = ({
                 </div>
               </div>
             )}
+            </div>
+            
+            <DialogFooter className="dialog-footer-pad">
+              <Button
+                variant="outline"
+                onClick={handleCloseDialogs}
+                disabled={isBulkEditing}
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={handleBulkEdit}
+                disabled={isBulkEditing}
+                className="flex items-center gap-2"
+              >
+                {isBulkEditing && <Loader2 className="h-4 w-4 animate-spin" />}
+                Edit {selectedIds.length} Transaksi
+              </Button>
+            </DialogFooter>
           </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleCloseDialogs}
-              disabled={isBulkEditing}
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={handleBulkEdit}
-              disabled={isBulkEditing}
-              className="flex items-center gap-2"
-            >
-              {isBulkEditing && <Loader2 className="h-4 w-4 animate-spin" />}
-              Edit {selectedIds.length} Transaksi
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

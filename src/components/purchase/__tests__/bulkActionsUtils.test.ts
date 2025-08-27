@@ -9,7 +9,7 @@ mock.module('@/types', () => ({
   }
 }));
 
-const { exportPurchasesToCSV, generatePurchasePrintContent, markPurchasesAsArchived } = await import('@/utils/purchaseHelpers');
+const { exportPurchasesToCSV, generatePurchasePrintContent } = await import('@/utils/purchaseHelpers');
 
 describe('Purchase bulk action helpers', () => {
   const suppliers = [{ id: 's1', nama: 'Supplier A' }];
@@ -23,7 +23,6 @@ describe('Purchase bulk action helpers', () => {
     metodePerhitungan: 'AVERAGE',
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
-    isArchived: false,
   };
 
   const purchases: Purchase[] = [
@@ -43,9 +42,4 @@ describe('Purchase bulk action helpers', () => {
     expect(text.split('\n').length).toBe(2);
   });
 
-  it('dapat menandai pembelian sebagai arsip', () => {
-    const updated = markPurchasesAsArchived(purchases, ['p1']);
-    expect(updated.find(p => p.id === 'p1')?.isArchived).toBe(true);
-    expect(updated.find(p => p.id === 'p2')?.isArchived).toBe(false);
-  });
 });

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Bell, Settings, TrendingUp, DollarSign, Calendar, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -212,11 +212,23 @@ const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }
                 Atur Budget
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Tambah Budget Kategori</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <DialogContent centerMode="overlay" size="md">
+              <div className="dialog-panel dialog-panel-md">
+                <DialogHeader className="dialog-header border-b">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-xl text-gray-900">Tambah Budget Kategori</DialogTitle>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Atur batas pengeluaran dan peringatan untuk kategori
+                      </p>
+                    </div>
+                  </div>
+                </DialogHeader>
+                <form onSubmit={handleSubmit}>
+                  <div className="dialog-body space-y-4">
                 <div>
                   <Label htmlFor="category">Kategori Pengeluaran *</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
@@ -261,13 +273,16 @@ const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }
                       <SelectItem value="90">90% dari budget</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">Simpan</Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-                </div>
-              </form>
+                  </div>
+                  
+                  </div>
+                  
+                  <DialogFooter className="dialog-footer-pad">
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
+                    <Button type="submit">Simpan</Button>
+                  </DialogFooter>
+                </form>
+              </div>
             </DialogContent>
           </Dialog>
         </div>

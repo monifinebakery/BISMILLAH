@@ -4,6 +4,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +48,6 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
     // State
     isLoading,
     categoryToDelete,
-    setCategoryToDelete,
 
     // Derived data
     categoryStats,
@@ -58,15 +58,21 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
     handleEditCategory,
     handleDeleteCategory,
     handleRefresh,
+    openDeleteConfirmation,
     closeDeleteConfirmation
   } = useCategoryManager({ recipes, updateRecipe, refreshRecipes });
 
   // Handle delete confirmation
   const handleDeleteConfirm = async () => {
-    if (!categoryToDelete) return;
+    if (!categoryToDelete) {
+      console.log('⚠️ No category to delete');
+      return;
+    }
     
+    console.log('✅ Confirming delete for category:', categoryToDelete);
     try {
       await handleDeleteCategory(categoryToDelete);
+      console.log('✅ Category deleted successfully:', categoryToDelete);
     } catch (error) {
       console.error('Delete confirmation failed:', error);
     }
@@ -76,73 +82,70 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <CardHeader className="border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent centerMode="overlay" size="md+">
+          <div className="dialog-panel dialog-panel-md-plus dialog-no-overflow">
+            <DialogHeader className="dialog-header">
+              <div className="flex items-center gap-3 pr-12"> {/* Add right padding to avoid close button */}
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Tag className="w-4 h-4 text-orange-600" />
                 </div>
-                <div>
-                  <CardTitle className="text-xl text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="text-lg sm:text-xl text-gray-900 text-overflow-safe">
                     Kelola Kategori Resep
-                  </CardTitle>
-                  <p className="text-sm text-gray-500 mt-1">
+                  </DialogTitle>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 text-overflow-safe">
                     Buat dan atur kategori sesuai kebutuhan Anda
                   </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleRefresh}
                   disabled={isLoading}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 input-mobile-safe flex-shrink-0"
                   title="Muat ulang data"
                 >
                   <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+              </div>
+            </DialogHeader>
+            
+            <div className="dialog-body">
+              <div className="space-y-4 sm:space-y-6 dialog-no-overflow">
+                {/* Statistics */}
+                <CategoryStatsCards
+                  totalRecipes={recipeStats.totalRecipes}
+                  categorizedRecipes={recipeStats.categorizedRecipes}
+                  totalCategories={categoryStats.length}
+                />
+
+                {/* Add New Category */}
+                <AddCategoryForm
+                  isLoading={isLoading}
+                  onAddCategory={handleAddCategory}
+                />
+
+                {/* Categories Table */}
+                <CategoryTable
+                  categories={categoryStats}
+                  isLoading={isLoading}
+                  onEditCategory={handleEditCategory}
+                  onDeleteCategory={openDeleteConfirmation}
+                />
               </div>
             </div>
-          </CardHeader>
-          
-          <CardContent className="p-0 overflow-y-auto max-h-[calc(90vh-120px)]">
-            <div className="p-6 space-y-6">
-              {/* Statistics */}
-              <CategoryStatsCards
-                totalRecipes={recipeStats.totalRecipes}
-                categorizedRecipes={recipeStats.categorizedRecipes}
-                totalCategories={categoryStats.length}
-              />
 
-              {/* Add New Category */}
-              <AddCategoryForm
-                isLoading={isLoading}
-                onAddCategory={handleAddCategory}
-              />
-
-              {/* Categories Table */}
-              <CategoryTable
-                categories={categoryStats}
-                isLoading={isLoading}
-                onEditCategory={handleEditCategory}
-                onDeleteCategory={setCategoryToDelete}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <DialogFooter className="dialog-footer">
+              <div className="dialog-responsive-buttons">
+                <Button variant="outline" onClick={() => onOpenChange(false)} className="input-mobile-safe">
+                  <span className="text-overflow-safe">Tutup</span>
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && closeDeleteConfirmation()}>

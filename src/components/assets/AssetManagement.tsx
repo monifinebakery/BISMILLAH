@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Plus, AlertTriangle, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -19,6 +19,7 @@ import {
   AssetTable, 
   AssetCard, 
   AssetForm,
+  AssetFormFields,
   AssetDeleteDialog 
 } from './components';
 
@@ -209,22 +210,57 @@ export const AssetManagement: React.FC = () => {
                     Tambah Aset
                   </Button>
                 </DialogTrigger>
-                <DialogContent className={`${isMobile ? 'w-[95vw] max-w-sm h-[90vh]' : 'w-[95vw] max-w-md max-h-[90vh]'} mx-auto`}>
-                  <DialogHeader>
-                    <DialogTitle className="text-orange-600">
-                      {editingAsset ? 'Edit Aset' : 'Tambah Aset Baru'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <AssetForm
-                    formData={formData}
-                    errors={formErrors}
-                    onFieldChange={updateField}
-                    onSubmit={handleFormSubmit}
-                    onCancel={handleFormClose}
-                    isSubmitting={isMutating}
-                    canSubmit={canSubmit}
-                    mode={editingAsset ? 'edit' : 'create'}
-                  />
+                <DialogContent centerMode="overlay" size="md+">
+                  <div className="dialog-panel dialog-panel-md-plus">
+                    <DialogHeader className="dialog-header border-b">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                          <Plus className="w-4 h-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <DialogTitle className="text-xl text-gray-900">
+                            {editingAsset ? 'Edit Aset' : 'Tambah Aset Baru'}
+                          </DialogTitle>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {editingAsset ? 'Perbarui informasi aset' : 'Tambahkan aset baru ke dalam inventaris'}
+                          </p>
+                        </div>
+                      </div>
+                    </DialogHeader>
+                    
+                    <div className="dialog-body">
+                      <AssetFormFields
+                        formData={formData}
+                        errors={formErrors}
+                        onFieldChange={updateField}
+                        disabled={isMutating}
+                      />
+                    </div>
+                    
+                    <DialogFooter className="dialog-footer-pad">
+                      <Button
+                        variant="outline"
+                        onClick={handleFormClose}
+                        disabled={isMutating}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        onClick={handleFormSubmit}
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        disabled={!canSubmit || isMutating}
+                      >
+                        {isMutating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Menyimpan...
+                          </>
+                        ) : (
+                          editingAsset ? 'Update' : 'Simpan'
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>

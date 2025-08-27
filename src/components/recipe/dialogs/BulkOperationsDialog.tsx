@@ -119,30 +119,32 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {operationType === 'edit' ? (
-              <>
-                <Edit3 className="h-5 w-5 text-blue-600" />
-                Edit Massal Resep
-              </>
-            ) : (
-              <>
-                <Trash2 className="h-5 w-5 text-red-600" />
-                Hapus Massal Resep
-              </>
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            {operationType === 'edit'
-              ? `Edit ${selectedRecipes.length} resep sekaligus. Perubahan akan diterapkan ke semua resep yang dipilih.`
-              : `Hapus ${selectedRecipes.length} resep secara permanen. Tindakan ini tidak dapat dibatalkan.`
-            }
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header">
+            <DialogTitle className="flex items-center gap-2">
+              {operationType === 'edit' ? (
+                <>
+                  <Edit3 className="h-5 w-5 text-blue-600" />
+                  Edit Massal Resep
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                  Hapus Massal Resep
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {operationType === 'edit'
+                ? `Edit ${selectedRecipes.length} resep sekaligus. Perubahan akan diterapkan ke semua resep yang dipilih.`
+                : `Hapus ${selectedRecipes.length} resep secara permanen. Tindakan ini tidak dapat dibatalkan.`
+              }
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-6">
+          <div className="dialog-body">
+            <div className="space-y-6">
           {/* Operation Type Selector */}
           <div className="flex gap-2">
             <Button
@@ -365,35 +367,38 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
               </CardContent>
             </Card>
           )}
-        </div>
+            </div>
+          </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isProcessing}
-          >
-            Batal
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isProcessing}
-            variant={operationType === 'delete' ? 'destructive' : 'default'}
-            className="flex items-center gap-2"
-          >
-            {isProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : operationType === 'edit' ? (
-              <CheckCircle className="h-4 w-4" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            {operationType === 'edit' 
-              ? `Edit ${selectedRecipes.length} Resep`
-              : `Hapus ${selectedRecipes.length} Resep`
-            }
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="dialog-footer">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isProcessing}
+              className="w-full sm:w-auto"
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isProcessing}
+              variant={operationType === 'delete' ? 'destructive' : 'default'}
+              className="w-full sm:w-auto flex items-center gap-2"
+            >
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : operationType === 'edit' ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              {operationType === 'edit' 
+                ? `Edit ${selectedRecipes.length} Resep`
+                : `Hapus ${selectedRecipes.length} Resep`
+              }
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -32,17 +32,19 @@ const CostDialog: React.FC<CostDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        
-        <div className="mt-4">
-          <CostForm
-            initialData={cost || undefined}
-            onSubmit={handleSave}
-            onCancel={onClose}
-          />
+      <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header">
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="dialog-body">
+            <CostForm
+              initialData={cost || undefined}
+              onSubmit={handleSave}
+              onCancel={onClose}
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -34,6 +34,11 @@ import {
   ActionButtons,
 } from './table';
 import BulkActions from './BulkActions';
+import { BulkOperationsDialog } from './dialogs';
+
+// Import the bulk operations hook
+import { useBulkOperations } from '../hooks/useBulkOperations';
+
 
 // Hook imports
 import { usePurchaseTableState } from '../hooks/usePurchaseTableState';
@@ -42,12 +47,14 @@ import { usePurchaseTableState } from '../hooks/usePurchaseTableState';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 
+// Context imports for bulk operations
+import { usePurchase } from '../hooks/usePurchase';
+
 // ✅ Main PurchaseTable component - Simplified version
 const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({ 
   onEdit, 
   onStatusChange,
   onDelete,
-  onBulkDelete,
   validateStatusChange
 }) => {
   // ✅ Context
@@ -55,6 +62,13 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     filteredPurchases,
     suppliers,
   } = usePurchaseTable();
+
+  // ✅ Purchase context for bulk operations
+  const {
+    updatePurchase,
+    deletePurchase,
+    getSupplierName: getSupplierNameFromContext
+  } = usePurchase();
 
   // ✅ Custom hook for table state management
   const {
@@ -105,6 +119,23 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     resetStatus,
   } = usePurchaseTableDialogs();
 
+  // ✅ Bulk operations hook
+  const {
+    isBulkEditing,
+    isBulkDeleting,
+    bulkEditData,
+    setBulkEditData,
+    handleBulkEdit,
+    handleBulkDelete,
+    resetBulkEditData,
+    validateBulkEditData,
+  } = useBulkOperations({
+    updatePurchase,
+    deletePurchase,
+    selectedItems,
+    clearSelection,
+  });
+
   // ✅ Action handlers
   const actionHandlers = {
     edit: onEdit,
@@ -116,6 +147,29 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       setStatusFilter('all');
     },
   };
+
+  // ✅ Bulk operations handlers
+  const handleBulkEditOpen = () => {
+    if (selectedItems.length === 0) {
+      toast.error('Pilih pembelian yang ingin diedit terlebih dahulu');
+      return;
+    }
+    // We'll trigger this via a dialog state
+    setBulkEditDialogOpen(true);
+  };
+
+  const handleBulkDeleteOpen = () => {
+    if (selectedItems.length === 0) {
+      toast.error('Pilih pembelian yang ingin dihapus terlebih dahulu');
+      return;
+    }
+    openBulkDelete(selectedItems.length);
+  };
+
+  // Dialog state for bulk operations
+  const [bulkEditDialogOpen, setBulkEditDialogOpen] = React.useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
+  const [isBulkModeActive, setIsBulkModeActive] = React.useState(false);
 
   // ✅ Check if all items on current page are selected
   const isAllSelected = paginationData.currentPurchases.length > 0 && 
@@ -135,7 +189,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   };
 
   // ✅ Handle status change
-  const handleStatusChange = useCallback(async (purchaseId: string, newStatus: PurchaseStatus) => {
+  const handleStatusChange = useCallback(async (purchaseId: string, newStatus: string) => {
     const purchase = filteredPurchases.find(p => p.id === purchaseId);
     if (!purchase) return;
 
@@ -145,18 +199,18 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     }
 
     try {
-      let validation = { canChange: true, warnings: [], errors: [] };
+      let validation: { canChange: boolean; warnings: string[]; errors: string[] } = { canChange: true, warnings: [], errors: [] };
       if (validateStatusChange) {
         validation = await validateStatusChange(purchaseId, newStatus);
       }
 
       if (validation.canChange && validation.warnings.length === 0) {
         if (onStatusChange) {
-          await onStatusChange(purchaseId, newStatus);
+          await onStatusChange(purchaseId, newStatus as PurchaseStatus);
         }
         setEditingStatusId(null);
       } else {
-        openStatus(purchase, newStatus, validation);
+        openStatus(purchase, newStatus as PurchaseStatus, validation);
       }
     } catch (error) {
       logger.error('Status change validation failed:', error);
@@ -207,31 +261,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     setCurrentPage
   ]);
 
-  // ✅ Bulk delete confirmation handler
-  const handleBulkDeleteConfirm = useCallback(async () => {
-    if (selectedItems.length === 0 || !onBulkDelete) return;
 
-    try {
-      setBulkDeleteLoading(true);
-      await onBulkDelete(selectedItems);
-      
-      // Clear selection after bulk delete
-      setSelectedItems([]);
-      resetBulkDelete();
-      toast.success(`${selectedItems.length} pembelian berhasil dihapus`);
-    } catch (error) {
-      logger.error('Bulk delete failed:', error);
-      toast.error('Gagal menghapus pembelian');
-    } finally {
-      setBulkDeleteLoading(false);
-    }
-  }, [
-    selectedItems, 
-    onBulkDelete, 
-    setBulkDeleteLoading, 
-    resetBulkDelete,
-    setSelectedItems
-  ]);
 
   // ✅ Dialog handlers
   const dialogHandlers = {
@@ -270,15 +300,50 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     );
   }
 
+  // ✅ Bulk delete confirmation handler
+  const handleBulkDeleteConfirm = useCallback(async () => {
+    try {
+      setBulkDeleteLoading(true);
+      const success = await handleBulkDelete();
+      if (success) {
+        resetBulkDelete();
+        setBulkDeleteDialogOpen(false);
+      }
+    } catch (error) {
+      logger.error('Bulk delete failed:', error);
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  }, [handleBulkDelete, setBulkDeleteLoading, resetBulkDelete]);
+
+  // ✅ Bulk edit confirmation handler
+  const handleBulkEditConfirm = useCallback(async (bulkEditData: any) => {
+    try {
+      const selectedItemsData = filteredPurchases.filter(p => selectedItems.includes(p.id));
+      const success = await handleBulkEdit(selectedItemsData);
+      if (success) {
+        setBulkEditDialogOpen(false);
+        resetBulkEditData();
+      }
+    } catch (error) {
+      logger.error('Bulk edit failed:', error);
+    }
+  }, [handleBulkEdit, selectedItems, filteredPurchases, resetBulkEditData]);
+
   return (
     <div className="space-y-4">
-      {/* Bulk Actions - Temporarily disabled due to syntax issues */}
-      {selectedItems.length > 0 && (
-        <div className="bg-blue-50 p-3 rounded-lg">
-          <p className="text-sm text-blue-700">
-            {selectedItems.length} item(s) selected
-          </p>
-        </div>
+      {/* ✅ Bulk Actions */}
+      {(selectedItems.length > 0 || isBulkModeActive) && (
+        <BulkActions
+          selectedCount={selectedItems.length}
+          onBulkEdit={handleBulkEditOpen}
+          onBulkDelete={handleBulkDeleteOpen}
+          onClearSelection={() => {
+            clearSelection();
+            setIsBulkModeActive(false);
+          }}
+          isProcessing={isBulkEditing || isBulkDeleting}
+        />
       )}
       
       {/* Filters and Search */}
@@ -433,15 +498,15 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       {/* ✅ Dialogs */}
       <StatusChangeConfirmationDialog
         isOpen={dialogState.statusConfirmation.isOpen}
-        onOpenChange={(open) => !open && dialogHandlers.cancelStatusChange()}
         purchase={dialogState.statusConfirmation.purchase}
-        newStatus={dialogState.statusConfirmation.newStatus}
+        newStatus={dialogState.statusConfirmation.newStatus!}
         validation={dialogState.statusConfirmation.validation}
+        isUpdating={false}
         onConfirm={dialogHandlers.confirmStatusChange}
         onCancel={dialogHandlers.cancelStatusChange}
       />
 
-      <AlertDialog open={dialogState.deleteConfirmation.isOpen} onOpenChange={(open) => !open && dialogHandlers.cancelDelete()}>
+      <AlertDialog open={dialogState.deleteConfirmation.isOpen} onOpenChange={(open: boolean) => !open && dialogHandlers.cancelDelete()}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
@@ -463,28 +528,36 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={dialogState.bulkDeleteConfirmation.isOpen} onOpenChange={(open) => !open && dialogHandlers.cancelBulkDelete()}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Massal</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus {selectedItems.length} pembelian yang dipilih? 
-              Tindakan ini tidak dapat dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={dialogHandlers.cancelBulkDelete}>
-              Batal
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleBulkDeleteConfirm}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Hapus Semua
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* ✅ Bulk Operations Dialog */}
+      <BulkOperationsDialog
+        type="delete"
+        isOpen={dialogState.bulkDeleteConfirmation.isOpen}
+        isLoading={isBulkDeleting}
+        selectedCount={selectedItems.length}
+        selectedItems={filteredPurchases.filter(p => selectedItems.includes(p.id))}
+        onConfirm={handleBulkDeleteConfirm}
+        onCancel={() => {
+          resetBulkDelete();
+          setBulkDeleteDialogOpen(false);
+        }}
+      />
+
+      <BulkOperationsDialog
+        type="edit"
+        isOpen={bulkEditDialogOpen}
+        isLoading={isBulkEditing}
+        selectedCount={selectedItems.length}
+        selectedItems={filteredPurchases.filter(p => selectedItems.includes(p.id))}
+        bulkEditData={bulkEditData}
+        onBulkEditDataChange={setBulkEditData}
+        onConfirm={handleBulkEditConfirm}
+        onCancel={() => {
+          setBulkEditDialogOpen(false);
+          resetBulkEditData();
+        }}
+        suppliers={suppliers || []}
+      />
+
     </div>
   );
 };

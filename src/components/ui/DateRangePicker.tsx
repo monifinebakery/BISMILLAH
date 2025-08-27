@@ -77,6 +77,17 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   isMobile = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Check if desktop on mount
+  React.useEffect(() => {
+    const checkScreenSize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Handle calendar changes
   const handleCalendarChange = useCallback((newRange: any) => {
@@ -124,7 +135,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     variant: "outline" as const,
     disabled,
     className: cn(
-      "w-full justify-start text-left font-normal h-11 px-4",
+      "w-full justify-start text-left font-normal input-mobile-safe px-3 sm:px-4",
       !dateRange && "text-muted-foreground",
       className
     )
@@ -132,15 +143,15 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   const content = (
     <>
-      <CalendarIcon className="mr-3 h-4 w-4" />
-      <span className="truncate">{displayText}</span>
+      <CalendarIcon className="mr-2 sm:mr-3 h-4 w-4 flex-shrink-0" />
+      <span className="truncate text-overflow-safe">{displayText}</span>
     </>
   );
 
   // Quick presets component
   const PresetButtons = () => (
-    <div className="p-3 border-b">
-      <h4 className="font-medium text-sm mb-2">Pilih Cepat</h4>
+    <div className="p-3 border-b dialog-no-overflow">
+      <h4 className="font-medium text-sm mb-2 text-overflow-safe">Pilih Cepat</h4>
       <div className="grid grid-cols-2 gap-2">
         {PRESETS.map(({ label, key }) => (
           <Button
@@ -148,9 +159,9 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => handlePreset(key)}
-            className="text-xs"
+            className="text-xs input-mobile-safe"
           >
-            {label}
+            <span className="text-overflow-safe">{label}</span>
           </Button>
         ))}
       </div>
@@ -163,29 +174,36 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <DialogTrigger asChild>
           <Button {...buttonProps}>{content}</Button>
         </DialogTrigger>
-        <DialogContent className="w-[95vw] max-w-md p-0">
-          <DialogHeader className="px-4 py-3 border-b">
-            <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
-            <DialogDescription>
-              Pilih rentang tanggal untuk memfilter data.
-            </DialogDescription>
-          </DialogHeader>
-          <PresetButtons />
-          <div className="p-4">
-            <Calendar
-              mode="range"
-              selected={calendarRange}
-              onSelect={handleCalendarChange}
-              numberOfMonths={1}
-              locale={id}
-            />
-            <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-              <Button variant="outline" size="sm" onClick={handleReset}>
-                Reset
-              </Button>
-              <Button size="sm" onClick={() => setIsOpen(false)}>
-                Terapkan
-              </Button>
+        <DialogContent centerMode="overlay" size="md">
+          <div className="dialog-panel dialog-panel-md-plus dialog-no-overflow">
+            <DialogHeader className="dialog-header">
+              <DialogTitle className="text-overflow-safe">Pilih Rentang Tanggal</DialogTitle>
+              <DialogDescription className="text-overflow-safe">
+                Pilih rentang tanggal untuk memfilter data.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="dialog-body">
+              <div className="space-y-3">
+                <PresetButtons />
+                <div className="p-3 dialog-no-overflow">
+                  <Calendar
+                    mode="range"
+                    selected={calendarRange}
+                    onSelect={handleCalendarChange}
+                    numberOfMonths={1}
+                    locale={id}
+                    className="mx-auto"
+                  />
+                  <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
+                    <Button variant="outline" onClick={handleReset} className="input-mobile-safe">
+                      <span className="text-overflow-safe">Reset</span>
+                    </Button>
+                    <Button onClick={() => setIsOpen(false)} className="input-mobile-safe">
+                      <span className="text-overflow-safe">Terapkan</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -198,25 +216,62 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       <PopoverTrigger asChild>
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 flex" align="end">
-        <div className="w-48">
-          <PresetButtons />
-        </div>
-        <div className="border-l p-4">
-          <Calendar
-            mode="range"
-            selected={calendarRange}
-            onSelect={handleCalendarChange}
-            numberOfMonths={2}
-            locale={id}
-          />
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              Reset
-            </Button>
-            <Button size="sm" onClick={() => setIsOpen(false)}>
-              Terapkan
-            </Button>
+      <PopoverContent 
+        className="p-0 w-auto" 
+        align="start"
+        side="bottom"
+        sideOffset={4}
+      >
+        <div className="flex flex-col sm:flex-row bg-white border rounded-lg shadow-lg overflow-hidden min-w-0">
+          {/* Preset buttons sidebar */}
+          <div className="w-full sm:w-44 flex-shrink-0 bg-gray-50 border-b sm:border-b-0 sm:border-r border-gray-200">
+            <div className="p-3">
+              <h4 className="font-medium text-sm mb-2 text-gray-700">Pilih Cepat</h4>
+              <div className="space-y-1">
+                {PRESETS.map(({ label, key }) => (
+                  <Button
+                    key={key}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePreset(key)}
+                    className="w-full justify-start text-sm h-8 px-2 hover:bg-white text-gray-600 hover:text-gray-900"
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          {/* Calendar section */}
+          <div className="p-3 bg-white">
+            <Calendar
+              mode="range"
+              selected={calendarRange}
+              onSelect={handleCalendarChange}
+              numberOfMonths={isDesktop ? 2 : 1}
+              locale={id}
+              className=""
+            />
+            
+            {/* Action buttons */}
+            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+              <Button 
+                variant="outline" 
+                onClick={handleReset} 
+                size="sm"
+                className="flex-1 text-sm h-8"
+              >
+                Reset
+              </Button>
+              <Button 
+                onClick={() => setIsOpen(false)} 
+                size="sm"
+                className="flex-1 text-sm h-8"
+              >
+                Terapkan
+              </Button>
+            </div>
           </div>
         </div>
       </PopoverContent>

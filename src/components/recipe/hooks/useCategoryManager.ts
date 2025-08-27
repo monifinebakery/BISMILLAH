@@ -151,6 +151,7 @@ export const useCategoryManager = ({ recipes, updateRecipe, refreshRecipes }: Us
 
   // Open delete confirmation
   const openDeleteConfirmation = useCallback((categoryName: string) => {
+    console.log('🔔 Opening delete confirmation for:', categoryName);
     setCategoryToDelete(categoryName);
   }, []);
 

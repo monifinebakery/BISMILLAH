@@ -20,8 +20,11 @@ import {
   FileText, 
   Image,
   Plus,
-  Info
+  Info,
+  Upload,
+  X
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { RECIPE_CATEGORIES, type NewRecipe, type RecipeFormStepProps } from '../../types';
 
 type BasicInfoStepProps = Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'>;
@@ -34,6 +37,10 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 }) => {
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    data.fotoBase64 || data.fotoUrl || null
+  );
 
   // Get available categories including existing ones from data
   const availableCategories = [
@@ -60,6 +67,68 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
       setShowCustomCategory(false);
       setCustomCategory('');
     }
+  };
+
+  // Image upload handlers
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      processImageFile(file);
+    }
+    // Reset input untuk memungkinkan pilih file yang sama lagi
+    event.target.value = '';
+  };
+
+  const processImageFile = (file: File) => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Format file tidak didukung. Pilih file JPG, PNG, atau GIF.');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Ukuran file terlalu besar. Maksimal 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setImagePreview(result);
+      onUpdate('fotoBase64', result);
+      onUpdate('fotoUrl', ''); // Clear URL if base64 is set
+      toast.success('Foto berhasil diupload!');
+    };
+    reader.onerror = () => {
+      toast.error('Gagal membaca file. Coba pilih file lain.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processImageFile(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    onUpdate('fotoBase64', '');
+    onUpdate('fotoUrl', '');
   };
 
   return (
@@ -249,25 +318,105 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             </p>
           </div>
 
-          {/* Photo URL */}
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="fotoUrl" className="text-sm font-medium text-gray-700">
-              URL Foto Resep
+            <Label className="text-sm font-medium text-gray-700">
+              Foto Resep (Opsional)
             </Label>
-            <div className="relative">
-              <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                id="fotoUrl"
-                type="url"
-                value={data.fotoUrl || ''}
-                onChange={(e) => onUpdate('fotoUrl', e.target.value)}
-                placeholder="https://example.com/foto-resep.jpg"
-                className="pl-10"
-                disabled={isLoading}
-              />
-            </div>
+            
+            {!imagePreview ? (
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  dragOver 
+                    ? 'border-orange-400 bg-orange-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Upload className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      Drag & drop foto di sini
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      atau klik tombol di bawah untuk pilih file
+                    </p>
+                  </div>
+                  <div>
+                    <input
+                      id="recipe-photo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      disabled={isLoading}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isLoading}
+                      className="cursor-pointer"
+                      onClick={() => document.getElementById('recipe-photo-upload')?.click()}
+                    >
+                      <Image className="w-4 h-4 mr-2" />
+                      Pilih Foto
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                  <img
+                    src={imagePreview}
+                    alt="Preview foto resep"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={removeImage}
+                  className="absolute top-2 right-2"
+                  disabled={isLoading}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                <div className="mt-2 flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      id="recipe-photo-replace"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      disabled={isLoading}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isLoading}
+                      className="w-full cursor-pointer"
+                      onClick={() => document.getElementById('recipe-photo-replace')?.click()}
+                    >
+                      <Image className="w-4 h-4 mr-2" />
+                      Ganti Foto
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <p className="text-xs text-gray-500">
-              Opsional: Link foto untuk visualisasi resep
+              Format: JPG, PNG, GIF. Maksimal 2MB.
             </p>
           </div>
 

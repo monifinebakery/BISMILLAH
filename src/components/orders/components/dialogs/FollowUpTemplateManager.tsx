@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Tabs,
@@ -210,24 +211,33 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Kelola Template Follow-Up WhatsApp
-            {order && (
-              <span className="text-sm font-normal text-gray-600">
-                - Pesanan #{order.nomorPesanan}
-              </span>
-            )}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-semibold">
+                  Kelola Template Follow-Up WhatsApp
+                </DialogTitle>
+                {order && (
+                  <p className="text-sm text-gray-600">
+                    Pesanan #{order.nomorPesanan} - {order.namaPelanggan}
+                  </p>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
 
-        <Tabs defaultValue="templates" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="templates">Template</TabsTrigger>
-            <TabsTrigger value="variables">Variabel</TabsTrigger>
-          </TabsList>
+          <div className="dialog-body overflow-y-auto">
+            <Tabs defaultValue="templates" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="templates">Template</TabsTrigger>
+                <TabsTrigger value="variables">Variabel</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
 
           {/* Templates Tab */}
           <TabsContent value="templates" className="space-y-4">
@@ -404,14 +414,15 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
               </>
             )}
           </TabsContent>
-        </Tabs>
+            </Tabs>
+          </div>
 
-        {/* Close Button */}
-        <div className="flex justify-end pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            <X className="h-4 w-4 mr-2" />
-            Tutup
-          </Button>
+          <DialogFooter className="dialog-footer-pad">
+            <Button variant="outline" onClick={onClose}>
+              <X className="h-4 w-4 mr-2" />
+              Tutup
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

@@ -120,30 +120,34 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                 Tambah, edit, atau hapus biaya bulanan untuk bisnis Anda
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Button
                 variant={isSelectionMode ? 'default' : 'outline'}
                 onClick={onToggleSelectionMode}
-                className={isSelectionMode ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}
+                className={`w-full sm:w-auto ${isSelectionMode ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}`}
+
+                size="default"
               >
                 {isSelectionMode ? (
                   <>
-                    <X className="h-4 w-4 mr-2" />
-                    Keluar Mode Pilih
+                    <X className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">Keluar Mode</span>
                   </>
                 ) : (
                   <>
-                    <CheckSquare className="h-4 w-4 mr-2" />
-                    Mode Pilih
+                    <CheckSquare className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">Mode Pilih</span>
                   </>
                 )}
               </Button>
               <Button
                 onClick={onOpenAddDialog}
-                className="bg-orange-600 hover:bg-orange-700"
+                className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700"
+
+                size="default"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Tambah Biaya Baru
+                <Plus className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="truncate">Tambah Biaya</span>
               </Button>
             </div>
           </div>

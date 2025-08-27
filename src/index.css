@@ -4,352 +4,386 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Safe responsive improvements */
-@layer utilities {
-  /* Device-specific utilities */
-  .mobile-only {
-    @apply block md:hidden;
-  }
-  
-  .tablet-only {
-    @apply hidden sm:block lg:hidden;
-  }
-  
-  .desktop-only {
-    @apply hidden lg:block;
-  }
-  
-  .not-mobile {
-    @apply hidden sm:block;
-  }
-  
-  /* Safe responsive grid with iPad support */
-  .responsive-grid {
-    @apply grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
-  }
-  
-  /* Enhanced responsive padding for all devices */
-  .responsive-padding {
-    @apply p-3 sm:p-4 md:p-5 lg:p-6;
-  }
-  
-  /* iPad-friendly text sizing */
-  .responsive-text {
-    @apply text-sm sm:text-base md:text-base lg:text-lg;
-  }
-  
-  /* Container utilities for different screen sizes */
-  .container-mobile {
-    @apply w-full px-4;
-  }
-  
-  .container-tablet {
-    @apply w-full max-w-3xl mx-auto px-6;
-  }
-  
-  .container-desktop {
-    @apply w-full max-w-6xl mx-auto px-8;
-  }
-  
-  /* Responsive container that adapts */
-  .container-responsive {
-    @apply container-mobile sm:container-tablet lg:container-desktop;
-  }
-  
-  /* Enhanced borders for better visibility - consistent 1.5px */
-  .border-safe {
-    @apply border-[1.5px] border-gray-300 dark:border-gray-600;
-  }
-  
-  .card-border {
-    @apply border-[1.5px] border-gray-300 dark:border-gray-600 rounded-lg;
-  }
-  
-  .button-border {
-    @apply border-[1.5px] border-gray-400 dark:border-gray-500 rounded-md;
-  }
-  
-  /* Strong borders for important elements */
-  .border-strong {
-    @apply border-[1.5px] border-gray-400 dark:border-gray-500;
-  }
-  
-  .border-accent {
-    @apply border-[1.5px] border-orange-300 dark:border-orange-600;
-  }
+/* ===== Base ===== */
+html, body {
+  overflow-x: hidden;
+  touch-action: pan-y;
 }
 
-/* Enhanced dialog responsive styles */
-@layer components {
-  /* Universal dialog base - safe for all components */
-  .dialog-responsive {
-    @apply w-full max-h-[90vh] overflow-y-auto;
-  }
-  
-  /* Global dialog container with better iPad support */
-  .dialog-content {
-    @apply mx-4 my-8 max-w-lg w-full;
-  }
-  
-  /* Mobile phones (up to 640px) */
-  @media (max-width: 640px) {
-    .dialog-content {
-      @apply mx-3 my-4 max-w-none;
-    }
-    
-    .dialog-responsive {
-      @apply max-h-[95vh] p-4;
-    }
-  }
-  
-  /* iPad Portrait & small tablets (641px - 768px) */
-  @media (min-width: 641px) and (max-width: 768px) {
-    .dialog-content {
-      @apply mx-8 my-8 max-w-xl;
-    }
-    
-    .dialog-responsive {
-      @apply max-h-[85vh] p-6;
-    }
-  }
-  
-  /* iPad Landscape & medium tablets (769px - 1024px) */
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .dialog-content {
-      @apply mx-12 my-8 max-w-2xl;
-    }
-    
-    .dialog-responsive {
-      @apply max-h-[80vh] p-6;
-    }
-  }
-  
-  /* Desktop (1025px+) */
-  @media (min-width: 1025px) {
-    .dialog-content {
-      @apply mx-auto my-8 max-w-3xl;
-    }
-    
-    .dialog-responsive {
-      @apply max-h-[75vh] p-8;
-    }
-  }
-  
-  /* Modal wrapper with iPad optimization */
-  .modal-wrapper {
-    @apply p-4 sm:p-5 md:p-6 lg:p-8;
-  }
-  
-  /* Form dialog with enhanced iPad support */
-  .form-dialog {
-    @apply w-full max-w-md mx-auto p-4;
-  }
-  
-  @media (max-width: 640px) {
-    .form-dialog {
-      @apply max-w-none p-3;
-    }
-  }
-  
-  @media (min-width: 641px) and (max-width: 768px) {
-    .form-dialog {
-      @apply max-w-lg p-5;
-    }
-  }
-  
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .form-dialog {
-      @apply max-w-xl p-6;
-    }
-  }
-  
-  /* Large form dialogs for complex forms */
-  .form-dialog-large {
-    @apply w-full mx-auto p-4;
-  }
-  
-  @media (max-width: 640px) {
-    .form-dialog-large {
-      @apply max-w-none p-3;
-    }
-  }
-  
-  @media (min-width: 641px) and (max-width: 768px) {
-    .form-dialog-large {
-      @apply max-w-2xl p-5;
-    }
-  }
-  
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .form-dialog-large {
-      @apply max-w-3xl p-6;
-    }
-  }
-  
-  @media (min-width: 1025px) {
-    .form-dialog-large {
-      @apply max-w-4xl p-8;
-    }
-  }
-  
-  /* Card responsive utilities */
-  .card-responsive {
-    @apply w-full;
-  }
-  
-  .card-stats {
-    @apply p-3 sm:p-4 md:p-5 lg:p-6;
-  }
-  
-  .card-content-responsive {
-    @apply p-3 sm:p-4 md:p-5;
-  }
-  
-  .card-header-responsive {
-    @apply px-3 py-2 sm:px-4 sm:py-3 md:px-5 md:py-4;
-  }
-  
-  /* Card text and number responsive sizing */
-  .card-title-responsive {
-    @apply text-sm sm:text-base md:text-lg font-semibold;
-  }
-  
-  .card-value-responsive {
-    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold;
-  }
-  
-  .card-label-responsive {
-    @apply text-xs sm:text-sm text-gray-600;
-  }
-  
-  .card-description-responsive {
-    @apply text-xs sm:text-sm text-gray-500;
-  }
-  
-  /* Icon sizing in cards */
-  .card-icon-responsive {
-    @apply w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6;
-  }
-  
-  .card-icon-container-responsive {
-    @apply w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center;
-  }
-  
-  /* Stats grid responsive - optimized for iPad */
-  .stats-grid-responsive {
-    @apply grid gap-3 sm:gap-4 md:gap-4 lg:gap-6;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-  
-  /* Mobile phones (up to 640px): 1 column */
-  @media (max-width: 640px) {
-    .stats-grid-responsive {
-      @apply grid-cols-1 gap-3;
-      grid-template-columns: 1fr;
-    }
-  }
-  
-  /* iPad Portrait (641px - 768px): 2 columns */
-  @media (min-width: 641px) and (max-width: 768px) {
-    .stats-grid-responsive {
-      @apply grid-cols-2 gap-3;
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  
-  /* iPad Landscape (769px - 1024px): 2 columns with more space */
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .stats-grid-responsive {
-      @apply grid-cols-2 gap-4;
-      grid-template-columns: repeat(2, minmax(250px, 1fr));
-    }
-  }
-  
-  /* Small Desktop (1025px - 1280px): 3 columns */
-  @media (min-width: 1025px) and (max-width: 1280px) {
-    .stats-grid-responsive {
-      @apply grid-cols-3 gap-5;
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-  
-  /* Large Desktop (1281px+): 4 columns */
-  @media (min-width: 1281px) {
-    .stats-grid-responsive {
-      @apply grid-cols-4 gap-6;
-      grid-template-columns: repeat(4, 1fr);
-    }
-  }
-  
-  /* Header responsive utilities */
-  .header-responsive {
-    @apply px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5;
-  }
-  
-  .header-title-responsive {
-    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold;
-  }
-  
-  .header-subtitle-responsive {
-    @apply text-sm sm:text-base text-gray-600;
-  }
-  
-  /* Button group responsive */
-  .button-group-responsive {
-    @apply flex flex-wrap gap-2 sm:gap-3 md:gap-4;
-  }
-  
-  /* Prevent number/text overflow in cards */
-  .text-overflow-safe {
-    @apply break-words overflow-hidden;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-  }
-  
-  /* iPad sidebar behavior */
+/* ============================
+   Z-Index Hierarchy
+   ============================ */
+/*
+Z-Index Scale (from lowest to highest):
+- z-10: Base elements, subtle shadows
+- z-20: Sticky headers, cards above content
+- z-30: Fixed navigation, sidebars
+- z-40: Mobile headers
+- z-50: Bottom navigation, notifications, overlays
+- z-60: iPad sidebar overlays
+- z-75: Modal dialogs, alert dialogs
+- z-100: Legacy overlays (deprecated)
+- z-9999: Popovers, dropdowns, selects, toasts (highest priority)
+
+Important: Always use z-[9999] for:
+- Popovers
+- Dropdown menus  
+- Select dropdowns
+- Tooltips
+- Context menus
+- Toast notifications
+
+This ensures they appear above ALL other UI elements.
+*/
+
+/* ============================
+   Utilities
+   ============================ */
+@layer utilities {
+  .mobile-only { @apply block md:hidden; }
+  .tablet-only { @apply hidden sm:block lg:hidden; }
+  .desktop-only { @apply hidden lg:block; }
+  .not-mobile { @apply hidden sm:block; }
+
+  .responsive-grid { @apply grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4; }
+  .responsive-padding { @apply p-3 sm:p-4 md:p-5 lg:p-6; }
+  .responsive-text { @apply text-sm sm:text-base md:text-base lg:text-lg; }
+
+  .container-mobile { @apply w-full px-4; }
+  .container-tablet { @apply w-full max-w-3xl mx-auto px-6; }
+  .container-desktop { @apply w-full max-w-6xl mx-auto px-8; }
+  .container-responsive { @apply container-mobile sm:container-tablet lg:container-desktop; }
+
+  .border-safe { @apply border-[1.5px] border-gray-300 dark:border-gray-600; }
+  .card-border { @apply border-[1.5px] border-gray-300 dark:border-gray-600 rounded-lg; }
+  .button-border { @apply border-[1.5px] border-gray-400 dark:border-gray-500 rounded-md; }
+  .border-strong { @apply border-[1.5px] border-gray-400 dark:border-gray-500; }
+  .border-accent { @apply border-[1.5px] border-orange-300 dark:border-orange-600; }
+
+  /* iPad sidebar helpers */
   .sidebar-ipad-overlay {
     z-index: 50;
     position: fixed;
     background: rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(2px);
   }
-  
-  .sidebar-ipad-default-collapsed {
-    /* Default collapsed state for iPad */
-    width: var(--sidebar-width-icon);
-  }
-  
+  .sidebar-ipad-default-collapsed { width: var(--sidebar-width-icon); }
   .sidebar-ipad-overlay-expanded {
-    /* Overlay mode when expanded on iPad */
-    position: fixed;
-    z-index: 60;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    width: var(--sidebar-width);
-    background: white;
-    border-right: 1px solid theme('colors.border');
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    position: fixed; z-index: 60; left: 0; top: 0; height: 100vh; width: var(--sidebar-width);
+    background: white; border-right: 1px solid theme('colors.border');
+    box-shadow: 0 10px 40px rgba(0,0,0,.1);
   }
-  
-  /* iPad content shift prevention */
   @media (min-width: 641px) and (max-width: 1024px) {
-    .sidebar-content-no-shift {
-      margin-left: 0 !important;
-      padding-left: 0 !important;
-      transition: none !important;
-    }
-    
+    .sidebar-content-no-shift { margin-left: 0 !important; padding-left: 0 !important; transition: none !important; }
     .sidebar-overlay-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.3);
-      z-index: 55;
-      backdrop-filter: blur(2px);
+      position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 55; backdrop-filter: blur(2px);
     }
   }
 }
 
+/* ============================
+   Components (Dialog, Cards, etc.)
+   ============================ */
+@layer components {
+  /* ---- DIALOG SYSTEM: Responsive & Consistent ---- 
+     Primary pattern: 
+     <DialogContent centerMode="overlay">
+       <div class="dialog-panel">
+         <DialogHeader class="dialog-header" />
+         <div class="dialog-body">...</div>
+         <DialogFooter class="dialog-footer" />
+       </div>
+     </DialogContent>
+  */
+
+  /* ---- OVERLAY CENTERING (Recommended) ---- */
+  .dialog-overlay-center {
+    @apply fixed inset-0 flex items-center justify-center;
+    z-index: 75; /* Above sidebar overlays */
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    padding: 0.75rem;
+  }
+  
+  /* ---- MAIN DIALOG PANEL ---- */
+  .dialog-panel {
+    @apply w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl;
+    @apply border border-gray-200 dark:border-gray-700;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Dynamic height based on content with max limits */
+    min-height: 200px;
+    max-height: 90dvh;
+  }
+  
+  /* ---- TRANSLATE CENTERING (Alternative) ---- */
+  .dialog-content-centered {
+    @apply fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2;
+    @apply w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl;
+    @apply border border-gray-200 dark:border-gray-700;
+    z-index: 75;
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  /* ---- DIALOG SECTIONS ---- */
+  .dialog-header {
+    @apply px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700;
+    @apply bg-gray-50 dark:bg-gray-800/50;
+    flex-shrink: 0;
+  }
+  
+  .dialog-header-pad {
+    @apply px-4 sm:px-6 py-3 sm:py-4;
+    flex-shrink: 0;
+  }
+  
+  .dialog-body {
+    @apply flex-1 overflow-y-auto overflow-x-hidden;
+    @apply px-4 sm:px-6 py-3 sm:py-4;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+  
+  .dialog-footer {
+    @apply px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700;
+    @apply bg-gray-50 dark:bg-gray-800/50;
+    flex-shrink: 0;
+  }
+  
+  .dialog-footer-pad {
+    @apply px-4 sm:px-6 py-3 sm:py-4;
+    flex-shrink: 0;
+  }
+
+  /* ---- RESPONSIVE BREAKPOINTS ---- */
+  /* Mobile: 320px - 640px */
+  @media (max-width: 640px) {
+    .dialog-overlay-center {
+      padding: 0.5rem;
+    }
+    
+    .dialog-panel,
+    .dialog-panel-sm,
+    .dialog-panel-lg,
+    .dialog-panel-xl {
+      @apply max-w-none mx-0;
+      max-height: 95dvh;
+      min-height: 300px;
+      width: calc(100vw - 1rem);
+    }
+    
+    .dialog-content-centered {
+      @apply max-w-none mx-4;
+      max-height: 95dvh;
+    }
+    
+    .dialog-header,
+    .dialog-header-pad,
+    .dialog-body,
+    .dialog-footer,
+    .dialog-footer-pad {
+      @apply px-3 py-2;
+    }
+    
+    /* Ensure form elements are properly sized on mobile */
+    .dialog-body input,
+    .dialog-body select,
+    .dialog-body textarea,
+    .dialog-body button {
+      @apply text-base; /* Prevents zoom on iOS */
+      max-width: 100%;
+    }
+    
+    /* Ensure tables are responsive on mobile */
+    .dialog-body table {
+      @apply w-full overflow-x-auto block;
+    }
+    
+    /* Prevent text overflow */
+    .dialog-body p,
+    .dialog-body span,
+    .dialog-body div {
+      @apply break-words;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+  }
+  
+  /* Tablet: 641px - 1024px */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .dialog-overlay-center {
+      padding: 1rem;
+    }
+    
+    .dialog-panel {
+      @apply max-w-2xl;
+      max-height: 85dvh;
+    }
+    
+    .dialog-panel-lg {
+      @apply max-w-3xl;
+    }
+    
+    .dialog-panel-xl {
+      @apply max-w-4xl;
+    }
+    
+    .dialog-content-centered {
+      @apply max-w-2xl;
+    }
+    
+    .dialog-header,
+    .dialog-header-pad,
+    .dialog-body,
+    .dialog-footer,
+    .dialog-footer-pad {
+      @apply px-4 py-3;
+    }
+  }
+  
+  /* Desktop: 1025px+ */
+  @media (min-width: 1025px) {
+    .dialog-overlay-center {
+      padding: 1.5rem;
+    }
+    
+    .dialog-panel {
+      @apply max-w-xl;
+      max-height: 80dvh;
+    }
+    
+    .dialog-panel-lg {
+      @apply max-w-3xl;
+    }
+    
+    .dialog-panel-xl {
+      @apply max-w-4xl;
+    }
+    
+    .dialog-content-centered {
+      @apply max-w-3xl;
+    }
+    
+    .dialog-header,
+    .dialog-header-pad,
+    .dialog-body,
+    .dialog-footer,
+    .dialog-footer-pad {
+      @apply px-6 py-4;
+    }
+  }
+  
+  /* ---- SPECIALIZED DIALOG SIZES ---- */
+  .dialog-panel-sm {
+    @apply max-w-md;
+  }
+  
+  .dialog-panel-md-plus {
+    @apply max-w-xl;
+  }
+  
+  .dialog-panel-lg {
+    @apply max-w-3xl;
+  }
+  
+  .dialog-panel-xl {
+    @apply max-w-4xl;
+  }
+  
+  /* Mobile adjustments for specialized sizes */
+  @media (max-width: 640px) {
+    .dialog-panel-sm,
+    .dialog-panel-md-plus,
+    .dialog-panel-lg,
+    .dialog-panel-xl {
+      @apply max-w-none;
+    }
+  }
+
+  /* ---- FORM DIALOGS (Deprecated - use dialog-panel instead) ---- */
+  .form-dialog {
+    @apply w-full max-w-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700;
+    @apply rounded-xl shadow-xl p-6;
+  }
+  
+  .form-dialog-large {
+    @apply w-full max-w-3xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700;
+    @apply rounded-xl shadow-xl p-6;
+  }
+  
+  /* Mobile form dialog adjustments */
+  @media (max-width: 640px) {
+    .form-dialog,
+    .form-dialog-large {
+      @apply max-w-none mx-4 p-4;
+    }
+  }
+
+
+  /* Cards & stats */
+  .card-responsive { @apply w-full; }
+  .card-stats { @apply p-3 sm:p-4 md:p-5 lg:p-6; }
+  .card-content-responsive { @apply p-3 sm:p-4 md:p-5; }
+  .card-header-responsive { @apply px-3 py-2 sm:px-4 sm:py-3 md:px-5 md:py-4; }
+
+  .card-title-responsive { @apply text-sm sm:text-base md:text-lg font-semibold; }
+  .card-value-responsive { @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold; }
+  .card-label-responsive { @apply text-xs sm:text-sm text-gray-600; }
+  .card-description-responsive { @apply text-xs sm:text-sm text-gray-500; }
+
+  .card-icon-responsive { @apply w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6; }
+  .card-icon-container-responsive { @apply w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center; }
+
+  .stats-grid-responsive {
+    @apply grid gap-3 sm:gap-4 md:gap-4 lg:gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  @media (max-width: 640px) {
+    .stats-grid-responsive { @apply grid-cols-1 gap-3; grid-template-columns: 1fr; }
+  }
+  @media (min-width: 641px) and (max-width: 768px) {
+    .stats-grid-responsive { @apply grid-cols-2 gap-3; grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .stats-grid-responsive { @apply grid-cols-2 gap-4; grid-template-columns: repeat(2, minmax(250px, 1fr)); }
+  }
+  @media (min-width: 1025px) and (max-width: 1280px) {
+    .stats-grid-responsive { @apply grid-cols-3 gap-5; grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (min-width: 1281px) {
+    .stats-grid-responsive { @apply grid-cols-4 gap-6; grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .header-responsive { @apply px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5; }
+  .header-title-responsive { @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold; }
+  .header-subtitle-responsive { @apply text-sm sm:text-base text-gray-600; }
+
+  .button-group-responsive { @apply flex flex-wrap gap-2 sm:gap-3 md:gap-4; }
+  .text-overflow-safe { @apply break-words overflow-hidden; word-wrap: break-word; overflow-wrap: break-word; }
+  
+  /* Dialog responsive utilities */
+  .dialog-responsive-grid {
+    @apply grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2;
+  }
+  
+  .dialog-responsive-buttons {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto;
+  }
+  
+  .dialog-responsive-buttons > * {
+    @apply w-full sm:w-auto;
+  }
+  
+  /* Ensure no horizontal scroll in dialogs */
+  .dialog-no-overflow {
+    @apply overflow-x-hidden max-w-full;
+  }
+  
+  /* Mobile-safe input sizes */
+  .input-mobile-safe {
+    @apply text-base min-h-[44px] px-3 py-2;
+  }
+
+}

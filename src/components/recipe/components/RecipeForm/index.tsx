@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   X, 
   ChevronLeft, 
@@ -405,124 +406,134 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white">
-        {/* Header */}
-        <CardHeader className="border-b bg-gradient-to-r from-orange-50 to-red-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl font-bold text-gray-900">
-                {isEditMode ? 'Edit Resep' : 'Tambah Resep Baru'}
-              </CardTitle>
-              <p className="text-sm text-gray-600 mt-1">
-                {STEPS[currentStepIndex].description}
-              </p>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel dialog-panel-md-plus dialog-no-overflow">
+          <DialogHeader className="dialog-header border-b bg-gradient-to-r from-orange-50 to-red-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Calculator className="w-4 h-4 text-orange-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="text-lg sm:text-xl text-gray-900 text-overflow-safe">
+                    {isEditMode ? 'Edit Resep' : 'Tambah Resep Baru'}
+                  </DialogTitle>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 text-overflow-safe">
+                    {STEPS[currentStepIndex].description}
+                  </p>
+                </div>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          {/* Step Progress */}
-          <div className="flex items-center gap-4 mt-4">
-            {STEPS.map((step, index) => (
-              <div key={step.key} className="flex items-center">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                      index <= currentStepIndex
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-200 text-gray-500'
-                    }`}
-                  >
-                    {index < currentStepIndex ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : (
-                      index + 1
-                    )}
+            
+            {/* Step Progress */}
+            <div className="flex items-center gap-2 sm:gap-4 mt-4 dialog-no-overflow overflow-x-auto">
+              {STEPS.map((step, index) => (
+                <div key={step.key} className="flex items-center flex-shrink-0">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div
+                      className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-colors ${
+                        index <= currentStepIndex
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {index < currentStepIndex ? (
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    <div className="hidden sm:block">
+                      <p className={`text-xs sm:text-sm font-medium text-overflow-safe ${
+                        index <= currentStepIndex ? 'text-orange-700' : 'text-gray-500'
+                      }`}>
+                        {step.title}
+                      </p>
+                    </div>
                   </div>
-                  <div className="hidden sm:block">
-                    <p className={`text-sm font-medium ${
-                      index <= currentStepIndex ? 'text-orange-700' : 'text-gray-500'
-                    }`}>
-                      {step.title}
+                  {index < STEPS.length - 1 && (
+                    <div className={`w-4 sm:w-8 h-0.5 mx-1 sm:mx-2 ${
+                      index < currentStepIndex ? 'bg-orange-500' : 'bg-gray-200'
+                    }`} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </DialogHeader>
+
+          <div className="dialog-body">
+            {/* Form errors summary - Dipindahkan ke atas */}
+            {Object.keys(errors).length > 0 && (
+              <div className="w-full mb-4 p-3 bg-red-50 border border-red-200 rounded-lg dialog-no-overflow">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-red-800 text-overflow-safe">
+                      Terdapat kesalahan pada form:
                     </p>
+                    <ul className="text-sm text-red-700 mt-1 space-y-1">
+                      {Object.values(errors).filter(Boolean).slice(0, 3).map((error, index) => (
+                        <li key={index} className="text-overflow-safe">• {error}</li>
+                      ))}
+                      {Object.values(errors).filter(Boolean).length > 3 && (
+                        <li className="text-xs text-overflow-safe">... dan {Object.values(errors).filter(Boolean).length - 3} kesalahan lainnya</li>
+                      )}
+                    </ul>
                   </div>
                 </div>
-                {index < STEPS.length - 1 && (
-                  <div className={`w-8 h-0.5 mx-2 ${
-                    index < currentStepIndex ? 'bg-orange-500' : 'bg-gray-200'
-                  }`} />
-                )}
               </div>
-            ))}
+            )}
+            
+            <div className="dialog-no-overflow">
+              {renderStepContent()}
+            </div>
           </div>
-        </CardHeader>
-
-        {/* Content with extra bottom padding for mobile */}
-        <CardContent 
-          className="p-0 overflow-y-auto"
-          style={{ 
-            maxHeight: 'calc(90vh - 200px)',
-            paddingBottom: '120px' // ✅ Extra space untuk menghindari bottom bar
-          }}
-          ref={contentRef}
-        >
-          <div className="p-6">
-            {renderStepContent()}
-          </div>
-        </CardContent>
-
-        {/* ✅ Footer - Fixed positioning with proper spacing for bottom navigation */}
-        <div className="border-t bg-gray-50 p-4 sm:relative sm:bottom-auto">
-          {/* ✅ Desktop: normal footer */}
-          <div className="hidden sm:block">
-            <div className="flex items-center justify-between max-w-4xl mx-auto">
+          
+          <DialogFooter className="dialog-footer border-t bg-gray-50">
+            <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-3">
               {/* Left side - HPP Preview (on cost step) */}
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Calculator className="h-4 w-4 text-orange-600" />
-                    <span className="text-gray-600">HPP per porsi:</span>
-                    <Badge variant="outline" className="text-orange-700 border-orange-300">
+                    <Calculator className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                    <span className="text-gray-600 text-overflow-safe">HPP per porsi:</span>
+                    <Badge variant="outline" className="text-orange-700 border-orange-300 flex-shrink-0">
                       Rp {(formData.hppPerPorsi || 0).toLocaleString()}
                     </Badge>
                     {isCalculating && (
-                      <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full" />
+                      <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full flex-shrink-0" />
                     )}
                   </div>
                 )}
               </div>
+              
               {/* Navigation buttons */}
-              <div className="flex items-center gap-3">
+              <div className="dialog-responsive-buttons">
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
                   disabled={isFirstStep || isLoading}
-                  className="px-4"
+                  className="input-mobile-safe"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Sebelumnya
+                  <ChevronLeft className="h-4 w-4 mr-1 flex-shrink-0" />
+                  <span className="text-overflow-safe">Sebelumnya</span>
                 </Button>
                 {isLastStep ? (
                   <Button
                     onClick={handleSubmit}
                     disabled={isLoading || isCalculating}
-                    className="bg-orange-500 hover:bg-orange-600 px-4"
+                    className="bg-orange-500 hover:bg-orange-600 input-mobile-safe"
                   >
                     {isLoading ? (
                       <>
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                        Menyimpan...
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2 flex-shrink-0" />
+                        <span className="text-overflow-safe">Menyimpan...</span>
                       </>
                     ) : (
                       <>
-                        <Save className="h-4 w-4 mr-2" />
-                        {isEditMode ? 'Simpan Perubahan' : 'Simpan Resep'}
+                        <Save className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span className="text-overflow-safe">{isEditMode ? 'Simpan Perubahan' : 'Simpan Resep'}</span>
                       </>
                     )}
                   </Button>
@@ -530,109 +541,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   <Button
                     onClick={handleNext}
                     disabled={isLoading}
-                    className="bg-orange-500 hover:bg-orange-600 px-4"
+                    className="bg-orange-500 hover:bg-orange-600 input-mobile-safe"
                   >
-                    Selanjutnya
-                    <ChevronRight className="h-4 w-4 ml-1" />
+                    <span className="text-overflow-safe">Selanjutnya</span>
+                    <ChevronRight className="h-4 w-4 ml-1 flex-shrink-0" />
                   </Button>
                 )}
               </div>
             </div>
-          </div>
-
-          {/* ✅ Mobile: Fixed footer dengan spacing untuk bottom nav */}
-          <div className="sm:hidden">
-            {/* ✅ Fixed footer positioned above bottom navigation */}
-            <div 
-              className="fixed left-0 right-0 bg-white border-t border z-[60]"
-              style={{
-                bottom: '80px', // ✅ Positioned 80px from bottom (above bottom nav)
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)'
-              }}
-            >
-              <div className="p-4">
-                {/* HPP Preview on mobile */}
-                {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
-                  <div className="flex items-center justify-center gap-2 text-sm mb-3 py-2 bg-orange-50 rounded-lg">
-                    <Calculator className="h-4 w-4 text-orange-600" />
-                    <span className="text-gray-600">HPP:</span>
-                    <Badge variant="outline" className="text-orange-700 border-orange-300">
-                      Rp {(formData.hppPerPorsi || 0).toLocaleString()}
-                    </Badge>
-                    {isCalculating && (
-                      <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full" />
-                    )}
-                  </div>
-                )}
-
-                {/* Navigation buttons */}
-                <div className="flex items-center justify-between gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={isFirstStep || isLoading}
-                    className="flex-1"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Sebelumnya
-                  </Button>
-                  {isLastStep ? (
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={isLoading || isCalculating}
-                      className="bg-orange-500 hover:bg-orange-600 flex-1"
-                    >
-                      {isLoading ? (
-                        <>
-                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
-                          Simpan...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-1" />
-                          {isEditMode ? 'Update' : 'Simpan'}
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleNext}
-                      disabled={isLoading}
-                      className="bg-orange-500 hover:bg-orange-600 flex-1"
-                    >
-                      Selanjutnya
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Form errors summary - Mobile Optimized */}
-          {Object.keys(errors).length > 0 && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg max-w-4xl mx-auto">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-red-800">
-                    Terdapat kesalahan pada form:
-                  </p>
-                  <ul className="text-sm text-red-700 mt-1 space-y-1">
-                    {Object.values(errors).filter(Boolean).slice(0, 3).map((error, index) => (
-                      <li key={index} className="truncate">• {error}</li>
-                    ))}
-                    {Object.values(errors).filter(Boolean).length > 3 && (
-                      <li className="text-xs">... dan {Object.values(errors).filter(Boolean).length - 3} kesalahan lainnya</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
+          </DialogFooter>
         </div>
-      </Card>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

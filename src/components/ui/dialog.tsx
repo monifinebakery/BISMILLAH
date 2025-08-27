@@ -50,7 +50,7 @@ const DialogContent = React.forwardRef<
     /**
      * Size variant for the dialog
      */
-    size?: "sm" | "md" | "lg" | "xl" | "full"
+    size?: "sm" | "md" | "md+" | "lg" | "xl" | "full"
   }
 >(({ className, children, hideCloseButton = false, centerMode = "translate", size = "md", ...props }, ref) => {
   const hasDescription = hasDialogDescription(children)
@@ -63,8 +63,9 @@ const DialogContent = React.forwardRef<
   const sizeClasses = {
     sm: "max-w-md",
     md: "max-w-lg", 
+    "md+": "max-w-xl",
     lg: "max-w-2xl",
-    xl: "max-w-4xl",
+    xl: "max-w-3xl",
     full: "max-w-[95vw]"
   }
 

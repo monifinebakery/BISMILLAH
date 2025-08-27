@@ -218,20 +218,20 @@ This ensures they appear above ALL other UI elements.
     }
     
     .dialog-panel {
-      @apply max-w-3xl;
+      @apply max-w-2xl;
       max-height: 85dvh;
     }
     
     .dialog-panel-lg {
-      @apply max-w-4xl;
+      @apply max-w-3xl;
     }
     
     .dialog-panel-xl {
-      @apply max-w-5xl;
+      @apply max-w-4xl;
     }
     
     .dialog-content-centered {
-      @apply max-w-3xl;
+      @apply max-w-2xl;
     }
     
     .dialog-header,
@@ -250,20 +250,20 @@ This ensures they appear above ALL other UI elements.
     }
     
     .dialog-panel {
-      @apply max-w-lg;
+      @apply max-w-xl;
       max-height: 80dvh;
     }
     
     .dialog-panel-lg {
-      @apply max-w-5xl;
+      @apply max-w-3xl;
     }
     
     .dialog-panel-xl {
-      @apply max-w-6xl;
+      @apply max-w-4xl;
     }
     
     .dialog-content-centered {
-      @apply max-w-4xl;
+      @apply max-w-3xl;
     }
     
     .dialog-header,
@@ -280,17 +280,22 @@ This ensures they appear above ALL other UI elements.
     @apply max-w-md;
   }
   
+  .dialog-panel-md-plus {
+    @apply max-w-xl;
+  }
+  
   .dialog-panel-lg {
-    @apply max-w-5xl;
+    @apply max-w-3xl;
   }
   
   .dialog-panel-xl {
-    @apply max-w-6xl;
+    @apply max-w-4xl;
   }
   
   /* Mobile adjustments for specialized sizes */
   @media (max-width: 640px) {
     .dialog-panel-sm,
+    .dialog-panel-md-plus,
     .dialog-panel-lg,
     .dialog-panel-xl {
       @apply max-w-none;

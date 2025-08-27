@@ -138,27 +138,53 @@ export const useBulkOperations = ({
       console.log('📝 [BULK DEBUG] Selected items:', selectedItems);
       console.log('📝 [BULK DEBUG] Update keys:', Object.keys(updates));
       
-      const updatePromises = selectedItems.map(id => {
-        console.log(`🔄 [BULK DEBUG] Processing purchase: ${id}`);
+      let successful = 0;
+      let failed = 0;
+      const results = [];
+      
+      // ✅ FIX: Process status changes sequentially for better reliability
+      if (updates.status && Object.keys(updates).length === 1) {
+        console.log('🔄 [BULK DEBUG] Processing status changes sequentially...');
         
-        // If only status is being changed, use setStatus for proper financial sync
-        if (updates.status && Object.keys(updates).length === 1) {
-          console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
-          console.log(`📊 [BULK DEBUG] setStatus function exists:`, typeof setStatus === 'function');
-          return setStatus(id, updates.status);
-        } else {
+        for (const id of selectedItems) {
+          try {
+            console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
+            console.log(`📊 [BULK DEBUG] setStatus function exists:`, typeof setStatus === 'function');
+            
+            const result = await setStatus(id, updates.status);
+            if (result) {
+              successful++;
+              results.push({ status: 'fulfilled', value: true });
+              console.log(`✅ [BULK DEBUG] Successfully updated status for purchase ${id}`);
+            } else {
+              failed++;
+              results.push({ status: 'fulfilled', value: false });
+              console.log(`❌ [BULK DEBUG] Failed to update status for purchase ${id}`);
+            }
+          } catch (error) {
+            failed++;
+            results.push({ status: 'rejected', reason: error });
+            console.error(`❌ [BULK DEBUG] Error updating status for purchase ${id}:`, error);
+          }
+        }
+      } else {
+        // For mixed updates, use parallel processing with updatePurchase
+        console.log('🔄 [BULK DEBUG] Processing mixed updates in parallel...');
+        
+        const updatePromises = selectedItems.map(id => {
           console.log(`🔄 [BULK DEBUG] Using updatePurchase for purchase ${id} (mixed updates)`);
           return updatePurchase(id, updates);
-        }
-      });
-      
-      const results = await Promise.allSettled(updatePromises);
-
-      // Count successful and failed updates
-      const successful = results.filter(result => 
-        result.status === 'fulfilled' && result.value === true
-      ).length;
-      const failed = results.length - successful;
+        });
+        
+        const parallelResults = await Promise.allSettled(updatePromises);
+        results.push(...parallelResults);
+        
+        // Count successful and failed updates
+        successful = parallelResults.filter(result => 
+          result.status === 'fulfilled' && result.value === true
+        ).length;
+        failed = parallelResults.length - successful;
+      }
 
       logger.info(`📊 Bulk edit results: ${successful} success, ${failed} failed`);
 

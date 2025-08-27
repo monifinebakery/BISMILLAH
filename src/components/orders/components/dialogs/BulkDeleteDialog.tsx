@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
@@ -48,19 +49,20 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
-            <AlertTriangle className="h-5 w-5" />
-            Konfirmasi Hapus Pesanan
-          </DialogTitle>
-          <DialogDescription className="text-base">
-            Anda akan menghapus <strong>{selectedCount} pesanan</strong> secara permanen. 
-            Tindakan ini tidak dapat dibatalkan.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="dialog-overlay-center max-w-2xl">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Konfirmasi Hapus Pesanan
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Anda akan menghapus <strong>{selectedCount} pesanan</strong> secara permanen. 
+              Tindakan ini tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
+          <div className="dialog-body space-y-4">
           {/* Summary Info */}
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -125,28 +127,28 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
               </div>
             </div>
           </div>
-        </div>
+          </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={loading}
-            className="min-w-[100px]"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Batal
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={loading}
-            className="min-w-[120px]"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {loading ? 'Menghapus...' : 'Ya, Hapus Semua'}
-          </Button>
+          <DialogFooter className="dialog-footer-pad">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={loading}
+              className="min-w-[100px]"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirm}
+              disabled={loading}
+              className="min-w-[120px]"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {loading ? 'Menghapus...' : 'Ya, Hapus Semua'}
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

@@ -168,14 +168,16 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-full sm:max-w-md max-h-[70vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader>
-          <DialogTitle>
-            {cost ? '✏️ Edit Biaya Operasional' : '➕ Tambah Biaya Operasional'}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="dialog-overlay-center w-full sm:max-w-md max-h-[70vh] overflow-y-auto">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle>
+              {cost ? '✏️ Edit Biaya Operasional' : '➕ Tambah Biaya Operasional'}
+            </DialogTitle>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <div className="dialog-body">
+            <form id="cost-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Nama Biaya */}
           <div className="space-y-2">
             <Label htmlFor="nama_biaya" className="text-sm font-medium">
@@ -403,7 +405,10 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+            </form>
+          </div>
+          
+          <DialogFooter className="dialog-footer-pad">
             <Button
               type="button"
               variant="outline"
@@ -417,6 +422,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
               type="submit"
               disabled={isSubmitting || isLoading}
               className="w-full sm:w-auto order-1 sm:order-2 bg-orange-600 hover:bg-orange-700"
+              form="cost-form"
             >
               {isSubmitting ? (
                 <>
@@ -428,7 +434,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
               )}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

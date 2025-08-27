@@ -132,7 +132,7 @@ const RecipeList: React.FC = () => {
       setIsLoading(true);
       try {
         logger.debug('RecipeList: Loading recipes for user:', user.id);
-        const result = await recipeApi.fetchRecipes(user.id);
+        const result = await recipeApi.getRecipes(user.id);
         
         if (!isMounted) return; // Prevent state update if unmounted
         
@@ -171,7 +171,7 @@ const RecipeList: React.FC = () => {
         if (!isMounted) return;
         setRecipes(prev => prev.map(r => r.id === updatedRecipe.id ? updatedRecipe : r));
       },
-      (deletedId) => {
+      (deletedId: string) => {
         if (!isMounted) return;
         setRecipes(prev => prev.filter(r => r.id !== deletedId));
       }
@@ -288,6 +288,14 @@ const RecipeList: React.FC = () => {
                     onClearFilters={filtering.clearFilters}
                     totalResults={filtering.filteredAndSortedRecipes.length}
                     onSort={filtering.handleSort}
+                    profitabilityFilter="all"
+                    onProfitabilityFilterChange={() => {}}
+                    minHpp={0}
+                    onMinHppChange={() => {}}
+                    maxHpp={0}
+                    onMaxHppChange={() => {}}
+                    showAdvanced={false}
+                    onToggleAdvanced={() => {}}
                   />
                 </div>
                 
@@ -369,10 +377,12 @@ const RecipeList: React.FC = () => {
 
         {/* ✅ OPTIMIZED: Conditional dialogs with Suspense */}
         <Suspense fallback={
-          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 border">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
-              <p className="mt-2 text-sm text-gray-600">Memuat...</p>
+          <div className="dialog-overlay-center z-50">
+            <div className="dialog-panel">
+              <div className="dialog-body">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
+                <p className="mt-2 text-sm text-gray-600">Memuat...</p>
+              </div>
             </div>
           </div>
         }>
@@ -381,7 +391,6 @@ const RecipeList: React.FC = () => {
               isOpen={dialogStates.form}
               onOpenChange={dialogHandlers.closeForm}
               initialData={editingRecipe}
-              onSave={handleSaveRecipe}
               isLoading={recipeOperations.isLoading}
             />
           )}
@@ -411,6 +420,8 @@ const RecipeList: React.FC = () => {
               isOpen={dialogStates.category}
               onOpenChange={dialogHandlers.closeCategory}
               recipes={recipes}
+              updateRecipe={() => {}}
+              refreshRecipes={() => {}}
             />
           )}
         </Suspense>

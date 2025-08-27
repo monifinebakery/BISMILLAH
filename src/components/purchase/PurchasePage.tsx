@@ -41,16 +41,18 @@ const PurchaseTable = React.lazy(() =>
 const PurchaseDialog = React.lazy(() => 
   import('./components/PurchaseDialog').catch(() => ({
     default: () => (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg max-w-md">
-          <div className="text-red-500 text-lg mb-2">❌ Gagal memuat dialog</div>
-          <p className="text-gray-600 mb-4">Dialog tidak dapat dimuat. Silakan coba lagi.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Muat Ulang
-          </button>
+      <div className="dialog-overlay-center">
+        <div className="dialog-panel max-w-md">
+          <div className="dialog-body">
+            <div className="text-red-500 text-lg mb-2">❌ Gagal memuat dialog</div>
+            <p className="text-gray-600 mb-4">Dialog tidak dapat dimuat. Silakan coba lagi.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Muat Ulang
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -60,16 +62,18 @@ const PurchaseDialog = React.lazy(() =>
 const PurchaseImportDialog = React.lazy(() => 
   import('./components/dialogs/PurchaseImportDialog').catch(() => ({
     default: () => (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg max-w-md">
-          <div className="text-red-500 text-lg mb-2">❌ Gagal memuat dialog import</div>
-          <p className="text-gray-600 mb-4">Dialog import tidak dapat dimuat. Silakan coba lagi.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Muat Ulang
-          </button>
+      <div className="dialog-overlay-center">
+        <div className="dialog-panel max-w-md">
+          <div className="dialog-body">
+            <div className="text-red-500 text-lg mb-2">❌ Gagal memuat dialog import</div>
+            <p className="text-gray-600 mb-4">Dialog import tidak dapat dimuat. Silakan coba lagi.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Muat Ulang
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -372,7 +376,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       </Suspense>
       {/* ✅ ENHANCED: Processing overlay with delete state */}
       {(purchaseContext.isProcessing || appState.ui.isDeleting) && (
-        <div className="fixed inset-0 bg-black bg-opacity-10 z-40 pointer-events-none">
+        <div className="dialog-overlay-center bg-opacity-10 pointer-events-none">
           <div className="absolute top-4 right-4 bg-white rounded-lg border p-3 flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
             <span className="text-sm text-gray-700">

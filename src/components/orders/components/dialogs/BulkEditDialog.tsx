@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -75,18 +76,20 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Edit Status Massal
-          </DialogTitle>
-          <DialogDescription>
-            Mengubah status untuk <strong>{selectedCount} pesanan</strong> sekaligus.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Status Massal
+            </DialogTitle>
+            <DialogDescription>
+              Mengubah status untuk <strong>{selectedCount} pesanan</strong> sekaligus.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
+          <div className="dialog-body">
+            <div className="space-y-4">
           {/* Summary Info */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -134,8 +137,8 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
                       <div className={`w-2 h-2 rounded-full
                         ${status === 'pending' ? 'bg-yellow-400' : ''}
                         ${status === 'confirmed' ? 'bg-blue-400' : ''}
-                        ${status === 'processing' ? 'bg-purple-400' : ''}
-                        ${status === 'shipped' ? 'bg-indigo-400' : ''}
+                        ${status === 'preparing' ? 'bg-purple-400' : ''}
+                        ${status === 'ready' ? 'bg-indigo-400' : ''}
                         ${status === 'delivered' ? 'bg-green-400' : ''}
                         ${status === 'cancelled' ? 'bg-red-400' : ''}
                         ${status === 'completed' ? 'bg-emerald-400' : ''}
@@ -194,27 +197,28 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
               </div>
             </div>
           )}
-        </div>
+            </div>
+          </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={loading}
-            className="min-w-[100px]"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Batal
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={loading || !newStatus}
-            className="min-w-[120px]"
-          >
-            <Check className="h-4 w-4 mr-2" />
-            {loading ? 'Menyimpan...' : 'Update Status'}
-          </Button>
+          <DialogFooter className="dialog-footer-pad">
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={loading}
+              className="min-w-[100px]"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Batal
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={loading || !newStatus}
+              className="min-w-[120px]"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              {loading ? 'Menyimpan...' : 'Update Status'}
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

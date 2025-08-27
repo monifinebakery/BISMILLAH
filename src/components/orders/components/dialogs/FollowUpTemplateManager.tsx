@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Tabs,
@@ -210,20 +211,22 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Kelola Template Follow-Up WhatsApp
-            {order && (
-              <span className="text-sm font-normal text-gray-600">
-                - Pesanan #{order.nomorPesanan}
-              </span>
-            )}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="dialog-overlay-center max-w-5xl max-h-[90vh] overflow-y-auto">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Kelola Template Follow-Up WhatsApp
+              {order && (
+                <span className="text-sm font-normal text-gray-600">
+                  - Pesanan #{order.nomorPesanan}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
 
-        <Tabs defaultValue="templates" className="w-full">
+          <div className="dialog-body">
+            <Tabs defaultValue="templates" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="templates">Template</TabsTrigger>
             <TabsTrigger value="variables">Variabel</TabsTrigger>
@@ -404,14 +407,15 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
               </>
             )}
           </TabsContent>
-        </Tabs>
+            </Tabs>
+          </div>
 
-        {/* Close Button */}
-        <div className="flex justify-end pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            <X className="h-4 w-4 mr-2" />
-            Tutup
-          </Button>
+          <DialogFooter className="dialog-footer-pad">
+            <Button variant="outline" onClick={onClose}>
+              <X className="h-4 w-4 mr-2" />
+              Tutup
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

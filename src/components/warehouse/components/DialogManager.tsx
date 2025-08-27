@@ -1,6 +1,7 @@
 // src/components/warehouse/components/DialogManager.tsx
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 
@@ -10,42 +11,50 @@ const BulkOperationsDialog = lazy(() => import('../dialogs/BulkOperationsDialog'
 const ImportExportDialog = lazy(() => import('../dialogs/ImportExportDialog'));
 
 const DialogLoader = () => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg p-8 flex flex-col items-center">
-      <div className="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full mb-4"></div>
-      <p className="text-gray-600">Memuat dialog...</p>
-    </div>
-  </div>
+  <Dialog open={true}>
+    <DialogContent className="dialog-overlay-center">
+      <div className="dialog-panel">
+        <div className="dialog-body flex flex-col items-center">
+          <div className="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full mb-4"></div>
+          <p className="text-gray-600">Memuat dialog...</p>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
 );
 
 const DialogError = ({ error, retry }: { error: Error; retry: () => void }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg py-6 px-4 max-w-md">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-          <span className="text-red-600 text-xl">⚠️</span>
-        </div>
-        <div>
-          <h3 className="font-semibold text-gray-900">Gagal Memuat Dialog</h3>
-          <p className="text-sm text-gray-600">Terjadi kesalahan saat memuat komponen</p>
+  <Dialog open={true}>
+    <DialogContent className="dialog-overlay-center">
+      <div className="dialog-panel max-w-md">
+        <div className="dialog-body">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+              <span className="text-red-600 text-xl">⚠️</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Gagal Memuat Dialog</h3>
+              <p className="text-sm text-gray-600">Terjadi kesalahan saat memuat komponen</p>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Refresh Halaman
+            </button>
+            <button
+              onClick={retry}
+              className="px-4 py-2 text-sm bg-orange-500 text-white rounded-md hover:bg-orange-600"
+            >
+              Coba Lagi
+            </button>
+          </div>
         </div>
       </div>
-      <div className="flex gap-3 justify-end">
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-        >
-          Refresh Halaman
-        </button>
-        <button
-          onClick={retry}
-          className="px-4 py-2 text-sm bg-orange-500 text-white rounded-md hover:bg-orange-600"
-        >
-          Coba Lagi
-        </button>
-      </div>
-    </div>
-  </div>
+    </DialogContent>
+  </Dialog>
 );
 
 class DialogErrorBoundary extends React.Component<

@@ -191,8 +191,9 @@ const DialogManager = lazy(() =>
     // Fallback component
     return {
       default: ({ dialogs }: any) => (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md">
+        <div className="dialog-overlay-center">
+          <div className="dialog-panel max-w-md">
+            <div className="dialog-body">
             <h3 className="text-lg font-semibold mb-4 text-red-600">
               ⚠️ Dialog System Unavailable
             </h3>
@@ -254,8 +255,9 @@ const TableSkeleton = () => (
 );
 
 const DialogSkeleton = () => (
-  <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg p-6 flex flex-col items-center min-w-[200px]">
+  <div className="dialog-overlay-center">
+    <div className="dialog-panel flex flex-col items-center min-w-[200px]">
+      <div className="dialog-body">
       <LoadingSpinner />
       <p className="text-gray-600 text-sm mt-3">Memuat dialog...</p>
     </div>

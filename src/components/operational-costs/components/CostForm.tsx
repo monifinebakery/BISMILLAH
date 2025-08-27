@@ -369,8 +369,9 @@ const CostForm: React.FC<CostFormProps> = ({
 
       {/* ✅ Staff Type Selection Modal */}
       {showStaffTypeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg border max-w-md w-full p-6">
+        <div className="dialog-overlay-center p-4">
+          <div className="dialog-panel max-w-md w-full">
+            <div className="dialog-body">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Jenis Staf untuk "{formData.nama_biaya}"
@@ -438,6 +439,7 @@ const CostForm: React.FC<CostFormProps> = ({
               >
                 Batal
               </button>
+            </div>
             </div>
           </div>
         </div>

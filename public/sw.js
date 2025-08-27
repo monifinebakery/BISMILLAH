@@ -1,17 +1,27 @@
 // Service Worker for HPP Calculator PWA
 // Provides offline functionality and intelligent caching
 
-const CACHE_NAME = 'hpp-calculator-v1';
-const STATIC_CACHE = 'hpp-static-v1';
-const DYNAMIC_CACHE = 'hpp-dynamic-v1';
-const API_CACHE = 'hpp-api-v1';
+const CACHE_NAME = 'hpp-calculator-v2';
+const STATIC_CACHE = 'hpp-static-v2';
+const DYNAMIC_CACHE = 'hpp-dynamic-v2';
+const API_CACHE = 'hpp-api-v2';
+const ASSETS_CACHE = 'hpp-assets-v2';
 
 // Files to cache immediately
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/pwa-192.png',
+  '/pwa-512.png'
+];
+
+// Critical assets patterns to cache aggressively
+const CRITICAL_ASSET_PATTERNS = [
+  /\/assets\/index-[\w-]+\.js$/,
+  /\/assets\/index-[\w-]+\.css$/,
+  /\/assets\/vendor-[\w-]+\.js$/
 ];
 
 // API endpoints to cache
@@ -53,7 +63,8 @@ self.addEventListener('activate', (event) => {
           cacheNames.map((cacheName) => {
             if (cacheName !== STATIC_CACHE && 
                 cacheName !== DYNAMIC_CACHE && 
-                cacheName !== API_CACHE) {
+                cacheName !== API_CACHE &&
+                cacheName !== ASSETS_CACHE) {
               console.log('[SW] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
@@ -108,21 +119,46 @@ function isNavigationRequest(request) {
 
 // Handle static assets with cache-first strategy
 async function handleStaticAsset(request) {
+  const url = new URL(request.url);
+  
   try {
+    // Check if it's a critical asset
+    const isCriticalAsset = CRITICAL_ASSET_PATTERNS.some(pattern => 
+      pattern.test(url.pathname)
+    );
+    
+    const cacheName = isCriticalAsset ? ASSETS_CACHE : STATIC_CACHE;
+    
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
+      console.log('[SW] Serving from cache:', url.pathname);
       return cachedResponse;
     }
     
+    console.log('[SW] Fetching from network:', url.pathname);
     const networkResponse = await fetch(request);
+    
     if (networkResponse.ok) {
-      const cache = await caches.open(STATIC_CACHE);
+      const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
+      console.log('[SW] Cached asset:', url.pathname);
     }
     
     return networkResponse;
   } catch (error) {
-    console.error('[SW] Static asset fetch failed:', error);
+    console.error('[SW] Static asset fetch failed:', url.pathname, error);
+    
+    // Try to find in any cache as fallback
+    const cacheNames = [ASSETS_CACHE, STATIC_CACHE, DYNAMIC_CACHE];
+    for (const cacheName of cacheNames) {
+      const cache = await caches.open(cacheName);
+      const cachedResponse = await cache.match(request);
+      if (cachedResponse) {
+        console.log('[SW] Fallback cache hit:', url.pathname);
+        return cachedResponse;
+      }
+    }
+    
     return new Response('Asset not available offline', { status: 503 });
   }
 }

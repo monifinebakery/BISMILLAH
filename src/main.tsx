@@ -206,18 +206,20 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 
 // ------------------------------
-// PWA initialization - RE-ENABLED
+// PWA initialization - ENABLED IN ALL ENVIRONMENTS
 // ------------------------------
-if (import.meta.env.PROD) {
-  pwaManager.registerServiceWorker().then((registration) => {
-    if (registration) {
-      logger.info('PWA: Service worker registered successfully');
-    }
-  }).catch((error) => {
-    logger.error('PWA: Service worker registration failed:', error);
-  });
-}
-console.log('✅ [PWA] Service worker registration re-enabled for install functionality');
+pwaManager.registerServiceWorker().then((registration) => {
+  if (registration) {
+    logger.info('PWA: Service worker registered successfully', {
+      scope: registration.scope,
+      mode: import.meta.env.MODE
+    });
+  }
+}).catch((error) => {
+  logger.error('PWA: Service worker registration failed:', error);
+});
+
+console.log('✅ [PWA] Service worker enabled for offline functionality');
 
 logger.success("React application initialized successfully", {
   initTime: appInitTime,

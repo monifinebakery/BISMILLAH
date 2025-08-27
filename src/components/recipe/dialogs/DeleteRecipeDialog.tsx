@@ -55,9 +55,8 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel">
-          <DialogHeader className="dialog-header bg-red-50">
+      <DialogContent centerMode="overlay" size="lg">
+        <DialogHeader className="dialog-header bg-red-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -71,9 +70,9 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                 </p>
               </div>
             </div>
-          </DialogHeader>
+        </DialogHeader>
 
-          <div className="dialog-body">
+        <div className="dialog-body">
           
           {/* Warning Message */}
           <div className="mb-6">
@@ -209,10 +208,10 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
             )}
           </div>
 
-          </div>
+        </div>
 
-          {/* Footer with Action Buttons */}
-          <DialogFooter className="dialog-footer">
+        {/* Footer with Action Buttons */}
+        <DialogFooter className="dialog-footer">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -238,8 +237,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                 </>
               )}
             </Button>
-          </DialogFooter>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

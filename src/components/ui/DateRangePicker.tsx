@@ -174,8 +174,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <DialogTrigger asChild>
           <Button {...buttonProps}>{content}</Button>
         </DialogTrigger>
-        <DialogContent centerMode="overlay" size="lg">
-          <div className="dialog-panel dialog-panel-lg dialog-no-overflow">
+        <DialogContent centerMode="overlay" size="md">
+          <div className="dialog-panel dialog-panel-md-plus dialog-no-overflow">
             <DialogHeader className="dialog-header">
               <DialogTitle className="text-overflow-safe">Pilih Rentang Tanggal</DialogTitle>
               <DialogDescription className="text-overflow-safe">
@@ -183,9 +183,9 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
               </DialogDescription>
             </DialogHeader>
             <div className="dialog-body">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <PresetButtons />
-                <div className="p-3 sm:p-4 dialog-no-overflow">
+                <div className="p-3 dialog-no-overflow">
                   <Calendar
                     mode="range"
                     selected={calendarRange}
@@ -194,7 +194,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                     locale={id}
                     className="mx-auto"
                   />
-                  <div className="dialog-responsive-buttons mt-4 pt-4 border-t">
+                  <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
                     <Button variant="outline" onClick={handleReset} className="input-mobile-safe">
                       <span className="text-overflow-safe">Reset</span>
                     </Button>
@@ -216,26 +216,62 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       <PopoverTrigger asChild>
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 flex flex-col sm:flex-row dialog-no-overflow" align="end">
-        <div className="w-full sm:w-48 flex-shrink-0">
-          <PresetButtons />
-        </div>
-        <div className="border-l-0 sm:border-l border-t sm:border-t-0 p-3 sm:p-4 min-w-0 flex-1">
-          <Calendar
-            mode="range"
-            selected={calendarRange}
-            onSelect={handleCalendarChange}
-            numberOfMonths={isDesktop ? 2 : 1}
-            locale={id}
-            className="mx-auto"
-          />
-          <div className="dialog-responsive-buttons mt-4 pt-4 border-t">
-            <Button variant="outline" onClick={handleReset} className="input-mobile-safe">
-              <span className="text-overflow-safe">Reset</span>
-            </Button>
-            <Button onClick={() => setIsOpen(false)} className="input-mobile-safe">
-              <span className="text-overflow-safe">Terapkan</span>
-            </Button>
+      <PopoverContent 
+        className="w-auto p-0 max-w-[90vw]" 
+        align="start"
+        side="bottom"
+        sideOffset={4}
+      >
+        <div className="flex flex-col lg:flex-row overflow-hidden rounded-lg border bg-white shadow-lg">
+          {/* Preset buttons sidebar */}
+          <div className="w-full lg:w-48 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r">
+            <div className="p-3">
+              <h4 className="font-medium text-sm mb-3 text-gray-700">Pilih Cepat</h4>
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
+                {PRESETS.map(({ label, key }) => (
+                  <Button
+                    key={key}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePreset(key)}
+                    className="justify-start text-sm h-8 px-2 hover:bg-white"
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          {/* Calendar section */}
+          <div className="p-3">
+            <Calendar
+              mode="range"
+              selected={calendarRange}
+              onSelect={handleCalendarChange}
+              numberOfMonths={isDesktop ? 2 : 1}
+              locale={id}
+              className="mx-auto"
+            />
+            
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t">
+              <Button 
+                variant="outline" 
+                onClick={handleReset} 
+                className="text-sm h-9"
+                size="sm"
+              >
+                Reset
+              </Button>
+              <Button 
+                onClick={() => setIsOpen(false)} 
+                className="text-sm h-9"
+                size="sm"
+              >
+                Terapkan
+              </Button>
+            </div>
           </div>
         </div>
       </PopoverContent>

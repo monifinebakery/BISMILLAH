@@ -260,7 +260,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
-      <DialogContent className="dialog-overlay-center">
+      <DialogContent centerMode="overlay" size="xl">
         <div className="dialog-panel dialog-panel-xl dialog-no-overflow">
           <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-3">

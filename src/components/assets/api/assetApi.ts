@@ -22,7 +22,7 @@ import {
 export const getAssets = async (userId: string): Promise<Asset[]> => {
   const { data, error } = await supabase
     .from('assets')
-    .select('*')
+    .select('id, user_id, nama, lokasi, kategori, kondisi, nilai_perolehan, nilai_residu, umur_ekonomis, metode_depresiasi, tanggal_perolehan, deskripsi, created_at, updated_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -43,7 +43,7 @@ export const getAssets = async (userId: string): Promise<Asset[]> => {
 export const getAsset = async (id: string, userId: string): Promise<Asset | null> => {
   const { data, error } = await supabase
     .from('assets')
-    .select('*')
+    .select('id, user_id, nama, lokasi, kategori, kondisi, nilai_perolehan, nilai_residu, umur_ekonomis, metode_depresiasi, tanggal_perolehan, deskripsi, created_at, updated_at')
     .eq('id', id)
     .eq('user_id', userId)
     .single();
@@ -153,7 +153,7 @@ export const searchAssets = async (
 ): Promise<Asset[]> => {
   const { data, error } = await supabase
     .from('assets')
-    .select('*')
+    .select('id, user_id, nama, lokasi, kategori, kondisi, nilai_perolehan, nilai_residu, umur_ekonomis, metode_depresiasi, tanggal_perolehan, deskripsi, created_at, updated_at')
     .eq('user_id', userId)
     .or(`nama.ilike.%${searchTerm}%,lokasi.ilike.%${searchTerm}%,deskripsi.ilike.%${searchTerm}%`)
     .order('created_at', { ascending: false });
@@ -178,7 +178,7 @@ export const getAssetsByCategory = async (
 ): Promise<Asset[]> => {
   const { data, error } = await supabase
     .from('assets')
-    .select('*')
+    .select('id, user_id, nama, lokasi, kategori, kondisi, nilai_perolehan, nilai_residu, umur_ekonomis, metode_depresiasi, tanggal_perolehan, deskripsi, created_at, updated_at')
     .eq('user_id', userId)
     .eq('kategori', category)
     .order('created_at', { ascending: false });
@@ -203,7 +203,7 @@ export const getAssetsByCondition = async (
 ): Promise<Asset[]> => {
   const { data, error } = await supabase
     .from('assets')
-    .select('*')
+    .select('id, user_id, nama, lokasi, kategori, kondisi, nilai_perolehan, nilai_residu, umur_ekonomis, metode_depresiasi, tanggal_perolehan, deskripsi, created_at, updated_at')
     .eq('user_id', userId)
     .eq('kondisi', condition)
     .order('created_at', { ascending: false });

@@ -75,7 +75,7 @@ export class PurchaseApiService {
       // Step 2: Fetch updated purchase
       const { data: purchaseData, error: fetchError } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('id', purchaseId)
         .eq('user_id', userId)
         .single();
@@ -148,7 +148,7 @@ export class PurchaseApiService {
     try {
       const { data, error } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('user_id', userId)
         .order('tanggal', { ascending: false });
 
@@ -166,7 +166,7 @@ export class PurchaseApiService {
       console.log('🔍 fetchPurchaseById called with:', { id, userId });
       const { data, error } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
@@ -237,7 +237,7 @@ export class PurchaseApiService {
       // Fetch existing to know previous status/items
       const { data: existingRow, error: fetchErr } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
@@ -267,7 +267,7 @@ export class PurchaseApiService {
       // Fetch updated row to apply new effects if still completed
       const { data: updatedRow, error: fetchUpdatedErr } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
@@ -306,7 +306,7 @@ export class PurchaseApiService {
       // Fetch current purchase
       const { data: existingRow, error: fetchErr } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
@@ -434,7 +434,7 @@ export class PurchaseApiService {
       // Fetch existing to reverse if needed
       const { data: existingRow, error: fetchErr } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
@@ -557,7 +557,7 @@ export class PurchaseApiService {
     try {
       const { data, error } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('user_id', userId)
         .gte('tanggal', startDate.toISOString().slice(0, 10))
         .lte('tanggal', endDate.toISOString().slice(0, 10))
@@ -576,7 +576,7 @@ export class PurchaseApiService {
     try {
       const { data, error } = await supabase
         .from('purchases')
-        .select('*')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
         .eq('user_id', userId)
         // NB: jika kolom "supplier" kamu bukan text, sesuaikan or() ini
         .or(`supplier.ilike.%${query}%,items.cs.{"nama":"${query}"}`)

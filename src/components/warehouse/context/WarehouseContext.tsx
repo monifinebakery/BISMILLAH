@@ -240,7 +240,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       return fetchWarehouseData(user?.id);
     },
     enabled: !!user,
-    staleTime: 0, // Always consider data stale so it refetches when invalidated
+    staleTime: 2 * 60 * 1000, // 2 minutes cache to improve performance
     // ✅ FIXED: Simplified retry logic for better error handling
     retry: (failureCount, err: any) => {
       const code = Number(err?.code || err?.status || 0);

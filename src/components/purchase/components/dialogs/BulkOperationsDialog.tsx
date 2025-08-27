@@ -31,7 +31,6 @@ interface BulkOperationsDialogProps {
 interface BulkEditData {
   supplier?: string;
   tanggal?: string; // Date string for input compatibility
-  status?: PurchaseStatus;
   metodePerhitungan?: 'AVERAGE';
 }
 
@@ -204,27 +203,6 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     />
                   </div>
 
-                  {/* Status Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Status
-                    </label>
-                    <Select
-                      value={bulkEditData.status || ''}
-                      onValueChange={(value) => handleInputChange('status', value as PurchaseStatus)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih status (opsional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STATUS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <span className={option.color}>{option.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
                   {/* Calculation Method */}
                   <div>

@@ -80,33 +80,25 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-lg max-h-[90vh]">
-          <DialogHeader className="dialog-header-pad border-b border-gray-200 bg-blue-50">
+      <DialogContent centerMode="overlay" size="md">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header border-b border-gray-200 bg-blue-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Copy className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-blue-900">
+                <DialogTitle className="text-lg font-semibold text-blue-900">
                   Duplikasi Resep
-                </h2>
+                </DialogTitle>
                 <p className="text-sm text-blue-700">
                   Buat salinan resep dengan nama baru
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogHeader>
 
-          <div className="dialog-body overflow-y-auto">
+          <div className="dialog-body">
           {/* Original Recipe Info */}
           <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-700 mb-3">
@@ -259,18 +251,19 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
 
           </div>
 
-          <DialogFooter className="dialog-footer-pad">
+          <DialogFooter className="dialog-footer">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
+              className="w-full sm:w-auto"
             >
               Batal
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={!isValid || isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? (
                 <>

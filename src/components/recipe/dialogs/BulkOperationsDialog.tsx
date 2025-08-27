@@ -119,9 +119,9 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-2xl">
-          <DialogHeader className="dialog-header-pad">
+      <DialogContent centerMode="overlay" size="lg">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-2">
               {operationType === 'edit' ? (
                 <>
@@ -143,7 +143,8 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="dialog-body space-y-6 overflow-y-auto">
+          <div className="dialog-body">
+            <div className="space-y-6">
           {/* Operation Type Selector */}
           <div className="flex gap-2">
             <Button
@@ -366,13 +367,15 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
               </CardContent>
             </Card>
           )}
+            </div>
           </div>
 
-          <DialogFooter className="dialog-footer-pad">
+          <DialogFooter className="dialog-footer">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isProcessing}
+              className="w-full sm:w-auto"
             >
               Batal
             </Button>
@@ -380,7 +383,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
               onClick={handleSubmit}
               disabled={isProcessing}
               variant={operationType === 'delete' ? 'destructive' : 'default'}
-              className="flex items-center gap-2"
+              className="w-full sm:w-auto flex items-center gap-2"
             >
               {isProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

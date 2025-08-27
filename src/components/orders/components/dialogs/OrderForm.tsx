@@ -281,16 +281,17 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-5xl">
-          <DialogHeader className="dialog-header-pad">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel dialog-panel-xl">
+          <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               {isEditMode ? 'Edit Pesanan' : 'Pesanan Baru'}
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="dialog-body overflow-y-auto space-y-6">
+          <div className="dialog-body">
+            <form onSubmit={handleSubmit} className="space-y-6">
           {/* Customer Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -629,9 +630,10 @@ const OrderForm: React.FC<OrderFormProps> = ({
             />
           </div>
 
-          </form>
+            </form>
+          </div>
 
-          <DialogFooter className="dialog-footer-pad">
+          <DialogFooter className="dialog-footer">
             <Button
               type="button"
               variant="outline"

@@ -59,84 +59,172 @@ html, body {
    Components (Dialog, Cards, etc.)
    ============================ */
 @layer components {
-  /* --- DIALOG: pola centering konsisten --- 
-     Rekomendasi pakai overlay + inner panel:
-     <DialogContent class="dialog-overlay-center">
-       <div class="dialog-panel dialog-responsive">…</div>
+  /* ---- DIALOG SYSTEM: Responsive & Consistent ---- 
+     Primary pattern: 
+     <DialogContent centerMode="overlay">
+       <div class="dialog-panel">
+         <DialogHeader class="dialog-header" />
+         <div class="dialog-body">...</div>
+         <DialogFooter class="dialog-footer" />
+       </div>
      </DialogContent>
   */
 
-  /* Overlay grid centering (paling stabil di semua device) */
+  /* ---- OVERLAY CENTERING (Recommended) ---- */
   .dialog-overlay-center {
-    @apply fixed inset-0 flex items-center justify-center p-4;
-    z-index: 70; /* > sidebar overlay */
-    background: rgba(0, 0, 0, 0.5);
+    @apply fixed inset-0 flex items-center justify-center;
+    z-index: 75; /* Above sidebar overlays */
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    padding: 0.75rem;
   }
-
-  /* Panel dalam overlay (apply bg/border/rounded di sini) */
+  
+  /* ---- MAIN DIALOG PANEL ---- */
   .dialog-panel {
-    @apply w-full max-w-4xl bg-white rounded-xl shadow-xl;
-    height: 80dvh;
+    @apply w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl;
+    @apply border border-gray-200 dark:border-gray-700;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* Dynamic height based on content with max limits */
+    min-height: 200px;
+    max-height: 90dvh;
+  }
+  
+  /* ---- TRANSLATE CENTERING (Alternative) ---- */
+  .dialog-content-centered {
+    @apply fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2;
+    @apply w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl;
+    @apply border border-gray-200 dark:border-gray-700;
+    z-index: 75;
+    max-height: 90dvh;
+    overflow-y: auto;
   }
 
-  /* Alternatif: fixed + translate (jika tidak pakai inner panel)
-     NOTE: jangan pakai margin (my-*) di sini */
-  .dialog-content {
-    @apply fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-           w-full max-w-lg bg-white rounded-xl shadow-xl;
-    z-index: 70;
+  /* ---- DIALOG SECTIONS ---- */
+  .dialog-header {
+    @apply px-6 py-4 border-b border-gray-200 dark:border-gray-700;
+    @apply bg-gray-50 dark:bg-gray-800/50;
+    flex-shrink: 0;
+  }
+  
+  .dialog-body {
+    @apply flex-1 overflow-y-auto overflow-x-hidden;
+    @apply px-6 py-4;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+  
+  .dialog-footer {
+    @apply px-6 py-4 border-t border-gray-200 dark:border-gray-700;
+    @apply bg-gray-50 dark:bg-gray-800/50;
+    flex-shrink: 0;
   }
 
-  /* Area scroll di DALAM panel; pakai dvh supaya stabil di iOS Safari */
-  .dialog-responsive {
-    @apply overflow-y-auto overflow-x-hidden;
-    /* Height akan diatur oleh parent dialog-panel */
-    padding: 1rem;
-  }
-
-  /* Breakpoints (padding & lebar) */
+  /* ---- RESPONSIVE BREAKPOINTS ---- */
+  /* Mobile: 320px - 640px */
   @media (max-width: 640px) {
-    .dialog-panel { @apply max-w-none mx-2; }
-    .dialog-content { @apply max-w-none; }
-    .dialog-responsive { padding: 1rem; }
+    .dialog-overlay-center {
+      padding: 0.5rem;
+    }
+    
+    .dialog-panel {
+      @apply max-w-none mx-0;
+      max-height: 95dvh;
+      min-height: 300px;
+    }
+    
+    .dialog-content-centered {
+      @apply max-w-none mx-4;
+      max-height: 95dvh;
+    }
+    
+    .dialog-header,
+    .dialog-body,
+    .dialog-footer {
+      @apply px-4 py-3;
+    }
   }
-  @media (min-width: 641px) and (max-width: 768px) {
-    .dialog-panel { @apply max-w-2xl; }
-    .dialog-content { @apply max-w-xl; }
-    .dialog-responsive { padding: 1.5rem; }
+  
+  /* Tablet: 641px - 1024px */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .dialog-overlay-center {
+      padding: 1rem;
+    }
+    
+    .dialog-panel {
+      @apply max-w-2xl;
+      max-height: 85dvh;
+    }
+    
+    .dialog-content-centered {
+      @apply max-w-2xl;
+    }
+    
+    .dialog-header,
+    .dialog-body,
+    .dialog-footer {
+      @apply px-5 py-4;
+    }
   }
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .dialog-panel { @apply max-w-3xl; }
-    .dialog-content { @apply max-w-2xl; }
-    .dialog-responsive { padding: 1.5rem; }
-  }
+  
+  /* Desktop: 1025px+ */
   @media (min-width: 1025px) {
-    .dialog-panel { @apply max-w-4xl; }
-    .dialog-content { @apply max-w-3xl; }
-    .dialog-responsive { padding: 2rem; }
+    .dialog-overlay-center {
+      padding: 1.5rem;
+    }
+    
+    .dialog-panel {
+      @apply max-w-4xl;
+      max-height: 80dvh;
+    }
+    
+    .dialog-content-centered {
+      @apply max-w-4xl;
+    }
+  }
+  
+  /* ---- SPECIALIZED DIALOG SIZES ---- */
+  .dialog-panel-sm {
+    @apply max-w-md;
+  }
+  
+  .dialog-panel-lg {
+    @apply max-w-5xl;
+  }
+  
+  .dialog-panel-xl {
+    @apply max-w-6xl;
+  }
+  
+  /* Mobile adjustments for specialized sizes */
+  @media (max-width: 640px) {
+    .dialog-panel-sm,
+    .dialog-panel-lg,
+    .dialog-panel-xl {
+      @apply max-w-none;
+    }
   }
 
-  /* Wrapper tambahan (opsional) */
-  .modal-wrapper { @apply p-4 sm:p-5 md:p-6 lg:p-8; }
-
-  /* Inner form panels (gunakan di DALAM .dialog-panel / .dialog-content) */
+  /* ---- FORM DIALOGS (Deprecated - use dialog-panel instead) ---- */
   .form-dialog {
-    @apply w-full max-w-[500px] bg-white border border-gray-200 rounded-xl shadow-xl p-6 sm:p-8;
+    @apply w-full max-w-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700;
+    @apply rounded-xl shadow-xl p-6;
   }
-  @media (max-width: 640px) { .form-dialog { @apply max-w-none p-3; } }
-  @media (min-width: 641px) and (max-width: 768px) { .form-dialog { @apply max-w-lg p-5; } }
-  @media (min-width: 769px) and (max-width: 1024px) { .form-dialog { @apply max-w-xl p-6; } }
-
+  
   .form-dialog-large {
-    @apply w-full max-w-[800px] bg-white border border-gray-200 rounded-xl shadow-xl mx-auto p-6 sm:p-8;
+    @apply w-full max-w-3xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700;
+    @apply rounded-xl shadow-xl p-6;
   }
-  @media (max-width: 640px) { .form-dialog-large { @apply max-w-none p-3; } }
-  @media (min-width: 641px) and (max-width: 768px) { .form-dialog-large { @apply max-w-2xl p-5; } }
-  @media (min-width: 769px) and (max-width: 1024px) { .form-dialog-large { @apply max-w-3xl p-6; } }
-  @media (min-width: 1025px) { .form-dialog-large { @apply max-w-4xl p-8; } }
+  
+  /* Mobile form dialog adjustments */
+  @media (max-width: 640px) {
+    .form-dialog,
+    .form-dialog-large {
+      @apply max-w-none mx-4 p-4;
+    }
+  }
+
 
   /* Cards & stats */
   .card-responsive { @apply w-full; }
@@ -179,24 +267,4 @@ html, body {
   .button-group-responsive { @apply flex flex-wrap gap-2 sm:gap-3 md:gap-4; }
   .text-overflow-safe { @apply break-words overflow-hidden; word-wrap: break-word; overflow-wrap: break-word; }
 
-  /* Dialog body, header, footer padding classes */
-  .dialog-body {
-    @apply flex-1 overflow-y-auto overflow-x-hidden p-6;
-    /* Flex-1 akan mengambil sisa ruang dalam dialog-panel */
-  }
-  
-  .dialog-header-pad {
-    @apply px-6 py-4 border-b border-gray-200;
-  }
-  
-  .dialog-footer-pad {
-    @apply px-6 py-4 border-t border-gray-200;
-  }
-  
-  /* Mobile adjustments */
-  @media (max-width: 640px) {
-    .dialog-body { @apply p-4; }
-    .dialog-header-pad { @apply px-4 py-3; }
-    .dialog-footer-pad { @apply px-4 py-3; }
-  }
 }

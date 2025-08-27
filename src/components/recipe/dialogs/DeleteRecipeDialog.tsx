@@ -55,9 +55,9 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-md max-h-[90vh]">
-          <DialogHeader className="dialog-header-pad border-b border-gray-200 bg-red-50">
+      <DialogContent centerMode="overlay" size="md">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header border-b border-gray-200 bg-red-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -209,20 +209,22 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
+          </div>
+
+          {/* Footer with Action Buttons */}
+          <DialogFooter className="dialog-footer">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="flex-1"
+              className="w-full sm:w-auto"
             >
               Batal
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={!isConfirmEnabled || isLoading}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
             >
               {isLoading ? (
                 <>
@@ -236,8 +238,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                 </>
               )}
             </Button>
-          </div>
-        </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

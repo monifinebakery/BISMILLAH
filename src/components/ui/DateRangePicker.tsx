@@ -213,25 +213,25 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="p-0 w-auto max-w-[95vw] max-h-[90vh]" 
+        className="p-0 w-auto max-w-[95vw] max-h-[90vh] lg:max-w-[700px]" 
         align="start"
         sideOffset={4}
         avoidCollisions={true}
         collisionPadding={8}
       >
-        <div className="flex flex-col xl:flex-row bg-white border rounded-lg shadow-lg overflow-hidden max-w-full min-w-[320px] xl:min-w-[700px]">
+        <div className="flex flex-col lg:flex-row bg-white border rounded-lg shadow-lg overflow-hidden max-w-full min-w-[320px] lg:min-w-[600px]">
           {/* Preset buttons sidebar */}
-          <div className="w-full xl:w-48 flex-shrink-0 bg-gray-50 border-b xl:border-b-0 xl:border-r">
-            <div className="p-4">
-              <h4 className="font-medium text-sm mb-3 text-gray-700">Pilih Cepat</h4>
-              <div className="grid grid-cols-2 xl:grid-cols-1 gap-2">
+          <div className="w-full lg:w-44 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r">
+            <div className="p-3 lg:p-4">
+              <h4 className="font-medium text-sm mb-2 lg:mb-3 text-gray-700">Pilih Cepat</h4>
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1 lg:gap-2">
                 {PRESETS.map(({ label, key }) => (
                   <Button
                     key={key}
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePreset(key)}
-                    className="w-full justify-start text-sm h-9 px-3 hover:bg-white text-gray-600 hover:text-gray-900 transition-colors"
+                    className="w-full justify-start text-xs lg:text-sm h-7 lg:h-9 px-2 lg:px-3 hover:bg-white text-gray-600 hover:text-gray-900 transition-colors"
                   >
                     {label}
                   </Button>
@@ -241,32 +241,32 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </div>
           
           {/* Calendar section */}
-          <div className="p-4 bg-white overflow-hidden flex-1">
+          <div className="p-3 lg:p-4 bg-white overflow-hidden flex-1">
             <div className="max-w-full overflow-x-auto">
               <Calendar
                 mode="range"
                 selected={calendarRange}
                 onSelect={handleCalendarChange}
-                numberOfMonths={isDesktop && window.innerWidth >= 1280 ? 2 : 1}
+                numberOfMonths={isDesktop && window.innerWidth >= 1024 ? 2 : 1}
                 locale={id}
                 className="mx-auto"
               />
             </div>
             
             {/* Action buttons */}
-            <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
+            <div className="flex gap-2 lg:gap-3 mt-3 lg:mt-4 pt-3 lg:pt-4 border-t border-gray-200">
               <Button 
                 variant="outline" 
                 onClick={handleReset} 
                 size="sm"
-                className="flex-1 text-sm h-9 hover:bg-gray-50"
+                className="flex-1 text-sm h-8 lg:h-9 hover:bg-gray-50"
               >
                 Reset
               </Button>
               <Button 
                 onClick={() => setIsOpen(false)} 
                 size="sm"
-                className="flex-1 text-sm h-9 bg-orange-500 hover:bg-orange-600 text-white"
+                className="flex-1 text-sm h-8 lg:h-9 bg-orange-500 hover:bg-orange-600 text-white"
               >
                 Terapkan
               </Button>

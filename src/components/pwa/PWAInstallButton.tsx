@@ -165,9 +165,12 @@ export function PWAStatus() {
     });
   }, []);
 
-  // Show in development and preview modes
+  // Show in development and preview, but not in production
   const shouldShow = import.meta.env.DEV || 
-                   (typeof window !== 'undefined' && window.location.hostname.includes('preview'));
+                   (typeof window !== 'undefined' && (
+                     window.location.hostname === 'localhost' ||
+                     window.location.hostname.includes('preview.monifine.my.id')
+                   ));
   
   if (!shouldShow) {
     return null;

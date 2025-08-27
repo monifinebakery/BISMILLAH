@@ -551,6 +551,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             )}
           </DialogFooter>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

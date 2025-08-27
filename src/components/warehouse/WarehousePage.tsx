@@ -294,7 +294,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
     error,
     refetch,
     dataUpdatedAt,
-  } = useQuery({
+  } = useQuery<BahanBakuFrontend[] | PaginatedWarehouseResponse>({
     queryKey: usePagination ? [...warehouseQueryKeys.list(), 'paginated', page, limit] : warehouseQueryKeys.list(),
     queryFn: usePagination 
       ? () => fetchWarehouseItemsPaginated(page, limit)

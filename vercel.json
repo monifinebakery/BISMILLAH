@@ -24,18 +24,10 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
-    },
-    {
-      "source": "/(manifest\\.json|favicon\\.ico|.*\\.(png|jpg|jpeg|svg|webp|ico))$",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
-      ]
     }
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!manifest\\.json|favicon\\.ico|.*\\.(png|jpg|jpeg|svg|webp|ico)).*)$", "destination": "/index.html" }
-  ],
-  "trailingSlash": false
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

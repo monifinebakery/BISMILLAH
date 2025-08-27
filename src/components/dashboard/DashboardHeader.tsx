@@ -8,8 +8,8 @@ import { Calendar, BarChart3, Clock } from 'lucide-react';
 const DateRangePicker = lazy(() => import('@/components/ui/DateRangePicker'));
 
 interface Props {
-  dateRange: { from: string; to: string };
-  setDateRange: (range: { from: string; to: string }) => void;
+  dateRange: { from: Date; to: Date };
+  setDateRange: (range: { from: Date; to: Date }) => void;
   greeting: string;
   isMobile: boolean;
 }

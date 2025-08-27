@@ -142,25 +142,15 @@ export const useBulkOperations = ({
       let failed = 0;
       const results = [];
       
-      // ✅ OPTIMIZED: Use limited concurrency for better performance while maintaining reliability
+      // ✅ ULTRA-FAST: Use full parallel for small operations, batched for large ones
       if (updates.status && Object.keys(updates).length === 1) {
-        console.log('🔄 [BULK DEBUG] Processing status changes with limited concurrency...');
+        console.log('🔄 [BULK DEBUG] Processing status changes with optimized concurrency...');
         
-        // Dynamic batch sizing based on total items for optimal performance
-        const batchSize = selectedItems.length <= 6 ? 2 : 
-                         selectedItems.length <= 12 ? 3 : 
-                         Math.min(4, Math.ceil(selectedItems.length / 4));
-        
-        console.log(`📦 [BULK DEBUG] Using batch size: ${batchSize} for ${selectedItems.length} items`);
-        const batches = [];
-        for (let i = 0; i < selectedItems.length; i += batchSize) {
-          batches.push(selectedItems.slice(i, i + batchSize));
-        }
-        
-        for (const batch of batches) {
-          console.log(`📦 [BULK DEBUG] Processing batch of ${batch.length} purchases`);
+        // Ultra-fast mode for small operations
+        if (selectedItems.length <= 8) {
+          console.log(`⚡ [BULK DEBUG] Ultra-fast mode: processing all ${selectedItems.length} items in parallel`);
           
-          const batchPromises = batch.map(async (id) => {
+          const allPromises = selectedItems.map(async (id) => {
             try {
               console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
               const result = await setStatus(id, updates.status);
@@ -171,10 +161,10 @@ export const useBulkOperations = ({
             }
           });
           
-          const batchResults = await Promise.allSettled(batchPromises);
+          const allResults = await Promise.allSettled(allPromises);
           
-          // Process batch results
-          for (const result of batchResults) {
+          // Process all results
+          for (const result of allResults) {
             if (result.status === 'fulfilled') {
               const { id, success, error } = result.value;
               if (success) {
@@ -191,13 +181,58 @@ export const useBulkOperations = ({
               results.push({ status: 'rejected', reason: result.reason });
             }
           }
+        } else {
+          // Batched mode for larger operations
+          const batchSize = selectedItems.length <= 15 ? 6 :  // Medium: batch of 6
+                           Math.min(10, Math.ceil(selectedItems.length / 3)); // Large: batch of 10
           
-          // Adaptive delay between batches based on total items and server load
-          if (batches.indexOf(batch) < batches.length - 1) {
-            const delay = selectedItems.length <= 6 ? 50 : // Small items: 50ms delay
-                         selectedItems.length <= 15 ? 100 : // Medium items: 100ms delay  
-                         150; // Large items: 150ms delay
-            await new Promise(resolve => setTimeout(resolve, delay));
+          console.log(`📦 [BULK DEBUG] Batched mode: using batch size ${batchSize} for ${selectedItems.length} items`);
+          const batches = [];
+          for (let i = 0; i < selectedItems.length; i += batchSize) {
+            batches.push(selectedItems.slice(i, i + batchSize));
+          }
+          
+          for (const batch of batches) {
+            console.log(`📦 [BULK DEBUG] Processing batch of ${batch.length} purchases`);
+            
+            const batchPromises = batch.map(async (id) => {
+              try {
+                console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
+                const result = await setStatus(id, updates.status);
+                return { id, success: result, error: null };
+              } catch (error) {
+                console.error(`❌ [BULK DEBUG] Error updating status for purchase ${id}:`, error);
+                return { id, success: false, error };
+              }
+            });
+            
+            const batchResults = await Promise.allSettled(batchPromises);
+            
+            // Process batch results
+            for (const result of batchResults) {
+              if (result.status === 'fulfilled') {
+                const { id, success, error } = result.value;
+                if (success) {
+                  successful++;
+                  results.push({ status: 'fulfilled', value: true });
+                  console.log(`✅ [BULK DEBUG] Successfully updated status for purchase ${id}`);
+                } else {
+                  failed++;
+                  results.push({ status: 'fulfilled', value: false });
+                  console.log(`❌ [BULK DEBUG] Failed to update status for purchase ${id}:`, error);
+                }
+              } else {
+                failed++;
+                results.push({ status: 'rejected', reason: result.reason });
+              }
+            }
+            
+            // Very minimal delay between batches
+            if (batches.indexOf(batch) < batches.length - 1) {
+              const delay = selectedItems.length <= 15 ? 15 : // Medium: 15ms delay
+                           30; // Large: 30ms delay
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
           }
         }
       } else {

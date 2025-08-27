@@ -79,9 +79,10 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // Check if desktop on mount
+  // Check if desktop on mount - iPad friendly breakpoints
   React.useEffect(() => {
     const checkScreenSize = () => {
+      // Consider iPad (768px+) as desktop for layout purposes
       setIsDesktop(window.innerWidth >= 768);
     };
     checkScreenSize();
@@ -215,16 +216,16 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="p-0 w-auto" 
+        className="p-0 w-fit max-w-none z-[9999]" 
         align="start"
         side="bottom"
         sideOffset={4}
       >
-        <div className="flex flex-col sm:flex-row bg-white border rounded-lg shadow-lg overflow-hidden min-w-0">
+        <div className="flex flex-col md:flex-row bg-white border rounded-lg shadow-lg overflow-hidden min-w-fit">
           {/* Preset buttons sidebar */}
-          <div className="w-full sm:w-44 flex-shrink-0 bg-gray-50 border-b sm:border-b-0 sm:border-r border-gray-200">
+          <div className="w-full md:w-48 flex-shrink-0 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200">
             <div className="p-3">
-              <h4 className="font-medium text-sm mb-2 text-gray-700">Pilih Cepat</h4>
+              <h4 className="font-medium text-sm mb-2 text-gray-700 text-overflow-safe">Pilih Cepat</h4>
               <div className="space-y-1">
                 {PRESETS.map(({ label, key }) => (
                   <Button
@@ -232,7 +233,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePreset(key)}
-                    className="w-full justify-start text-sm h-8 px-2 hover:bg-white text-gray-600 hover:text-gray-900"
+                    className="w-full justify-start text-sm h-8 px-2 hover:bg-white text-gray-600 hover:text-gray-900 text-overflow-safe"
                   >
                     {label}
                   </Button>
@@ -242,14 +243,14 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </div>
           
           {/* Calendar section */}
-          <div className="p-3 bg-white">
+          <div className="p-3 bg-white flex-1" style={{ minWidth: isDesktop ? '600px' : '320px' }}>
             <Calendar
               mode="range"
               selected={calendarRange}
               onSelect={handleCalendarChange}
               numberOfMonths={isDesktop ? 2 : 1}
               locale={id}
-              className=""
+              className="mx-auto"
             />
             
             {/* Action buttons */}

@@ -8,6 +8,7 @@ import { AppRouter } from "@/config/routes";
 import { queryClient } from "@/config/queryClient";
 import { AppLoader } from "@/components/loaders";
 import { logger } from "@/utils/logger";
+// import MemoryMonitor from "@/components/MemoryMonitor";
 
 const App = () => {
   // ✅ Memoized initial setup handler
@@ -85,17 +86,10 @@ const App = () => {
 
           {/* ✅ Dev tools only in development */}
           {import.meta.env.DEV && (
-            <ReactQueryDevtools
-              initialIsOpen={false} 
-              position="bottom-right"
-              toggleButtonProps={{
-                style: {
-                  background: '#f97316',
-                  color: 'white',
-                  zIndex: 9999, // ✅ Ensure it's always on top
-                }
-              }}
-            />
+            <>
+              <ReactQueryDevtools initialIsOpen={false} />
+              {/* <MemoryMonitor /> */}
+            </>
           )}
         </AppProviders>
       </TooltipProvider>

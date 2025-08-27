@@ -389,7 +389,7 @@ export class WarehouseSyncService {
       // Get all warehouse items
       const { data: warehouseItems, error: warehouseError } = await supabase
         .from('bahan_baku')
-        .select('*')
+        .select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at')
         .eq('user_id', this.userId);
 
       if (warehouseError) throw warehouseError;
@@ -511,7 +511,7 @@ export class WarehouseSyncService {
       // Get all warehouse items
       const { data: warehouseItems, error: warehouseError } = await supabase
         .from('bahan_baku')
-        .select('*')
+        .select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at')
         .eq('user_id', this.userId);
 
       if (warehouseError) throw warehouseError;
@@ -626,7 +626,7 @@ export class WarehouseSyncService {
       // Get current item data
       const { data: currentItem, error: itemError } = await supabase
         .from('bahan_baku')
-        .select('*')
+        .select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at')
         .eq('id', itemId)
         .eq('user_id', this.userId)
         .single();
@@ -723,7 +723,7 @@ export class WarehouseSyncService {
       // Check for basic data integrity issues
       const { data: warehouseData, error } = await supabase
         .from('bahan_baku')
-        .select('*')
+        .select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at')
         .eq('user_id', this.userId);
 
       if (error) {

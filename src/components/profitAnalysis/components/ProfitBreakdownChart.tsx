@@ -210,9 +210,9 @@ const ProfitBreakdownChart = ({
   
   // Log any COGS calculation warnings
   if (import.meta.env.DEV && cogsResult.warnings.length > 0) {
-    cogsResult.warnings.forEach(warning => 
-      console.warn('[BreakdownChart] COGS warning:', warning)
-    );
+    cogsResult.warnings.forEach(warning => {
+      console.warn('[BreakdownChart] COGS warning:', warning);
+    });
   }
   
   // Log data quality issues

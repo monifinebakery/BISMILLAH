@@ -7,6 +7,7 @@ import App from "./App.tsx";
 import "./index.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
+import { pwaManager } from '@/utils/pwaUtils'
 
 // Vite inject via define() (lihat vite.config.ts)
 declare const __DEV__: boolean;
@@ -203,6 +204,22 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
     reason: event.reason,
   });
 });
+
+// ------------------------------
+// PWA initialization - ENABLED IN ALL ENVIRONMENTS
+// ------------------------------
+pwaManager.registerServiceWorker().then((registration) => {
+  if (registration) {
+    logger.info('PWA: Service worker registered successfully', {
+      scope: registration.scope,
+      mode: import.meta.env.MODE
+    });
+  }
+}).catch((error) => {
+  logger.error('PWA: Service worker registration failed:', error);
+});
+
+console.log('✅ [PWA] Service worker enabled for offline functionality');
 
 logger.success("React application initialized successfully", {
   initTime: appInitTime,

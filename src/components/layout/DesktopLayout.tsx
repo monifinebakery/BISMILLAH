@@ -6,6 +6,7 @@ import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
+import PWAInstallButton, { PWAStatus } from "@/components/pwa/PWAInstallButton";
 import { AppError } from "@/components/loaders";
 import { useIPadSidebar } from "@/hooks/use-ipad-sidebar";
 import { cn } from "@/lib/utils";
@@ -72,6 +73,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
             <SidebarTrigger className="-ml-1" />
             <div className="flex-1" />
             <div className="flex items-center space-x-4">
+              <PWAInstallButton className="" showNetworkStatus={false} />
               <PaymentStatusIndicator />
               <DateTimeDisplay />
               <NotificationBell />
@@ -82,12 +84,15 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
           
           {/* ✅ Main Content */}
           <main className="flex-1 w-full min-w-0 overflow-auto p-2 sm:p-4 md:p-6">
-            <ErrorBoundary fallback={() => <AppError />}>
+            <ErrorBoundary fallback={<AppError />}>
               {children}
             </ErrorBoundary>
           </main>
         </SidebarInset>
         </div>
+        
+        {/* PWA Debug Status - Only in development */}
+        <PWAStatus />
       </IPadOverlayWrapper>
     </SidebarProvider>
   );

@@ -205,29 +205,92 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
 
-  // Pastikan setiap item memiliki ID bahan baku; jika belum, buat otomatis
+  // ✅ FIXED: Pastikan setiap item memiliki ID bahan baku dengan race condition protection
   const ensureBahanBakuIds = useCallback(
     async (items: PurchaseItem[], supplierId: string): Promise<PurchaseItem[]> => {
-      return Promise.all(
-        items.map(async (item) => {
-          if (item.bahanBakuId?.trim()) return item;
-          const newId = crypto.randomUUID();
-          await addBahanBaku({
-            id: newId,
-            nama: item.nama,
-            kategori: 'Lainnya',
-            // Stok awal 0; penambahan stok dilakukan saat status purchase menjadi 'completed'
-            stok: 0,
-            minimum: 0,
-            satuan: item.satuan || '-',
-            harga: item.hargaSatuan || 0,
-            supplier: supplierId,
-          });
-          return { ...item, bahanBakuId: newId };
-        })
-      );
+      const results: PurchaseItem[] = [];
+      
+      // Process items sequentially to avoid race conditions
+      for (const item of items) {
+        if (item.bahanBakuId?.trim()) {
+          results.push(item);
+          continue;
+        }
+        
+        // Check if bahan baku with same name already exists
+        const existingBahanBaku = (bahanBaku as any[])?.find((bb: any) => 
+          bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
+          bb.supplier === supplierId
+        );
+        
+        if (existingBahanBaku) {
+          results.push({ ...item, bahanBakuId: existingBahanBaku.id });
+          continue;
+        }
+        
+        // Create new bahan baku with retry logic for race conditions
+        let retryCount = 0;
+        const maxRetries = 3;
+        let success = false;
+        let newId = crypto.randomUUID();
+        
+        while (!success && retryCount < maxRetries) {
+          try {
+            console.log(`🌱 [BAHAN BAKU] Creating new bahan baku (attempt ${retryCount + 1}):`, item.nama);
+            
+            await addBahanBaku({
+              id: newId,
+              nama: item.nama,
+              kategori: 'Lainnya',
+              // Stok awal 0; penambahan stok dilakukan saat status purchase menjadi 'completed'
+              stok: 0,
+              minimum: 0,
+              satuan: item.satuan || '-',
+              harga: item.hargaSatuan || 0,
+              supplier: supplierId,
+            });
+            
+            success = true;
+            console.log('✅ [BAHAN BAKU] Successfully created:', item.nama);
+            results.push({ ...item, bahanBakuId: newId });
+            
+          } catch (error: any) {
+            retryCount++;
+            console.log(`⚠️ [BAHAN BAKU] Creation attempt ${retryCount} failed:`, error?.message);
+            
+            // Check if it's a duplicate error
+            if (error?.message?.includes('duplicate') || error?.code === '23505') {
+              console.log('🔄 [BAHAN BAKU] Duplicate detected, checking for existing record...');
+              
+              // Try to find the existing record that was just created by another process
+              const newExisting = (bahanBaku as any[])?.find((bb: any) => 
+                bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
+                bb.supplier === supplierId
+              );
+              
+              if (newExisting) {
+                console.log('✅ [BAHAN BAKU] Found existing record after duplicate error:', newExisting.nama);
+                results.push({ ...item, bahanBakuId: newExisting.id });
+                success = true;
+                break;
+              }
+              
+              // Generate new ID for next attempt
+              newId = crypto.randomUUID();
+            }
+            
+            if (retryCount >= maxRetries) {
+              console.error('❌ [BAHAN BAKU] Failed to create after max retries:', item.nama);
+              // Use the item without bahanBakuId as fallback
+              results.push(item);
+            }
+          }
+        }
+      }
+      
+      return results;
     },
-    [addBahanBaku]
+    [addBahanBaku, bahanBaku]
   );
 
   // ------------------- Query (list) -------------------
@@ -239,17 +302,20 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryKey: purchaseQueryKeys.list(user?.id),
     queryFn: () => fetchPurchases(user!.id),
     enabled: !!user?.id,
-    staleTime: 0, // ✅ FIXED: Set to 0 for immediate refresh
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minute cache for better performance
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     retry: (count, err: any) => {
       const code = err?.code ?? err?.status;
-      return code && code >= 400 && code < 500 ? false : count < 3;
+      // Don't retry client errors (4xx)
+      if (code >= 400 && code < 500) return false;
+      // Retry server errors up to 2 times
+      return count < 2;
     },
-    retryDelay: (i) => Math.min(1000 * 2 ** i, 30000),
-    // ✅ FIXED: Remove placeholderData to prevent empty array display
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: false, // Prevent excessive refetching
-    refetchOnReconnect: true, // Refetch when reconnecting
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // PERFORMANCE: Only refetch if data is stale
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   // ------------------- Optimistic helpers -------------------
@@ -373,8 +439,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.log('✅ Update mutation success:', fresh.id);
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
-      // ✅ INVALIDATE WAREHOUSE
-      invalidateWarehouseData();
+      // ✅ OPTIMIZED: Only invalidate warehouse if items changed
+      if (_vars.updates.items || _vars.updates.status) {
+        invalidateWarehouseData();
+      }
 
       toast.success('Pembelian diperbarui. (Stok akan disesuaikan otomatis bila diperlukan)');
     },
@@ -416,7 +484,44 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
       // 🔧 FIX: Use previous data from mutation context instead of current cache
-      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      let prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      
+      // ✅ FALLBACK: If prevPurchase not available in context, try to find it or check database
+      if (!prevPurchase) {
+        console.log('⚠️ Previous purchase data not found in mutation context, trying fallback methods');
+        
+        // Try to find in current cache first
+        const currentCachePurchase = findPurchase(fresh.id);
+        if (currentCachePurchase) {
+          prevPurchase = currentCachePurchase;
+          console.log('📋 Found previous purchase data in current cache');
+        } else {
+          // As a last resort, check if fresh status is 'completed' and create transaction anyway
+          // This ensures financial sync works even when context is missing
+          console.log('📋 No previous purchase data available, will create financial transaction if status is completed');
+          
+          if (fresh.status === 'completed') {
+            console.log('💰 Creating financial transaction for completed purchase (fallback mode)');
+            
+            void addFinancialTransaction({
+              type: 'expense',
+              amount: fresh.totalNilai,
+              description: `Pembelian dari ${getSupplierName(fresh.supplier)} (auto-sync)`,
+              category: 'Pembelian Bahan Baku',
+              date: new Date(),
+              relatedId: fresh.id,
+            });
+            
+            // Invalidate related caches
+            queryClient.invalidateQueries({ queryKey: ['financial'] });
+            queryClient.invalidateQueries({ queryKey: ['profit-analysis'] });
+            
+            window.dispatchEvent(new CustomEvent('purchase:completed', {
+              detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.totalNilai }
+            }));
+          }
+        }
+      }
       
       if (prevPurchase) {
         console.log('🔍 Purchase status comparison:', {

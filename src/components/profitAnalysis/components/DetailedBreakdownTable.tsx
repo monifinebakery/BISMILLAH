@@ -226,9 +226,9 @@ const DetailedBreakdownTable = ({
   
   // Log warnings in development
   if (import.meta.env.DEV && cogsResult.warnings.length > 0) {
-    cogsResult.warnings.forEach(warning => 
-      console.warn('[DetailedTable] COGS warning:', warning)
-    );
+    cogsResult.warnings.forEach(warning => {
+      console.warn('[DetailedBreakdown] COGS warning:', warning);
+    });
   }
   
   if (import.meta.env.DEV && !validationResult.isValid) {

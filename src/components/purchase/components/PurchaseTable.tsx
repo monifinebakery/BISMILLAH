@@ -67,8 +67,15 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   const {
     updatePurchase,
     deletePurchase,
+    setStatus,
     getSupplierName: getSupplierNameFromContext
   } = usePurchase();
+  
+  // ✅ DEBUG: Log setStatus availability
+  React.useEffect(() => {
+    console.log('📊 [PURCHASE TABLE DEBUG] setStatus function:', typeof setStatus === 'function');
+    console.log('📊 [PURCHASE TABLE DEBUG] updatePurchase function:', typeof updatePurchase === 'function');
+  }, [setStatus, updatePurchase]);
 
   // ✅ Custom hook for table state management
   const {
@@ -132,6 +139,7 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   } = useBulkOperations({
     updatePurchase,
     deletePurchase,
+    setStatus, // ✅ ADD: For proper financial auto-sync in bulk operations
     selectedItems,
     clearSelection,
   });

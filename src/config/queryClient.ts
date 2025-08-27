@@ -5,8 +5,17 @@ import { logger } from "@/utils/logger";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      // ULTRA PERFORMANCE: Extended stale time untuk mengurangi refetch
+      staleTime: 10 * 60 * 1000, // 10 minutes (dari 5 minutes)
+      gcTime: 15 * 60 * 1000, // 15 minutes (dari 10 minutes)
+      
+      // CRITICAL: Disable semua auto-refetch untuk performa maksimal
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false, // Disable untuk performa, user bisa manual refresh
+      refetchOnMount: 'always', // Hanya refetch jika data benar-benar stale
+      refetchInterval: false, // Disable auto polling
+      
+      // OPTIMIZED: Retry strategy yang lebih efisien
       retry: (failureCount, error: any) => {
         // Don't retry auth errors
         if (error?.message?.includes('session missing') || 
@@ -15,20 +24,27 @@ export const queryClient = new QueryClient({
           logger.warn('QueryClient: Auth error, not retrying:', error.message);
           return false;
         }
-        // Retry network errors up to 2 times
-        if (failureCount < 2) {
+        // Don't retry client errors (4xx)
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        // Retry network errors hanya 1 kali untuk performa
+        if (failureCount < 1) {
           logger.debug(`QueryClient: Retrying query (attempt ${failureCount + 1})`);
           return true;
         }
         return false;
       },
-      // Performance optimizations
-      refetchOnWindowFocus: false, // Disable auto refetch on window focus
-      refetchOnReconnect: true, // Enable refetch on network reconnect
-      refetchOnMount: true, // Refetch on component mount if data is stale
+      
+      // PERFORMANCE: Retry delay yang lebih cepat
+      retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 5000),
+      
+      // MEMORY: Batasi network mode untuk performa
+      networkMode: 'online',
     },
     mutations: {
-      retry: 1, // Retry mutations once on failure
+      retry: 0, // Disable retry untuk mutations demi performa
+      networkMode: 'online',
     },
   },
 });

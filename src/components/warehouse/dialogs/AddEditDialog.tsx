@@ -223,8 +223,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent centerMode="overlay" size="xl">
-        <div className="dialog-panel dialog-panel-xl">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-4xl">
           <DialogHeader className="dialog-header">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center">

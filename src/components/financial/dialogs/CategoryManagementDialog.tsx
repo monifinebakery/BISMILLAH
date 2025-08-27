@@ -295,9 +295,9 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
       }
       onClose();
     }}>
-      <DialogContent centerMode="overlay" size="xl">
-        <div className="dialog-panel dialog-panel-xl">
-          <DialogHeader className="dialog-header border-b">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-4xl">
+          <DialogHeader className="dialog-header">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Palette className="w-4 h-4 text-purple-600" />
@@ -338,7 +338,7 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
             </div>
           </div>
           
-          <DialogFooter className="dialog-footer-pad">
+          <DialogFooter className="dialog-footer">
             <Button variant="outline" onClick={() => onClose()}>
               Batal
             </Button>

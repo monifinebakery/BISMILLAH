@@ -36,9 +36,9 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent centerMode="overlay" size="md">
+      <DialogContent className="dialog-overlay-center">
         <div className="dialog-panel">
-          <DialogHeader className="dialog-header-pad">
+          <DialogHeader className="dialog-header">
             <DialogTitle className="text-lg sm:text-xl font-bold text-gray-800">
               {supplier ? 'Edit Supplier' : 'Tambah Supplier'}
             </DialogTitle>

@@ -83,9 +83,9 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent centerMode="overlay" size="xl">
-          <div className="dialog-panel dialog-panel-lg">
-            <DialogHeader className="dialog-header border-b">
+        <DialogContent className="dialog-overlay-center">
+          <div className="dialog-panel max-w-5xl">
+            <DialogHeader className="dialog-header">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -140,7 +140,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
               </div>
             </div>
 
-            <DialogFooter className="dialog-footer-pad">
+            <DialogFooter className="dialog-footer">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Tutup
               </Button>

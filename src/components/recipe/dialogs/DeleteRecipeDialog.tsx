@@ -55,9 +55,9 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent centerMode="overlay" size="md">
+      <DialogContent className="dialog-overlay-center">
         <div className="dialog-panel">
-          <DialogHeader className="dialog-header border-b border-gray-200 bg-red-50">
+          <DialogHeader className="dialog-header bg-red-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-600" />

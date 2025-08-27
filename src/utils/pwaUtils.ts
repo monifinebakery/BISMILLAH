@@ -122,6 +122,24 @@ class PWAManager {
   }
 
   /**
+   * Check if app is potentially installable (even without prompt)
+   */
+  isPotentiallyInstallable(): boolean {
+    // Already installed
+    if (this.isInstalled) return false;
+    
+    // Has install prompt (best case)
+    if (this.installPrompt) return true;
+    
+    // Check basic PWA requirements
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const isHTTPS = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    const hasManifest = document.querySelector('link[rel="manifest"]');
+    
+    return hasServiceWorker && isHTTPS && !!hasManifest;
+  }
+
+  /**
    * Check if app is installed
    */
   getInstallStatus(): boolean {
@@ -311,7 +329,8 @@ export function usePWA() {
     install,
     updateApp,
     cacheUrls: pwaManager.cacheUrls.bind(pwaManager),
-    updateServiceWorker: pwaManager.updateServiceWorker.bind(pwaManager)
+    updateServiceWorker: pwaManager.updateServiceWorker.bind(pwaManager),
+    isPotentiallyInstallable: pwaManager.isPotentiallyInstallable.bind(pwaManager)
   };
 }
 

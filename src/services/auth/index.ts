@@ -24,7 +24,7 @@ export { linkPaymentToUser, checkUserHasPayment, debugConstraintIssue } from './
 export { getUserAccessStatus, hasAppAccess, getUserPaymentStatus } from './payments/access';
 
 // Type exports
-export type { PaymentRecord, UserAccessStatus } from './types';
+export type { PaymentRecord, UserAccessStatus, AuthUser, OtpOptions } from './types';
 
 // Utility exports
 export { validateEmail, getErrorMessage } from './utils';

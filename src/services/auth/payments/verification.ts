@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { validateEmail, getErrorMessage } from '@/services/auth/utils';
+import type { PaymentRecord } from '@/services/auth/types';
 import { isAuthenticated, getCurrentUser } from '@/services/auth/core/authentication';
 
 export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
@@ -41,7 +42,7 @@ export const verifyOrderExists = async (orderId: string): Promise<boolean> => {
 export const verifyCustomerOrder = async (email: string, orderId: string): Promise<{
   success: boolean;
   message: string;
-  data?: any;
+  data?: PaymentRecord;
   needsAuth?: boolean;
 }> => {
   try {
@@ -224,11 +225,11 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
       message: 'Order ini sudah terhubung dengan akun lain. Silakan hubungi admin jika ini adalah order Anda.' 
     };
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('❌ Unexpected error in verifyCustomerOrder:', error);
-    return { 
-      success: false, 
-      message: error.message || 'Terjadi kesalahan saat memverifikasi order' 
+    return {
+      success: false,
+      message: getErrorMessage(error)
     };
   }
 };

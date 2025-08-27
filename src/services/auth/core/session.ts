@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 import { CACHE_DURATION } from '@/services/auth/config';
+import type { AuthUser } from '@/services/auth/types';
 
 // ✅ SIMPLIFIED: Minimal session cache for utility functions only
 // AuthContext handles the main session management
@@ -38,10 +39,15 @@ export const getCurrentSession = async (): Promise<Session | null> => {
       setTimeout(() => reject(new Error('Session utility timeout')), 5000)
     );
     
-    const { data: { session }, error } = await Promise.race([
-      sessionPromise,
-      timeoutPromise
-    ]) as any;
+    interface SessionResult {
+      data: { session: Session | null };
+      error: unknown;
+    }
+
+    const { data: { session }, error } = await Promise.race<SessionResult>([
+      sessionPromise as Promise<SessionResult>,
+      timeoutPromise as Promise<SessionResult>
+    ]);
     
     if (error) {
       logger.error('[Session] Error getting session:', error);
@@ -91,10 +97,15 @@ export const refreshSession = async (): Promise<Session | null> => {
       setTimeout(() => reject(new Error('Session refresh timeout')), 10000)
     );
     
-    const { data, error } = await Promise.race([
-      refreshPromise,
-      timeoutPromise
-    ]) as any;
+    interface RefreshResult {
+      data: { session: Session | null };
+      error: unknown;
+    }
+
+    const { data, error } = await Promise.race<RefreshResult>([
+      refreshPromise as Promise<RefreshResult>,
+      timeoutPromise as Promise<RefreshResult>
+    ]);
     
     if (error) {
       logger.error('[Session] Session refresh error:', error);
@@ -145,7 +156,7 @@ export const invalidateSessionCache = () => {
 };
 
 // ✅ NEW: Check if session cache is synced with AuthContext
-export const validateSessionCacheSync = (authContextUser: any) => {
+export const validateSessionCacheSync = (authContextUser: AuthUser | null) => {
   const cacheInfo = getSessionCacheInfo();
   const isSync = cacheInfo.userId === authContextUser?.id;
   

@@ -281,8 +281,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent centerMode="overlay" size="xl">
-        <div className="dialog-panel dialog-panel-xl">
+      <DialogContent centerMode="overlay" size="lg">
+        <div className="dialog-panel dialog-panel-lg">
           <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />

@@ -91,8 +91,21 @@ export default defineConfig(({ mode }) => {
         // },
         external: ["next-themes"],
         output: {
-          // Disable manual chunking to ensure everything goes in main bundle
-          // manualChunks: undefined,
+          // Smart chunking - only split large vendor libraries
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              // Heavy libraries get their own chunks
+              if (id.includes('xlsx') || id.includes('exceljs')) return 'excel';
+              if (id.includes('chart.js') || id.includes('chartjs')) return 'chartjs';
+              if (id.includes('recharts')) return 'recharts';
+              if (id.includes('@tanstack/react-query')) return 'react-query';
+              if (id.includes('@supabase/supabase-js')) return 'supabase';
+              if (id.includes('react-router')) return 'router';
+              // All other node_modules go to vendor
+              return 'vendor';
+            }
+            // Keep app code in main bundle
+          },
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           assetFileNames: isProd

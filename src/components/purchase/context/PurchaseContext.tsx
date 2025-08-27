@@ -416,7 +416,44 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Catatan keuangan: tambahkan transaksi saat completed, hapus saat revert
       // 🔧 FIX: Use previous data from mutation context instead of current cache
-      const prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      let prevPurchase = ctx?.prev?.find(p => p.id === fresh.id);
+      
+      // ✅ FALLBACK: If prevPurchase not available in context, try to find it or check database
+      if (!prevPurchase) {
+        console.log('⚠️ Previous purchase data not found in mutation context, trying fallback methods');
+        
+        // Try to find in current cache first
+        const currentCachePurchase = findPurchase(fresh.id);
+        if (currentCachePurchase) {
+          prevPurchase = currentCachePurchase;
+          console.log('📋 Found previous purchase data in current cache');
+        } else {
+          // As a last resort, check if fresh status is 'completed' and create transaction anyway
+          // This ensures financial sync works even when context is missing
+          console.log('📋 No previous purchase data available, will create financial transaction if status is completed');
+          
+          if (fresh.status === 'completed') {
+            console.log('💰 Creating financial transaction for completed purchase (fallback mode)');
+            
+            void addFinancialTransaction({
+              type: 'expense',
+              amount: fresh.totalNilai,
+              description: `Pembelian dari ${getSupplierName(fresh.supplier)} (auto-sync)`,
+              category: 'Pembelian Bahan Baku',
+              date: new Date(),
+              relatedId: fresh.id,
+            });
+            
+            // Invalidate related caches
+            queryClient.invalidateQueries({ queryKey: ['financial'] });
+            queryClient.invalidateQueries({ queryKey: ['profit-analysis'] });
+            
+            window.dispatchEvent(new CustomEvent('purchase:completed', {
+              detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.totalNilai }
+            }));
+          }
+        }
+      }
       
       if (prevPurchase) {
         console.log('🔍 Purchase status comparison:', {

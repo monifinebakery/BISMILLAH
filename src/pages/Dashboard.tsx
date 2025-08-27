@@ -111,7 +111,7 @@ const Dashboard = () => {
   const greeting = useMemo(() => getGreeting(ownerName), [ownerName]);
 
   // 🛡️ Safe date range handler - menggunakan unified date utils
-  const handleDateRangeChange = (newRange: { from: string; to: string }) => {
+  const handleDateRangeChange = (newRange: { from: Date; to: Date }) => {
     if (!newRange || !newRange.from || !newRange.to) {
       logger.error('Dashboard - Invalid date range provided:', newRange);
       return;
@@ -125,7 +125,13 @@ const Dashboard = () => {
       return;
     }
 
-    setDateRange(newRange);
+    // Convert to normalized dates for database
+    const normalizedRange = {
+      from: normalizeDateForDatabase(fromDate),
+      to: normalizeDateForDatabase(toDate)
+    };
+    
+    setDateRange(normalizedRange);
   };
 
   // ⚠️ Error State

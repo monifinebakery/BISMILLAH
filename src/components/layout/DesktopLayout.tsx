@@ -6,7 +6,7 @@ import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import DateTimeDisplay from "@/components/DateTimeDisplay";
 import NotificationBell from "@/components/NotificationBell";
-import PWAInstallButton from "@/components/pwa/PWAInstallButton";
+import PWAInstallButton, { PWAStatus } from "@/components/pwa/PWAInstallButton";
 import { AppError } from "@/components/loaders";
 import { useIPadSidebar } from "@/hooks/use-ipad-sidebar";
 import { cn } from "@/lib/utils";
@@ -90,6 +90,9 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
           </main>
         </SidebarInset>
         </div>
+        
+        {/* PWA Debug Status - Only in development */}
+        <PWAStatus />
       </IPadOverlayWrapper>
     </SidebarProvider>
   );

@@ -210,8 +210,8 @@ export const AssetManagement: React.FC = () => {
                     Tambah Aset
                   </Button>
                 </DialogTrigger>
-                <DialogContent centerMode="overlay" size="md">
-                  <div className="dialog-panel dialog-panel-md">
+                <DialogContent centerMode="overlay" size="md+">
+                  <div className="dialog-panel dialog-panel-md-plus">
                     <DialogHeader className="dialog-header border-b">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">

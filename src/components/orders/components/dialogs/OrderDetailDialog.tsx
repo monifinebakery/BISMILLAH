@@ -22,7 +22,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent centerMode="overlay" size="md">
+      <DialogContent centerMode="overlay" size="md+">
         <div className="dialog-panel">
           <DialogHeader className="dialog-header">
             <DialogTitle>Detail Pesanan #{order.nomorPesanan}</DialogTitle>

@@ -60,7 +60,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent centerMode="overlay" size="lg">
+        <DialogContent centerMode="overlay" size="md+">
         <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
             <div className="flex items-center gap-3">

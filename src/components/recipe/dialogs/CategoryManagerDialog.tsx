@@ -83,8 +83,8 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent centerMode="overlay" size="lg">
-          <div className="dialog-panel dialog-panel-lg dialog-no-overflow">
+        <DialogContent centerMode="overlay" size="md+">
+          <div className="dialog-panel dialog-panel-md-plus dialog-no-overflow">
             <DialogHeader className="dialog-header">
               <div className="flex items-center gap-3 pr-12"> {/* Add right padding to avoid close button */}
                 <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">

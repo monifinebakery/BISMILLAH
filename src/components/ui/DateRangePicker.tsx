@@ -216,60 +216,65 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="p-0 w-fit max-w-none z-[9999]" 
+        className="p-0 border-0 shadow-none bg-transparent !w-auto !max-w-none" 
         align="start"
         side="bottom"
         sideOffset={4}
+        style={{ width: 'auto', maxWidth: 'none', zIndex: 9999 }}
       >
-        <div className="flex flex-col md:flex-row bg-white border rounded-lg shadow-lg overflow-hidden min-w-fit">
-          {/* Preset buttons sidebar */}
-          <div className="w-full md:w-48 flex-shrink-0 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200">
-            <div className="p-3">
-              <h4 className="font-medium text-sm mb-2 text-gray-700 text-overflow-safe">Pilih Cepat</h4>
-              <div className="space-y-1">
-                {PRESETS.map(({ label, key }) => (
-                  <Button
-                    key={key}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handlePreset(key)}
-                    className="w-full justify-start text-sm h-8 px-2 hover:bg-white text-gray-600 hover:text-gray-900 text-overflow-safe"
-                  >
-                    {label}
-                  </Button>
-                ))}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] relative">
+          <div className="flex">
+            {/* Preset buttons sidebar */}
+            <div className="w-48 bg-gray-50 border-r border-gray-200 rounded-l-lg">
+              <div className="p-3">
+                <h4 className="font-medium text-sm mb-2 text-gray-700">Pilih Cepat</h4>
+                <div className="space-y-1">
+                  {PRESETS.map(({ label, key }) => (
+                    <Button
+                      key={key}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handlePreset(key)}
+                      className="w-full justify-start text-sm h-8 px-2 hover:bg-white text-gray-600 hover:text-gray-900"
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-          
-          {/* Calendar section */}
-          <div className="p-3 bg-white flex-1" style={{ minWidth: isDesktop ? '600px' : '320px' }}>
-            <Calendar
-              mode="range"
-              selected={calendarRange}
-              onSelect={handleCalendarChange}
-              numberOfMonths={isDesktop ? 2 : 1}
-              locale={id}
-              className="mx-auto"
-            />
             
-            {/* Action buttons */}
-            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
-              <Button 
-                variant="outline" 
-                onClick={handleReset} 
-                size="sm"
-                className="flex-1 text-sm h-8"
-              >
-                Reset
-              </Button>
-              <Button 
-                onClick={() => setIsOpen(false)} 
-                size="sm"
-                className="flex-1 text-sm h-8"
-              >
-                Terapkan
-              </Button>
+            {/* Calendar section */}
+            <div className="bg-white rounded-r-lg" style={{ width: isDesktop ? '600px' : '350px' }}>
+              <div className="p-3">
+                <Calendar
+                  mode="range"
+                  selected={calendarRange}
+                  onSelect={handleCalendarChange}
+                  numberOfMonths={isDesktop ? 2 : 1}
+                  locale={id}
+                  className=""
+                />
+                
+                {/* Action buttons */}
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleReset} 
+                    size="sm"
+                    className="flex-1 text-sm h-8"
+                  >
+                    Reset
+                  </Button>
+                  <Button 
+                    onClick={() => setIsOpen(false)} 
+                    size="sm"
+                    className="flex-1 text-sm h-8"
+                  >
+                    Terapkan
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

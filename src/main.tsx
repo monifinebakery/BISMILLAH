@@ -206,8 +206,11 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 
 // ------------------------------
-// PWA initialization
+// PWA initialization - TEMPORARILY DISABLED
 // ------------------------------
+// DISABLED: Service worker causing website access issues
+// TODO: Re-enable after debugging
+/*
 if (import.meta.env.PROD) {
   pwaManager.registerServiceWorker().then((registration) => {
     if (registration) {
@@ -217,6 +220,8 @@ if (import.meta.env.PROD) {
     logger.error('PWA: Service worker registration failed:', error);
   });
 }
+*/
+console.log('🔧 [PWA] Service worker registration temporarily disabled for debugging');
 
 logger.success("React application initialized successfully", {
   initTime: appInitTime,

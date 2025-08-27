@@ -211,8 +211,8 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center max-w-5xl max-h-[90vh] overflow-y-auto">
-        <div className="dialog-panel">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-5xl">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
@@ -225,7 +225,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="dialog-body">
+          <div className="dialog-body overflow-y-auto">
             <Tabs defaultValue="templates" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="templates">Template</TabsTrigger>

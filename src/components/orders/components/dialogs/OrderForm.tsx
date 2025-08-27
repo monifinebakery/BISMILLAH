@@ -281,8 +281,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center max-w-5xl max-h-[90vh] overflow-y-auto">
-        <div className="dialog-panel">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-5xl">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -290,7 +290,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="dialog-body space-y-6">
+          <form onSubmit={handleSubmit} className="dialog-body overflow-y-auto space-y-6">
           {/* Customer Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">

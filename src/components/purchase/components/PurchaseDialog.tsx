@@ -260,7 +260,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
-      <DialogContent centerMode="overlay" className="dialog-overlay-center">
+      <DialogContent className="dialog-overlay-center">
         <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-3">
@@ -288,7 +288,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   : 'Lihat detail pembelian'}
             </DialogDescription>
           </DialogHeader>
-
           <div className="dialog-body">
             <div className="space-y-6">
           {/* Header Form - Supplier dan Tanggal */}

@@ -68,13 +68,18 @@ html, body {
 
   /* Overlay grid centering (paling stabil di semua device) */
   .dialog-overlay-center {
-    @apply fixed inset-0 grid place-items-center p-4 sm:p-6;
+    @apply fixed inset-0 flex items-center justify-center p-4;
     z-index: 70; /* > sidebar overlay */
+    background: rgba(0, 0, 0, 0.5);
   }
 
   /* Panel dalam overlay (apply bg/border/rounded di sini) */
   .dialog-panel {
-    @apply w-full max-w-lg bg-white rounded-xl shadow-xl;
+    @apply w-full max-w-4xl bg-white rounded-xl shadow-xl;
+    height: 80dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   /* Alternatif: fixed + translate (jika tidak pakai inner panel)
@@ -88,30 +93,30 @@ html, body {
   /* Area scroll di DALAM panel; pakai dvh supaya stabil di iOS Safari */
   .dialog-responsive {
     @apply overflow-y-auto overflow-x-hidden;
-    max-height: 85dvh;
+    /* Height akan diatur oleh parent dialog-panel */
     padding: 1rem;
   }
 
-  /* Breakpoints (padding & tinggi) */
+  /* Breakpoints (padding & lebar) */
   @media (max-width: 640px) {
-    .dialog-panel { @apply max-w-none; }
+    .dialog-panel { @apply max-w-none mx-2; }
     .dialog-content { @apply max-w-none; }
-    .dialog-responsive { max-height: 95dvh; padding: 1rem; }
+    .dialog-responsive { padding: 1rem; }
   }
   @media (min-width: 641px) and (max-width: 768px) {
-    .dialog-panel { @apply max-w-xl; }
+    .dialog-panel { @apply max-w-2xl; }
     .dialog-content { @apply max-w-xl; }
-    .dialog-responsive { max-height: 85dvh; padding: 1.5rem; }
+    .dialog-responsive { padding: 1.5rem; }
   }
   @media (min-width: 769px) and (max-width: 1024px) {
-    .dialog-panel { @apply max-w-2xl; }
+    .dialog-panel { @apply max-w-3xl; }
     .dialog-content { @apply max-w-2xl; }
-    .dialog-responsive { max-height: 80dvh; padding: 1.5rem; }
+    .dialog-responsive { padding: 1.5rem; }
   }
   @media (min-width: 1025px) {
-    .dialog-panel { @apply max-w-3xl; }
+    .dialog-panel { @apply max-w-4xl; }
     .dialog-content { @apply max-w-3xl; }
-    .dialog-responsive { max-height: 85dvh; padding: 2rem; }
+    .dialog-responsive { padding: 2rem; }
   }
 
   /* Wrapper tambahan (opsional) */
@@ -177,7 +182,7 @@ html, body {
   /* Dialog body, header, footer padding classes */
   .dialog-body {
     @apply flex-1 overflow-y-auto overflow-x-hidden p-6;
-    max-height: calc(90dvh - 8rem); /* Reserve space for header/footer */
+    /* Flex-1 akan mengambil sisa ruang dalam dialog-panel */
   }
   
   .dialog-header-pad {

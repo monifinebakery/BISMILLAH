@@ -408,7 +408,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <div className="dialog-panel max-w-4xl">
           <DialogHeader className="dialog-header-pad border-b bg-gradient-to-r from-orange-50 to-red-50">
             <div className="flex items-center justify-between">
               <div>
@@ -457,10 +457,9 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         </DialogHeader>
 
         {/* Content with extra bottom padding for mobile */}
-        <CardContent 
-          className="p-0 overflow-y-auto"
+        <div 
+          className="dialog-body overflow-y-auto"
           style={{ 
-            maxHeight: 'calc(90vh - 200px)',
             paddingBottom: '120px' // ✅ Extra space untuk menghindari bottom bar
           }}
           ref={contentRef}
@@ -468,7 +467,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           <div className="p-6">
             {renderStepContent()}
           </div>
-        </CardContent>
+        </div>
 
         {/* ✅ Footer - Fixed positioning with proper spacing for bottom navigation */}
         <div className="border-t bg-gray-50 p-4 sm:relative sm:bottom-auto">

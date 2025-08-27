@@ -26,8 +26,8 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ isOpen, onClose, onImport }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center max-w-5xl max-h-[90vh]">
-        <div className="dialog-panel flex flex-col h-full">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-5xl flex flex-col h-full">
           <DialogHeader className="dialog-header-pad">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">

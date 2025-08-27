@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { 
   Copy, 
@@ -106,7 +106,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
             </Button>
           </DialogHeader>
 
-        <CardContent className="p-6 max-h-[70vh] overflow-y-auto">
+          <div className="dialog-body overflow-y-auto">
           {/* Original Recipe Info */}
           <div className="mb-6">
             <h3 className="text-sm font-medium text-gray-700 mb-3">
@@ -257,20 +257,20 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-6">
+          </div>
+
+          <DialogFooter className="dialog-footer-pad">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="flex-1"
             >
               Batal
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={!isValid || isLoading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? (
                 <>
@@ -284,8 +284,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                 </>
               )}
             </Button>
-          </div>
-        </CardContent>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

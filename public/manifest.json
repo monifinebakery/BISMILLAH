@@ -1,11 +1,11 @@
 {
-  "name": "Kalkulator HPP - Warehouse Management",
-  "short_name": "HPP Calculator",
-  "description": "Aplikasi kalkulator HPP untuk menghitung Harga Pokok Penjualan dan manajemen warehouse",
+  "name": "Monifine - Kalkulator HPP & Warehouse Management",
+  "short_name": "Monifine",
+  "description": "Aplikasi kalkulator HPP untuk menghitung Harga Pokok Penjualan dan manajemen warehouse oleh Monifine",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#1a1a1a",
+  "theme_color": "#FF7A00",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "id",
@@ -17,15 +17,21 @@
       "type": "image/png"
     },
     {
-      "src": "/pwa-icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "/monifine-logo-orange.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/pwa-icon-512.png",
+      "src": "/monifine-icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/monifine-icon-512.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],

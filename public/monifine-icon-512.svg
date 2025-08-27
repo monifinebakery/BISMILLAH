@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with rounded corners for maskable icon -->
+  <rect width="512" height="512" rx="128" fill="#1a1a1a"/>
+  
+  <!-- Monifine logo scaled and centered -->
+  <g transform="translate(128, 96)">
+    <!-- Crown/Diamond top -->
+    <path d="M128 64L96 128L128 160L160 128L128 64Z" fill="#FF7A00"/>
+    
+    <!-- Main M logo -->
+    <path d="M32 288C16 288 0 272 0 256C0 240 16 224 32 224C80 224 80 288 96 288V144L128 176L160 144V288C176 288 176 224 224 224C240 224 256 240 256 256C256 272 240 288 224 288C208 288 192 284 176 272L128 224L80 272C64 284 48 288 32 288Z" fill="#FF7A00"/>
+    
+    <!-- Monifine text below -->
+    <text x="128" y="360" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="#FF7A00" text-anchor="middle">Monifine</text>
+  </g>
+</svg>

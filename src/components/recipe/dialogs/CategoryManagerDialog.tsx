@@ -83,30 +83,30 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="dialog-overlay-center">
-          <div className="dialog-panel max-w-5xl">
+        <DialogContent centerMode="overlay" size="xl">
+          <div className="dialog-panel dialog-panel-xl dialog-no-overflow">
             <DialogHeader className="dialog-header">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Tag className="w-4 h-4 text-orange-600" />
                   </div>
-                  <div>
-                    <DialogTitle className="text-xl text-gray-900">
+                  <div className="min-w-0 flex-1">
+                    <DialogTitle className="text-lg sm:text-xl text-gray-900 text-overflow-safe">
                       Kelola Kategori Resep
                     </DialogTitle>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1 text-overflow-safe">
                       Buat dan atur kategori sesuai kebutuhan Anda
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleRefresh}
                     disabled={isLoading}
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 input-mobile-safe"
                     title="Muat ulang data"
                   >
                     <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -116,7 +116,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
             </DialogHeader>
             
             <div className="dialog-body">
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6 dialog-no-overflow">
                 {/* Statistics */}
                 <CategoryStatsCards
                   totalRecipes={recipeStats.totalRecipes}
@@ -141,9 +141,11 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
             </div>
 
             <DialogFooter className="dialog-footer">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Tutup
-              </Button>
+              <div className="dialog-responsive-buttons">
+                <Button variant="outline" onClick={() => onOpenChange(false)} className="input-mobile-safe">
+                  <span className="text-overflow-safe">Tutup</span>
+                </Button>
+              </div>
             </DialogFooter>
           </div>
         </DialogContent>

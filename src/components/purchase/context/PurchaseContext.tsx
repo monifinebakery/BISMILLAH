@@ -205,29 +205,93 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
 
-  // Pastikan setiap item memiliki ID bahan baku; jika belum, buat otomatis
+  // ✅ FIXED: Pastikan setiap item memiliki ID bahan baku dengan race condition protection
   const ensureBahanBakuIds = useCallback(
     async (items: PurchaseItem[], supplierId: string): Promise<PurchaseItem[]> => {
-      return Promise.all(
-        items.map(async (item) => {
-          if (item.bahanBakuId?.trim()) return item;
-          const newId = crypto.randomUUID();
-          await addBahanBaku({
-            id: newId,
-            nama: item.nama,
-            kategori: 'Lainnya',
-            // Stok awal 0; penambahan stok dilakukan saat status purchase menjadi 'completed'
-            stok: 0,
-            minimum: 0,
-            satuan: item.satuan || '-',
-            harga: item.hargaSatuan || 0,
-            supplier: supplierId,
-          });
-          return { ...item, bahanBakuId: newId };
-        })
-      );
+      const results: PurchaseItem[] = [];
+      
+      // Process items sequentially to avoid race conditions
+      for (const item of items) {
+        if (item.bahanBakuId?.trim()) {
+          results.push(item);
+          continue;
+        }
+        
+        // Check if bahan baku with same name already exists
+        const existingBahanBaku = (bahanBaku as any[])?.find((bb: any) => 
+          bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
+          bb.supplier === supplierId
+        );
+        
+        if (existingBahanBaku) {
+          console.log('🔄 [BAHAN BAKU] Reusing existing bahan baku:', existingBahanBaku.nama);
+          results.push({ ...item, bahanBakuId: existingBahanBaku.id });
+          continue;
+        }
+        
+        // Create new bahan baku with retry logic for race conditions
+        let retryCount = 0;
+        const maxRetries = 3;
+        let success = false;
+        let newId = crypto.randomUUID();
+        
+        while (!success && retryCount < maxRetries) {
+          try {
+            console.log(`🌱 [BAHAN BAKU] Creating new bahan baku (attempt ${retryCount + 1}):`, item.nama);
+            
+            await addBahanBaku({
+              id: newId,
+              nama: item.nama,
+              kategori: 'Lainnya',
+              // Stok awal 0; penambahan stok dilakukan saat status purchase menjadi 'completed'
+              stok: 0,
+              minimum: 0,
+              satuan: item.satuan || '-',
+              harga: item.hargaSatuan || 0,
+              supplier: supplierId,
+            });
+            
+            success = true;
+            console.log('✅ [BAHAN BAKU] Successfully created:', item.nama);
+            results.push({ ...item, bahanBakuId: newId });
+            
+          } catch (error: any) {
+            retryCount++;
+            console.log(`⚠️ [BAHAN BAKU] Creation attempt ${retryCount} failed:`, error?.message);
+            
+            // Check if it's a duplicate error
+            if (error?.message?.includes('duplicate') || error?.code === '23505') {
+              console.log('🔄 [BAHAN BAKU] Duplicate detected, checking for existing record...');
+              
+              // Try to find the existing record that was just created by another process
+              const newExisting = (bahanBaku as any[])?.find((bb: any) => 
+                bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
+                bb.supplier === supplierId
+              );
+              
+              if (newExisting) {
+                console.log('✅ [BAHAN BAKU] Found existing record after duplicate error:', newExisting.nama);
+                results.push({ ...item, bahanBakuId: newExisting.id });
+                success = true;
+                break;
+              }
+              
+              // Generate new ID for next attempt
+              newId = crypto.randomUUID();
+            }
+            
+            if (retryCount >= maxRetries) {
+              console.error('❌ [BAHAN BAKU] Failed to create after max retries:', item.nama);
+              // Use the item without bahanBakuId as fallback
+              results.push(item);
+            }
+          }
+        }
+      }
+      
+      return results;
     },
-    [addBahanBaku]
+    [addBahanBaku, bahanBaku]
   );
 
   // ------------------- Query (list) -------------------

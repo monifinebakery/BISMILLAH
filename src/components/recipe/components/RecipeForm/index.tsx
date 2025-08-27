@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   X, 
   ChevronLeft, 
@@ -407,73 +407,67 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-4xl max-h-[90vh]">
-          <DialogHeader className="dialog-header-pad border-b bg-gradient-to-r from-orange-50 to-red-50">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel dialog-panel-xl">
+          <DialogHeader className="dialog-header border-b bg-gradient-to-r from-orange-50 to-red-50">
             <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-bold text-gray-900">
-                  {isEditMode ? 'Edit Resep' : 'Tambah Resep Baru'}
-                </DialogTitle>
-                <p className="text-sm text-gray-600 mt-1">
-                  {STEPS[currentStepIndex].description}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Calculator className="w-4 h-4 text-orange-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl text-gray-900">
+                    {isEditMode ? 'Edit Resep' : 'Tambah Resep Baru'}
+                  </DialogTitle>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {STEPS[currentStepIndex].description}
+                  </p>
+                </div>
               </div>
             </div>
-          {/* Step Progress */}
-          <div className="flex items-center gap-4 mt-4">
-            {STEPS.map((step, index) => (
-              <div key={step.key} className="flex items-center">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                      index <= currentStepIndex
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-200 text-gray-500'
-                    }`}
-                  >
-                    {index < currentStepIndex ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : (
-                      index + 1
-                    )}
+            
+            {/* Step Progress */}
+            <div className="flex items-center gap-4 mt-4">
+              {STEPS.map((step, index) => (
+                <div key={step.key} className="flex items-center">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                        index <= currentStepIndex
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {index < currentStepIndex ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    <div className="hidden sm:block">
+                      <p className={`text-sm font-medium ${
+                        index <= currentStepIndex ? 'text-orange-700' : 'text-gray-500'
+                      }`}>
+                        {step.title}
+                      </p>
+                    </div>
                   </div>
-                  <div className="hidden sm:block">
-                    <p className={`text-sm font-medium ${
-                      index <= currentStepIndex ? 'text-orange-700' : 'text-gray-500'
-                    }`}>
-                      {step.title}
-                    </p>
-                  </div>
+                  {index < STEPS.length - 1 && (
+                    <div className={`w-8 h-0.5 mx-2 ${
+                      index < currentStepIndex ? 'bg-orange-500' : 'bg-gray-200'
+                    }`} />
+                  )}
                 </div>
-                {index < STEPS.length - 1 && (
-                  <div className={`w-8 h-0.5 mx-2 ${
-                    index < currentStepIndex ? 'bg-orange-500' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </DialogHeader>
+              ))}
+            </div>
+          </DialogHeader>
 
-        {/* Content with extra bottom padding for mobile */}
-        <div 
-          className="dialog-body overflow-y-auto"
-          style={{ 
-            paddingBottom: '120px' // ✅ Extra space untuk menghindari bottom bar
-          }}
-          ref={contentRef}
-        >
-          <div className="p-6">
+          <div className="dialog-body">
             {renderStepContent()}
           </div>
-        </div>
-
-        {/* ✅ Footer - Fixed positioning with proper spacing for bottom navigation */}
-        <div className="border-t bg-gray-50 p-4 sm:relative sm:bottom-auto">
-          {/* ✅ Desktop: normal footer */}
-          <div className="hidden sm:block">
-            <div className="flex items-center justify-between max-w-4xl mx-auto">
+          
+          <DialogFooter className="dialog-footer-pad border-t bg-gray-50">
+            <div className="flex items-center justify-between w-full">
               {/* Left side - HPP Preview (on cost step) */}
               <div className="flex-1">
                 {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
@@ -489,13 +483,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   </div>
                 )}
               </div>
+              
               {/* Navigation buttons */}
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   onClick={handlePrevious}
                   disabled={isFirstStep || isLoading}
-                  className="px-4"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Sebelumnya
@@ -504,7 +498,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   <Button
                     onClick={handleSubmit}
                     disabled={isLoading || isCalculating}
-                    className="bg-orange-500 hover:bg-orange-600 px-4"
+                    className="bg-orange-500 hover:bg-orange-600"
                   >
                     {isLoading ? (
                       <>
@@ -522,7 +516,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   <Button
                     onClick={handleNext}
                     disabled={isLoading}
-                    className="bg-orange-500 hover:bg-orange-600 px-4"
+                    className="bg-orange-500 hover:bg-orange-600"
                   >
                     Selanjutnya
                     <ChevronRight className="h-4 w-4 ml-1" />
@@ -530,99 +524,29 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                 )}
               </div>
             </div>
-          </div>
-
-          {/* ✅ Mobile: Fixed footer dengan spacing untuk bottom nav */}
-          <div className="sm:hidden">
-            {/* ✅ Fixed footer positioned above bottom navigation */}
-            <div 
-              className="fixed left-0 right-0 bg-white border-t border z-[60]"
-              style={{
-                bottom: '80px', // ✅ Positioned 80px from bottom (above bottom nav)
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)'
-              }}
-            >
-              <div className="p-4">
-                {/* HPP Preview on mobile */}
-                {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
-                  <div className="flex items-center justify-center gap-2 text-sm mb-3 py-2 bg-orange-50 rounded-lg">
-                    <Calculator className="h-4 w-4 text-orange-600" />
-                    <span className="text-gray-600">HPP:</span>
-                    <Badge variant="outline" className="text-orange-700 border-orange-300">
-                      Rp {(formData.hppPerPorsi || 0).toLocaleString()}
-                    </Badge>
-                    {isCalculating && (
-                      <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full" />
-                    )}
-                  </div>
-                )}
-
-                {/* Navigation buttons */}
-                <div className="flex items-center justify-between gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={isFirstStep || isLoading}
-                    className="flex-1"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Sebelumnya
-                  </Button>
-                  {isLastStep ? (
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={isLoading || isCalculating}
-                      className="bg-orange-500 hover:bg-orange-600 flex-1"
-                    >
-                      {isLoading ? (
-                        <>
-                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
-                          Simpan...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-1" />
-                          {isEditMode ? 'Update' : 'Simpan'}
-                        </>
+            
+            {/* Form errors summary */}
+            {Object.keys(errors).length > 0 && (
+              <div className="w-full mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-red-800">
+                      Terdapat kesalahan pada form:
+                    </p>
+                    <ul className="text-sm text-red-700 mt-1 space-y-1">
+                      {Object.values(errors).filter(Boolean).slice(0, 3).map((error, index) => (
+                        <li key={index} className="truncate">• {error}</li>
+                      ))}
+                      {Object.values(errors).filter(Boolean).length > 3 && (
+                        <li className="text-xs">... dan {Object.values(errors).filter(Boolean).length - 3} kesalahan lainnya</li>
                       )}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleNext}
-                      disabled={isLoading}
-                      className="bg-orange-500 hover:bg-orange-600 flex-1"
-                    >
-                      Selanjutnya
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  )}
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Form errors summary - Mobile Optimized */}
-          {Object.keys(errors).length > 0 && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg max-w-4xl mx-auto">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-red-800">
-                    Terdapat kesalahan pada form:
-                  </p>
-                  <ul className="text-sm text-red-700 mt-1 space-y-1">
-                    {Object.values(errors).filter(Boolean).slice(0, 3).map((error, index) => (
-                      <li key={index} className="truncate">• {error}</li>
-                    ))}
-                    {Object.values(errors).filter(Boolean).length > 3 && (
-                      <li className="text-xs">... dan {Object.values(errors).filter(Boolean).length - 3} kesalahan lainnya</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

@@ -212,13 +212,23 @@ const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }
                 Atur Budget
               </Button>
             </DialogTrigger>
-            <DialogContent className="dialog-overlay-center">
-              <div className="dialog-panel">
-                <DialogHeader className="dialog-header-pad">
-                  <DialogTitle>Tambah Budget Kategori</DialogTitle>
+            <DialogContent centerMode="overlay" size="md">
+              <div className="dialog-panel dialog-panel-md">
+                <DialogHeader className="dialog-header border-b">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-xl text-gray-900">Tambah Budget Kategori</DialogTitle>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Atur batas pengeluaran dan peringatan untuk kategori
+                      </p>
+                    </div>
+                  </div>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
-                  <div className="dialog-body space-y-4 py-4">
+                  <div className="dialog-body space-y-4">
                 <div>
                   <Label htmlFor="category">Kategori Pengeluaran *</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
@@ -267,7 +277,7 @@ const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }
                   
                   </div>
                   
-                  <DialogFooter className="dialog-footer-pad pt-4">
+                  <DialogFooter className="dialog-footer-pad">
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
                     <Button type="submit">Simpan</Button>
                   </DialogFooter>

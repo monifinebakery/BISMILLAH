@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
@@ -179,11 +180,21 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent centerMode="overlay" size="lg">
-        <div className="dialog-panel">
-          <DialogHeader className="dialog-header">
-            <DialogTitle>
-              {transaction ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}
-            </DialogTitle>
+        <div className="dialog-panel dialog-panel-lg">
+          <DialogHeader className="dialog-header border-b">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Plus className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl text-gray-900">
+                  {transaction ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}
+                </DialogTitle>
+                <p className="text-sm text-gray-500 mt-1">
+                  {transaction ? 'Perbarui detail transaksi keuangan' : 'Catat transaksi pemasukan atau pengeluaran'}
+                </p>
+              </div>
+            </div>
           </DialogHeader>
 
           <form onSubmit={handleSubmit}>

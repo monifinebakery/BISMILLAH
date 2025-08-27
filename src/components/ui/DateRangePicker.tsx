@@ -174,34 +174,31 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <DialogTrigger asChild>
           <Button {...buttonProps}>{content}</Button>
         </DialogTrigger>
-<<<<<<< HEAD
-        <DialogContent centerMode="overlay" size="md">
-          <DialogHeader className="dialog-header">
-            <DialogTitle className="text-overflow-safe">Pilih Rentang Tanggal</DialogTitle>
-            <DialogDescription className="text-overflow-safe">
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
+            <DialogDescription>
               Pilih rentang tanggal untuk memfilter data.
             </DialogDescription>
           </DialogHeader>
-          <div className="dialog-body">
+          <div className="space-y-4">
+            <PresetButtons />
             <div className="space-y-3">
-              <PresetButtons />
-              <div className="p-3 dialog-no-overflow">
-                <Calendar
-                  mode="range"
-                  selected={calendarRange}
-                  onSelect={handleCalendarChange}
-                  numberOfMonths={1}
-                  locale={id}
-                  className="mx-auto"
-                />
-                <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
-                  <Button variant="outline" onClick={handleReset} className="input-mobile-safe">
-                    <span className="text-overflow-safe">Reset</span>
-                  </Button>
-                  <Button onClick={() => setIsOpen(false)} className="input-mobile-safe">
-                    <span className="text-overflow-safe">Terapkan</span>
-                  </Button>
-                </div>
+              <Calendar
+                mode="range"
+                selected={calendarRange}
+                onSelect={handleCalendarChange}
+                numberOfMonths={1}
+                locale={id}
+                className="mx-auto"
+              />
+              <div className="flex flex-col gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={handleReset}>
+                  Reset
+                </Button>
+                <Button onClick={() => setIsOpen(false)}>
+                  Terapkan
+                </Button>
               </div>
             </div>
           </div>
@@ -216,18 +213,15 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="p-0 border-0 shadow-none bg-transparent !w-auto !max-w-none" 
+        className="p-0 w-auto max-w-[95vw] max-h-[90vh]" 
         align="start"
-        className="p-0 w-auto max-w-[95vw] max-h-[90vh] overflow-hidden" 
         sideOffset={4}
-        style={{ width: 'auto', maxWidth: 'none', zIndex: 9999 }}
-      >
         avoidCollisions={true}
         collisionPadding={8}
-          <div className="flex">
+      >
         <div className="flex flex-col lg:flex-row bg-white border rounded-lg shadow-lg overflow-hidden max-w-full">
           {/* Preset buttons sidebar */}
-          <div className="w-full lg:w-44 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-500">
+          <div className="w-full lg:w-44 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r">
             <div className="p-3">
               <h4 className="font-medium text-sm mb-2 text-gray-700">Pilih Cepat</h4>
               <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
@@ -260,7 +254,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             </div>
             
             {/* Action buttons */}
-            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-500">
+            <div className="flex gap-2 mt-3 pt-3 border-t">
               <Button 
                 variant="outline" 
                 onClick={handleReset} 
@@ -276,6 +270,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
               >
                 Terapkan
               </Button>
+            </div>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

@@ -58,8 +58,8 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-md max-h-[90vh]">
-          <DialogHeader className="dialog-header-pad">
+        <div className="dialog-panel w-full max-w-md">
+          <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5 text-blue-600" />
               Edit Massal Biaya Operasional
@@ -165,18 +165,19 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
           </div>
           </div>
           
-          <DialogFooter className="dialog-footer-pad">
+          <DialogFooter className="dialog-footer">
             <Button
               variant="outline"
               onClick={onClose}
               disabled={isProcessing}
+              className="w-full sm:w-auto"
             >
               Batal
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={isProcessing}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
             >
               {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Edit {selectedCount} Biaya

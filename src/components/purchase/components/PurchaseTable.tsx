@@ -70,6 +70,12 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     setStatus,
     getSupplierName: getSupplierNameFromContext
   } = usePurchase();
+  
+  // ✅ DEBUG: Log setStatus availability
+  React.useEffect(() => {
+    console.log('📊 [PURCHASE TABLE DEBUG] setStatus function:', typeof setStatus === 'function');
+    console.log('📊 [PURCHASE TABLE DEBUG] updatePurchase function:', typeof updatePurchase === 'function');
+  }, [setStatus, updatePurchase]);
 
   // ✅ Custom hook for table state management
   const {

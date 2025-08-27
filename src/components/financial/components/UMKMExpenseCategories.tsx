@@ -93,20 +93,39 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
   // Analisis kategori pengeluaran bulan ini
   const categoryAnalysis = useMemo((): CategoryData[] => {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    
+    // ✅ DEBUG: Log all data
+    console.log('🔍 [UMKM DEBUG] Current month:', currentMonth);
+    console.log('🔍 [UMKM DEBUG] All transactions count:', transactions.length);
+    console.log('🔍 [UMKM DEBUG] All transactions:', transactions);
+    
     const monthExpenses = transactions.filter(t => {
-      if (!t.date || t.type !== 'expense') return false;
+      if (!t.date || t.type !== 'expense') {
+        if (!t.date) console.log('⚠️ [UMKM DEBUG] Transaction without date:', t);
+        if (t.type !== 'expense') console.log('⚠️ [UMKM DEBUG] Non-expense transaction:', t);
+        return false;
+      }
       const dateStr = t.date instanceof Date ? t.date.toISOString() : String(t.date);
-      return dateStr.startsWith(currentMonth);
+      const matches = dateStr.startsWith(currentMonth);
+      if (!matches) console.log('⚠️ [UMKM DEBUG] Date not matching current month:', { date: dateStr, currentMonth, transaction: t });
+      return matches;
     });
+    
+    console.log('🔍 [UMKM DEBUG] Month expenses count:', monthExpenses.length);
+    console.log('🔍 [UMKM DEBUG] Month expenses:', monthExpenses);
 
     const totalExpense = monthExpenses.reduce((sum, t) => sum + (t.amount || 0), 0);
 
     // Group by category
     const categoryTotals = monthExpenses.reduce((acc, t) => {
       const category = t.category || 'Lainnya';
+      console.log('🔍 [UMKM DEBUG] Processing transaction:', { category, amount: t.amount, transaction: t });
       acc[category] = (acc[category] || 0) + (t.amount || 0);
       return acc;
     }, {} as Record<string, number>);
+    
+    console.log('🔍 [UMKM DEBUG] Category totals:', categoryTotals);
+    console.log('🔍 [UMKM DEBUG] Pembelian Bahan Baku total:', categoryTotals['Pembelian Bahan Baku'] || 'NOT FOUND');
 
     // Convert to CategoryData array
     const categories = Object.entries(categoryTotals).map(([category, amount]) => {

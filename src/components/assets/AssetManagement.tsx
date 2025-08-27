@@ -209,22 +209,26 @@ export const AssetManagement: React.FC = () => {
                     Tambah Aset
                   </Button>
                 </DialogTrigger>
-                <DialogContent className={`${isMobile ? 'w-[95vw] max-w-sm h-[90vh]' : 'w-[95vw] max-w-md max-h-[90vh]'}`}>
-                  <DialogHeader>
-                    <DialogTitle className="text-orange-600">
-                      {editingAsset ? 'Edit Aset' : 'Tambah Aset Baru'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <AssetForm
-                    formData={formData}
-                    errors={formErrors}
-                    onFieldChange={updateField}
-                    onSubmit={handleFormSubmit}
-                    onCancel={handleFormClose}
-                    isSubmitting={isMutating}
-                    canSubmit={canSubmit}
-                    mode={editingAsset ? 'edit' : 'create'}
-                  />
+                <DialogContent className="dialog-overlay-center">
+                  <div className="dialog-panel w-full max-w-md">
+                    <DialogHeader className="dialog-header-pad">
+                      <DialogTitle className="text-orange-600">
+                        {editingAsset ? 'Edit Aset' : 'Tambah Aset Baru'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="dialog-body">
+                      <AssetForm
+                        formData={formData}
+                        errors={formErrors}
+                        onFieldChange={updateField}
+                        onSubmit={handleFormSubmit}
+                        onCancel={handleFormClose}
+                        isSubmitting={isMutating}
+                        canSubmit={canSubmit}
+                        mode={editingAsset ? 'edit' : 'create'}
+                      />
+                    </div>
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>

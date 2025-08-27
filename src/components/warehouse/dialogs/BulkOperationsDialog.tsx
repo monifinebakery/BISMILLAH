@@ -179,8 +179,8 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center max-w-2xl max-h-[90vh]">
-        <div className="dialog-panel flex flex-col h-full">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-2xl flex flex-col h-full">
           <DialogHeader className="dialog-header-pad">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${

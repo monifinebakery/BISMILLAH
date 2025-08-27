@@ -84,7 +84,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="dialog-overlay-center">
-          <div className="dialog-panel w-full max-w-4xl max-h-[90vh] overflow-hidden">
+          <div className="dialog-panel max-w-4xl">
             <DialogHeader className="dialog-header-pad border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -123,7 +123,7 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
             </div>
           </DialogHeader>
           
-          <div className="dialog-body p-0 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <div className="dialog-body overflow-y-auto">
             <div className="p-6 space-y-6">
               {/* Statistics */}
               <CategoryStatsCards

@@ -119,8 +119,8 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="dialog-panel">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-2xl">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-2">
               {operationType === 'edit' ? (
@@ -143,7 +143,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="dialog-body space-y-6">
+          <div className="dialog-body space-y-6 overflow-y-auto">
           {/* Operation Type Selector */}
           <div className="flex gap-2">
             <Button

@@ -168,15 +168,15 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="dialog-overlay-center w-full sm:max-w-md max-h-[70vh] overflow-y-auto">
-        <div className="dialog-panel">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel w-full sm:max-w-md">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle>
               {cost ? '✏️ Edit Biaya Operasional' : '➕ Tambah Biaya Operasional'}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="dialog-body">
+          <div className="dialog-body overflow-y-auto">
             <form id="cost-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Nama Biaya */}
           <div className="space-y-2">

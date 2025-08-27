@@ -223,8 +223,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center max-w-4xl" style={{ height: 'calc(100vh - 160px)', maxHeight: '90vh', minHeight: '500px' }}>
-        <div className="dialog-panel flex flex-col h-full">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel max-w-4xl flex flex-col h-full">
           <DialogHeader className="dialog-header-pad">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center">

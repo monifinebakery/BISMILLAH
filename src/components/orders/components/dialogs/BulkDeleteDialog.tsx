@@ -49,8 +49,8 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center max-w-2xl">
-        <div className="dialog-panel">
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel w-full max-w-2xl">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />

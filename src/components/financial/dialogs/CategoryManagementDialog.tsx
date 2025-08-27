@@ -39,15 +39,15 @@ interface ColorPickerProps {
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorChange }) => (
-  <div className="flex flex-wrap gap-1 mt-2">
+  <div className="flex flex-wrap gap-1 mt-2 dialog-no-overflow">
     {CATEGORY_COLORS.map((color) => (
       <button
         key={color}
         type="button"
-        className={`w-5 h-5 rounded-full border ${
+        className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border ${
           selectedColor === color ? 'border-gray-600 scale-110' : 'border-gray-300'
-        } transition-transform`}
-        style={{ backgroundColor: color }}
+        } transition-transform input-mobile-safe flex-shrink-0`}
+        style={{ backgroundColor: color, minHeight: '44px', minWidth: '44px' }}
         onClick={() => onColorChange(color)}
       />
     ))}
@@ -75,28 +75,29 @@ const CategorySection: React.FC<CategorySectionProps> = React.memo(({
   onAddCategory,
   onDeleteCategory
 }) => (
-  <Card>
+  <Card className="dialog-no-overflow">
     <CardHeader>
-      <CardTitle className="text-base">{title}</CardTitle>
+      <CardTitle className="text-base text-overflow-safe">{title}</CardTitle>
     </CardHeader>
     <CardContent className="space-y-3">
       {/* Add Category Form */}
-      <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+      <div className="space-y-2 p-3 bg-gray-50 rounded-lg dialog-no-overflow">
         <Input
           placeholder="Kategori baru..."
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onAddCategory()}
+          className="input-mobile-safe"
         />
         <ColorPicker selectedColor={selectedColor} onColorChange={setSelectedColor} />
-        <Button size="sm" onClick={onAddCategory} className="w-full">
-          <Plus size={16} className="mr-1" />
-          Tambah
+        <Button size="sm" onClick={onAddCategory} className="w-full input-mobile-safe">
+          <Plus size={16} className="mr-1 flex-shrink-0" />
+          <span className="text-overflow-safe">Tambah</span>
         </Button>
       </div>
 
       {/* Categories List */}
-      <div className="space-y-1 max-h-48 overflow-y-auto">
+      <div className="space-y-1 max-h-48 overflow-y-auto dialog-no-overflow">
         {categories.map((cat: any) => {
           const categoryName = typeof cat === 'string' ? cat : cat.name;
           const categoryColor = typeof cat === 'object' ? cat.color : CATEGORY_COLORS[0];
@@ -105,16 +106,16 @@ const CategorySection: React.FC<CategorySectionProps> = React.memo(({
           return (
             <div
               key={typeof cat === 'string' ? cat : cat.id}
-              className="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-100"
+              className="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-100 dialog-no-overflow"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div
-                  className="w-3 h-3 rounded-full border"
+                  className="w-3 h-3 rounded-full border flex-shrink-0"
                   style={{ backgroundColor: categoryColor }}
                 ></div>
-                <span>{categoryName}</span>
+                <span className="text-overflow-safe truncate">{categoryName}</span>
                 {isDefault && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded">
+                  <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded flex-shrink-0">
                     Default
                   </span>
                 )}
@@ -124,8 +125,9 @@ const CategorySection: React.FC<CategorySectionProps> = React.memo(({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-6 w-6 input-mobile-safe flex-shrink-0"
                     disabled={isDefault}
+                    style={{ minHeight: '44px', minWidth: '44px' }}
                   >
                     <Trash2 size={14} className={isDefault ? 'text-gray-400' : 'text-red-500'} />
                   </Button>
@@ -149,7 +151,7 @@ const CategorySection: React.FC<CategorySectionProps> = React.memo(({
           );
         })}
         {categories.length === 0 && (
-          <p className="text-center text-gray-500 py-4 text-sm">Belum ada kategori</p>
+          <p className="text-center text-gray-500 py-4 text-sm text-overflow-safe">Belum ada kategori</p>
         )}
       </div>
     </CardContent>
@@ -295,9 +297,9 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
       }
       onClose();
     }}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-4xl">
-          <DialogHeader className="dialog-header">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel dialog-panel-xl">
+          <DialogHeader className="dialog-header border-b">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Palette className="w-4 h-4 text-purple-600" />
@@ -314,46 +316,52 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
           </DialogHeader>
           
           <div className="dialog-body">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CategorySection
-            title="Kategori Pemasukan"
-            categories={settings?.financialCategories?.income || []}
-            newCategory={newIncomeCategory}
-            setNewCategory={setNewIncomeCategory}
-            selectedColor={incomeColor}
-            setSelectedColor={setIncomeColor}
-            onAddCategory={handleAddIncomeCategory}
-            onDeleteCategory={handleDeleteIncomeCategory}
-          />
-          <CategorySection
-            title="Kategori Pengeluaran"
-            categories={settings?.financialCategories?.expense || []}
-            newCategory={newExpenseCategory}
-            setNewCategory={setNewExpenseCategory}
-            selectedColor={expenseColor}
-            setSelectedColor={setExpenseColor}
-            onAddCategory={handleAddExpenseCategory}
-            onDeleteCategory={handleDeleteExpenseCategory}
-          />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 dialog-no-overflow">
+              <CategorySection
+                title="Kategori Pemasukan"
+                categories={settings?.financialCategories?.income || []}
+                newCategory={newIncomeCategory}
+                setNewCategory={setNewIncomeCategory}
+                selectedColor={incomeColor}
+                setSelectedColor={setIncomeColor}
+                onAddCategory={handleAddIncomeCategory}
+                onDeleteCategory={handleDeleteIncomeCategory}
+              />
+              <CategorySection
+                title="Kategori Pengeluaran"
+                categories={settings?.financialCategories?.expense || []}
+                newCategory={newExpenseCategory}
+                setNewCategory={setNewExpenseCategory}
+                selectedColor={expenseColor}
+                setSelectedColor={setExpenseColor}
+                onAddCategory={handleAddExpenseCategory}
+                onDeleteCategory={handleDeleteExpenseCategory}
+              />
             </div>
           </div>
           
           <DialogFooter className="dialog-footer">
-            <Button variant="outline" onClick={() => onClose()}>
-              Batal
-            </Button>
-            <Button 
-              onClick={() => {
-                // Apply any pending changes
-                if (refreshSettings) {
-                  refreshSettings();
-                }
-                onClose();
-              }}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Simpan
-            </Button>
+            <div className="dialog-responsive-buttons">
+              <Button 
+                variant="outline" 
+                onClick={() => onClose()}
+                className="input-mobile-safe"
+              >
+                <span className="text-overflow-safe">Batal</span>
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Apply any pending changes
+                  if (refreshSettings) {
+                    refreshSettings();
+                  }
+                  onClose();
+                }}
+                className="bg-green-600 hover:bg-green-700 input-mobile-safe"
+              >
+                <span className="text-overflow-safe">Simpan</span>
+              </Button>
+            </div>
           </DialogFooter>
         </div>
       </DialogContent>

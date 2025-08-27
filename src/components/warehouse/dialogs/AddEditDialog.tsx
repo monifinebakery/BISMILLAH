@@ -223,18 +223,18 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-4xl">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel dialog-panel-xl dialog-no-overflow">
           <DialogHeader className="dialog-header">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 {isEditMode ? <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />}
               </div>
-              <div className="flex-1">
-                <DialogTitle className="text-lg sm:text-xl font-semibold">{isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}</DialogTitle>
-                <p className="text-xs sm:text-sm text-gray-600">{isEditMode ? 'Ubah data master bahan baku' : 'Tambah data master bahan baku baru'}</p>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-lg sm:text-xl font-semibold text-overflow-safe">{isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}</DialogTitle>
+                <p className="text-xs sm:text-sm text-gray-600 text-overflow-safe">{isEditMode ? 'Ubah data master bahan baku' : 'Tambah data master bahan baku baru'}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isSubmitting}>
+              <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isSubmitting} className="flex-shrink-0 input-mobile-safe">
                 <RefreshCw className={`w-4 h-4 ${suppliersLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
@@ -242,41 +242,41 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
           <div className="dialog-body">
             {errors.length > 0 && (
-              <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+              <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg mb-6 dialog-no-overflow">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mt-0.5" />
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-medium text-red-800 mb-1">Kesalahan pada form:</h3>
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xs sm:text-sm font-medium text-red-800 mb-1 text-overflow-safe">Kesalahan pada form:</h3>
                     <ul className="text-xs sm:text-sm text-red-700 space-y-1">
-                      {errors.map((error, index) => <li key={index}>• {error}</li>)}
+                      {errors.map((error, index) => <li key={index} className="text-overflow-safe">• {error}</li>)}
                     </ul>
                   </div>
                 </div>
               </div>
             )}
 
-            <form id="warehouse-form" onSubmit={handleSubmit}>
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            <form id="warehouse-form" onSubmit={handleSubmit} className="dialog-no-overflow">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                 {/* Left Column - Basic Info */}
                 <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Informasi Dasar</h3>
+                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 text-overflow-safe">Informasi Dasar</h3>
                     <div className="space-y-3 sm:space-y-4">
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Nama Bahan Baku *</label>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">Nama Bahan Baku *</label>
                         <Input
                           value={formData.nama}
                           onChange={(e) => handleFieldChange('nama', e.target.value)}
                           placeholder="Nama bahan baku"
                           disabled={isSubmitting}
                           required
-                          className="text-sm"
+                          className="text-sm input-mobile-safe"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
                           Kategori *
                         </label>
                         <Select
@@ -284,13 +284,13 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           onValueChange={(value) => handleFieldChange('kategori', value)}
                           disabled={isSubmitting}
                         >
-                          <SelectTrigger className="text-sm">
+                          <SelectTrigger className="text-sm input-mobile-safe">
                             <SelectValue placeholder="Pilih kategori" />
                           </SelectTrigger>
                           <SelectContent>
                             {availableCategories.map((category) => (
                               <SelectItem key={category} value={category} className="focus:bg-orange-50">
-                                {category}
+                                <span className="text-overflow-safe">{category}</span>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -298,7 +298,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       </div>
 
                       <div className="relative">
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
                           Supplier * {suppliersLoading && <span className="text-xs text-gray-500">(loading...)</span>}
                         </label>
                         <Input
@@ -312,10 +312,10 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           placeholder="Pilih atau ketik supplier"
                           disabled={isSubmitting}
                           required
-                          className="text-sm"
+                          className="text-sm input-mobile-safe"
                         />
                         {showDropdown.suppliers && availableSuppliers.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-10 max-h-32 sm:max-h-40 overflow-y-auto">
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-[110] max-h-32 sm:max-h-40 overflow-y-auto dialog-no-overflow">
                             {availableSuppliers
                               .filter(sup => sup.toLowerCase().includes(formData.supplier.toLowerCase()))
                               .map((supplier) => (
@@ -323,7 +323,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                                   key={supplier}
                                   type="button"
                                   onClick={() => handleSelect('supplier', supplier)}
-                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm"
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm input-mobile-safe text-overflow-safe"
                                 >
                                   {supplier}
                                 </button>
@@ -333,7 +333,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       </div>
 
                       <div className="relative">
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
                           Satuan Dasar * <span className="text-xs text-gray-500 ml-1">(satuan untuk stok dan harga)</span>
                         </label>
                         <div className="relative">
@@ -348,19 +348,19 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                             placeholder="Pilih satuan dasar"
                             disabled={isSubmitting}
                             required
-                            className="text-sm"
+                            className="text-sm input-mobile-safe"
                           />
                           <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                         </div>
                         {showDropdown.units && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-10 max-h-48 sm:max-h-60 overflow-y-auto">
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-[110] max-h-48 sm:max-h-60 overflow-y-auto dialog-no-overflow">
                             {filteredUnits.length > 0 ? (
                               ['Berat', 'Volume', 'Satuan', 'Panjang'].map(category => {
                                 const categoryUnits = filteredUnits.filter(unit => unit.category === category);
                                 if (categoryUnits.length === 0) return null;
                                 return (
                                   <div key={category}>
-                                    <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 border-b">
+                                    <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 border-b text-overflow-safe">
                                       {category}
                                     </div>
                                     {categoryUnits.map((unit) => (
@@ -368,17 +368,17 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                                         key={unit.value}
                                         type="button"
                                         onClick={() => handleSelect('satuan', unit.value)}
-                                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm flex justify-between"
+                                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm flex justify-between input-mobile-safe"
                                       >
-                                        <span>{unit.label}</span>
-                                        <span className="text-gray-400 text-xs">{unit.value}</span>
+                                        <span className="text-overflow-safe truncate">{unit.label}</span>
+                                        <span className="text-gray-400 text-xs flex-shrink-0">{unit.value}</span>
                                       </button>
                                     ))}
                                   </div>
                                 );
                               })
                             ) : (
-                              <div className="px-3 py-2 text-xs sm:text-sm text-gray-500">
+                              <div className="px-3 py-2 text-xs sm:text-sm text-gray-500 text-overflow-safe">
                                 Tidak ada satuan yang cocok
                               </div>
                             )}
@@ -387,14 +387,14 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       </div>
 
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Tanggal Kadaluarsa</label>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">Tanggal Kadaluarsa</label>
                         <Input
                           type="date"
                           value={formData.expiry}
                           onChange={(e) => handleFieldChange('expiry', e.target.value)}
                           disabled={isSubmitting}
                           min={new Date().toISOString().split('T')[0]}
-                          className="text-sm"
+                          className="text-sm input-mobile-safe"
                         />
                       </div>
                     </div>
@@ -404,10 +404,10 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                 {/* Right Column - Stock & Price */}
                 <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Informasi Stok</h3>
+                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 text-overflow-safe">Informasi Stok</h3>
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
                           Stok Saat Ini * <span className="text-xs text-gray-500">({formData.satuan || 'satuan'})</span>
                         </label>
                         <Input
@@ -417,11 +417,11 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           min="0"
                           disabled={isSubmitting}
                           required
-                          className="text-sm"
+                          className="text-sm input-mobile-safe"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
                           Minimum Stok * <span className="text-xs text-gray-500">({formData.satuan || 'satuan'})</span>
                         </label>
                         <Input
@@ -431,16 +431,16 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           min="0"
                           disabled={isSubmitting}
                           required
-                          className="text-sm"
+                          className="text-sm input-mobile-safe"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Harga Referensi</h3>
+                    <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 text-overflow-safe">Harga Referensi</h3>
                     <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
                         Harga per {formData.satuan || 'satuan'} *
                       </label>
                       <div className="relative">
@@ -450,7 +450,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                           value={formData.harga}
                           onChange={(e) => handleFieldChange('harga', Number(e.target.value))}
                           min="0"
-                          className="pl-10 sm:pl-12 text-sm"
+                          className="pl-10 sm:pl-12 text-sm input-mobile-safe"
                           disabled={isSubmitting}
                           required
                           placeholder="0"
@@ -458,11 +458,11 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                       </div>
                       {/* Price suggestion removed */}
                       {isEditMode && typeof item?.hargaRataRata === 'number' && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1 text-overflow-safe">
                           Harga rata-rata (server): <strong>{warehouseUtils.formatCurrency(item.hargaRataRata)}</strong>
                         </p>
                       )}
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 mt-1 text-overflow-safe">
                         💡 Catatan: Harga ini hanya referensi master. WAC (Weighted Average Cost) dihitung dari transaksi pembelian aktual.
                       </p>
                     </div>
@@ -494,32 +494,34 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
           </div>
 
           <DialogFooter className="dialog-footer">
-            <Button 
-              variant="outline" 
-              onClick={onClose} 
-              disabled={isSubmitting}
-              className="w-full sm:w-auto text-xs sm:text-sm"
-            >
-              Batal
-            </Button>
-            <Button 
-              type="submit" 
-              form="warehouse-form"
-              disabled={isSubmitting} 
-              className="w-full sm:w-auto flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <Save className="w-3 h-3 sm:w-4 sm:h-4" />
-                  {isEditMode ? 'Simpan Perubahan' : 'Tambah Item'}
-                </>
-              )}
-            </Button>
+            <div className="dialog-responsive-buttons">
+              <Button 
+                variant="outline" 
+                onClick={onClose} 
+                disabled={isSubmitting}
+                className="text-xs sm:text-sm input-mobile-safe"
+              >
+                <span className="text-overflow-safe">Batal</span>
+              </Button>
+              <Button 
+                type="submit" 
+                form="warehouse-form"
+                disabled={isSubmitting} 
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm input-mobile-safe"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full flex-shrink-0" />
+                    <span className="text-overflow-safe">Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span className="text-overflow-safe">{isEditMode ? 'Simpan Perubahan' : 'Tambah Item'}</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </div>
       </DialogContent>

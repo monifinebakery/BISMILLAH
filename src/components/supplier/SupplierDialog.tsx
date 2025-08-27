@@ -36,10 +36,10 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel">
+      <DialogContent centerMode="overlay" size="md">
+        <div className="dialog-panel dialog-no-overflow">
           <DialogHeader className="dialog-header">
-            <DialogTitle className="text-lg sm:text-xl font-bold text-gray-800">
+            <DialogTitle className="text-lg sm:text-xl font-bold text-gray-800 text-overflow-safe">
               {supplier ? 'Edit Supplier' : 'Tambah Supplier'}
             </DialogTitle>
           </DialogHeader>
@@ -49,6 +49,7 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
               supplier={supplier}
               onSuccess={handleSuccess}
               onCancel={handleCancel}
+              className="dialog-no-overflow"
             />
           </div>
         </div>

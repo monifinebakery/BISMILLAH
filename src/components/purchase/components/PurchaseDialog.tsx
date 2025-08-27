@@ -260,9 +260,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-4xl max-h-[90vh]">
-          <DialogHeader className="dialog-header-pad">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel dialog-panel-xl">
+          <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-3">
               <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                 <ShoppingCart className="w-4 h-4 text-orange-600" />
@@ -503,26 +503,24 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
         {/* Footer Actions */}
         {mode !== 'view' && canEdit && (
-          <DialogFooter className="dialog-footer-pad gap-3 sm:space-x-0">
+          <DialogFooter className="dialog-footer gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={handleResetForm}
               disabled={isSubmitting || !isDirty}
-              className="h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="w-full sm:w-auto h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Reset
             </Button>
-
-            <div className="flex-grow"></div>
 
             <Button
               type="button"
               onClick={() => onSubmit()}
               disabled={isSubmitting || !isDirty}
               variant="outline"
-              className="h-11"
+              className="w-full sm:w-auto h-11"
             >
               <Save className="h-4 w-4 mr-2" />
               {mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}
@@ -533,7 +531,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 type="button"
                 onClick={() => onSubmit('completed')}
                 disabled={isSubmitting || !isDirty}
-                className="h-11 bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+                className="w-full sm:w-auto h-11 bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
               >
                 {isSubmitting ? (
                   <>

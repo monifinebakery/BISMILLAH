@@ -223,28 +223,26 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-4xl max-h-[90vh] flex flex-col h-full">
-          <DialogHeader className="dialog-header-pad">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel dialog-panel-xl">
+          <DialogHeader className="dialog-header">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                 {isEditMode ? <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />}
               </div>
-              <div>
+              <div className="flex-1">
                 <DialogTitle className="text-lg sm:text-xl font-semibold">{isEditMode ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}</DialogTitle>
                 <p className="text-xs sm:text-sm text-gray-600">{isEditMode ? 'Ubah data master bahan baku' : 'Tambah data master bahan baku baru'}</p>
               </div>
-            </div>
-            <div className="flex items-center gap-2 absolute top-4 right-4">
               <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isSubmitting}>
                 <RefreshCw className={`w-4 h-4 ${suppliersLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </DialogHeader>
 
-          <div className="dialog-body flex-1 overflow-y-auto">
+          <div className="dialog-body">
             {errors.length > 0 && (
-              <div className="p-3 sm:p-4 bg-red-50 border-b border-red-200 flex-shrink-0">
+              <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mt-0.5" />
                   <div>
@@ -257,9 +255,9 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
               </div>
             )}
 
-            <form id="warehouse-form" onSubmit={handleSubmit} className="h-full flex flex-col">
-              <div className="flex-1 p-3 sm:p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            <form id="warehouse-form" onSubmit={handleSubmit}>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 {/* Left Column - Basic Info */}
                 <div className="space-y-4 sm:space-y-6">
                   <div>
@@ -490,19 +488,17 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                     </div>
                   )}
                 </div>
+                </div>
               </div>
-            </div>
-
             </form>
           </div>
 
-          <DialogFooter className="dialog-footer-pad" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <DialogFooter className="dialog-footer">
             <Button 
               variant="outline" 
               onClick={onClose} 
               disabled={isSubmitting}
-              size="sm"
-              className="text-xs sm:text-sm"
+              className="w-full sm:w-auto text-xs sm:text-sm"
             >
               Batal
             </Button>
@@ -510,8 +506,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
               type="submit" 
               form="warehouse-form"
               disabled={isSubmitting} 
-              size="sm"
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+              className="w-full sm:w-auto flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
             >
               {isSubmitting ? (
                 <>

@@ -83,9 +83,9 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="dialog-overlay-center">
-          <div className="dialog-panel max-w-4xl">
-            <DialogHeader className="dialog-header-pad border-b">
+        <DialogContent centerMode="overlay" size="xl">
+          <div className="dialog-panel dialog-panel-lg">
+            <DialogHeader className="dialog-header border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -100,56 +100,48 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
                     </p>
                   </div>
                 </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isLoading}
-                  className="h-8 w-8 p-0"
-                  title="Muat ulang data"
-                >
-                  <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isLoading}
+                    className="h-8 w-8 p-0"
+                    title="Muat ulang data"
+                  >
+                    <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </div>
+            </DialogHeader>
+            
+            <div className="dialog-body">
+              <div className="space-y-6">
+                {/* Statistics */}
+                <CategoryStatsCards
+                  totalRecipes={recipeStats.totalRecipes}
+                  categorizedRecipes={recipeStats.categorizedRecipes}
+                  totalCategories={categoryStats.length}
+                />
+
+                {/* Add New Category */}
+                <AddCategoryForm
+                  isLoading={isLoading}
+                  onAddCategory={handleAddCategory}
+                />
+
+                {/* Categories Table */}
+                <CategoryTable
+                  categories={categoryStats}
+                  isLoading={isLoading}
+                  onEditCategory={handleEditCategory}
+                  onDeleteCategory={openDeleteConfirmation}
+                />
               </div>
             </div>
-          </DialogHeader>
-          
-          <div className="dialog-body overflow-y-auto">
-            <div className="p-6 space-y-6">
-              {/* Statistics */}
-              <CategoryStatsCards
-                totalRecipes={recipeStats.totalRecipes}
-                categorizedRecipes={recipeStats.categorizedRecipes}
-                totalCategories={categoryStats.length}
-              />
-
-              {/* Add New Category */}
-              <AddCategoryForm
-                isLoading={isLoading}
-                onAddCategory={handleAddCategory}
-              />
-
-              {/* Categories Table */}
-              <CategoryTable
-                categories={categoryStats}
-                isLoading={isLoading}
-                onEditCategory={handleEditCategory}
-                onDeleteCategory={openDeleteConfirmation}
-              />
-            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && closeDeleteConfirmation()}>

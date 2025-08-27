@@ -32,13 +32,13 @@ const CostDialog: React.FC<CostDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center">
+      <DialogContent centerMode="overlay" size="lg">
         <div className="dialog-panel">
-          <DialogHeader className="dialog-header-pad">
+          <DialogHeader className="dialog-header">
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
           
-          <div className="dialog-body py-4">
+          <div className="dialog-body">
             <CostForm
               initialData={cost || undefined}
               onSubmit={handleSave}

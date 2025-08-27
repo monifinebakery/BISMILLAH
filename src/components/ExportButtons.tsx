@@ -7,7 +7,7 @@ import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; // Keep for transition
 
 interface ExportButtonsProps {
-  data: any[];
+  data: Array<Record<string, unknown>>;
   filename: string;
   type: 'recipes' | 'orders' | 'financial' | 'assets' | 'warehouse' | 'suppliers';
 }

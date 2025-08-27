@@ -7,6 +7,7 @@
  */
 
 import { lazy } from 'react';
+import React from 'react';
 
 // ✅ ESSENTIAL TYPES ONLY
 export type {
@@ -28,13 +29,13 @@ export { useRecipeStats } from './hooks/useRecipeStats';
 // ✅ LAZY-LOADED MAIN COMPONENTS (better code splitting)
 export const RecipeList = lazy(() => 
   import('./components/RecipeList').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat daftar resep</div>
+    default: () => React.createElement('div', { className: "p-4 text-center text-red-500" }, 'Gagal memuat daftar resep')
   }))
 );
 
 export const RecipeForm = lazy(() => 
   import('./components/RecipeForm').catch(() => ({
-    default: () => <div className="p-4 text-center text-red-500">Gagal memuat form resep</div>
+    default: () => React.createElement('div', { className: "p-4 text-center text-red-500" }, 'Gagal memuat form resep')
   }))
 );
 

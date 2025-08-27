@@ -272,16 +272,23 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={handleCloseDialogs}>
-        <DialogContent className="dialog-overlay-center">
-          <div className="dialog-panel">
-            <DialogHeader className="dialog-header-pad">
-              <DialogTitle>Edit Massal Transaksi</DialogTitle>
-              <DialogDescription>
-                Edit {selectedIds.length} transaksi sekaligus. Kosongkan field yang tidak ingin diubah.
-              </DialogDescription>
+        <DialogContent centerMode="overlay" size="md">
+          <div className="dialog-panel dialog-panel-md">
+            <DialogHeader className="dialog-header border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Edit3 className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl text-gray-900">Edit Massal Transaksi</DialogTitle>
+                  <DialogDescription className="text-sm text-gray-500 mt-1">
+                    Edit {selectedIds.length} transaksi sekaligus. Kosongkan field yang tidak ingin diubah.
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
             
-            <div className="dialog-body space-y-4 py-4">
+            <div className="dialog-body space-y-4">
             <div className="space-y-2">
               <Label htmlFor="bulk-type">Tipe Transaksi</Label>
               <Select
@@ -346,7 +353,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
             )}
             </div>
             
-            <DialogFooter className="dialog-footer-pad pt-4">
+            <DialogFooter className="dialog-footer-pad">
               <Button
                 variant="outline"
                 onClick={handleCloseDialogs}

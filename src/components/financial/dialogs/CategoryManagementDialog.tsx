@@ -296,15 +296,25 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
       onClose();
     }}>
       <DialogContent centerMode="overlay" size="xl">
-        <div className="dialog-panel">
-          <DialogHeader className="dialog-header-pad">
-            <DialogTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Kelola Kategori Keuangan
-            </DialogTitle>
+        <div className="dialog-panel dialog-panel-xl">
+          <DialogHeader className="dialog-header border-b">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Palette className="w-4 h-4 text-purple-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl text-gray-900">
+                  Kelola Kategori Keuangan
+                </DialogTitle>
+                <p className="text-sm text-gray-500 mt-1">
+                  Atur kategori pemasukan dan pengeluaran sesuai kebutuhan
+                </p>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="dialog-body overflow-y-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
+          
+          <div className="dialog-body">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CategorySection
             title="Kategori Pemasukan"
             categories={settings?.financialCategories?.income || []}
@@ -329,23 +339,21 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
           </div>
           
           <DialogFooter className="dialog-footer-pad">
-            <div className="flex items-center justify-between w-full">
-              <Button variant="outline" onClick={() => onClose()}>
-                Batal
-              </Button>
-              <Button 
-                onClick={() => {
-                  // Apply any pending changes
-                  if (refreshSettings) {
-                    refreshSettings();
-                  }
-                  onClose();
-                }}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Simpan
-              </Button>
-            </div>
+            <Button variant="outline" onClick={() => onClose()}>
+              Batal
+            </Button>
+            <Button 
+              onClick={() => {
+                // Apply any pending changes
+                if (refreshSettings) {
+                  refreshSettings();
+                }
+                onClose();
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Simpan
+            </Button>
           </DialogFooter>
         </div>
       </DialogContent>

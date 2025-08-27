@@ -36,7 +36,7 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent centerMode="overlay" className="dialog-overlay-center">
+      <DialogContent centerMode="overlay" size="md">
         <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="text-lg sm:text-xl font-bold text-gray-800">

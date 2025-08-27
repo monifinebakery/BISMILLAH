@@ -1,6 +1,13 @@
 import React from 'react';
 import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useOperationalCost } from '../context';
 
@@ -69,94 +76,101 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSk
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="dialog-overlay-center">
-      <div className="dialog-panel max-w-lg w-full px-12 sm:px-16 max-h-[70vh] overflow-y-auto">
-        <div className="dialog-body">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Info className="h-8 w-8 text-gray-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Selamat Datang! 👋</h2>
-            <p className="text-gray-600">Mari setup sistem biaya operasional Anda dalam 2 langkah mudah</p>
-          </div>
-
-          <div className="space-y-4 mb-6">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-              <div>
-                <p className="font-medium text-gray-800">Tambah Biaya Operasional</p>
-                <p className="text-sm text-gray-600">Gas, sewa, marketing, dll (akan auto-klasifikasi)</p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent centerMode="overlay" size="md">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Info className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="text-center flex-1">
+                <DialogTitle className="text-xl font-semibold">Selamat Datang! 👋</DialogTitle>
+                <p className="text-sm text-gray-600">Mari setup sistem biaya operasional Anda dalam 2 langkah mudah</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="w-8 h-8 bg-gray-700 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-              <div>
-                <p className="font-medium text-gray-800">Hitung Biaya per Produk</p>
-                <p className="text-sm text-gray-600">Set target produksi & kalkulasi otomatis</p>
+          </DialogHeader>
+
+          <div className="dialog-body overflow-y-auto">
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className="w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                <div>
+                  <p className="font-medium text-gray-800">Tambah Biaya Operasional</p>
+                  <p className="text-sm text-gray-600">Gas, sewa, marketing, dll (akan auto-klasifikasi)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className="w-8 h-8 bg-gray-700 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                <div>
+                  <p className="font-medium text-gray-800">Hitung Biaya per Produk</p>
+                  <p className="text-sm text-gray-600">Set target produksi & kalkulasi otomatis</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-gray-700 mb-3">Pilih template bisnis untuk mulai cepat:</div>
+              
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  onClick={() => handleQuickSetup('bakery')}
+                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
+                  variant="outline"
+                >
+                  <div className="text-left">
+                    <div className="font-medium">🧁 Toko Roti/Bakery</div>
+                    <div className="text-xs text-gray-600">Gas oven, sewa dapur, marketing, dll</div>
+                  </div>
+                  <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                </Button>
+                
+                <Button
+                  onClick={() => handleQuickSetup('restaurant')}
+                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
+                  variant="outline"
+                >
+                  <div className="text-left">
+                    <div className="font-medium">🍽️ Restoran/Warung</div>
+                    <div className="text-xs text-gray-600">Gas kompor, gaji koki, sewa, dll</div>
+                  </div>
+                  <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                </Button>
+                
+                <Button
+                  onClick={() => handleQuickSetup('cafe')}
+                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
+                  variant="outline"
+                >
+                  <div className="text-left">
+                    <div className="font-medium">☕ Cafe/Kedai Kopi</div>
+                    <div className="text-xs text-gray-600">Coffee machine, barista, sewa, dll</div>
+                  </div>
+                  <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                </Button>
+              </div>
+
+              <div className="pt-4 border-t">
+                <p className="text-xs text-gray-500 text-center mb-3">
+                  💡 Tip: Template bisa diedit sesuai kebutuhan bisnis Anda
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-gray-700 mb-3">Pilih template bisnis untuk mulai cepat:</div>
-            
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                onClick={() => handleQuickSetup('bakery')}
-                className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
-                variant="outline"
-              >
-                <div className="text-left">
-                  <div className="font-medium">🧁 Toko Roti/Bakery</div>
-                  <div className="text-xs text-gray-600">Gas oven, sewa dapur, marketing, dll</div>
-                </div>
-                <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
-              </Button>
-              
-              <Button
-                onClick={() => handleQuickSetup('restaurant')}
-                className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
-                variant="outline"
-              >
-                <div className="text-left">
-                  <div className="font-medium">🍽️ Restoran/Warung</div>
-                  <div className="text-xs text-gray-600">Gas kompor, gaji koki, sewa, dll</div>
-                </div>
-                <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
-              </Button>
-              
-              <Button
-                onClick={() => handleQuickSetup('cafe')}
-                className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
-                variant="outline"
-              >
-                <div className="text-left">
-                  <div className="font-medium">☕ Cafe/Kedai Kopi</div>
-                  <div className="text-xs text-gray-600">Coffee machine, barista, sewa, dll</div>
-                </div>
-                <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
-              </Button>
-            </div>
-
-            <div className="pt-4 border-t">
-              <Button
-                onClick={onSkip}
-                variant="outline"
-                className="w-full mb-2"
-              >
-                Mulai dari Kosong
-              </Button>
-              <p className="text-xs text-gray-500 text-center">
-                💡 Tip: Template bisa diedit sesuai kebutuhan bisnis Anda
-              </p>
-            </div>
-          </div>
+          <DialogFooter className="dialog-footer-pad">
+            <Button
+              onClick={onSkip}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              Mulai dari Kosong
+            </Button>
+          </DialogFooter>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -60,8 +60,8 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-5xl max-h-[90vh] overflow-hidden">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -74,7 +74,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
             </div>
           </DialogHeader>
 
-          <div className="dialog-body overflow-y-auto max-h-[calc(90vh-200px)]">
+          <div className="dialog-body overflow-y-auto">
           {!preview ? (
             <div className="space-y-6">
               <div 
@@ -233,52 +233,52 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
               </div>
             </div>
           )}
-        </div>
+          </div>
 
-        <div className="flex items-center justify-between p-6 border-t bg-gray-50">
-          <div className="flex gap-3">
-            {!preview && (
-              <>
-                <Button 
-                  variant="outline" 
-                  onClick={downloadTemplate}
-                  disabled={loading}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Template
-                </Button>
-              </>
-            )}
-          </div>
-          
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onClose} disabled={loading}>
-              Batal
-            </Button>
-            {preview && (
-              <Button
-                onClick={async () => {
-                  const success = await executeImport();
-                  if (success) {
-                    toast.success(`${preview.valid.length} pembelian berhasil diimport!`);
-                    onClose();
-                  }
-                }}
-                disabled={!preview.valid.length || loading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                    Mengimpor...
-                  </>
-                ) : (
-                  `Import ${preview.valid.length} Data`
+          <DialogFooter className="dialog-footer-pad">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex gap-3">
+                {!preview && (
+                  <Button 
+                    variant="outline" 
+                    onClick={downloadTemplate}
+                    disabled={loading}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Template
+                  </Button>
                 )}
-              </Button>
-            )}
-          </div>
-        </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={onClose} disabled={loading}>
+                  Batal
+                </Button>
+                {preview && (
+                  <Button
+                    onClick={async () => {
+                      const success = await executeImport();
+                      if (success) {
+                        toast.success(`${preview.valid.length} pembelian berhasil diimport!`);
+                        onClose();
+                      }
+                    }}
+                    disabled={!preview.valid.length || loading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        Mengimpor...
+                      </>
+                    ) : (
+                      `Import ${preview.valid.length} Data`
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

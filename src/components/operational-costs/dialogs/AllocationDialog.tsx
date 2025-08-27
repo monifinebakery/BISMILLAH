@@ -31,8 +31,8 @@ const AllocationDialog: React.FC<AllocationDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent centerMode="overlay" className="dialog-overlay-center">
-        <div className="dialog-panel max-w-2xl max-h-[70vh]">
+      <DialogContent centerMode="overlay" size="lg">
+        <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle>Pengaturan Alokasi Biaya</DialogTitle>
           </DialogHeader>

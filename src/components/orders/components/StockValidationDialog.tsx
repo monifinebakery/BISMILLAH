@@ -164,16 +164,20 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <DialogContent centerMode="overlay" size="lg">
+        <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
-            <DialogTitle className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {getValidationIcon()}
-              Validasi Stok Pesanan
-            </DialogTitle>
-            <DialogDescription>
-              Pesanan #{order?.nomorPesanan} - {order?.namaPelanggan}
-            </DialogDescription>
+              <div>
+                <DialogTitle className="text-xl font-semibold">
+                  Validasi Stok Pesanan
+                </DialogTitle>
+                <DialogDescription className="text-sm text-gray-600">
+                  Pesanan #{order?.nomorPesanan} - {order?.namaPelanggan}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="dialog-body overflow-y-auto">

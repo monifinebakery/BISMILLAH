@@ -497,57 +497,58 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               </div>
             </CardContent>
           </Card>
-        </div>
+            </div>
+          </div>
 
-        </div>
+          {/* Footer Actions */}
+          {mode !== 'view' && canEdit && (
+            <DialogFooter className="dialog-footer-pad">
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleResetForm}
+                  disabled={isSubmitting || !isDirty}
+                  className="w-full sm:w-auto h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reset
+                </Button>
 
-        {/* Footer Actions */}
-        {mode !== 'view' && canEdit && (
-          <DialogFooter className="dialog-footer gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleResetForm}
-              disabled={isSubmitting || !isDirty}
-              className="w-full sm:w-auto h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset
-            </Button>
+                <Button
+                  type="button"
+                  onClick={() => onSubmit()}
+                  disabled={isSubmitting || !isDirty}
+                  variant="outline"
+                  className="w-full sm:w-auto h-11"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}
+                </Button>
 
-            <Button
-              type="button"
-              onClick={() => onSubmit()}
-              disabled={isSubmitting || !isDirty}
-              variant="outline"
-              className="w-full sm:w-auto h-11"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}
-            </Button>
-
-            {purchase?.status !== 'completed' && (
-              <Button
-                type="button"
-                onClick={() => onSubmit('completed')}
-                disabled={isSubmitting || !isDirty}
-                className="w-full sm:w-auto h-11 bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Selesaikan & Update Gudang
-                  </>
+                {purchase?.status !== 'completed' && (
+                  <Button
+                    type="button"
+                    onClick={() => onSubmit('completed')}
+                    disabled={isSubmitting || !isDirty}
+                    className="w-full sm:w-auto h-11 bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                        Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Selesaikan & Update Gudang
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
-            )}
-          </DialogFooter>
-        )}
+              </div>
+            </DialogFooter>
+          )}
         </div>
       </DialogContent>
     </Dialog>

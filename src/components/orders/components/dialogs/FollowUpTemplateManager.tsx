@@ -211,26 +211,33 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-5xl">
+      <DialogContent centerMode="overlay" size="xl">
+        <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
-            <DialogTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Kelola Template Follow-Up WhatsApp
-              {order && (
-                <span className="text-sm font-normal text-gray-600">
-                  - Pesanan #{order.nomorPesanan}
-                </span>
-              )}
-            </DialogTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-semibold">
+                  Kelola Template Follow-Up WhatsApp
+                </DialogTitle>
+                {order && (
+                  <p className="text-sm text-gray-600">
+                    Pesanan #{order.nomorPesanan} - {order.namaPelanggan}
+                  </p>
+                )}
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="dialog-body overflow-y-auto">
             <Tabs defaultValue="templates" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="templates">Template</TabsTrigger>
-            <TabsTrigger value="variables">Variabel</TabsTrigger>
-          </TabsList>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="templates">Template</TabsTrigger>
+                <TabsTrigger value="variables">Variabel</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
 
           {/* Templates Tab */}
           <TabsContent value="templates" className="space-y-4">

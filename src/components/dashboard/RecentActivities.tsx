@@ -107,7 +107,7 @@ const ActivityRow: React.FC<{
   );
 };
 
-// 🔄 Pagination Controls (reusable)
+// 🔄 Pagination Controls (reusable) - RESPONSIVE FIXED
 const PaginationControls: React.FC<{
   currentPage: number;
   totalPages: number;
@@ -121,37 +121,82 @@ const PaginationControls: React.FC<{
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   return (
-    <CardFooter className="bg-gray-50 border-t border-gray-100 p-3 flex justify-between items-center">
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={() => onPageChange('prev')} 
-        disabled={!hasPrev} 
-        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <ChevronLeft className="h-4 w-4 mr-1" />
-        Sebelumnya
-      </Button>
-      
-      <div className="flex flex-col items-center">
-        <span className="text-sm text-gray-600 font-medium">
-          Halaman {currentPage} dari {totalPages}
-        </span>
-        <span className="text-xs text-gray-500">
-          Menampilkan {startItem}-{endItem} dari {totalItems} aktivitas
-        </span>
+    <CardFooter className="bg-gray-50 border-t border-gray-100 p-3 space-y-3">
+      {/* Mobile/iPad Layout: Stack vertically for better readability */}
+      <div className="flex flex-col space-y-2 sm:hidden">
+        {/* Page Info */}
+        <div className="flex flex-col items-center space-y-1">
+          <span className="text-sm text-gray-600 font-medium">
+            Halaman {currentPage} dari {totalPages}
+          </span>
+          <span className="text-xs text-gray-500 text-center">
+            {startItem}-{endItem} dari {totalItems} aktivitas
+          </span>
+        </div>
+        
+        {/* Navigation Buttons */}
+        <div className="flex justify-between items-center w-full">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onPageChange('prev')} 
+            disabled={!hasPrev} 
+            className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex-1 mr-2"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            <span className="hidden xs:inline">Sebelumnya</span>
+            <span className="xs:hidden">Prev</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onPageChange('next')} 
+            disabled={!hasNext} 
+            className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex-1 ml-2"
+          >
+            <span className="hidden xs:inline">Selanjutnya</span>
+            <span className="xs:hidden">Next</span>
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
       </div>
-      
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={() => onPageChange('next')} 
-        disabled={!hasNext} 
-        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        Selanjutnya
-        <ChevronRight className="h-4 w-4 ml-1" />
-      </Button>
+
+      {/* Desktop/iPad Landscape Layout: Horizontal with proper spacing */}
+      <div className="hidden sm:flex sm:justify-between sm:items-center sm:w-full">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => onPageChange('prev')} 
+          disabled={!hasPrev} 
+          className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-fit"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          <span className="hidden md:inline">Sebelumnya</span>
+          <span className="md:hidden">Prev</span>
+        </Button>
+        
+        <div className="flex flex-col items-center px-4 min-w-0">
+          <span className="text-sm text-gray-600 font-medium whitespace-nowrap">
+            Halaman {currentPage} dari {totalPages}
+          </span>
+          <span className="text-xs text-gray-500 whitespace-nowrap">
+            {startItem}-{endItem} dari {totalItems} aktivitas
+          </span>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => onPageChange('next')} 
+          disabled={!hasNext} 
+          className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-fit"
+        >
+          <span className="hidden md:inline">Selanjutnya</span>
+          <span className="md:hidden">Next</span>
+          <ChevronRight className="h-4 w-4 ml-1" />
+        </Button>
+      </div>
     </CardFooter>
   );
 };

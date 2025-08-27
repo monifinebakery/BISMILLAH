@@ -164,7 +164,7 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent centerMode="overlay" size="lg">
+      <DialogContent centerMode="overlay" size="md+">
         <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
             <div className="flex items-center gap-3">

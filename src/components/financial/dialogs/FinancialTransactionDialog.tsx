@@ -179,8 +179,8 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent centerMode="overlay" size="lg">
-        <div className="dialog-panel dialog-panel-lg">
+      <DialogContent centerMode="overlay" size="md+">
+        <div className="dialog-panel dialog-panel-md-plus">
           <DialogHeader className="dialog-header border-b">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">

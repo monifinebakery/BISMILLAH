@@ -211,7 +211,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent centerMode="overlay" size="xl">
+        <DialogContent centerMode="overlay" size="md+">
         <div className="dialog-panel">
           <DialogHeader className="dialog-header-pad">
             <div className="flex items-center gap-3">

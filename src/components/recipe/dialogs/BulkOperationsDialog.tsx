@@ -119,7 +119,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent centerMode="overlay" size="lg">
+      <DialogContent centerMode="overlay" size="md+">
         <div className="dialog-panel">
           <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-2">

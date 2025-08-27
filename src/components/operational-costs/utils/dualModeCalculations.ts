@@ -3,6 +3,7 @@
 // Separate calculations for Overhead Pabrik (HPP) vs Operasional (non-HPP)
 
 import { OperationalCost, DualModeCalculationResult, AppSettings } from '../types/operationalCost.types';
+import { productionOutputApi } from '../services/productionOutputApi';
 
 // ====================================
 // CORE CALCULATION FUNCTIONS
@@ -80,9 +81,6 @@ export const getRecentProductionOutput = async (
   days: number = 30
 ): Promise<number> => {
   try {
-    // Import the production output service
-    const { productionOutputApi } = await import('../services/productionOutputApi');
-    
     // Get smart production output (tries orders first, then recipes, then manual)
     const result = await productionOutputApi.getSmartProductionOutput(days);
     

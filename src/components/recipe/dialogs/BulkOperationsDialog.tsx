@@ -213,11 +213,11 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="kategori">Kategori Resep</Label>
                   <Select
-                    value={editData.kategoriResep || ''}
+                    value={editData.kategoriResep || 'no-change'}
                     onValueChange={(value) => 
                       setEditData(prev => ({ 
                         ...prev, 
-                        kategoriResep: value || undefined 
+                        kategoriResep: value === 'no-change' ? undefined : value 
                       }))
                     }
                   >
@@ -225,7 +225,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                       <SelectValue placeholder="Pilih kategori (opsional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tidak mengubah kategori</SelectItem>
+                      <SelectItem value="no-change">Tidak mengubah kategori</SelectItem>
                       {availableCategories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}

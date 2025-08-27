@@ -26,70 +26,25 @@ export type {
 // import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
 // import SimplePurchaseItemForm from './SimplePurchaseItemForm';
 
-// ✅ LAZY COMPONENT REFERENCES: For documentation and lazy loading
-export const PURCHASE_COMPONENTS_LAZY = {
-  // Main components (heavy - load on demand)
-  PurchaseDialog: () => import('./PurchaseDialog'),
-  PurchaseTable: () => import('./PurchaseTable'),
-  
-  // Action components (medium - load when needed)
-  StatusChangeConfirmationDialog: () => import('./StatusChangeConfirmationDialog'),
-  BulkActions: () => import('./BulkActions'),
+// ✅ REMOVED: Dynamic import references that conflict with static imports
+// Use direct imports instead:
+// import PurchaseDialog from './PurchaseDialog';
+// import PurchaseTable from './PurchaseTable';
 
-  // Utility components
-  PurchaseFilters: () => import('./PurchaseFilters'),
-  PurchaseStats: () => import('./PurchaseStats'),
+// ✅ REMOVED: Component groups that use dynamic imports
+// Use direct imports instead:
+// import PurchaseDialog from './PurchaseDialog';
+// import PurchaseTable from './PurchaseTable';
 
-  // Import dialog
-  PurchaseImportDialog: () => import('./dialogs/PurchaseImportDialog'),
-  BulkOperationsDialog: () => import('./dialogs/BulkOperationsDialog')
-} as const;
-
-// ✅ COMPONENT GROUPS: For batch loading
-export const PURCHASE_COMPONENTS_GROUPS = {
-  // Core dialogs - load together
-  dialogs: () => Promise.all([
-    import('./PurchaseDialog'),
-    import('./StatusChangeConfirmationDialog')
-  ]),
-  
-  // Table related - load together
-  table: () => Promise.all([
-    import('./PurchaseTable')
-  ]),
-  
-  // Form components - load together
-  forms: () => Promise.all([
-    import('./PurchaseDialog')
-  ]),
-  
-  // Import dialog - load separately
-  import: () => Promise.all([
-    import('./dialogs/PurchaseImportDialog')
-  ]),
-  
-  // All lazy components - for preloading
-  all: () => Promise.all(Object.values(PURCHASE_COMPONENTS_LAZY).map(fn => fn()))
-} as const;
-
-// ✅ MIGRATION HELPER: For upgrading from barrel imports
+// ✅ MIGRATION HELPER: Clean imports only
 export const PURCHASE_COMPONENTS_MIGRATION = {
-  // Instructions for migrating from barrel imports
   instructions: `
-    // OLD (barrel import - loads all components):
-    import { PurchaseDialog, PurchaseTable } from '@/components/purchase/components';
-    
-    // NEW (direct import - better code splitting):
+    // RECOMMENDED (direct imports - best performance):
     import PurchaseDialog from '@/components/purchase/components/PurchaseDialog';
     import PurchaseTable from '@/components/purchase/components/PurchaseTable';
     
-    // OR (lazy import - best performance):
+    // For lazy loading:
     const PurchaseDialog = React.lazy(() => import('@/components/purchase/components/PurchaseDialog'));
     const PurchaseTable = React.lazy(() => import('@/components/purchase/components/PurchaseTable'));
-  `,
-  
-  // Quick migration function
-  getLazyComponent: (componentName: keyof typeof PURCHASE_COMPONENTS_LAZY) => {
-    return PURCHASE_COMPONENTS_LAZY[componentName];
-  }
+  `
 } as const;

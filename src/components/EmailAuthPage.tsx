@@ -34,7 +34,15 @@ const REQUIRE_CAPTCHA =
   HCAPTCHA_ENABLED_FLAG && !!HCAPTCHA_SITE_KEY && VERCEL_ENV !== "development";
 
 // Dynamic hCaptcha import holder
-let HCaptchaComponent: any = null;
+let HCaptchaComponent: React.ComponentType<{
+  sitekey: string;
+  onVerify: (token: string) => void;
+  onExpire: () => void;
+  onError: (error: unknown) => void;
+  theme?: string;
+  size?: string;
+  key?: number;
+}> | null = null;
 
 // ─────────────────────────────────────────────────────────────
 
@@ -122,7 +130,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, []);
+  }, [hCaptchaLoaded]);
 
   // Cleanup
   useEffect(() => {
@@ -434,7 +442,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                         logger.info("hCaptcha expired");
                       }
                     }}
-                    onError={(err: any) => {
+                    onError={(err: unknown) => {
                       logger.error("hCaptcha error:", err);
                       if (mountedRef.current) {
                         setHCaptchaToken(null);

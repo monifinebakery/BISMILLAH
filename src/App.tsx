@@ -37,13 +37,15 @@ const App = () => {
   }, [handleInitialSetup]);
 
   // ✅ Memoized error handler
-  const handleQueryError = useCallback((error: any) => {
+  const handleQueryError = useCallback((error: unknown) => {
     logger.error('React Query Error:', error);
     
-    // ✅ Handle auth errors globally
-    if (error?.message?.includes('session missing') || 
-        error?.message?.includes('JWT expired') ||
-        error?.status === 401) {
+    // ✅ Handle auth errors globally with proper type checking
+    const errorObj = error as { message?: string; status?: number };
+    if ((errorObj.message && (
+          errorObj.message.includes('session missing') || 
+          errorObj.message.includes('JWT expired')
+        )) || errorObj.status === 401) {
       logger.warn('Session expired, will redirect to auth...');
       // Let AuthContext handle the redirect
     }

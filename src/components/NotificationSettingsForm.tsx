@@ -69,23 +69,25 @@ const NotificationSettingsForm = () => {
   // Load settings from context
   useEffect(() => {
     if (settings) {
+      // Type-safe settings access with proper fallbacks
+      const safeSettings = settings as Record<string, unknown>;
       setFormState({
         push_notifications: settings.push_notifications ?? true,
-        order_notifications: (settings as any).order_notifications ?? true,
-        inventory_notifications: (settings as any).inventory_notifications ?? true,
-        system_notifications: (settings as any).system_notifications ?? true,
+        order_notifications: (safeSettings.order_notifications as boolean) ?? true,
+        inventory_notifications: (safeSettings.inventory_notifications as boolean) ?? true,
+        system_notifications: (safeSettings.system_notifications as boolean) ?? true,
         financial_alerts: settings.financial_alerts ?? true,
         inventory_alerts: settings.inventory_alerts ?? true,
-        stock_alerts: (settings as any).stock_alerts ?? true,
-        payment_alerts: (settings as any).payment_alerts ?? true,
-        low_stock_alerts: (settings as any).low_stock_alerts ?? true,
-        daily_reports: (settings as any).daily_reports ?? false,
-        weekly_reports: (settings as any).weekly_reports ?? false,
-        monthly_reports: (settings as any).monthly_reports ?? true,
-        reminder_notifications: (settings as any).reminder_notifications ?? true,
-        security_alerts: (settings as any).security_alerts ?? true,
-        low_stock_threshold: (settings as any).low_stock_threshold ?? 10,
-        auto_archive_days: (settings as any).auto_archive_days ?? 30,
+        stock_alerts: (safeSettings.stock_alerts as boolean) ?? true,
+        payment_alerts: (safeSettings.payment_alerts as boolean) ?? true,
+        low_stock_alerts: (safeSettings.low_stock_alerts as boolean) ?? true,
+        daily_reports: (safeSettings.daily_reports as boolean) ?? false,
+        weekly_reports: (safeSettings.weekly_reports as boolean) ?? false,
+        monthly_reports: (safeSettings.monthly_reports as boolean) ?? true,
+        reminder_notifications: (safeSettings.reminder_notifications as boolean) ?? true,
+        security_alerts: (safeSettings.security_alerts as boolean) ?? true,
+        low_stock_threshold: (safeSettings.low_stock_threshold as number) ?? 10,
+        auto_archive_days: (safeSettings.auto_archive_days as number) ?? 30,
       });
     }
   }, [settings]);

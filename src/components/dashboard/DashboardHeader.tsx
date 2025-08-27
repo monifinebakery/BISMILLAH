@@ -1,12 +1,10 @@
 // components/dashboard/DashboardHeader.tsx - Simplified Clean Version
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { formatDateRange, parseDate, safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
 import { Calendar, BarChart3, Clock } from 'lucide-react';
-
-// 🚀 Lazy load DateRangePicker (heavy component)
-const DateRangePicker = lazy(() => import('@/components/ui/DateRangePicker'));
+import DateRangePicker from '@/components/ui/DateRangePicker';
 
 interface Props {
   dateRange: { from: Date; to: Date };
@@ -83,19 +81,11 @@ const DashboardHeader: React.FC<Props> = ({
                 Pilih Periode Analisis
               </label>
               
-              <Suspense 
-                fallback={
-                  <div className="w-full lg:w-[320px] h-12 bg-gray-100 rounded-xl border-2 border-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500 text-sm">Memuat kalender...</span>
-                  </div>
-                }
-              >
-                <DateRangePicker
-                  dateRange={dateRange}
-                  onDateRangeChange={setDateRange}
-                  isMobile={isMobile}
-                />
-              </Suspense>
+              <DateRangePicker
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                isMobile={isMobile}
+              />
             </div>
           </div>
         </div>

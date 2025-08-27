@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, Session, User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 interface SchedulerHandle {
@@ -44,6 +44,12 @@ declare global {
   interface Window {
     appDebug?: AppDebug;
     supabase?: SupabaseClient<Database>;
+    __DEBUG_AUTH_USER__?: User | null;
+    __DEBUG_AUTH_READY__?: boolean;
+    __DEBUG_AUTH_LOADING__?: boolean;
+    __DEBUG_AUTH_SESSION__?: Session | null;
+    __DEBUG_AUTH_VALIDATE__?: () => Promise<boolean>;
+    __DEBUG_AUTH_DEBUG__?: () => Promise<unknown>;
   }
 
   interface GlobalThis {

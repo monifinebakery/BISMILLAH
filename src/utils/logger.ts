@@ -45,11 +45,19 @@ const DISABLE_LOGS_HOSTS = String(env?.VITE_DISABLE_LOGS_ON_HOSTS || "")
 
 // ---------- SHOULD_LOG ----------
 function getShouldLog(): boolean {
-  // 1) Local dev & forced
-  if (IS_DEV) return true;
-  if (FORCE_LOGS) return true;
+  // 1) ALWAYS enable for development mode (simplest approach)
+  if (IS_DEV) {
+    console.log('🐛 [LOGGER] Development mode detected - enabling all logs');
+    return true;
+  }
+  
+  // 2) Force logs via env var
+  if (FORCE_LOGS) {
+    console.log('🐛 [LOGGER] VITE_FORCE_LOGS=true - enabling all logs');
+    return true;
+  }
 
-  // 2) Netlify context (dari build-time via VITE_NETLIFY_CONTEXT)
+  // 3) Netlify context (dari build-time via VITE_NETLIFY_CONTEXT)
   if (NETLIFY_CONTEXT === "deploy-preview" || NETLIFY_CONTEXT === "branch-deploy") {
     return true;
   }
@@ -57,25 +65,25 @@ function getShouldLog(): boolean {
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
 
-    // 3) QoL: localhost / 127.* / *.local
+    // 4) QoL: localhost / 127.* / *.local
     if (host === "localhost" || host.startsWith("127.") || host.endsWith(".local")) {
       return true;
     }
 
-    // 4) Host-explicit off
+    // 5) Host-explicit off
     if (DISABLE_LOGS_HOSTS.includes(host)) return false;
 
-    // 5) Host-explicit allow
+    // 6) Host-explicit allow
     if (ENV_DEV_HOSTS.length > 0 && ENV_DEV_HOSTS.includes(host)) return true;
 
-    // 6) Netlify non-prod host (*.netlify.app)
+    // 7) Netlify non-prod host (*.netlify.app)
     if (isNetlifyHost(host) && !isProductionHostname(host)) return true;
 
-    // 7) Production custom domain => silent
+    // 8) Production custom domain => silent
     if (isProductionHostname(host)) return false;
   }
 
-  // 8) Default: silent
+  // 9) Default: silent
   return false;
 }
 const SHOULD_LOG = getShouldLog();

@@ -76,8 +76,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel">
+      <DialogContent centerMode="overlay" size="lg">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -219,7 +218,6 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
               {loading ? 'Menyimpan...' : 'Update Status'}
             </Button>
           </DialogFooter>
-        </div>
       </DialogContent>
     </Dialog>
   );

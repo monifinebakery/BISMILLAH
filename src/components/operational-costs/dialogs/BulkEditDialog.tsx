@@ -57,15 +57,14 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-md">
+      <DialogContent centerMode="overlay" size="md">
           <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5 text-blue-600" />
               Edit Massal Biaya Operasional
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="dialog-body space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Ringkasan biaya yang akan diedit:</h4>
@@ -183,7 +182,6 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
               Edit {selectedCount} Biaya
             </Button>
           </DialogFooter>
-        </div>
       </DialogContent>
     </Dialog>
   );

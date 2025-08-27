@@ -47,7 +47,7 @@ export const CategoryTable: React.FC<CategoryTableProps> = ({
 
   if (categories.length === 0) {
     return (
-      <Card className="border-gray-300">
+      <Card className="border-gray-500">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <Tag className="h-5 w-5 text-orange-600" />
@@ -56,7 +56,7 @@ export const CategoryTable: React.FC<CategoryTableProps> = ({
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-200 mb-4">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-400 mb-4">
               <Tag className="h-6 w-6 text-gray-400" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada kategori</h3>
@@ -70,7 +70,7 @@ export const CategoryTable: React.FC<CategoryTableProps> = ({
   }
 
   return (
-    <Card className="border-gray-300">
+    <Card className="border-gray-500">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <Tag className="h-5 w-5 text-orange-600" />

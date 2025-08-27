@@ -34,8 +34,8 @@ const PromoPerformanceCard = ({ promo }: any) => {
     switch (status) {
       case 'aktif': return 'bg-green-100 text-green-800';
       case 'nonaktif': return 'bg-red-100 text-red-800';
-      case 'draft': return 'bg-gray-200 text-gray-800';
-      default: return 'bg-gray-200 text-gray-800';
+      case 'draft': return 'bg-gray-400 text-gray-800';
+      default: return 'bg-gray-400 text-gray-800';
     }
   };
 
@@ -43,12 +43,12 @@ const PromoPerformanceCard = ({ promo }: any) => {
   const isMarginPositive = marginDiff >= 0;
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg p-6">
+    <div className="bg-white border border-gray-500 rounded-lg p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           {getPromoIcon(promo.tipe_promo)}
-          <span className="text-xs font-medium text-gray-600 bg-gray-200 px-2 py-1 rounded">
+          <span className="text-xs font-medium text-gray-600 bg-gray-400 px-2 py-1 rounded">
             {getPromoTypeLabel(promo.tipe_promo)}
           </span>
         </div>
@@ -81,7 +81,7 @@ const PromoPerformanceCard = ({ promo }: any) => {
         </div>
 
         {/* Margin Analysis */}
-        <div className="pt-3 border-t border-gray-200">
+        <div className="pt-3 border-t border-gray-400">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">Margin Promo:</span>
             <div className="flex items-center space-x-1">
@@ -106,7 +106,7 @@ const PromoPerformanceCard = ({ promo }: any) => {
 
         {/* Impact Summary */}
         {promo.calculation_result?.savings && (
-          <div className="pt-3 border-t border-gray-200">
+          <div className="pt-3 border-t border-gray-400">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Hemat Customer:</span>
               <span className="font-medium text-orange-600">
@@ -118,7 +118,7 @@ const PromoPerformanceCard = ({ promo }: any) => {
       </div>
 
       {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-gray-200 text-xs text-gray-500">
+      <div className="mt-4 pt-3 border-t border-gray-400 text-xs text-gray-500">
         Dibuat: {new Date(promo.created_at).toLocaleDateString('id-ID')}
       </div>
     </div>

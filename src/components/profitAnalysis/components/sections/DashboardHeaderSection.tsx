@@ -77,7 +77,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
             onDateRangeChange={onDateRangeChange}
             placeholder="Pilih periode laporan"
             isMobile={isMobile}
-            className="bg-white text-gray-900 border-none hover:bg-gray-200 min-w-[200px] md:min-w-[260px]"
+            className="bg-white text-gray-900 border-none hover:bg-gray-400 min-w-[200px] md:min-w-[260px]"
           />
         </Suspense>
       </div>

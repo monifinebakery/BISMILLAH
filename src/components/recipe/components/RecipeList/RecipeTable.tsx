@@ -115,7 +115,7 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
   if (recipes.length === 0) return null;
 
   return (
-    <div className="relative overflow-x-auto rounded-lg border border-gray-300">
+    <div className="relative overflow-x-auto rounded-lg border border-gray-500">
       <Table /* on small screens allow scroll */ className="min-w-[840px]">
         <TableHeader>
           <TableRow className="bg-gray-50">

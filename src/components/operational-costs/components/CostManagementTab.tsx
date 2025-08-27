@@ -111,8 +111,8 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
       </div>
 
       {/* Cost Management Table */}
-      <Card className="bg-white rounded-xl border border-gray-300/80">
-        <CardHeader className="p-4 sm:p-6 border-b border-gray-300 bg-gray-50/50">
+      <Card className="bg-white rounded-xl border border-gray-500/80">
+        <CardHeader className="p-4 sm:p-6 border-b border-gray-500 bg-gray-50/50">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <CardTitle>Kelola Biaya Operasional</CardTitle>
@@ -155,7 +155,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[800px]">
-              <TableHeader className="bg-gray-50 border-b border-gray-300 sticky top-0 z-[1]">
+              <TableHeader className="bg-gray-50 border-b border-gray-500 sticky top-0 z-[1]">
                 <TableRow>
                   {isSelectionMode && (
                     <TableHead className="w-12 text-center">
@@ -262,7 +262,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                   <TableRow>
                     <TableCell colSpan={isSelectionMode ? 8 : 7} className="text-center h-24">
                       <div className="py-12 text-gray-500 space-y-4 max-w-md mx-auto">
-                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
+                        <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center mx-auto">
                           📝
                         </div>
                         <div>

@@ -185,7 +185,7 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
           {/* Validation Status */}
           <Alert className={
             isValidating ? 'border-blue-200 bg-blue-50' :
-            !hasValidated ? 'border-gray-300 bg-gray-50' :
+            !hasValidated ? 'border-gray-500 bg-gray-50' :
             validationResult?.canComplete ? 'border-green-200 bg-green-50' :
             'border-red-200 bg-red-50'
           }>

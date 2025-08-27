@@ -276,7 +276,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                   </div>
 
                   {/* Financial metrics */}
-                  <div className="space-y-2 pt-2 border-t border-gray-200">
+                  <div className="space-y-2 pt-2 border-t border-gray-400">
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-600">HPP/Porsi:</span>
                       <span className="text-xs font-semibold">

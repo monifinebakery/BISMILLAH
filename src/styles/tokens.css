@@ -129,7 +129,7 @@
   /* Dark-mode safety net for legacy utility classes from before v4 */
   .dark [class*="bg-white"],
   .dark [class*="bg-gray-50"],
-  .dark [class*="bg-gray-200"] {
+  .dark [class*="bg-gray-400"] {
     background-color: hsl(var(--card)) !important;
   }
 
@@ -140,9 +140,9 @@
     color: hsl(var(--foreground)) !important;
   }
 
-  .dark [class*="border-gray-200"],
-  .dark [class*="border-gray-300"],
-  .dark [class*="border-gray-300"] {
+  .dark [class*="border-gray-400"],
+  .dark [class*="border-gray-500"],
+  .dark [class*="border-gray-500"] {
     border-color: hsl(var(--border)) !important;
   }
 }

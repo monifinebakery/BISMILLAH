@@ -347,7 +347,7 @@ const PromoList = () => {
               variant="outline"
               onClick={handleRefresh}
               disabled={isProcessing}
-              className="border-gray-300"
+              className="border-gray-500"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
@@ -367,7 +367,7 @@ const PromoList = () => {
         <Card className="border-0 bg-white/90 backdrop-blur-sm">
           <CardContent className="p-0">
             {/* Filters & Search */}
-            <div className="p-6 border-b border-gray-300">
+            <div className="p-6 border-b border-gray-500">
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Search */}
                 <div className="flex-1 relative">
@@ -401,7 +401,7 @@ const PromoList = () => {
                 {/* Filter Button */}
                 <Button
                   variant="outline"
-                  className="border-gray-300"
+                  className="border-gray-500"
                 >
                   <Filter className="h-4 w-4 mr-2" />
                   Filter

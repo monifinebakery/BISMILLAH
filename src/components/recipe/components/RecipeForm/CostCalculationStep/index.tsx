@@ -96,7 +96,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
 
       {/* Results Summary */}
       {enhancedHppResult && isEnhancedMode && (
-        <div className="bg-white border border-gray-300 rounded-lg p-6 shadow-sm">
+        <div className="bg-white border border-gray-500 rounded-lg p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Calculator className="h-5 w-5 text-green-600" />
             Hasil Kalkulasi HPP
@@ -133,7 +133,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           </div>
           
           {/* Breakdown Details */}
-          <div className="mt-6 pt-4 border-t border-gray-300">
+          <div className="mt-6 pt-4 border-t border-gray-500">
             <h4 className="text-md font-medium text-gray-700 mb-3">Rincian Biaya per Pcs:</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex justify-between">

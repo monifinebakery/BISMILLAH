@@ -134,7 +134,7 @@ export const getStatusColor = (status: PurchaseStatus): string => {
     cancelled: 'bg-red-100 text-red-800 border-red-200',
   };
 
-  return colorMap[status] || 'bg-gray-200 text-gray-800 border-gray-300';
+  return colorMap[status] || 'bg-gray-400 text-gray-800 border-gray-500';
 };
 
 /**

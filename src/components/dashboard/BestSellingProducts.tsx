@@ -97,12 +97,12 @@ const ProductItem: React.FC<{
   if (isLoading) {
     return (
       <div className="p-4 flex items-center">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-300 animate-pulse mr-4"></div>
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-500 animate-pulse mr-4"></div>
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-gray-300 animate-pulse rounded w-3/4"></div>
-          <div className="h-3 bg-gray-300 animate-pulse rounded w-1/2"></div>
+          <div className="h-4 bg-gray-500 animate-pulse rounded w-3/4"></div>
+          <div className="h-3 bg-gray-500 animate-pulse rounded w-1/2"></div>
         </div>
-        <div className="w-20 h-8 bg-gray-300 animate-pulse rounded"></div>
+        <div className="w-20 h-8 bg-gray-500 animate-pulse rounded"></div>
       </div>
     );
   }
@@ -161,13 +161,13 @@ const PaginationControls: React.FC<{
   hasPrev: boolean;
 }> = ({ currentPage, totalPages, onPageChange, hasNext, hasPrev }) => {
   return (
-    <CardFooter className="bg-gray-50 border-t border-gray-200 p-3 flex justify-between items-center">
+    <CardFooter className="bg-gray-50 border-t border-gray-400 p-3 flex justify-between items-center">
       <Button 
         variant="outline" 
         size="sm" 
         onClick={() => onPageChange('prev')} 
         disabled={!hasPrev} 
-        className="text-gray-600 hover:bg-gray-300 disabled:opacity-50"
+        className="text-gray-600 hover:bg-gray-500 disabled:opacity-50"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -181,7 +181,7 @@ const PaginationControls: React.FC<{
         size="sm" 
         onClick={() => onPageChange('next')} 
         disabled={!hasNext} 
-        className="text-gray-600 hover:bg-gray-300 disabled:opacity-50"
+        className="text-gray-600 hover:bg-gray-500 disabled:opacity-50"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
@@ -239,9 +239,9 @@ const BestSellingProducts: React.FC<Props> = ({
   const currentSortConfig = sortConfigs[sortBy];
 
   return (
-    <Card className="bg-white border-1.5 border-gray-300">
+    <Card className="bg-white border-1.5 border-gray-500">
       {/* 🏆 Header with Sort Selector */}
-      <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-200 p-4">
+      <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-400 p-4">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
             <Trophy className="h-5 w-5 text-yellow-600" />
@@ -287,7 +287,7 @@ const BestSellingProducts: React.FC<Props> = ({
 
       {/* 📊 Content */}
       <CardContent className="p-0">
-        <div className="divide-y divide-gray-300">
+        <div className="divide-y divide-gray-500">
           {currentProducts.length > 0 ? (
             currentProducts.map((product, index) => {
               const rank = (paginationInfo.currentPage - 1) * itemsPerPage + index + 1;
@@ -306,7 +306,7 @@ const BestSellingProducts: React.FC<Props> = ({
           ) : !isLoading ? (
             // 📭 Empty State
             <div className="p-8 text-center text-gray-500">
-              <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <Package className="h-12 w-12 text-gray-500 mx-auto mb-3" />
               <p className="font-medium">Tidak ada data penjualan</p>
               <p className="text-sm mt-1">pada periode yang dipilih.</p>
             </div>

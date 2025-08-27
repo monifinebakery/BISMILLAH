@@ -164,7 +164,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
       isEnhanced: false,
       label: 'Standard HPP',
       icon: Calculator,
-      className: 'text-gray-600 bg-gray-50 border-gray-300'
+      className: 'text-gray-600 bg-gray-50 border-gray-500'
     };
   };
 
@@ -574,7 +574,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500 border rounded-lg bg-gray-50">
-                <ChefHat className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <ChefHat className="h-12 w-12 mx-auto mb-3 text-gray-500" />
                 <p className="mb-2">Belum ada item dalam pesanan</p>
                 <p className="text-sm">Pilih dari resep yang ada atau tambah item manual</p>
               </div>

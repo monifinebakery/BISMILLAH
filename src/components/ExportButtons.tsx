@@ -139,7 +139,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
           Export Data
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-white border-gray-300 rounded-md"> 
+      <DropdownMenuContent className="bg-white border-gray-500 rounded-md"> 
         <DropdownMenuItem onClick={exportToPDF} className="hover:bg-blue-50 rounded-md"> 
           <FileText className="h-4 w-4 mr-2 text-blue-600" />
           Export sebagai PDF/Text

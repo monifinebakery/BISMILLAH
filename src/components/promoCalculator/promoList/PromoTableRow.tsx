@@ -53,7 +53,7 @@ const PromoTableRow = ({
     const statusConfig = {
       aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
       nonaktif: { bg: 'bg-red-100', text: 'text-red-800', label: 'Non-aktif' },
-      draft: { bg: 'bg-gray-200', text: 'text-gray-800', label: 'Draft' }
+      draft: { bg: 'bg-gray-400', text: 'text-gray-800', label: 'Draft' }
     };
     
     const config = statusConfig[status] || statusConfig.draft;
@@ -90,7 +90,7 @@ const PromoTableRow = ({
           type="checkbox"
           checked={isSelected}
           onChange={(e) => onSelectChange(promo.id, e.target.checked)}
-          className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+          className="rounded border-gray-500 text-orange-600 focus:ring-orange-500"
         />
       </td>
 
@@ -111,7 +111,7 @@ const PromoTableRow = ({
 
       {/* Tipe */}
       <td className="px-6 py-4">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-400 text-gray-800">
           {getPromoTypeLabel(promo.tipe_promo)}
         </span>
       </td>

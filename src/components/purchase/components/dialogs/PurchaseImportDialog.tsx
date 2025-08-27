@@ -79,7 +79,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
             <div className="space-y-6">
               <div 
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                  isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-gray-400'
+                  isDragging ? 'border-green-500 bg-green-50' : 'border-gray-500 hover:border-gray-400'
                 }`}
                 onDrop={handleFileDrop}
                 onDragOver={handleDragOver}

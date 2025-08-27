@@ -168,7 +168,7 @@ const CostList: React.FC<CostListProps> = ({
               placeholder="Cari nama biaya..."
               value={filters.search || ''}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-500 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -178,7 +178,7 @@ const CostList: React.FC<CostListProps> = ({
             className={`inline-flex items-center px-3 py-2 border rounded-md text-sm font-medium transition-colors ${
               hasActiveFilters
                 ? 'border-blue-300 bg-blue-50 text-blue-700'
-                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                : 'border-gray-500 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
             <Funnel className="h-4 w-4 mr-2" />
@@ -203,7 +203,7 @@ const CostList: React.FC<CostListProps> = ({
                 <select
                   value={filters.jenis || ''}
                   onChange={(e) => handleFilterChange('jenis', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-500 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Semua Jenis</option>
                   {JENIS_BIAYA_OPTIONS.map((option) => (
@@ -222,7 +222,7 @@ const CostList: React.FC<CostListProps> = ({
                 <select
                   value={filters.status || ''}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-500 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Semua Status</option>
                   {STATUS_BIAYA_OPTIONS.map((option) => (
@@ -313,7 +313,7 @@ const CostList: React.FC<CostListProps> = ({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-300">
+          <tbody className="divide-y divide-gray-500">
             {sortedCosts.map((cost) => (
               <tr key={cost.id} className="hover:bg-gray-50">
                 <td className="px-4 py-4">
@@ -339,7 +339,7 @@ const CostList: React.FC<CostListProps> = ({
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     getStatusColor(cost.status) === 'green'
                       ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-200 text-gray-800'
+                      : 'bg-gray-400 text-gray-800'
                   }`}>
                     {getStatusLabel(cost.status)}
                   </span>

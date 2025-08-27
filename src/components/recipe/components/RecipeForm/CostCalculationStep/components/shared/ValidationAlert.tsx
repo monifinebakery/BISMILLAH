@@ -72,7 +72,7 @@ export const ValidationAlert: React.FC<ValidationAlertProps> = ({
       default:
         return {
           bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-300',
+          borderColor: 'border-gray-500',
           iconColor: 'text-gray-600',
           titleColor: 'text-gray-800',
           textColor: 'text-gray-700',

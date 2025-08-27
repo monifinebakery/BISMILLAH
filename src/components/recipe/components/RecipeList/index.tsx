@@ -307,7 +307,7 @@ const RecipeList: React.FC = () => {
                       type="single" 
                       value={viewMode} 
                       onValueChange={(value) => value && setViewMode(value as 'table' | 'cards')}
-                      className="border border-gray-300 rounded-lg"
+                      className="border border-gray-500 rounded-lg"
                     >
                       <ToggleGroupItem 
                         value="table" 

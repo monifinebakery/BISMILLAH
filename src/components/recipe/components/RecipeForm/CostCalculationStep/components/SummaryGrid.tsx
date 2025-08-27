@@ -34,7 +34,7 @@ const SummaryCardItem: React.FC<SummaryCardProps> = ({
   iconColor,
   badge,
 }) => (
-  <div className="bg-white rounded-lg p-4 border border-gray-300 relative">
+  <div className="bg-white rounded-lg p-4 border border-gray-500 relative">
     {/* ✅ Badge for special indicators */}
     {badge && (
       <div className="absolute top-2 right-2">
@@ -158,7 +158,7 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
   return (
     <div className="space-y-6">
       {/* Main Summary Grid */}
-      <Card className="bg-gradient-to-r from-gray-50 to-gray-200 border-gray-300">
+      <Card className="bg-gradient-to-r from-gray-50 to-gray-400 border-gray-500">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Info className="h-5 w-5 text-gray-600" />
@@ -269,7 +269,7 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
               </div>
 
               {/* ✅ Total calculation summary */}
-              <div className="mt-4 pt-3 border-t border-gray-300">
+              <div className="mt-4 pt-3 border-t border-gray-500">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">
                     Total untuk {jumlahPorsi} porsi ({totalPieces} pcs):

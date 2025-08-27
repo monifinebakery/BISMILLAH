@@ -542,7 +542,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <Package className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                <Package className="h-12 w-12 text-gray-500 mx-auto mb-2" />
                 <p>Belum ada bahan yang ditambahkan</p>
               </div>
             )}
@@ -694,11 +694,11 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   {/* Profitability */}
                   <div className="bg-gray-800 text-white p-3 rounded-lg">
                     <div className="text-center">
-                      <div className="text-xs text-gray-300 mb-1">Total Profit Potensi</div>
+                      <div className="text-xs text-gray-500 mb-1">Total Profit Potensi</div>
                       <div className="font-bold text-lg">
                         {formatCurrency((calculationResults.hargaJualPorsi - calculationResults.hppPerPorsi) * formData.jumlahPorsi)}
                       </div>
-                      <div className="text-xs text-gray-300 mt-1">
+                      <div className="text-xs text-gray-500 mt-1">
                         Margin {formData.marginKeuntunganPersen}%
                       </div>
                     </div>
@@ -706,7 +706,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                 </>
               ) : (
                 <div className="text-center py-8">
-                  <Calculator className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                  <Calculator className="h-12 w-12 text-gray-500 mx-auto mb-2" />
                   <p className="text-gray-500 text-sm">
                     Tambahkan bahan baku untuk melihat kalkulasi
                   </p>

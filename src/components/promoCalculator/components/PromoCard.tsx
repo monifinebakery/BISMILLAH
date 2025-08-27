@@ -36,10 +36,10 @@ const PromoCard = ({
   const getStatusColor = (status) => {
     const colors = {
       aktif: 'bg-green-100 text-green-800 border-green-200',
-      nonaktif: 'bg-gray-200 text-gray-800 border-gray-300',
+      nonaktif: 'bg-gray-400 text-gray-800 border-gray-500',
       draft: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     };
-    return colors[status] || 'bg-gray-200 text-gray-800 border-gray-300';
+    return colors[status] || 'bg-gray-400 text-gray-800 border-gray-500';
   };
 
   const formatDate = (dateString) => {
@@ -115,7 +115,7 @@ const PromoCard = ({
 
   return (
 <div
-  className={`bg-white rounded-xl border border-gray-300 transition-colors duration-200 ${className}`}
+  className={`bg-white rounded-xl border border-gray-500 transition-colors duration-200 ${className}`}
 >
       {/* Card Header */}
       <div className="p-6">
@@ -143,7 +143,7 @@ const PromoCard = ({
               // ✅ Tambahkan ref dan onClick untuk toggle
               <div className="relative" ref={dropdownRef}>
                 <button 
-                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-400 transition-colors"
                   onClick={toggleDropdown} // ✅ Ganti hover dengan click
                   aria-haspopup="true"
                   aria-expanded={isDropdownOpen}
@@ -154,7 +154,7 @@ const PromoCard = ({
                 {/* Dropdown Menu */}
                 {/* ✅ Gunakan state isDropdownOpen untuk kontrol visibilitas */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg border border-gray-300 z-10">
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg border border-gray-500 z-10">
                     <div className="py-1">
                       {onView && (
                         <button
@@ -202,7 +202,7 @@ const PromoCard = ({
 
         {/* Calculation Results */}
         {promo.calculationResult && (
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-300 mb-4">
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-500 mb-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-600 mb-1">Harga Jual:</p>
@@ -277,7 +277,7 @@ const PromoCard = ({
           )}
           
           {/* Created Date */}
-          <div className="flex items-center justify-between pt-3 border-t border-gray-300">
+          <div className="flex items-center justify-between pt-3 border-t border-gray-500">
             <p className="text-xs text-gray-500">
               Dibuat {formatDate(promo.createdAt)}
             </p>

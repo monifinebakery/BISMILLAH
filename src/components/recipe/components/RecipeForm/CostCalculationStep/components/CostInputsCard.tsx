@@ -119,14 +119,14 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                     
                     <div className="border-t border-gray-700 pt-2">
                       <p className="text-green-300">✅ Contoh:</p>
-                      <p className="text-gray-300 text-xs ml-4">• Donat: 6 pcs per box (porsi)</p>
-                      <p className="text-gray-300 text-xs ml-4">• Kue sus: 12 pcs per tray</p>
-                      <p className="text-gray-300 text-xs ml-4">• Nasi box: 1 pcs per porsi</p>
+                      <p className="text-gray-500 text-xs ml-4">• Donat: 6 pcs per box (porsi)</p>
+                      <p className="text-gray-500 text-xs ml-4">• Kue sus: 12 pcs per tray</p>
+                      <p className="text-gray-500 text-xs ml-4">• Nasi box: 1 pcs per porsi</p>
                     </div>
                     
                     <div className="border-t border-gray-700 pt-2">
                       <p className="font-medium text-purple-300">🎯 Manfaat:</p>
-                      <p className="text-gray-300 text-xs">Memungkinkan kalkulasi HPP dan harga jual per piece untuk fleksibilitas penjualan.</p>
+                      <p className="text-gray-500 text-xs">Memungkinkan kalkulasi HPP dan harga jual per piece untuk fleksibilitas penjualan.</p>
                     </div>
                   </div>
                 }
@@ -161,7 +161,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                   key={pcs}
                   type="button"
                   onClick={() => onUpdate('jumlahPcsPerPorsi', pcs)}
-                  className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded border text-gray-600 hover:text-gray-800 transition-colors"
+                  className="text-xs px-2 py-1 bg-gray-400 hover:bg-gray-500 rounded border text-gray-600 hover:text-gray-800 transition-colors"
                   disabled={isLoading}
                 >
                   {pcs} pcs
@@ -195,14 +195,14 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                     
                     <div className="border-t border-gray-700 pt-2">
                       <p className="text-red-300">❌ Bukan termasuk:</p>
-                      <p className="text-gray-300 text-xs ml-4">• Gaji admin, kasir, marketing</p>
-                      <p className="text-gray-300 text-xs ml-4">• Staff non-produksi lainnya</p>
+                      <p className="text-gray-500 text-xs ml-4">• Gaji admin, kasir, marketing</p>
+                      <p className="text-gray-500 text-xs ml-4">• Staff non-produksi lainnya</p>
                     </div>
                     
                     <div className="border-t border-gray-700 pt-2">
                       <p className="text-green-300">✅ Yang dihitung:</p>
-                      <p className="text-gray-300 text-xs ml-4">• Staf yang ikut proses produksi</p>
-                      <p className="text-gray-300 text-xs ml-4">• Untuk periode batch ini saja</p>
+                      <p className="text-gray-500 text-xs ml-4">• Staf yang ikut proses produksi</p>
+                      <p className="text-gray-500 text-xs ml-4">• Untuk periode batch ini saja</p>
                     </div>
                     
                     <div className="border-t border-gray-700 pt-2">
@@ -269,20 +269,20 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                       
                       <div className="border-t border-gray-700 pt-2">
                         <p className="text-green-300">✅ Termasuk:</p>
-                        <p className="text-gray-300 text-xs ml-4">• Listrik, gas, air</p>
-                        <p className="text-gray-300 text-xs ml-4">• Sewa tempat/kitchen</p>
-                        <p className="text-gray-300 text-xs ml-4">• Peralatan & maintenance</p>
-                        <p className="text-gray-300 text-xs ml-4">• Asuransi, ijin usaha</p>
+                        <p className="text-gray-500 text-xs ml-4">• Listrik, gas, air</p>
+                        <p className="text-gray-500 text-xs ml-4">• Sewa tempat/kitchen</p>
+                        <p className="text-gray-500 text-xs ml-4">• Peralatan & maintenance</p>
+                        <p className="text-gray-500 text-xs ml-4">• Asuransi, ijin usaha</p>
                       </div>
                       
                       <div className="border-t border-gray-700 pt-2">
                         <p className="font-medium text-blue-300">🤖 Mode Auto:</p>
-                        <p className="text-gray-300 text-xs">Dihitung otomatis dari data biaya operasional yang sudah diinput di menu Biaya Operasional.</p>
+                        <p className="text-gray-500 text-xs">Dihitung otomatis dari data biaya operasional yang sudah diinput di menu Biaya Operasional.</p>
                       </div>
                       
                       <div className="border-t border-gray-700 pt-2">
                         <p className="font-medium text-orange-300">✋ Mode Manual:</p>
-                        <p className="text-gray-300 text-xs">Input manual berdasarkan estimasi atau data aktual overhead untuk batch produksi ini.</p>
+                        <p className="text-gray-500 text-xs">Input manual berdasarkan estimasi atau data aktual overhead untuk batch produksi ini.</p>
                       </div>
                     </div>
                   }
@@ -449,14 +449,14 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                     
                     <div className="border-t border-gray-700 pt-2">
                       <p className="text-yellow-300">💡 Rekomendasi Margin:</p>
-                      <p className="text-gray-300 text-xs ml-4">• <span className="text-red-300">10-15%</span>: Rendah, risiko rugi</p>
-                      <p className="text-gray-300 text-xs ml-4">• <span className="text-yellow-300">15-30%</span>: Wajar untuk F&B</p>
-                      <p className="text-gray-300 text-xs ml-4">• <span className="text-green-300">30%+</span>: Ideal, sustainable</p>
+                      <p className="text-gray-500 text-xs ml-4">• <span className="text-red-300">10-15%</span>: Rendah, risiko rugi</p>
+                      <p className="text-gray-500 text-xs ml-4">• <span className="text-yellow-300">15-30%</span>: Wajar untuk F&B</p>
+                      <p className="text-gray-500 text-xs ml-4">• <span className="text-green-300">30%+</span>: Ideal, sustainable</p>
                     </div>
                     
                     <div className="border-t border-gray-700 pt-2">
                       <p className="font-medium text-purple-300">🎯 Tips:</p>
-                      <p className="text-gray-300 text-xs">Pertimbangkan harga kompetitor dan daya beli target market saat menentukan margin.</p>
+                      <p className="text-gray-500 text-xs">Pertimbangkan harga kompetitor dan daya beli target market saat menentukan margin.</p>
                     </div>
                   </div>
                 }
@@ -530,7 +530,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                     key={percent}
                     type="button"
                     onClick={() => onUpdate('marginKeuntunganPersen', percent)}
-                    className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded border text-gray-600 hover:text-gray-800 transition-colors"
+                    className="text-xs px-2 py-1 bg-gray-400 hover:bg-gray-500 rounded border text-gray-600 hover:text-gray-800 transition-colors"
                     disabled={isLoading}
                   >
                     {percent}%

@@ -32,7 +32,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
             placeholder="Nama Pelanggan" 
             value={customer.name} 
             onChange={e => updateCustomer('name', e.target.value)} 
-            className="font-bold text-base sm:text-lg border-gray-300 focus:border-blue-500"
+            className="font-bold text-base sm:text-lg border-gray-500 focus:border-blue-500"
           />
           <div className="export-text font-bold text-lg">{customer.name}</div>
         </div>
@@ -42,7 +42,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
             placeholder="Alamat Pelanggan" 
             value={customer.address} 
             onChange={e => updateCustomer('address', e.target.value)} 
-            className="text-gray-600 border-gray-300 focus:border-blue-500"
+            className="text-gray-600 border-gray-500 focus:border-blue-500"
             rows={3}
           />
           <div className="export-text text-gray-600 whitespace-pre-line">
@@ -57,7 +57,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
               placeholder="Telepon" 
               value={customer.phone} 
               onChange={e => updateCustomer('phone', e.target.value)} 
-              className="text-gray-600 border-gray-300 focus:border-blue-500"
+              className="text-gray-600 border-gray-500 focus:border-blue-500"
             />
             <div className="export-text text-gray-600">{customer.phone}</div>
           </div>
@@ -69,7 +69,7 @@ export const CustomerInfo: React.FC<CustomerInfoProps> = ({
               type="email"
               value={customer.email} 
               onChange={e => updateCustomer('email', e.target.value)} 
-              className="text-gray-600 border-gray-300 focus:border-blue-500"
+              className="text-gray-600 border-gray-500 focus:border-blue-500"
             />
             <div className="export-text text-gray-600">{customer.email}</div>
           </div>

@@ -45,7 +45,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({
       </div>
 
       {/* Form Actions */}
-      <div className="flex gap-2 pt-4 border-t border-gray-300 mt-4">
+      <div className="flex gap-2 pt-4 border-t border-gray-500 mt-4">
         <Button
           type="submit"
           className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
@@ -65,7 +65,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="flex-1 border-gray-300 hover:bg-gray-50"
+          className="flex-1 border-gray-500 hover:bg-gray-50"
           disabled={isSubmitting}
         >
           Batal

@@ -38,7 +38,7 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
       </div>
 
       {/* Customer Info */}
-      <div className="p-8 border-b border-gray-300">
+      <div className="p-8 border-b border-gray-500">
         <h3 className="text-lg font-bold text-gray-800 mb-4">DITAGIHKAN KEPADA:</h3>
         <div className="grid grid-cols-2 gap-8">
           <div>
@@ -79,12 +79,12 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
         <div className="mt-8 flex justify-end">
           <div className="w-80">
             <div className="border border-gray-800">
-              <div className="flex justify-between p-3 border-b border-gray-300">
+              <div className="flex justify-between p-3 border-b border-gray-500">
                 <span>SUBTOTAL:</span>
                 <span className="font-mono">{formatCurrency(order.subtotal)}</span>
               </div>
               {order.pajak && order.pajak > 0 && (
-                <div className="flex justify-between p-3 border-b border-gray-300">
+                <div className="flex justify-between p-3 border-b border-gray-500">
                   <span>PAJAK:</span>
                   <span className="font-mono">{formatCurrency(order.pajak)}</span>
                 </div>

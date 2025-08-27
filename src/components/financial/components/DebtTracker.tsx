@@ -170,7 +170,7 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
     
     if (daysUntilDue < 0) return 'border-red-500 bg-red-50'; // Overdue
     if (daysUntilDue <= 3) return 'border-orange-500 bg-orange-50'; // Due soon
-    return 'border-gray-300 bg-white'; // Normal
+    return 'border-gray-500 bg-white'; // Normal
   };
 
   return (

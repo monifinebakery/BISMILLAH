@@ -150,7 +150,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   // Quick presets component
   const PresetButtons = () => (
-    <div className="p-3 border-b border-gray-300 dialog-no-overflow">
+    <div className="p-3 border-b border-gray-500 dialog-no-overflow">
       <h4 className="font-medium text-sm mb-2 text-overflow-safe">Pilih Cepat</h4>
       <div className="grid grid-cols-2 gap-2">
         {PRESETS.map(({ label, key }) => (
@@ -193,7 +193,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   locale={id}
                   className="mx-auto"
                 />
-                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-300">
+                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-500">
                   <Button variant="outline" onClick={handleReset} className="input-mobile-safe">
                     <span className="text-overflow-safe">Reset</span>
                   </Button>
@@ -224,7 +224,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       >
         <div className="flex flex-col lg:flex-row bg-white border rounded-lg shadow-lg overflow-hidden max-w-full">
           {/* Preset buttons sidebar */}
-          <div className="w-full lg:w-44 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-300">
+          <div className="w-full lg:w-44 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-500">
             <div className="p-3">
               <h4 className="font-medium text-sm mb-2 text-gray-700">Pilih Cepat</h4>
               <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
@@ -257,7 +257,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             </div>
             
             {/* Action buttons */}
-            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-300">
+            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-500">
               <Button 
                 variant="outline" 
                 onClick={handleReset} 

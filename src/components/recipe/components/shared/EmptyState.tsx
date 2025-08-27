@@ -52,7 +52,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     }
 
     return (
-      <div className="w-24 h-24 mx-auto mb-6 bg-gray-200 rounded-full flex items-center justify-center">
+      <div className="w-24 h-24 mx-auto mb-6 bg-gray-400 rounded-full flex items-center justify-center">
         {getIcon()}
       </div>
     );

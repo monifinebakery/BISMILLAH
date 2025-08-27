@@ -104,7 +104,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
                           ? DEFAULT_ALLOCATION_VALUES.PER_UNIT 
                           : DEFAULT_ALLOCATION_VALUES.PERSENTASE
                       })}
-                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-500"
                       disabled={loading}
                     />
                     <div className="ml-3">
@@ -131,7 +131,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
                 min={formData.metode === 'per_unit' ? '1' : '0.01'}
                 step={formData.metode === 'per_unit' ? '1' : '0.01'}
                 className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                  errors.nilai ? 'border-red-300' : 'border-gray-300'
+                  errors.nilai ? 'border-red-300' : 'border-gray-500'
                 }`}
                 disabled={loading}
               />
@@ -149,7 +149,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
                     if (settings) setFormData(transformAllocationToForm(settings));
                   }}
                   disabled={loading}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-500 rounded-md hover:bg-gray-50"
                 >
                   Batal
                 </button>
@@ -210,7 +210,7 @@ const AllocationSettingsComponent: React.FC<AllocationSettingsProps> = ({
               </>
             ) : (
               <div className="text-center py-8">
-                <Settings className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <Settings className="h-12 w-12 text-gray-500 mx-auto mb-4" />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">Belum Ada Pengaturan</h4>
                 <p className="text-gray-500 mb-4">Atur metode alokasi biaya</p>
                 <button

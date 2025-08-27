@@ -47,7 +47,7 @@ const EnhancedResultDisplay = ({ hppData, namaResep }: EnhancedResultDisplayProp
   if (hppData.totalHPP === 0) {
     return (
       <div className="text-center py-12">
-        <Calculator className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+        <Calculator className="h-16 w-16 text-gray-500 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">Belum Ada Data Perhitungan</h3>
         <p className="text-gray-500">Masukkan data bahan baku dan biaya untuk melihat hasil perhitungan HPP</p>
       </div>
@@ -122,7 +122,7 @@ const EnhancedResultDisplay = ({ hppData, namaResep }: EnhancedResultDisplayProp
           {/* Total HPP */}
           <div className="bg-gray-800 text-white p-4 rounded-lg">
             <div className="text-center">
-              <p className="text-gray-300 text-sm mb-1 flex items-center justify-center">
+              <p className="text-gray-500 text-sm mb-1 flex items-center justify-center">
                 <Calculator className="h-4 w-4 mr-1" />
                 Total HPP Produksi
               </p>

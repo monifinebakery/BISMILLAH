@@ -116,7 +116,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
           return (
             <Card
               key={card.title}
-              className="h-full border transition-colors hover:border-gray-300"
+              className="h-full border transition-colors hover:border-gray-500"
             >
               <CardContent className="h-full p-6">
                 <div className="flex items-center justify-between">
@@ -165,7 +165,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
               ))}
             </div>
             <div className="mt-4">
-              <div className="flex h-2 overflow-hidden rounded-full bg-gray-300">
+              <div className="flex h-2 overflow-hidden rounded-full bg-gray-500">
                 <div className="bg-green-500 transition-all duration-300" style={{ width: `${norm(highP)}%` }} />
                 <div className="bg-yellow-500 transition-all duration-300" style={{ width: `${norm(medP)}%` }} />
                 <div className="bg-red-500 transition-all duration-300" style={{ width: `${norm(lowP)}%` }} />

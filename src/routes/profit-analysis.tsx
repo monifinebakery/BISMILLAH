@@ -24,7 +24,7 @@ const ProfitAnalysisErrorBoundary = ({ children }: { children: React.ReactNode }
             Terjadi error saat memuat analisis profit. Hal ini mungkin karena masalah dengan data keuangan atau kalkulasi.
           </p>
           {import.meta.env.DEV && (
-            <details className="text-left bg-gray-200 p-4 rounded mb-4 max-w-full overflow-auto">
+            <details className="text-left bg-gray-400 p-4 rounded mb-4 max-w-full overflow-auto">
               <summary className="cursor-pointer font-medium text-red-600 mb-2">
                 Error Details (Development Only)
               </summary>
@@ -42,7 +42,7 @@ const ProfitAnalysisErrorBoundary = ({ children }: { children: React.ReactNode }
             </button>
             <button
               onClick={() => window.location.href = '/'}
-              className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg transition-colors"
+              className="border border-gray-500 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg transition-colors"
             >
               Dashboard
             </button>

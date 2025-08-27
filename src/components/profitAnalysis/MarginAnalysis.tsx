@@ -77,15 +77,15 @@ export function MarginAnalysis({
       <Card className={className}>
         <CardHeader>
           <div className="animate-pulse">
-            <div className="h-6 bg-gray-300 rounded w-40 mb-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-32"></div>
+            <div className="h-6 bg-gray-500 rounded w-40 mb-2"></div>
+            <div className="h-4 bg-gray-500 rounded w-32"></div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-3">
-            <div className="h-4 bg-gray-300 rounded"></div>
-            <div className="h-4 bg-gray-300 rounded"></div>
-            <div className="h-4 bg-gray-300 rounded"></div>
+            <div className="h-4 bg-gray-500 rounded"></div>
+            <div className="h-4 bg-gray-500 rounded"></div>
+            <div className="h-4 bg-gray-500 rounded"></div>
           </div>
         </CardContent>
       </Card>
@@ -189,7 +189,7 @@ export function MarginAnalysis({
               </span>
               <span className="font-medium">{data.cogsRatio.toFixed(1)}%</span>
             </div>
-            <div className="w-full bg-gray-300 rounded-full h-2">
+            <div className="w-full bg-gray-500 rounded-full h-2">
               <div 
                 className="bg-orange-500 h-2 rounded-full" 
                 style={{ width: `${Math.min(data.cogsRatio, 100)}%` }}
@@ -202,7 +202,7 @@ export function MarginAnalysis({
               <span className="text-gray-600">Biaya Operasional</span>
               <span className="font-medium">{data.opexRatio.toFixed(1)}%</span>
             </div>
-            <div className="w-full bg-gray-300 rounded-full h-2">
+            <div className="w-full bg-gray-500 rounded-full h-2">
               <div 
                 className="bg-blue-500 h-2 rounded-full" 
                 style={{ width: `${Math.min(data.opexRatio, 100)}%` }}

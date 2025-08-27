@@ -40,7 +40,7 @@ const DialogError = ({ error, retry }: { error: Error; retry: () => void }) => (
           <div className="flex flex-col sm:flex-row gap-3 justify-end">
             <button
               onClick={() => window.location.reload()}
-              className="w-full sm:w-auto px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+              className="w-full sm:w-auto px-4 py-2 text-sm border border-gray-500 rounded-md hover:bg-gray-50"
             >
               Refresh Halaman
             </button>

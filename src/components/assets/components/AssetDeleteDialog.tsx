@@ -48,7 +48,7 @@ export const AssetDeleteDialog: React.FC<AssetDeleteDialogProps> = ({
           <AlertDialogCancel 
             onClick={onCancel}
             disabled={isDeleting}
-            className="border-gray-300 hover:bg-gray-50"
+            className="border-gray-500 hover:bg-gray-50"
           >
             Batal
           </AlertDialogCancel>

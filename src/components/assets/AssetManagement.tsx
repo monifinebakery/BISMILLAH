@@ -203,7 +203,7 @@ export const AssetManagement: React.FC = () => {
               <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
                 <DialogTrigger asChild>
                   <Button
-                    className="bg-white text-orange-600 hover:bg-gray-200 w-full sm:w-auto text-sm py-2 px-3"
+                    className="bg-white text-orange-600 hover:bg-gray-400 w-full sm:w-auto text-sm py-2 px-3"
                     onClick={handleAddNew}
                   >
                     <Plus className="h-4 w-4 mr-2" />

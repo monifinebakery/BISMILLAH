@@ -59,7 +59,7 @@ const OrderFilters = React.lazy(() =>
   import('./OrderFilters').catch((error) => {
     logger.error('Failed to load OrderFilters component:', error);
     return {
-      default: () => <div className="h-16 bg-gray-200 rounded animate-pulse" />
+      default: () => <div className="h-16 bg-gray-400 rounded animate-pulse" />
     };
   })
 );
@@ -68,7 +68,7 @@ const OrderControls = React.lazy(() =>
   import('./OrderControls').catch((error) => {
     logger.error('Failed to load OrderControls component:', error);
     return {
-      default: () => <div className="h-12 bg-gray-200 rounded animate-pulse" />
+      default: () => <div className="h-12 bg-gray-400 rounded animate-pulse" />
     };
   })
 );
@@ -606,7 +606,7 @@ const OrdersPage: React.FC = () => {
               logger.component('OrdersPage', 'New order button clicked from header');
               businessHandlers.newOrder();
             }}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-200 transition-all duration-200"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-400 transition-all duration-200"
           >
             <Plus className="h-5 w-5" />
             Pesanan Baru
@@ -617,9 +617,9 @@ const OrdersPage: React.FC = () => {
       {/* ✅ OPTIMIZED: Main content with better error handling */}
       <Suspense fallback={
         <div className="space-y-4">
-          <div className="h-12 bg-gray-200 rounded animate-pulse" />
-          <div className="h-16 bg-gray-200 rounded animate-pulse" />
-          <div className="h-64 bg-gray-200 rounded animate-pulse" />
+          <div className="h-12 bg-gray-400 rounded animate-pulse" />
+          <div className="h-16 bg-gray-400 rounded animate-pulse" />
+          <div className="h-64 bg-gray-400 rounded animate-pulse" />
         </div>
       }>
         <OrderControls 
@@ -633,7 +633,7 @@ const OrdersPage: React.FC = () => {
         
         {/* ✅ BULK ACTIONS: Komponen untuk operasi massal */}
          {isSelectionMode && (
-           <Suspense fallback={<div className="h-16 bg-gray-200 rounded animate-pulse" />}>
+           <Suspense fallback={<div className="h-16 bg-gray-400 rounded animate-pulse" />}>
              <BulkActions
                 selectedOrders={selectedOrders}
                 selectedIds={selectedIds}

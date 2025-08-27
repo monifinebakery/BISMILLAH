@@ -291,7 +291,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           <div className="dialog-body">
             <div className="space-y-4 sm:space-y-6 dialog-no-overflow">
           {/* Header Form - Supplier dan Tanggal */}
-          <Card className="border-gray-300">
+          <Card className="border-gray-500">
             <CardHeader className="pb-4">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-overflow-safe">
                 <Package className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 flex-shrink-0" />
@@ -308,7 +308,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     onValueChange={(value) => updateFormField('supplier', value)}
                     disabled={isSubmitting || isViewOnly}
                   >
-                    <SelectTrigger className="h-11 border-gray-300 focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe">
+                    <SelectTrigger className="h-11 border-gray-500 focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe">
                       <SelectValue placeholder="Pilih supplier" />
                     </SelectTrigger>
                     <SelectContent>
@@ -334,7 +334,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={`h-11 w-full justify-start border-gray-300 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe ${!formData.tanggal && 'text-muted-foreground'}`}
+                        className={`h-11 w-full justify-start border-gray-500 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe ${!formData.tanggal && 'text-muted-foreground'}`}
                         disabled={isSubmitting || isViewOnly}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
@@ -368,7 +368,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   onChange={(e) => updateFormField('keterangan', e.target.value)}
                   placeholder="Catatan tambahan tentang pembelian ini (opsional)"
                   rows={3}
-                  className="border-gray-300 focus:border-orange-500 focus:ring-orange-500/20 resize-none input-mobile-safe"
+                  className="border-gray-500 focus:border-orange-500 focus:ring-orange-500/20 resize-none input-mobile-safe"
                   disabled={isSubmitting || isViewOnly}
                 />
               </div>
@@ -376,7 +376,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           </Card>
 
           {/* Items Section */}
-          <Card className="border-gray-300">
+          <Card className="border-gray-500">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Package className="h-5 w-5 text-orange-600" />
@@ -409,7 +409,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-300">
+                    <tbody className="divide-y divide-gray-500">
                       {formData.items.map((item, index) => (
                         <tr key={index} className="hover:bg-gray-50">
                           <td className="px-4 py-3">
@@ -435,7 +435,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                                 variant="outline"
                                 onClick={() => handleEditItem(index)}
                                 disabled={isSubmitting || isViewOnly}
-                                className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
+                                className="h-8 w-8 p-0 border-gray-500 hover:bg-orange-50"
                               >
                                 <Edit3 className="h-3 w-3 text-gray-600" />
                               </Button>
@@ -467,7 +467,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
+                <div className="text-center py-12 border border-dashed border-gray-500 rounded-lg">
                   <Package className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-2 text-sm font-medium text-gray-900">Belum ada item</h3>
                   <p className="mt-1 text-sm text-gray-500">
@@ -479,7 +479,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           </Card>
 
           {/* Summary */}
-          <Card className="border-gray-300">
+          <Card className="border-gray-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -511,7 +511,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   variant="outline"
                   onClick={handleResetForm}
                   disabled={isSubmitting || !isDirty}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50 input-mobile-safe"
+                  className="border-gray-500 text-gray-700 hover:bg-gray-50 input-mobile-safe"
                 >
                   <RotateCcw className="h-4 w-4 mr-2 flex-shrink-0" />
                   <span className="text-overflow-safe">Reset</span>
@@ -533,7 +533,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     type="button"
                     onClick={() => onSubmit('completed')}
                     disabled={isSubmitting || !isDirty}
-                    className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500 input-mobile-safe"
+                    className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-500 disabled:text-gray-500 input-mobile-safe"
                   >
                     {isSubmitting ? (
                       <>

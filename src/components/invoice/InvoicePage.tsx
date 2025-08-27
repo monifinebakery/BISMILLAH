@@ -39,7 +39,7 @@ const InvoiceError: React.FC<{ error: Error; onBack: () => void; onRetry: () => 
       <div className="space-y-2">
         <button 
           onClick={onBack}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          className="w-full px-4 py-2 border border-gray-500 rounded-md text-gray-700 bg-white hover:bg-gray-50"
         >
           ← Kembali
         </button>

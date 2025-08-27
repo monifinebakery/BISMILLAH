@@ -116,38 +116,38 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSk
               <div className="grid grid-cols-1 gap-2">
                 <Button
                   onClick={() => handleQuickSetup('bakery')}
-                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-200 text-gray-800 border border-gray-300"
+                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-400 text-gray-800 border border-gray-500"
                   variant="outline"
                 >
                   <div className="text-left">
                     <div className="font-medium">🧁 Toko Roti/Bakery</div>
                     <div className="text-xs text-gray-600">Gas oven, sewa dapur, marketing, dll</div>
                   </div>
-                  <div className="text-xs bg-gray-300 px-2 py-1 rounded">5 item</div>
+                  <div className="text-xs bg-gray-500 px-2 py-1 rounded">5 item</div>
                 </Button>
                 
                 <Button
                   onClick={() => handleQuickSetup('restaurant')}
-                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-200 text-gray-800 border border-gray-300"
+                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-400 text-gray-800 border border-gray-500"
                   variant="outline"
                 >
                   <div className="text-left">
                     <div className="font-medium">🍽️ Restoran/Warung</div>
                     <div className="text-xs text-gray-600">Gas kompor, gaji koki, sewa, dll</div>
                   </div>
-                  <div className="text-xs bg-gray-300 px-2 py-1 rounded">5 item</div>
+                  <div className="text-xs bg-gray-500 px-2 py-1 rounded">5 item</div>
                 </Button>
                 
                 <Button
                   onClick={() => handleQuickSetup('cafe')}
-                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-200 text-gray-800 border border-gray-300"
+                  className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-400 text-gray-800 border border-gray-500"
                   variant="outline"
                 >
                   <div className="text-left">
                     <div className="font-medium">☕ Cafe/Kedai Kopi</div>
                     <div className="text-xs text-gray-600">Coffee machine, barista, sewa, dll</div>
                   </div>
-                  <div className="text-xs bg-gray-300 px-2 py-1 rounded">5 item</div>
+                  <div className="text-xs bg-gray-500 px-2 py-1 rounded">5 item</div>
                 </Button>
               </div>
 

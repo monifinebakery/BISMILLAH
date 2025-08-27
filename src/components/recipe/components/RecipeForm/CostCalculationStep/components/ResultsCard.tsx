@@ -227,7 +227,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
           </div>
 
           {/* ✅ ENHANCED: Revenue Summary */}
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-300">
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-500">
             <h4 className="font-medium text-gray-900 mb-3 text-sm">Ringkasan Revenue Potensi:</h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div className="space-y-1">

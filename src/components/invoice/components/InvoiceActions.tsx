@@ -20,7 +20,7 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
   className = ''
 }) => {
   return (
-    <Card className={`print:hidden border-2 border-gray-300 ${className}`}>
+    <Card className={`print:hidden border-2 border-gray-500 ${className}`}>
       <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
@@ -53,7 +53,7 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Button
               onClick={onDownload}
-              className="bg-white text-orange-600 hover:bg-gray-200 text-sm"
+              className="bg-white text-orange-600 hover:bg-gray-400 text-sm"
             >
               <Download className="mr-2 h-4 w-4" />
               Download Gambar

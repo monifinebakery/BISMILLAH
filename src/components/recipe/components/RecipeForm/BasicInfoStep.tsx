@@ -329,14 +329,14 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                   dragOver 
                     ? 'border-orange-400 bg-orange-50' 
-                    : 'border-gray-300 hover:border-gray-400'
+                    : 'border-gray-500 hover:border-gray-400'
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gray-400 rounded-full flex items-center justify-center">
                     <Upload className="w-6 h-6 text-gray-400" />
                   </div>
                   <div>
@@ -372,7 +372,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               </div>
             ) : (
               <div className="relative">
-                <div className="w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
+                <div className="w-full h-48 bg-gray-400 rounded-lg overflow-hidden">
                   <img
                     src={imagePreview}
                     alt="Preview foto resep"
@@ -421,7 +421,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           </div>
 
           {/* Preview Card */}
-          <Card className="border-2 border-dashed border-gray-300">
+          <Card className="border-2 border-dashed border-gray-500">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Info className="h-4 w-4 text-blue-500" />
@@ -452,7 +452,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 </div>
                 
                 {data.deskripsi && (
-                  <div className="pt-2 border-t border-gray-200">
+                  <div className="pt-2 border-t border-gray-400">
                     <span className="text-gray-600 text-xs">Deskripsi:</span>
                     <p className="text-gray-800 text-xs mt-1 line-clamp-3">
                       {data.deskripsi}

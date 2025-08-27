@@ -279,7 +279,7 @@ const generateTopSuppliers = (
 export const getStatusDisplay = (status: PurchaseStatus) => {
   return PURCHASE_STATUS_CONFIG[status] || {
     label: status,
-    color: 'bg-gray-200 text-gray-800',
+    color: 'bg-gray-400 text-gray-800',
     icon: '❓'
   };
 };

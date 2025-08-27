@@ -242,7 +242,7 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
                         {TEMPLATE_VARIABLES.map((variable) => (
                           <div 
                             key={variable.key} 
-                            className="flex flex-col p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors active:bg-gray-300"
+                            className="flex flex-col p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-400 transition-colors active:bg-gray-500"
                             onClick={() => {
                               navigator.clipboard.writeText(variable.key);
                               toast.success(`Variable ${variable.key} disalin!`);

@@ -214,7 +214,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
             className={`w-full px-3 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1 text-base ${
               error ? 'border-red-300 bg-red-50' : 
               verificationResult?.success ? 'border-green-300 bg-green-50' :
-              'border-gray-300'
+              'border-gray-500'
             }`}
             disabled={isLoading}
             maxLength={20}
@@ -277,7 +277,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
         <div className="flex gap-3">
           <button
             onClick={handleClose}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+            className="flex-1 px-4 py-3 border border-gray-500 rounded-md hover:bg-gray-50 transition-colors text-gray-700 font-medium"
             disabled={isLoading}
           >
             Batal
@@ -322,7 +322,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
 
         {/* ✅ Debug info (only in development) */}
         {import.meta.env.DEV && (
-          <div className="mt-4 text-xs text-gray-400 bg-gray-200 p-2 rounded font-mono">
+          <div className="mt-4 text-xs text-gray-400 bg-gray-400 p-2 rounded font-mono">
             Debug: Order="{orderId}" | Length={orderId.length} | Verifying={isVerifying ? 'Yes' : 'No'} | Verified={verificationResult?.success ? 'Yes' : 'No'} | Loading={isLoading ? 'Yes' : 'No'}
           </div>
         )}

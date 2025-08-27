@@ -185,7 +185,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
   };
 
   return (
-    <div className="p-4 border-b border-gray-300 bg-white">
+    <div className="p-4 border-b border-gray-500 bg-white">
       {/* Top Row - Search & Main Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
         
@@ -202,7 +202,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               onChange={(e) => onSearchChange(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              className="pl-10 pr-10 py-2 w-full border-gray-300 rounded-lg focus:border-orange-500 focus:ring-orange-500"
+              className="pl-10 pr-10 py-2 w-full border-gray-500 rounded-lg focus:border-orange-500 focus:ring-orange-500"
             />
             {searchTerm && (
               <button
@@ -216,7 +216,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
           
           {/* Search Suggestions (if needed) */}
           {searchTerm && searchFocused && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg z-10 max-h-40 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-500 rounded-lg z-10 max-h-40 overflow-y-auto">
               <div className="p-2 text-sm text-gray-500">
                 Pencarian: "{searchTerm}"
               </div>
@@ -311,7 +311,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               value={filters.category}
               onChange={(e) => updateFilter('category', e.target.value)}
               disabled={categoriesLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-500 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Semua Kategori</option>
               {availableCategories.map((category) => (
@@ -337,7 +337,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               value={filters.supplier}
               onChange={(e) => updateFilter('supplier', e.target.value)}
               disabled={suppliersLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-500 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Semua Supplier</option>
               {availableSuppliers.map((supplier) => (
@@ -359,7 +359,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             <select
               value={filters.stockLevel}
               onChange={(e) => updateFilter('stockLevel', e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-500 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
             >
               <option value="all">Semua Level</option>
               <option value="low">Stok Rendah</option>
@@ -375,7 +375,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             <select
               value={filters.expiry}
               onChange={(e) => updateFilter('expiry', e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-500 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
             >
               <option value="all">Semua Status</option>
               <option value="expiring">Akan Kadaluarsa</option>
@@ -386,7 +386,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
       )}
 
       {/* Bottom Row - Results Info & Settings */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-200">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-400">
         
         {/* Active Filters Display */}
         {activeFiltersCount > 0 && (
@@ -462,7 +462,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
           <select
             value={itemsPerPage}
             onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-orange-500 focus:border-orange-500"
+            className="px-2 py-1 border border-gray-500 rounded text-sm focus:ring-orange-500 focus:border-orange-500"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>

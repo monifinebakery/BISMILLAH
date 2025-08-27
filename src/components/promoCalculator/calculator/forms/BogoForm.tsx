@@ -122,7 +122,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
         <button
           type="button"
           onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-left focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center justify-between"
+          className="w-full px-4 py-3 border border-gray-500 rounded-lg bg-white text-left focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center justify-between"
         >
           <div className="flex-1">
             {selectedRecipe ? (
@@ -145,9 +145,9 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
         </button>
 
         {showDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-500 rounded-lg shadow-lg max-h-64 overflow-y-auto">
             {/* Search */}
-            <div className="p-3 border-b border-gray-300">
+            <div className="p-3 border-b border-gray-500">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -155,7 +155,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
                   placeholder="Cari resep..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -190,7 +190,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
                           setShowDropdown(false);
                           setSearchTerm('');
                         }}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-200 last:border-b-0 transition-colors"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-400 last:border-b-0 transition-colors"
                       >
                         <div className="font-medium text-gray-900">
                           {getRecipeProperty(recipe, 'name')}
@@ -244,7 +244,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
           value={formData.namaPromo}
           onChange={(e) => handleInputChange('namaPromo', e.target.value)}
           placeholder="Misal: BOGO Bakso Special"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           required
         />
       </div>
@@ -329,7 +329,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
           min="1"
           value={formData.minimalQty}
           onChange={(e) => handleInputChange('minimalQty', parseInt(e.target.value) || 1)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
         <p className="text-xs text-gray-500 mt-1">
           Jumlah minimum resep utama yang harus dibeli untuk mendapat gratis
@@ -346,7 +346,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
             type="date"
             value={formData.tanggalMulai}
             onChange={(e) => handleInputChange('tanggalMulai', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
 
@@ -358,7 +358,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
             type="date"
             value={formData.tanggalSelesai}
             onChange={(e) => handleInputChange('tanggalSelesai', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -373,7 +373,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
           onChange={(e) => handleInputChange('deskripsi', e.target.value)}
           placeholder="Deskripsi detail promo BOGO..."
           rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
       </div>
 
@@ -385,7 +385,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
         <select
           value={formData.status}
           onChange={(e) => handleInputChange('status', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         >
           <option value="aktif">Aktif</option>
           <option value="nonaktif">Non-aktif</option>
@@ -397,7 +397,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+        className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
       >
         {isLoading ? (
           <>

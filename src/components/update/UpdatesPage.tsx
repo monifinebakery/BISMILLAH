@@ -113,7 +113,7 @@ export const UpdatesPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-300">
+      <div className="bg-white border-b border-gray-500">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export const UpdatesPage: React.FC = () => {
           </div>
 
           {/* Kontrol Paginasi */}
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-300">
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-500">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm">
@@ -161,7 +161,7 @@ export const UpdatesPage: React.FC = () => {
                       setItemsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                    className="border border-gray-500 rounded px-2 py-1 text-sm"
                   >
                     <option value={5}>5</option>
                     <option value={10}>10</option>
@@ -191,7 +191,7 @@ export const UpdatesPage: React.FC = () => {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as 'all' | 'unread')}
-              className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 mr-4"
+              className="text-sm border border-gray-500 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 mr-4"
             >
               <option value="all">Semua</option>
               <option value="unread">Belum Dibaca</option>
@@ -200,7 +200,7 @@ export const UpdatesPage: React.FC = () => {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value as any)}
-              className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm border border-gray-500 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Semua Prioritas</option>
               <option value="critical">Critical</option>
@@ -216,7 +216,7 @@ export const UpdatesPage: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {filteredUpdates.length === 0 ? (
           <div className="text-center py-12">
-            <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <Bell className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Belum Ada Pembaruan
             </h3>
@@ -251,7 +251,7 @@ export const UpdatesPage: React.FC = () => {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-sm border border-gray-500 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Sebelumnya
               </button>
@@ -263,7 +263,7 @@ export const UpdatesPage: React.FC = () => {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
                 disabled={currentPage === paginationInfo.totalPages}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-sm border border-gray-500 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Selanjutnya
               </button>

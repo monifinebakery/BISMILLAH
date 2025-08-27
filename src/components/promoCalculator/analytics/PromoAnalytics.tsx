@@ -73,14 +73,14 @@ const PromoAnalytics = () => {
             type="date"
             value={dateRange.start}
             onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="px-3 py-2 border border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
           <span className="text-gray-400">-</span>
           <input
             type="date"
             value={dateRange.end}
             onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="px-3 py-2 border border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
         </div>
 
@@ -88,7 +88,7 @@ const PromoAnalytics = () => {
         <div className={isMobile ? 'block' : 'hidden'}>
           <button
             onClick={() => setShowDateFilter(!showDateFilter)}
-            className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full justify-center"
+            className="flex items-center space-x-2 px-4 py-2.5 border border-gray-500 rounded-lg hover:bg-gray-50 transition-colors w-full justify-center"
           >
             <Calendar className="h-4 w-4" />
             <span>Filter Tanggal</span>
@@ -98,7 +98,7 @@ const PromoAnalytics = () => {
 
       {/* Mobile Date Filter Panel */}
       {showDateFilter && isMobile && (
-        <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-lg">
+        <div className="bg-white border border-gray-500 rounded-lg p-4 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-gray-900">Pilih Rentang Tanggal</h3>
             <button
@@ -116,7 +116,7 @@ const PromoAnalytics = () => {
                 type="date"
                 value={dateRange.start}
                 onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             
@@ -126,14 +126,14 @@ const PromoAnalytics = () => {
                 type="date"
                 value={dateRange.end}
                 onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={() => setShowDateFilter(false)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2.5 border border-gray-500 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
@@ -150,7 +150,7 @@ const PromoAnalytics = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-300">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-500">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
               <BarChart3 className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
@@ -164,7 +164,7 @@ const PromoAnalytics = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-300">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-500">
           <div className="flex items-center">
             <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
               <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
@@ -178,7 +178,7 @@ const PromoAnalytics = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-300">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-500">
           <div className="flex items-center">
             <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
               <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-orange-600" />
@@ -195,7 +195,7 @@ const PromoAnalytics = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-300">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-500">
           <div className="flex items-center">
             <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
               <Percent className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
@@ -232,7 +232,7 @@ const PromoAnalytics = () => {
         
         {(!analyticsData?.promoPerformance || analyticsData.promoPerformance.length === 0) && (
           <div className="text-center py-8 sm:py-12 text-gray-500">
-            <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 text-gray-300" />
+            <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 text-gray-500" />
             <p className="text-sm sm:text-base">Belum ada data performa promo</p>
             <p className="text-xs sm:text-sm text-gray-400 mt-1">
               Buat promo pertama untuk melihat analytics

@@ -45,7 +45,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorChange 
         key={color}
         type="button"
         className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border ${
-          selectedColor === color ? 'border-gray-600 scale-110' : 'border-gray-300'
+          selectedColor === color ? 'border-gray-600 scale-110' : 'border-gray-500'
         } transition-transform input-mobile-safe flex-shrink-0`}
         style={{ backgroundColor: color, minHeight: '44px', minWidth: '44px' }}
         onClick={() => onColorChange(color)}
@@ -106,7 +106,7 @@ const CategorySection: React.FC<CategorySectionProps> = React.memo(({
           return (
             <div
               key={typeof cat === 'string' ? cat : cat.id}
-              className="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-200 dialog-no-overflow"
+              className="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-400 dialog-no-overflow"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div

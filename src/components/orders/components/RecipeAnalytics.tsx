@@ -67,7 +67,7 @@ const RecipeAnalytics: React.FC<RecipeAnalyticsProps> = ({ orders, className }) 
       <Card className={className}>
         <CardContent className="p-6">
           <div className="text-center text-gray-500">
-            <ChefHat className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+            <ChefHat className="h-12 w-12 mx-auto mb-3 text-gray-500" />
             <p>Belum ada data pesanan untuk dianalisis</p>
           </div>
         </CardContent>

@@ -130,7 +130,7 @@ const NotificationBell = () => {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="relative hover:bg-gray-200 transition-colors" 
+          className="relative hover:bg-gray-400 transition-colors" 
           title="Notifikasi"
         >
           <Bell className="h-5 w-5" />
@@ -149,7 +149,7 @@ const NotificationBell = () => {
       </PopoverTrigger>
       
       <PopoverContent 
-        className="w-96 p-0 border-gray-300 rounded-lg" 
+        className="w-96 p-0 border-gray-500 rounded-lg" 
         align="end" 
         sideOffset={8}
       >
@@ -193,7 +193,7 @@ const NotificationBell = () => {
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500">
-              <Bell className="h-10 w-10 text-gray-300 mb-3" />
+              <Bell className="h-10 w-10 text-gray-500 mb-3" />
               <h4 className="font-medium text-gray-700">Tidak ada notifikasi</h4>
               <p className="text-sm">Notifikasi baru akan muncul di sini.</p>
             </div>
@@ -205,7 +205,7 @@ const NotificationBell = () => {
                 scrollbarColor: '#CBD5E1 #F1F5F9' 
               }}
             >
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-gray-400">
                 {notifications.map((notification) => (
                   <div 
                     key={notification.id} 

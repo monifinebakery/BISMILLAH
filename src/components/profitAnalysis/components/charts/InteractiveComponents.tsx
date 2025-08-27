@@ -59,8 +59,8 @@ export const InteractiveLegend: React.FC<InteractiveLegendProps> = ({
                 transition-all duration-200 transform
                 ${
                   isHidden 
-                    ? 'bg-gray-300 border-gray-300 opacity-50' 
-                    : 'bg-white border-gray-300 hover:border-gray-400'
+                    ? 'bg-gray-500 border-gray-500 opacity-50' 
+                    : 'bg-white border-gray-500 hover:border-gray-400'
                 }
                 ${
                   isHovered 
@@ -146,7 +146,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
 
       {/* Advanced Analytics Controls */}
       {advancedAnalytics && (
-        <div className="flex gap-1.5 sm:gap-2 pl-2 sm:pl-3 border-l border-gray-300">
+        <div className="flex gap-1.5 sm:gap-2 pl-2 sm:pl-3 border-l border-gray-500">
           <Button
             variant={showForecast ? 'default' : 'outline'}
             size={isMobile ? 'sm' : 'sm'}

@@ -34,7 +34,7 @@ const ImportControls: React.FC<ImportControlsProps> = ({
     <div className="space-y-6">
       <div
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          dragOver ? 'border-green-400 bg-green-50' : 'border-gray-300'
+          dragOver ? 'border-green-400 bg-green-50' : 'border-gray-500'
         }`}
         onDragOver={(e) => handleDrag(e, true)}
         onDragLeave={(e) => handleDrag(e, false)}
@@ -100,7 +100,7 @@ const ImportControls: React.FC<ImportControlsProps> = ({
         </div>
       </div>
 
-      <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+      <div className="bg-gray-50 border border-gray-500 rounded-lg p-4">
         <h4 className="font-medium text-gray-900 mb-3">Kolom yang Diperlukan</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
           <div><span className="font-medium">nama</span> - Nama bahan baku</div>

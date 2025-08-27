@@ -99,7 +99,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     logger.component('WarehouseTable', 'Displaying empty state', { hasSearchTerm: !!searchTerm });
     return (
       <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center">
-        <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mb-4" />
+        <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-500 mb-4" />
         <h3 className="text-base md:text-lg font-semibold text-gray-600 mb-2">
           {searchTerm ? 'Tidak ada hasil ditemukan' : 'Belum ada pembelian bahan baku'}
         </h3>
@@ -139,7 +139,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   if (isLoading) {
     logger.component('WarehouseTable', 'Displaying loading state', { lastUpdated: lastUpdated?.toISOString() });
     return (
-      <div className="bg-white rounded-lg border border-gray-300 p-8">
+      <div className="bg-white rounded-lg border border-gray-500 p-8">
         <div className="flex flex-col items-center justify-center">
           <div className="animate-spin h-8 w-8 border-3 border-orange-500 border-t-transparent rounded-full mb-4"></div>
           <p className="text-gray-600">Memuat data warehouse...</p>
@@ -160,7 +160,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   const MobileCardView = () => (
     <div className="md:hidden space-y-3 p-4">
-      <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-300">
+      <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-500">
         <div>
           <span className="text-sm font-medium text-gray-700">{items.length} item</span>
           {lastUpdated && (
@@ -186,7 +186,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4">
           <button
             onClick={selectionState.selectAllCurrent}
-            className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
+            className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-500 hover:border-orange-500 transition-colors"
             aria-label={selectionState.allCurrentSelected ? 'Deselect all' : 'Select all'}
           >
             {selectionState.allCurrentSelected ? (
@@ -223,7 +223,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   const DesktopTableView = () => (
     <div className="hidden md:block overflow-x-auto">
-      <div className="flex justify-between items-center p-4 border-b border-gray-300 bg-gray-50">
+      <div className="flex justify-between items-center p-4 border-b border-gray-500 bg-gray-50">
         <div>
           <span className="text-sm font-medium text-gray-700">{items.length} item tersimpan</span>
           {lastUpdated && (
@@ -247,13 +247,13 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       </div>
 
       <table className="w-full">
-        <thead className="bg-gray-50 border-b border-gray-300">
+        <thead className="bg-gray-50 border-b border-gray-500">
           <tr>
             {isSelectionMode && (
               <th className="w-12 px-4 py-3 text-left">
                 <button
                   onClick={selectionState.selectAllCurrent}
-                  className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
+                  className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-500 hover:border-orange-500 transition-colors"
                   aria-label={selectionState.allCurrentSelected ? 'Deselect all' : 'Select all'}
                 >
                   {selectionState.allCurrentSelected ? (
@@ -325,7 +325,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   );
 
   return (
-    <div className="bg-white rounded-lg border border-gray-300">
+    <div className="bg-white rounded-lg border border-gray-500">
       {lowStockItems.length > 0 && (
         <div className="p-3 bg-red-50 border-b border-red-200 text-red-800 text-sm flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" />

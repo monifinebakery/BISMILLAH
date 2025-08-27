@@ -121,7 +121,7 @@ class ErrorBoundary extends React.Component {
             
             <button
               onClick={() => window.location.reload()}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded font-medium transition-colors"
+              className="bg-gray-400 hover:bg-gray-500 text-gray-700 px-4 py-2 rounded font-medium transition-colors"
             >
               Reload Page
             </button>
@@ -212,20 +212,20 @@ const PromoCalculatorLayout = () => {
   const getStatusColor = (status) => {
     const colors = {
       aktif: 'bg-green-100 text-green-800',
-      nonaktif: 'bg-gray-200 text-gray-800',
+      nonaktif: 'bg-gray-400 text-gray-800',
       draft: 'bg-yellow-100 text-yellow-800',
     };
-    return colors[status] || 'bg-gray-200 text-gray-800';
+    return colors[status] || 'bg-gray-400 text-gray-800';
   };
 
   // CSS Classes
   const styles = {
     buttonPrimary: "bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2",
-    buttonSecondary: "flex items-center space-x-2 border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors",
+    buttonSecondary: "flex items-center space-x-2 border border-gray-500 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors",
     containerLayout: "min-h-screen bg-gray-50",
     mainContent: "w-full px-4 sm:px-6 lg:px-8 py-8",
     loadingSpinner: "animate-spin rounded-full border-t-2 border-b-2 border-orange-500",
-    card: "bg-white p-6 rounded-xl border border-gray-300"
+    card: "bg-white p-6 rounded-xl border border-gray-500"
   };
 
   const recentPromos = promos.slice(0, 3);
@@ -321,7 +321,7 @@ const PromoCalculatorLayout = () => {
         )}
         <button
           onClick={() => window.location.reload()}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded font-medium transition-colors"
+          className="bg-gray-400 hover:bg-gray-500 text-gray-700 px-4 py-2 rounded font-medium transition-colors"
         >
           Refresh Halaman
         </button>
@@ -369,7 +369,7 @@ const PromoCalculatorLayout = () => {
 
   // List Header Component
   const ListHeader = ({ onCreateNew }) => (
-    <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-300 bg-white sticky top-0 z-10">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-500 bg-white sticky top-0 z-10">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Daftar Promo</h1>
         <button 
@@ -489,7 +489,7 @@ const PromoCalculatorLayout = () => {
           </div>
         </div>
         <div className={styles.mainContent}>
-          <div className="bg-white rounded-xl border border-gray-300 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-500 overflow-hidden">
             <LazyComponent
               fallback={<LoadingFallback message="Memuat kalkulator promo..." />}
               onRetry={handleRetry}
@@ -509,7 +509,7 @@ const PromoCalculatorLayout = () => {
       <div className={styles.containerLayout}>
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <ListHeader onCreateNew={() => navigate('/promo/create')} />
-          <div className="bg-white rounded-t-xl border border-gray-300">
+          <div className="bg-white rounded-t-xl border border-gray-500">
             <LazyComponent 
               fallback={<LoadingFallback message="Memuat daftar promo..." />}
               onRetry={handleRetry}

@@ -166,21 +166,21 @@ const CostForm: React.FC<CostFormProps> = ({
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             placeholder="Contoh: Gaji Karyawan, Listrik Pabrik"
             className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              errors.nama_biaya ? 'border-red-300' : 'border-gray-300'
+              errors.nama_biaya ? 'border-red-300' : 'border-gray-500'
             }`}
             disabled={loading}
           />
           
           {/* Suggestions dropdown */}
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md max-h-48 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-500 rounded-md max-h-48 overflow-y-auto">
               <div className="p-2 text-xs text-gray-500 border-b">Saran nama biaya:</div>
               {filteredSuggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-200 transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-400 transition-colors"
                 >
                   {suggestion}
                 </button>
@@ -247,7 +247,7 @@ const CostForm: React.FC<CostFormProps> = ({
               min="1000"
               step="1000"
               className={`w-full pl-10 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.jumlah_per_bulan ? 'border-red-300' : 'border-gray-300'
+                errors.jumlah_per_bulan ? 'border-red-300' : 'border-gray-500'
               }`}
               disabled={loading}
             />
@@ -277,7 +277,7 @@ const CostForm: React.FC<CostFormProps> = ({
               value={formData.jenis}
               onChange={(e) => handleInputChange('jenis', e.target.value as 'tetap' | 'variabel')}
               className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.jenis ? 'border-red-300' : 'border-gray-300'
+                errors.jenis ? 'border-red-300' : 'border-gray-500'
               }`}
               disabled={loading}
             >
@@ -308,7 +308,7 @@ const CostForm: React.FC<CostFormProps> = ({
               value={formData.status}
               onChange={(e) => handleInputChange('status', e.target.value as 'aktif' | 'nonaktif')}
               className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.status ? 'border-red-300' : 'border-gray-300'
+                errors.status ? 'border-red-300' : 'border-gray-500'
               }`}
               disabled={loading}
             >
@@ -346,7 +346,7 @@ const CostForm: React.FC<CostFormProps> = ({
               type="button"
               onClick={onCancel}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-500 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Batal
             </button>
@@ -435,7 +435,7 @@ const CostForm: React.FC<CostFormProps> = ({
               <button
                 type="button"
                 onClick={() => setShowStaffTypeModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-500 rounded-md hover:bg-gray-50"
               >
                 Batal
               </button>

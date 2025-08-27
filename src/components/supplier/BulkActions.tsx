@@ -81,7 +81,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onCancel}
-                className="border-gray-300 hover:bg-gray-50"
+                className="border-gray-500 hover:bg-gray-50"
               >
                 <X className="h-4 w-4 mr-2" />
                 Batalkan

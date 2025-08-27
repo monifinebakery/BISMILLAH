@@ -163,7 +163,7 @@ export const AdminUpdatesPage: React.FC = () => {
       critical: 'bg-red-100 text-red-800 border-red-200',
       high: 'bg-orange-100 text-orange-800 border-orange-200',
       normal: 'bg-blue-100 text-blue-800 border-blue-200',
-      low: 'bg-gray-200 text-gray-800 border-gray-300',
+      low: 'bg-gray-400 text-gray-800 border-gray-500',
     };
     return configs[priority as keyof typeof configs] || configs.normal;
   }, []);
@@ -224,7 +224,7 @@ export const AdminUpdatesPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-300">
+      <div className="bg-white border-b border-gray-500">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -302,8 +302,8 @@ export const AdminUpdatesPage: React.FC = () => {
         ) : (
           <div className="space-y-6">
             {updates.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-300">
-                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-500">
+                <Calendar className="w-16 h-16 text-gray-500 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Belum Ada Pembaruan
                 </h3>
@@ -323,12 +323,12 @@ export const AdminUpdatesPage: React.FC = () => {
               </div>
             ) : (
               updates.map((update) => (
-                <div key={update.id} className="bg-white rounded-lg border border-gray-300 p-6">
+                <div key={update.id} className="bg-white rounded-lg border border-gray-500 p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-bold text-gray-900">{update.title}</h3>
-                        <span className="text-sm bg-gray-200 text-gray-800 px-2 py-1 rounded-full font-medium">
+                        <span className="text-sm bg-gray-400 text-gray-800 px-2 py-1 rounded-full font-medium">
                           v{update.version}
                         </span>
                         <span
@@ -341,7 +341,7 @@ export const AdminUpdatesPage: React.FC = () => {
                             AKTIF
                           </span>
                         ) : (
-                          <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full font-medium border border-gray-300">
+                          <span className="text-xs bg-gray-400 text-gray-800 px-2 py-1 rounded-full font-medium border border-gray-500">
                             DRAFT
                           </span>
                         )}
@@ -363,7 +363,7 @@ export const AdminUpdatesPage: React.FC = () => {
                         className={`p-2 rounded-lg transition-colors ${
                           update.is_active
                             ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                            : 'bg-gray-400 text-gray-600 hover:bg-gray-500'
                         }`}
                         title={update.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                       >

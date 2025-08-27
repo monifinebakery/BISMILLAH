@@ -78,7 +78,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
               
               <button
                 onClick={() => window.location.href = '/checkout'}
-                className="w-full bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
+                className="w-full bg-gray-500 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-500 transition-colors"
               >
                 Lakukan Pembayaran
               </button>

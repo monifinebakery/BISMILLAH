@@ -35,7 +35,7 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
               </button>
               <button
                 onClick={() => window.location.href = '/auth'}
-                className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg transition-colors"
+                className="border border-gray-500 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg transition-colors"
               >
                 Kembali ke Login
               </button>

@@ -96,7 +96,7 @@ export const BreakdownChart: React.FC<BreakdownChartProps> = ({
         <div className="space-y-4">
           
           {/* Visual Cost Distribution */}
-          <div className="flex h-4 sm:h-6 bg-gray-300 rounded-full overflow-hidden">
+          <div className="flex h-4 sm:h-6 bg-gray-500 rounded-full overflow-hidden">
             {chartItems.map((item, index) => (
               <div
                 key={index}
@@ -123,7 +123,7 @@ export const BreakdownChart: React.FC<BreakdownChartProps> = ({
 
           {/* Mobile-friendly summary */}
           {isMobile && (
-            <div className="bg-gray-50 rounded-lg p-3 border border-gray-300">
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-500">
               <h4 className="font-medium text-gray-900 mb-2 text-sm">Ringkasan Biaya</h4>
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">

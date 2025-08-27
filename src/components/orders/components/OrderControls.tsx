@@ -49,7 +49,7 @@ const SelectionToolbar: React.FC<{
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-300 p-3 sm:p-4 mb-4 sm:mb-6">
+    <div className="bg-white rounded-lg border border-gray-500 p-3 sm:p-4 mb-4 sm:mb-6">
       {!uiState.isSelectionMode ? (
         // Show selection toggle button - Desktop
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -188,7 +188,7 @@ const TableControls: React.FC<{
   loading: boolean;
 }> = ({ uiState, loading }) => {
   return (
-    <div className="bg-white border-b border-gray-300 px-3 sm:px-6 py-3">
+    <div className="bg-white border-b border-gray-500 px-3 sm:px-6 py-3">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         {/* Left Side Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -269,7 +269,7 @@ const PaginationControls: React.FC<{
   const pages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
 
   return (
-    <div className="bg-white border-t border-gray-300 px-3 sm:px-6 py-3">
+    <div className="bg-white border-t border-gray-500 px-3 sm:px-6 py-3">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Page Info */}
         <div className="text-sm text-gray-700 text-center sm:text-left">
@@ -370,7 +370,7 @@ const OrderControls: React.FC<OrderControlsProps> = ({
         onBulkEditStatus={onBulkEditStatus}
         onBulkDelete={onBulkDelete}
       />
-      <div className="bg-white rounded-xl border border-gray-300/80 overflow-hidden mb-4 sm:mb-6">
+      <div className="bg-white rounded-xl border border-gray-500/80 overflow-hidden mb-4 sm:mb-6">
         <TableControls uiState={uiState} loading={loading} />
         {/* Table content will be rendered by OrderTable */}
         <PaginationControls uiState={uiState} loading={loading} />

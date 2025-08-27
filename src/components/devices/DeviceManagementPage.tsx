@@ -244,7 +244,7 @@ const DeviceManagementPage: React.FC = () => {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="px-3 py-1 border border-gray-300 rounded text-sm"
+                className="px-3 py-1 border border-gray-500 rounded text-sm"
               >
                 <option value={5}>5 per halaman</option>
                 <option value={10}>10 per halaman</option>
@@ -351,14 +351,14 @@ const DeviceManagementPage: React.FC = () => {
                         ? 'border-orange-200 bg-orange-50 shadow-sm' 
                         : status.status === 'old' 
                         ? 'border-red-200 bg-red-50' 
-                        : 'border-gray-300 hover:border-gray-300'
+                        : 'border-gray-500 hover:border-gray-500'
                     }`}
                   >
                     <div className="flex flex-col space-y-3 md:flex-row md:items-start md:justify-between md:space-y-0">
                       <div className="flex items-start space-x-3 md:space-x-4 flex-1">
                         <div className={`p-2 rounded-full relative flex-shrink-0 ${
                           device.is_current ? 'bg-orange-100' : 
-                          status.status === 'old' ? 'bg-red-100' : 'bg-gray-200'
+                          status.status === 'old' ? 'bg-red-100' : 'bg-gray-400'
                         }`}>
                           {getDeviceIcon(device.device_type || undefined)}
                           {/* Status indicator dot */}
@@ -535,7 +535,7 @@ const DeviceManagementPage: React.FC = () => {
                     Sebelumnya
                   </Button>
                   
-                  <span className="px-3 py-1 text-sm bg-gray-200 rounded">
+                  <span className="px-3 py-1 text-sm bg-gray-400 rounded">
                     {currentPage}
                   </span>
                   

@@ -23,7 +23,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     <Card className={`p-12 text-center ${className}`}>
       <div className="max-w-md mx-auto">
         {/* Icon */}
-        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-200 mb-6">
+        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-400 mb-6">
           <ShoppingCart className="h-8 w-8 text-gray-400" />
         </div>
 

@@ -211,7 +211,7 @@ export const ContextDebugger: React.FC = () => {
   const totalTime = Date.now() - startTime;
 
   return (
-    <div className="fixed top-4 right-4 bg-white border border-gray-300 rounded-lg p-4 max-w-md z-50">
+    <div className="fixed top-4 right-4 bg-white border border-gray-500 rounded-lg p-4 max-w-md z-50">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-gray-900">Context Debugger</h3>
         <span className="text-sm text-gray-500">{Math.round(totalTime / 1000)}s</span>
@@ -221,7 +221,7 @@ export const ContextDebugger: React.FC = () => {
         <div className="text-sm text-gray-600">
           Status: {readyCount}/{contexts.length} ready
         </div>
-        <div className="w-full bg-gray-300 rounded-full h-2 mt-1">
+        <div className="w-full bg-gray-500 rounded-full h-2 mt-1">
           <div 
             className="bg-orange-500 h-2 rounded-full transition-all duration-300"
             style={{ width: `${(readyCount / Math.max(contexts.length, 1)) * 100}%` }}
@@ -260,7 +260,7 @@ export const ContextDebugger: React.FC = () => {
         ))}
       </div>
 
-      <div className="mt-3 pt-3 border-t border-gray-300">
+      <div className="mt-3 pt-3 border-t border-gray-500">
         <button 
           onClick={() => window.location.reload()}
           className="w-full bg-orange-500 text-white text-xs px-3 py-2 rounded hover:bg-orange-600"

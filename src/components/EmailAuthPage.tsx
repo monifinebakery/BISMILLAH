@@ -408,7 +408,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     placeholder="Masukkan email Anda"
                     value={email}
                     onChange={handleEmailChange}
-                    className="pl-10 py-3 text-base border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    className="pl-10 py-3 text-base border-gray-500 focus:border-orange-500 focus:ring-orange-500"
                     disabled={isLoading}
                     autoComplete="email"
                     autoFocus
@@ -555,7 +555,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
-                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
+                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-500 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
                       disabled={authState === "verifying" || authState === "success"}
                     />
                   ))}
@@ -592,7 +592,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   variant="outline"
                   onClick={handleResendOtp}
                   disabled={isLoading || cooldownTime > 0 || authState === "success"}
-                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                  className="w-full border-gray-500 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                 >
                   {cooldownTime > 0 ? `Tunggu ${cooldownTime}s` : "Kirim Ulang Kode"}
                 </Button>

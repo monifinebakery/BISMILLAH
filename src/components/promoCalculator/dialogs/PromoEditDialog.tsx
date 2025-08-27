@@ -132,7 +132,7 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }: any) => {
               {...register('tipePromo', {
                 required: 'Tipe promo wajib dipilih'
               })}
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-500 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Pilih Tipe Promo</option>
               <option value="bogo">Buy One Get One</option>
@@ -152,7 +152,7 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }: any) => {
               {...register('status', {
                 required: 'Status promo wajib dipilih'
               })}
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-500 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Pilih Status</option>
               <option value="aktif">Aktif</option>
@@ -173,7 +173,7 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }: any) => {
                 type="date"
                 id="tanggalMulai"
                 {...register('tanggalMulai')}
-                className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-500 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             {errors.tanggalMulai && (
@@ -190,7 +190,7 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }: any) => {
                 type="date"
                 id="tanggalSelesai"
                 {...register('tanggalSelesai')}
-                className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-500 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             {errors.tanggalSelesai && (
@@ -205,7 +205,7 @@ const PromoEditDialog = ({ isOpen, onClose, promo, onEditSuccess }: any) => {
               id="deskripsi"
               {...register('deskripsi')}
               rows="3"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-500 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Tambahkan deskripsi promo (opsional)"
             />
             {errors.deskripsi && (

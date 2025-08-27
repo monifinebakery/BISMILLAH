@@ -42,7 +42,7 @@ const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
   const isMarginDecreased = marginDiff < 0;
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
+    <div className="bg-white border border-gray-500 rounded-lg overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
         <div className="flex items-center justify-between text-white">
@@ -224,7 +224,7 @@ const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
         <button
           onClick={onSave}
           disabled={isLoading}
-          className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+          className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
         >
           {isLoading ? (
             <>

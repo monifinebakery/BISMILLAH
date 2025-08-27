@@ -144,7 +144,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }: any) => {
                     type="text"
                     value={formData.namaPromo}
                     onChange={(e) => handleInputChange('namaPromo', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     required
                     disabled={isLoading}
                     placeholder="Masukkan nama promo"
@@ -158,7 +158,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }: any) => {
                   <select
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     disabled={isLoading}
                   >
                     <option value="aktif">Aktif</option>
@@ -176,7 +176,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }: any) => {
                       type="date"
                       value={formData.tanggalMulai}
                       onChange={(e) => handleInputChange('tanggalMulai', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       disabled={isLoading}
                     />
                   </div>
@@ -189,7 +189,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }: any) => {
                       type="date"
                       value={formData.tanggalSelesai}
                       onChange={(e) => handleInputChange('tanggalSelesai', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       disabled={isLoading}
                       min={formData.tanggalMulai} // Ensure end date is after start date
                     />
@@ -204,7 +204,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }: any) => {
                     value={formData.deskripsi}
                     onChange={(e) => handleInputChange('deskripsi', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                    className="w-full px-3 py-2 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
                     disabled={isLoading}
                     placeholder="Deskripsi promo (opsional)"
                   />
@@ -245,7 +245,7 @@ const PromoEditModal = ({ isOpen, promo, onClose, onSave }: any) => {
                 type="button"
                 onClick={handleClose}
                 disabled={isLoading}
-                className="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-500 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Batal
               </button>

@@ -82,7 +82,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                 <TableRow key={i}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((j) => (
                     <TableCell key={j}>
-                      <div className="h-4 bg-gray-300 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-500 rounded animate-pulse"></div>
                     </TableCell>
                   ))}
                 </TableRow>
@@ -228,7 +228,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                 <TableRow>
                   <TableCell colSpan={10} className="text-center py-12">
                     <div className="flex flex-col items-center gap-4">
-                      <Building2 className="h-16 w-16 text-gray-300" />
+                      <Building2 className="h-16 w-16 text-gray-500" />
                       <div className="text-center">
                         <p className="text-lg font-medium text-gray-600 mb-2">
                           Belum ada aset yang terdaftar

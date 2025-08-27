@@ -64,7 +64,7 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="h-8 border-gray-300"
+              className="h-8 border-gray-500"
               maxLength={50}
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
@@ -88,7 +88,7 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
               variant="outline"
               onClick={onCancelEdit}
               disabled={isLoading}
-              className="h-8 w-8 p-0 border-gray-300"
+              className="h-8 w-8 p-0 border-gray-500"
             >
               <X className="h-3 w-3" />
             </Button>
@@ -113,7 +113,7 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
           className={
             category.count > 0 
               ? "bg-orange-100 text-orange-700 hover:bg-orange-200" 
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              : "bg-gray-400 text-gray-700 hover:bg-gray-500"
           }
         >
           {category.count} resep
@@ -129,7 +129,7 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
               variant="outline"
               onClick={() => onStartEdit(category.name, category.name)}
               disabled={isLoading}
-              className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
+              className="h-8 w-8 p-0 border-gray-500 hover:bg-orange-50"
             >
               <Edit className="h-3 w-3 text-gray-600" />
             </Button>

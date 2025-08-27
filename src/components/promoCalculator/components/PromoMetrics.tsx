@@ -45,7 +45,7 @@ const PromoMetrics = ({ calculationResult, className = '' }: any) => {
       {metrics.map((metric, index) => {
         const Icon = metric.icon;
         return (
-          <div key={index} className={`${metric.bgColor} rounded-lg p-4 border border-gray-300`}>
+          <div key={index} className={`${metric.bgColor} rounded-lg p-4 border border-gray-500`}>
             <div className="flex items-center space-x-2 mb-1">
               <Icon className={`h-4 w-4 ${metric.color}`} />
               <span className="text-xs font-medium text-gray-700">{metric.label}</span>

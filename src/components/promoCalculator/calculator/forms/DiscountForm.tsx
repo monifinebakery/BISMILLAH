@@ -85,9 +85,9 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
   };
 
   // Fixed className variables for consistency
-  const inputClassName = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
-  const inputWithIconClassName = "w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
-  const selectClassName = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
+  const inputClassName = "w-full px-4 py-3 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
+  const inputWithIconClassName = "w-full px-4 py-3 pr-12 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
+  const selectClassName = "w-full px-4 py-3 border border-gray-500 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent";
   const labelClassName = "block text-sm font-medium text-gray-700 mb-2";
 
   const RecipeSelector = () => {
@@ -100,7 +100,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
         <button
           type="button"
           onClick={() => setShowResep(!showResep)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-left focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center justify-between"
+          className="w-full px-4 py-3 border border-gray-500 rounded-lg bg-white text-left focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center justify-between"
         >
           <div className="flex-1">
             {selectedRecipe ? (
@@ -121,8 +121,8 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
         </button>
 
         {showResep && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-            <div className="p-3 border-b border-gray-300">
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-500 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            <div className="p-3 border-b border-gray-500">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -130,7 +130,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
                   placeholder="Cari resep..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -155,7 +155,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
                         setShowResep(false);
                         setSearchTerm('');
                       }}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-200 last:border-b-0 transition-colors"
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-400 last:border-b-0 transition-colors"
                     >
                       <div className="font-medium text-gray-900">
                         {getRecipeProperty(recipe, 'name')}
@@ -376,7 +376,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+        className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
       >
         {isLoading ? (
           <>

@@ -50,7 +50,7 @@ export const AppRouter: React.FC = () => (
                       Dashboard mengalami masalah. Jangan khawatir, data Anda aman.
                     </p>
                     {import.meta.env.DEV && error && (
-                      <details className="text-left bg-gray-200 p-4 rounded mb-4 max-w-full overflow-auto">
+                      <details className="text-left bg-gray-400 p-4 rounded mb-4 max-w-full overflow-auto">
                         <summary className="cursor-pointer font-medium text-red-600 mb-2">
                           Error Details (Development Only)
                         </summary>
@@ -82,7 +82,7 @@ export const AppRouter: React.FC = () => (
                           logger.debug('User clicked back to login button');
                           window.location.href = '/auth';
                         }}
-                        className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg transition-colors"
+                        className="border border-gray-500 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg transition-colors"
                       >
                         🔙 Kembali ke Login
                       </button>

@@ -13,7 +13,7 @@ const QuickActionCard: React.FC<{
   iconColor: string;
 }> = ({ to, icon, label, iconColor }) => {
   return (
-    <Card className="bg-white border-[1.5px] border-gray-300 dark:border-gray-600 hover:border-orange-400 hover:shadow-md transition-all duration-300 overflow-hidden group">
+    <Card className="bg-white border-[1.5px] border-gray-500 dark:border-gray-600 hover:border-orange-400 hover:shadow-md transition-all duration-300 overflow-hidden group">
       <Link 
         to={to} 
         className="block p-6 h-full relative"
@@ -85,7 +85,7 @@ const QuickActions: React.FC = () => {
             Aksi Cepat
           </h2>
         </div>
-        <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent ml-4"></div>
+        <div className="flex-1 h-px bg-gradient-to-r from-gray-500 to-transparent ml-4"></div>
       </div>
       
       {/* 📋 Quick Actions Grid */}

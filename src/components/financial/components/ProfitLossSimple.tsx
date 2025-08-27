@@ -104,7 +104,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
         color: 'gray',
         message: 'Alhamdulillah! Bisnis untung bulan ini',
         bgColor: 'bg-gray-50',
-        borderColor: 'border-gray-300'
+        borderColor: 'border-gray-500'
       };
     } else if (monthlyAnalysis.untungRugi < 0) {
       return {
@@ -113,7 +113,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
         color: 'gray',
         message: 'Hati-hati! Bisnis rugi bulan ini',
         bgColor: 'bg-gray-50',
-        borderColor: 'border-gray-300'
+        borderColor: 'border-gray-500'
       };
     } else {
       return {
@@ -122,7 +122,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
         color: 'gray',
         message: 'Bisnis impas (tidak untung tidak rugi)',
         bgColor: 'bg-gray-50',
-        borderColor: 'border-gray-300'
+        borderColor: 'border-gray-500'
       };
     }
   };

@@ -360,7 +360,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                                 if (categoryUnits.length === 0) return null;
                                 return (
                                   <div key={category}>
-                                    <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-200 border-b text-overflow-safe">
+                                    <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-400 border-b text-overflow-safe">
                                       {category}
                                     </div>
                                     {categoryUnits.map((unit) => (
@@ -469,7 +469,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                   </div>
 
                   {formData.stok > 0 && formData.minimum > 0 && (
-                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-300">
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-500">
                       <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Preview Status Stok</h4>
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${getStockLevelInfo(formData.stok, formData.minimum).colorClass}`} />

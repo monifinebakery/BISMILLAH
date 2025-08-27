@@ -58,7 +58,7 @@ const PromoTable = ({
     const statusConfig = {
       aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
       nonaktif: { bg: 'bg-red-100', text: 'text-red-800', label: 'Non-aktif' },
-      draft: { bg: 'bg-gray-200', text: 'text-gray-800', label: 'Draft' }
+      draft: { bg: 'bg-gray-400', text: 'text-gray-800', label: 'Draft' }
     };
     
     const config = statusConfig[status] || statusConfig.draft;
@@ -112,7 +112,7 @@ const PromoTable = ({
     <div>
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-300">
+        <table className="min-w-full divide-y divide-gray-500">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left">
@@ -120,11 +120,11 @@ const PromoTable = ({
                   type="checkbox"
                   checked={selectedItems.length === promos.length && promos.length > 0}
                   onChange={(e) => onSelectAll(e.target.checked)}
-                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                  className="rounded border-gray-500 text-orange-600 focus:ring-orange-500"
                 />
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-400"
                 onClick={() => handleSort('nama_promo')}
               >
                 <div className="flex items-center space-x-1">
@@ -133,7 +133,7 @@ const PromoTable = ({
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-400"
                 onClick={() => handleSort('tipe_promo')}
               >
                 <div className="flex items-center space-x-1">
@@ -148,7 +148,7 @@ const PromoTable = ({
                 Profit Margin
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-400"
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center space-x-1">
@@ -157,7 +157,7 @@ const PromoTable = ({
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-400"
                 onClick={() => handleSort('created_at')}
               >
                 <div className="flex items-center space-x-1">
@@ -166,7 +166,7 @@ const PromoTable = ({
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-400"
                 onClick={() => handleSort('updated_at')}
               >
                 <div className="flex items-center space-x-1">
@@ -179,7 +179,7 @@ const PromoTable = ({
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-300">
+          <tbody className="bg-white divide-y divide-gray-500">
             {promos.map(promo => (
               <tr key={promo.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
@@ -187,7 +187,7 @@ const PromoTable = ({
                     type="checkbox"
                     checked={selectedItems.includes(promo.id)}
                     onChange={(e) => onSelectItem(promo.id, e.target.checked)}
-                    className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                    className="rounded border-gray-500 text-orange-600 focus:ring-orange-500"
                   />
                 </td>
                 <td className="px-6 py-4">
@@ -204,7 +204,7 @@ const PromoTable = ({
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-400 text-gray-800">
                     {getPromoTypeLabel(promo.tipe_promo)}
                   </span>
                 </td>
@@ -269,7 +269,7 @@ const PromoTable = ({
       </div>
 
       {/* Pagination */}
-      <div className="bg-white px-4 py-3 border-t border-gray-300 sm:px-6">
+      <div className="bg-white px-4 py-3 border-t border-gray-500 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-700">
@@ -281,7 +281,7 @@ const PromoTable = ({
                 pageSize: parseInt(e.target.value), 
                 page: 1 
               })}
-              className="ml-2 text-sm border border-gray-300 rounded px-2 py-1"
+              className="ml-2 text-sm border border-gray-500 rounded px-2 py-1"
             >
               <option value={5}>5 per halaman</option>
               <option value={10}>10 per halaman</option>
@@ -294,7 +294,7 @@ const PromoTable = ({
             <button
               onClick={() => onPaginationChange({ page: pagination.page - 1 })}
               disabled={pagination.page <= 1}
-              className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-l-md"
+              className="relative inline-flex items-center px-2 py-2 border border-gray-500 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-l-md"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -311,7 +311,7 @@ const PromoTable = ({
                   className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                     pageNum === pagination.page
                       ? 'z-10 bg-orange-50 border-orange-500 text-orange-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      : 'bg-white border-gray-500 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
                   {pageNum}
@@ -322,7 +322,7 @@ const PromoTable = ({
             <button
               onClick={() => onPaginationChange({ page: pagination.page + 1 })}
               disabled={pagination.page >= totalPages}
-              className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md"
+              className="relative inline-flex items-center px-2 py-2 border border-gray-500 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-md"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

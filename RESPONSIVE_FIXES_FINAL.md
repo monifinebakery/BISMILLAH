@@ -12,11 +12,11 @@
 }
 
 .card-border {
-  @apply border border-gray-300 rounded-lg;
+  @apply border border-gray-500 rounded-lg;
 }
 
 .button-border {
-  @apply border border-gray-300 rounded-md;
+  @apply border border-gray-500 rounded-md;
 }
 ```
 

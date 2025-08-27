@@ -134,7 +134,7 @@ const SettingsPage = () => {
         {/* Header Section */}
         <div className="mb-8">
           <div className="bg-white rounded-2xl border overflow-hidden">
-            <div className="px-8 py-6 bg-gray-200">
+            <div className="px-8 py-6 bg-gray-400">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-white rounded-xl">
                   <SettingsIcon className="h-8 w-8 text-gray-700" />
@@ -202,7 +202,7 @@ const SettingsPage = () => {
                   value={formState.businessName || ''} 
                   onChange={e => handleInputChange('businessName', e.target.value)}
                   placeholder="Masukkan nama bisnis Anda"
-                  className="h-11 text-base border-gray-300"
+                  className="h-11 text-base border-gray-500"
                 />
               </div>
               
@@ -215,7 +215,7 @@ const SettingsPage = () => {
                   value={formState.ownerName || ''} 
                   onChange={e => handleInputChange('ownerName', e.target.value)}
                   placeholder="Masukkan nama pemilik bisnis"
-                  className="h-11 text-base border-gray-300"
+                  className="h-11 text-base border-gray-500"
                 />
               </div>
               
@@ -230,7 +230,7 @@ const SettingsPage = () => {
                     value={formState.email || ''} 
                     onChange={e => handleInputChange('email', e.target.value)} 
                     placeholder="email@bisnis.com" 
-                    className="h-11 border-gray-300" 
+                    className="h-11 border-gray-500" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -243,7 +243,7 @@ const SettingsPage = () => {
                     value={formState.phone || ''} 
                     onChange={e => handleInputChange('phone', e.target.value)} 
                     placeholder="+62 XXX XXX XXXX" 
-                    className="h-11 border-gray-300" 
+                    className="h-11 border-gray-500" 
                   />
                 </div>
               </div>
@@ -257,7 +257,7 @@ const SettingsPage = () => {
                   value={formState.address || ''} 
                   onChange={e => handleInputChange('address', e.target.value)}
                   placeholder="Masukkan alamat lengkap bisnis Anda"
-                  className="min-h-[100px] border-gray-300"
+                  className="min-h-[100px] border-gray-500"
                   rows={4}
                 />
               </div>
@@ -268,7 +268,7 @@ const SettingsPage = () => {
                   <Button 
                     onClick={handleReset}
                     variant="outline"
-                    className="border-gray-300 hover:bg-gray-50"
+                    className="border-gray-500 hover:bg-gray-50"
                   >
                     Batalkan
                   </Button>

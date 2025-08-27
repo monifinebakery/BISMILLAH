@@ -31,7 +31,7 @@ const SupplierFilters: React.FC<SupplierFiltersProps> = ({
   onSelectionModeChange
 }) => {
   return (
-    <div className="p-4 sm:p-6 border-b border-gray-300 bg-gray-50/50">
+    <div className="p-4 sm:p-6 border-b border-gray-500 bg-gray-50/50">
       <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
         {/* Left side controls */}
         <div className="flex items-center gap-4">
@@ -44,7 +44,7 @@ const SupplierFilters: React.FC<SupplierFiltersProps> = ({
               value={String(itemsPerPage)} 
               onValueChange={(value) => onItemsPerPageChange(Number(value))}
             >
-              <SelectTrigger className="w-20 border-gray-300">
+              <SelectTrigger className="w-20 border-gray-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -89,7 +89,7 @@ const SupplierFilters: React.FC<SupplierFiltersProps> = ({
             placeholder="Cari Nama Supplier / Kontak..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 border-gray-300 rounded-lg border focus:border-orange-500 focus:ring-orange-500 w-full lg:w-80"
+            className="pl-10 border-gray-500 rounded-lg border focus:border-orange-500 focus:ring-orange-500 w-full lg:w-80"
           />
         </div>
       </div>

@@ -87,7 +87,7 @@ const StatusFilter: React.FC<{
           <span className="font-medium">Semua Status</span>
         </SelectItem>
         
-        <div className="border-t border-gray-200 my-1" />
+        <div className="border-t border-gray-400 my-1" />
         
         {ORDER_STATUSES.map((status) => (
           <SelectItem key={status} value={status}>
@@ -212,7 +212,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({ uiState, loading }) => {
   }).length;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-300 p-4 mb-6">
+    <div className="bg-white rounded-lg border border-gray-500 p-4 mb-6">
       <div className="flex items-center gap-2 mb-4">
         <Filter className="h-5 w-5 text-gray-500" />
         <h3 className="text-sm font-medium text-gray-900">Filter Pesanan</h3>

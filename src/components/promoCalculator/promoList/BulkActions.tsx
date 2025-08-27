@@ -25,7 +25,7 @@ const BulkActions = ({ selectedCount, onDelete, onDeselect }: any) => {
 
           <button
             onClick={onDeselect}
-            className="flex items-center space-x-2 px-3 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm rounded-lg transition-colors"
+            className="flex items-center space-x-2 px-3 py-2 border border-gray-500 hover:bg-gray-50 text-gray-700 text-sm rounded-lg transition-colors"
           >
             <X className="h-4 w-4" />
             <span>Batal Pilih</span>

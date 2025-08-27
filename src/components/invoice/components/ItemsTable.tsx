@@ -64,7 +64,7 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                 placeholder="Deskripsi produk/jasa" 
                 value={item.description} 
                 onChange={e => onItemChange(item.id, 'description', e.target.value)} 
-                className="resize-none border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
+                className="resize-none border-gray-500 focus:border-blue-500 text-xs sm:text-sm"
                 rows={2}
               />
               <div className="export-text text-sm whitespace-pre-line">
@@ -82,7 +82,7 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                 min="1"
                 value={item.quantity} 
                 onChange={e => onItemChange(item.id, 'quantity', e.target.value)} 
-                className="text-center font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
+                className="text-center font-mono border-gray-500 focus:border-blue-500 text-xs sm:text-sm"
               />
               <div className="export-text text-center font-mono text-sm">
                 {item.quantity}
@@ -99,7 +99,7 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                 min="0"
                 value={item.price} 
                 onChange={e => onItemChange(item.id, 'price', e.target.value)} 
-                className="text-right font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
+                className="text-right font-mono border-gray-500 focus:border-blue-500 text-xs sm:text-sm"
               />
               <div className="export-text text-right font-mono text-sm">
                 {formatCurrency(item.price)}

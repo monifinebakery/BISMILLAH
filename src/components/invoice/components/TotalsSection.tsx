@@ -30,7 +30,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
 }) => {
   return (
     <div className={className}>
-      <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border-2 border-gray-300">
+      <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border-2 border-gray-500">
         <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">
           Ringkasan Pembayaran
         </h3>
@@ -53,7 +53,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
                 min="0"
                 value={discount.value} 
                 onChange={e => setDiscount({...discount, value: Number(e.target.value) || 0})} 
-                className="w-16 sm:w-20 h-8 text-center text-xs sm:text-sm border-gray-300"
+                className="w-16 sm:w-20 h-8 text-center text-xs sm:text-sm border-gray-500"
               />
               <span className="export-text text-xs sm:text-sm">
                 ({discount.value}{discount.type === 'percent' ? '%' : ' Rp'})
@@ -62,7 +62,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
                 value={discount.type} 
                 onValueChange={(v: 'percent' | 'fixed') => setDiscount({...discount, type: v})}
               >
-                <SelectTrigger className="w-12 sm:w-16 h-8 text-xs sm:text-sm border-gray-300">
+                <SelectTrigger className="w-12 sm:w-16 h-8 text-xs sm:text-sm border-gray-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -92,7 +92,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
                 value={tax.value > 0 ? tax.value : ''}
                 onChange={e => setTax({...tax, value: Number(e.target.value) || 0})}
                 disabled={tax.value <= 0}
-                className="w-16 sm:w-20 h-8 text-center text-xs sm:text-sm border-gray-300"
+                className="w-16 sm:w-20 h-8 text-center text-xs sm:text-sm border-gray-500"
               />
               <span className="text-xs sm:text-sm text-gray-600">%</span>
             </div>
@@ -110,7 +110,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
                 min="0"
                 value={shipping} 
                 onChange={e => setShipping(Number(e.target.value) || 0)} 
-                className="w-20 sm:w-32 h-8 text-right text-xs sm:text-sm font-mono border-gray-300"
+                className="w-20 sm:w-32 h-8 text-right text-xs sm:text-sm font-mono border-gray-500"
               />
               <span className="export-text font-mono text-sm">
                 {formatCurrency(shipping)}
@@ -119,7 +119,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
           </div>
           
           {/* Grand Total */}
-          <div className="border-t-2 border-gray-300 pt-3 sm:pt-4 mt-3 sm:mt-4">
+          <div className="border-t-2 border-gray-500 pt-3 sm:pt-4 mt-3 sm:mt-4">
             <div className="flex justify-between items-center bg-blue-50 p-3 sm:p-4 rounded-lg">
               <span className="text-base sm:text-xl font-bold text-gray-800">
                 GRAND TOTAL

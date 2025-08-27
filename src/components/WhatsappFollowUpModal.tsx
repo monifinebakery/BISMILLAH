@@ -142,7 +142,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
               id="whatsapp-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="min-h-[150px] w-full rounded-md border-gray-300 focus:ring-green-500 focus:border-green-500"
+              className="min-h-[150px] w-full rounded-md border-gray-500 focus:ring-green-500 focus:border-green-500"
               placeholder="Masukkan pesan WhatsApp..."
             />
             <p className="text-xs text-gray-500">

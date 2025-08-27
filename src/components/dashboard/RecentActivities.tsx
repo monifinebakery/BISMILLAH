@@ -48,15 +48,15 @@ const ActivityRow: React.FC<{
       <TableRow>
         <TableCell>
           <div className="space-y-2">
-            <div className="h-4 bg-gray-300 animate-pulse rounded w-3/4"></div>
-            <div className="h-3 bg-gray-300 animate-pulse rounded w-1/2"></div>
+            <div className="h-4 bg-gray-500 animate-pulse rounded w-3/4"></div>
+            <div className="h-3 bg-gray-500 animate-pulse rounded w-1/2"></div>
           </div>
         </TableCell>
         <TableCell>
-          <div className="h-3 bg-gray-300 animate-pulse rounded w-20"></div>
+          <div className="h-3 bg-gray-500 animate-pulse rounded w-20"></div>
         </TableCell>
         <TableCell>
-          <div className="h-3 bg-gray-300 animate-pulse rounded w-16 ml-auto"></div>
+          <div className="h-3 bg-gray-500 animate-pulse rounded w-16 ml-auto"></div>
         </TableCell>
       </TableRow>
     );
@@ -121,7 +121,7 @@ const PaginationControls: React.FC<{
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   return (
-    <CardFooter className="bg-gray-50 border-t border-gray-200 p-3 space-y-3">
+    <CardFooter className="bg-gray-50 border-t border-gray-400 p-3 space-y-3">
       {/* Mobile/iPad Layout: Stack vertically for better readability */}
       <div className="flex flex-col space-y-2 sm:hidden">
         {/* Page Info */}
@@ -141,7 +141,7 @@ const PaginationControls: React.FC<{
             size="sm" 
             onClick={() => onPageChange('prev')} 
             disabled={!hasPrev} 
-            className="text-gray-600 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 mr-2"
+            className="text-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex-1 mr-2"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             <span className="hidden xs:inline">Sebelumnya</span>
@@ -153,7 +153,7 @@ const PaginationControls: React.FC<{
             size="sm" 
             onClick={() => onPageChange('next')} 
             disabled={!hasNext} 
-            className="text-gray-600 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 ml-2"
+            className="text-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex-1 ml-2"
           >
             <span className="hidden xs:inline">Selanjutnya</span>
             <span className="xs:hidden">Next</span>
@@ -169,7 +169,7 @@ const PaginationControls: React.FC<{
           size="sm" 
           onClick={() => onPageChange('prev')} 
           disabled={!hasPrev} 
-          className="text-gray-600 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-fit"
+          className="text-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed min-w-fit"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
           <span className="hidden md:inline">Sebelumnya</span>
@@ -190,7 +190,7 @@ const PaginationControls: React.FC<{
           size="sm" 
           onClick={() => onPageChange('next')} 
           disabled={!hasNext} 
-          className="text-gray-600 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-fit"
+          className="text-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed min-w-fit"
         >
           <span className="hidden md:inline">Selanjutnya</span>
           <span className="md:hidden">Next</span>
@@ -258,7 +258,7 @@ const RecentActivities: React.FC<Props> = ({
   return (
     <Card className="bg-white border">
       {/* 📝 Header */}
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 p-4">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-400 p-4">
         <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
           <ActivityIcon className="h-5 w-5 text-blue-600" />
           <span>Aktivitas Terbaru</span>
@@ -296,7 +296,7 @@ const RecentActivities: React.FC<Props> = ({
               // 📭 Empty State
               <TableRow>
                 <TableCell colSpan={3} className="text-center text-gray-500 py-8">
-                  <ActivityIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <ActivityIcon className="h-12 w-12 text-gray-500 mx-auto mb-3" />
                   <p className="font-medium">Belum ada aktivitas</p>
                   <p className="text-sm mt-1">Aktivitas akan muncul di sini setelah ada transaksi.</p>
                 </TableCell>

@@ -42,10 +42,10 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ update, 
         return {
           icon: <Info className="w-5 h-5" />,
           bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-300',
+          borderColor: 'border-gray-500',
           textColor: 'text-gray-800',
           iconColor: 'text-gray-600',
-          badgeColor: 'bg-gray-200 text-gray-800'
+          badgeColor: 'bg-gray-400 text-gray-800'
         };
     }
   };

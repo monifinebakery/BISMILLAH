@@ -34,7 +34,7 @@ export const AddCategoryForm: React.FC<AddCategoryFormProps> = ({
   };
 
   return (
-    <Card className="border-gray-300">
+    <Card className="border-gray-500">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <Plus className="h-5 w-5 text-orange-600" />
@@ -53,7 +53,7 @@ export const AddCategoryForm: React.FC<AddCategoryFormProps> = ({
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               placeholder="Contoh: Makanan Pembuka, Minuman Segar..."
-              className="h-10 border-gray-300"
+              className="h-10 border-gray-500"
               maxLength={50}
               disabled={isLoading}
             />

@@ -140,7 +140,7 @@ const SimpleBusinessReport = React.lazy(() =>
 
 // Loading components
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (
-  <div className={cn("bg-gray-300 rounded animate-pulse", className)} />
+  <div className={cn("bg-gray-500 rounded animate-pulse", className)} />
 );
 
 const ChartSkeleton = () => (
@@ -481,7 +481,7 @@ const FinancialReportPage: React.FC = () => {
                   onDateRangeChange={handleDateRangeChange}
                   placeholder="Pilih periode laporan"
                   isMobile={isMobile}
-                  className="bg-white text-gray-900 border-none hover:bg-gray-200 w-full"
+                  className="bg-white text-gray-900 border-none hover:bg-gray-400 w-full"
                 />
               </div>
             </div>
@@ -510,7 +510,7 @@ const FinancialReportPage: React.FC = () => {
               onDateRangeChange={handleDateRangeChange}
               placeholder="Pilih periode laporan"
               isMobile={isMobile}
-              className="bg-white text-gray-900 border-none hover:bg-gray-200 w-full"
+              className="bg-white text-gray-900 border-none hover:bg-gray-400 w-full"
             />
           </div>
         </div>

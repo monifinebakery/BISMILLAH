@@ -103,21 +103,31 @@ html, body {
 
   /* ---- DIALOG SECTIONS ---- */
   .dialog-header {
-    @apply px-6 py-4 border-b border-gray-200 dark:border-gray-700;
+    @apply px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700;
     @apply bg-gray-50 dark:bg-gray-800/50;
+    flex-shrink: 0;
+  }
+  
+  .dialog-header-pad {
+    @apply px-4 sm:px-6 py-3 sm:py-4;
     flex-shrink: 0;
   }
   
   .dialog-body {
     @apply flex-1 overflow-y-auto overflow-x-hidden;
-    @apply px-6 py-4;
+    @apply px-4 sm:px-6 py-3 sm:py-4;
     /* Smooth scrolling */
     scroll-behavior: smooth;
   }
   
   .dialog-footer {
-    @apply px-6 py-4 border-t border-gray-200 dark:border-gray-700;
+    @apply px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700;
     @apply bg-gray-50 dark:bg-gray-800/50;
+    flex-shrink: 0;
+  }
+  
+  .dialog-footer-pad {
+    @apply px-4 sm:px-6 py-3 sm:py-4;
     flex-shrink: 0;
   }
 
@@ -128,10 +138,14 @@ html, body {
       padding: 0.5rem;
     }
     
-    .dialog-panel {
+    .dialog-panel,
+    .dialog-panel-sm,
+    .dialog-panel-lg,
+    .dialog-panel-xl {
       @apply max-w-none mx-0;
       max-height: 95dvh;
       min-height: 300px;
+      width: calc(100vw - 1rem);
     }
     
     .dialog-content-centered {
@@ -140,9 +154,34 @@ html, body {
     }
     
     .dialog-header,
+    .dialog-header-pad,
     .dialog-body,
-    .dialog-footer {
-      @apply px-4 py-3;
+    .dialog-footer,
+    .dialog-footer-pad {
+      @apply px-3 py-2;
+    }
+    
+    /* Ensure form elements are properly sized on mobile */
+    .dialog-body input,
+    .dialog-body select,
+    .dialog-body textarea,
+    .dialog-body button {
+      @apply text-base; /* Prevents zoom on iOS */
+      max-width: 100%;
+    }
+    
+    /* Ensure tables are responsive on mobile */
+    .dialog-body table {
+      @apply w-full overflow-x-auto block;
+    }
+    
+    /* Prevent text overflow */
+    .dialog-body p,
+    .dialog-body span,
+    .dialog-body div {
+      @apply break-words;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
   }
   
@@ -153,18 +192,28 @@ html, body {
     }
     
     .dialog-panel {
-      @apply max-w-2xl;
+      @apply max-w-3xl;
       max-height: 85dvh;
     }
     
+    .dialog-panel-lg {
+      @apply max-w-4xl;
+    }
+    
+    .dialog-panel-xl {
+      @apply max-w-5xl;
+    }
+    
     .dialog-content-centered {
-      @apply max-w-2xl;
+      @apply max-w-3xl;
     }
     
     .dialog-header,
+    .dialog-header-pad,
     .dialog-body,
-    .dialog-footer {
-      @apply px-5 py-4;
+    .dialog-footer,
+    .dialog-footer-pad {
+      @apply px-4 py-3;
     }
   }
   
@@ -175,12 +224,28 @@ html, body {
     }
     
     .dialog-panel {
-      @apply max-w-4xl;
+      @apply max-w-lg;
       max-height: 80dvh;
+    }
+    
+    .dialog-panel-lg {
+      @apply max-w-5xl;
+    }
+    
+    .dialog-panel-xl {
+      @apply max-w-6xl;
     }
     
     .dialog-content-centered {
       @apply max-w-4xl;
+    }
+    
+    .dialog-header,
+    .dialog-header-pad,
+    .dialog-body,
+    .dialog-footer,
+    .dialog-footer-pad {
+      @apply px-6 py-4;
     }
   }
   
@@ -266,5 +331,28 @@ html, body {
 
   .button-group-responsive { @apply flex flex-wrap gap-2 sm:gap-3 md:gap-4; }
   .text-overflow-safe { @apply break-words overflow-hidden; word-wrap: break-word; overflow-wrap: break-word; }
+  
+  /* Dialog responsive utilities */
+  .dialog-responsive-grid {
+    @apply grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2;
+  }
+  
+  .dialog-responsive-buttons {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto;
+  }
+  
+  .dialog-responsive-buttons > * {
+    @apply w-full sm:w-auto;
+  }
+  
+  /* Ensure no horizontal scroll in dialogs */
+  .dialog-no-overflow {
+    @apply overflow-x-hidden max-w-full;
+  }
+  
+  /* Mobile-safe input sizes */
+  .input-mobile-safe {
+    @apply text-base min-h-[44px] px-3 py-2;
+  }
 
 }

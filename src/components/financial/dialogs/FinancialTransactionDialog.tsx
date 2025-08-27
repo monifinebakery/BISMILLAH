@@ -179,9 +179,9 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel">
-          <DialogHeader className="dialog-header">
+      <DialogContent centerMode="overlay" size="lg">
+        <div className="dialog-panel dialog-panel-lg">
+          <DialogHeader className="dialog-header border-b">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Plus className="w-4 h-4 text-blue-600" />
@@ -197,33 +197,33 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
             </div>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="dialog-no-overflow">
             <div className="dialog-body">
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Transaction Type and Amount Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="dialog-responsive-grid">
                   <div className="space-y-2">
-                    <Label htmlFor="type" className="text-sm font-medium">
+                    <Label htmlFor="type" className="text-sm font-medium text-overflow-safe">
                       Tipe Transaksi
                     </Label>
                     <Select
                       value={formData.type}
                       onValueChange={(value: TransactionType) => handleFieldChange('type', value)}
                     >
-                      <SelectTrigger id="type" className="w-full">
+                      <SelectTrigger id="type" className="w-full input-mobile-safe">
                         <SelectValue placeholder="Pilih tipe" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="expense">
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                            <span>Pengeluaran</span>
+                            <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
+                            <span className="text-overflow-safe">Pengeluaran</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="income">
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span>Pemasukan</span>
+                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
+                            <span className="text-overflow-safe">Pemasukan</span>
                           </div>
                         </SelectItem>
                       </SelectContent>
@@ -231,7 +231,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="amount" className="text-sm font-medium">
+                    <Label htmlFor="amount" className="text-sm font-medium text-overflow-safe">
                       Jumlah (Rp)
                     </Label>
                     <Input
@@ -242,7 +242,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                       value={formData.amount || ''}
                       onChange={(e) => handleFieldChange('amount', parseFloat(e.target.value) || 0)}
                       placeholder="Masukkan jumlah"
-                      className="text-right"
+                      className="text-right input-mobile-safe"
                       required
                     />
                   </div>
@@ -250,14 +250,14 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
                 {/* Category */}
                 <div className="space-y-2">
-                  <Label htmlFor="category" className="text-sm font-medium">
+                  <Label htmlFor="category" className="text-sm font-medium text-overflow-safe">
                     Kategori
                   </Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => handleFieldChange('category', value)}
                   >
-                    <SelectTrigger id="category" className="w-full">
+                    <SelectTrigger id="category" className="w-full input-mobile-safe">
                       <SelectValue placeholder="Pilih kategori..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -270,17 +270,17 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                             <SelectItem key={id} value={id}>
                               <div className="flex items-center gap-2">
                                 <div 
-                                  className="w-3 h-3 rounded-full border"
+                                  className="w-3 h-3 rounded-full border flex-shrink-0"
                                   style={{ backgroundColor: color }}
                                 ></div>
-                                <span>{name}</span>
+                                <span className="text-overflow-safe truncate">{name}</span>
                               </div>
                             </SelectItem>
                           );
                         })
                       ) : (
                         <SelectItem value="" disabled>
-                          Tidak ada kategori tersedia
+                          <span className="text-overflow-safe">Tidak ada kategori tersedia</span>
                         </SelectItem>
                       )}
                     </SelectContent>
@@ -289,7 +289,7 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium">
+                  <Label htmlFor="description" className="text-sm font-medium text-overflow-safe">
                     Deskripsi
                   </Label>
                   <Input
@@ -297,14 +297,15 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                     value={formData.description}
                     onChange={(e) => handleFieldChange('description', e.target.value)}
                     placeholder="Contoh: Beli tepung terigu untuk produksi"
+                    className="input-mobile-safe"
                     required
                   />
                 </div>
 
                 {/* Date and Time Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="dialog-responsive-grid">
                   <div className="space-y-2">
-                    <Label htmlFor="date" className="text-sm font-medium">
+                    <Label htmlFor="date" className="text-sm font-medium text-overflow-safe">
                       Tanggal
                     </Label>
                     <Input
@@ -321,12 +322,13 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                         }
                         handleFieldChange('date', newDate);
                       }}
+                      className="input-mobile-safe"
                       required
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="time" className="text-sm font-medium">
+                    <Label htmlFor="time" className="text-sm font-medium text-overflow-safe">
                       Waktu (opsional)
                     </Label>
                     <Input
@@ -345,8 +347,9 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                         handleFieldChange('date', newDate);
                       }}
                       placeholder="HH:MM"
+                      className="input-mobile-safe"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1 text-overflow-safe">
                       Kosongkan untuk waktu saat ini
                     </p>
                   </div>
@@ -356,22 +359,26 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
 
             {/* Footer */}
             <DialogFooter className="dialog-footer">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto"
-              >
-                Batal
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto"
-              >
-                {isSubmitting ? 'Menyimpan...' : (transaction ? 'Perbarui' : 'Simpan')}
-              </Button>
+              <div className="dialog-responsive-buttons">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="input-mobile-safe"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="input-mobile-safe"
+                >
+                  <span className="text-overflow-safe">
+                    {isSubmitting ? 'Menyimpan...' : (transaction ? 'Perbarui' : 'Simpan')}
+                  </span>
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </div>

@@ -110,7 +110,11 @@ export default function PWAInstallButton({
 export function PWAStatus() {
   const { canInstall, isInstalled, isOnline, updateAvailable } = usePWA();
 
-  if (import.meta.env.PROD) {
+  // Show in development and preview modes
+  const shouldShow = import.meta.env.DEV || 
+                   (typeof window !== 'undefined' && window.location.hostname.includes('preview'));
+  
+  if (!shouldShow) {
     return null;
   }
 

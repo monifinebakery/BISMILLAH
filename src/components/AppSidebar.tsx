@@ -9,7 +9,7 @@ import { DashboardIcon } from "@radix-ui/react-icons";
 import {
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText,
   TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell,
-  BarChart3
+  BarChart3, WifiOff
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -89,6 +89,7 @@ export function AppSidebar() {
   ];
 
   const settingsItems = [
+    { title: "Fitur Offline", url: "/offline", icon: WifiOff },
     { title: "Pengaturan", url: "/pengaturan", icon: Settings },
     { title: "Pembaruan", url: "/updates", icon: Bell },
   ];

@@ -1,4 +1,4 @@
-import React, { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { ReactNode, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
@@ -174,37 +174,59 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     }
   }, [userId, throttledFetch, refreshData]);
 
-  const getOrderById = useCallback((id: string) => orders.find(o => o.id === id), [orders]);
-  const getOrdersByStatus = useCallback((status: string) => orders.filter(o => o.status === status), [orders]);
+  // ULTRA PERFORMANCE: Memoized computed values untuk mencegah re-calculation
+  const ordersRef = useRef(orders);
+  ordersRef.current = orders;
+  
+  const computedStats = useMemo(() => {
+    const pending = orders.filter(o => o.status === 'pending').length;
+    const processing = orders.filter(o => o.status === 'preparing').length;
+    const completed = orders.filter(o => o.status === 'completed').length;
+    const cancelled = orders.filter(o => o.status === 'cancelled').length;
+    const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.totalPesanan || 0), 0);
+    
+    return {
+      pending,
+      processing, 
+      completed,
+      cancelled,
+      totalRevenue
+    };
+  }, [orders]);
+
+  // PERFORMANCE: Stable references untuk functions yang tidak berubah
+  const getOrderById = useCallback((id: string) => ordersRef.current.find(o => o.id === id), []);
+  
+  const getOrdersByStatus = useCallback((status: string) => ordersRef.current.filter(o => o.status === status), []);
+  
   const getOrdersByDateRange = useCallback((start: Date, end: Date) => {
     if (!isValidDate(start) || !isValidDate(end)) return [];
-    return orders.filter(o => {
+    return ordersRef.current.filter(o => {
       const result = UnifiedDateHandler.parseDate(o.tanggal);
       const d = result.isValid && result.date ? result.date : null;
       return d && d >= start && d <= end;
     });
-  }, [orders]);
+  }, []);
 
   const searchOrders = useCallback((term: string) => {
     const t = term?.toLowerCase?.() || '';
-    if (!t) return orders;
-    return orders.filter(o =>
+    if (!t) return ordersRef.current;
+    return ordersRef.current.filter(o =>
       o.namaPelanggan.toLowerCase().includes(t) ||
       o.nomorPesanan.toLowerCase().includes(t) ||
       o.teleponPelanggan?.toLowerCase().includes(t) ||
       o.emailPelanggan?.toLowerCase().includes(t)
     );
-  }, [orders]);
+  }, []);
 
-  const getTotalRevenue = useCallback(() => {
-    return orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.totalPesanan || 0), 0);
-  }, [orders]);
+  // PERFORMANCE: Return computed stats instead of recalculating
+  const getTotalRevenue = useCallback(() => computedStats.totalRevenue, [computedStats.totalRevenue]);
+  const getPendingOrdersCount = useCallback(() => computedStats.pending, [computedStats.pending]);
+  const getProcessingOrdersCount = useCallback(() => computedStats.processing, [computedStats.processing]);
+  const getCompletedOrdersCount = useCallback(() => computedStats.completed, [computedStats.completed]);
+  const getCancelledOrdersCount = useCallback(() => computedStats.cancelled, [computedStats.cancelled]);
 
-  const getPendingOrdersCount = useCallback(() => orders.filter(o => o.status === 'pending').length, [orders]);
-  const getProcessingOrdersCount = useCallback(() => orders.filter(o => o.status === 'preparing').length, [orders]);
-  const getCompletedOrdersCount = useCallback(() => orders.filter(o => o.status === 'completed').length, [orders]);
-  const getCancelledOrdersCount = useCallback(() => orders.filter(o => o.status === 'cancelled').length, [orders]);
-
+  // ULTRA PERFORMANCE: Minimal dependencies untuk contextValue
   const contextValue = useMemo(() => ({
     orders,
     loading,
@@ -227,27 +249,25 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     getCancelledOrdersCount,
     contextReady: !!userId,
   }), [
+    // PERFORMANCE: Hanya dependencies yang benar-benar berubah
     orders,
     loading,
     isConnected,
+    userId,
+    // Functions sudah stable dengan useCallback tanpa dependencies
     addOrder,
     updateOrder,
     updateOrderStatus,
     deleteOrder,
     refreshData,
-    getOrderById,
-    getOrdersByStatus,
-    getOrdersByDateRange,
     bulkUpdateStatus,
     bulkDeleteOrders,
-    searchOrders,
+    // Stats functions dengan computed dependencies
     getTotalRevenue,
     getPendingOrdersCount,
     getProcessingOrdersCount,
     getCompletedOrdersCount,
     getCancelledOrdersCount,
-    userId,
-    fallbackModeRef.current,
   ]);
 
   return (

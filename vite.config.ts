@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
       ...(isProd && !keepLogs
         ? [
             removeConsole({
-              include: ["log", "debug", "info", "warn", "trace"],
+              includes: ["log", "debug", "info", "warn", "trace"],
             }),
           ]
         : []),
@@ -81,8 +81,14 @@ export default defineConfig(({ mode }) => {
       minify: isProd ? "esbuild" : false,
       sourcemap: !isProd,
       // Performance optimizations
-      chunkSizeWarningLimit: 1000, // Increase limit to reduce warnings
+      chunkSizeWarningLimit: 800, // PERFORMANCE: Reduced untuk monitoring bundle size
+      // ULTRA PERFORMANCE: Tree shaking optimization
       rollupOptions: {
+        treeshake: {
+          moduleSideEffects: false,
+          propertyReadSideEffects: false,
+          tryCatchDeoptimization: false
+        },
         external: ["next-themes"],
         output: {
           manualChunks: (id) => {
@@ -178,6 +184,19 @@ export default defineConfig(({ mode }) => {
         "@radix-ui/react-icons"
       ],
       exclude: ["next-themes"]
+    },
+    
+    // Image optimization and asset handling
+    assetsInclude: ['**/*.webp', '**/*.avif', '**/*.svg'],
+    
+    // CSS optimization
+    css: {
+      devSourcemap: !isProd,
+      preprocessorOptions: {
+        scss: {
+          additionalData: `@import "@/styles/variables.scss";`
+        }
+      }
     }
   };
 });

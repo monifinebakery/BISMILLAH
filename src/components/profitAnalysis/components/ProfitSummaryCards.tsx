@@ -77,9 +77,9 @@ const calculateMetrics = (currentAnalysis: RealTimeProfitCalculation | null, eff
   
   // Log any warnings in development
   if (import.meta.env.DEV && cogsResult.warnings.length > 0) {
-    cogsResult.warnings.forEach(warning => 
-      console.warn('[SummaryCards] COGS warning:', warning)
-    );
+    cogsResult.warnings.forEach(warning => {
+      console.warn('[SummaryCards] COGS warning:', warning);
+    });
   }
   
   if (import.meta.env.DEV && !validationResult.isValid) {

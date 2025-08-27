@@ -261,26 +261,26 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
       <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-5xl">
+        <div className="dialog-panel dialog-panel-xl dialog-no-overflow">
           <DialogHeader className="dialog-header">
             <DialogTitle className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <ShoppingCart className="w-4 h-4 text-orange-600" />
               </div>
-              <div>
-                <span className="text-xl">
+              <div className="min-w-0 flex-1">
+                <span className="text-lg sm:text-xl text-overflow-safe">
                   {mode === 'create' ? 'Tambah Pembelian' :
                    mode === 'edit' ? 'Edit Pembelian' : 'Detail Pembelian'}
                 </span>
                 {purchase && (
-                  <Badge className={`${statusClassMap[purchase.status]} ml-2 text-xs`}>
+                  <Badge className={`${statusClassMap[purchase.status]} ml-2 text-xs flex-shrink-0`}>
                     {purchase.status === 'pending' ? 'Menunggu' :
                      purchase.status === 'completed' ? 'Selesai' : 'Dibatalkan'}
                   </Badge>
                 )}
               </div>
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-overflow-safe">
               {mode === 'create'
                 ? 'Tambah pembelian baru dan kelola item bahan baku'
                 : mode === 'edit'
@@ -289,26 +289,26 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             </DialogDescription>
           </DialogHeader>
           <div className="dialog-body">
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6 dialog-no-overflow">
           {/* Header Form - Supplier dan Tanggal */}
           <Card className="border-gray-200">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Package className="h-5 w-5 text-orange-600" />
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-overflow-safe">
+                <Package className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 flex-shrink-0" />
                 Informasi Pembelian
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 sm:space-y-6">
               {/* Supplier dan Tanggal */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="dialog-responsive-grid gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Supplier *</Label>
+                  <Label className="text-sm font-medium text-gray-700 text-overflow-safe">Supplier *</Label>
                   <Select
                     value={formData.supplier}
                     onValueChange={(value) => updateFormField('supplier', value)}
                     disabled={isSubmitting || isViewOnly}
                   >
-                    <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+                    <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe">
                       <SelectValue placeholder="Pilih supplier" />
                     </SelectTrigger>
                     <SelectContent>
@@ -318,27 +318,29 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                           value={supplier.id} 
                           className="focus:bg-orange-50"
                         >
-                          {supplier.nama}
+                          <span className="text-overflow-safe">{supplier.nama}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {validation.supplier && (
-                    <p className="text-xs text-red-500">{validation.supplier}</p>
+                    <p className="text-xs text-red-500 text-overflow-safe">{validation.supplier}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Tanggal *</Label>
+                  <Label className="text-sm font-medium text-gray-700 text-overflow-safe">Tanggal *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={`h-11 w-full justify-start border-gray-200 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 ${!formData.tanggal && 'text-muted-foreground'}`}
+                        className={`h-11 w-full justify-start border-gray-200 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe ${!formData.tanggal && 'text-muted-foreground'}`}
                         disabled={isSubmitting || isViewOnly}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.tanggal ? format(new Date(formData.tanggal), 'PPP', { locale: id }) : 'Pilih tanggal'}
+                        <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                        <span className="text-overflow-safe truncate">
+                          {formData.tanggal ? format(new Date(formData.tanggal), 'PPP', { locale: id }) : 'Pilih tanggal'}
+                        </span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -353,20 +355,20 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     </PopoverContent>
                   </Popover>
                   {validation.tanggal && (
-                    <p className="text-xs text-red-500">{validation.tanggal}</p>
+                    <p className="text-xs text-red-500 text-overflow-safe">{validation.tanggal}</p>
                   )}
                 </div>
               </div>
 
               {/* Keterangan */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Keterangan</Label>
+                <Label className="text-sm font-medium text-gray-700 text-overflow-safe">Keterangan</Label>
                 <Textarea
                   value={formData.keterangan}
                   onChange={(e) => updateFormField('keterangan', e.target.value)}
                   placeholder="Catatan tambahan tentang pembelian ini (opsional)"
                   rows={3}
-                  className="border-gray-200 focus:border-orange-500 focus:ring-orange-500/20 resize-none"
+                  className="border-gray-200 focus:border-orange-500 focus:ring-orange-500/20 resize-none input-mobile-safe"
                   disabled={isSubmitting || isViewOnly}
                 />
               </div>
@@ -503,16 +505,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           {/* Footer Actions */}
           {mode !== 'view' && canEdit && (
             <DialogFooter className="dialog-footer">
-              <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <div className="dialog-responsive-buttons">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleResetForm}
                   disabled={isSubmitting || !isDirty}
-                  className="w-full sm:w-auto h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50 input-mobile-safe"
                 >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset
+                  <RotateCcw className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span className="text-overflow-safe">Reset</span>
                 </Button>
 
                 <Button
@@ -520,10 +522,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   onClick={() => onSubmit()}
                   disabled={isSubmitting || !isDirty}
                   variant="outline"
-                  className="w-full sm:w-auto h-11"
+                  className="input-mobile-safe"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}
+                  <Save className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span className="text-overflow-safe">{mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}</span>
                 </Button>
 
                 {purchase?.status !== 'completed' && (
@@ -531,17 +533,17 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     type="button"
                     onClick={() => onSubmit('completed')}
                     disabled={isSubmitting || !isDirty}
-                    className="w-full sm:w-auto h-11 bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
+                    className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500 input-mobile-safe"
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                        Menyimpan...
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent flex-shrink-0"></div>
+                        <span className="text-overflow-safe">Menyimpan...</span>
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Selesaikan & Update Gudang
+                        <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span className="text-overflow-safe">Selesaikan & Update Gudang</span>
                       </>
                     )}
                   </Button>

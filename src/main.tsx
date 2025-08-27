@@ -7,6 +7,7 @@ import App from "./App.tsx";
 import "./index.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
+import { pwaManager } from '@/utils/pwaUtils'
 
 // Vite inject via define() (lihat vite.config.ts)
 declare const __DEV__: boolean;
@@ -203,6 +204,19 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
     reason: event.reason,
   });
 });
+
+// ------------------------------
+// PWA initialization
+// ------------------------------
+if (import.meta.env.PROD) {
+  pwaManager.registerServiceWorker().then((registration) => {
+    if (registration) {
+      logger.info('PWA: Service worker registered successfully');
+    }
+  }).catch((error) => {
+    logger.error('PWA: Service worker registration failed:', error);
+  });
+}
 
 logger.success("React application initialized successfully", {
   initTime: appInitTime,

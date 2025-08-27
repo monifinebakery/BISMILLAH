@@ -14,6 +14,9 @@ import {
   BulkActions 
 } from './components';
 
+// ✅ TAMBAH: Import VirtualWarehouseTable untuk data besar
+import VirtualWarehouseTable from './components/VirtualWarehouseTable';
+
 // CONSOLIDATED HOOK IMPORTS
 import { useWarehouseCore } from './hooks/useWarehouseCore';
 import { useWarehouseContext } from './context/WarehouseContext';
@@ -602,28 +605,58 @@ const WarehousePageContent: React.FC = () => {
             activeFiltersCount={core.filters?.activeCount || 0}
           />
 
-          <WarehouseTable
-            items={core.pagination?.currentItems || []}
-            isLoading={context.loading}
-            isSelectionMode={core.selection?.isSelectionMode || false}
-            searchTerm={core.filters?.searchTerm || ''}
-            sortConfig={core.filters?.sortConfig}
-            onSort={core.handlers?.sort}
-            onEdit={core.handlers?.edit}
-            onDelete={enhancedHandlers.delete}
-            emptyStateAction={() => navigate('/pembelian')}
-            onRefresh={async () => {
-              await warehouseData.refetch();
-            }}
-            lastUpdated={warehouseData.lastUpdated}
-            // ✅ ADDED: Pass selection state from core
-            selectedItems={core.selection?.selectedItems || []}
-            onToggleSelection={core.selection?.toggle}
-            onSelectPage={core.selection?.selectPage}
-            isSelected={core.selection?.isSelected}
-            isPageSelected={core.selection?.isPageSelected}
-            isPagePartiallySelected={core.selection?.isPagePartiallySelected}
-          />
+          {/* ✅ ENHANCED: Conditional rendering berdasarkan jumlah data */}
+          {(core.pagination?.currentItems || []).length > 100 ? (
+            <VirtualWarehouseTable
+              items={core.pagination?.currentItems || []}
+              isLoading={context.loading}
+              isSelectionMode={core.selection?.isSelectionMode || false}
+              searchTerm={core.filters?.searchTerm || ''}
+              sortConfig={core.filters?.sortConfig}
+              onSort={core.handlers?.sort}
+              onEdit={core.handlers?.edit}
+              onDelete={enhancedHandlers.delete}
+              emptyStateAction={() => navigate('/pembelian')}
+              onRefresh={async () => {
+                await warehouseData.refetch();
+              }}
+              lastUpdated={warehouseData.lastUpdated}
+              // Selection props
+              selectedItems={core.selection?.selectedItems || []}
+              onToggleSelection={core.selection?.toggle}
+              onSelectPage={core.selection?.selectPage}
+              isSelected={core.selection?.isSelected}
+              isPageSelected={core.selection?.isPageSelected}
+              isPagePartiallySelected={core.selection?.isPagePartiallySelected}
+              // Virtual scrolling props
+              containerHeight={600}
+              itemHeight={80}
+              enableVirtualScrolling={true}
+            />
+          ) : (
+            <WarehouseTable
+              items={core.pagination?.currentItems || []}
+              isLoading={context.loading}
+              isSelectionMode={core.selection?.isSelectionMode || false}
+              searchTerm={core.filters?.searchTerm || ''}
+              sortConfig={core.filters?.sortConfig}
+              onSort={core.handlers?.sort}
+              onEdit={core.handlers?.edit}
+              onDelete={enhancedHandlers.delete}
+              emptyStateAction={() => navigate('/pembelian')}
+              onRefresh={async () => {
+                await warehouseData.refetch();
+              }}
+              lastUpdated={warehouseData.lastUpdated}
+              // Selection props
+              selectedItems={core.selection?.selectedItems || []}
+              onToggleSelection={core.selection?.toggle}
+              onSelectPage={core.selection?.selectPage}
+              isSelected={core.selection?.isSelected}
+              isPageSelected={core.selection?.isPageSelected}
+              isPagePartiallySelected={core.selection?.isPagePartiallySelected}
+            />
+          )}
 
           {/* Kontrol Paginasi */}
           <div className="p-4 border-t border-gray-200 bg-gray-50">

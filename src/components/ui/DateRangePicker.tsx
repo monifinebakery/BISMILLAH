@@ -39,7 +39,7 @@ interface DateRangePickerProps {
   isMobile?: boolean;
 }
 
-// quick presets
+// 🔖 quick presets
 const PRESETS = [
   { label: "Hari Ini", key: "today" },
   { label: "7 Hari", key: "week" },
@@ -80,19 +80,6 @@ const formatRange = (range?: DateRange) => {
   return from === to ? from : `${from} - ${to}`;
 };
 
-// ✅ hook untuk deteksi desktop
-const useIsDesktop = () => {
-  const [isDesktop, setIsDesktop] = React.useState(false);
-  React.useEffect(() => {
-    const mql = window.matchMedia("(min-width: 1024px)");
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    setIsDesktop(mql.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
-  return isDesktop;
-};
-
 const DateRangePicker: React.FC<DateRangePickerProps> = ({
   dateRange,
   onDateRangeChange = () => {},
@@ -103,8 +90,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   isMobile = false,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const isDesktop = useIsDesktop();
 
+  // 🗓 update calendar range
   const handleCalendarChange = React.useCallback(
     (newRange: any) => {
       if (!onDateRangeChange) return;
@@ -231,13 +218,14 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       <PopoverTrigger asChild>
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
+
       <PopoverContent
         side="bottom"
         align="start"
         sideOffset={8}
         avoidCollisions
         collisionPadding={16}
-        className="p-0 w-[min(92vw,720px)] min-w-[360px] max-h-[90vh] overflow-hidden"
+        className="p-0 w-[min(92vw,720px)] min-w-[360px] max-h-[90vh] overflow-hidden z-[80]"
       >
         <div className="flex flex-col lg:flex-row bg-white border rounded-lg shadow-lg overflow-hidden w-full">
           {/* sidebar preset */}
@@ -248,16 +236,27 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           {/* kalender + tombol */}
           <div className="p-3 md:p-4 bg-white overflow-hidden flex-1">
             <div className="max-w-full overflow-x-auto">
+              {/* 📱 Mobile / <lg : 1 bulan */}
               <Calendar
                 mode="range"
                 selected={calendarRange}
                 onSelect={handleCalendarChange}
-                numberOfMonths={isDesktop ? 2 : 1} // ✅ desktop pasti 2 bulan
+                numberOfMonths={1}
                 locale={id}
-                className="mx-auto"
+                className="mx-auto lg:hidden"
+              />
+              {/* 💻 Desktop / ≥lg : 2 bulan */}
+              <Calendar
+                mode="range"
+                selected={calendarRange}
+                onSelect={handleCalendarChange}
+                numberOfMonths={2}
+                locale={id}
+                className="mx-auto hidden lg:block"
               />
             </div>
 
+            {/* actions */}
             <div className="flex gap-2 md:gap-3 mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200">
               <Button
                 variant="outline"

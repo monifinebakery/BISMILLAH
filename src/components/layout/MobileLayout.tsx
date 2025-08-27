@@ -3,6 +3,7 @@ import React from 'react';
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import NotificationBell from "@/components/NotificationBell";
+import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
 import { AppError } from "@/components/loaders";
@@ -28,6 +29,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
           <h1 className="text-lg font-bold text-primary">HPP App</h1>
         </div>
         <div className="flex items-center space-x-2">
+          <PWAInstallButton className="" showNetworkStatus={false} />
           {isPaid && <PaymentStatusIndicator />}
           <NotificationBell />
           <MobileExportButton />
@@ -38,7 +40,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 
       {/* ✅ Main Content */}
       <main className="flex-1 overflow-auto pb-16 p-2 sm:p-4">
-        <ErrorBoundary fallback={() => <AppError />}>
+        <ErrorBoundary fallback={<AppError />}>
           {children}
         </ErrorBoundary>
       </main>

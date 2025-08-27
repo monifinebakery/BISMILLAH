@@ -144,66 +144,72 @@ const FinancialTransactionList = ({
       </div>
 
       <Dialog open={!!editingTransaction} onOpenChange={() => setEditingTransaction(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Edit Transaksi</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>Tipe Transaksi</Label>
-              <Select value={formData.type} onValueChange={(value: FinancialTransactionType) => handleChange('type', value)}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income">Pemasukan</SelectItem>
-                  <SelectItem value="expense">Pengeluaran</SelectItem>
-                </SelectContent>
-              </Select>
+        <DialogContent centerMode="overlay" className="dialog-overlay-center">
+          <div className="dialog-panel">
+            <DialogHeader className="dialog-header-pad">
+              <DialogTitle>Edit Transaksi</DialogTitle>
+            </DialogHeader>
+            <div className="dialog-body">
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>Tipe Transaksi</Label>
+                  <Select value={formData.type} onValueChange={(value: FinancialTransactionType) => handleChange('type', value)}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="income">Pemasukan</SelectItem>
+                      <SelectItem value="expense">Pengeluaran</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Kategori</Label>
+                  <Select value={formData.category || ''} onValueChange={(value) => handleChange('category', value)}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
+                    <SelectContent>
+                      {(formData.type === 'income' ? categories.income : categories.expense).map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Jumlah</Label>
+                  <Input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={(e) => handleChange('amount', parseFloat(e.target.value) || 0)}
+                    className="mt-1"
+                    placeholder="Masukkan jumlah"
+                  />
+                </div>
+                <div>
+                  <Label>Deskripsi</Label>
+                  <Input
+                    type="text"
+                    name="description"
+                    value={formData.description || ''}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    className="mt-1"
+                    placeholder="Masukkan deskripsi"
+                  />
+                </div>
+                <div>
+                  <Label>Tanggal</Label>
+                  <Input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={(e) => handleChange('date', e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label>Kategori</Label>
-              <Select value={formData.category || ''} onValueChange={(value) => handleChange('category', value)}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
-                <SelectContent>
-                  {(formData.type === 'income' ? categories.income : categories.expense).map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Jumlah</Label>
-              <Input 
-                type="number" 
-                name="amount" 
-                value={formData.amount} 
-                onChange={(e) => handleChange('amount', parseFloat(e.target.value) || 0)} 
-                className="mt-1" 
-                placeholder="Masukkan jumlah" 
-              />
-            </div>
-            <div>
-              <Label>Deskripsi</Label>
-              <Input 
-                type="text" 
-                name="description" 
-                value={formData.description || ''} 
-                onChange={(e) => handleChange('description', e.target.value)} 
-                className="mt-1" 
-                placeholder="Masukkan deskripsi" 
-              />
-            </div>
-            <div>
-              <Label>Tanggal</Label>
-              <Input 
-                type="date" 
-                name="date" 
-                value={formData.date} 
-                onChange={(e) => handleChange('date', e.target.value)} 
-                className="mt-1" 
-              />
-            </div>
-          </div>
-          <div className="mt-6 flex justify-end space-x-4">
-            <Button onClick={() => setEditingTransaction(null)} variant="outline">Batal</Button>
-            <Button onClick={handleSave}>Simpan</Button>
+            <DialogFooter className="dialog-footer-pad">
+              <Button onClick={() => setEditingTransaction(null)} variant="outline">Batal</Button>
+              <Button onClick={handleSave}>Simpan</Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

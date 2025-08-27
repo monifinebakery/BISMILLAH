@@ -20,7 +20,9 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  BellRing
+  BellRing,
+  Smartphone,
+  Download
 } from 'lucide-react';
 
 // ✅ UPDATED: Import from correct path
@@ -29,6 +31,10 @@ import NotificationSettingsForm from '@/components/NotificationSettingsForm';
 // ✅ NEW: Import device management section
 import DeviceManagementSection from '@/components/settings/DeviceManagementSection';
 
+// ✅ NEW: Import PWA components
+import PWAInstallButton from '@/components/pwa/PWAInstallButton';
+import { usePWA } from '@/utils/pwaUtils';
+
 // ✅ NEW: Import notification triggers for demo
 import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 import { getDeviceType, getBrowserInfo } from '@/utils';
@@ -36,6 +42,7 @@ import { getDeviceType, getBrowserInfo } from '@/utils';
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
   const { triggerCustomNotification } = useNotificationTriggers();
+  const { canInstall, isInstalled, isOnline } = usePWA();
 
   const [formState, setFormState] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -311,6 +318,76 @@ const SettingsPage = () => {
 
           {/* Device Management Section */}
           <DeviceManagementSection />
+
+          {/* PWA INSTALL SECTION */}
+          <Card className="border-0 overflow-hidden">
+            <CardHeader className="bg-gray-50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-100 p-2 rounded-lg">
+                  <Smartphone className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Aplikasi Mobile</CardTitle>
+                  <CardDescription>
+                    Install aplikasi ke perangkat untuk akses yang lebih cepat
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white rounded-lg">
+                      <Download className="h-5 w-5 text-gray-700" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Status Instalasi</h4>
+                      <p className="text-sm text-gray-600">
+                        {isInstalled ? 'Aplikasi sudah terinstall' : 'Aplikasi belum terinstall'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isInstalled ? (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <CheckCircle className="h-5 w-5" />
+                        <span className="font-medium">Terinstall</span>
+                      </div>
+                    ) : (
+                      <PWAInstallButton className="" showNetworkStatus={false} />
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <h5 className="font-semibold text-blue-900 mb-1">📱 Akses Cepat</h5>
+                    <p className="text-blue-700">Buka aplikasi langsung dari home screen</p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <h5 className="font-semibold text-green-900 mb-1">⚡ Performa</h5>
+                    <p className="text-green-700">Loading lebih cepat dan responsif</p>
+                  </div>
+                  <div className="p-3 bg-purple-50 rounded-lg">
+                    <h5 className="font-semibold text-purple-900 mb-1">📴 Offline</h5>
+                    <p className="text-purple-700">Bekerja tanpa koneksi internet</p>
+                  </div>
+                </div>
+
+                {!isInstalled && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <h5 className="font-semibold text-amber-900 mb-2">💡 Cara Install:</h5>
+                    <ul className="text-sm text-amber-800 space-y-1">
+                      <li>• <strong>Chrome Android:</strong> Tap tombol "Install App" di atas</li>
+                      <li>• <strong>Safari iOS:</strong> Tap Share → "Add to Home Screen"</li>
+                      <li>• <strong>Desktop:</strong> Lihat ikon install di address bar browser</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Version Info */}
           <Card className="border-0">

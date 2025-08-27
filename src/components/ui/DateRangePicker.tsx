@@ -174,34 +174,32 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <DialogTrigger asChild>
           <Button {...buttonProps}>{content}</Button>
         </DialogTrigger>
-        <DialogContent centerMode="overlay" size="md">
-          <div className="dialog-panel dialog-panel-md-plus dialog-no-overflow">
-            <DialogHeader className="dialog-header">
-              <DialogTitle className="text-overflow-safe">Pilih Rentang Tanggal</DialogTitle>
-              <DialogDescription className="text-overflow-safe">
-                Pilih rentang tanggal untuk memfilter data.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="dialog-body">
-              <div className="space-y-3">
-                <PresetButtons />
-                <div className="p-3 dialog-no-overflow">
-                  <Calendar
-                    mode="range"
-                    selected={calendarRange}
-                    onSelect={handleCalendarChange}
-                    numberOfMonths={1}
-                    locale={id}
-                    className="mx-auto"
-                  />
-                  <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
-                    <Button variant="outline" onClick={handleReset} className="input-mobile-safe">
-                      <span className="text-overflow-safe">Reset</span>
-                    </Button>
-                    <Button onClick={() => setIsOpen(false)} className="input-mobile-safe">
-                      <span className="text-overflow-safe">Terapkan</span>
-                    </Button>
-                  </div>
+        <DialogContent centerMode="overlay" size="md" className="dialog-no-overflow">
+          <DialogHeader className="dialog-header">
+            <DialogTitle className="text-overflow-safe">Pilih Rentang Tanggal</DialogTitle>
+            <DialogDescription className="text-overflow-safe">
+              Pilih rentang tanggal untuk memfilter data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="dialog-body">
+            <div className="space-y-3">
+              <PresetButtons />
+              <div className="p-3 dialog-no-overflow">
+                <Calendar
+                  mode="range"
+                  selected={calendarRange}
+                  onSelect={handleCalendarChange}
+                  numberOfMonths={1}
+                  locale={id}
+                  className="mx-auto"
+                />
+                <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
+                  <Button variant="outline" onClick={handleReset} className="input-mobile-safe">
+                    <span className="text-overflow-safe">Reset</span>
+                  </Button>
+                  <Button onClick={() => setIsOpen(false)} className="input-mobile-safe">
+                    <span className="text-overflow-safe">Terapkan</span>
+                  </Button>
                 </div>
               </div>
             </div>

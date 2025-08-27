@@ -59,9 +59,13 @@ const useNotificationsQuery = (userId?: string) => {
     queryKey: notificationQueryKeys.list(userId),
     queryFn: () => getNotifications(userId!),
     enabled: !!userId,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    staleTime: 2 * 60 * 1000, // 2 minutes - IMPROVED: Match other contexts
+    gcTime: 10 * 60 * 1000, // 10 minutes - IMPROVED: Extended cache time
+    retry: (failureCount, error: any) => {
+      if (error?.status >= 400 && error?.status < 500) return false;
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: false, // IMPROVED: Prevent unnecessary refetches
   });
 };
 

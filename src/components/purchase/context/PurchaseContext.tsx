@@ -302,17 +302,20 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryKey: purchaseQueryKeys.list(user?.id),
     queryFn: () => fetchPurchases(user!.id),
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // ✅ OPTIMIZED: 2 minute cache for better performance
+    staleTime: 2 * 60 * 1000, // 2 minute cache for better performance
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     retry: (count, err: any) => {
       const code = err?.code ?? err?.status;
-      return code && code >= 400 && code < 500 ? false : count < 3;
+      // Don't retry client errors (4xx)
+      if (code >= 400 && code < 500) return false;
+      // Retry server errors up to 2 times
+      return count < 2;
     },
-    retryDelay: (i) => Math.min(1000 * 2 ** i, 30000),
-    // ✅ FIXED: Remove placeholderData to prevent empty array display
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: false, // Prevent excessive refetching
-    refetchOnReconnect: true, // Refetch when reconnecting
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // PERFORMANCE: Only refetch if data is stale
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   // ------------------- Optimistic helpers -------------------

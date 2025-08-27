@@ -31,7 +31,7 @@ interface EnhancedRecipeFormProps {
 
 const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFormProps) => {
   // Add defensive check for useBahanBaku
-  let bahanBaku: any[] = [];
+  let bahanBaku: Array<{ id: string; nama: string; satuan: string; hargaSatuan: number }> = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -69,7 +69,16 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     jumlah: 0,
   });
 
-  const [calculationResults, setCalculationResults] = useState<any>(null);
+  const [calculationResults, setCalculationResults] = useState<{
+    totalHPP: number;
+    hppPerPorsi: number;
+    hargaJualPorsi: number;
+    hppPerPcs: number;
+    hargaJualPerPcs: number;
+    totalBahanBaku: number;
+    biayaTenagaKerja: number;
+    biayaOverhead: number;
+  } | null>(null);
   const [isEnhancedHppActive, setIsEnhancedHppActive] = useState(false); // Track enhanced HPP state
   const [enhancedHppResult, setEnhancedHppResult] = useState<EnhancedHPPCalculationResult | null>(null);
 
@@ -185,7 +194,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     setIsEnhancedHppActive(isActive);
   }, []);
 
-  const handleInputChange = (field: keyof NewRecipe, value: any) => {
+  const handleInputChange = (field: keyof NewRecipe, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -279,7 +288,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   const refreshIngredientPrices = () => {
     let hasChanges = false;
     const updatedIngredients = formData.bahanResep.map(ingredient => {
-      const currentBahan = bahanBaku.find((b: any) => b.id === ingredient.id);
+      const currentBahan = bahanBaku.find(b => b.id === ingredient.id);
       if (currentBahan && currentBahan.hargaSatuan !== ingredient.hargaSatuan) {
         hasChanges = true;
         return {
@@ -500,11 +509,10 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {ingredient.nama}
-                            {true && ( // Always show for ingredients
-                              <Badge variant="secondary" className="text-xs">
-                                Inventory
-                              </Badge>
-                            )}
+                            {/* Always show inventory badge for ingredients */}
+                            <Badge variant="secondary" className="text-xs">
+                              Inventory
+                            </Badge>
                           </div>
                         </TableCell>
                         <TableCell>

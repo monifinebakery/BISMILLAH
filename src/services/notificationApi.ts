@@ -78,7 +78,12 @@ const transformForDB = (data: CreateNotificationData, userId: string): Partial<N
   action_url: data.action_url,
   is_read: data.is_read || false,
   is_archived: data.is_archived || false,
-  expires_at: data.expires_at
+  expires_at: data.expires_at,
+  metadata: {
+    source: 'local', // Mark as local to prevent duplicate toast
+    timestamp: Date.now(),
+    ...(data as any).metadata
+  }
 });
 
 // ===========================================

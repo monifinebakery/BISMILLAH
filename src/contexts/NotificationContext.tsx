@@ -28,6 +28,9 @@ import {
   updateNotificationSettings
 } from '@/services/notificationApi';
 
+// Cleanup utilities
+import { cleanupExpiredNotifications } from '@/utils/notificationCleanup';
+
 // Auth context
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -308,11 +311,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   // ===========================================
 
   const recentNotificationsRef = useRef<Map<string, number>>(new Map());
-  const DUPLICATE_THRESHOLD = 60 * 1000; // 1 minute
+  const DUPLICATE_THRESHOLD = 5 * 60 * 1000; // 5 minutes - Extended to reduce duplicates
 
   const generateNotificationKey = useCallback((data: CreateNotificationData): string => {
-    return [data.title, data.related_type || '', data.related_id || ''].join('|');
-  }, []);
+    // Enhanced key generation to prevent cross-context duplicates
+    return [
+      userId || 'anonymous',
+      data.title.toLowerCase().trim(),
+      data.related_type || '',
+      data.related_id || '',
+      data.message.substring(0, 50) // Include message snippet for better uniqueness
+    ].join('|');
+  }, [userId]);
 
   const cleanupExpiredNotifications = useCallback(() => {
     const now = Date.now();
@@ -327,6 +337,32 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const interval = setInterval(cleanupExpiredNotifications, DUPLICATE_THRESHOLD);
     return () => clearInterval(interval);
   }, [cleanupExpiredNotifications, DUPLICATE_THRESHOLD]);
+
+  // ✅ AUTO-CLEANUP: Clean expired notifications every hour
+  useEffect(() => {
+    if (!userId) return;
+
+    const autoCleanupExpired = async () => {
+      try {
+        const removed = await cleanupExpiredNotifications(userId);
+        if (removed > 0) {
+          logger.info(`🗑️ Auto-cleanup: removed ${removed} expired notifications`);
+          // Refresh notification list if any were removed
+          queryClient.invalidateQueries({ queryKey: notificationQueryKeys.list(userId) });
+        }
+      } catch (error) {
+        logger.warn('Auto-cleanup expired notifications failed:', error);
+      }
+    };
+
+    // Run immediately on mount
+    autoCleanupExpired();
+
+    // Then run every hour
+    const cleanupInterval = setInterval(autoCleanupExpired, 60 * 60 * 1000); // 1 hour
+
+    return () => clearInterval(cleanupInterval);
+  }, [userId, queryClient]);
 
   // ===========================================
   // ✅ COMPUTED VALUES
@@ -373,10 +409,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         logger.debug('Notification real-time event:', payload.eventType);
         requestInvalidate();
 
-        // Show toast for new notifications
+        // Show toast for new notifications (but not for local actions to prevent duplicates)
         if (payload.eventType === 'INSERT' && payload.new) {
           const newNotification = payload.new as any;
-          if (settings?.push_notifications !== false) {
+          
+          // ✅ FIXED: Check if notification was created from current session to avoid duplicate toast
+          const isLocalAction = newNotification.metadata?.source === 'local' ||
+                               recentNotificationsRef.current.has(generateNotificationKey(newNotification));
+          
+          if (!isLocalAction && settings?.push_notifications !== false) {
             toast.info(newNotification.title, {
               description: newNotification.message,
               duration: newNotification.priority >= 4 ? 8000 : 4000

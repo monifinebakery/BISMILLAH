@@ -290,16 +290,6 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
   // ✅ Handler functions
   const handleNoOp = useCallback(() => {}, []);
 
-  // ✅ Early return for empty state
-  if (!paginationData.hasData && !searchQuery && statusFilter === 'all') {
-    return (
-      <EmptyState
-        onAddPurchase={() => {/* Will be handled by parent */}}
-        hasSuppliers={true}
-      />
-    );
-  }
-
   // ✅ Bulk delete confirmation handler
   const handleBulkDeleteConfirm = useCallback(async () => {
     try {
@@ -316,8 +306,8 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
     }
   }, [handleBulkDelete, setBulkDeleteLoading, resetBulkDelete]);
 
-  // ✅ Bulk edit confirmation handler
-  const handleBulkEditConfirm = useCallback(async (bulkEditData: any) => {
+  // ✅ Bulk edit confirmation handler  
+  const handleBulkEditConfirm = useCallback(async (bulkEditData: unknown) => {
     try {
       const selectedItemsData = filteredPurchases.filter(p => selectedItems.includes(p.id));
       const success = await handleBulkEdit(selectedItemsData);
@@ -329,6 +319,16 @@ const PurchaseTable: React.FC<PurchaseTablePropsExtended> = ({
       logger.error('Bulk edit failed:', error);
     }
   }, [handleBulkEdit, selectedItems, filteredPurchases, resetBulkEditData]);
+
+  // ✅ Early return for empty state (after all hooks)
+  if (!paginationData.hasData && !searchQuery && statusFilter === 'all') {
+    return (
+      <EmptyState
+        onAddPurchase={() => {/* Will be handled by parent */}}
+        hasSuppliers={true}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">

@@ -27,7 +27,7 @@ const MobileExportButton = () => {
   const { settings } = useUserSettings();
   
   // Add defensive check for useBahanBaku
-  let bahanBaku: any[] = [];
+  let bahanBaku: Array<{ id: string; nama: string; jumlah: number; satuan: string; hargaSatuan: number }> = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];

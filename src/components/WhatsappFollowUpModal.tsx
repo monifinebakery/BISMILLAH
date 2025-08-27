@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -105,12 +105,13 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white rounded-lg border">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-gray-800">Kirim Follow-up WhatsApp</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="dialog-overlay-center">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle>Kirim Follow-up WhatsApp</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 mt-2 p-1">
+          <div className="dialog-body space-y-4 py-4">
           {/* Order Details Section */}
           <div className="space-y-1 border-b pb-4">
             <div className="flex justify-between text-sm">
@@ -149,21 +150,20 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
             </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-2">
+          </div>
+          
+          <DialogFooter className="dialog-footer-pad pt-4">
             <Button variant="outline" onClick={onClose}>
               Batal
             </Button>
             <Button
               onClick={handleSendWhatsapp}
               className="bg-green-600 hover:bg-green-700 text-white"
-              // --- STEP 3: Update the disabled logic ---
-              // The button is now disabled only if the processed number is invalid or the message is empty.
               disabled={!processedPhoneNumber || message.trim() === ''}
             >
               Follow-up Sekarang
             </Button>
-          </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

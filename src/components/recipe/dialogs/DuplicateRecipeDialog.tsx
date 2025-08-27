@@ -81,7 +81,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-lg">
+        <div className="dialog-panel w-full max-w-lg max-h-[90vh]">
           <DialogHeader className="dialog-header-pad border-b border-gray-200 bg-blue-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">

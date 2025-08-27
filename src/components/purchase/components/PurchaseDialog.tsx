@@ -261,7 +261,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
       <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel">
+        <div className="dialog-panel max-w-4xl max-h-[90vh]">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-3">
               <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">

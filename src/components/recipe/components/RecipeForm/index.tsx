@@ -408,7 +408,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel max-w-4xl">
+        <div className="dialog-panel max-w-4xl max-h-[90vh]">
           <DialogHeader className="dialog-header-pad border-b bg-gradient-to-r from-orange-50 to-red-50">
             <div className="flex items-center justify-between">
               <div>

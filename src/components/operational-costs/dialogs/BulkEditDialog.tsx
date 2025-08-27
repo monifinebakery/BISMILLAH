@@ -58,7 +58,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel w-full max-w-md">
+        <div className="dialog-panel w-full max-w-md max-h-[90vh]">
           <DialogHeader className="dialog-header-pad">
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5 text-blue-600" />

@@ -163,29 +163,33 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <DialogTrigger asChild>
           <Button {...buttonProps}>{content}</Button>
         </DialogTrigger>
-        <DialogContent className="w-[95vw] max-w-md p-0">
-          <DialogHeader className="px-4 py-3 border-b">
-            <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
-            <DialogDescription>
-              Pilih rentang tanggal untuk memfilter data.
-            </DialogDescription>
-          </DialogHeader>
-          <PresetButtons />
-          <div className="p-4">
-            <Calendar
-              mode="range"
-              selected={calendarRange}
-              onSelect={handleCalendarChange}
-              numberOfMonths={1}
-              locale={id}
-            />
-            <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-              <Button variant="outline" size="sm" onClick={handleReset}>
-                Reset
-              </Button>
-              <Button size="sm" onClick={() => setIsOpen(false)}>
-                Terapkan
-              </Button>
+        <DialogContent className="dialog-overlay-center">
+          <div className="dialog-panel">
+            <DialogHeader className="dialog-header-pad">
+              <DialogTitle>Pilih Rentang Tanggal</DialogTitle>
+              <DialogDescription>
+                Pilih rentang tanggal untuk memfilter data.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="dialog-body py-4">
+              <PresetButtons />
+              <div className="p-4">
+                <Calendar
+                  mode="range"
+                  selected={calendarRange}
+                  onSelect={handleCalendarChange}
+                  numberOfMonths={1}
+                  locale={id}
+                />
+                <div className="flex justify-between items-center mt-4 pt-4 border-t">
+                  <Button variant="outline" size="sm" onClick={handleReset}>
+                    Reset
+                  </Button>
+                  <Button size="sm" onClick={() => setIsOpen(false)}>
+                    Terapkan
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </DialogContent>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Plus, Calendar, AlertTriangle, CheckCircle, Clock, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -194,11 +194,13 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
                 Tambah
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Tambah Hutang/Piutang Baru</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <DialogContent className="dialog-overlay-center">
+              <div className="dialog-panel">
+                <DialogHeader className="dialog-header-pad">
+                  <DialogTitle>Tambah Hutang/Piutang Baru</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit}>
+                  <div className="dialog-body space-y-4 py-4">
                 <div>
                   <Label htmlFor="type">Jenis</Label>
                   <Select value={formData.type} onValueChange={(value: 'hutang' | 'piutang') => setFormData({...formData, type: value})}>
@@ -255,13 +257,16 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
                     onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
                     required
                   />
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                  <Button type="submit" className="flex-1">Simpan</Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-                </div>
-              </form>
+                  </div>
+                  
+                  </div>
+                  
+                  <DialogFooter className="dialog-footer-pad pt-4">
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
+                    <Button type="submit">Simpan</Button>
+                  </DialogFooter>
+                </form>
+              </div>
             </DialogContent>
           </Dialog>
         </div>

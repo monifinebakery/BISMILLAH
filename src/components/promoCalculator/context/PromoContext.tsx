@@ -189,14 +189,19 @@ export const PromoProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     queryKey: promoQueryKeys.list(user?.id),
     queryFn: () => fetchPromos(user!.id),
     enabled: !!user?.id,
-    staleTime: 3 * 60 * 1000, // 3 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - IMPROVED: Extended for better caching
+    gcTime: 10 * 60 * 1000, // 10 minutes - IMPROVED: Added garbage collection time
     retry: (failureCount, error: any) => {
+      // Don't retry client errors (4xx)
       if (error?.status >= 400 && error?.status < 500) {
         return false;
       }
-      return failureCount < 3;
+      // Limit retries to 2 for better performance
+      return failureCount < 2;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false, // PERFORMANCE: Prevent unnecessary refetches
+    refetchOnReconnect: true, // Maintain data consistency on reconnect
   });
 
   // ✅ Mutations for CRUD operations

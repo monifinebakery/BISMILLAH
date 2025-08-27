@@ -1,14 +1,12 @@
 // src/components/profitAnalysis/components/sections/DashboardHeaderSection.tsx
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RotateCw, CheckCircle, AlertTriangle, Target, BarChart3, Info } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
 import { useIsMobile } from '@/hooks/use-mobile';
-
-// Lazy load DateRangePicker
-const DateRangePicker = lazy(() => import('@/components/ui/DateRangePicker'));
+import DateRangePicker from '@/components/ui/DateRangePicker';
 
 // ==============================================
 // TYPES
@@ -69,27 +67,23 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
   const renderControls = () => (
     <>
       <div className="flex items-center gap-2">
-        <Suspense fallback={
-          <div className="w-full md:w-64 h-11 bg-white bg-opacity-20 rounded-lg animate-pulse" />
-        }>
-          <DateRangePicker
-            dateRange={dateRangeForPicker}
-            onDateRangeChange={onDateRangeChange}
-            placeholder="Pilih periode laporan"
-            isMobile={isMobile}
-            className="bg-white text-gray-900 border-none hover:bg-gray-100 min-w-[200px] md:min-w-[260px]"
-          />
-        </Suspense>
+        <DateRangePicker
+          dateRange={dateRangeForPicker}
+          onDateRangeChange={onDateRangeChange}
+          placeholder="Pilih periode laporan"
+          isMobile={isMobile}
+          className="bg-white text-gray-900 border-none hover:bg-gray-100 min-w-[200px] md:min-w-[260px]"
+        />
       </div>
 
-        <Button
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm w-full md:w-auto justify-center"
-        >
-          <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+      <Button
+        onClick={onRefresh}
+        disabled={isLoading}
+        className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm w-full md:w-auto justify-center"
+      >
+        <RotateCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+        Refresh
+      </Button>
     </>
   );
 

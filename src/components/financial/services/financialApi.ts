@@ -44,7 +44,7 @@ const transformForDB = (
     amount: transaction.amount,
     description: transaction.description || null,
     related_id: transaction.relatedId || null,
-    date: transaction.date ? UnifiedDateHandler.toDatabaseTimestamp(transaction.date) : null,
+    date: transaction.date ? UnifiedDateHandler.toDatabaseString(transaction.date) : null,
   };
 
   if (userId) {
@@ -102,7 +102,7 @@ export const getFinancialTransactions = async (userId: string): Promise<Financia
   try {
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('*')
+      .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
       .eq('user_id', userId)
       .order('date', { ascending: false });
 
@@ -135,7 +135,7 @@ export const getFinancialTransactionsPaginated = async (
     // Query untuk mendapatkan data dengan pagination
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('*')
+      .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -261,7 +261,7 @@ export const getTransactionsByDateRange = async (
     
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('*')
+      .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
       .eq('user_id', userId)
       .gte('date', startYMD)
       .lte('date', endYMD)
@@ -290,7 +290,7 @@ export const getFinancialTransactionById = async (
   try {
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('*')
+      .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
       .eq('id', id)
       .eq('user_id', userId)
       .single();

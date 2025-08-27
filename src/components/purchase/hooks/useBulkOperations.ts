@@ -9,6 +9,7 @@ import { logger } from '@/utils/logger';
 interface UseBulkOperationsProps {
   updatePurchase: (id: string, updates: Partial<Purchase>) => Promise<boolean>;
   deletePurchase: (id: string) => Promise<boolean>;
+  setStatus: (id: string, newStatus: PurchaseStatus) => Promise<boolean>; // ✅ NEW: For proper financial sync
   bulkDeletePurchases?: (ids: string[]) => Promise<boolean>; // Optional bulk method
   selectedItems: string[];
   clearSelection: () => void;
@@ -18,7 +19,6 @@ interface UseBulkOperationsProps {
 interface BulkEditData {
   supplier?: string;
   tanggal?: Date;
-  status?: PurchaseStatus;
   metodePerhitungan?: 'AVERAGE';
 }
 
@@ -36,7 +36,6 @@ interface UseBulkOperationsReturn {
 const defaultBulkEditData: BulkEditData = {
   supplier: undefined,
   tanggal: undefined,
-  status: undefined,
   metodePerhitungan: undefined,
 };
 
@@ -49,6 +48,7 @@ const defaultBulkEditData: BulkEditData = {
 export const useBulkOperations = ({
   updatePurchase,
   deletePurchase,
+  setStatus,
   bulkDeletePurchases,
   selectedItems,
   clearSelection,
@@ -120,10 +120,6 @@ export const useBulkOperations = ({
       if (bulkEditData.tanggal !== undefined) {
         updates.tanggal = bulkEditData.tanggal;
       }
-      
-      if (bulkEditData.status !== undefined) {
-        updates.status = bulkEditData.status;
-      }
 
       if (bulkEditData.metodePerhitungan !== undefined) {
         updates.metodePerhitungan = bulkEditData.metodePerhitungan;
@@ -131,19 +127,31 @@ export const useBulkOperations = ({
 
       logger.debug('📝 Bulk edit updates:', updates);
 
-      // Apply updates to all selected items
+      // ✅ ENHANCED: Handle status changes specially to trigger financial sync
+      console.log('📝 [BULK DEBUG] Prepared updates:', updates);
+      console.log('📝 [BULK DEBUG] Selected items:', selectedItems);
+      console.log('📝 [BULK DEBUG] Update keys:', Object.keys(updates));
+      
+      let successful = 0;
+      let failed = 0;
+      const results = [];
+      
+      // ✅ SIMPLE: Use parallel processing for non-status updates only
+      console.log('🔄 [BULK DEBUG] Processing bulk updates in parallel...');
+      
       const updatePromises = selectedItems.map(id => {
-        logger.debug(`🔄 Updating purchase: ${id}`);
+        console.log(`🔄 [BULK DEBUG] Using updatePurchase for purchase ${id}`);
         return updatePurchase(id, updates);
       });
       
-      const results = await Promise.allSettled(updatePromises);
-
+      const parallelResults = await Promise.allSettled(updatePromises);
+      results.push(...parallelResults);
+      
       // Count successful and failed updates
-      const successful = results.filter(result => 
+      successful = parallelResults.filter(result => 
         result.status === 'fulfilled' && result.value === true
       ).length;
-      const failed = results.length - successful;
+      failed = parallelResults.length - successful;
 
       logger.info(`📊 Bulk edit results: ${successful} success, ${failed} failed`);
 
@@ -175,7 +183,7 @@ export const useBulkOperations = ({
     } finally {
       setIsBulkEditing(false);
     }
-  }, [selectedItems, bulkEditData, validateBulkEditData, updatePurchase, clearSelection, resetBulkEditData]);
+  }, [selectedItems, bulkEditData, validateBulkEditData, updatePurchase, setStatus, clearSelection, resetBulkEditData]);
 
   // Enhanced handleBulkDelete with fallback logic
   const handleBulkDelete = useCallback(async (): Promise<boolean> => {

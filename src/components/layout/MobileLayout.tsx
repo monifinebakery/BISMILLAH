@@ -38,7 +38,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 
       {/* ✅ Main Content */}
       <main className="flex-1 overflow-auto pb-16 p-2 sm:p-4">
-        <ErrorBoundary fallback={() => <AppError />}>
+        <ErrorBoundary fallback={<AppError />}>
           {children}
         </ErrorBoundary>
       </main>

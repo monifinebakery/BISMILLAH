@@ -4,13 +4,28 @@ import { transformOrderFromDB, transformOrderToDB, toSafeISOString, validateOrde
 import { generateOrderNumber } from '@/utils/formatUtils'; // ✅ FIXED: Import order number generator
 import type { Order, NewOrder } from '../types';
 
-// Fetch all orders for a user
+// OPTIMIZED: Fetch orders dengan selective fields untuk performa
 export async function fetchOrders(userId: string): Promise<Order[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select('*')
+    .select(`
+      id,
+      nomor_pesanan,
+      tanggal,
+      nama_pelanggan,
+      telepon_pelanggan,
+      email_pelanggan,
+      alamat_pengiriman,
+      status,
+      total_pesanan,
+      catatan,
+      items,
+      created_at,
+      updated_at
+    `)
     .eq('user_id', userId)
-    .order('tanggal', { ascending: false });
+    .order('tanggal', { ascending: false })
+    .limit(100); // PERFORMANCE: Limit untuk mencegah query besar
 
   if (error) {
     logger.error('Error fetching orders:', error);
@@ -192,30 +207,69 @@ export async function deleteOrder(userId: string, id: string): Promise<void> {
   }
 }
 
-// Bulk status update
+// ULTRA OPTIMIZED: Bulk update dengan batching untuk performa maksimal
 export async function bulkUpdateStatus(userId: string, ids: string[], newStatus: string): Promise<void> {
-  const { error } = await supabase
-    .from('orders')
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
-    .in('id', ids)
-    .eq('user_id', userId);
-
-  if (error) {
-    logger.error('Error bulk updating status:', error);
-    throw error;
+  // PERFORMANCE: Batch processing untuk menghindari query terlalu besar
+  const BATCH_SIZE = 20;
+  const batches = [];
+  
+  for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+    batches.push(ids.slice(i, i + BATCH_SIZE));
   }
+  
+  // CONCURRENT: Process batches secara parallel dengan delay minimal
+  const promises = batches.map(async (batch, index) => {
+    // PERFORMANCE: Stagger requests untuk menghindari rate limiting
+    if (index > 0) {
+      await new Promise(resolve => setTimeout(resolve, 50 * index));
+    }
+    
+    const { error } = await supabase
+      .from('orders')
+      .update({ 
+        status: newStatus, 
+        updated_at: new Date().toISOString() 
+      })
+      .in('id', batch)
+      .eq('user_id', userId);
+
+    if (error) {
+      logger.error(`Error bulk updating batch ${index + 1}:`, error);
+      throw error;
+    }
+  });
+  
+  await Promise.all(promises);
 }
 
-// Bulk delete
+// ULTRA OPTIMIZED: Bulk delete dengan batching
 export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<void> {
-  const { error } = await supabase
-    .from('orders')
-    .delete()
-    .in('id', ids)
-    .eq('user_id', userId);
-
-  if (error) {
-    logger.error('Error bulk deleting orders:', error);
-    throw error;
+  // PERFORMANCE: Batch processing
+  const BATCH_SIZE = 25;
+  const batches = [];
+  
+  for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+    batches.push(ids.slice(i, i + BATCH_SIZE));
   }
+  
+  // CONCURRENT: Process batches secara parallel
+  const promises = batches.map(async (batch, index) => {
+    // PERFORMANCE: Stagger untuk stability
+    if (index > 0) {
+      await new Promise(resolve => setTimeout(resolve, 30 * index));
+    }
+    
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .in('id', batch)
+      .eq('user_id', userId);
+
+    if (error) {
+      logger.error(`Error bulk deleting batch ${index + 1}:`, error);
+      throw error;
+    }
+  });
+  
+  await Promise.all(promises);
 }

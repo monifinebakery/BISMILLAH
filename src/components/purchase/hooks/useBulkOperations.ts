@@ -19,7 +19,6 @@ interface UseBulkOperationsProps {
 interface BulkEditData {
   supplier?: string;
   tanggal?: Date;
-  status?: PurchaseStatus;
   metodePerhitungan?: 'AVERAGE';
 }
 
@@ -37,7 +36,6 @@ interface UseBulkOperationsReturn {
 const defaultBulkEditData: BulkEditData = {
   supplier: undefined,
   tanggal: undefined,
-  status: undefined,
   metodePerhitungan: undefined,
 };
 
@@ -122,10 +120,6 @@ export const useBulkOperations = ({
       if (bulkEditData.tanggal !== undefined) {
         updates.tanggal = bulkEditData.tanggal;
       }
-      
-      if (bulkEditData.status !== undefined) {
-        updates.status = bulkEditData.status;
-      }
 
       if (bulkEditData.metodePerhitungan !== undefined) {
         updates.metodePerhitungan = bulkEditData.metodePerhitungan;
@@ -142,117 +136,22 @@ export const useBulkOperations = ({
       let failed = 0;
       const results = [];
       
-      // ✅ ULTRA-FAST: Use full parallel for small operations, batched for large ones
-      if (updates.status && Object.keys(updates).length === 1) {
-        console.log('🔄 [BULK DEBUG] Processing status changes with optimized concurrency...');
-        
-        // Ultra-fast mode for small operations
-        if (selectedItems.length <= 8) {
-          console.log(`⚡ [BULK DEBUG] Ultra-fast mode: processing all ${selectedItems.length} items in parallel`);
-          
-          const allPromises = selectedItems.map(async (id) => {
-            try {
-              console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
-              const result = await setStatus(id, updates.status);
-              return { id, success: result, error: null };
-            } catch (error) {
-              console.error(`❌ [BULK DEBUG] Error updating status for purchase ${id}:`, error);
-              return { id, success: false, error };
-            }
-          });
-          
-          const allResults = await Promise.allSettled(allPromises);
-          
-          // Process all results
-          for (const result of allResults) {
-            if (result.status === 'fulfilled') {
-              const { id, success, error } = result.value;
-              if (success) {
-                successful++;
-                results.push({ status: 'fulfilled', value: true });
-                console.log(`✅ [BULK DEBUG] Successfully updated status for purchase ${id}`);
-              } else {
-                failed++;
-                results.push({ status: 'fulfilled', value: false });
-                console.log(`❌ [BULK DEBUG] Failed to update status for purchase ${id}:`, error);
-              }
-            } else {
-              failed++;
-              results.push({ status: 'rejected', reason: result.reason });
-            }
-          }
-        } else {
-          // Batched mode for larger operations
-          const batchSize = selectedItems.length <= 15 ? 6 :  // Medium: batch of 6
-                           Math.min(10, Math.ceil(selectedItems.length / 3)); // Large: batch of 10
-          
-          console.log(`📦 [BULK DEBUG] Batched mode: using batch size ${batchSize} for ${selectedItems.length} items`);
-          const batches = [];
-          for (let i = 0; i < selectedItems.length; i += batchSize) {
-            batches.push(selectedItems.slice(i, i + batchSize));
-          }
-          
-          for (const batch of batches) {
-            console.log(`📦 [BULK DEBUG] Processing batch of ${batch.length} purchases`);
-            
-            const batchPromises = batch.map(async (id) => {
-              try {
-                console.log(`📊 [BULK DEBUG] Using setStatus for purchase ${id} with status: ${updates.status}`);
-                const result = await setStatus(id, updates.status);
-                return { id, success: result, error: null };
-              } catch (error) {
-                console.error(`❌ [BULK DEBUG] Error updating status for purchase ${id}:`, error);
-                return { id, success: false, error };
-              }
-            });
-            
-            const batchResults = await Promise.allSettled(batchPromises);
-            
-            // Process batch results
-            for (const result of batchResults) {
-              if (result.status === 'fulfilled') {
-                const { id, success, error } = result.value;
-                if (success) {
-                  successful++;
-                  results.push({ status: 'fulfilled', value: true });
-                  console.log(`✅ [BULK DEBUG] Successfully updated status for purchase ${id}`);
-                } else {
-                  failed++;
-                  results.push({ status: 'fulfilled', value: false });
-                  console.log(`❌ [BULK DEBUG] Failed to update status for purchase ${id}:`, error);
-                }
-              } else {
-                failed++;
-                results.push({ status: 'rejected', reason: result.reason });
-              }
-            }
-            
-            // Very minimal delay between batches
-            if (batches.indexOf(batch) < batches.length - 1) {
-              const delay = selectedItems.length <= 15 ? 15 : // Medium: 15ms delay
-                           30; // Large: 30ms delay
-              await new Promise(resolve => setTimeout(resolve, delay));
-            }
-          }
-        }
-      } else {
-        // For mixed updates, use parallel processing with updatePurchase
-        console.log('🔄 [BULK DEBUG] Processing mixed updates in parallel...');
-        
-        const updatePromises = selectedItems.map(id => {
-          console.log(`🔄 [BULK DEBUG] Using updatePurchase for purchase ${id} (mixed updates)`);
-          return updatePurchase(id, updates);
-        });
-        
-        const parallelResults = await Promise.allSettled(updatePromises);
-        results.push(...parallelResults);
-        
-        // Count successful and failed updates
-        successful = parallelResults.filter(result => 
-          result.status === 'fulfilled' && result.value === true
-        ).length;
-        failed = parallelResults.length - successful;
-      }
+      // ✅ SIMPLE: Use parallel processing for non-status updates only
+      console.log('🔄 [BULK DEBUG] Processing bulk updates in parallel...');
+      
+      const updatePromises = selectedItems.map(id => {
+        console.log(`🔄 [BULK DEBUG] Using updatePurchase for purchase ${id}`);
+        return updatePurchase(id, updates);
+      });
+      
+      const parallelResults = await Promise.allSettled(updatePromises);
+      results.push(...parallelResults);
+      
+      // Count successful and failed updates
+      successful = parallelResults.filter(result => 
+        result.status === 'fulfilled' && result.value === true
+      ).length;
+      failed = parallelResults.length - successful;
 
       logger.info(`📊 Bulk edit results: ${successful} success, ${failed} failed`);
 

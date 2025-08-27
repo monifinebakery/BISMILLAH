@@ -82,66 +82,17 @@ export default defineConfig(({ mode }) => {
       sourcemap: !isProd,
       // Performance optimizations
       chunkSizeWarningLimit: 800, // PERFORMANCE: Reduced untuk monitoring bundle size
-      // ULTRA PERFORMANCE: Tree shaking optimization
+      // DISABLED: Tree shaking may be too aggressive
       rollupOptions: {
-        treeshake: {
-          moduleSideEffects: false,
-          propertyReadSideEffects: false,
-          tryCatchDeoptimization: false
-        },
+        // treeshake: {
+        //   moduleSideEffects: false,
+        //   propertyReadSideEffects: false,
+        //   tryCatchDeoptimization: false
+        // },
         external: ["next-themes"],
         output: {
-          manualChunks: (id) => {
-            if (id.includes("@tanstack/react-query")) return "react-query";
-            if (id.includes("@supabase")) return "supabase";
-            if (id.includes("chart.js") || id.includes("react-chartjs-2"))
-              return "charts-chartjs";
-            if (id.includes("recharts")) return "charts-recharts";
-            if (
-              id.includes("lucide-react") ||
-              id.includes("react-icons") ||
-              id.includes("@radix-ui/react-icons")
-            )
-              return "icons";
-            if (id.includes("date-fns")) return "date-utils";
-            if (id.includes("react-hook-form") || id.includes("@hookform"))
-              return "forms";
-            if (id.includes("node_modules")) return "vendor";
-            if (id.includes("src/contexts")) return "contexts";
-            if (id.includes("src/components/ui/")) return "ui-components";
-            if (id.includes("src/components/financial/"))
-              return "financial-components";
-            if (id.includes("src/components/promoCalculator/"))
-              return "promo-components";
-            if (id.includes("src/components/profitAnalysis/"))
-              return "profit-components";
-            if (id.includes("src/components/dashboard/"))
-              return "dashboard-components";
-            if (id.includes("src/components/orders/"))
-              return "orders-components";
-            if (id.includes("src/components/warehouse/"))
-              return "warehouse-components";
-            if (id.includes("src/components/purchase/"))
-              return "purchase-components";
-            if (id.includes("src/components/update/"))
-              return "update-components";
-            if (id.includes("src/components/assets/"))
-              return "assets-components";
-            if (id.includes("src/components/layout/"))
-              return "layout-components";
-            if (id.includes("src/components/pages/"))
-              return "pages-components";
-            if (id.includes("src/components/popups/"))
-              return "popup-components";
-            if (
-              id.includes("src/components/common/") ||
-              id.includes("src/components/shared/")
-            )
-              return "common-components";
-            if (id.includes("src/components")) return "shared-components";
-            if (id.includes("src/utils")) return "utils";
-            return "main";
-          },
+          // Disable manual chunking to ensure everything goes in main bundle
+          // manualChunks: undefined,
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           assetFileNames: isProd

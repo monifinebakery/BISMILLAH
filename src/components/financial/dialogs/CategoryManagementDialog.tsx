@@ -106,7 +106,7 @@ const CategorySection: React.FC<CategorySectionProps> = React.memo(({
           return (
             <div
               key={typeof cat === 'string' ? cat : cat.id}
-              className="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-100 dialog-no-overflow"
+              className="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-200 dialog-no-overflow"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div

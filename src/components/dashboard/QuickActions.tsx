@@ -85,7 +85,7 @@ const QuickActions: React.FC = () => {
             Aksi Cepat
           </h2>
         </div>
-        <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent ml-4"></div>
+        <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent ml-4"></div>
       </div>
       
       {/* 📋 Quick Actions Grid */}

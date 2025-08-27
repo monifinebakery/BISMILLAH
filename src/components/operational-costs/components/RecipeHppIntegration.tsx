@@ -233,7 +233,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
             </div>
 
             {/* Method Information */}
-            <div className="bg-white/70 p-4 rounded-lg border border-gray-200">
+            <div className="bg-white/70 p-4 rounded-lg border border-gray-300">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <Info className="h-4 w-4 text-gray-500" />

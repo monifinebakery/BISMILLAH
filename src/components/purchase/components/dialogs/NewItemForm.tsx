@@ -283,7 +283,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
   }, [existingIndex, warehouseItems, selectedWarehouseItem, effectiveQty, computedUnitPrice, existingItems, onUpdateItem, onSelectWarehouseItem, formData.keterangan]);
 
   return (
-    <Card className="border-gray-200">
+    <Card className="border-gray-300">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <Plus className="h-5 w-5 text-orange-600" />
@@ -318,7 +318,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 value={selectedWarehouseItem}
                 onValueChange={onSelectWarehouseItem}
               >
-                <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+                <SelectTrigger className="h-11 border-gray-300 focus:border-orange-500 focus:ring-orange-500/20">
                   <SelectValue placeholder="Pilih bahan baku dari gudang" />
                 </SelectTrigger>
                 <SelectContent>
@@ -382,7 +382,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 value={formData.nama}
                 onChange={(e) => setFormData(prev => ({ ...prev, nama: e.target.value }))}
                 placeholder="Contoh: Tepung Terigu"
-                className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
+                className="h-11 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
               />
             </div>
             <div className="space-y-2">
@@ -391,7 +391,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 value={formData.satuan}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, satuan: value }))}
               >
-                <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
+                <SelectTrigger className="h-11 border-gray-300 focus:border-orange-500 focus:ring-orange-500/20">
                   <SelectValue placeholder="Pilih satuan" />
                 </SelectTrigger>
                 <SelectContent>
@@ -417,9 +417,9 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 value={formData.kuantitas}
                 onChange={(e) => handleNumericChange('kuantitas', e.target.value)}
                 placeholder="0"
-                className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+                className="h-11 border-gray-300 focus:border-orange-500 focus:ring-orange-500/20"
               />
-              <div className="flex items-center px-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600 min-w-[70px] justify-center">
+              <div className="flex items-center px-3 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-600 min-w-[70px] justify-center">
                 {formData.satuan || 'unit'}
               </div>
             </div>
@@ -438,7 +438,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 ref={payRef}
                 value={formData.totalBayar}
                 onChange={(e) => handleNumericChange('totalBayar', e.target.value)}
-                className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+                className="h-11 pl-8 border-gray-300 focus:border-orange-500 focus:ring-orange-500/20"
                 placeholder="0"
                 disabled={!!(isSelectingExistingItem && selectedWarehouseItemData)}
               />
@@ -500,7 +500,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
             onChange={(e) => setFormData(prev => ({ ...prev, keterangan: e.target.value }))}
             placeholder="Keterangan tambahan (opsional)"
             rows={2}
-            className="border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+            className="border-gray-300 focus:border-orange-500 focus:ring-orange-500/20"
           />
         </div>
 

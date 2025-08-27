@@ -58,7 +58,7 @@ const PromoTable = ({
     const statusConfig = {
       aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
       nonaktif: { bg: 'bg-red-100', text: 'text-red-800', label: 'Non-aktif' },
-      draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' }
+      draft: { bg: 'bg-gray-200', text: 'text-gray-800', label: 'Draft' }
     };
     
     const config = statusConfig[status] || statusConfig.draft;
@@ -112,7 +112,7 @@ const PromoTable = ({
     <div>
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-300">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left">
@@ -124,7 +124,7 @@ const PromoTable = ({
                 />
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
                 onClick={() => handleSort('nama_promo')}
               >
                 <div className="flex items-center space-x-1">
@@ -133,7 +133,7 @@ const PromoTable = ({
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
                 onClick={() => handleSort('tipe_promo')}
               >
                 <div className="flex items-center space-x-1">
@@ -148,7 +148,7 @@ const PromoTable = ({
                 Profit Margin
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center space-x-1">
@@ -157,7 +157,7 @@ const PromoTable = ({
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
                 onClick={() => handleSort('created_at')}
               >
                 <div className="flex items-center space-x-1">
@@ -166,7 +166,7 @@ const PromoTable = ({
                 </div>
               </th>
               <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-200"
                 onClick={() => handleSort('updated_at')}
               >
                 <div className="flex items-center space-x-1">
@@ -179,7 +179,7 @@ const PromoTable = ({
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-300">
             {promos.map(promo => (
               <tr key={promo.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
@@ -204,7 +204,7 @@ const PromoTable = ({
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
                     {getPromoTypeLabel(promo.tipe_promo)}
                   </span>
                 </td>
@@ -269,7 +269,7 @@ const PromoTable = ({
       </div>
 
       {/* Pagination */}
-      <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+      <div className="bg-white px-4 py-3 border-t border-gray-300 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-700">

@@ -90,7 +90,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
       <div className="overflow-x-auto">
         <Table className="min-w-full text-sm text-left text-gray-700">
           <TableHeader>
-            <TableRow className="bg-gray-50 border-b border-gray-200">
+            <TableRow className="bg-gray-50 border-b border-gray-300">
               <TableHead className="w-12 p-4"></TableHead>
               <TableHead className="font-semibold text-gray-700">Nama Supplier</TableHead>
               <TableHead className="font-semibold text-gray-700">Kontak</TableHead>
@@ -120,7 +120,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
       <div className="overflow-x-auto">
         <Table className="min-w-full text-sm text-left text-gray-700">
           <TableHeader>
-            <TableRow className="bg-gray-50 border-b border-gray-200">
+            <TableRow className="bg-gray-50 border-b border-gray-300">
               <TableHead className="w-12 p-4"></TableHead>
               <TableHead className="font-semibold text-gray-700">Nama Supplier</TableHead>
               <TableHead className="font-semibold text-gray-700">Kontak</TableHead>
@@ -165,7 +165,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
       <div className="overflow-x-auto">
         <Table className="min-w-full text-sm text-left text-gray-700">
           <TableHeader>
-            <TableRow className="bg-gray-50 border-b border-gray-200">
+            <TableRow className="bg-gray-50 border-b border-gray-300">
               <TableHead className="w-12 p-4">
                 {isSelectionMode && (
                   <Checkbox
@@ -190,7 +190,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
               <TableRow
                 key={supplier.id}
                 className={cn(
-                  "hover:bg-orange-50/50 transition-colors border-b border-gray-100",
+                  "hover:bg-orange-50/50 transition-colors border-b border-gray-200",
                   selectedIds.includes(supplier.id) && "bg-blue-50 border-l-4 border-l-blue-500",
                   index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                 )}
@@ -222,7 +222,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
                   {!isSelectionMode && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-100">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-200">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -254,7 +254,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
 
       {/* Pagination Footer */}
       {filteredCount > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 border-t border-gray-200 bg-gray-50/50">
+        <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 border-t border-gray-300 bg-gray-50/50">
           <div className="text-sm text-gray-600 mb-4 sm:mb-0">
             Showing <span className="font-semibold">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
             <span className="font-semibold">{Math.min(currentPage * itemsPerPage, filteredCount)}</span> of{' '}
@@ -269,7 +269,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 hover:bg-gray-100"
+              className="h-9 w-9 hover:bg-gray-200"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
             >
@@ -283,7 +283,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
                   "h-9 w-9",
                   currentPage === page
                     ? "bg-orange-500 text-white border hover:bg-orange-600"
-                    : "hover:bg-gray-100"
+                    : "hover:bg-gray-200"
                 )}
                 variant={currentPage === page ? "default" : "ghost"}
               >
@@ -293,7 +293,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 hover:bg-gray-100"
+              className="h-9 w-9 hover:bg-gray-200"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
             >

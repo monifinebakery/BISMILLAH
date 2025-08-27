@@ -124,7 +124,7 @@ const RecipeFilters: React.FC<RecipeFiltersProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => onSearchChange('')}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-200"
             >
               <X className="h-4 w-4" />
             </Button>

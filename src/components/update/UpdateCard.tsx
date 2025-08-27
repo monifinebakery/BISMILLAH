@@ -51,10 +51,10 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
         return {
           icon: <Info className="w-5 h-5" />,
           bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-200',
+          borderColor: 'border-gray-300',
           textColor: 'text-gray-800',
           iconColor: 'text-gray-600',
-          badgeColor: 'bg-gray-100 text-gray-800',
+          badgeColor: 'bg-gray-200 text-gray-800',
           label: 'LOW',
         };
     }
@@ -82,7 +82,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
   return (
     <div
       className={`relative bg-white rounded-lg border transition-all duration-200 ${
-        isUnseen ? `${config.borderColor} border-l-4` : 'border-gray-200 hover:border-gray-300'
+        isUnseen ? `${config.borderColor} border-l-4` : 'border-gray-300 hover:border-gray-300'
       }`}
       onClick={handleMarkAsSeen} // Klik card untuk tandai sebagai sudah dibaca
     >
@@ -125,7 +125,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
 
             {/* Badges */}
             <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center gap-1 bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">
+              <div className="flex items-center gap-1 bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">
                 <Tag className="w-3 h-3" />
                 Versi {update.version}
               </div>
@@ -142,7 +142,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
           <div className="flex items-center gap-4 text-sm text-gray-500">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />

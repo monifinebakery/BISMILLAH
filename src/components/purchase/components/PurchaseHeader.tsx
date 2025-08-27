@@ -45,7 +45,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
             {/* Import button */}
             <Button
               onClick={() => onAddPurchase('import')}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-100 transition-colors duration-200"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-200 transition-colors duration-200"
             >
               <Upload className="h-5 w-5" />
               Import Data
@@ -54,7 +54,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
             {/* Tambah dari Nota */}
             <Button
               onClick={() => onAddPurchase('packaging')} // Pastikan tipe 'packaging' sesuai dengan yang diharapkan
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-100 transition-colors duration-200"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-200 transition-colors duration-200"
             >
               <FileText className="h-5 w-5" />
               Tambah Pembelian

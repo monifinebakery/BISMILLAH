@@ -59,7 +59,7 @@ export const InteractiveLegend: React.FC<InteractiveLegendProps> = ({
                 transition-all duration-200 transform
                 ${
                   isHidden 
-                    ? 'bg-gray-200 border-gray-300 opacity-50' 
+                    ? 'bg-gray-300 border-gray-300 opacity-50' 
                     : 'bg-white border-gray-300 hover:border-gray-400'
                 }
                 ${

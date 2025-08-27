@@ -30,7 +30,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
 }) => {
   return (
     <div className={className}>
-      <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border-2 border-gray-200">
+      <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border-2 border-gray-300">
         <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">
           Ringkasan Pembayaran
         </h3>

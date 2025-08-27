@@ -45,7 +45,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({
       </div>
 
       {/* Form Actions */}
-      <div className="flex gap-2 pt-4 border-t border-gray-200 mt-4">
+      <div className="flex gap-2 pt-4 border-t border-gray-300 mt-4">
         <Button
           type="submit"
           className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"

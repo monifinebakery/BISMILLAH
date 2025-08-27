@@ -134,7 +134,7 @@ const SettingsPage = () => {
         {/* Header Section */}
         <div className="mb-8">
           <div className="bg-white rounded-2xl border overflow-hidden">
-            <div className="px-8 py-6 bg-gray-100">
+            <div className="px-8 py-6 bg-gray-200">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-white rounded-xl">
                   <SettingsIcon className="h-8 w-8 text-gray-700" />

@@ -129,7 +129,7 @@ const MemoizedTableRow = React.memo(({ item, itemIndex }: { item: BreakdownItem;
             {formatPercentage(item.percentage)}
           </span>
           
-          <div className="w-12 sm:w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-12 sm:w-16 h-2 bg-gray-300 rounded-full overflow-hidden">
             <div 
               className="h-full rounded-full transition-all duration-300 bg-orange-500 opacity-60"
               style={{ 
@@ -565,7 +565,7 @@ const DetailedBreakdownTable = ({
                 <div className={`rounded-lg border ${section.bgColor} border-opacity-20 overflow-x-auto`}>
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-b border-gray-200">
+                      <TableRow className="border-b border-gray-300">
                         <TableHead className="font-semibold text-xs sm:text-sm min-w-[120px]">Item</TableHead>
                         <TableHead className="font-semibold text-right text-xs sm:text-sm min-w-[80px]">Jumlah</TableHead>
                         <TableHead className="font-semibold text-right text-xs sm:text-sm min-w-[60px] hidden sm:table-cell">%</TableHead>

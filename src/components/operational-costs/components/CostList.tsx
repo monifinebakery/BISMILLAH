@@ -313,7 +313,7 @@ const CostList: React.FC<CostListProps> = ({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-300">
             {sortedCosts.map((cost) => (
               <tr key={cost.id} className="hover:bg-gray-50">
                 <td className="px-4 py-4">
@@ -339,7 +339,7 @@ const CostList: React.FC<CostListProps> = ({
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     getStatusColor(cost.status) === 'green'
                       ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
+                      : 'bg-gray-200 text-gray-800'
                   }`}>
                     {getStatusLabel(cost.status)}
                   </span>

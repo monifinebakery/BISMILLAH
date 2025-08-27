@@ -15,7 +15,7 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
   const { settings } = useUserSettings();
   
   return (
-    <div className={`bg-white rounded-xl overflow-hidden max-w-5xl mx-auto border border-gray-200 ${className}`} id="invoice-to-print">
+    <div className={`bg-white rounded-xl overflow-hidden max-w-5xl mx-auto border border-gray-300 ${className}`} id="invoice-to-print">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 sm:px-12 py-8 text-white">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -47,8 +47,8 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
       <div className="px-8 sm:px-12 py-8">
         {/* Customer Information */}
         <div className="mb-10">
-          <div className="bg-gray-50 rounded-lg p-6 border border-gray-100">
-            <h3 className="font-semibold text-gray-700 mb-4 text-lg border-b border-gray-200 pb-2">
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <h3 className="font-semibold text-gray-700 mb-4 text-lg border-b border-gray-300 pb-2">
               Ditagihkan Kepada:
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -71,25 +71,25 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
         {/* Items Table */}
         <div className="mb-10">
           <h3 className="font-semibold text-gray-700 mb-4 text-lg">Detail Pesanan:</h3>
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
+          <div className="overflow-x-auto rounded-lg border border-gray-300">
             <table className="w-full">
               <thead>
-                <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                <tr className="bg-gradient-to-r from-gray-50 to-gray-200">
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b border-gray-300">
                     Deskripsi
                   </th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-200 w-24">
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-300 w-24">
                     Jumlah
                   </th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 border-b border-gray-200 w-32">
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 border-b border-gray-300 w-32">
                     Harga Satuan
                   </th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 border-b border-gray-200 w-32">
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 border-b border-gray-300 w-32">
                     Total
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-200">
                 {order.items.map((item, index) => (
                   <tr key={item.id} className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
                     <td className="px-6 py-4 text-gray-800 font-medium">
@@ -114,7 +114,7 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
         {/* Totals Section */}
         <div className="flex justify-end mb-10">
           <div className="w-full max-w-md">
-            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div className="bg-gray-50 rounded-lg p-6 border border-gray-300">
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-gray-600">
                   <span className="font-medium">Subtotal</span>
@@ -140,7 +140,7 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 pt-8">
+        <div className="border-t border-gray-300 pt-8">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
               <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

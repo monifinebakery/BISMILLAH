@@ -194,7 +194,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
 
             {showResep && (
               <div className="absolute right-0 z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                <div className="p-3 border-b border-gray-200">
+                <div className="p-3 border-b border-gray-300">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
@@ -217,7 +217,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
                         key={recipe.id}
                         type="button"
                         onClick={() => addResepToBundle(recipe.id)}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-200 last:border-b-0 transition-colors"
                       >
                         <div className="font-medium text-gray-900">
                           {getRecipeProperty(recipe, 'name')}
@@ -246,7 +246,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
             const name = getRecipeProperty(recipe, 'name');
 
             return (
-              <div key={index} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-200">
+              <div key={index} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between border border-gray-300">
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{name}</h4>
                   <div className="text-sm text-gray-500 grid grid-cols-2 gap-4 mt-1">

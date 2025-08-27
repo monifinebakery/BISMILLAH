@@ -113,7 +113,7 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
           className={
             category.count > 0 
               ? "bg-orange-100 text-orange-700 hover:bg-orange-200" 
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
           }
         >
           {category.count} resep

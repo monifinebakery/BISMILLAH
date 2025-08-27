@@ -178,7 +178,7 @@ const SupplierManagement: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           <Button
             onClick={openAddDialog}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-100 transition-all duration-200"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg border hover:bg-gray-200 transition-all duration-200"
           >
             <Plus className="h-5 w-5" />
             Tambah Supplier
@@ -204,9 +204,9 @@ const SupplierManagement: React.FC = () => {
       />
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-300/80 overflow-hidden">
         {/* Kontrol Paginasi */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="p-4 border-b border-gray-300 bg-gray-50">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm">

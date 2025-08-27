@@ -12,7 +12,7 @@
 }
 
 .card-border {
-  @apply border border-gray-200 rounded-lg;
+  @apply border border-gray-300 rounded-lg;
 }
 
 .button-border {

@@ -81,7 +81,7 @@ export const ResponsiveTooltip: React.FC<ResponsiveTooltipProps> = ({
                         logger.debug('Close button clicked');
                         hideTooltip();
                       }}
-                      className="w-full bg-gray-800 text-gray-200 py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 active:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                      className="w-full bg-gray-800 text-gray-300 py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 active:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                     >
                       Tutup
                     </button>

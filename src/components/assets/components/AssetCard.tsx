@@ -82,7 +82,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
           </div>
           
           {asset.deskripsi && (
-            <div className="pt-2 border-t border-gray-100">
+            <div className="pt-2 border-t border-gray-200">
               <span className="text-gray-600 text-xs">Deskripsi:</span>
               <p className="text-gray-900 text-xs mt-1 line-clamp-2">
                 {asset.deskripsi}

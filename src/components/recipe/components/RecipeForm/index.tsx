@@ -435,7 +435,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                       className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-colors ${
                         index <= currentStepIndex
                           ? 'bg-orange-500 text-white'
-                          : 'bg-gray-200 text-gray-500'
+                          : 'bg-gray-300 text-gray-500'
                       }`}
                     >
                       {index < currentStepIndex ? (
@@ -454,7 +454,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   </div>
                   {index < STEPS.length - 1 && (
                     <div className={`w-4 sm:w-8 h-0.5 mx-1 sm:mx-2 ${
-                      index < currentStepIndex ? 'bg-orange-500' : 'bg-gray-200'
+                      index < currentStepIndex ? 'bg-orange-500' : 'bg-gray-300'
                     }`} />
                   )}
                 </div>

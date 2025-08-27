@@ -40,7 +40,7 @@ export const InvoiceHeader: React.FC<InvoiceHeaderProps> = ({
   const { settings } = useUserSettings();
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 mb-6 sm:mb-8 pb-4 sm:pb-8 border-b-2 border-gray-200">
+    <div className="flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8 mb-6 sm:mb-8 pb-4 sm:pb-8 border-b-2 border-gray-300">
       <div className="flex-1">
         <div className="flex items-center space-x-3 mb-4">
           {onBack && (

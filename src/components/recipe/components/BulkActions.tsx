@@ -108,7 +108,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={onCancel}
-                  className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-100"
+                  className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-200"
                 >
                   <X className="h-4 w-4" />
                   Batal
@@ -168,7 +168,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
                         <ChefHat className="h-3 w-3" />
                         <span className="truncate">{recipe.namaResep}</span>
                         {recipe.kategoriResep && (
-                          <span className="text-xs bg-gray-200 px-1 rounded">
+                          <span className="text-xs bg-gray-300 px-1 rounded">
                             {recipe.kategoriResep}
                           </span>
                         )}
@@ -221,7 +221,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
                         <ChefHat className="h-3 w-3" />
                         <span className="truncate">{recipe.namaResep}</span>
                         {recipe.kategoriResep && (
-                          <span className="text-xs bg-gray-200 px-1 rounded">
+                          <span className="text-xs bg-gray-300 px-1 rounded">
                             {recipe.kategoriResep}
                           </span>
                         )}

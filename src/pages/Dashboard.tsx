@@ -21,7 +21,7 @@ const WorstSellingProducts = lazy(() => import('@/components/dashboard/WorstSell
 
 // 📦 Enhanced Loading Component
 const SectionLoader = ({ height = "h-32", className = "" }) => (
-  <div className={`${height} ${className} bg-white rounded-lg border border-gray-100 flex items-center justify-center`}>
+  <div className={`${height} ${className} bg-white rounded-lg border border-gray-200 flex items-center justify-center`}>
     <div className="flex items-center space-x-2">
       <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
       <span className="text-gray-400 text-sm">Memuat...</span>

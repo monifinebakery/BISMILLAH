@@ -147,7 +147,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
         {showDropdown && (
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
             {/* Search */}
-            <div className="p-3 border-b border-gray-200">
+            <div className="p-3 border-b border-gray-300">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -190,7 +190,7 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
                           setShowDropdown(false);
                           setSearchTerm('');
                         }}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-200 last:border-b-0 transition-colors"
                       >
                         <div className="font-medium text-gray-900">
                           {getRecipeProperty(recipe, 'name')}

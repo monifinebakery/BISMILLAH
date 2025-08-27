@@ -161,7 +161,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                   key={pcs}
                   type="button"
                   onClick={() => onUpdate('jumlahPcsPerPorsi', pcs)}
-                  className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border text-gray-600 hover:text-gray-800 transition-colors"
+                  className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded border text-gray-600 hover:text-gray-800 transition-colors"
                   disabled={isLoading}
                 >
                   {pcs} pcs
@@ -530,7 +530,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                     key={percent}
                     type="button"
                     onClick={() => onUpdate('marginKeuntunganPersen', percent)}
-                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border text-gray-600 hover:text-gray-800 transition-colors"
+                    className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded border text-gray-600 hover:text-gray-800 transition-colors"
                     disabled={isLoading}
                   >
                     {percent}%

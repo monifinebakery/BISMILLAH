@@ -277,7 +277,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   
                   {/* Category Dropdown */}
                   {showCategoryDropdown && filteredCategories.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md z-10 max-h-40 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md z-10 max-h-40 overflow-y-auto">
                       {filteredCategories.map((category) => (
                         <button
                           key={category}
@@ -313,7 +313,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   
                   {/* Supplier Dropdown */}
                   {showSupplierDropdown && filteredSuppliers.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md z-10 max-h-40 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md z-10 max-h-40 overflow-y-auto">
                       {filteredSuppliers.map((supplier) => (
                         <button
                           key={supplier}

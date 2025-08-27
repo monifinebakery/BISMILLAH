@@ -281,7 +281,7 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   preparing: 'bg-purple-100 text-purple-800 border-purple-300',
   ready: 'bg-green-100 text-green-800 border-green-300',
   delivered: 'bg-teal-100 text-teal-800 border-teal-300',
-  completed: 'bg-gray-100 text-gray-800 border-gray-300',
+  completed: 'bg-gray-200 text-gray-800 border-gray-300',
   cancelled: 'bg-red-100 text-red-800 border-red-300'
 };
 
@@ -291,7 +291,7 @@ export const getStatusText = (status: OrderStatus): string => {
 };
 
 export const getStatusColor = (status: OrderStatus): string => {
-  return ORDER_STATUS_COLORS[status] || 'bg-gray-100 text-gray-800 border-gray-300';
+  return ORDER_STATUS_COLORS[status] || 'bg-gray-200 text-gray-800 border-gray-300';
 };
 
 // ✅ ENHANCED: Recipe Integration Helpers

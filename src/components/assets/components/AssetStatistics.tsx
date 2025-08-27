@@ -51,12 +51,12 @@ export const AssetStatistics: React.FC<AssetStatisticsProps> = ({
           <Card key={i} className="border-orange-200 bg-white">
             <CardContent className="p-4">
               <div className="flex items-center">
-                <div className="bg-gray-200 rounded-full p-2 mr-3 animate-pulse">
+                <div className="bg-gray-300 rounded-full p-2 mr-3 animate-pulse">
                   <div className="h-5 w-5 bg-gray-300 rounded"></div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
-                  <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-300 rounded animate-pulse mb-2"></div>
+                  <div className="h-6 bg-gray-300 rounded animate-pulse"></div>
                 </div>
               </div>
             </CardContent>

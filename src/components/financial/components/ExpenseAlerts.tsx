@@ -290,7 +290,7 @@ const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }
       
       <CardContent className="space-y-6">
         {/* Overall Summary */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium text-gray-800">Total Budget Bulan Ini</h4>
             <DollarSign className="h-5 w-5 text-gray-600" />
@@ -307,7 +307,7 @@ const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }
             </div>
             
             {/* Progress bar */}
-            <div className="w-full bg-gray-200 rounded-full h-3 mt-3">
+            <div className="w-full bg-gray-300 rounded-full h-3 mt-3">
               <div 
                 className={cn(
                   "h-3 rounded-full transition-all",
@@ -435,7 +435,7 @@ const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }
                         <span>Budget: {formatCurrency(budget.monthlyLimit)}</span>
                       </div>
                       
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-300 rounded-full h-2">
                         <div 
                           className={cn(
                             "h-2 rounded-full transition-all",

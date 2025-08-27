@@ -24,7 +24,7 @@ const AssetErrorBoundary = ({ children }: { children: React.ReactNode }) => (
             Terjadi error saat memuat data aset. Hal ini mungkin karena masalah dengan sistem pengelolaan aset.
           </p>
           {import.meta.env.DEV && (
-            <details className="text-left bg-gray-100 p-4 rounded mb-4 max-w-full overflow-auto">
+            <details className="text-left bg-gray-200 p-4 rounded mb-4 max-w-full overflow-auto">
               <summary className="cursor-pointer font-medium text-red-600 mb-2">
                 Error Details (Development Only)
               </summary>

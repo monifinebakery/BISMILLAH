@@ -34,7 +34,7 @@ export const AddCategoryForm: React.FC<AddCategoryFormProps> = ({
   };
 
   return (
-    <Card className="border-gray-200">
+    <Card className="border-gray-300">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <Plus className="h-5 w-5 text-orange-600" />

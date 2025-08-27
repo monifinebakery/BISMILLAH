@@ -52,15 +52,15 @@ const CostSummaryCard: React.FC<CostSummaryCardProps> = ({
       <div className={`bg-white rounded-lg border p-6 ${className}`}>
         <div className="animate-pulse">
           <div className="flex items-center justify-between mb-4">
-            <div className="h-5 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-8 bg-gray-200 rounded-full w-8"></div>
+            <div className="h-5 bg-gray-300 rounded w-1/3"></div>
+            <div className="h-8 bg-gray-300 rounded-full w-8"></div>
           </div>
-          <div className="h-8 bg-gray-200 rounded w-1/2 mb-6"></div>
+          <div className="h-8 bg-gray-300 rounded w-1/2 mb-6"></div>
           {showBreakdown && (
             <div className="space-y-3">
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-300 rounded"></div>
+              <div className="h-4 bg-gray-300 rounded"></div>
+              <div className="h-4 bg-gray-300 rounded w-3/4"></div>
             </div>
           )}
         </div>
@@ -163,7 +163,7 @@ const CostSummaryCard: React.FC<CostSummaryCardProps> = ({
           {/* Visual breakdown bar */}
           {summary.total_biaya_aktif > 0 && (
             <div className="border-t pt-4">
-              <div className="flex rounded-full overflow-hidden h-2 bg-gray-100">
+              <div className="flex rounded-full overflow-hidden h-2 bg-gray-200">
                 <div
                   className="bg-blue-500 transition-all duration-300"
                   style={{

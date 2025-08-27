@@ -89,9 +89,9 @@ const TrendIndicator: React.FC<{
       case 'down':
         return 'text-red-600 bg-red-50 border-red-200';
       case 'flat':
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return 'text-gray-600 bg-gray-50 border-gray-300';
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return 'text-gray-600 bg-gray-50 border-gray-300';
     }
   };
 
@@ -209,7 +209,7 @@ const StatCard: React.FC<{
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-[1.5px] border-gray-200 dark:border-gray-700 relative group h-full">
+    <Card className="bg-white border-[1.5px] border-gray-300 dark:border-gray-700 relative group h-full">
       <CardContent className="card-stats h-full relative">
         {/* Inset Border Effect */}
         <div className="absolute inset-0 rounded-lg border-[1.5px] border-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
@@ -250,7 +250,7 @@ const StatCard: React.FC<{
           {/* 💰 Value */}
           <div className="mb-2 flex-1">
             {isLoading ? (
-              <div className="h-6 sm:h-7 lg:h-8 bg-gray-200 animate-pulse rounded w-full"></div>
+              <div className="h-6 sm:h-7 lg:h-8 bg-gray-300 animate-pulse rounded w-full"></div>
             ) : (
               <div className="w-full">
                 <p className={`card-value-responsive ${valueColor} text-overflow-safe leading-tight`}>

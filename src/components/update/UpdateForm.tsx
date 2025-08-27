@@ -52,7 +52,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
 
   if (checkingAdmin) {
     return (
-      <div className="max-w-md mx-auto p-6 bg-gray-50 border border-gray-200 rounded-lg">
+      <div className="max-w-md mx-auto p-6 bg-gray-50 border border-gray-300 rounded-lg">
         <div className="flex items-center gap-3 text-gray-600">
           <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
           <div>
@@ -199,7 +199,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg border border-gray-200">
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg border border-gray-300">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           {initialData ? 'Edit Pembaruan' : 'Tambah Pembaruan Baru'}
@@ -250,7 +250,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
                       : priority === 'normal'
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-500 bg-gray-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    : 'border-gray-300 hover:border-gray-300'
                 }`}
               >
                 <input
@@ -293,7 +293,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               formData.is_active
                 ? 'bg-green-100 text-green-800 border border-green-200 hover:bg-green-200'
-                : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200'
+                : 'bg-gray-200 text-gray-800 border border-gray-300 hover:bg-gray-300'
             }`}
           >
             {formData.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -329,7 +329,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
             <button
               type="button"
               onClick={onCancel}
-              className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-colors"
             >
               <X className="w-4 h-4" />
               Batal

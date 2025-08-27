@@ -234,21 +234,21 @@ const LoadingSpinner = () => (
 );
 
 const TableSkeleton = () => (
-  <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+  <div className="bg-white rounded-xl border border-gray-300/80 overflow-hidden">
     <div className="p-4 border-b">
       <div className="flex items-center justify-between">
-        <div className="h-10 bg-gray-200 rounded-md w-1/3 animate-pulse" />
-        <div className="h-10 bg-gray-200 rounded-md w-24 animate-pulse" />
+        <div className="h-10 bg-gray-300 rounded-md w-1/3 animate-pulse" />
+        <div className="h-10 bg-gray-300 rounded-md w-24 animate-pulse" />
       </div>
     </div>
     <div className="p-6 space-y-3">
       {Array.from({ length: 5 }, (_, i) => (
         <div key={i} className="flex items-center space-x-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse" />
-          <div className="h-4 bg-gray-200 rounded w-1/6 animate-pulse" />
-          <div className="h-4 bg-gray-200 rounded w-1/8 animate-pulse" />
-          <div className="h-4 bg-gray-200 rounded w-1/6 animate-pulse" />
-          <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse" />
+          <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
+          <div className="h-4 bg-gray-300 rounded w-1/6 animate-pulse" />
+          <div className="h-4 bg-gray-300 rounded w-1/8 animate-pulse" />
+          <div className="h-4 bg-gray-300 rounded w-1/6 animate-pulse" />
+          <div className="h-4 bg-gray-300 rounded w-1/4 animate-pulse" />
         </div>
       ))}
     </div>
@@ -585,7 +585,7 @@ const WarehousePageContent: React.FC = () => {
       {context.loading ? (
         <TableSkeleton />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-300/80 overflow-hidden">
           
           <WarehouseFilters
             searchTerm={core.filters?.searchTerm || ''}
@@ -626,7 +626,7 @@ const WarehousePageContent: React.FC = () => {
           />
 
           {/* Kontrol Paginasi */}
-          <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <div className="p-4 border-t border-gray-300 bg-gray-50">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm">
@@ -661,7 +661,7 @@ const WarehousePageContent: React.FC = () => {
 
           {/* Pagination */}
           {warehouseData.paginationInfo && warehouseData.paginationInfo.totalPages > 1 && (
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-gray-300">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-sm text-gray-600">
                   Menampilkan {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, warehouseData.paginationInfo.total)} dari {warehouseData.paginationInfo.total} item

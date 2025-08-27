@@ -222,7 +222,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-4">
+          <div className="w-full bg-gray-300 rounded-full h-4">
             <div 
               className={cn("h-4 rounded-full transition-all duration-300", getProgressColor())}
               style={{ width: `${savingsData.progress}%` }}
@@ -244,7 +244,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
 
         {/* Detailed Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-orange-600" />
               <span className="text-sm font-medium text-orange-800">Pemasukan</span>
@@ -254,7 +254,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
             </p>
           </div>
           
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-orange-600 rotate-180" />
               <span className="text-sm font-medium text-orange-800">Pengeluaran</span>
@@ -267,7 +267,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
 
         {/* Daily Target */}
         {savingsData.currentSavings < monthlyTarget && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="h-4 w-4 text-orange-600" />
               <span className="text-sm font-medium text-orange-800">Target Harian Tersisa</span>
@@ -282,7 +282,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
         )}
 
         {/* Tips */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
           <h5 className="font-medium text-orange-800 mb-2 flex items-center gap-2">
             <PiggyBank className="h-4 w-4 text-orange-600" />
             Tips Mencapai Target Nabung:

@@ -42,7 +42,7 @@ const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
   const isMarginDecreased = marginDiff < 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
         <div className="flex items-center justify-between text-white">

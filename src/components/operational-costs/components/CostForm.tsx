@@ -180,7 +180,7 @@ const CostForm: React.FC<CostFormProps> = ({
                   key={suggestion}
                   type="button"
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-200 transition-colors"
                 >
                   {suggestion}
                 </button>

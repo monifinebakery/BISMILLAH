@@ -34,7 +34,7 @@ const ReadOnlyWrapper: React.FC<ReadOnlyWrapperProps> = ({
             <div className="pointer-events-none opacity-50 select-none">
               {children}
             </div>
-            <div className="absolute inset-0 bg-gray-100/20 backdrop-blur-[0.5px] rounded-md flex items-center justify-center">
+            <div className="absolute inset-0 bg-gray-200/20 backdrop-blur-[0.5px] rounded-md flex items-center justify-center">
               <div 
                 onClick={handleUpgradeClick}
                 className="bg-white rounded-lg p-3 cursor-pointer hover:border-orange-300 transition-colors border border-orange-200"

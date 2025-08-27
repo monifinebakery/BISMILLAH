@@ -322,7 +322,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
 
         {/* ✅ Debug info (only in development) */}
         {import.meta.env.DEV && (
-          <div className="mt-4 text-xs text-gray-400 bg-gray-100 p-2 rounded font-mono">
+          <div className="mt-4 text-xs text-gray-400 bg-gray-200 p-2 rounded font-mono">
             Debug: Order="{orderId}" | Length={orderId.length} | Verifying={isVerifying ? 'Yes' : 'No'} | Verified={verificationResult?.success ? 'Yes' : 'No'} | Loading={isLoading ? 'Yes' : 'No'}
           </div>
         )}

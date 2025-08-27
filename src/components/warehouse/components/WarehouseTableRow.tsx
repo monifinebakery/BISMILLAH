@@ -96,7 +96,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
         key={item.id}
         className={`
           border rounded-lg overflow-hidden transition-all duration-200
-          ${isSelected ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-white'}
+          ${isSelected ? 'border-orange-200 bg-orange-50' : 'border-gray-300 bg-white'}
           ${stockLevel.level === 'out' ? 'border-red-200 bg-red-50' : ''}
           ${stockLevel.level === 'low' ? 'border-yellow-200 bg-yellow-50' : ''}
         `}
@@ -177,7 +177,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                           setIsExpanded(newState);
                           logger.component('WarehouseTableRow', `Item ${item.id} ${newState ? 'expanded' : 'collapsed'}`);
                         }}
-                        className="p-1 rounded hover:bg-gray-100 transition-colors"
+                        className="p-1 rounded hover:bg-gray-200 transition-colors"
                         aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details`}
                       >
                         {isExpanded ? (
@@ -195,7 +195,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                             show: newState,
                           });
                         }}
-                        className="p-1 rounded hover:bg-gray-100 transition-colors"
+                        className="p-1 rounded hover:bg-gray-200 transition-colors"
                         aria-label="Show actions"
                       >
                         <MoreVertical className="w-4 h-4 text-gray-500" />
@@ -232,7 +232,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
           </div>
 
           {showMobileActions && !isSelectionMode && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-gray-300">
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -269,7 +269,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
         </div>
 
         {isExpanded && (
-          <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div className="border-t border-gray-300 bg-gray-50 p-4 space-y-3">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Supplier:</span>

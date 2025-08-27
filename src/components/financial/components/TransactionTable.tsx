@@ -174,12 +174,12 @@ const TableSkeleton = () => (
   <div className="space-y-3">
     {Array.from({ length: 5 }, (_, i) => (
       <div key={i} className="flex items-center space-x-4 p-4">
-        <div className="bg-gray-200 rounded h-4 w-20 animate-pulse" />
-        <div className="bg-gray-200 rounded h-4 w-48 animate-pulse" />
-        <div className="bg-gray-200 rounded h-4 w-16 animate-pulse" />
-        <div className="bg-gray-200 rounded h-4 w-20 animate-pulse" />
-        <div className="bg-gray-200 rounded h-4 w-24 animate-pulse ml-auto" />
-        <div className="bg-gray-200 rounded h-8 w-16 animate-pulse" />
+        <div className="bg-gray-300 rounded h-4 w-20 animate-pulse" />
+        <div className="bg-gray-300 rounded h-4 w-48 animate-pulse" />
+        <div className="bg-gray-300 rounded h-4 w-16 animate-pulse" />
+        <div className="bg-gray-300 rounded h-4 w-20 animate-pulse" />
+        <div className="bg-gray-300 rounded h-4 w-24 animate-pulse ml-auto" />
+        <div className="bg-gray-300 rounded h-8 w-16 animate-pulse" />
       </div>
     ))}
   </div>

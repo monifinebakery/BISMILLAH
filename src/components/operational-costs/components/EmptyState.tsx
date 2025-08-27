@@ -116,7 +116,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
             ].map((example) => (
               <span
                 key={example}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800"
               >
                 {example}
               </span>

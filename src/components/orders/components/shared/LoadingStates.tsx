@@ -6,7 +6,7 @@ export const PageLoading: React.FC = () => {
   return (
     <div className="container mx-auto p-4 sm:p-8">
       {/* Header Skeleton */}
-      <div className="bg-gradient-to-r from-gray-200 to-gray-300 rounded-xl p-6 mb-8 animate-pulse">
+      <div className="bg-gradient-to-r from-gray-300 to-gray-300 rounded-xl p-6 mb-8 animate-pulse">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gray-300 rounded-xl"></div>
@@ -23,10 +23,10 @@ export const PageLoading: React.FC = () => {
       </div>
 
       {/* Table Skeleton */}
-      <div className="bg-white rounded-xl border border-gray-200/80 p-6">
+      <div className="bg-white rounded-xl border border-gray-300/80 p-6">
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+            <div key={i} className="h-12 bg-gray-300 rounded animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -49,13 +49,13 @@ export const DialogLoader: React.FC = () => {
 // Table Skeleton Component
 export const TableSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-300/80 overflow-hidden">
       <div className="p-6">
         <div className="space-y-4">
           {/* Header skeleton */}
           <div className="grid grid-cols-6 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div key={i} className="h-4 bg-gray-300 rounded animate-pulse"></div>
             ))}
           </div>
           
@@ -63,7 +63,7 @@ export const TableSkeleton: React.FC = () => {
           {[...Array(5)].map((_, i) => (
             <div key={i} className="grid grid-cols-6 gap-4">
               {[...Array(6)].map((_, j) => (
-                <div key={j} className="h-8 bg-gray-100 rounded animate-pulse"></div>
+                <div key={j} className="h-8 bg-gray-200 rounded animate-pulse"></div>
               ))}
             </div>
           ))}

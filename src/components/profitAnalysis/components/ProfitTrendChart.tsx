@@ -265,7 +265,7 @@ const ProfitTrendChart: React.FC<ProfitTrendChartProps> = ({
                       <span className={`text-sm px-2 py-1 rounded cursor-help ${
                         trendAnalysis.profitGrowth > 0 ? 'bg-green-100 text-green-700' :
                         trendAnalysis.profitGrowth < 0 ? 'bg-red-100 text-red-700' :
-                        'bg-gray-100 text-gray-700'
+                        'bg-gray-200 text-gray-700'
                       }`}>
                         {trendAnalysis.profitGrowth > 0 ? (
                           <><TrendingUp className="w-3 h-3 inline mr-1" />+{trendAnalysis.profitGrowth.toFixed(1)}%</>

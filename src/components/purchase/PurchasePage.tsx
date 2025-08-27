@@ -127,8 +127,8 @@ const AppLoader = ({ message = "Memuat..." }: { message?: string }) => (
 
 const QuickLoader = () => (
   <div className="space-y-4">
-    <div className="h-12 bg-gray-100 rounded-lg animate-pulse" />
-    <div className="h-64 bg-gray-100 rounded-lg animate-pulse" />
+    <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
+    <div className="h-64 bg-gray-200 rounded-lg animate-pulse" />
   </div>
 );
 

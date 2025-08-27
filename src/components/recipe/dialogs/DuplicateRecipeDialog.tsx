@@ -82,7 +82,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent centerMode="overlay" size="md+">
         <div className="dialog-panel">
-          <DialogHeader className="dialog-header border-b border-gray-200 bg-blue-50">
+          <DialogHeader className="dialog-header border-b border-gray-300 bg-blue-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Copy className="w-5 h-5 text-blue-600" />
@@ -104,7 +104,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
             <h3 className="text-sm font-medium text-gray-700 mb-3">
               Resep yang akan diduplikasi:
             </h3>
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-300">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <ChefHat className="w-4 h-4 text-orange-600" />
@@ -127,7 +127,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-300">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Users className="w-3 h-3 text-gray-500" />

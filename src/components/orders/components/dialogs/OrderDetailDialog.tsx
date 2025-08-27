@@ -76,7 +76,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
                           order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                           order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
                           order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
+                          'bg-gray-200 text-gray-800'
                         }`}>
                           {getStatusText(order.status)}
                         </span>
@@ -91,7 +91,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
                     <h3 className="text-sm font-medium text-gray-900 mb-3">Item Pesanan</h3>
                     <div className="space-y-3">
                       {order.items.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div key={index} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0">
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">{item.name}</p>
                             <p className="text-xs text-gray-500">Qty: {item.quantity} × {formatCurrency(item.price || 0)}</p>
@@ -104,7 +104,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
                 )}
 
                 {/* Order Summary */}
-                <div className="border-t border-gray-200 pt-4">
+                <div className="border-t border-gray-300 pt-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Subtotal</span>
@@ -116,7 +116,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
                         <span className="font-medium">{formatCurrency(order.pajak)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-base font-semibold text-gray-900 border-t border-gray-200 pt-2">
+                    <div className="flex justify-between text-base font-semibold text-gray-900 border-t border-gray-300 pt-2">
                       <span>Total</span>
                       <span>{formatCurrency(order.totalPesanan)}</span>
                     </div>

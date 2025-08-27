@@ -90,12 +90,12 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
         offset={isMobile ? 24 : 16}
         toastOptions={{
           classNames: {
-            toast: 'bg-white text-gray-900 border border-gray-200',
+            toast: 'bg-white text-gray-900 border border-gray-300',
             title: 'text-gray-900 font-medium',
             description: 'text-gray-600',
             actionButton: 'bg-orange-500 text-white hover:bg-orange-600',
-            cancelButton: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
-            closeButton: 'bg-gray-100 text-gray-400 hover:text-gray-600',
+            cancelButton: 'bg-gray-200 text-gray-900 hover:bg-gray-300',
+            closeButton: 'bg-gray-200 text-gray-400 hover:text-gray-600',
             success: 'border-green-200 bg-green-50',
             error: 'border-red-200 bg-red-50',
             warning: 'border-orange-200 bg-orange-50',

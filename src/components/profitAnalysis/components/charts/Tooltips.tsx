@@ -24,8 +24,8 @@ export const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label, 
   };
 
   return (
-    <div className="bg-white p-4 border border-gray-200 rounded-xl shadow-xl backdrop-blur-sm">
-      <div className="border-b border-gray-100 pb-2 mb-3">
+    <div className="bg-white p-4 border border-gray-300 rounded-xl shadow-xl backdrop-blur-sm">
+      <div className="border-b border-gray-200 pb-2 mb-3">
         <p className="font-bold text-gray-900 text-base">{String(label)}</p>
       </div>
       <div className="space-y-2">
@@ -70,7 +70,7 @@ export const CandlestickTooltip: React.FC<TooltipProps> = ({ active, payload, la
   if (!data) return null;
 
   return (
-    <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+    <div className="bg-white p-4 border border-gray-300 rounded-lg shadow-lg">
       <p className="font-semibold text-gray-800 mb-3">{String(label)}</p>
       <div className="space-y-1 text-sm">
         <div className="flex justify-between">
@@ -109,7 +109,7 @@ export const HeatmapTooltip: React.FC<TooltipProps> = ({ active, payload, label 
   if (!data) return null;
 
   return (
-    <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+    <div className="bg-white p-4 border border-gray-300 rounded-lg shadow-lg">
       <p className="font-semibold text-gray-800 mb-3">{String(label)}</p>
       <div className="space-y-1 text-sm">
         <div className="flex justify-between">

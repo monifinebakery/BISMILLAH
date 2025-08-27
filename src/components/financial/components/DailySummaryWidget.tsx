@@ -151,7 +151,7 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Status Saldo Hari Ini */}
-        <div className="p-4 rounded-lg text-center bg-gray-50 border border-gray-200">
+        <div className="p-4 rounded-lg text-center bg-gray-50 border border-gray-300">
           <div className="text-2xl mb-2">{saldoStatus.icon}</div>
           <h3 className="font-semibold text-lg mb-1 text-gray-800">
             {saldoStatus.message}

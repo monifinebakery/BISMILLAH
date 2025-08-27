@@ -98,7 +98,7 @@ const PromoAnalytics = () => {
 
       {/* Mobile Date Filter Panel */}
       {showDateFilter && isMobile && (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
+        <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-gray-900">Pilih Rentang Tanggal</h3>
             <button
@@ -150,7 +150,7 @@ const PromoAnalytics = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-300">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
               <BarChart3 className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
@@ -164,7 +164,7 @@ const PromoAnalytics = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-300">
           <div className="flex items-center">
             <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
               <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
@@ -178,7 +178,7 @@ const PromoAnalytics = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-300">
           <div className="flex items-center">
             <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
               <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-orange-600" />
@@ -195,7 +195,7 @@ const PromoAnalytics = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-300">
           <div className="flex items-center">
             <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
               <Percent className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />

@@ -241,7 +241,7 @@ const PromoCalculator = () => {
   if (recipesQuery.isError && view === 'create') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border border-gray-200">
+        <Card className="max-w-md w-full border border-gray-300">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
@@ -288,7 +288,7 @@ const PromoCalculator = () => {
       return (
         <div className="min-h-screen bg-gray-50">
           {/* Mobile Header */}
-          <div className="bg-white border-b border-gray-200 px-4 py-3">
+          <div className="bg-white border-b border-gray-300 px-4 py-3">
             <div className="flex items-center justify-between">
               <Button onClick={handleBackToDashboard} variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-1" />
@@ -339,7 +339,7 @@ const PromoCalculator = () => {
 
           {/* Mobile Bottom Actions */}
           {calculationResult && (
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 p-4">
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   onClick={() => setShowPreview(!showPreview)}
@@ -476,13 +476,13 @@ const PromoCalculator = () => {
             {promos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {promos.map(promo => (
-                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-200">
+                  <div key={promo.id} className="bg-white p-4 rounded-lg border border-gray-300">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold text-gray-900">{promo.namaPromo}</h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         promo.status === 'aktif' ? 'bg-green-100 text-green-800' :
                         promo.status === 'nonaktif' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                        'bg-gray-200 text-gray-800'
                       }`}>
                         {promo.status}
                       </span>

@@ -60,7 +60,7 @@ const PromoTypeSelector = ({ selectedType, onTypeChange, onFormSubmit, isCalcula
                   p-4 rounded-lg border-2 text-left transition-all
                   ${isSelected 
                     ? type.color 
-                    : 'bg-white border-gray-200 hover:border-gray-300'
+                    : 'bg-white border-gray-300 hover:border-gray-300'
                   }
                 `}
               >

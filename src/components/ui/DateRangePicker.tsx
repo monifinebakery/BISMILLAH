@@ -150,7 +150,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   // Quick presets component
   const PresetButtons = () => (
-    <div className="p-3 border-b dialog-no-overflow">
+    <div className="p-3 border-b border-gray-300 dialog-no-overflow">
       <h4 className="font-medium text-sm mb-2 text-overflow-safe">Pilih Cepat</h4>
       <div className="grid grid-cols-2 gap-2">
         {PRESETS.map(({ label, key }) => (
@@ -174,7 +174,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <DialogTrigger asChild>
           <Button {...buttonProps}>{content}</Button>
         </DialogTrigger>
-        <DialogContent centerMode="overlay" size="md" className="dialog-no-overflow">
+        <DialogContent className="dialog-overlay-center">
           <DialogHeader className="dialog-header">
             <DialogTitle className="text-overflow-safe">Pilih Rentang Tanggal</DialogTitle>
             <DialogDescription className="text-overflow-safe">
@@ -193,7 +193,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   locale={id}
                   className="mx-auto"
                 />
-                <div className="flex flex-col gap-2 mt-4 pt-4 border-t">
+                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-300">
                   <Button variant="outline" onClick={handleReset} className="input-mobile-safe">
                     <span className="text-overflow-safe">Reset</span>
                   </Button>
@@ -215,24 +215,26 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="p-0 w-auto" 
+        className="p-0 w-auto max-w-[95vw] max-h-[90vh] overflow-hidden" 
         align="start"
         side="bottom"
         sideOffset={4}
+        avoidCollisions={true}
+        collisionPadding={8}
       >
-        <div className="flex flex-col sm:flex-row bg-white border rounded-lg shadow-lg overflow-hidden min-w-0">
+        <div className="flex flex-col lg:flex-row bg-white border rounded-lg shadow-lg overflow-hidden max-w-full">
           {/* Preset buttons sidebar */}
-          <div className="w-full sm:w-44 flex-shrink-0 bg-gray-50 border-b sm:border-b-0 sm:border-r border-gray-200">
+          <div className="w-full lg:w-44 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-300">
             <div className="p-3">
               <h4 className="font-medium text-sm mb-2 text-gray-700">Pilih Cepat</h4>
-              <div className="space-y-1">
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
                 {PRESETS.map(({ label, key }) => (
                   <Button
                     key={key}
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePreset(key)}
-                    className="w-full justify-start text-sm h-8 px-2 hover:bg-white text-gray-600 hover:text-gray-900"
+                    className="w-full justify-start text-xs lg:text-sm h-7 lg:h-8 px-2 hover:bg-white text-gray-600 hover:text-gray-900"
                   >
                     {label}
                   </Button>
@@ -242,18 +244,20 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </div>
           
           {/* Calendar section */}
-          <div className="p-3 bg-white">
-            <Calendar
-              mode="range"
-              selected={calendarRange}
-              onSelect={handleCalendarChange}
-              numberOfMonths={isDesktop ? 2 : 1}
-              locale={id}
-              className=""
-            />
+          <div className="p-3 bg-white overflow-hidden">
+            <div className="max-w-full overflow-x-auto">
+              <Calendar
+                mode="range"
+                selected={calendarRange}
+                onSelect={handleCalendarChange}
+                numberOfMonths={isDesktop && window.innerWidth >= 1024 ? 2 : 1}
+                locale={id}
+                className="mx-auto"
+              />
+            </div>
             
             {/* Action buttons */}
-            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-300">
               <Button 
                 variant="outline" 
                 onClick={handleReset} 

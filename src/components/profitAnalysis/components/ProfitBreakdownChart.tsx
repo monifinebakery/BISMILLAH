@@ -134,7 +134,7 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
   };
 
   return (
-    <div className="bg-white p-3 border border-gray-200 rounded-lg">
+    <div className="bg-white p-3 border border-gray-300 rounded-lg">
       <p className="font-semibold text-gray-800 mb-2">{label}</p>
       {payload && payload.length > 0 && payload.map((entry: any, index: number) => {
         // Pastikan entry ada dan memiliki dataKey
@@ -170,7 +170,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
   if (!data || data.value === undefined) return null;
   
   return (
-    <div className="bg-white p-3 border border-gray-200 rounded-lg">
+    <div className="bg-white p-3 border border-gray-300 rounded-lg">
       <p className="font-semibold text-gray-800">{data.name || 'Unknown'}</p>
       <p className="text-sm text-gray-600">
         {formatCurrency(Number(data.value))} ({Number(data.percentage || 0).toFixed(1)}%)

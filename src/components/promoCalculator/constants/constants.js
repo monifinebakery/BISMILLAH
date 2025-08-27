@@ -47,9 +47,9 @@ export const STATUS_COLORS = {
     border: 'border-red-200'
   },
   [PROMO_STATUS.DRAFT]: {
-    bg: 'bg-gray-100',
+    bg: 'bg-gray-200',
     text: 'text-gray-800',
-    border: 'border-gray-200'
+    border: 'border-gray-300'
   }
 };
 

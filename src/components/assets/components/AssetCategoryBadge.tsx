@@ -27,7 +27,7 @@ export const AssetCategoryBadge: React.FC<AssetCategoryBadgeProps> = ({
       'Kendaraan': 'bg-green-100 text-green-800',
       'Bangunan': 'bg-purple-100 text-purple-800',
       'Mesin': 'bg-yellow-100 text-yellow-800',
-      'Lain-lain': 'bg-gray-100 text-gray-800',
+      'Lain-lain': 'bg-gray-200 text-gray-800',
     };
     return colors[cat] || colors['Lain-lain'];
   };

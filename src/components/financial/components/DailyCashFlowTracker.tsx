@@ -148,7 +148,7 @@ const DailyCashFlowTracker: React.FC<DailyCashFlowProps> = ({
               key={day.date} 
               className={cn(
                 "flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border gap-2",
-                index === dailyData.length - 1 ? "bg-gray-50 border-gray-200" : "bg-white"
+                index === dailyData.length - 1 ? "bg-gray-50 border-gray-300" : "bg-white"
               )}
             >
               <div className="flex items-center gap-3">

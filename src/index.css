@@ -108,7 +108,7 @@ This ensures they appear above ALL other UI elements.
   /* ---- MAIN DIALOG PANEL ---- */
   .dialog-panel {
     @apply w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl;
-    @apply border border-gray-200 dark:border-gray-700;
+    @apply border border-gray-300 dark:border-gray-700;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -121,7 +121,7 @@ This ensures they appear above ALL other UI elements.
   .dialog-content-centered {
     @apply fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2;
     @apply w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl;
-    @apply border border-gray-200 dark:border-gray-700;
+    @apply border border-gray-300 dark:border-gray-700;
     z-index: 75;
     max-height: 90dvh;
     overflow-y: auto;
@@ -129,7 +129,7 @@ This ensures they appear above ALL other UI elements.
 
   /* ---- DIALOG SECTIONS ---- */
   .dialog-header {
-    @apply px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700;
+    @apply px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-300 dark:border-gray-700;
     @apply bg-gray-50 dark:bg-gray-800/50;
     flex-shrink: 0;
   }
@@ -147,7 +147,7 @@ This ensures they appear above ALL other UI elements.
   }
   
   .dialog-footer {
-    @apply px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700;
+    @apply px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-300 dark:border-gray-700;
     @apply bg-gray-50 dark:bg-gray-800/50;
     flex-shrink: 0;
   }
@@ -304,12 +304,12 @@ This ensures they appear above ALL other UI elements.
 
   /* ---- FORM DIALOGS (Deprecated - use dialog-panel instead) ---- */
   .form-dialog {
-    @apply w-full max-w-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700;
+    @apply w-full max-w-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700;
     @apply rounded-xl shadow-xl p-6;
   }
   
   .form-dialog-large {
-    @apply w-full max-w-3xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700;
+    @apply w-full max-w-3xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700;
     @apply rounded-xl shadow-xl p-6;
   }
   

@@ -95,7 +95,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({ preview, onReset }) => {
                   <th className="px-3 py-2 text-left font-medium text-gray-500">Terakhir Diperbarui</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-300">
                 {preview.valid.slice(0, 5).map((item, i) => (
                   <tr key={i} className="hover:bg-gray-50">
                     <td className="px-3 py-2 font-medium">{item.nama}</td>

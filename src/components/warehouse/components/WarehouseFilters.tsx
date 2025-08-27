@@ -185,7 +185,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
   };
 
   return (
-    <div className="p-4 border-b border-gray-200 bg-white">
+    <div className="p-4 border-b border-gray-300 bg-white">
       {/* Top Row - Search & Main Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
         
@@ -216,7 +216,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
           
           {/* Search Suggestions (if needed) */}
           {searchTerm && searchFocused && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg z-10 max-h-40 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg z-10 max-h-40 overflow-y-auto">
               <div className="p-2 text-sm text-gray-500">
                 Pencarian: "{searchTerm}"
               </div>
@@ -386,7 +386,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
       )}
 
       {/* Bottom Row - Results Info & Settings */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-200">
         
         {/* Active Filters Display */}
         {activeFiltersCount > 0 && (

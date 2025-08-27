@@ -416,7 +416,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
     <div className="dialog-overlay-center p-2 sm:p-4">
       <div className="dialog-panel w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         {/* Header with Enhanced Debug Info */}
-        <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-200">
+        <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-300">
           <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
             <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
               <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
@@ -431,7 +431,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               
               {/* ✅ ENHANCED DEBUG: Show detailed user info */}
               {showDebugInfo && (
-                <div className="text-xs mt-2 bg-gray-100 p-2 rounded overflow-hidden">
+                <div className="text-xs mt-2 bg-gray-200 p-2 rounded overflow-hidden">
                   <div className="font-mono space-y-1">
                     <div className={`${currentUser.id === 'null' ? 'text-red-600' : 'text-green-600'} break-all`}>
                       <strong>User ID:</strong> {currentUser.id} ({typeof currentUser.id})
@@ -463,7 +463,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             <button
               onClick={() => handleClose(false)}
               disabled={isLinking}
-              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              className="p-1.5 sm:p-2 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
               title="Close (will reopen in 10 seconds)"
             >
               <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
@@ -532,7 +532,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                         className={`border rounded-lg p-3 sm:p-4 cursor-pointer transition-all ${
                           selectedPayments.some(p => p.order_id === payment.order_id)
                             ? 'border-orange-500 bg-orange-50'
-                            : 'border-gray-200 hover:border-gray-300'
+                            : 'border-gray-300 hover:border-gray-300'
                         }`}
                         onClick={() => handlePaymentToggle(payment)}
                       >
@@ -546,7 +546,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                                 className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 flex-shrink-0"
                                 onClick={(e) => e.stopPropagation()}
                               />
-                              <span className="font-mono text-xs sm:text-sm bg-gray-100 px-2 py-1 rounded break-all">
+                              <span className="font-mono text-xs sm:text-sm bg-gray-200 px-2 py-1 rounded break-all">
                                 {payment.order_id}
                               </span>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
@@ -659,7 +659,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-4 sm:p-6">
+        <div className="border-t border-gray-300 p-4 sm:p-6">
           {!showResults ? (
             <div className="space-y-3">
               <div className="text-xs sm:text-sm text-gray-500 text-center">
@@ -672,7 +672,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                 <button
                   onClick={() => handleClose(false)}
                   disabled={isLinking}
-                  className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 order-2 sm:order-1"
+                  className="flex-1 px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 order-2 sm:order-1"
                   title="Close temporarily (will reopen in 10s)"
                 >
                   Tutup Sementara

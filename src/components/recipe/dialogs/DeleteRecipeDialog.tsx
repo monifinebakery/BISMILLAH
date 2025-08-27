@@ -81,7 +81,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
             </p>
             
             {/* Recipe Summary Card */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-300">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <ChefHat className="w-4 h-4 text-orange-600" />
@@ -106,7 +106,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
               </div>
 
               {/* Recipe Stats */}
-              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-300">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-500" />
                   <div>
@@ -153,7 +153,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
               </div>
 
               {/* Ingredients Count */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="mt-4 pt-4 border-t border-gray-300">
                 <p className="text-sm text-gray-600">
                   <span className="font-medium">{recipe.bahanResep.length}</span> bahan akan ikut terhapus
                 </p>
@@ -182,7 +182,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
           {/* Confirmation Input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ketik <code className="bg-gray-100 px-2 py-1 rounded text-red-600 font-mono">
+              Ketik <code className="bg-gray-200 px-2 py-1 rounded text-red-600 font-mono">
                 {expectedConfirmText}
               </code> untuk mengonfirmasi:
             </label>

@@ -25,10 +25,10 @@ const StockItemRow: React.FC<{
   if (isLoading) {
     return (
       <div className="p-4 animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
         <div className="flex justify-between">
-          <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-3 bg-gray-300 rounded w-1/3"></div>
+          <div className="h-3 bg-gray-300 rounded w-1/4"></div>
         </div>
       </div>
     );
@@ -81,7 +81,7 @@ const StockItemRow: React.FC<{
       
       {/* 📊 Progress Bar */}
       <div className="mt-3">
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-300 rounded-full h-2">
           <div 
             className={`h-2 rounded-full transition-all duration-300 ${
               isOutOfStock 
@@ -117,7 +117,7 @@ const StockSummary: React.FC<{ items: StockItem[] }> = ({ items }) => {
   if (items.length === 0) return null;
 
   return (
-    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+    <div className="px-4 py-3 bg-gray-50 border-b border-gray-300">
       <div className="flex gap-4 text-sm">
         {stats.outOfStock > 0 && (
           <span className="text-red-600 font-medium">
@@ -159,7 +159,7 @@ const CriticalStock: React.FC<Props> = ({ items, isLoading }) => {
   return (
     <Card className="bg-white border">
       {/* ⚠️ Header */}
-      <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 border-b border-gray-100 p-4">
+      <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 border-b border-gray-200 p-4">
         <CardTitle className="flex items-center gap-2 text-red-600 text-lg">
           <Warehouse className="h-5 w-5" />
           <span>Stok Kritis</span>
@@ -176,7 +176,7 @@ const CriticalStock: React.FC<Props> = ({ items, isLoading }) => {
 
       {/* 📦 Content */}
       <CardContent className="p-0">
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-gray-300">
           {displayItems.length > 0 ? (
             displayItems.map((item, index) => {
               const key = generateListKey('stock', item.id, index, 'critical');

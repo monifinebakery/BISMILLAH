@@ -82,7 +82,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                 <TableRow key={i}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((j) => (
                     <TableCell key={j}>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-300 rounded animate-pulse"></div>
                     </TableCell>
                   ))}
                 </TableRow>

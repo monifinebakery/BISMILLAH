@@ -83,7 +83,7 @@ const DashboardHeader: React.FC<Props> = ({
               
               <Suspense 
                 fallback={
-                  <div className="w-full lg:w-[320px] h-12 bg-gray-100 rounded-xl border-2 border-gray-200 flex items-center justify-center">
+                  <div className="w-full lg:w-[320px] h-12 bg-gray-200 rounded-xl border-2 border-gray-300 flex items-center justify-center">
                     <span className="text-gray-500 text-sm">Memuat kalender...</span>
                   </div>
                 }

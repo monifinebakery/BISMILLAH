@@ -130,7 +130,7 @@ const NotificationBell = () => {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="relative hover:bg-gray-100 transition-colors" 
+          className="relative hover:bg-gray-200 transition-colors" 
           title="Notifikasi"
         >
           <Bell className="h-5 w-5" />
@@ -149,7 +149,7 @@ const NotificationBell = () => {
       </PopoverTrigger>
       
       <PopoverContent 
-        className="w-96 p-0 border-gray-200 rounded-lg" 
+        className="w-96 p-0 border-gray-300 rounded-lg" 
         align="end" 
         sideOffset={8}
       >
@@ -205,7 +205,7 @@ const NotificationBell = () => {
                 scrollbarColor: '#CBD5E1 #F1F5F9' 
               }}
             >
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-200">
                 {notifications.map((notification) => (
                   <div 
                     key={notification.id} 

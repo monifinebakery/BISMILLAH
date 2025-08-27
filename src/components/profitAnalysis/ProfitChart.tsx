@@ -92,7 +92,7 @@ export function ProfitChart({
     if (active && payload && payload.length) {
       const currentYear = new Date().getFullYear();
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg border-gray-200">
+        <div className="bg-white p-3 border rounded-lg shadow-lg border-gray-300">
           <p className="font-semibold text-gray-900 mb-2 text-sm">{label} {currentYear}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm flex items-center gap-2" style={{ color: entry.color }}>
@@ -120,12 +120,12 @@ export function ProfitChart({
       <Card className={className}>
         <CardHeader>
           <div className="animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-48 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-32"></div>
+            <div className="h-6 bg-gray-300 rounded w-48 mb-2"></div>
+            <div className="h-4 bg-gray-300 rounded w-32"></div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse h-64 bg-gray-200 rounded"></div>
+          <div className="animate-pulse h-64 bg-gray-300 rounded"></div>
         </CardContent>
       </Card>
     );

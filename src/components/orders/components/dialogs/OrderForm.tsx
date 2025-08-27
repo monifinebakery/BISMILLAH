@@ -164,7 +164,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
       isEnhanced: false,
       label: 'Standard HPP',
       icon: Calculator,
-      className: 'text-gray-600 bg-gray-50 border-gray-200'
+      className: 'text-gray-600 bg-gray-50 border-gray-300'
     };
   };
 

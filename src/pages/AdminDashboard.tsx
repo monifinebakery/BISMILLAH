@@ -295,7 +295,7 @@ const AdminDashboard = () => {
                         {user.user_payments?.[0]?.is_paid ? (
                           <Badge className="bg-green-100 text-green-800">Premium</Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-800">Free</Badge>
+                          <Badge className="bg-gray-200 text-gray-800">Free</Badge>
                         )}
                       </TableCell>
                       <TableCell>

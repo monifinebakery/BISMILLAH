@@ -31,7 +31,7 @@ const BreakdownTabContent: React.FC<BreakdownTabContentProps> = ({
 }) => {
   return (
     <TabsContent value="breakdown" className="space-y-4 sm:space-y-6 mt-6">
-      <React.Suspense fallback={<div className="animate-pulse bg-gray-200 h-96 rounded-lg" />}>
+      <React.Suspense fallback={<div className="animate-pulse bg-gray-300 h-96 rounded-lg" />}>
         <DetailedBreakdownTable
           currentAnalysis={currentAnalysis}
           isLoading={isLoading}

@@ -165,7 +165,7 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
               ))}
             </div>
             <div className="mt-4">
-              <div className="flex h-2 overflow-hidden rounded-full bg-gray-200">
+              <div className="flex h-2 overflow-hidden rounded-full bg-gray-300">
                 <div className="bg-green-500 transition-all duration-300" style={{ width: `${norm(highP)}%` }} />
                 <div className="bg-yellow-500 transition-all duration-300" style={{ width: `${norm(medP)}%` }} />
                 <div className="bg-red-500 transition-all duration-300" style={{ width: `${norm(lowP)}%` }} />

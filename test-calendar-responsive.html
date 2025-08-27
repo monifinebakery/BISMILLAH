@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Calendar Responsiveness</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+        .description {
+            color: #6b7280;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .improvements {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .improvements h3 {
+            color: #92400e;
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .improvements ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #92400e;
+        }
+        .improvements li {
+            margin-bottom: 6px;
+        }
+        .responsive-notes {
+            background: #dcfce7;
+            border: 1px solid #22c55e;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .responsive-notes h3 {
+            color: #15803d;
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .responsive-notes ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #15803d;
+        }
+        .responsive-notes li {
+            margin-bottom: 6px;
+        }
+        .screen-sizes {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-top: 24px;
+        }
+        @media (min-width: 768px) {
+            .screen-sizes {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (min-width: 1024px) {
+            .screen-sizes {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        .screen-size-card {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .screen-size-card h4 {
+            color: #475569;
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .screen-size-card p {
+            color: #64748b;
+            margin: 0;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">📅 Kalender Responsif - Perbaikan Desktop</h1>
+        
+        <p class="description">
+            Layout kalender telah diperbaiki untuk memberikan pengalaman yang lebih baik di semua ukuran layar, 
+            terutama pada desktop. Berikut adalah perbaikan yang telah dilakukan:
+        </p>
+
+        <div class="improvements">
+            <h3>🚀 Perbaikan yang Dilakukan:</h3>
+            <ul>
+                <li><strong>Layout Desktop:</strong> Menggunakan breakpoint XL (1280px+) untuk layout yang lebih luas</li>
+                <li><strong>Ukuran Minimum:</strong> Calendar sekarang memiliki lebar minimum 700px di desktop</li>
+                <li><strong>Preset Buttons:</strong> Sidebar preset dengan lebar 192px (12rem) untuk desktop</li>
+                <li><strong>Spacing:</strong> Padding yang lebih besar (16px) untuk tampilan yang tidak terlalu sempit</li>
+                <li><strong>Dual Calendar:</strong> Menampilkan 2 bulan sekaligus pada layar sangat lebar (1280px+)</li>
+                <li><strong>Button Styling:</strong> Tombol action dengan warna orange yang konsisten dengan tema</li>
+                <li><strong>Cell Size:</strong> Calendar cells diperbesar menjadi 40x40px untuk klik yang lebih mudah</li>
+                <li><strong>Hover Effects:</strong> Animasi transisi yang halus pada semua interactive elements</li>
+            </ul>
+        </div>
+
+        <div class="responsive-notes">
+            <h3>📱 Responsivitas Berdasarkan Layar:</h3>
+            <ul>
+                <li><strong>Mobile (< 1024px):</strong> Dialog full-screen dengan single calendar month</li>
+                <li><strong>Tablet/iPad (1024px - 1279px):</strong> Popover dengan single calendar month</li>
+                <li><strong>Desktop (1280px+):</strong> Popover lebar dengan dual calendar months</li>
+            </ul>
+        </div>
+
+        <div class="screen-sizes">
+            <div class="screen-size-card">
+                <h4>📱 Mobile</h4>
+                <p>< 1024px<br>Dialog mode, single month</p>
+            </div>
+            <div class="screen-size-card">
+                <h4>📟 Tablet/iPad</h4>
+                <p>1024px - 1279px<br>Popover, single month</p>
+            </div>
+            <div class="screen-size-card">
+                <h4>🖥️ Desktop</h4>
+                <p>≥ 1280px<br>Popover lebar, dual months</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; text-align: center; margin: 0;">
+                ✅ Kalender sekarang sudah responsive di semua ukuran layar dengan layout yang optimal untuk desktop!
+            </p>
+        </div>
+    </div>
+</body>
+</html>

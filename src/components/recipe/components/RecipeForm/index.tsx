@@ -454,7 +454,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
               </div>
             ))}
           </div>
-        </CardHeader>
+        </DialogHeader>
 
         {/* Content with extra bottom padding for mobile */}
         <CardContent 

@@ -83,28 +83,28 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
       <DialogContent className="dialog-overlay-center">
         <div className="dialog-panel w-full max-w-lg">
           <DialogHeader className="dialog-header-pad border-b border-gray-200 bg-blue-50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Copy className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Copy className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-blue-900">
+                  Duplikasi Resep
+                </h2>
+                <p className="text-sm text-blue-700">
+                  Buat salinan resep dengan nama baru
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-blue-900">
-                Duplikasi Resep
-              </h2>
-              <p className="text-sm text-blue-700">
-                Buat salinan resep dengan nama baru
-              </p>
-            </div>
+            <Button
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </DialogHeader>
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-            className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
 
         <CardContent className="p-6 max-h-[70vh] overflow-y-auto">
           {/* Original Recipe Info */}
@@ -285,7 +285,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
               )}
             </Button>
           </div>
-        </div>
+        </CardContent>
         </div>
       </DialogContent>
     </Dialog>

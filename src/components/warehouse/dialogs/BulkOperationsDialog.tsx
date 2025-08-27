@@ -486,7 +486,6 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
               )}
             </Button>
           </DialogFooter>
-        </div>
       </DialogContent>
     </Dialog>
   );

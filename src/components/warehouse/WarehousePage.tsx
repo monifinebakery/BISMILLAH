@@ -194,29 +194,30 @@ const DialogManager = lazy(() =>
         <div className="dialog-overlay-center">
           <div className="dialog-panel max-w-md">
             <div className="dialog-body">
-            <h3 className="text-lg font-semibold mb-4 text-red-600">
-              ⚠️ Dialog System Unavailable
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Dialog tidak bisa dimuat. Refresh halaman atau tutup dialog.
-            </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => window.location.reload()}
-                className="flex-1 bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors"
-              >
-                Refresh
-              </button>
-              <button
-                onClick={() => {
-                  if (dialogs?.close && dialogs.states) {
-                    Object.keys(dialogs.states).forEach(key => dialogs.close(key));
-                  }
-                }}
-                className="flex-1 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
-              >
-                Tutup
-              </button>
+              <h3 className="text-lg font-semibold mb-4 text-red-600">
+                ⚠️ Dialog System Unavailable
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Dialog tidak bisa dimuat. Refresh halaman atau tutup dialog.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="flex-1 bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors"
+                >
+                  Refresh
+                </button>
+                <button
+                  onClick={() => {
+                    if (dialogs?.close && dialogs.states) {
+                      Object.keys(dialogs.states).forEach(key => dialogs.close(key));
+                    }
+                  }}
+                  className="flex-1 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -258,8 +259,9 @@ const DialogSkeleton = () => (
   <div className="dialog-overlay-center">
     <div className="dialog-panel flex flex-col items-center min-w-[200px]">
       <div className="dialog-body">
-      <LoadingSpinner />
-      <p className="text-gray-600 text-sm mt-3">Memuat dialog...</p>
+        <LoadingSpinner />
+        <p className="text-gray-600 text-sm mt-3">Memuat dialog...</p>
+      </div>
     </div>
   </div>
 );

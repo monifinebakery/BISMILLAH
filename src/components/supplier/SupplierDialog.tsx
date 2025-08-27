@@ -36,18 +36,22 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dialog-responsive form-dialog">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl font-bold text-gray-800">
-            {supplier ? 'Edit Supplier' : 'Tambah Supplier'}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <SupplierForm
-          supplier={supplier}
-          onSuccess={handleSuccess}
-          onCancel={handleCancel}
-        />
+      <DialogContent centerMode="overlay" className="dialog-overlay-center">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle className="text-lg sm:text-xl font-bold text-gray-800">
+              {supplier ? 'Edit Supplier' : 'Tambah Supplier'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="dialog-body">
+            <SupplierForm
+              supplier={supplier}
+              onSuccess={handleSuccess}
+              onCancel={handleCancel}
+            />
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

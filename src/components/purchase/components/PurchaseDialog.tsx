@@ -260,35 +260,37 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
-      <DialogContent className="dialog-responsive form-dialog-large">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-              <ShoppingCart className="w-4 h-4 text-orange-600" />
-            </div>
-            <div>
-              <span className="text-xl">
-                {mode === 'create' ? 'Tambah Pembelian' : 
-                 mode === 'edit' ? 'Edit Pembelian' : 'Detail Pembelian'}
-              </span>
-              {purchase && (
-                <Badge className={`${statusClassMap[purchase.status]} ml-2 text-xs`}>
-                  {purchase.status === 'pending' ? 'Menunggu' : 
-                   purchase.status === 'completed' ? 'Selesai' : 'Dibatalkan'}
-                </Badge>
-              )}
-            </div>
-          </DialogTitle>
-          <DialogDescription>
-            {mode === 'create' 
-              ? 'Tambah pembelian baru dan kelola item bahan baku' 
-              : mode === 'edit' 
-                ? 'Edit detail pembelian dan item bahan baku'
-                : 'Lihat detail pembelian'}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent centerMode="overlay" className="dialog-overlay-center">
+        <div className="dialog-panel">
+          <DialogHeader className="dialog-header-pad">
+            <DialogTitle className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                <ShoppingCart className="w-4 h-4 text-orange-600" />
+              </div>
+              <div>
+                <span className="text-xl">
+                  {mode === 'create' ? 'Tambah Pembelian' :
+                   mode === 'edit' ? 'Edit Pembelian' : 'Detail Pembelian'}
+                </span>
+                {purchase && (
+                  <Badge className={`${statusClassMap[purchase.status]} ml-2 text-xs`}>
+                    {purchase.status === 'pending' ? 'Menunggu' :
+                     purchase.status === 'completed' ? 'Selesai' : 'Dibatalkan'}
+                  </Badge>
+                )}
+              </div>
+            </DialogTitle>
+            <DialogDescription>
+              {mode === 'create'
+                ? 'Tambah pembelian baru dan kelola item bahan baku'
+                : mode === 'edit'
+                  ? 'Edit detail pembelian dan item bahan baku'
+                  : 'Lihat detail pembelian'}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-6">
+          <div className="dialog-body">
+            <div className="space-y-6">
           {/* Header Form - Supplier dan Tanggal */}
           <Card className="border-gray-200">
             <CardHeader className="pb-4">
@@ -488,8 +490,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <div className="text-right">
                   <p className="text-sm text-gray-600">{formData.items.length} Item</p>
                   <p className="text-sm text-gray-500">
-                    {formData.supplier 
-                      ? `Supplier: ${suppliers.find(s => s.id === formData.supplier)?.nama || 'Tidak diketahui'}` 
+                    {formData.supplier
+                      ? `Supplier: ${suppliers.find(s => s.id === formData.supplier)?.nama || 'Tidak diketahui'}`
                       : 'Supplier belum dipilih'}
                   </p>
                 </div>
@@ -498,9 +500,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           </Card>
         </div>
 
+        </div>
+
         {/* Footer Actions */}
         {mode !== 'view' && canEdit && (
-          <DialogFooter className="gap-3 sm:space-x-0">
+          <DialogFooter className="dialog-footer-pad gap-3 sm:space-x-0">
             <Button
               type="button"
               variant="outline"
@@ -547,6 +551,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             )}
           </DialogFooter>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

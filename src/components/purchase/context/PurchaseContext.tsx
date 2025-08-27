@@ -224,7 +224,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         );
         
         if (existingBahanBaku) {
-          console.log('🔄 [BAHAN BAKU] Reusing existing bahan baku:', existingBahanBaku.nama);
           results.push({ ...item, bahanBakuId: existingBahanBaku.id });
           continue;
         }
@@ -303,8 +302,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryKey: purchaseQueryKeys.list(user?.id),
     queryFn: () => fetchPurchases(user!.id),
     enabled: !!user?.id,
-    staleTime: 0, // ✅ FIXED: Set to 0 for immediate refresh
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 2 * 60 * 1000, // ✅ OPTIMIZED: 2 minute cache for better performance
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     retry: (count, err: any) => {
       const code = err?.code ?? err?.status;
       return code && code >= 400 && code < 500 ? false : count < 3;
@@ -437,8 +436,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.log('✅ Update mutation success:', fresh.id);
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
-      // ✅ INVALIDATE WAREHOUSE
-      invalidateWarehouseData();
+      // ✅ OPTIMIZED: Only invalidate warehouse if items changed
+      if (_vars.updates.items || _vars.updates.status) {
+        invalidateWarehouseData();
+      }
 
       toast.success('Pembelian diperbarui. (Stok akan disesuaikan otomatis bila diperlukan)');
     },

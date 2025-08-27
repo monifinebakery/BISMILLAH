@@ -39,7 +39,7 @@ interface DateRangePickerProps {
   isMobile?: boolean;
 }
 
-// Quick presets
+// quick presets
 const PRESETS = [
   { label: "Hari Ini", key: "today" },
   { label: "7 Hari", key: "week" },
@@ -80,12 +80,9 @@ const formatRange = (range?: DateRange) => {
   return from === to ? from : `${from} - ${to}`;
 };
 
+// ✅ hook untuk deteksi desktop
 const useIsDesktop = () => {
-  const [isDesktop, setIsDesktop] = React.useState<boolean>(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(min-width: 1024px)").matches
-      : false
-  );
+  const [isDesktop, setIsDesktop] = React.useState(false);
   React.useEffect(() => {
     const mql = window.matchMedia("(min-width: 1024px)");
     const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
@@ -111,15 +108,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const handleCalendarChange = React.useCallback(
     (newRange: any) => {
       if (!onDateRangeChange) return;
-
       if (!newRange) {
         onDateRangeChange(undefined);
         return;
       }
-
       const from = safeParseDate(newRange.from);
       const to = safeParseDate(newRange.to || newRange.from);
-
       if (from && to && isValidDate(from) && isValidDate(to)) {
         onDateRangeChange({ from, to });
         onPageChange?.(1);
@@ -190,13 +184,13 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     </div>
   );
 
+  // 📱 mode mobile pakai dialog
   if (isMobile) {
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           <Button {...buttonProps}>{content}</Button>
         </DialogTrigger>
-        {/* gunakan dialog center pattern baru kalau sudah ada */}
         <DialogContent centerMode="overlay" className="dialog-overlay-center">
           <div className="dialog-panel">
             <DialogHeader className="dialog-header-pad">
@@ -231,13 +225,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     );
   }
 
+  // 💻 mode desktop pakai popover
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
-
-      {/* ⬇️ Popover lebar fix: cukup buat sidebar + 2 kalender */}
       <PopoverContent
         side="bottom"
         align="start"
@@ -247,19 +240,19 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         className="p-0 w-[min(92vw,720px)] min-w-[360px] max-h-[90vh] overflow-hidden"
       >
         <div className="flex flex-col lg:flex-row bg-white border rounded-lg shadow-lg overflow-hidden w-full">
-          {/* Sidebar preset */}
+          {/* sidebar preset */}
           <div className="w-full lg:w-40 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r">
             <PresetButtons />
           </div>
 
-          {/* Kalender + aksi */}
+          {/* kalender + tombol */}
           <div className="p-3 md:p-4 bg-white overflow-hidden flex-1">
             <div className="max-w-full overflow-x-auto">
               <Calendar
                 mode="range"
                 selected={calendarRange}
                 onSelect={handleCalendarChange}
-                numberOfMonths={isDesktop ? 2 : 1}
+                numberOfMonths={isDesktop ? 2 : 1} // ✅ desktop pasti 2 bulan
                 locale={id}
                 className="mx-auto"
               />

@@ -224,7 +224,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           {/* ✅ Verification indicator */}
           {isVerifying && (
             <div className="absolute right-3 top-3">
-              <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="animate-spin h-4 w-4 border border-blue-500 border-t-transparent rounded-full"></div>
             </div>
           )}
           
@@ -296,7 +296,7 @@ const OrderConfirmationPopup = ({ isOpen, onClose, onSuccess }: OrderConfirmatio
           >
             {isLoading ? (
               <span className="flex items-center justify-center">
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                <div className="animate-spin h-4 w-4 border border-white border-t-transparent rounded-full mr-2"></div>
                 Menghubungkan...
               </span>
             ) : (

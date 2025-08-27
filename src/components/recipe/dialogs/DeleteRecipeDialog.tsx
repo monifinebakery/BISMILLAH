@@ -227,7 +227,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
             >
               {isLoading ? (
                 <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  <div className="animate-spin h-4 w-4 border border-white border-t-transparent rounded-full mr-2" />
                   Menghapus...
                 </>
               ) : (

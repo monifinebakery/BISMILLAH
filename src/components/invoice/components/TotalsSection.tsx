@@ -30,7 +30,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
 }) => {
   return (
     <div className={className}>
-      <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border-2 border-gray-500">
+      <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-500">
         <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">
           Ringkasan Pembayaran
         </h3>
@@ -119,7 +119,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
           </div>
           
           {/* Grand Total */}
-          <div className="border-t-2 border-gray-500 pt-3 sm:pt-4 mt-3 sm:mt-4">
+          <div className="border-t border-gray-500 pt-3 sm:pt-4 mt-3 sm:mt-4">
             <div className="flex justify-between items-center bg-blue-50 p-3 sm:p-4 rounded-lg">
               <span className="text-base sm:text-xl font-bold text-gray-800">
                 GRAND TOTAL

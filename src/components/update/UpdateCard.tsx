@@ -82,7 +82,7 @@ export const UpdateCard: React.FC<UpdateCardProps> = ({ update, isLatest = false
   return (
     <div
       className={`relative bg-white rounded-lg border transition-all duration-200 ${
-        isUnseen ? `${config.borderColor} border-l-4` : 'border-gray-500 hover:border-gray-500'
+        isUnseen ? `${config.borderColor} border-l` : 'border-gray-500 hover:border-gray-500'
       }`}
       onClick={handleMarkAsSeen} // Klik card untuk tandai sebagai sudah dibaca
     >

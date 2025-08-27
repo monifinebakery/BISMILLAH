@@ -130,7 +130,7 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
                 
                 <div className="border-t border-gray-500 my-4"></div>
                 
-                <div className="flex justify-between items-center text-xl font-bold text-gray-800 bg-white rounded-lg p-4 border-2 border-blue-200">
+                <div className="flex justify-between items-center text-xl font-bold text-gray-800 bg-white rounded-lg p-4 border border-blue-200">
                   <span>Total</span>
                   <span className="font-mono text-blue-600">{formatCurrency(order.totalPesanan)}</span>
                 </div>

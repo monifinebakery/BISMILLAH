@@ -95,7 +95,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
+        <div className="p-8 text-center border border-dashed border-red-200 rounded-lg bg-red-50">
           <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat komponen</div>
           
           <div className="text-left bg-red-100 p-4 rounded mb-4 max-w-md mx-auto">
@@ -224,7 +224,7 @@ const PromoCalculatorLayout = () => {
     buttonSecondary: "flex items-center space-x-2 border border-gray-500 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors",
     containerLayout: "min-h-screen bg-gray-50",
     mainContent: "w-full px-4 sm:px-6 lg:px-8 py-8",
-    loadingSpinner: "animate-spin rounded-full border-t-2 border-b-2 border-orange-500",
+    loadingSpinner: "animate-spin rounded-full border-t border-b border-orange-500",
     card: "bg-white p-6 rounded-xl border border-gray-500"
   };
 
@@ -307,7 +307,7 @@ const PromoCalculatorLayout = () => {
 
   // Error Display Component
   const ErrorDisplay = ({ title = "Error", message, onRetry }) => (
-    <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
+    <div className="p-8 text-center border border-dashed border-red-200 rounded-lg bg-red-50">
       <div className="text-red-500 text-lg mb-2">⚠️ {title}</div>
       <p className="text-gray-600 text-sm mb-4">{message}</p>
       <div className="space-x-2">
@@ -347,7 +347,7 @@ const PromoCalculatorLayout = () => {
       </div>
 
       {promos.length > 0 && (
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white border-2 border-orange-400">
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white border border-orange-400">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold mb-2">Siap membuat promo baru?</h3>
@@ -357,7 +357,7 @@ const PromoCalculatorLayout = () => {
             </div>
             <button
               onClick={onCreateNew}
-              className="bg-white text-orange-600 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors border-2 border-white hover:border-orange-100"
+              className="bg-white text-orange-600 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors border border-white hover:border-orange-100"
             >
               Mulai Sekarang
             </button>

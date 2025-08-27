@@ -537,7 +537,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent flex-shrink-0"></div>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border border-white border-t-transparent flex-shrink-0"></div>
                         <span className="text-overflow-safe">Menyimpan...</span>
                       </>
                     ) : (

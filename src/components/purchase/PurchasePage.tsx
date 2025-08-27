@@ -28,7 +28,7 @@ import {
 const PurchaseTable = React.lazy(() => 
   import('./components/PurchaseTable').catch(() => ({
     default: () => (
-      <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg">
+      <div className="p-8 text-center border border-dashed border-red-200 rounded-lg">
         <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat tabel</div>
         <p className="text-gray-600 text-sm">Silakan refresh halaman atau hubungi admin</p>
       </div>
@@ -119,7 +119,7 @@ const initialAppState: AppState = {
 const AppLoader = ({ message = "Memuat..." }: { message?: string }) => (
   <div className="flex items-center justify-center py-12">
     <div className="flex flex-col items-center gap-3">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b border-orange-500"></div>
       <p className="text-sm text-gray-600">{message}</p>
     </div>
   </div>
@@ -378,7 +378,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {(purchaseContext.isProcessing || appState.ui.isDeleting) && (
         <div className="dialog-overlay-center bg-opacity-10 pointer-events-none">
           <div className="absolute top-4 right-4 bg-white rounded-lg border p-3 flex items-center gap-2">
-            <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+            <div className="animate-spin h-4 w-4 border border-blue-600 border-t-transparent rounded-full" />
             <span className="text-sm text-gray-700">
               {appState.ui.isDeleting ? 'Menghapus pembelian...' : 'Mengupdate status...'}
             </span>

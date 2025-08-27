@@ -189,7 +189,7 @@ const SummaryCards: React.FC<{
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((card, index) => (
-        <Card key={index} className="border-l-4 border-blue-500">
+        <Card key={index} className="border-l border-blue-500">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-medium flex items-center gap-2">

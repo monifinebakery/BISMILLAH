@@ -298,7 +298,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
       </Card>
 
       {/* Profitability Assessment - keeping existing */}
-      <Card className={`border-2 ${profitabilityColors.border} ${profitabilityColors.bg}`}>
+      <Card className={`border ${profitabilityColors.border} ${profitabilityColors.bg}`}>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <TrendingUp className={`h-5 w-5 ${

@@ -191,7 +191,7 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
                 key={supplier.id}
                 className={cn(
                   "hover:bg-orange-50/50 transition-colors border-b border-gray-400",
-                  selectedIds.includes(supplier.id) && "bg-blue-50 border-l-4 border-l-blue-500",
+                  selectedIds.includes(supplier.id) && "bg-blue-50 border-l border-l-blue-500",
                   index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                 )}
               >

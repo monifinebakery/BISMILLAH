@@ -73,7 +73,7 @@ export const InteractiveLegend: React.FC<InteractiveLegendProps> = ({
               onMouseLeave={() => onHoverMetric(null)}
             >
               <div 
-                className={`w-3 h-3 rounded-full border-2 transition-all ${
+                className={`w-3 h-3 rounded-full border transition-all ${
                   isHidden ? 'border-gray-400' : 'border-current'
                 }`}
                 style={{ 

@@ -132,7 +132,7 @@ export const AnomalyDisplay: React.FC<AnomalyDisplayProps> = ({
               <div className="text-green-600 font-medium">✓ Tidak ada anomali terdeteksi</div>
             ) : (
               advancedAnalytics.anomalies.anomalies.map((anomaly, i) => (
-                <div key={i} className={`p-2 rounded border-l-2 ${
+                <div key={i} className={`p-2 rounded border-l ${
                   anomaly.severity === 'high' ? 'border-red-500 bg-red-50' :
                   anomaly.severity === 'medium' ? 'border-yellow-500 bg-yellow-50' :
                   'border-blue-500 bg-blue-50'

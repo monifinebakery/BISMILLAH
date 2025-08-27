@@ -51,7 +51,7 @@ const StockItemRow: React.FC<{
   }
 
   return (
-    <div className={`p-4 hover:${statusBg} transition-colors border-l-4 ${
+    <div className={`p-4 hover:${statusBg} transition-colors border-l ${
       isOutOfStock 
         ? 'border-red-500' 
         : isCritical 

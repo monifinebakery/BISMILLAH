@@ -14,9 +14,9 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
   const { settings } = useUserSettings();
   
   return (
-    <div className={`bg-white border-2 border-gray-800 max-w-4xl mx-auto ${className}`} id="classic-invoice">
+    <div className={`bg-white border border-gray-800 max-w-4xl mx-auto ${className}`} id="classic-invoice">
       {/* Header */}
-      <div className="border-b-2 border-gray-800 p-8">
+      <div className="border-b border-gray-800 p-8">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -99,7 +99,7 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
       </div>
 
       {/* Footer */}
-      <div className="border-t-2 border-gray-800 p-8 text-center">
+      <div className="border-t border-gray-800 p-8 text-center">
         <p className="text-lg font-semibold">TERIMA KASIH ATAS KEPERCAYAAN ANDA</p>
       </div>
     </div>

@@ -142,7 +142,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                       checked={selectedIds.has(recipe.id)}
                       onCheckedChange={() => onSelectionChange?.(recipe.id)}
                       aria-label={`Pilih resep ${recipe.namaResep}`}
-                      className="bg-white border-2 border-white shadow-sm"
+                      className="bg-white border border-white shadow-sm"
                     />
                   </div>
                 )}
@@ -313,7 +313,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
       {isLoading && (
         <div className="pointer-events-none fixed inset-0 flex items-center justify-center bg-white/80 z-50">
           <div className="flex items-center gap-2 text-gray-600">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+            <div className="h-4 w-4 animate-spin rounded-full border border-orange-500 border-t-transparent" />
             Memproses...
           </div>
         </div>

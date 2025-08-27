@@ -472,7 +472,7 @@ const PromoList = () => {
           <Card className="border-blue-200 bg-blue-50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                <div className="animate-spin h-4 w-4 border border-blue-600 border-t-transparent rounded-full"></div>
                 <p className="text-blue-800 font-medium">
                   Memproses operasi...
                 </p>

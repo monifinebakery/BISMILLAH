@@ -315,7 +315,7 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
       {isLoading && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/80">
           <div className="flex items-center gap-2 text-gray-600">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+            <div className="h-4 w-4 animate-spin rounded-full border border-orange-500 border-t-transparent" />
             Memproses...
           </div>
         </div>

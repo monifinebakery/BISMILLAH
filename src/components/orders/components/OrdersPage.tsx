@@ -46,7 +46,7 @@ const OrderTable = React.lazy(() =>
     logger.error('Failed to load OrderTable component:', error);
     return {
       default: () => (
-        <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg">
+        <div className="p-8 text-center border border-dashed border-red-200 rounded-lg">
           <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat tabel pesanan</div>
           <p className="text-gray-600 text-sm">Silakan refresh halaman atau hubungi admin</p>
         </div>

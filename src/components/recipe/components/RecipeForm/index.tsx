@@ -527,7 +527,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                   >
                     {isLoading ? (
                       <>
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2 flex-shrink-0" />
+                        <div className="animate-spin h-4 w-4 border border-white border-t-transparent rounded-full mr-2 flex-shrink-0" />
                         <span className="text-overflow-safe">Menyimpan...</span>
                       </>
                     ) : (

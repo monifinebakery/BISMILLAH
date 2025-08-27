@@ -47,7 +47,7 @@ const renderCustomizedLabel = ({
 const CategoryLoadingSkeleton = () => (
   <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
     <div className="text-center">
-      <div className="animate-spin h-6 w-6 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+      <div className="animate-spin h-6 w-6 border border-orange-500 border-t-transparent rounded-full mx-auto mb-2"></div>
       <p className="text-gray-500 text-sm">Memuat kategori...</p>
     </div>
   </div>

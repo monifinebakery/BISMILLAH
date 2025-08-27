@@ -57,7 +57,7 @@ const PromoTypeSelector = ({ selectedType, onTypeChange, onFormSubmit, isCalcula
                 key={type.id}
                 onClick={() => onTypeChange(type.id)}
                 className={`
-                  p-4 rounded-lg border-2 text-left transition-all
+                  p-4 rounded-lg border text-left transition-all
                   ${isSelected 
                     ? type.color 
                     : 'bg-white border-gray-500 hover:border-gray-500'
@@ -84,7 +84,7 @@ const PromoTypeSelector = ({ selectedType, onTypeChange, onFormSubmit, isCalcula
           
           <Suspense fallback={
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mr-2"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b border-orange-500 mr-2"></div>
               <span className="text-gray-600">Memuat form {selectedPromoType.name}...</span>
             </div>
           }>

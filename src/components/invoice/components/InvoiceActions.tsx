@@ -20,7 +20,7 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
   className = ''
 }) => {
   return (
-    <Card className={`print:hidden border-2 border-gray-500 ${className}`}>
+    <Card className={`print:hidden border border-gray-500 ${className}`}>
       <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">

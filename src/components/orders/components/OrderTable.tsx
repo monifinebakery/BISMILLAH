@@ -394,7 +394,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
     return (
       <div className="bg-white rounded-xl border border-gray-500/80 overflow-hidden">
         <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b border-orange-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Memuat pesanan...</p>
         </div>
       </div>
@@ -463,7 +463,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 key={order.id}
                 className={`
                   hover:bg-gray-50 cursor-pointer transition-colors duration-150
-                  ${selectedIds.includes(order.id) ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''}
+                  ${selectedIds.includes(order.id) ? 'bg-orange-50 border-l border-l-orange-500' : ''}
                   ${isSelectionMode ? 'hover:bg-orange-50' : ''}
                 `}
                 onClick={(e) => handleRowClick(order, e)}

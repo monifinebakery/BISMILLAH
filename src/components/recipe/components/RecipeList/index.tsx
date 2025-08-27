@@ -380,7 +380,7 @@ const RecipeList: React.FC = () => {
           <div className="dialog-overlay-center z-50">
             <div className="dialog-panel">
               <div className="dialog-body">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b border-orange-500 mx-auto"></div>
                 <p className="mt-2 text-sm text-gray-600">Memuat...</p>
               </div>
             </div>

@@ -229,7 +229,7 @@ const DialogManager = lazy(() =>
 // OPTIMIZED: Lightweight loading components
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center py-8">
-    <div className="animate-spin h-8 w-8 border-3 border-orange-500 border-t-transparent rounded-full"></div>
+    <div className="animate-spin h-8 w-8 border border-orange-500 border-t-transparent rounded-full"></div>
   </div>
 );
 

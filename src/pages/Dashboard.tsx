@@ -23,7 +23,7 @@ const WorstSellingProducts = lazy(() => import('@/components/dashboard/WorstSell
 const SectionLoader = ({ height = "h-32", className = "" }) => (
   <div className={`${height} ${className} bg-white rounded-lg border border-gray-400 flex items-center justify-center`}>
     <div className="flex items-center space-x-2">
-      <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-5 h-5 border border-orange-500 border-t-transparent rounded-full animate-spin"></div>
       <span className="text-gray-400 text-sm">Memuat...</span>
     </div>
   </div>
@@ -152,7 +152,7 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+          <div className="w-16 h-16 border border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Dashboard</h2>
           <p className="text-gray-500">Sedang menyiapkan data untuk Anda...</p>
         </div>

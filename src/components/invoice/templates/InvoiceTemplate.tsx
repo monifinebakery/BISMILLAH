@@ -38,7 +38,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
 
   return (
     <Card 
-      className={`border-2 border-gray-500 overflow-hidden invoice-content ${className}`} 
+      className={`border border-gray-500 overflow-hidden invoice-content ${className}`} 
       id="invoice-content"
       style={{ backgroundColor: 'white', color: 'black' }}
     >

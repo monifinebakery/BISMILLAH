@@ -15,7 +15,7 @@ const DialogLoader = () => (
     <DialogContent centerMode="overlay">
       <div className="dialog-panel">
         <div className="dialog-body flex flex-col items-center justify-center py-8">
-          <div className="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full mb-4"></div>
+          <div className="animate-spin h-8 w-8 border border-orange-500 border-t-transparent rounded-full mb-4"></div>
           <p className="text-gray-600">Memuat dialog...</p>
         </div>
       </div>

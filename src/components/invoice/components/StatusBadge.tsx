@@ -20,7 +20,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
   };
 
   return (
-    <div className={`font-bold text-lg py-3 px-4 border-2 rounded text-center ${getStatusClasses()} ${className}`}>
+    <div className={`font-bold text-lg py-3 px-4 border rounded text-center ${getStatusClasses()} ${className}`}>
       {status}
     </div>
   );

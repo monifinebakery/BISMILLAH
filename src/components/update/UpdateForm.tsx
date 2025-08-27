@@ -54,7 +54,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
     return (
       <div className="max-w-md mx-auto p-6 bg-gray-50 border border-gray-500 rounded-lg">
         <div className="flex items-center gap-3 text-gray-600">
-          <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-5 h-5 border border-orange-500 border-t-transparent rounded-full animate-spin"></div>
           <div>
             <h3 className="font-semibold">Memverifikasi Akses</h3>
             <p className="text-sm mt-1">Memeriksa izin admin...</p>
@@ -241,7 +241,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
             {(['critical', 'high', 'normal', 'low'] as UpdatePriority[]).map((priority) => (
               <label
                 key={priority}
-                className={`relative flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                className={`relative flex items-center p-4 rounded-lg border cursor-pointer transition-all ${
                   formData.priority === priority
                     ? priority === 'critical'
                       ? 'border-red-500 bg-red-50'
@@ -314,7 +314,7 @@ export const UpdateForm: React.FC<UpdateFormProps> = ({ onSuccess, onCancel, ini
           >
             {loading ? (
               <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin"></div>
                 {initialData ? 'Memperbarui...' : 'Menyimpan...'}
               </>
             ) : (

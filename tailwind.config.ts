@@ -23,6 +23,7 @@ export default {
       'ipad-landscape': '1024px',
     },
     extend: {
+      borderWidth: { DEFAULT: "1.5px" },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

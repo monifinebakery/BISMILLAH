@@ -280,7 +280,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
           })}
 
           {formData.resepBundle.length === 0 && (
-            <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-500 rounded-lg">
+            <div className="text-center py-8 text-gray-500 border border-dashed border-gray-500 rounded-lg">
               <Package className="h-12 w-12 mx-auto mb-2 text-gray-500" />
               <p>Belum ada produk dalam bundle</p>
               <p className="text-sm">Klik "Tambah Produk" untuk memulai</p>
@@ -386,7 +386,7 @@ const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
       >
         {isLoading ? (
           <>
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            <div className="animate-spin rounded-full h-5 w-5 border-b border-white"></div>
             <span>Menghitung...</span>
           </>
         ) : (

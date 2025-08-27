@@ -113,7 +113,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                       selected: !isSelected,
                     });
                   }}
-                  className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-500 hover:border-orange-500 transition-colors mt-1 flex-shrink-0"
+                  className="flex items-center justify-center w-6 h-6 rounded border border-gray-500 hover:border-orange-500 transition-colors mt-1 flex-shrink-0"
                   aria-label={`${isSelected ? 'Deselect' : 'Select'} ${item.nama}`}
                 >
                   {isSelected ? (
@@ -326,7 +326,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                 selected: !isSelected,
               });
             }}
-            className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-500 hover:border-orange-500 transition-colors"
+            className="flex items-center justify-center w-5 h-5 rounded border border-gray-500 hover:border-orange-500 transition-colors"
             aria-label={`${isSelected ? 'Deselect' : 'Select'} ${item.nama}`}
           >
             {isSelected ? (

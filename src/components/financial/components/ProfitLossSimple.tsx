@@ -169,7 +169,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
       <CardContent className="space-y-4">
         {/* Status Utama */}
         <div className={cn(
-          "p-4 rounded-lg border-2",
+          "p-4 rounded-lg border",
           statusInfo.bgColor,
           statusInfo.borderColor
         )}>

@@ -511,7 +511,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
               >
                 {isSubmitting ? (
                   <>
-                    <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full flex-shrink-0" />
+                    <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border border-white border-t-transparent rounded-full flex-shrink-0" />
                     <span className="text-overflow-safe">Menyimpan...</span>
                   </>
                 ) : (

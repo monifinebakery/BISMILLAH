@@ -76,7 +76,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
     <div className={`space-y-4 ${className}`}>
       
       {/* Main Enhanced HPP Calculator */}
-      <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
+      <Card className="border border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Zap className="h-5 w-5 text-purple-600" />
@@ -201,7 +201,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
 
             {/* Final Results */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white p-6 rounded-lg border-2 border-green-300 shadow-sm">
+              <div className="bg-white p-6 rounded-lg border border-green-300 shadow-sm">
                 <div className="text-center">
                   <h4 className="font-semibold text-green-800 mb-2 flex items-center justify-center gap-2">
                     <Calculator className="h-4 w-4" />
@@ -216,7 +216,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-lg border-2 border-emerald-300 shadow-sm">
+              <div className="bg-white p-6 rounded-lg border border-emerald-300 shadow-sm">
                 <div className="text-center">
                   <h4 className="font-semibold text-emerald-800 mb-2 flex items-center justify-center gap-2">
                     <DollarSign className="h-4 w-4" />

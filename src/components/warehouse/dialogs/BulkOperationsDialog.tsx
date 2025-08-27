@@ -466,7 +466,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             >
               {isProcessing ? (
                 <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  <div className="animate-spin h-4 w-4 border border-white border-t-transparent rounded-full" />
                   {isEditMode ? 'Menyimpan...' : 'Menghapus...'}
                 </>
               ) : (

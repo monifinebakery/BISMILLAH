@@ -54,11 +54,11 @@ This ensures they appear above ALL other UI elements.
   .container-desktop { @apply w-full max-w-6xl mx-auto px-8; }
   .container-responsive { @apply container-mobile sm:container-tablet lg:container-desktop; }
 
-  .border-safe { @apply border-[1.5px] border-gray-500 dark:border-gray-600; }
-  .card-border { @apply border-[1.5px] border-gray-500 dark:border-gray-600 rounded-lg; }
-  .button-border { @apply border-[1.5px] border-gray-400 dark:border-gray-500 rounded-md; }
-  .border-strong { @apply border-[1.5px] border-gray-400 dark:border-gray-500; }
-  .border-accent { @apply border-[1.5px] border-orange-300 dark:border-orange-600; }
+  .border-safe { @apply border border-gray-500 dark:border-gray-600; }
+  .card-border { @apply border border-gray-500 dark:border-gray-600 rounded-lg; }
+  .button-border { @apply border border-gray-400 dark:border-gray-500 rounded-md; }
+  .border-strong { @apply border border-gray-400 dark:border-gray-500; }
+  .border-accent { @apply border border-orange-300 dark:border-orange-600; }
 
   /* iPad sidebar helpers */
   .sidebar-ipad-overlay {

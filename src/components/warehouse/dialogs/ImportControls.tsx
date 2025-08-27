@@ -33,7 +33,7 @@ const ImportControls: React.FC<ImportControlsProps> = ({
   return (
     <div className="space-y-6">
       <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        className={`border border-dashed rounded-lg p-8 text-center transition-colors ${
           dragOver ? 'border-green-400 bg-green-50' : 'border-gray-500'
         }`}
         onDragOver={(e) => handleDrag(e, true)}

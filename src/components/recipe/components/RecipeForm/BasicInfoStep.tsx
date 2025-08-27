@@ -326,7 +326,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             
             {!imagePreview ? (
               <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                className={`border border-dashed rounded-lg p-6 text-center transition-colors ${
                   dragOver 
                     ? 'border-orange-400 bg-orange-50' 
                     : 'border-gray-500 hover:border-gray-400'
@@ -421,7 +421,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           </div>
 
           {/* Preview Card */}
-          <Card className="border-2 border-dashed border-gray-500">
+          <Card className="border border-dashed border-gray-500">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Info className="h-4 w-4 text-blue-500" />

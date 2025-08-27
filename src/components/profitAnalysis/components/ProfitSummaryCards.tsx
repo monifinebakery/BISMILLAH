@@ -404,7 +404,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
               
               {/* ✅ TAMBAH: Alert khusus F&B */}
               {(card as any).alert && (
-                <div className="flex items-start space-x-2 mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                <div className="flex items-start space-x-2 mt-2 p-2 bg-yellow-50 border-l border-yellow-400 rounded">
                   <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-yellow-800">
                     {(card as any).alert}

@@ -39,7 +39,7 @@ export const DialogLoader: React.FC = () => {
   return (
     <div className="flex items-center justify-center p-8">
       <div className="flex flex-col items-center gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b border-orange-500"></div>
         <p className="text-sm text-gray-600">Memuat...</p>
       </div>
     </div>
@@ -82,6 +82,6 @@ export const ButtonLoading: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 
   };
 
   return (
-    <div className={`animate-spin rounded-full border-b-2 border-current ${sizeClasses[size]}`}></div>
+    <div className={`animate-spin rounded-full border-b border-current ${sizeClasses[size]}`}></div>
   );
 };

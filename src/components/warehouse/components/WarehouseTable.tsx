@@ -141,7 +141,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     return (
       <div className="bg-white rounded-lg border border-gray-500 p-8">
         <div className="flex flex-col items-center justify-center">
-          <div className="animate-spin h-8 w-8 border-3 border-orange-500 border-t-transparent rounded-full mb-4"></div>
+          <div className="animate-spin h-8 w-8 border border-orange-500 border-t-transparent rounded-full mb-4"></div>
           <p className="text-gray-600">Memuat data warehouse...</p>
           {lastUpdated && (
             <p className="text-xs text-gray-400 mt-2">
@@ -186,7 +186,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4">
           <button
             onClick={selectionState.selectAllCurrent}
-            className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-500 hover:border-orange-500 transition-colors"
+            className="flex items-center justify-center w-6 h-6 rounded border border-gray-500 hover:border-orange-500 transition-colors"
             aria-label={selectionState.allCurrentSelected ? 'Deselect all' : 'Select all'}
           >
             {selectionState.allCurrentSelected ? (
@@ -253,7 +253,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
               <th className="w-12 px-4 py-3 text-left">
                 <button
                   onClick={selectionState.selectAllCurrent}
-                  className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-500 hover:border-orange-500 transition-colors"
+                  className="flex items-center justify-center w-5 h-5 rounded border border-gray-500 hover:border-orange-500 transition-colors"
                   aria-label={selectionState.allCurrentSelected ? 'Deselect all' : 'Select all'}
                 >
                   {selectionState.allCurrentSelected ? (

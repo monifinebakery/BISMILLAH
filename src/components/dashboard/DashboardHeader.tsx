@@ -39,7 +39,7 @@ const DashboardHeader: React.FC<Props> = ({
   return (
     <div className="w-full">
       {/* 🌟 Content Container - Simplified */}
-      <div className="w-full bg-gradient-to-br from-orange-50 via-white to-red-50 border-[1.5px] border-orange-200 dark:border-orange-700 rounded-2xl p-6 sm:p-8 mb-8">
+      <div className="w-full bg-gradient-to-br from-orange-50 via-white to-red-50 border border-orange-200 dark:border-orange-700 rounded-2xl p-6 sm:p-8 mb-8">
         
         {/* 🏠 Main Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -83,7 +83,7 @@ const DashboardHeader: React.FC<Props> = ({
               
               <Suspense 
                 fallback={
-                  <div className="w-full lg:w-[320px] h-12 bg-gray-400 rounded-xl border-2 border-gray-500 flex items-center justify-center">
+                  <div className="w-full lg:w-[320px] h-12 bg-gray-400 rounded-xl border border-gray-500 flex items-center justify-center">
                     <span className="text-gray-500 text-sm">Memuat kalender...</span>
                   </div>
                 }

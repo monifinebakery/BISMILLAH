@@ -204,7 +204,7 @@ const DeviceManagementPage: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b border-orange-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Memuat daftar perangkat...</p>
         </div>
       </div>
@@ -301,7 +301,7 @@ const DeviceManagementPage: React.FC = () => {
                 >
                   {isCleaningUp ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500 mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b border-red-500 mr-2"></div>
                       <span className="hidden md:inline">Membersihkan...</span>
                       <span className="md:hidden">Keluar Semua</span>
                     </>
@@ -322,7 +322,7 @@ const DeviceManagementPage: React.FC = () => {
               >
                 {isRefreshing ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b border-orange-500 mr-2"></div>
                     Memperbarui...
                   </>
                 ) : (
@@ -362,7 +362,7 @@ const DeviceManagementPage: React.FC = () => {
                         }`}>
                           {getDeviceIcon(device.device_type || undefined)}
                           {/* Status indicator dot */}
-                          <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
+                          <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border border-white ${
                             status.status === 'current' ? 'bg-green-500' :
                             status.status === 'recent' ? 'bg-blue-500' :
                             status.status === 'today' ? 'bg-yellow-500' :

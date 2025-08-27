@@ -94,7 +94,7 @@ const PaymentPage = () => {
 
           <div className="grid md:grid-cols-2 gap-8">
             {/* Features Card */}
-            <Card className="border-2 border-blue-200">
+            <Card className="border border-blue-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Zap className="h-6 w-6 text-blue-600" />Fitur Premium</CardTitle>
               </CardHeader>
@@ -107,7 +107,7 @@ const PaymentPage = () => {
             </Card>
 
             {/* Payment Card */}
-            <Card className="border-2 border-green-200">
+            <Card className="border border-green-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Zap className="h-6 w-6 text-green-600" />Paket Premium</CardTitle>
               </CardHeader>

@@ -555,7 +555,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
-                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-500 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
+                      className="w-12 h-12 text-center text-lg font-bold border border-gray-500 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
                       disabled={authState === "verifying" || authState === "success"}
                     />
                   ))}

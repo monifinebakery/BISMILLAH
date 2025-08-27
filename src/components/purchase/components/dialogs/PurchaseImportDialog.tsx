@@ -78,7 +78,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
           {!preview ? (
             <div className="space-y-6">
               <div 
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                className={`border border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                   isDragging ? 'border-green-500 bg-green-50' : 'border-gray-500 hover:border-gray-400'
                 }`}
                 onDrop={handleFileDrop}
@@ -268,7 +268,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                   >
                     {loading ? (
                       <>
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        <div className="animate-spin h-4 w-4 border border-white border-t-transparent rounded-full mr-2" />
                         Mengimpor...
                       </>
                     ) : (

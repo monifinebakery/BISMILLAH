@@ -243,7 +243,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
               {isUpdating ? (
                 <div className="flex items-center gap-2">
                   <div 
-                    className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"
+                    className="animate-spin h-4 w-4 border border-white border-t-transparent rounded-full"
                     aria-hidden="true"
                   />
                   <span>Memproses...</span>

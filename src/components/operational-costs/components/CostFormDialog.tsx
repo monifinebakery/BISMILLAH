@@ -436,7 +436,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  <div className="animate-spin h-4 w-4 border border-white border-t-transparent rounded-full mr-2"></div>
                   {cost ? 'Menyimpan...' : 'Menambah...'}
                 </>
               ) : (

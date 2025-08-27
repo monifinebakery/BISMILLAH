@@ -27,6 +27,7 @@ import paymentRoutes from '@/routes/payment';
 import promoRoutes from '@/routes/promo';
 import preloadingRoutes from '@/routes/preloading';
 import networkOptimizationRoutes from '@/routes/network-optimization';
+import offlineRoutes from '@/routes/offline';
 import notFoundRoutes from '@/routes/not-found';
 
 // Membuat komponen AppRouter agar dapat diimpor sebagai named export
@@ -63,6 +64,7 @@ export const AppRouter: React.FC = () => (
       {promoRoutes}
       {preloadingRoutes}
       {networkOptimizationRoutes}
+      {offlineRoutes}
       {notFoundRoutes}
     </Route>
   </Routes>

@@ -297,8 +297,8 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
       }
       onClose();
     }}>
-      <DialogContent centerMode="overlay" size="xl">
-        <div className="dialog-panel dialog-panel-xl">
+        <DialogContent centerMode="overlay" size="lg">
+        <div className="dialog-panel dialog-panel-lg">
           <DialogHeader className="dialog-header border-b">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">

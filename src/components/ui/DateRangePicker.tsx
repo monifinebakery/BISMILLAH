@@ -217,24 +217,24 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <Button {...buttonProps}>{content}</Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-auto p-0 max-w-[90vw]" 
+        className="p-0 w-auto" 
         align="start"
         side="bottom"
         sideOffset={4}
       >
-        <div className="flex flex-col lg:flex-row overflow-hidden rounded-lg border bg-white shadow-lg">
+        <div className="flex flex-col sm:flex-row bg-white border rounded-lg shadow-lg overflow-hidden min-w-0">
           {/* Preset buttons sidebar */}
-          <div className="w-full lg:w-48 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r">
+          <div className="w-full sm:w-44 flex-shrink-0 bg-gray-50 border-b sm:border-b-0 sm:border-r border-gray-200">
             <div className="p-3">
-              <h4 className="font-medium text-sm mb-3 text-gray-700">Pilih Cepat</h4>
-              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
+              <h4 className="font-medium text-sm mb-2 text-gray-700">Pilih Cepat</h4>
+              <div className="space-y-1">
                 {PRESETS.map(({ label, key }) => (
                   <Button
                     key={key}
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePreset(key)}
-                    className="justify-start text-sm h-8 px-2 hover:bg-white"
+                    className="w-full justify-start text-sm h-8 px-2 hover:bg-white text-gray-600 hover:text-gray-900"
                   >
                     {label}
                   </Button>
@@ -244,30 +244,30 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </div>
           
           {/* Calendar section */}
-          <div className="p-3">
+          <div className="p-3 bg-white">
             <Calendar
               mode="range"
               selected={calendarRange}
               onSelect={handleCalendarChange}
               numberOfMonths={isDesktop ? 2 : 1}
               locale={id}
-              className="mx-auto"
+              className=""
             />
             
             {/* Action buttons */}
-            <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t">
+            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
               <Button 
                 variant="outline" 
                 onClick={handleReset} 
-                className="text-sm h-9"
                 size="sm"
+                className="flex-1 text-sm h-8"
               >
                 Reset
               </Button>
               <Button 
                 onClick={() => setIsOpen(false)} 
-                className="text-sm h-9"
                 size="sm"
+                className="flex-1 text-sm h-8"
               >
                 Terapkan
               </Button>

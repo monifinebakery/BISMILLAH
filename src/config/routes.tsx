@@ -30,6 +30,9 @@ import networkOptimizationRoutes from '@/routes/network-optimization';
 import offlineRoutes from '@/routes/offline';
 import notFoundRoutes from '@/routes/not-found';
 
+// Development only - Calendar testing
+import TestCalendarPage from '@/test-calendar-page';
+
 // Membuat komponen AppRouter agar dapat diimpor sebagai named export
 export const AppRouter: React.FC = () => (
   <Routes>
@@ -65,6 +68,12 @@ export const AppRouter: React.FC = () => (
       {preloadingRoutes}
       {networkOptimizationRoutes}
       {offlineRoutes}
+      
+      {/* Development only - Calendar responsiveness test */}
+      {process.env.NODE_ENV === 'development' && (
+        <Route path="/test-calendar" element={<TestCalendarPage />} />
+      )}
+      
       {notFoundRoutes}
     </Route>
   </Routes>

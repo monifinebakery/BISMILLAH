@@ -16,11 +16,36 @@ import type {
 
 /**
  * Calculate ingredient total cost
+ * Uses totalHarga if available, otherwise calculates from jumlah * hargaSatuan
  */
 export const calculateIngredientCost = (bahanResep: BahanResep[]): number => {
-  return bahanResep.reduce((total, bahan) => {
-    return total + (bahan.jumlah * bahan.hargaSatuan);
-  }, 0);
+  let totalCost = 0;
+  let usedTotalHarga = 0;
+  let usedCalculated = 0;
+  
+  bahanResep.forEach((bahan, index) => {
+    // Prioritize totalHarga if it exists and is valid
+    if (typeof bahan.totalHarga === 'number' && !isNaN(bahan.totalHarga)) {
+      totalCost += bahan.totalHarga;
+      usedTotalHarga++;
+      logger.debug(`RecipeUtils: Ingredient ${index + 1} (${bahan.nama}) using totalHarga: ${bahan.totalHarga}`);
+    } else {
+      // Fallback to manual calculation
+      const calculated = bahan.jumlah * bahan.hargaSatuan;
+      totalCost += calculated;
+      usedCalculated++;
+      logger.debug(`RecipeUtils: Ingredient ${index + 1} (${bahan.nama}) calculated: ${bahan.jumlah} × ${bahan.hargaSatuan} = ${calculated}`);
+    }
+  });
+  
+  logger.debug(`RecipeUtils: calculateIngredientCost summary:`, {
+    totalIngredients: bahanResep.length,
+    usedTotalHarga,
+    usedCalculated,
+    totalCost
+  });
+  
+  return totalCost;
 };
 
 /**

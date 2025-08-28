@@ -289,13 +289,13 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       
       {/* Step Header */}
       <div className="text-center pb-4">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <ShoppingCart className="w-8 h-8 text-green-600" />
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+          <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 text-overflow-safe">
           Daftar Bahan-bahan
         </h2>
-        <p className="text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600 text-overflow-safe">
           Pilih bahan dari warehouse atau tambahkan manual beserta takaran dan harganya
         </p>
       </div>
@@ -395,9 +395,9 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
             </div>
 
             {/* Row 2: Quantity, Unit, Price, and Action */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
-              {/* Quantity */}
+              {/* First Row: Quantity and Unit */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Jumlah *</Label>
                 <Input
@@ -408,11 +408,10 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                   onChange={(e) => handleNewIngredientChange('jumlah', parseFloat(e.target.value) || 0)}
                   placeholder="500"
                   disabled={isLoading}
-                  className="w-full"
+                  className="w-full input-mobile-safe"
                 />
               </div>
 
-              {/* Unit */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Satuan *</Label>
                 <Select 

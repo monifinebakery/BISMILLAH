@@ -155,11 +155,26 @@ export const calculateEnhancedHPP = async (
     const ingredientsWithWAC = await updateIngredientsWithWAC(bahanResep);
     
     // 2. Calculate bahan per pcs (WAC × quantity per pcs)
-    const totalBahanCost = ingredientsWithWAC.reduce((sum, bahan) => 
-      sum + bahan.totalHarga, 0
-    );
+    console.log('🔥 [ENHANCED DEBUG] Calculating bahan cost:', {
+      ingredientsWithWAC,
+      jumlahPorsi,
+      jumlahPcsPerPorsi
+    });
+    
+    const totalBahanCost = ingredientsWithWAC.reduce((sum, bahan) => {
+      console.log(`🔥 Adding bahan: ${bahan.nama} = ${bahan.totalHarga}`);
+      return sum + bahan.totalHarga;
+    }, 0);
+    
     const totalPcs = jumlahPorsi * jumlahPcsPerPorsi;
     const bahanPerPcs = totalPcs > 0 ? totalBahanCost / totalPcs : 0;
+    
+    console.log('🔥 [ENHANCED DEBUG] Bahan calculation result:', {
+      totalBahanCost,
+      totalPcs,
+      bahanPerPcs,
+      calculation: `${totalBahanCost} / ${totalPcs} = ${bahanPerPcs}`
+    });
     
     // 3. Calculate TKL per pcs
     let tklPerPcs = 0;
@@ -225,6 +240,21 @@ export const calculateEnhancedHPP = async (
     
     const hargaJualPerPorsi = hargaJualPerPcs * jumlahPcsPerPorsi;
     
+    console.log('🔥 [ENHANCED DEBUG] TKL and Overhead calculation:', {
+      tklPerPcs,
+      overheadPerPcs,
+      overheadSource
+    });
+    
+    console.log('🔥 [ENHANCED DEBUG] Final HPP calculation:', {
+      bahanPerPcs,
+      tklPerPcs,
+      overheadPerPcs,
+      hppPerPcs: bahanPerPcs + tklPerPcs + overheadPerPcs,
+      hppPerPorsi: (bahanPerPcs + tklPerPcs + overheadPerPcs) * jumlahPcsPerPorsi,
+      totalHPP: (bahanPerPcs + tklPerPcs + overheadPerPcs) * jumlahPcsPerPorsi * jumlahPorsi
+    });
+    
     const result: EnhancedHPPCalculationResult = {
       bahanPerPcs: Math.round(bahanPerPcs),
       tklPerPcs: Math.round(tklPerPcs),
@@ -242,6 +272,8 @@ export const calculateEnhancedHPP = async (
         overheadSource
       }
     };
+    
+    console.log('🔥 [ENHANCED DEBUG] FINAL RESULT:', result);
     
     return result;
     

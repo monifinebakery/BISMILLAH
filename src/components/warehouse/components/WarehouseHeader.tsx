@@ -190,7 +190,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
 
             <Button
               onClick={() => navigate('/pembelian')}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-2 rounded-lg transition-all"
             >
               <Plus className="h-4 w-4" />
               Tambah via Pembelian
@@ -211,7 +211,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
           )}
           <Button
             onClick={() => navigate('/pembelian')}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-3 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-3 rounded-lg transition-all"
           >
             <Plus className="h-4 w-4" />
             Tambah via Pembelian

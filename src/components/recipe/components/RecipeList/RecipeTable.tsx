@@ -210,11 +210,6 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
                     <div className="truncate font-semibold text-gray-900">
                       {highlightText(recipe.namaResep, searchTerm)}
                     </div>
-                    {recipe.deskripsi && (
-                      <div className="mt-1 truncate text-sm text-gray-500">
-                        {highlightText(recipe.deskripsi, searchTerm)}
-                      </div>
-                    )}
                     <div className="mt-1 text-xs text-gray-400">
                       {recipe.bahanResep.length} bahan
                     </div>

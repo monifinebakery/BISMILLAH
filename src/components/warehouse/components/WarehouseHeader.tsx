@@ -2,7 +2,7 @@
 // src/components/warehouse/components/WarehouseHeader.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, AlertTriangle, RefreshCw, TrendingDown, Info } from 'lucide-react';
+import { Plus, Package, AlertTriangle, RefreshCw, TrendingDown, Info, Zap, BarChart3, ShoppingCart, Star } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,123 +159,166 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-              <Package className="h-8 w-8 text-white" />
+      <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-2xl p-8 mb-6 text-white overflow-hidden shadow-2xl">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-4 -left-4 w-32 h-32 bg-white bg-opacity-10 rounded-full animate-pulse"></div>
+          <div className="absolute top-16 right-12 w-20 h-20 bg-white bg-opacity-5 rounded-full animate-bounce" style={{animationDelay: '1.5s'}}></div>
+          <div className="absolute bottom-12 left-20 w-24 h-24 bg-white bg-opacity-5 rounded-full animate-ping" style={{animationDelay: '3s'}}></div>
+          <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-gradient-to-br from-cyan-400 to-blue-400 opacity-20 rounded-full blur-2xl animate-pulse"></div>
+        </div>
+        
+        <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <div className="bg-white bg-opacity-20 p-4 rounded-2xl backdrop-blur-sm border border-white border-opacity-30 shadow-2xl">
+                <div className="relative">
+                  <Package className="h-12 w-12 text-white drop-shadow-lg" />
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full flex items-center justify-center animate-ping">
+                    <Star className="h-3 w-3 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full flex items-center justify-center">
+                    <Star className="h-3 w-3 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 to-blue-400 rounded-2xl blur opacity-40 animate-pulse"></div>
             </div>
             
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-                Manajemen Gudang
+              <h1 className="text-4xl lg:text-5xl font-bold mb-3 bg-gradient-to-r from-white via-blue-100 to-cyan-100 bg-clip-text text-transparent drop-shadow-lg">
+                📦 Manajemen Gudang
               </h1>
-              <p className="text-white opacity-90">
-                Kelola semua stok bahan baku dengan sistem inventory yang terintegrasi.
+              <p className="text-white text-opacity-90 text-lg mb-4">
+                Kelola semua stok bahan baku dengan sistem inventory yang terintegrasi
               </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2 text-sm bg-white bg-opacity-15 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Real-time Monitoring</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm bg-white bg-opacity-15 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-20">
+                  <Zap className="h-4 w-4" />
+                  <span>Smart Alerts</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="hidden md:flex gap-3">
+          <div className="hidden md:flex gap-4">
             {onRefresh && (
               <Button 
                 onClick={handleRefresh}
                 disabled={statsLoading}
-                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+                className="group flex items-center gap-2 bg-gradient-to-r from-cyan-400 to-blue-400 text-gray-900 border-0 hover:from-cyan-300 hover:to-blue-300 font-bold px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl backdrop-blur-sm"
               >
-                <RefreshCw className={`h-4 w-4 ${statsLoading ? 'animate-spin' : ''}`} />
-                Refresh
+                <RefreshCw className={`h-5 w-5 ${statsLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-300'}`} />
+                <span>Refresh Data</span>
               </Button>
             )}
 
             <Button
               onClick={() => navigate('/pembelian')}
-              className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+              className="group flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-bold px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl backdrop-blur-sm"
             >
-              <Plus className="h-4 w-4" />
-              Tambah via Pembelian
+              <ShoppingCart className="h-5 w-5 group-hover:animate-bounce" />
+              <span>Tambah via Pembelian</span>
             </Button>
           </div>
         </div>
 
-        <div className="flex md:hidden flex-col gap-3 mt-6">
+        <div className="flex md:hidden flex-col gap-4 mt-8">
           {onRefresh && (
             <Button
               onClick={handleRefresh}
               disabled={statsLoading}
-              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+              className="group w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-400 to-blue-400 text-gray-900 border-0 hover:from-cyan-300 hover:to-blue-300 font-bold px-6 py-4 rounded-xl transition-all duration-300 transform active:scale-95 shadow-xl"
             >
-              <RefreshCw className={`h-4 w-4 ${statsLoading ? 'animate-spin' : ''}`} />
-              Refresh Data
+              <RefreshCw className={`h-5 w-5 ${statsLoading ? 'animate-spin' : 'group-active:rotate-180 transition-transform duration-300'}`} />
+              <span>Refresh Data</span>
             </Button>
           )}
           <Button
             onClick={() => navigate('/pembelian')}
-            className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+            className="group w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-bold px-6 py-4 rounded-xl transition-all duration-300 transform active:scale-95 backdrop-blur-sm shadow-xl"
           >
-            <Plus className="h-4 w-4" />
-            Tambah via Pembelian
+            <ShoppingCart className="h-5 w-5 group-active:animate-bounce" />
+            <span>Tambah via Pembelian</span>
           </Button>
         </div>
 
         {(itemCount > 0 || stats) && (
-          <div className="mt-4 pt-4 border-t border-white border-opacity-20">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="flex flex-col">
-                <span className="text-white opacity-75 text-xs uppercase tracking-wide">Total Items</span>
-                <span className="font-bold text-lg">
-                  {statsLoading ? '...' : (stats?.totalItems || itemCount)}
+          <div className="relative mt-8 pt-6 border-t border-white border-opacity-30">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="group flex flex-col p-4 bg-white bg-opacity-10 rounded-xl backdrop-blur-sm border border-white border-opacity-20 hover:bg-opacity-20 transition-all duration-300 transform hover:scale-105">
+                <div className="flex items-center gap-2 mb-2">
+                  <Package className="h-4 w-4 text-blue-200" />
+                  <span className="text-white opacity-75 text-xs uppercase tracking-wide font-semibold">Total Items</span>
+                </div>
+                <span className="font-bold text-2xl text-blue-100 group-hover:text-white transition-colors duration-300">
+                  {statsLoading ? (
+                    <div className="w-8 h-8 bg-white bg-opacity-20 rounded animate-pulse"></div>
+                  ) : (
+                    <>{stats?.totalItems || itemCount} 📦</>
+                  )}
                 </span>
               </div>
 
-              {/* ✅ UPDATE: Render condition untuk total value dengan tooltip */}
+              {/* Enhanced Total Value Card */}
               {stats && stats.totalValue !== undefined && (
-                <div className="flex flex-col">
+                <div className="group flex flex-col p-4 bg-white bg-opacity-10 rounded-xl backdrop-blur-sm border border-white border-opacity-20 hover:bg-opacity-20 transition-all duration-300 transform hover:scale-105">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1">
-                          <span className="text-white opacity-75 text-xs uppercase tracking-wide">
-                            Nilai Stok (Harga Rata-Rata)
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="h-4 w-4 text-green-200" />
+                          <span className="text-white opacity-75 text-xs uppercase tracking-wide font-semibold">
+                            Nilai Stok
                           </span>
-                          <Info className="h-3 w-3 text-white opacity-60 cursor-pointer" />
+                          <Info className="h-3 w-3 text-white opacity-60 cursor-pointer hover:opacity-100 transition-opacity" />
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-sm">
+                      <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white border-gray-700">
                         <p>
-                          Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost),
-                          yaitu rata-rata harga pembelian terakhir yang sudah termasuk semua pembelian sebelumnya.
+                          Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost)
                         </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <span className="font-bold text-lg">
+                  <span className="font-bold text-2xl text-green-100 group-hover:text-white transition-colors duration-300">
                     {new Intl.NumberFormat('id-ID', {
                       style: 'currency',
                       currency: 'IDR',
                       notation: 'compact',
-                    }).format(stats.totalValue)}
+                    }).format(stats.totalValue)} 💰
                   </span>
                 </div>
               )}
 
+              {/* Enhanced Alerts Card */}
               {stats && (stats.lowStockCount > 0 || stats.expiringCount > 0) && (
-                <div className="flex flex-col">
-                  <span className="text-white opacity-75 text-xs uppercase tracking-wide">Alerts</span>
+                <div className="group flex flex-col p-4 bg-gradient-to-br from-yellow-500 from-opacity-20 to-red-500 to-opacity-20 rounded-xl backdrop-blur-sm border border-yellow-300 border-opacity-30 hover:border-opacity-50 transition-all duration-300 transform hover:scale-105 animate-pulse">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-200 animate-bounce" />
+                    <span className="text-yellow-100 opacity-90 text-xs uppercase tracking-wide font-semibold">Alerts</span>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-lg text-yellow-200">
-                      {stats.lowStockCount + stats.expiringCount}
+                    <span className="font-bold text-2xl text-yellow-100 group-hover:text-white transition-colors duration-300">
+                      {stats.lowStockCount + stats.expiringCount} ⚠️
                     </span>
-                    <TrendingDown className="h-3 w-3 text-yellow-200" />
                   </div>
                 </div>
               )}
 
+              {/* Enhanced Selected Card */}
               {selectedCount > 0 && (
-                <div className="flex flex-col">
-                  <span className="text-white opacity-75 text-xs uppercase tracking-wide">Selected</span>
-                  <span className="font-bold text-lg text-blue-200">
-                    {selectedCount}
+                <div className="group flex flex-col p-4 bg-gradient-to-br from-blue-500 from-opacity-20 to-cyan-500 to-opacity-20 rounded-xl backdrop-blur-sm border border-blue-300 border-opacity-30 hover:border-opacity-50 transition-all duration-300 transform hover:scale-105">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="h-4 w-4 text-blue-200" />
+                    <span className="text-blue-100 opacity-90 text-xs uppercase tracking-wide font-semibold">Selected</span>
+                  </div>
+                  <span className="font-bold text-2xl text-blue-100 group-hover:text-white transition-colors duration-300">
+                    {selectedCount} ✓
                   </span>
                 </div>
               )}

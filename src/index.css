@@ -386,4 +386,77 @@ This ensures they appear above ALL other UI elements.
     @apply text-base min-h-[44px] px-3 py-2;
   }
 
+  /* ---- CALENDAR RESPONSIVE STYLES ---- */
+  /* Force highest z-index for all calendar elements */
+  [data-radix-popper-content-wrapper],
+  [data-radix-popover-content] {
+    z-index: 10000 !important;
+    max-width: 95vw !important;
+  }
+  
+  /* Ensure popover portal has proper z-index */
+  [data-radix-popover-portal] {
+    z-index: 10000 !important;
+  }
+  
+  /* Force calendar content to be visible */
+  [data-radix-popover-content][data-side="bottom"] {
+    z-index: 10000 !important;
+    position: fixed !important;
+  }
+  
+  /* All calendars should have proper width constraints */
+  .rdp {
+    margin: 0;
+    width: auto;
+    max-width: 100%;
+  }
+  
+  /* Ensure calendar days are appropriately sized */
+  .rdp-cell {
+    @apply w-9 h-9;
+  }
+  
+  .rdp-day {
+    @apply w-8 h-8;
+    font-size: 0.875rem;
+  }
+  
+  /* Mobile calendar optimizations */
+  @media (max-width: 640px) {
+    .rdp-cell {
+      @apply w-8 h-8;
+    }
+    
+    .rdp-day {
+      @apply w-7 h-7;
+      font-size: 0.75rem;
+    }
+    
+    .rdp-head_cell {
+      font-size: 0.75rem;
+    }
+    
+    .rdp-caption {
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .rdp-nav_button {
+      @apply w-6 h-6;
+    }
+  }
+  
+  /* Tablet calendar optimizations */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .rdp-cell {
+      @apply w-10 h-10;
+    }
+    
+    .rdp-day {
+      @apply w-9 h-9;
+      font-size: 0.875rem;
+    }
+  }
+
 }

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ShoppingCart, Plus, Users } from 'lucide-react';
+import { ShoppingCart, Plus, Users, FileText, Upload, Zap } from 'lucide-react';
 import { SupplierDialog } from '@/components/supplier';
 
 interface EmptyStateProps {

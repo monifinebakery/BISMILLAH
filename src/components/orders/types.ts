@@ -102,6 +102,7 @@ export interface EnhancedOrderContextType {
   // Bulk operations
   bulkUpdateStatus: (orderIds: string[], newStatus: string) => Promise<boolean>;
   bulkDeleteOrders: (orderIds: string[]) => Promise<boolean>;
+  bulkAddOrders: (orders: NewOrder[]) => Promise<{ success: number; total: number }>;
   
   // ✅ Additional utilities (that OrderProvider provides)
   searchOrders: (searchTerm: string) => Order[];

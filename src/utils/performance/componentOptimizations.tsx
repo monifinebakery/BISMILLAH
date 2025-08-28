@@ -14,8 +14,30 @@ import React, {
   PropsWithChildren,
   ReactElement
 } from 'react';
-import { debounce } from 'lodash-es';
+// Native debounce implementation to avoid lodash-es dependency
 import { logger } from '@/utils/logger';
+
+// ===========================================
+// 🛠️ NATIVE UTILITY FUNCTIONS
+// ===========================================
+
+/**
+ * Native debounce implementation
+ * @param func Function to debounce
+ * @param delay Delay in milliseconds
+ * @returns Debounced function
+ */
+const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let timeoutId: NodeJS.Timeout;
+  
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
 
 // ===========================================
 // 🧠 SMART REACT.MEMO WRAPPERS

@@ -37,6 +37,7 @@ import { logger } from '@/utils/logger';
 
 // ✅ DEBUG: Context debugger for development
 import ContextDebugger from '@/components/debug/ContextDebugger';
+import OrderUpdateMonitor from '@/components/debug/OrderUpdateMonitor';
 
 // ✅ TAMBAHKAN IMPORTS: Untuk fallback langsung ke Supabase dan getStatusText
 import { supabase } from '@/integrations/supabase/client';
@@ -377,7 +378,7 @@ const OrdersPage: React.FC = () => {
           })
           .eq('id', orderId)
           .eq('user_id', user.user.id)
-          .select('nomor_pesanan')
+          .select('*') // ✅ Get full order data for financial sync
           .single();
 
         if (error) {
@@ -393,6 +394,29 @@ const OrdersPage: React.FC = () => {
           newStatus, 
           orderNumber: data.nomor_pesanan 
         });
+        
+        // ✅ FINANCIAL SYNC: Trigger manual financial sync if status is completed
+        if (newStatus === 'completed') {
+          try {
+            logger.debug('Direct update: Triggering financial sync for completed order');
+            
+            // Transform DB data to Order type for financial sync
+            const { transformOrderFromDB } = await import('../utils');
+            const orderForSync = transformOrderFromDB(data);
+            
+            const { syncOrderToFinancialTransaction } = await import('@/utils/orderFinancialSync');
+            const syncResult = await syncOrderToFinancialTransaction(orderForSync, user.user.id);
+            
+            if (syncResult) {
+              logger.success('✅ Financial sync completed via direct update:', data.nomor_pesanan);
+            } else {
+              logger.warn('⚠️ Financial sync failed (non-critical) via direct update');
+            }
+          } catch (syncError) {
+            logger.error('Error in manual financial sync after direct update:', syncError);
+            // Don't throw - status update was successful
+          }
+        }
         
         toast.success(`Status pesanan #${data.nomor_pesanan} berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
         
@@ -711,6 +735,9 @@ const OrdersPage: React.FC = () => {
           onCloseDetail={dialogHandlers.closeDetail}
         />
       </Suspense>
+      
+      {/* ✅ DEBUG: Real-time monitoring component - only in development */}
+      {import.meta.env.DEV && <OrderUpdateMonitor />}
     </div>
   );
 };

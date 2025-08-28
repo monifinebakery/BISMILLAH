@@ -124,9 +124,23 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
       } as any // ✅ FIXED: Type assertion for JSON compatibility
     });
 
-    if (!error) {
-      const created = Array.isArray(data) ? data[0] : data;
-      return transformOrderFromDB(created);
+    if (!error && data) {
+      // ✅ FIXED: Handle new return format from updated stored procedure
+      if (typeof data === 'object' && data.id) {
+        // New format: function returns complete order object
+        return transformOrderFromDB(data);
+      } else {
+        // Fallback: if it's still UUID, fetch the order
+        const { data: orderData, error: fetchError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', data)
+          .single();
+          
+        if (!fetchError && orderData) {
+          return transformOrderFromDB(orderData);
+        }
+      }
     }
     
     logger.warn('create_new_order function failed, falling back to direct insert:', error);

@@ -19,31 +19,48 @@ import type {
  * Uses totalHarga if available, otherwise calculates from jumlah * hargaSatuan
  */
 export const calculateIngredientCost = (bahanResep: BahanResep[]): number => {
+  // FORCE console.log untuk debugging
+  console.log('🔍 [DEBUG] calculateIngredientCost called with:', bahanResep);
+  
   let totalCost = 0;
   let usedTotalHarga = 0;
   let usedCalculated = 0;
   
   bahanResep.forEach((bahan, index) => {
+    console.log(`🔍 [DEBUG] Processing ingredient ${index + 1}:`, {
+      nama: bahan.nama,
+      jumlah: bahan.jumlah,
+      hargaSatuan: bahan.hargaSatuan,
+      totalHarga: bahan.totalHarga,
+      totalHargaType: typeof bahan.totalHarga,
+      totalHargaIsNaN: isNaN(bahan.totalHarga as number)
+    });
+    
     // Prioritize totalHarga if it exists and is valid
     if (typeof bahan.totalHarga === 'number' && !isNaN(bahan.totalHarga)) {
       totalCost += bahan.totalHarga;
       usedTotalHarga++;
+      console.log(`✅ Using totalHarga: ${bahan.totalHarga}`);
       logger.debug(`RecipeUtils: Ingredient ${index + 1} (${bahan.nama}) using totalHarga: ${bahan.totalHarga}`);
     } else {
       // Fallback to manual calculation
       const calculated = bahan.jumlah * bahan.hargaSatuan;
       totalCost += calculated;
       usedCalculated++;
+      console.log(`⚠️ Using calculated: ${bahan.jumlah} × ${bahan.hargaSatuan} = ${calculated}`);
       logger.debug(`RecipeUtils: Ingredient ${index + 1} (${bahan.nama}) calculated: ${bahan.jumlah} × ${bahan.hargaSatuan} = ${calculated}`);
     }
   });
   
-  logger.debug(`RecipeUtils: calculateIngredientCost summary:`, {
+  const summary = {
     totalIngredients: bahanResep.length,
     usedTotalHarga,
     usedCalculated,
     totalCost
-  });
+  };
+  
+  console.log('🔍 [DEBUG] calculateIngredientCost FINAL RESULT:', summary);
+  logger.debug(`RecipeUtils: calculateIngredientCost summary:`, summary);
   
   return totalCost;
 };
@@ -59,6 +76,16 @@ export const calculateHPP = (
   marginKeuntunganPersen: number,
   jumlahPcsPerPorsi: number = 1
 ): HPPCalculationResult => {
+  // FORCE console.log untuk debugging HPP utama
+  console.log('🏭 [DEBUG] calculateHPP called with parameters:', {
+    bahanCount: bahanResep.length,
+    jumlahPorsi,
+    biayaTenagaKerja,
+    biayaOverhead,
+    marginKeuntunganPersen,
+    jumlahPcsPerPorsi
+  });
+  
   logger.debug('RecipeUtils: Calculating HPP', {
     bahanCount: bahanResep.length,
     jumlahPorsi,
@@ -81,25 +108,52 @@ export const calculateHPP = (
 
   // 1. Calculate total ingredient cost
   const totalBahanBaku = calculateIngredientCost(bahanResep);
+  console.log('🏭 [STEP 1] Total Bahan Baku:', totalBahanBaku);
 
   // 2. Calculate total HPP
   const totalHPP = totalBahanBaku + biayaTenagaKerja + biayaOverhead;
+  console.log('🏭 [STEP 2] Total HPP calculation:', {
+    totalBahanBaku,
+    biayaTenagaKerja,
+    biayaOverhead,
+    totalHPP
+  });
 
   // 3. Calculate HPP per portion
   const hppPerPorsi = totalHPP / jumlahPorsi;
+  console.log('🏭 [STEP 3] HPP per porsi:', {
+    totalHPP,
+    jumlahPorsi,
+    hppPerPorsi
+  });
 
   // 4. Calculate HPP per piece
   const hppPerPcs = hppPerPorsi / jumlahPcsPerPorsi;
+  console.log('🏭 [STEP 4] HPP per pcs:', {
+    hppPerPorsi,
+    jumlahPcsPerPorsi,
+    hppPerPcs
+  });
 
   // 5. Calculate margin amount
   const marginKeuntungan = (totalHPP * marginKeuntunganPersen) / 100;
+  console.log('🏭 [STEP 5] Margin keuntungan:', {
+    totalHPP,
+    marginKeuntunganPersen,
+    marginKeuntungan
+  });
 
   // 6. Calculate selling prices
   const hargaJualPorsi = hppPerPorsi + (marginKeuntungan / jumlahPorsi);
   const hargaJualPerPcs = hppPerPcs + (marginKeuntungan / jumlahPorsi / jumlahPcsPerPorsi);
+  console.log('🏭 [STEP 6] Harga jual:', {
+    hargaJualPorsi,
+    hargaJualPerPcs
+  });
 
   // 7. Calculate profitability
   const profitabilitas = totalHPP > 0 ? (marginKeuntungan / totalHPP) * 100 : 0;
+  console.log('🏭 [STEP 7] Profitabilitas:', profitabilitas);
 
   const result: HPPCalculationResult = {
     totalBahanBaku,
@@ -114,6 +168,7 @@ export const calculateHPP = (
     profitabilitas
   };
 
+  console.log('🏭 [FINAL] HPP calculation result:', result);
   logger.debug('RecipeUtils: HPP calculation result:', result);
   return result;
 };

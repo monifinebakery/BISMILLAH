@@ -138,8 +138,21 @@ const MemoizedPurchaseRow = React.memo(({
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-gray-500">
-          {purchase.items?.length || 0} item
+        <div className="text-sm text-gray-900">
+          {purchase.items && purchase.items.length > 0 ? (
+            purchase.items.length === 1 ? (
+              // Single item: show name
+              <div className="font-medium">{purchase.items[0].nama}</div>
+            ) : (
+              // Multiple items: show first item + count
+              <div>
+                <div className="font-medium">{purchase.items[0].nama}</div>
+                <div className="text-xs text-gray-500">+{purchase.items.length - 1} item lainnya</div>
+              </div>
+            )
+          ) : (
+            <div className="text-gray-400 italic">Tidak ada item</div>
+          )}
         </div>
       </TableCell>
       <TableCell className="text-right">
@@ -562,7 +575,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                       className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
                     >
                       <Calendar className="h-4 w-4 mr-2" />
-                      Tanggal
+                      Tanggal Pembelian
                       {renderSortIcon('tanggal')}
                     </button>
                   </TableHead>

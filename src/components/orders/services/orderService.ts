@@ -2,7 +2,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { transformOrderFromDB, transformOrderToDB, toSafeISOString, validateOrderData } from '../utils';
 import { generateOrderNumber } from '@/utils/formatUtils'; // ✅ FIXED: Import order number generator
-import type { Order, NewOrder } from '../types';
+import type { Order, NewOrder, OrderStatus } from '../types';
+
+// ✅ FIXED: Valid status values matching application values
+const VALID_ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'completed'];
+
+// ✅ Helper to validate and normalize status
+function validateStatus(status?: string): OrderStatus {
+  if (!status || !VALID_ORDER_STATUSES.includes(status as OrderStatus)) {
+    return 'pending'; // Default fallback
+  }
+  return status as OrderStatus;
+}
 
 // OPTIMIZED: Fetch orders dengan selective fields untuk performa
 export async function fetchOrders(userId: string): Promise<Order[]> {
@@ -100,7 +111,7 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
         user_id: userId,
         nomor_pesanan: orderNumber, // ✅ FIXED: Include order number
         tanggal: toSafeISOString(order.tanggal || new Date()),
-        status: order.status || 'pending',
+        status: validateStatus(order.status),
         nama_pelanggan: order.namaPelanggan.trim(),
         telepon_pelanggan: order.teleponPelanggan || '',
         email_pelanggan: order.emailPelanggan || '',
@@ -123,7 +134,7 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
     logger.warn('create_new_order function not available, using direct insert:', sqlError);
   }
 
-  // ✅ FALLBACK: Direct insert if SQL function doesn't exist or fails
+// ✅ FALLBACK: Direct insert if SQL function doesn't exist or fails
   const orderWithNumber = {
     ...order,
     nomorPesanan: orderNumber // ✅ FIXED: Ensure order number is set
@@ -131,16 +142,22 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
   
   const transformedData = transformOrderToDB(orderWithNumber);
   
-  // ✅ ENSURE: All required fields are present
+  // ✅ ENSURE: All required fields are present - explicitly set nomor_pesanan
   const insertData = {
     user_id: userId,
-    nomor_pesanan: orderNumber,
+    nomor_pesanan: orderNumber, // ✅ CRITICAL: Always ensure this is set
     nama_pelanggan: order.namaPelanggan?.trim() || 'Unknown',
     telepon_pelanggan: order.teleponPelanggan || '',
-    status: order.status || 'pending',
+    email_pelanggan: order.emailPelanggan || '',
+    alamat_pengiriman: order.alamatPengiriman || '',
+    status: validateStatus(order.status),
     tanggal: toSafeISOString(order.tanggal || new Date()),
     total_pesanan: Number(order.totalPesanan) || 0,
-    ...transformedData // ✅ SPREAD: Add any additional transformed fields
+    items: JSON.stringify(Array.isArray(order.items) ? order.items : []),
+    subtotal: Number(order.subtotal) || 0,
+    pajak: Number(order.pajak) || 0,
+    catatan: order.catatan || '',
+    // ✅ Don't spread transformedData to avoid overwriting explicit values above
   };
   
   const { data, error } = await supabase
@@ -177,9 +194,12 @@ export async function updateOrder(userId: string, id: string, updatedData: Parti
 
 // Update only status
 export async function updateOrderStatus(userId: string, id: string, newStatus: string): Promise<Order> {
+  // ✅ FIXED: Validate status before update
+  const validatedStatus = validateStatus(newStatus);
+  
   const { data, error } = await supabase
     .from('orders')
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .update({ status: validatedStatus, updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', userId)
     .select('*')
@@ -223,6 +243,9 @@ export async function deleteOrder(userId: string, id: string): Promise<void> {
 
 // ULTRA OPTIMIZED: Bulk update dengan batching untuk performa maksimal
 export async function bulkUpdateStatus(userId: string, ids: string[], newStatus: string): Promise<void> {
+  // ✅ FIXED: Validate status before bulk update
+  const validatedStatus = validateStatus(newStatus);
+  
   // PERFORMANCE: Batch processing untuk menghindari query terlalu besar
   const BATCH_SIZE = 20;
   const batches = [];
@@ -241,7 +264,7 @@ export async function bulkUpdateStatus(userId: string, ids: string[], newStatus:
     const { error } = await supabase
       .from('orders')
       .update({ 
-        status: newStatus, 
+        status: validatedStatus, 
         updated_at: new Date().toISOString() 
       })
       .in('id', batch)

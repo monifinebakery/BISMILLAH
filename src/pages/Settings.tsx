@@ -22,7 +22,8 @@ import {
   Loader2,
   BellRing,
   Smartphone,
-  Download
+  Download,
+  MessageSquare
 } from 'lucide-react';
 
 // ✅ UPDATED: Import from correct path
@@ -318,6 +319,70 @@ const SettingsPage = () => {
 
           {/* Device Management Section */}
           <DeviceManagementSection />
+
+          {/* MONIFINE WHATSAPP CHANNEL SECTION */}
+          <Card className="border-0 overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 p-2 rounded-lg">
+                  <MessageSquare className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Channel Monifine</CardTitle>
+                  <CardDescription>
+                    Bergabung dengan channel WhatsApp untuk tips, update, dan info menarik untuk UMKM
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6">
+              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                      <MessageSquare className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 w-full sm:w-auto">
+                    <h4 className="font-semibold text-green-900 mb-2 text-base sm:text-lg">
+                      📢 Monifine - Kalkulator HPP untuk UMKM
+                    </h4>
+                    <p className="text-green-800 text-sm mb-4">
+                      Dapatkan tips bisnis, update fitur terbaru, dan informasi menarik seputar UMKM Indonesia langsung dari tim Monifine.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm text-green-700 mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>
+                        <span>Tips kalkulasi HPP</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>
+                        <span>Update fitur terbaru</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>
+                        <span>Strategi bisnis UMKM</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></div>
+                        <span>Community support</span>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        window.open('https://whatsapp.com/channel/0029Vb6dAdI6LwHtkhRJXg1I', '_blank');
+                        toast.success('Channel WhatsApp Monifine dibuka! 🎉');
+                      }}
+                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 text-sm sm:text-base"
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Join Channel WhatsApp
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* PWA INSTALL SECTION */}
           <Card className="border-0 overflow-hidden">

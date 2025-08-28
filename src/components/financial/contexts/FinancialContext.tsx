@@ -44,7 +44,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { addTransaction, updateTransaction, deleteTransaction, isLoading: operationLoading } = useFinancialOperations();
 
   // ===========================================
-  // ✅ REAL-TIME SUBSCRIPTION (Optimized)
+  // ✅ REAL-TIME SUBSCRIPTION (Enhanced)
   // ===========================================
 
   useEffect(() => {
@@ -53,7 +53,12 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
     logger.context('FinancialContext', 'Setting up real-time subscription for user:', user.id);
 
     const channel = supabase
-      .channel(`realtime-financial-${user.id}`)
+      .channel(`realtime-financial-${user.id}`, {
+        config: {
+          broadcast: { self: false },
+          presence: { key: user.id }
+        }
+      })
       .on(
         'postgres_changes',
         { 
@@ -64,25 +69,63 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
         },
         (payload) => {
           try {
-            logger.context('FinancialContext', 'Real-time update received:', payload);
-
-            // Invalidate queries for fresh data
-            queryClient.invalidateQueries({
-              queryKey: financialQueryKeys.transactions(user.id)
+            logger.context('FinancialContext', 'Real-time update received:', {
+              event: payload.eventType,
+              table: payload.table,
+              new: payload.new,
+              old: payload.old
             });
+
+            // ✅ ENHANCED: More granular cache updates based on event type
+            switch (payload.eventType) {
+              case 'INSERT':
+              case 'UPDATE':
+              case 'DELETE':
+                // Invalidate and refetch for immediate updates
+                queryClient.invalidateQueries({
+                  queryKey: financialQueryKeys.transactions(user.id)
+                });
+                // Also invalidate related caches
+                queryClient.invalidateQueries({
+                  queryKey: financialQueryKeys.all
+                });
+                break;
+              default:
+                logger.context('FinancialContext', 'Unknown event type:', payload.eventType);
+            }
 
           } catch (error) {
             logger.error('Real-time update error:', error);
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         logger.context('FinancialContext', 'Subscription status:', status);
+        
+        if (err) {
+          logger.error('Subscription error:', err);
+        }
+        
+        // ✅ ENHANCED: Handle connection states
+        switch (status) {
+          case 'SUBSCRIBED':
+            logger.info('Financial real-time subscription active');
+            break;
+          case 'CHANNEL_ERROR':
+            logger.error('Financial real-time subscription error');
+            break;
+          case 'TIMED_OUT':
+            logger.warn('Financial real-time subscription timed out');
+            break;
+          case 'CLOSED':
+            logger.info('Financial real-time subscription closed');
+            break;
+        }
       });
 
     return () => {
       logger.context('FinancialContext', 'Unsubscribing from real-time updates');
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [user?.id, queryClient]);
 

@@ -500,16 +500,30 @@ const OrderForm: React.FC<OrderFormProps> = ({
                   const methodIndicator = recipe ? getCalculationMethodIndicator(recipe) : null;
                   
                   return (
-                    <div key={item.id} className="flex items-center gap-3 p-4 border rounded-lg bg-gray-50">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                    <div key={item.id} className="p-4 border rounded-lg bg-gray-50 space-y-3">
+                      {/* Top Row: Menu Name with Badges */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
                           <Input
-                            placeholder="Nama item"
+                            placeholder="Nama menu/item"
                             value={item.name}
                             onChange={(e) => updateItem(item.id, 'name', e.target.value)}
                             disabled={item.isFromRecipe}
-                            className={item.isFromRecipe ? 'bg-blue-50' : ''}
+                            className={`flex-1 ${item.isFromRecipe ? 'bg-blue-50' : ''}`}
                           />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(item.id)}
+                            className="text-red-600 hover:text-red-700 flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        {/* Badges Row */}
+                        <div className="flex items-center gap-2 flex-wrap">
                           {item.isFromRecipe && (
                             <Badge variant="outline" className="text-blue-600 border-blue-200">
                               <ChefHat className="h-3 w-3 mr-1" />
@@ -533,42 +547,46 @@ const OrderForm: React.FC<OrderFormProps> = ({
                           )}
                         </div>
                       </div>
-                      <div className="w-24">
-                        <Label className="text-xs text-gray-500">Qty</Label>
-                        <Input
-                          type="number"
-                          placeholder="Qty"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                          min="1"
-                        />
+                      
+                      {/* Bottom Row: Quantity, Price, and Total */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div>
+                          <Label className="text-xs text-gray-500 font-medium">Jumlah</Label>
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                            min="1"
+                            className="mt-1"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs text-gray-500 font-medium">Harga Satuan</Label>
+                          <Input
+                            type="number"
+                            placeholder="Harga"
+                            value={item.price}
+                            onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
+                            min="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        
+                        <div className="col-span-2 md:col-span-2">
+                          <Label className="text-xs text-gray-500 font-medium">Total Harga</Label>
+                          <div className="mt-1 p-2 bg-white border rounded-md">
+                            <div className="font-semibold text-lg text-green-700">
+                              Rp {item.total.toLocaleString('id-ID')}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {item.quantity} × Rp {item.price.toLocaleString('id-ID')}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    <div className="w-32">
-                      <Label className="text-xs text-gray-500">Harga</Label>
-                      <Input
-                        type="number"
-                        placeholder="Harga"
-                        value={item.price}
-                        onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
-                        min="0"
-                      />
                     </div>
-                    <div className="w-32 text-right">
-                      <Label className="text-xs text-gray-500">Total</Label>
-                      <div className="font-semibold text-lg">
-                        Rp {item.total.toLocaleString('id-ID')}
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(item.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
                 );
                 })}
               </div>

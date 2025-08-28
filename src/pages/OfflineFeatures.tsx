@@ -8,7 +8,7 @@ import {
   Calculator, 
   FileText, 
   Database, 
-  Sync,
+  RefreshCw,
   Info,
   CheckCircle,
   Clock
@@ -45,7 +45,7 @@ export default function OfflineFeatures() {
       features: ['Read-Only Access', 'Search & Filter', 'Last Update Info', 'Multi-Category']
     },
     {
-      icon: Sync,
+      icon: RefreshCw,
       title: 'Background Sync',
       description: 'Sistem antrian otomatis yang akan mensinkronisasi data ketika online',
       features: ['Auto Queue', 'Priority System', 'Retry Logic', 'Status Tracking']
@@ -177,7 +177,7 @@ export default function OfflineFeatures() {
             <span className="hidden sm:inline">Data Viewer</span>
           </TabsTrigger>
           <TabsTrigger value="sync" className="flex items-center gap-2">
-            <Sync className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" />
             <span className="hidden sm:inline">Sync Status</span>
           </TabsTrigger>
         </TabsList>
@@ -198,7 +198,7 @@ export default function OfflineFeatures() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sync className="h-5 w-5" />
+                <RefreshCw className="h-5 w-5" />
                 Status Sinkronisasi
               </CardTitle>
             </CardHeader>
@@ -257,7 +257,7 @@ export default function OfflineFeatures() {
                   </div>
                 ) : (
                   <div className="text-center text-gray-500 py-8">
-                    <Sync className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <RefreshCw className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>Tidak ada operasi dalam antrian</p>
                     <p className="text-sm">
                       {isOnline ? 'Semua data sudah tersinkronisasi' : 'Operasi akan muncul ketika ada aktivitas offline'}

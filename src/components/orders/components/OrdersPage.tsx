@@ -327,7 +327,7 @@ const OrdersPage: React.FC = () => {
         if (typeof contextValue.updateOrderStatus === 'function') {
           logger.debug('Using contextValue.updateOrderStatus');
           try {
-            await contextValue.updateOrderStatus({ id: orderId, status: newStatus as OrderStatus });
+            await contextValue.updateOrderStatus(orderId, newStatus as OrderStatus);
             const order = finalOrders.find(o => o.id === orderId);
             logger.success('Status updated via updateOrderStatus:', { 
               orderId, 

@@ -67,6 +67,27 @@ This ensures they appear above ALL other UI elements.
     background: rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(2px);
   }
+  
+  /* Ensure sidebar trigger stays with header and is responsive */
+  [data-sidebar="trigger"] {
+    position: relative !important;
+    z-index: inherit !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+  }
+  
+  /* Prevent any fixed positioning on mobile/tablet */
+  @media (max-width: 1024px) {
+    [data-sidebar="trigger"] {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+  }
   .sidebar-ipad-default-collapsed { width: var(--sidebar-width-icon); }
   .sidebar-ipad-overlay-expanded {
     position: fixed; z-index: 60; left: 0; top: 0; height: 100vh; width: var(--sidebar-width);

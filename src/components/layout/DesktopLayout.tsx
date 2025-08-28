@@ -69,8 +69,8 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
             "sidebar-content-no-shift"
           )}>
           {/* ✅ Desktop Header */}
-          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 w-full">
-            <SidebarTrigger className="-ml-1" />
+          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 sm:px-6 w-full">
+            <SidebarTrigger className="-ml-1 flex-shrink-0 !relative !static !z-auto" />
             <div className="flex-1" />
             <div className="flex items-center space-x-4">
               <PWAInstallButton className="" showNetworkStatus={false} />

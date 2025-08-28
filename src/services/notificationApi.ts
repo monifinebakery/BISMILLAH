@@ -94,7 +94,7 @@ export const getNotifications = async (userId: string): Promise<Notification[]> 
   try {
     const { data, error } = await supabase
       .from('notifications')
-      .select('*')
+      .select('id, user_id, title, message, type, icon, priority, related_type, related_id, action_url, is_read, is_archived, expires_at, created_at, updated_at')
       .eq('user_id', userId)
       .eq('is_archived', false)
       .order('created_at', { ascending: false })
@@ -226,7 +226,7 @@ export const getNotificationSettings = async (userId: string): Promise<Notificat
     // ✅ FIXED: Use maybeSingle() instead of single() to avoid error when no data
     const { data, error } = await supabase
       .from('notification_settings')
-      .select('*')
+      .select('user_id, push_notifications, inventory_alerts, order_alerts, financial_alerts, created_at, updated_at')
       .eq('user_id', userId)
       .maybeSingle();
 

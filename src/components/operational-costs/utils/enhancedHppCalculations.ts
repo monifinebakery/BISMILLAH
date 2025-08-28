@@ -115,18 +115,45 @@ export const getIngredientsWAC = async (
 export const updateIngredientsWithWAC = async (
   ingredients: BahanResepWithWAC[]
 ): Promise<BahanResepWithWAC[]> => {
+  console.log('🔥 [WAC DEBUG] Input ingredients:', ingredients);
   const wacMap = await getIngredientsWAC(ingredients);
+  console.log('🔥 [WAC DEBUG] WAC map:', wacMap);
   
   return ingredients.map(ingredient => {
+    console.log(`🔥 [WAC DEBUG] Processing ingredient: ${ingredient.nama}`, {
+      warehouseId: ingredient.warehouseId,
+      currentHargaSatuan: ingredient.hargaSatuan,
+      currentTotalHarga: ingredient.totalHarga,
+      jumlah: ingredient.jumlah,
+      hasWAC: ingredient.warehouseId && wacMap.has(ingredient.warehouseId)
+    });
+    
     if (ingredient.warehouseId && wacMap.has(ingredient.warehouseId)) {
       const wacPrice = wacMap.get(ingredient.warehouseId)!;
+      const newTotalHarga = ingredient.jumlah * wacPrice;
+      
+      console.log(`🔥 [WAC DEBUG] Using WAC for ${ingredient.nama}:`, {
+        originalPrice: ingredient.hargaSatuan,
+        wacPrice,
+        jumlah: ingredient.jumlah,
+        originalTotalHarga: ingredient.totalHarga,
+        newTotalHarga,
+        calculation: `${ingredient.jumlah} * ${wacPrice} = ${newTotalHarga}`
+      });
+      
       return {
         ...ingredient,
         wacPrice,
         hargaSatuan: wacPrice, // Use WAC as the price
-        totalHarga: ingredient.jumlah * wacPrice
+        totalHarga: newTotalHarga
       };
     }
+    
+    console.log(`🔥 [WAC DEBUG] No WAC for ${ingredient.nama}, keeping original:`, {
+      hargaSatuan: ingredient.hargaSatuan,
+      totalHarga: ingredient.totalHarga
+    });
+    
     return ingredient;
   });
 };

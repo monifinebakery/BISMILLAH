@@ -2,7 +2,7 @@
 // src/components/warehouse/components/WarehouseHeader.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, AlertTriangle, RefreshCw, TrendingDown, Info } from 'lucide-react';
+import { Plus, Package, AlertTriangle, RefreshCw, TrendingDown, Info, Zap, BarChart3, ShoppingCart, Star } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,10 +159,10 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white border">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white shadow-lg">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+            <div className="bg-white bg-opacity-10 p-3 rounded-xl backdrop-blur-sm">
               <Package className="h-8 w-8 text-white" />
             </div>
             
@@ -170,8 +170,8 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
               <h1 className="text-2xl lg:text-3xl font-bold mb-2">
                 Manajemen Gudang
               </h1>
-              <p className="text-white opacity-90">
-                Kelola semua stok bahan baku dengan sistem inventory yang terintegrasi.
+              <p className="text-white text-opacity-90">
+                Kelola semua stok bahan baku dengan sistem inventory yang terintegrasi
               </p>
             </div>
           </div>
@@ -190,7 +190,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
 
             <Button
               onClick={() => navigate('/pembelian')}
-              className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+              className="flex items-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-2 rounded-lg transition-all"
             >
               <Plus className="h-4 w-4" />
               Tambah via Pembelian
@@ -211,7 +211,7 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
           )}
           <Button
             onClick={() => navigate('/pembelian')}
-            className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+            className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-3 rounded-lg transition-all"
           >
             <Plus className="h-4 w-4" />
             Tambah via Pembelian
@@ -228,7 +228,6 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
                 </span>
               </div>
 
-              {/* ✅ UPDATE: Render condition untuk total value dengan tooltip */}
               {stats && stats.totalValue !== undefined && (
                 <div className="flex flex-col">
                   <TooltipProvider>
@@ -236,15 +235,14 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-1">
                           <span className="text-white opacity-75 text-xs uppercase tracking-wide">
-                            Nilai Stok (Harga Rata-Rata)
+                            Nilai Stok
                           </span>
                           <Info className="h-3 w-3 text-white opacity-60 cursor-pointer" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs text-sm">
                         <p>
-                          Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost),
-                          yaitu rata-rata harga pembelian terakhir yang sudah termasuk semua pembelian sebelumnya.
+                          Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost)
                         </p>
                       </TooltipContent>
                     </Tooltip>

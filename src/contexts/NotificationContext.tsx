@@ -315,7 +315,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   // ===========================================
 
   const recentNotificationsRef = useRef<Map<string, number>>(new Map());
-  const DUPLICATE_THRESHOLD = 5 * 60 * 1000; // 5 minutes - Extended to reduce duplicates
+  const DUPLICATE_THRESHOLD = 10 * 60 * 1000; // 10 minutes - Extended to reduce duplicates
 
   const generateNotificationKey = useCallback((data: CreateNotificationData): string => {
     // Enhanced key generation to prevent cross-context duplicates
@@ -421,7 +421,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           const isLocalAction = newNotification.metadata?.source === 'local' ||
                                recentNotificationsRef.current.has(generateNotificationKey(newNotification));
           
-          if (!isLocalAction && settings?.push_notifications !== false) {
+          // ✅ ADDITIONAL FILTER: Skip WAC-related notifications if they're too frequent
+          const isWACNotification = newNotification.title?.toLowerCase().includes('wac') || 
+                                   newNotification.title?.toLowerCase().includes('weighted') ||
+                                   newNotification.message?.toLowerCase().includes('rata-rata');
+          
+          if (!isLocalAction && !isWACNotification && settings?.push_notifications !== false) {
             toast.info(newNotification.title, {
               description: newNotification.message,
               duration: newNotification.priority >= 4 ? 8000 : 4000

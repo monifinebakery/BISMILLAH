@@ -10,6 +10,7 @@ import { Trash2, Search, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-re
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   cleanupDuplicateNotifications, 
   quickCleanupRecent, 
@@ -105,6 +106,73 @@ const NotificationCleanup: React.FC = () => {
     } catch (error) {
       logger.error('Quick cleanup failed:', error);
       toast.error('Quick cleanup gagal');
+    } finally {
+      setIsCleaning(false);
+    }
+  };
+
+  // WAC-specific cleanup
+  const handleWACCleanup = async () => {
+    if (!user?.id) return;
+
+    setIsCleaning(true);
+    try {
+      logger.info('🏦 Starting WAC notifications cleanup...');
+      
+      // Custom cleanup for WAC notifications
+      const { data: wacNotifications, error } = await supabase
+        .from('notifications')
+        .select('id, title, message, created_at')
+        .eq('user_id', user.id)
+        .or('title.ilike.%wac%,title.ilike.%weighted%,message.ilike.%rata-rata%,message.ilike.%harga rata%')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (!wacNotifications || wacNotifications.length === 0) {
+        toast.info('Tidak ada notifikasi WAC ditemukan');
+        return;
+      }
+
+      // Group similar WAC notifications
+      const groups = new Map<string, any[]>();
+      wacNotifications.forEach(notif => {
+        const key = `${notif.title.toLowerCase().trim()}|${notif.message.substring(0, 50)}`;
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key)!.push(notif);
+      });
+
+      // Find duplicates
+      const idsToDelete: string[] = [];
+      groups.forEach(notifs => {
+        if (notifs.length > 1) {
+          const sorted = notifs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          const toDelete = sorted.slice(1); // Keep most recent
+          idsToDelete.push(...toDelete.map(n => n.id));
+        }
+      });
+
+      if (idsToDelete.length === 0) {
+        toast.info('Tidak ada duplikat WAC ditemukan');
+        return;
+      }
+
+      // Delete duplicates
+      const { error: deleteError } = await supabase
+        .from('notifications')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (deleteError) throw deleteError;
+
+      toast.success(`🏦 ${idsToDelete.length} notifikasi WAC duplikat dihapus`);
+      setLastCleanup(new Date().toLocaleString('id-ID'));
+      
+    } catch (error) {
+      logger.error('WAC cleanup failed:', error);
+      toast.error('WAC cleanup gagal');
     } finally {
       setIsCleaning(false);
     }
@@ -261,6 +329,20 @@ const NotificationCleanup: React.FC = () => {
             </Button>
             
             <Button 
+              onClick={handleWACCleanup} 
+              disabled={isCleaning}
+              variant="secondary"
+              size="sm"
+            >
+              {isCleaning ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Clean WAC
+            </Button>
+            
+            <Button 
               onClick={handleExpiredCleanup} 
               disabled={isCleaning}
               variant="secondary"
@@ -271,7 +353,7 @@ const NotificationCleanup: React.FC = () => {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Quick Clean: Hapus duplikat 24 jam terakhir • Clean Expired: Hapus notifikasi expired
+            Quick Clean: Hapus duplikat 24 jam terakhir • Clean WAC: Hapus duplikat WAC khusus • Clean Expired: Hapus notifikasi expired
           </p>
         </div>
 

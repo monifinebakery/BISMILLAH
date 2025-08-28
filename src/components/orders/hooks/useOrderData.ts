@@ -121,6 +121,12 @@ export const useOrderOperations = () => {
         }
       );
       toast.success('Pesanan berhasil ditambahkan');
+      
+      // ✅ INVALIDATE PROFIT ANALYSIS: New orders affect profit calculations
+      console.log('📈 Invalidating profit analysis cache after adding new order');
+      queryClient.invalidateQueries({ 
+        queryKey: ['profit-analysis'] 
+      });
     },
   });
 

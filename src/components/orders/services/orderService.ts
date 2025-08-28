@@ -190,7 +190,21 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
     throw error;
   }
 
-  return transformOrderFromDB(data);
+  const transformedOrder = transformOrderFromDB(data);
+  
+  // ✅ AUTO FINANCIAL SYNC: Sync to financial when order completed
+  if (newStatus === 'completed') {
+    try {
+      const { syncOrderToFinancialTransaction } = await import('@/utils/orderFinancialSync');
+      await syncOrderToFinancialTransaction(transformedOrder, userId);
+      logger.info('📈 Order financial sync triggered for completed order:', transformedOrder.nomorPesanan);
+    } catch (syncError) {
+      logger.error('Error in auto financial sync:', syncError);
+      // Don't throw - order status update should still succeed
+    }
+  }
+
+  return transformedOrder;
 }
 
 // Delete an order

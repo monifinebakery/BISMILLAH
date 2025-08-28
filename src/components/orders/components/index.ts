@@ -13,6 +13,7 @@ export { default as OrderTable } from './OrderTable';
 // ✅ CONTROL COMPONENTS: Commonly used together
 export { default as OrderFilters } from './OrderFilters';
 export { default as OrderControls } from './OrderControls';
+export { default as ImportButton } from './ImportButton';
 
 // ❌ REMOVED - Reduce dependencies:
 // - RecipeAnalytics (import directly if needed)

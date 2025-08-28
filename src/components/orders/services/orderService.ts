@@ -194,14 +194,30 @@ export async function updateOrder(userId: string, id: string, updatedData: Parti
 
 // Update only status
 export async function updateOrderStatus(userId: string, id: string, newStatus: string): Promise<Order> {
+  // ✅ PARAMETER VALIDATION: Ensure all parameters are strings
+  const userIdStr = String(userId);
+  const orderIdStr = String(id);
+  const statusStr = String(newStatus);
+  
+  logger.debug('orderService: updateOrderStatus called with:', {
+    userId: userIdStr,
+    orderId: orderIdStr,
+    newStatus: statusStr,
+    originalTypes: {
+      userId: typeof userId,
+      id: typeof id, 
+      newStatus: typeof newStatus
+    }
+  });
+  
   // ✅ FIXED: Validate status before update
-  const validatedStatus = validateStatus(newStatus);
+  const validatedStatus = validateStatus(statusStr);
   
   const { data, error } = await supabase
     .from('orders')
     .update({ status: validatedStatus, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('user_id', userId)
+    .eq('id', orderIdStr)
+    .eq('user_id', userIdStr)
     .select('*')
     .single();
 

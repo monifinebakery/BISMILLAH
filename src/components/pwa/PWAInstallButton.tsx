@@ -155,6 +155,10 @@ export function PWAStatus() {
     hasServiceWorker: false,
     hasManifest: false
   });
+  const [isVisible, setIsVisible] = React.useState(() => {
+    // Get initial visibility state from localStorage
+    return localStorage.getItem('pwa-debug-visible') !== 'false';
+  });
 
   React.useEffect(() => {
     setDeviceInfo({
@@ -176,35 +180,64 @@ export function PWAStatus() {
     return null;
   }
 
+  const toggleVisibility = () => {
+    const newVisibility = !isVisible;
+    setIsVisible(newVisibility);
+    localStorage.setItem('pwa-debug-visible', newVisibility.toString());
+  };
+
   const isMobile = /android|iphone|ipad|ipod/.test(deviceInfo.userAgent);
   const browserType = deviceInfo.userAgent.includes('chrome') ? 'Chrome' : 
                      deviceInfo.userAgent.includes('safari') ? 'Safari' : 
                      deviceInfo.userAgent.includes('firefox') ? 'Firefox' : 'Other';
 
   return (
-    <div className="fixed bottom-4 right-4 bg-black/90 text-white p-3 rounded-lg text-xs font-mono z-50 max-w-xs">
-      <div className="space-y-1">
-        <div className="font-bold text-yellow-300">PWA Debug Status:</div>
-        <div>• Can Install (Prompt): {canInstall ? '✅' : '❌'}</div>
-        <div>• Potentially Installable: {isPotentiallyInstallable() ? '✅' : '❌'}</div>
-        <div>• Is Installed: {isInstalled ? '✅' : '❌'}</div>
-        <div>• Is Online: {isOnline ? '✅' : '❌'}</div>
-        <div>• Update Available: {updateAvailable ? '✅' : '❌'}</div>
-        <div className="border-t border-gray-600 pt-1 mt-2">
-          <div>• HTTPS: {deviceInfo.isHTTPS ? '✅' : '❌'}</div>
-          <div>• Service Worker: {deviceInfo.hasServiceWorker ? '✅' : '❌'}</div>
-          <div>• Manifest: {deviceInfo.hasManifest ? '✅' : '❌'}</div>
-        </div>
-        <div className="border-t border-gray-600 pt-1 mt-2">
-          <div>• Device: {isMobile ? 'Mobile 📱' : 'Desktop 💻'}</div>
-          <div>• Browser: {browserType}</div>
-        </div>
-        {!canInstall && isPotentiallyInstallable() && (
-          <div className="border-t border-yellow-600 pt-1 mt-2 text-yellow-300">
-            <div>ℹ️ Manual install available</div>
+    <>
+      {/* Toggle Button */}
+      <button
+        onClick={toggleVisibility}
+        className="fixed bottom-4 right-4 bg-black/70 hover:bg-black/90 text-white p-2 rounded-full text-xs font-mono z-50 transition-all duration-200"
+        title={isVisible ? "Hide PWA Debug" : "Show PWA Debug"}
+      >
+        {isVisible ? '🔍' : '👁️'}
+      </button>
+
+      {/* Debug Panel */}
+      {isVisible && (
+        <div className="fixed bottom-16 right-4 bg-black/90 text-white p-3 rounded-lg text-xs font-mono z-50 max-w-xs transition-all duration-300 animate-in slide-in-from-bottom-2">
+          <div className="space-y-1">
+            <div className="font-bold text-yellow-300 flex items-center justify-between">
+              PWA Debug Status:
+              <button
+                onClick={toggleVisibility}
+                className="text-gray-400 hover:text-white text-xs ml-2"
+                title="Hide"
+              >
+                ✕
+              </button>
+            </div>
+            <div>• Can Install (Prompt): {canInstall ? '✅' : '❌'}</div>
+            <div>• Potentially Installable: {isPotentiallyInstallable() ? '✅' : '❌'}</div>
+            <div>• Is Installed: {isInstalled ? '✅' : '❌'}</div>
+            <div>• Is Online: {isOnline ? '✅' : '❌'}</div>
+            <div>• Update Available: {updateAvailable ? '✅' : '❌'}</div>
+            <div className="border-t border-gray-600 pt-1 mt-2">
+              <div>• HTTPS: {deviceInfo.isHTTPS ? '✅' : '❌'}</div>
+              <div>• Service Worker: {deviceInfo.hasServiceWorker ? '✅' : '❌'}</div>
+              <div>• Manifest: {deviceInfo.hasManifest ? '✅' : '❌'}</div>
+            </div>
+            <div className="border-t border-gray-600 pt-1 mt-2">
+              <div>• Device: {isMobile ? 'Mobile 📱' : 'Desktop 💻'}</div>
+              <div>• Browser: {browserType}</div>
+            </div>
+            {!canInstall && isPotentiallyInstallable() && (
+              <div className="border-t border-yellow-600 pt-1 mt-2 text-yellow-300">
+                <div>ℹ️ Manual install available</div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }

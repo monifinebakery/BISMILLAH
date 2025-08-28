@@ -5,9 +5,11 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { ThemeProvider } from "@/lib/theme";
 import App from "./App.tsx";
 import "./index.css";
+import "@/styles/toast-swipe.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'
+import { initToastSwipeHandlers } from '@/utils/toastSwipeHandler'
 
 // Vite inject via define() (lihat vite.config.ts)
 declare const __DEV__: boolean;
@@ -220,6 +222,14 @@ pwaManager.registerServiceWorker().then((registration) => {
 });
 
 console.log('✅ [PWA] Service worker enabled for offline functionality');
+
+// ------------------------------
+// Initialize toast swipe handlers
+// ------------------------------
+setTimeout(() => {
+  initToastSwipeHandlers();
+  logger.info('🎯 Toast swipe handlers initialized');
+}, 100);
 
 logger.success("React application initialized successfully", {
   initTime: appInitTime,

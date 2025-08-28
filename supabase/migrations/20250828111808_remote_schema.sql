@@ -17,6 +17,13 @@ COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
 
+CREATE EXTENSION IF NOT EXISTS "btree_gin" WITH SCHEMA "public";
+
+
+
+
+
+
 CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
 
 
@@ -25,6 +32,13 @@ CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
 
 
 CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_trgm" WITH SCHEMA "public";
 
 
 
@@ -977,6 +991,21 @@ COMMENT ON FUNCTION "public"."create_new_order"("order_data" "jsonb") IS 'Create
 
 
 
+CREATE OR REPLACE FUNCTION "public"."estimated_count"("table_name" "text") RETURNS bigint
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    result bigint;
+BEGIN
+    EXECUTE format('SELECT reltuples::bigint FROM pg_class WHERE relname = %L', table_name) INTO result;
+    RETURN COALESCE(result, 0);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."estimated_count"("table_name" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_comprehensive_dashboard_summary"("p_user_id" "uuid") RETURNS TABLE("current_month_revenue" numeric, "current_month_cogs" numeric, "current_month_opex" numeric, "current_month_profit" numeric, "current_month_margin" numeric, "prev_month_revenue" numeric, "prev_month_profit" numeric, "revenue_growth_pct" numeric, "profit_growth_pct" numeric, "ytd_revenue" numeric, "ytd_profit" numeric, "ytd_avg_margin" numeric, "total_orders_this_month" integer, "total_active_materials" integer, "total_operational_costs" numeric, "low_stock_items" integer, "business_health_score" numeric, "top_revenue_source" "text", "biggest_expense" "text", "recommendations" "jsonb")
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'public'
@@ -1206,6 +1235,27 @@ $$;
 
 
 ALTER FUNCTION "public"."get_current_month_profit_data"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_debt_summary"("p_user_id" "uuid") RETURNS TABLE("total_hutang" numeric, "total_piutang" numeric, "net_position" numeric, "overdue_count" integer, "due_this_week_count" integer)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    RETURN QUERY 
+    SELECT 
+        COALESCE(SUM(CASE WHEN dt.type = 'hutang' AND dt.status = 'belum_bayar' THEN dt.amount ELSE 0 END), 0) as total_hutang,
+        COALESCE(SUM(CASE WHEN dt.type = 'piutang' AND dt.status = 'belum_bayar' THEN dt.amount ELSE 0 END), 0) as total_piutang,
+        COALESCE(SUM(CASE WHEN dt.type = 'piutang' AND dt.status = 'belum_bayar' THEN dt.amount ELSE 0 END), 0) - 
+        COALESCE(SUM(CASE WHEN dt.type = 'hutang' AND dt.status = 'belum_bayar' THEN dt.amount ELSE 0 END), 0) as net_position,
+        COUNT(CASE WHEN dt.due_date < CURRENT_DATE AND dt.status = 'belum_bayar' THEN 1 END)::integer as overdue_count,
+        COUNT(CASE WHEN dt.due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days' AND dt.status = 'belum_bayar' THEN 1 END)::integer as due_this_week_count
+    FROM debt_tracking dt
+    WHERE dt.user_id = p_user_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_debt_summary"("p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_expenses_by_period"("p_user_id" "uuid", "p_start_date" "date", "p_end_date" "date") RETURNS TABLE("total_expenses" numeric, "cogs_total" numeric, "opex_total" numeric, "expense_breakdown" "jsonb")
@@ -1679,6 +1729,48 @@ COMMENT ON FUNCTION "public"."get_sales_from_orders"("p_user_id" "uuid", "p_star
 
 
 
+CREATE OR REPLACE FUNCTION "public"."get_savings_progress"("p_user_id" "uuid", "p_target_month" "text") RETURNS TABLE("target_amount" numeric, "current_savings" numeric, "progress_percentage" numeric, "remaining_amount" numeric)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    v_target_amount numeric;
+    v_current_savings numeric;
+BEGIN
+    -- Get target amount
+    SELECT sg.target_amount INTO v_target_amount
+    FROM savings_goals sg
+    WHERE sg.user_id = p_user_id 
+      AND sg.target_month = p_target_month
+      AND sg.status = 'active';
+    
+    -- Calculate current savings from financial_transactions
+    SELECT COALESCE(SUM(
+        CASE 
+            WHEN ft.type = 'income' THEN ft.amount
+            WHEN ft.type = 'expense' THEN -ft.amount
+            ELSE 0
+        END
+    ), 0) INTO v_current_savings
+    FROM financial_transactions ft
+    WHERE ft.user_id = p_user_id
+      AND to_char(ft.date, 'YYYY-MM') = p_target_month;
+    
+    -- Return results
+    RETURN QUERY SELECT 
+        COALESCE(v_target_amount, 0),
+        COALESCE(v_current_savings, 0),
+        CASE 
+            WHEN v_target_amount > 0 THEN ROUND((v_current_savings / v_target_amount) * 100, 2)
+            ELSE 0
+        END,
+        COALESCE(v_target_amount - v_current_savings, 0);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_savings_progress"("p_user_id" "uuid", "p_target_month" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_total_costs"("p_user_id" "uuid") RETURNS numeric
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_temp'
@@ -1799,6 +1891,34 @@ COMMENT ON FUNCTION "public"."is_user_admin"() IS 'Check if current user has adm
 
 
 
+CREATE OR REPLACE FUNCTION "public"."month_bucket_utc"("d" "date") RETURNS "date"
+    LANGUAGE "sql" IMMUTABLE
+    AS $$
+  SELECT make_date(
+           extract(year  from d)::int,
+           extract(month from d)::int,
+           1
+         )
+$$;
+
+
+ALTER FUNCTION "public"."month_bucket_utc"("d" "date") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."month_bucket_utc"("ts" timestamp with time zone) RETURNS "date"
+    LANGUAGE "sql" IMMUTABLE
+    AS $$
+  SELECT make_date(
+           extract(year  from (ts AT TIME ZONE 'UTC'))::int,
+           extract(month from (ts AT TIME ZONE 'UTC'))::int,
+           1
+         )
+$$;
+
+
+ALTER FUNCTION "public"."month_bucket_utc"("ts" timestamp with time zone) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."record_material_usage"("p_bahan_baku_id" "uuid", "p_qty_base" numeric, "p_tanggal" "date" DEFAULT CURRENT_DATE, "p_harga_efektif" numeric DEFAULT NULL::numeric, "p_source_type" character varying DEFAULT 'manual'::character varying, "p_source_id" "uuid" DEFAULT NULL::"uuid", "p_keterangan" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_temp'
@@ -1838,6 +1958,18 @@ $$;
 
 
 ALTER FUNCTION "public"."record_material_usage"("p_bahan_baku_id" "uuid", "p_qty_base" numeric, "p_tanggal" "date", "p_harga_efektif" numeric, "p_source_type" character varying, "p_source_id" "uuid", "p_keterangan" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."refresh_dashboard_views"() RETURNS "void"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    REFRESH MATERIALIZED VIEW dashboard_financial_summary;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."refresh_dashboard_views"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."refresh_pemakaian_daily_mv"() RETURNS "void"
@@ -2301,6 +2433,57 @@ CREATE OR REPLACE VIEW "public"."daily_profit_summary" WITH ("security_invoker"=
 ALTER VIEW "public"."daily_profit_summary" OWNER TO "postgres";
 
 
+CREATE MATERIALIZED VIEW "public"."dashboard_financial_summary" AS
+ SELECT "user_id",
+    "date_trunc"('month'::"text", ("date")::timestamp with time zone) AS "month",
+    "type",
+    "count"(*) AS "transaction_count",
+    "sum"("amount") AS "total_amount",
+    "avg"("amount") AS "avg_amount",
+    "min"("amount") AS "min_amount",
+    "max"("amount") AS "max_amount"
+   FROM "public"."financial_transactions"
+  WHERE ("date" >= (CURRENT_DATE - '1 year'::interval))
+  GROUP BY "user_id", ("date_trunc"('month'::"text", ("date")::timestamp with time zone)), "type"
+  WITH NO DATA;
+
+
+ALTER MATERIALIZED VIEW "public"."dashboard_financial_summary" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."debt_tracking" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "type" "text" NOT NULL,
+    "contact_name" "text" NOT NULL,
+    "amount" numeric(15,2) NOT NULL,
+    "description" "text",
+    "due_date" "date" NOT NULL,
+    "status" "text" DEFAULT 'belum_bayar'::"text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "debt_tracking_amount_positive" CHECK (("amount" > (0)::numeric)),
+    CONSTRAINT "debt_tracking_due_date_future" CHECK (("due_date" >= (CURRENT_DATE - '1 year'::interval))),
+    CONSTRAINT "debt_tracking_status_valid" CHECK (("status" = ANY (ARRAY['belum_bayar'::"text", 'sudah_bayar'::"text"]))),
+    CONSTRAINT "debt_tracking_type_valid" CHECK (("type" = ANY (ARRAY['hutang'::"text", 'piutang'::"text"])))
+);
+
+
+ALTER TABLE "public"."debt_tracking" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."debt_tracking" IS 'Tracking hutang dan piutang UMKM';
+
+
+
+COMMENT ON COLUMN "public"."debt_tracking"."type" IS 'hutang = kita yang ngutang, piutang = orang yang ngutang ke kita';
+
+
+
+COMMENT ON COLUMN "public"."debt_tracking"."status" IS 'Status: belum_bayar, sudah_bayar';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."devices" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -2375,6 +2558,36 @@ ALTER VIEW "public"."dual_mode_cost_summary" OWNER TO "postgres";
 
 
 COMMENT ON VIEW "public"."dual_mode_cost_summary" IS 'Summary view of costs grouped by user, cost group (HPP/OPERASIONAL), and status';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."expense_budgets" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "category" "text" NOT NULL,
+    "monthly_limit" numeric(15,2) NOT NULL,
+    "alert_threshold" numeric(5,2) DEFAULT 80.00 NOT NULL,
+    "status" "text" DEFAULT 'active'::"text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "expense_budgets_alert_threshold_range" CHECK ((("alert_threshold" >= (0)::numeric) AND ("alert_threshold" <= (100)::numeric))),
+    CONSTRAINT "expense_budgets_monthly_limit_positive" CHECK (("monthly_limit" > (0)::numeric)),
+    CONSTRAINT "expense_budgets_status_valid" CHECK (("status" = ANY (ARRAY['active'::"text", 'inactive'::"text"])))
+);
+
+
+ALTER TABLE "public"."expense_budgets" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."expense_budgets" IS 'Budget pengeluaran per kategori untuk expense alerts';
+
+
+
+COMMENT ON COLUMN "public"."expense_budgets"."alert_threshold" IS 'Persentase threshold untuk alert (0-100)';
+
+
+
+COMMENT ON COLUMN "public"."expense_budgets"."status" IS 'Status: active, inactive';
 
 
 
@@ -2563,7 +2776,12 @@ CREATE TABLE IF NOT EXISTS "public"."orders" (
     "catatan" "text",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "tanggal_selesai" "date",
+    "pajak" numeric DEFAULT 0 NOT NULL,
+    "subtotal" numeric DEFAULT 0 NOT NULL,
+    CONSTRAINT "orders_pajak_nonnegative" CHECK (("pajak" >= (0)::numeric)),
     CONSTRAINT "orders_status_valid" CHECK (("status" = ANY (ARRAY['draft'::"text", 'paid'::"text", 'shipped'::"text", 'completed'::"text", 'cancelled'::"text"]))),
+    CONSTRAINT "orders_subtotal_nonnegative" CHECK (("subtotal" >= (0)::numeric)),
     CONSTRAINT "orders_total_nonnegative" CHECK (("total_pesanan" >= (0)::numeric))
 );
 
@@ -2730,6 +2948,8 @@ CREATE TABLE IF NOT EXISTS "public"."recipes" (
     "jumlah_pcs_per_porsi" integer DEFAULT 1 NOT NULL,
     "hpp_per_pcs" numeric DEFAULT 0 NOT NULL,
     "harga_jual_per_pcs" numeric DEFAULT 0 NOT NULL,
+    "foto_base64" "text",
+    CONSTRAINT "recipes_foto_base64_size" CHECK ((("foto_base64" IS NULL) OR ("length"("foto_base64") <= 2000000))),
     CONSTRAINT "recipes_nonnegatives" CHECK ((("jumlah_porsi" >= 0) AND ("biaya_tenaga_kerja" >= (0)::numeric) AND ("biaya_overhead" >= (0)::numeric) AND ("margin_keuntungan_persen" >= (0)::numeric) AND ("total_hpp" >= (0)::numeric) AND ("hpp_per_porsi" >= (0)::numeric) AND ("harga_jual_porsi" >= (0)::numeric) AND ("jumlah_pcs_per_porsi" >= 0) AND ("hpp_per_pcs" >= (0)::numeric) AND ("harga_jual_per_pcs" >= (0)::numeric)))
 );
 
@@ -2752,6 +2972,36 @@ CREATE OR REPLACE VIEW "public"."revenue_category_breakdown" WITH ("security_inv
 
 
 ALTER VIEW "public"."revenue_category_breakdown" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."savings_goals" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "target_amount" numeric(15,2) NOT NULL,
+    "target_month" "text" NOT NULL,
+    "description" "text",
+    "status" "text" DEFAULT 'active'::"text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "savings_goals_status_valid" CHECK (("status" = ANY (ARRAY['active'::"text", 'completed'::"text", 'cancelled'::"text"]))),
+    CONSTRAINT "savings_goals_target_amount_positive" CHECK (("target_amount" > (0)::numeric)),
+    CONSTRAINT "savings_goals_target_month_format" CHECK (("target_month" ~ '^\d{4}-\d{2}$'::"text"))
+);
+
+
+ALTER TABLE "public"."savings_goals" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."savings_goals" IS 'Target tabungan bulanan untuk UMKM';
+
+
+
+COMMENT ON COLUMN "public"."savings_goals"."target_month" IS 'Format: YYYY-MM, contoh: 2025-01';
+
+
+
+COMMENT ON COLUMN "public"."savings_goals"."status" IS 'Status: active, completed, cancelled';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."suppliers" (
@@ -2865,6 +3115,11 @@ ALTER TABLE ONLY "public"."bahan_baku"
 
 
 
+ALTER TABLE ONLY "public"."debt_tracking"
+    ADD CONSTRAINT "debt_tracking_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."devices"
     ADD CONSTRAINT "devices_pkey" PRIMARY KEY ("id");
 
@@ -2872,6 +3127,16 @@ ALTER TABLE ONLY "public"."devices"
 
 ALTER TABLE ONLY "public"."devices"
     ADD CONSTRAINT "devices_user_id_device_id_key" UNIQUE ("user_id", "device_id");
+
+
+
+ALTER TABLE ONLY "public"."expense_budgets"
+    ADD CONSTRAINT "expense_budgets_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."expense_budgets"
+    ADD CONSTRAINT "expense_budgets_user_category_unique" UNIQUE ("user_id", "category");
 
 
 
@@ -2940,6 +3205,16 @@ ALTER TABLE ONLY "public"."recipes"
 
 
 
+ALTER TABLE ONLY "public"."savings_goals"
+    ADD CONSTRAINT "savings_goals_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."savings_goals"
+    ADD CONSTRAINT "savings_goals_user_month_unique" UNIQUE ("user_id", "target_month");
+
+
+
 ALTER TABLE ONLY "public"."suppliers"
     ADD CONSTRAINT "suppliers_pkey" PRIMARY KEY ("id");
 
@@ -2982,11 +3257,27 @@ CREATE INDEX "devices_user_id_idx" ON "public"."devices" USING "btree" ("user_id
 
 
 
+CREATE INDEX "idx_activities_recent_dashboard" ON "public"."activities" USING "btree" ("user_id", "created_at" DESC, "type") WHERE ("created_at" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_activities_type_analysis" ON "public"."activities" USING "btree" ("user_id", "type", "created_at" DESC, "value") WHERE ("value" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_activities_type_value" ON "public"."activities" USING "btree" ("type", "value") WHERE ("value" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_activities_user_date" ON "public"."activities" USING "btree" ("user_id", "created_at" DESC);
 
 
 
 CREATE INDEX "idx_activities_user_id" ON "public"."activities" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "idx_activities_user_type_created" ON "public"."activities" USING "btree" ("user_id", "type", "created_at" DESC);
 
 
 
@@ -3014,11 +3305,35 @@ CREATE INDEX "idx_assets_user_kategori" ON "public"."assets" USING "btree" ("use
 
 
 
+CREATE INDEX "idx_bahan_baku_expiry_alert" ON "public"."bahan_baku" USING "btree" ("user_id", "tanggal_kadaluwarsa") WHERE ("tanggal_kadaluwarsa" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_bahan_baku_harga_rata_rata" ON "public"."bahan_baku" USING "btree" ("user_id", "harga_rata_rata");
 
 
 
+CREATE INDEX "idx_bahan_baku_kategori_stok" ON "public"."bahan_baku" USING "btree" ("user_id", "kategori", "stok" DESC) WHERE ("kategori" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_bahan_baku_low_stock" ON "public"."bahan_baku" USING "btree" ("user_id", "stok", "minimum") WHERE ("stok" <= "minimum");
+
+
+
+CREATE INDEX "idx_bahan_baku_low_stock_critical" ON "public"."bahan_baku" USING "btree" ("user_id", "stok", "minimum") WHERE ("stok" <= "minimum");
+
+
+
 CREATE INDEX "idx_bahan_baku_nama" ON "public"."bahan_baku" USING "btree" ("nama");
+
+
+
+CREATE INDEX "idx_bahan_baku_nama_trigram_search" ON "public"."bahan_baku" USING "gin" ("nama" "public"."gin_trgm_ops");
+
+
+
+CREATE INDEX "idx_bahan_baku_search" ON "public"."bahan_baku" USING "gin" ("to_tsvector"('"indonesian"'::"regconfig", "nama"));
 
 
 
@@ -3031,6 +3346,62 @@ CREATE INDEX "idx_bahan_baku_user_id" ON "public"."bahan_baku" USING "btree" ("u
 
 
 CREATE INDEX "idx_bahan_baku_user_kategori" ON "public"."bahan_baku" USING "btree" ("user_id", "kategori");
+
+
+
+CREATE INDEX "idx_bahan_baku_user_kategori_stok" ON "public"."bahan_baku" USING "btree" ("user_id", "kategori", "stok");
+
+
+
+CREATE INDEX "idx_bahan_baku_value_calculation" ON "public"."bahan_baku" USING "btree" ("user_id", "stok", "harga_rata_rata", "kategori") WHERE (("stok" > (0)::numeric) AND ("harga_rata_rata" > (0)::numeric));
+
+
+
+CREATE UNIQUE INDEX "idx_dashboard_financial_summary_unique" ON "public"."dashboard_financial_summary" USING "btree" ("user_id", "month", "type");
+
+
+
+CREATE INDEX "idx_debt_tracking_contact_name" ON "public"."debt_tracking" USING "btree" ("contact_name");
+
+
+
+CREATE INDEX "idx_debt_tracking_due_date" ON "public"."debt_tracking" USING "btree" ("due_date");
+
+
+
+CREATE INDEX "idx_debt_tracking_status" ON "public"."debt_tracking" USING "btree" ("status");
+
+
+
+CREATE INDEX "idx_debt_tracking_type" ON "public"."debt_tracking" USING "btree" ("type");
+
+
+
+CREATE INDEX "idx_debt_tracking_user_id" ON "public"."debt_tracking" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "idx_debt_tracking_user_status" ON "public"."debt_tracking" USING "btree" ("user_id", "status");
+
+
+
+CREATE INDEX "idx_debt_tracking_user_type" ON "public"."debt_tracking" USING "btree" ("user_id", "type");
+
+
+
+CREATE INDEX "idx_expense_budgets_category" ON "public"."expense_budgets" USING "btree" ("category");
+
+
+
+CREATE INDEX "idx_expense_budgets_status" ON "public"."expense_budgets" USING "btree" ("status");
+
+
+
+CREATE INDEX "idx_expense_budgets_user_id" ON "public"."expense_budgets" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "idx_expense_budgets_user_status" ON "public"."expense_budgets" USING "btree" ("user_id", "status");
 
 
 
@@ -3047,6 +3418,30 @@ CREATE INDEX "idx_fin_tx_type" ON "public"."financial_transactions" USING "btree
 
 
 CREATE INDEX "idx_fin_tx_user" ON "public"."financial_transactions" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "idx_financial_transactions_amount_range" ON "public"."financial_transactions" USING "btree" ("amount") WHERE ("amount" > (0)::numeric);
+
+
+
+CREATE INDEX "idx_financial_transactions_category_date" ON "public"."financial_transactions" USING "btree" ("category", "date" DESC) WHERE ("category" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_financial_transactions_category_optimized" ON "public"."financial_transactions" USING "btree" ("user_id", "category", "date" DESC) WHERE ("category" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_financial_transactions_monthly_dashboard" ON "public"."financial_transactions" USING "btree" ("user_id", "public"."month_bucket_utc"("date"), "type") INCLUDE ("amount") WHERE ("date" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_financial_transactions_pagination_critical" ON "public"."financial_transactions" USING "btree" ("user_id", "date" DESC NULLS LAST, "id" DESC) WHERE ("date" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_financial_transactions_type_date" ON "public"."financial_transactions" USING "btree" ("user_id", "type", "date" DESC) INCLUDE ("amount", "category");
 
 
 
@@ -3110,6 +3505,14 @@ CREATE INDEX "idx_operational_costs_group_status" ON "public"."operational_costs
 
 
 
+CREATE INDEX "idx_operational_costs_jumlah_range" ON "public"."operational_costs" USING "btree" ("jumlah_per_bulan") WHERE ("jumlah_per_bulan" > (0)::numeric);
+
+
+
+CREATE INDEX "idx_operational_costs_user_created_jenis" ON "public"."operational_costs" USING "btree" ("user_id", "created_at" DESC, "jenis");
+
+
+
 CREATE INDEX "idx_operational_costs_user_group" ON "public"."operational_costs" USING "btree" ("user_id", "group");
 
 
@@ -3118,7 +3521,23 @@ CREATE INDEX "idx_operational_costs_user_status_effective" ON "public"."operatio
 
 
 
+CREATE INDEX "idx_orders_customer_search_critical" ON "public"."orders" USING "btree" ("user_id", "lower"("nama_pelanggan")) WHERE ("nama_pelanggan" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_orders_items_gin" ON "public"."orders" USING "gin" ("items");
+
+
+
+CREATE INDEX "idx_orders_multi_search_trigram" ON "public"."orders" USING "gin" ((((((COALESCE("lower"("nama_pelanggan"), ''::"text") || ' '::"text") || COALESCE("lower"("nomor_pesanan"), ''::"text")) || ' '::"text") || COALESCE("lower"("telepon_pelanggan"), ''::"text"))) "public"."gin_trgm_ops");
+
+
+
+CREATE INDEX "idx_orders_nomor_pesanan_search" ON "public"."orders" USING "btree" ("user_id", "nomor_pesanan") WHERE ("nomor_pesanan" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_orders_revenue_analysis" ON "public"."orders" USING "btree" ("user_id", "status", "tanggal", "total_pesanan") WHERE (("status" = 'completed'::"text") AND ("total_pesanan" > (0)::numeric));
 
 
 
@@ -3126,7 +3545,19 @@ CREATE INDEX "idx_orders_status" ON "public"."orders" USING "btree" ("status");
 
 
 
+CREATE INDEX "idx_orders_status_created" ON "public"."orders" USING "btree" ("status", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_orders_status_tanggal_optimized" ON "public"."orders" USING "btree" ("user_id", "status", "tanggal" DESC NULLS LAST) WHERE ("tanggal" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_orders_tanggal" ON "public"."orders" USING "btree" ("tanggal");
+
+
+
+CREATE INDEX "idx_orders_user_created_status" ON "public"."orders" USING "btree" ("user_id", "created_at" DESC, "status");
 
 
 
@@ -3186,7 +3617,15 @@ CREATE INDEX "idx_purchases_items_gin" ON "public"."purchases" USING "gin" ("ite
 
 
 
+CREATE INDEX "idx_purchases_monthly_analysis" ON "public"."purchases" USING "btree" ("user_id", "public"."month_bucket_utc"("tanggal"), "total_nilai") WHERE ("tanggal" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_purchases_status" ON "public"."purchases" USING "btree" ("status");
+
+
+
+CREATE INDEX "idx_purchases_status_date_filter" ON "public"."purchases" USING "btree" ("user_id", "status", "tanggal" DESC) WHERE ("status" IS NOT NULL);
 
 
 
@@ -3194,7 +3633,19 @@ CREATE INDEX "idx_purchases_supplier" ON "public"."purchases" USING "btree" ("su
 
 
 
+CREATE INDEX "idx_purchases_supplier_date" ON "public"."purchases" USING "btree" ("supplier", "tanggal" DESC) WHERE ("supplier" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_purchases_supplier_performance" ON "public"."purchases" USING "btree" ("user_id", "supplier", "tanggal" DESC, "total_nilai" DESC) WHERE ("supplier" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_purchases_tanggal" ON "public"."purchases" USING "btree" ("tanggal");
+
+
+
+CREATE INDEX "idx_purchases_total_nilai" ON "public"."purchases" USING "btree" ("total_nilai") WHERE ("total_nilai" > (0)::numeric);
 
 
 
@@ -3206,7 +3657,23 @@ CREATE INDEX "idx_purchases_user_status" ON "public"."purchases" USING "btree" (
 
 
 
+CREATE INDEX "idx_purchases_user_tanggal_status" ON "public"."purchases" USING "btree" ("user_id", "tanggal" DESC, "status");
+
+
+
 CREATE INDEX "idx_recipes_bahan_gin" ON "public"."recipes" USING "gin" ("bahan_resep");
+
+
+
+CREATE INDEX "idx_recipes_has_photo" ON "public"."recipes" USING "btree" ((
+CASE
+    WHEN (("foto_url" IS NOT NULL) OR ("foto_base64" IS NOT NULL)) THEN true
+    ELSE false
+END));
+
+
+
+CREATE INDEX "idx_recipes_kategori_filter" ON "public"."recipes" USING "btree" ("user_id", "kategori_resep") WHERE ("kategori_resep" IS NOT NULL);
 
 
 
@@ -3214,7 +3681,35 @@ CREATE INDEX "idx_recipes_nama" ON "public"."recipes" USING "btree" ("nama_resep
 
 
 
+CREATE INDEX "idx_recipes_nama_search_optimized" ON "public"."recipes" USING "btree" ("user_id", "lower"("nama_resep"));
+
+
+
+CREATE INDEX "idx_recipes_profitability" ON "public"."recipes" USING "btree" ("user_id", "margin_keuntungan_persen" DESC NULLS LAST, "total_hpp") WHERE ("margin_keuntungan_persen" IS NOT NULL);
+
+
+
 CREATE INDEX "idx_recipes_user" ON "public"."recipes" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "idx_recipes_user_nama_resep" ON "public"."recipes" USING "btree" ("user_id", "nama_resep");
+
+
+
+CREATE INDEX "idx_savings_goals_status" ON "public"."savings_goals" USING "btree" ("status");
+
+
+
+CREATE INDEX "idx_savings_goals_target_month" ON "public"."savings_goals" USING "btree" ("target_month");
+
+
+
+CREATE INDEX "idx_savings_goals_user_id" ON "public"."savings_goals" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "idx_savings_goals_user_status" ON "public"."savings_goals" USING "btree" ("user_id", "status");
 
 
 
@@ -3226,11 +3721,27 @@ CREATE INDEX "idx_seen_user" ON "public"."user_seen_updates" USING "btree" ("use
 
 
 
+CREATE INDEX "idx_suppliers_contact_search" ON "public"."suppliers" USING "gin" ((((((COALESCE("lower"("nama"), ''::"text") || ' '::"text") || COALESCE("lower"("telepon"), ''::"text")) || ' '::"text") || COALESCE("lower"("email"), ''::"text"))) "public"."gin_trgm_ops");
+
+
+
+CREATE INDEX "idx_suppliers_kontak" ON "public"."suppliers" USING "btree" ("user_id", "kontak");
+
+
+
 CREATE INDEX "idx_suppliers_nama" ON "public"."suppliers" USING "btree" ("nama");
 
 
 
+CREATE INDEX "idx_suppliers_nama_search" ON "public"."suppliers" USING "btree" ("user_id", "lower"("nama"));
+
+
+
 CREATE INDEX "idx_suppliers_user_id" ON "public"."suppliers" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "idx_suppliers_user_nama" ON "public"."suppliers" USING "btree" ("user_id", "nama");
 
 
 
@@ -3338,11 +3849,23 @@ CREATE OR REPLACE TRIGGER "trigger_cleanup_after_deletion" AFTER DELETE ON "publ
 
 
 
+CREATE OR REPLACE TRIGGER "trigger_debt_tracking_updated_at" BEFORE UPDATE ON "public"."debt_tracking" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
+CREATE OR REPLACE TRIGGER "trigger_expense_budgets_updated_at" BEFORE UPDATE ON "public"."expense_budgets" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
 CREATE OR REPLACE TRIGGER "trigger_refresh_pemakaian_mv" AFTER INSERT OR DELETE OR UPDATE ON "public"."pemakaian_bahan" FOR EACH STATEMENT EXECUTE FUNCTION "public"."trigger_refresh_pemakaian_mv"();
 
 
 
 CREATE OR REPLACE TRIGGER "trigger_safe_auto_initialize_settings" AFTER INSERT OR UPDATE ON "public"."operational_costs" FOR EACH ROW EXECUTE FUNCTION "public"."safe_auto_initialize_user_settings"();
+
+
+
+CREATE OR REPLACE TRIGGER "trigger_savings_goals_updated_at" BEFORE UPDATE ON "public"."savings_goals" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -3391,8 +3914,18 @@ ALTER TABLE ONLY "public"."app_settings"
 
 
 
+ALTER TABLE ONLY "public"."debt_tracking"
+    ADD CONSTRAINT "debt_tracking_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."devices"
     ADD CONSTRAINT "devices_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."expense_budgets"
+    ADD CONSTRAINT "expense_budgets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -3496,6 +4029,11 @@ ALTER TABLE ONLY "public"."profit_analysis"
 
 
 
+ALTER TABLE ONLY "public"."savings_goals"
+    ADD CONSTRAINT "savings_goals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."user_seen_updates"
     ADD CONSTRAINT "user_seen_updates_update_id_fkey" FOREIGN KEY ("update_id") REFERENCES "public"."app_updates"("id") ON DELETE CASCADE;
 
@@ -3525,6 +4063,18 @@ CREATE POLICY "Users can delete own app settings" ON "public"."app_settings" FOR
 
 
 
+CREATE POLICY "Users can delete their own debt tracking" ON "public"."debt_tracking" FOR DELETE TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+CREATE POLICY "Users can delete their own expense budgets" ON "public"."expense_budgets" FOR DELETE TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+CREATE POLICY "Users can delete their own savings goals" ON "public"."savings_goals" FOR DELETE USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Users can insert own allocation settings" ON "public"."allocation_settings" FOR INSERT TO "authenticated" WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
@@ -3533,7 +4083,15 @@ CREATE POLICY "Users can insert own app settings" ON "public"."app_settings" FOR
 
 
 
-CREATE POLICY "Users can manage their own financial transactions" ON "public"."financial_transactions" USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can insert their own debt tracking" ON "public"."debt_tracking" FOR INSERT TO "authenticated" WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+CREATE POLICY "Users can insert their own expense budgets" ON "public"."expense_budgets" FOR INSERT TO "authenticated" WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+CREATE POLICY "Users can insert their own savings goals" ON "public"."savings_goals" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -3549,11 +4107,35 @@ CREATE POLICY "Users can update own app settings" ON "public"."app_settings" FOR
 
 
 
+CREATE POLICY "Users can update their own debt tracking" ON "public"."debt_tracking" FOR UPDATE TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+CREATE POLICY "Users can update their own expense budgets" ON "public"."expense_budgets" FOR UPDATE TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+CREATE POLICY "Users can update their own savings goals" ON "public"."savings_goals" FOR UPDATE USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Users can view own allocation settings" ON "public"."allocation_settings" FOR SELECT TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
 CREATE POLICY "Users can view own app settings" ON "public"."app_settings" FOR SELECT TO "authenticated" USING ((( SELECT "auth"."uid"() AS "uid") = '23f1793f-070f-47b3-b5e9-71e28f50070b'::"uuid"));
+
+
+
+CREATE POLICY "Users can view their own debt tracking" ON "public"."debt_tracking" FOR SELECT TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+CREATE POLICY "Users can view their own expense budgets" ON "public"."expense_budgets" FOR SELECT TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+CREATE POLICY "Users can view their own savings goals" ON "public"."savings_goals" FOR SELECT USING (("auth"."uid"() = "user_id"));
 
 
 
@@ -3623,6 +4205,9 @@ CREATE POLICY "bahan_baku_update_own" ON "public"."bahan_baku" FOR UPDATE TO "au
 
 
 
+ALTER TABLE "public"."debt_tracking" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."devices" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3640,6 +4225,9 @@ CREATE POLICY "devices_select_own" ON "public"."devices" FOR SELECT TO "authenti
 
 CREATE POLICY "devices_update_own" ON "public"."devices" FOR UPDATE TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid"))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
+
+
+ALTER TABLE "public"."expense_budgets" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."financial_transactions" ENABLE ROW LEVEL SECURITY;
@@ -3835,6 +4423,9 @@ CREATE POLICY "recipes_update_own" ON "public"."recipes" FOR UPDATE TO "authenti
 
 
 
+ALTER TABLE "public"."savings_goals" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."suppliers" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3936,7 +4527,15 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."bahan_baku";
 
 
 
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."debt_tracking";
+
+
+
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."devices";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."expense_budgets";
 
 
 
@@ -4004,6 +4603,20 @@ GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_in"("cstring") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_in"("cstring") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_in"("cstring") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_in"("cstring") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_out"("public"."gtrgm") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_out"("public"."gtrgm") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_out"("public"."gtrgm") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_out"("public"."gtrgm") TO "service_role";
 
 
 
@@ -4241,6 +4854,12 @@ GRANT ALL ON FUNCTION "public"."create_new_order"("order_data" "jsonb") TO "serv
 
 
 
+GRANT ALL ON FUNCTION "public"."estimated_count"("table_name" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."estimated_count"("table_name" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."estimated_count"("table_name" "text") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_comprehensive_dashboard_summary"("p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_comprehensive_dashboard_summary"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_comprehensive_dashboard_summary"("p_user_id" "uuid") TO "service_role";
@@ -4250,6 +4869,12 @@ GRANT ALL ON FUNCTION "public"."get_comprehensive_dashboard_summary"("p_user_id"
 GRANT ALL ON FUNCTION "public"."get_current_month_profit_data"("p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_current_month_profit_data"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_current_month_profit_data"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_debt_summary"("p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_debt_summary"("p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_debt_summary"("p_user_id" "uuid") TO "service_role";
 
 
 
@@ -4307,9 +4932,715 @@ GRANT ALL ON FUNCTION "public"."get_sales_from_orders"("p_user_id" "uuid", "p_st
 
 
 
+GRANT ALL ON FUNCTION "public"."get_savings_progress"("p_user_id" "uuid", "p_target_month" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_savings_progress"("p_user_id" "uuid", "p_target_month" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_savings_progress"("p_user_id" "uuid", "p_target_month" "text") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_total_costs"("p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_total_costs"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_total_costs"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_btree_consistent"("internal", smallint, "anyelement", integer, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_btree_consistent"("internal", smallint, "anyelement", integer, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_btree_consistent"("internal", smallint, "anyelement", integer, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_btree_consistent"("internal", smallint, "anyelement", integer, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_anyenum"("anyenum", "anyenum", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_anyenum"("anyenum", "anyenum", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_anyenum"("anyenum", "anyenum", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_anyenum"("anyenum", "anyenum", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bit"(bit, bit, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bit"(bit, bit, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bit"(bit, bit, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bit"(bit, bit, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bool"(boolean, boolean, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bool"(boolean, boolean, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bool"(boolean, boolean, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bool"(boolean, boolean, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bpchar"(character, character, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bpchar"(character, character, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bpchar"(character, character, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bpchar"(character, character, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bytea"("bytea", "bytea", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bytea"("bytea", "bytea", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bytea"("bytea", "bytea", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_bytea"("bytea", "bytea", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_char"("char", "char", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_char"("char", "char", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_char"("char", "char", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_char"("char", "char", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_cidr"("cidr", "cidr", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_cidr"("cidr", "cidr", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_cidr"("cidr", "cidr", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_cidr"("cidr", "cidr", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_date"("date", "date", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_date"("date", "date", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_date"("date", "date", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_date"("date", "date", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_float4"(real, real, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_float4"(real, real, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_float4"(real, real, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_float4"(real, real, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_float8"(double precision, double precision, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_float8"(double precision, double precision, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_float8"(double precision, double precision, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_float8"(double precision, double precision, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_inet"("inet", "inet", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_inet"("inet", "inet", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_inet"("inet", "inet", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_inet"("inet", "inet", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int2"(smallint, smallint, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int2"(smallint, smallint, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int2"(smallint, smallint, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int2"(smallint, smallint, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int4"(integer, integer, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int4"(integer, integer, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int4"(integer, integer, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int4"(integer, integer, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int8"(bigint, bigint, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int8"(bigint, bigint, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int8"(bigint, bigint, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_int8"(bigint, bigint, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_interval"(interval, interval, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_interval"(interval, interval, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_interval"(interval, interval, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_interval"(interval, interval, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_macaddr"("macaddr", "macaddr", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_macaddr"("macaddr", "macaddr", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_macaddr"("macaddr", "macaddr", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_macaddr"("macaddr", "macaddr", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_macaddr8"("macaddr8", "macaddr8", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_macaddr8"("macaddr8", "macaddr8", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_macaddr8"("macaddr8", "macaddr8", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_macaddr8"("macaddr8", "macaddr8", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_money"("money", "money", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_money"("money", "money", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_money"("money", "money", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_money"("money", "money", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_name"("name", "name", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_name"("name", "name", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_name"("name", "name", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_name"("name", "name", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_numeric"(numeric, numeric, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_numeric"(numeric, numeric, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_numeric"(numeric, numeric, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_numeric"(numeric, numeric, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_oid"("oid", "oid", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_oid"("oid", "oid", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_oid"("oid", "oid", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_oid"("oid", "oid", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_text"("text", "text", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_text"("text", "text", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_text"("text", "text", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_text"("text", "text", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_time"(time without time zone, time without time zone, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_time"(time without time zone, time without time zone, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_time"(time without time zone, time without time zone, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_time"(time without time zone, time without time zone, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timestamp"(timestamp without time zone, timestamp without time zone, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timestamp"(timestamp without time zone, timestamp without time zone, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timestamp"(timestamp without time zone, timestamp without time zone, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timestamp"(timestamp without time zone, timestamp without time zone, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timestamptz"(timestamp with time zone, timestamp with time zone, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timestamptz"(timestamp with time zone, timestamp with time zone, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timestamptz"(timestamp with time zone, timestamp with time zone, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timestamptz"(timestamp with time zone, timestamp with time zone, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timetz"(time with time zone, time with time zone, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timetz"(time with time zone, time with time zone, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timetz"(time with time zone, time with time zone, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_timetz"(time with time zone, time with time zone, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_uuid"("uuid", "uuid", smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_uuid"("uuid", "uuid", smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_uuid"("uuid", "uuid", smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_uuid"("uuid", "uuid", smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_varbit"(bit varying, bit varying, smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_varbit"(bit varying, bit varying, smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_varbit"(bit varying, bit varying, smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_compare_prefix_varbit"(bit varying, bit varying, smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_enum_cmp"("anyenum", "anyenum") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_enum_cmp"("anyenum", "anyenum") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_enum_cmp"("anyenum", "anyenum") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_enum_cmp"("anyenum", "anyenum") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_anyenum"("anyenum", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_anyenum"("anyenum", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_anyenum"("anyenum", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_anyenum"("anyenum", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bit"(bit, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bit"(bit, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bit"(bit, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bit"(bit, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bool"(boolean, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bool"(boolean, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bool"(boolean, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bool"(boolean, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bpchar"(character, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bpchar"(character, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bpchar"(character, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bpchar"(character, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bytea"("bytea", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bytea"("bytea", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bytea"("bytea", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_bytea"("bytea", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_char"("char", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_char"("char", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_char"("char", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_char"("char", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_cidr"("cidr", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_cidr"("cidr", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_cidr"("cidr", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_cidr"("cidr", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_date"("date", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_date"("date", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_date"("date", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_date"("date", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_float4"(real, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_float4"(real, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_float4"(real, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_float4"(real, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_float8"(double precision, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_float8"(double precision, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_float8"(double precision, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_float8"(double precision, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_inet"("inet", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_inet"("inet", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_inet"("inet", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_inet"("inet", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int2"(smallint, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int2"(smallint, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int2"(smallint, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int2"(smallint, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int4"(integer, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int4"(integer, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int4"(integer, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int4"(integer, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int8"(bigint, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int8"(bigint, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int8"(bigint, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_int8"(bigint, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_interval"(interval, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_interval"(interval, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_interval"(interval, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_interval"(interval, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_macaddr"("macaddr", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_macaddr"("macaddr", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_macaddr"("macaddr", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_macaddr"("macaddr", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_macaddr8"("macaddr8", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_macaddr8"("macaddr8", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_macaddr8"("macaddr8", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_macaddr8"("macaddr8", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_money"("money", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_money"("money", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_money"("money", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_money"("money", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_name"("name", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_name"("name", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_name"("name", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_name"("name", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_numeric"(numeric, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_numeric"(numeric, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_numeric"(numeric, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_numeric"(numeric, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_oid"("oid", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_oid"("oid", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_oid"("oid", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_oid"("oid", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_text"("text", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_text"("text", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_text"("text", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_text"("text", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_time"(time without time zone, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_time"(time without time zone, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_time"(time without time zone, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_time"(time without time zone, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timestamp"(timestamp without time zone, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timestamp"(timestamp without time zone, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timestamp"(timestamp without time zone, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timestamp"(timestamp without time zone, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timestamptz"(timestamp with time zone, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timestamptz"(timestamp with time zone, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timestamptz"(timestamp with time zone, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timestamptz"(timestamp with time zone, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timetz"(time with time zone, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timetz"(time with time zone, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timetz"(time with time zone, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_timetz"(time with time zone, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_trgm"("text", "internal", smallint, "internal", "internal", "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_trgm"("text", "internal", smallint, "internal", "internal", "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_trgm"("text", "internal", smallint, "internal", "internal", "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_trgm"("text", "internal", smallint, "internal", "internal", "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_uuid"("uuid", "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_uuid"("uuid", "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_uuid"("uuid", "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_uuid"("uuid", "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_query_varbit"(bit varying, "internal", smallint, "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_varbit"(bit varying, "internal", smallint, "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_varbit"(bit varying, "internal", smallint, "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_varbit"(bit varying, "internal", smallint, "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_anyenum"("anyenum", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_anyenum"("anyenum", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_anyenum"("anyenum", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_anyenum"("anyenum", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bit"(bit, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bit"(bit, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bit"(bit, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bit"(bit, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bool"(boolean, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bool"(boolean, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bool"(boolean, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bool"(boolean, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bpchar"(character, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bpchar"(character, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bpchar"(character, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bpchar"(character, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bytea"("bytea", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bytea"("bytea", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bytea"("bytea", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_bytea"("bytea", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_char"("char", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_char"("char", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_char"("char", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_char"("char", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_cidr"("cidr", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_cidr"("cidr", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_cidr"("cidr", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_cidr"("cidr", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_date"("date", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_date"("date", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_date"("date", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_date"("date", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_float4"(real, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_float4"(real, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_float4"(real, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_float4"(real, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_float8"(double precision, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_float8"(double precision, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_float8"(double precision, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_float8"(double precision, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_inet"("inet", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_inet"("inet", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_inet"("inet", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_inet"("inet", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int2"(smallint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int2"(smallint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int2"(smallint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int2"(smallint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int4"(integer, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int4"(integer, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int4"(integer, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int4"(integer, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int8"(bigint, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int8"(bigint, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int8"(bigint, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_int8"(bigint, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_interval"(interval, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_interval"(interval, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_interval"(interval, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_interval"(interval, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_macaddr"("macaddr", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_macaddr"("macaddr", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_macaddr"("macaddr", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_macaddr"("macaddr", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_macaddr8"("macaddr8", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_macaddr8"("macaddr8", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_macaddr8"("macaddr8", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_macaddr8"("macaddr8", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_money"("money", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_money"("money", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_money"("money", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_money"("money", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_name"("name", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_name"("name", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_name"("name", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_name"("name", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_numeric"(numeric, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_numeric"(numeric, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_numeric"(numeric, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_numeric"(numeric, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_oid"("oid", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_oid"("oid", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_oid"("oid", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_oid"("oid", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_text"("text", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_text"("text", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_text"("text", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_text"("text", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_time"(time without time zone, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_time"(time without time zone, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_time"(time without time zone, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_time"(time without time zone, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timestamp"(timestamp without time zone, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timestamp"(timestamp without time zone, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timestamp"(timestamp without time zone, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timestamp"(timestamp without time zone, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timestamptz"(timestamp with time zone, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timestamptz"(timestamp with time zone, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timestamptz"(timestamp with time zone, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timestamptz"(timestamp with time zone, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timetz"(time with time zone, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timetz"(time with time zone, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timetz"(time with time zone, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_timetz"(time with time zone, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_trgm"("text", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_trgm"("text", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_trgm"("text", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_trgm"("text", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_uuid"("uuid", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_uuid"("uuid", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_uuid"("uuid", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_uuid"("uuid", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_varbit"(bit varying, "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_varbit"(bit varying, "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_varbit"(bit varying, "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_varbit"(bit varying, "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_numeric_cmp"(numeric, numeric) TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_numeric_cmp"(numeric, numeric) TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_numeric_cmp"(numeric, numeric) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_numeric_cmp"(numeric, numeric) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_trgm_consistent"("internal", smallint, "text", integer, "internal", "internal", "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_trgm_consistent"("internal", smallint, "text", integer, "internal", "internal", "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_trgm_consistent"("internal", smallint, "text", integer, "internal", "internal", "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_trgm_consistent"("internal", smallint, "text", integer, "internal", "internal", "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_trgm_triconsistent"("internal", smallint, "text", integer, "internal", "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_trgm_triconsistent"("internal", smallint, "text", integer, "internal", "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_trgm_triconsistent"("internal", smallint, "text", integer, "internal", "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_trgm_triconsistent"("internal", smallint, "text", integer, "internal", "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_compress"("internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_compress"("internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_compress"("internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_compress"("internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_consistent"("internal", "text", smallint, "oid", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_consistent"("internal", "text", smallint, "oid", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_consistent"("internal", "text", smallint, "oid", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_consistent"("internal", "text", smallint, "oid", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_decompress"("internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_decompress"("internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_decompress"("internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_decompress"("internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_distance"("internal", "text", smallint, "oid", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_distance"("internal", "text", smallint, "oid", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_distance"("internal", "text", smallint, "oid", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_distance"("internal", "text", smallint, "oid", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_options"("internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_options"("internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_options"("internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_options"("internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_penalty"("internal", "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_penalty"("internal", "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_penalty"("internal", "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_penalty"("internal", "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_picksplit"("internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_picksplit"("internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_picksplit"("internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_picksplit"("internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_same"("public"."gtrgm", "public"."gtrgm", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_same"("public"."gtrgm", "public"."gtrgm", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_same"("public"."gtrgm", "public"."gtrgm", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_same"("public"."gtrgm", "public"."gtrgm", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_union"("internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_union"("internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_union"("internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_union"("internal", "internal") TO "service_role";
 
 
 
@@ -4331,9 +5662,27 @@ GRANT ALL ON FUNCTION "public"."is_user_admin"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."month_bucket_utc"("d" "date") TO "anon";
+GRANT ALL ON FUNCTION "public"."month_bucket_utc"("d" "date") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."month_bucket_utc"("d" "date") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."month_bucket_utc"("ts" timestamp with time zone) TO "anon";
+GRANT ALL ON FUNCTION "public"."month_bucket_utc"("ts" timestamp with time zone) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."month_bucket_utc"("ts" timestamp with time zone) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."record_material_usage"("p_bahan_baku_id" "uuid", "p_qty_base" numeric, "p_tanggal" "date", "p_harga_efektif" numeric, "p_source_type" character varying, "p_source_id" "uuid", "p_keterangan" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."record_material_usage"("p_bahan_baku_id" "uuid", "p_qty_base" numeric, "p_tanggal" "date", "p_harga_efektif" numeric, "p_source_type" character varying, "p_source_id" "uuid", "p_keterangan" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."record_material_usage"("p_bahan_baku_id" "uuid", "p_qty_base" numeric, "p_tanggal" "date", "p_harga_efektif" numeric, "p_source_type" character varying, "p_source_id" "uuid", "p_keterangan" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."refresh_dashboard_views"() TO "anon";
+GRANT ALL ON FUNCTION "public"."refresh_dashboard_views"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."refresh_dashboard_views"() TO "service_role";
 
 
 
@@ -4361,9 +5710,86 @@ GRANT ALL ON FUNCTION "public"."set_claim"("uid" "uuid", "claim" "text", "value"
 
 
 
+GRANT ALL ON FUNCTION "public"."set_limit"(real) TO "postgres";
+GRANT ALL ON FUNCTION "public"."set_limit"(real) TO "anon";
+GRANT ALL ON FUNCTION "public"."set_limit"(real) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_limit"(real) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "anon";
 GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."show_limit"() TO "postgres";
+GRANT ALL ON FUNCTION "public"."show_limit"() TO "anon";
+GRANT ALL ON FUNCTION "public"."show_limit"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."show_limit"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."show_trgm"("text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."show_trgm"("text") TO "anon";
+GRANT ALL ON FUNCTION "public"."show_trgm"("text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."show_trgm"("text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."similarity"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."similarity"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."similarity"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."similarity"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."similarity_dist"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."similarity_dist"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."similarity_dist"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."similarity_dist"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."similarity_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."similarity_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."similarity_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."similarity_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_commutator_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_commutator_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_commutator_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_commutator_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_commutator_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_commutator_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_commutator_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_commutator_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_op"("text", "text") TO "service_role";
 
 
 
@@ -4394,6 +5820,41 @@ GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."update_wac_price"("p_user_id" "uuid", "p_bahan_id" "uuid", "p_new_qty" numeric, "p_new_price" numeric) TO "anon";
 GRANT ALL ON FUNCTION "public"."update_wac_price"("p_user_id" "uuid", "p_bahan_id" "uuid", "p_new_qty" numeric, "p_new_price" numeric) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_wac_price"("p_user_id" "uuid", "p_bahan_id" "uuid", "p_new_qty" numeric, "p_new_price" numeric) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity_commutator_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity_commutator_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity_commutator_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity_commutator_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_commutator_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_commutator_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_commutator_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_commutator_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity_op"("text", "text") TO "service_role";
 
 
 
@@ -4454,6 +5915,18 @@ GRANT ALL ON TABLE "public"."daily_profit_summary" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."dashboard_financial_summary" TO "anon";
+GRANT ALL ON TABLE "public"."dashboard_financial_summary" TO "authenticated";
+GRANT ALL ON TABLE "public"."dashboard_financial_summary" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."debt_tracking" TO "anon";
+GRANT ALL ON TABLE "public"."debt_tracking" TO "authenticated";
+GRANT ALL ON TABLE "public"."debt_tracking" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."devices" TO "anon";
 GRANT ALL ON TABLE "public"."devices" TO "authenticated";
 GRANT ALL ON TABLE "public"."devices" TO "service_role";
@@ -4469,6 +5942,12 @@ GRANT ALL ON TABLE "public"."operational_costs" TO "service_role";
 GRANT ALL ON TABLE "public"."dual_mode_cost_summary" TO "anon";
 GRANT ALL ON TABLE "public"."dual_mode_cost_summary" TO "authenticated";
 GRANT ALL ON TABLE "public"."dual_mode_cost_summary" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."expense_budgets" TO "anon";
+GRANT ALL ON TABLE "public"."expense_budgets" TO "authenticated";
+GRANT ALL ON TABLE "public"."expense_budgets" TO "service_role";
 
 
 
@@ -4541,6 +6020,12 @@ GRANT ALL ON TABLE "public"."recipes" TO "service_role";
 GRANT ALL ON TABLE "public"."revenue_category_breakdown" TO "anon";
 GRANT ALL ON TABLE "public"."revenue_category_breakdown" TO "authenticated";
 GRANT ALL ON TABLE "public"."revenue_category_breakdown" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."savings_goals" TO "anon";
+GRANT ALL ON TABLE "public"."savings_goals" TO "authenticated";
+GRANT ALL ON TABLE "public"."savings_goals" TO "service_role";
 
 
 

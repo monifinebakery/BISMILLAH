@@ -1,12 +1,17 @@
 // src/components/financial/hooks/useFinancialCore.ts
 // ✅ FIXED - No circular dependencies, correct imports
 
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { startOfMonth, endOfDay } from 'date-fns';
 
 // Context imports
 import { useFinancial } from '../contexts/FinancialContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Import query keys for manual refresh
+import { financialQueryKeys } from './useFinancialHooks';
 
 // Utility imports - ✅ FIXED: Changed from financialUtils to financialCalculations
 import { 
@@ -26,12 +31,18 @@ export const useFinancialCore = () => {
   } = useFinancial();
   
   const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Local state
   const [dateRange, setDateRange] = useState({ 
     from: startOfMonth(new Date()), 
     to: endOfDay(new Date()) 
   });
+  
+  // ✅ AUTO-REFRESH: Add state to track last refresh time
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // ✅ CONSOLIDATED: Filtered transactions and calculations
   const financialData = useMemo(() => {
@@ -81,6 +92,48 @@ export const useFinancialCore = () => {
     }, [deleteFinancialTransaction])
   };
 
+  // ✅ AUTO-REFRESH: Manual refresh functionality
+  const refreshOperations = {
+    refresh: useCallback(async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsRefreshing(true);
+        await queryClient.invalidateQueries({
+          queryKey: financialQueryKeys.transactions(user.id)
+        });
+        setLastRefresh(new Date());
+      } catch (error) {
+        console.error('Failed to refresh financial data:', error);
+      } finally {
+        setIsRefreshing(false);
+      }
+    }, [user?.id, queryClient]),
+    
+    forceRefresh: useCallback(async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsRefreshing(true);
+        await queryClient.refetchQueries({
+          queryKey: financialQueryKeys.transactions(user.id)
+        });
+        setLastRefresh(new Date());
+      } catch (error) {
+        console.error('Failed to force refresh financial data:', error);
+      } finally {
+        setIsRefreshing(false);
+      }
+    }, [user?.id, queryClient])
+  };
+
+  // ✅ AUTO-REFRESH: Automatic refresh on mount
+  useEffect(() => {
+    if (user?.id) {
+      refreshOperations.refresh();
+    }
+  }, [user?.id]); // Only run when user changes
+
   // ✅ CONSOLIDATED: Date range management
   const dateRangeOperations = {
     setDateRange: useCallback((range: { from: Date; to?: Date }) => {
@@ -104,12 +157,18 @@ export const useFinancialCore = () => {
     
     // State
     isLoading: financialLoading || settingsLoading,
+    isRefreshing,
     dateRange,
+    lastRefresh,
     
     // Transaction operations
     addTransaction: transactionOperations.add,
     updateTransaction: transactionOperations.update,
     deleteTransaction: transactionOperations.delete,
+    
+    // Refresh operations
+    refresh: refreshOperations.refresh,
+    forceRefresh: refreshOperations.forceRefresh,
     
     // Date management
     setDateRange: dateRangeOperations.setDateRange,

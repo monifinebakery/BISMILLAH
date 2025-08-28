@@ -12,10 +12,11 @@ import {
 } from 'recharts';
 import { formatCurrency } from '@/utils/formatUtils';
 
-// ✅ TAMBAH: Enhanced props untuk useQuery support
+// ✅ ENHANCED: Props untuk useQuery support dengan auto-refresh
 interface CategoryChartsProps {
   filteredTransactions: any[];
   isLoading?: boolean;
+  isRefreshing?: boolean;
   onRefresh?: () => void;
   lastUpdated?: Date;
 }
@@ -65,6 +66,7 @@ const CategoryLoadingSkeleton = () => (
 const CategoryCharts: React.FC<CategoryChartsProps> = ({ 
   filteredTransactions, 
   isLoading = false,
+  isRefreshing = false,
   onRefresh,
   lastUpdated 
 }) => {
@@ -118,10 +120,14 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
               variant="ghost"
               size="sm"
               onClick={onRefresh}
-              disabled={isLoading}
-              className="h-6 w-6 p-0"
+              disabled={isLoading || isRefreshing}
+              className={`h-6 w-6 p-0 transition-colors ${
+                isRefreshing ? 'text-blue-600' : ''
+              }`}
             >
-              <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 ${
+                (isLoading || isRefreshing) ? 'animate-spin' : ''
+              }`} />
             </Button>
           )}
         </CardTitle>
@@ -192,10 +198,14 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onRefresh}
-                disabled={isLoading}
-                className="h-6 w-6 p-0"
+                disabled={isLoading || isRefreshing}
+                className={`h-6 w-6 p-0 transition-colors ${
+                  isRefreshing ? 'text-blue-600' : ''
+                }`}
               >
-                <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3 w-3 ${
+                  (isLoading || isRefreshing) ? 'animate-spin' : ''
+                }`} />
               </Button>
             )}
           </CardTitle>

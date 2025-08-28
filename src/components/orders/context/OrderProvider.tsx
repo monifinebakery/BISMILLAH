@@ -174,6 +174,33 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     }
   }, [userId, throttledFetch, refreshData]);
 
+  const bulkAddOrders = useCallback(async (orders: NewOrder[]) => {
+    if (!userId || !orders.length) return { success: 0, total: orders.length };
+    
+    let success = 0;
+    const results = [];
+    
+    for (const order of orders) {
+      try {
+        const created = await orderService.addOrder(userId, order);
+        results.push(created);
+        success++;
+      } catch (error) {
+        console.error('Error adding order during bulk import:', error);
+      }
+    }
+    
+    // Update state with all successfully created orders at once
+    if (results.length > 0) {
+      setOrders(prev => [...results, ...prev]);
+      if (fallbackModeRef.current) {
+        throttledFetch(refreshData);
+      }
+    }
+    
+    return { success, total: orders.length };
+  }, [userId, throttledFetch, refreshData]);
+
   // ULTRA PERFORMANCE: Memoized computed values untuk mencegah re-calculation
   const ordersRef = useRef(orders);
   ordersRef.current = orders;
@@ -241,6 +268,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     getOrdersByDateRange,
     bulkUpdateStatus,
     bulkDeleteOrders,
+    bulkAddOrders,
     searchOrders,
     getTotalRevenue,
     getPendingOrdersCount,
@@ -262,6 +290,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     refreshData,
     bulkUpdateStatus,
     bulkDeleteOrders,
+    bulkAddOrders,
     // Stats functions dengan computed dependencies
     getTotalRevenue,
     getPendingOrdersCount,

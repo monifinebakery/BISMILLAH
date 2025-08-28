@@ -15,6 +15,9 @@ import { useOrderTable } from '../hooks/useOrderTable';
 // ✅ CONSOLIDATED: Template integration (enhanced)
 import { useOrderFollowUp } from '../hooks/useOrderFollowUp';
 
+// ✅ IMPORT FUNCTIONALITY: Import component for CSV uploads
+import ImportButton from './ImportButton';
+
 // ✅ BULK OPERATIONS: Lazy load BulkActions
 const BulkActions = React.lazy(() => 
   import('./BulkActions').catch((error) => {
@@ -589,6 +592,9 @@ const OrdersPage: React.FC = () => {
             </Button>
           )}
           
+          {/* ✅ IMPORT BUTTON: Import CSV data with responsive design */}
+          <ImportButton />
+          
           <Button
             onClick={() => {
               logger.component('OrdersPage', 'Template manager button clicked');
@@ -598,7 +604,8 @@ const OrdersPage: React.FC = () => {
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300"
           >
             <MessageSquare className="h-5 w-5" />
-            Kelola Template WhatsApp
+            <span className="hidden sm:inline">Kelola Template WhatsApp</span>
+            <span className="sm:hidden">Template</span>
           </Button>
           
           <Button

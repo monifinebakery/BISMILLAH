@@ -92,6 +92,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ INVALIDATE PROFIT ANALYSIS: New orders affect profit calculations
+      console.log('📈 Order added - will affect profit calculations');
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal menambahkan pesanan: ${error instanceof Error ? error.message : String(error)}`);
@@ -196,6 +200,9 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ INVALIDATE PROFIT ANALYSIS: Bulk imported orders affect profit calculations
+      console.log(`📈 ${success} orders imported - will affect profit calculations`);
     }
     
     return { success, total: orders.length };

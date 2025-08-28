@@ -22,14 +22,26 @@ const ImportButton: React.FC = () => {
         toast.error('Tidak ada data yang dapat diimport');
         return;
       }
+      
+      console.log('Parsed orders:', orders); // Debug log
+      
       let success = 0;
       for (const o of orders) {
-        const ok = await addOrder(o);
-        if (ok) success++;
+        try {
+          console.log('Adding order:', o); // Debug log
+          const ok = await addOrder(o);
+          if (ok) success++;
+        } catch (orderError: any) {
+          console.error('Error adding individual order:', orderError);
+          const errorMsg = orderError?.message || orderError?.error?.message || String(orderError);
+          toast.error(`Gagal menambah pesanan: ${errorMsg}`);
+        }
       }
       toast.success(`${success} pesanan berhasil diimport`);
     } catch (err: any) {
-      toast.error(err.message || 'Gagal mengimpor file');
+      console.error('Import error:', err);
+      const errorMsg = err?.message || err?.error?.message || String(err);
+      toast.error(`Gagal mengimpor file: ${errorMsg}`);
     }
   };
 

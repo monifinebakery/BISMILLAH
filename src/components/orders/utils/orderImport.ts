@@ -1,6 +1,6 @@
 import type { NewOrder, OrderItem } from '../types';
 
-export type ImportedOrder = Omit<NewOrder, 'status' | 'subtotal' | 'pajak' | 'totalPesanan'>;
+export type ImportedOrder = NewOrder;
 
 interface RawRow {
   pelanggan: string;
@@ -77,11 +77,14 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
     order.items.push(item);
   });
 
-  return Array.from(grouped.values()).map(order => ({
-    ...order,
-    subtotal: order.items.reduce((sum, item) => sum + item.total, 0),
-    pajak: 0,
-    totalPesanan: order.items.reduce((sum, item) => sum + item.total, 0),
-    status: 'pending' as const,
-  }));
+  return Array.from(grouped.values()).map(order => {
+    const subtotal = order.items.reduce((sum, item) => sum + item.total, 0);
+    return {
+      ...order,
+      subtotal,
+      pajak: 0,
+      totalPesanan: subtotal,
+      status: 'pending' as const,
+    };
+  });
 }

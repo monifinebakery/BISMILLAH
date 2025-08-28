@@ -134,7 +134,7 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
     logger.warn('create_new_order function not available, using direct insert:', sqlError);
   }
 
-  // ✅ FALLBACK: Direct insert if SQL function doesn't exist or fails
+// ✅ FALLBACK: Direct insert if SQL function doesn't exist or fails
   const orderWithNumber = {
     ...order,
     nomorPesanan: orderNumber // ✅ FIXED: Ensure order number is set
@@ -142,16 +142,22 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
   
   const transformedData = transformOrderToDB(orderWithNumber);
   
-  // ✅ ENSURE: All required fields are present
+  // ✅ ENSURE: All required fields are present - explicitly set nomor_pesanan
   const insertData = {
     user_id: userId,
-    nomor_pesanan: orderNumber,
+    nomor_pesanan: orderNumber, // ✅ CRITICAL: Always ensure this is set
     nama_pelanggan: order.namaPelanggan?.trim() || 'Unknown',
     telepon_pelanggan: order.teleponPelanggan || '',
+    email_pelanggan: order.emailPelanggan || '',
+    alamat_pengiriman: order.alamatPengiriman || '',
     status: validateStatus(order.status),
     tanggal: toSafeISOString(order.tanggal || new Date()),
     total_pesanan: Number(order.totalPesanan) || 0,
-    ...transformedData // ✅ SPREAD: Add any additional transformed fields
+    items: JSON.stringify(Array.isArray(order.items) ? order.items : []),
+    subtotal: Number(order.subtotal) || 0,
+    pajak: Number(order.pajak) || 0,
+    catatan: order.catatan || '',
+    // ✅ Don't spread transformedData to avoid overwriting explicit values above
   };
   
   const { data, error } = await supabase

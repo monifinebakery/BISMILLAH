@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
@@ -172,6 +173,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   // New item form state
   const [isSelectingExistingItem, setIsSelectingExistingItem] = useState(false);
   const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
+  
+  // Calendar modal state
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const handleEditItem = useCallback((index: number) => {
     setEditingItemIndex(index);
@@ -331,35 +335,17 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700 text-overflow-safe">Tanggal *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={`h-11 w-full justify-start border-gray-200 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe ${!formData.tanggal && 'text-muted-foreground'}`}
-                        disabled={isSubmitting || isViewOnly}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                        <span className="text-overflow-safe truncate">
-                          {formData.tanggal ? format(new Date(formData.tanggal), 'PPP', { locale: id }) : 'Pilih tanggal'}
-                        </span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.tanggal ? new Date(formData.tanggal) : undefined}
-                        onSelect={(date) => updateFormField('tanggal', date?.toISOString() || '')}
-                        disabled={(date) => {
-                          const today = UnifiedDateHandler.parseDate(new Date());
-                          const minDate = UnifiedDateHandler.parseDate('1900-01-01');
-                          return date > (today.isValid && today.date ? today.date : new Date()) || 
-                                 date < (minDate.isValid && minDate.date ? minDate.date : new Date('1900-01-01'));
-                        }}
-                        initialFocus
-                        locale={id}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Button
+                    variant="outline"
+                    className={`h-11 w-full justify-start border-gray-200 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe ${!formData.tanggal && 'text-muted-foreground'}`}
+                    disabled={isSubmitting || isViewOnly}
+                    onClick={() => setIsCalendarOpen(true)}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span className="text-overflow-safe truncate">
+                      {formData.tanggal ? format(new Date(formData.tanggal), 'PPP', { locale: id }) : 'Pilih tanggal'}
+                    </span>
+                  </Button>
                   {validation.tanggal && (
                     <p className="text-xs text-red-500 text-overflow-safe">{validation.tanggal}</p>
                   )}
@@ -559,6 +545,64 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           )}
         </div>
       </DialogContent>
+      
+      {/* Calendar Modal - Separate Dialog */}
+      <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+        <DialogContent centerMode="overlay" size="sm" hideCloseButton={false}>
+          <div className="dialog-panel dialog-panel-sm">
+            <DialogHeader className="dialog-header">
+              <DialogTitle className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-orange-600" />
+                Pilih Tanggal
+              </DialogTitle>
+              <DialogDescription>
+                Pilih tanggal untuk pembelian ini.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="dialog-body">
+              <Calendar
+                mode="single"
+                selected={formData.tanggal ? new Date(formData.tanggal) : undefined}
+                onSelect={(date) => {
+                  updateFormField('tanggal', date?.toISOString() || '');
+                  setIsCalendarOpen(false);
+                }}
+                disabled={(date) => {
+                  const today = UnifiedDateHandler.parseDate(new Date());
+                  const minDate = UnifiedDateHandler.parseDate('1900-01-01');
+                  return date > (today.isValid && today.date ? today.date : new Date()) || 
+                         date < (minDate.isValid && minDate.date ? minDate.date : new Date('1900-01-01'));
+                }}
+                initialFocus
+                locale={id}
+                className="mx-auto"
+              />
+            </div>
+            <DialogFooter className="dialog-footer">
+              <div className="dialog-responsive-buttons">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCalendarOpen(false)}
+                  className="input-mobile-safe"
+                >
+                  Batal
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!formData.tanggal) {
+                      updateFormField('tanggal', new Date().toISOString());
+                    }
+                    setIsCalendarOpen(false);
+                  }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white input-mobile-safe"
+                >
+                  {formData.tanggal ? 'Selesai' : 'Pilih Hari Ini'}
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };

@@ -1,7 +1,3 @@
-tanggal,namaPelanggan,nama,jumlah,satuan,harga
-15/01/25,PT. Maju Jaya,tepung terigu,10,kg,120000
-16/01/25,CV. Sumber Rejeki,gula pasir,5,kg,75000
-17/01/25,Toko Bahan Kue,minyak goreng,2,liter,40000
-18/01/25,Warung Pak Budi,beras premium,25,kg,350000
-19/01/25,Restoran Sederhana,ayam segar,8,ekor,200000
-20/01/25,Catering Ibu Sari,sayur bayam,3,ikat,15000
+pelanggan;tanggal;nama;kuantitas;satuan;harga
+PT Contoh;2025-01-01;Nasi Gudeg;10;porsi;50000
+PT Contoh;2025-01-01;Es Teh Manis;5;gelas;30000

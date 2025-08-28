@@ -387,15 +387,22 @@ This ensures they appear above ALL other UI elements.
   }
 
   /* ---- CALENDAR RESPONSIVE STYLES ---- */
-  /* Ensure all calendar popovers use consistent z-index */
-  [data-radix-popper-content-wrapper] {
-    z-index: 9999 !important;
+  /* Force highest z-index for all calendar elements */
+  [data-radix-popper-content-wrapper],
+  [data-radix-popover-content] {
+    z-index: 10000 !important;
     max-width: 95vw !important;
   }
   
-  /* Calendar popover base styles */
-  [data-radix-popover-content] {
-    z-index: 9999 !important;
+  /* Ensure popover portal has proper z-index */
+  [data-radix-popover-portal] {
+    z-index: 10000 !important;
+  }
+  
+  /* Force calendar content to be visible */
+  [data-radix-popover-content][data-side="bottom"] {
+    z-index: 10000 !important;
+    position: fixed !important;
   }
   
   /* All calendars should have proper width constraints */

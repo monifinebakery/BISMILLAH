@@ -2,20 +2,19 @@ import type { NewOrder, OrderItem } from '../types';
 
 export type ImportedOrder = Omit<NewOrder, 'status' | 'subtotal' | 'pajak' | 'totalPesanan'>;
 
-interface RawOrderRow {
+interface RawRow {
+  pelanggan: string;
   tanggal: string;
-  namaPelanggan: string;
-  namaItem: string;
-  jumlah: number;
+  nama: string;
+  kuantitas: number;
   satuan: string;
   harga: number;
 }
 
 /**
  * Parse CSV file menjadi array pesanan.
- * Format kolom yang didukung (sesuai gambar):
- * tanggal,namaPelanggan,namaItem,jumlah,satuan,harga
- * SETIAP BARIS = SATU PESANAN TERPISAH
+ * Format kolom yang didukung:
+ * pelanggan,tanggal,nama,kuantitas,satuan,harga
  */
 export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
   const text = await file.text();
@@ -28,60 +27,60 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
     .split(delimiter)
     .map((h) => h.trim().toLowerCase());
 
-  const getIndex = (name: string) => headers.indexOf(name.toLowerCase());
+  const getIndex = (name: string) => headers.indexOf(name);
+  const idxPelanggan = getIndex('pelanggan');
   const idxTanggal = getIndex('tanggal');
-  const idxNamaPelanggan = getIndex('namapelanggan');
-  const idxNamaItem = getIndex('namaitem') !== -1 ? getIndex('namaitem') : getIndex('nama'); // Support both 'nama' and 'namaitem'
-  const idxJumlah = getIndex('jumlah') !== -1 ? getIndex('jumlah') : getIndex('kuantitas'); // Support both 'jumlah' and 'kuantitas'
+  const idxNama = getIndex('nama');
+  const idxQty = getIndex('kuantitas');
   const idxSatuan = getIndex('satuan');
   const idxHarga = getIndex('harga');
 
-  // Kolom wajib: tanggal, nama pelanggan, nama item, jumlah, harga
-  if ([idxTanggal, idxNamaPelanggan, idxNamaItem, idxJumlah, idxHarga].some((i) => i === -1)) {
-    throw new Error('Kolom wajib tidak lengkap. Diperlukan: tanggal, namaPelanggan, nama/namaItem, jumlah, harga');
+  if ([idxPelanggan, idxTanggal, idxNama, idxQty, idxSatuan, idxHarga].some((i) => i === -1)) {
+    throw new Error('Kolom wajib tidak lengkap');
   }
 
-  const rows: RawOrderRow[] = lines.slice(1).map((line) => {
+  const rows: RawRow[] = lines.slice(1).map((line) => {
     const values = line.split(delimiter).map((v) => v.trim());
     return {
+      pelanggan: values[idxPelanggan] || '',
       tanggal: values[idxTanggal] || '',
-      namaPelanggan: values[idxNamaPelanggan] || '',
-      namaItem: values[idxNamaItem] || '',
-      jumlah: parseFloat(values[idxJumlah] || '0'),
-      satuan: idxSatuan !== -1 ? values[idxSatuan] || '' : '',
+      nama: values[idxNama] || '',
+      kuantitas: parseFloat(values[idxQty] || '0'),
+      satuan: values[idxSatuan] || '',
       harga: parseFloat(values[idxHarga] || '0'),
     };
   });
 
-  // ✅ SETIAP BARIS = SATU PESANAN TERPISAH (tidak dikelompokkan)
-  const orders: ImportedOrder[] = [];
+  const grouped = new Map<string, ImportedOrder>();
 
-  rows.forEach((r, index) => {
-    if (!r.namaPelanggan || !r.tanggal || !r.namaItem) return;
-    
-    // Buat satu pesanan untuk setiap baris CSV
+  rows.forEach((r) => {
+    if (!r.pelanggan || !r.tanggal || !r.nama) return;
+    const key = `${r.pelanggan}-${r.tanggal}`;
+    let order = grouped.get(key);
+    if (!order) {
+      order = {
+        namaPelanggan: r.pelanggan,
+        tanggal: new Date(r.tanggal),
+        items: [],
+      };
+      grouped.set(key, order);
+    }
+
     const item: OrderItem = {
-      id: `item-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-      name: r.namaItem,
-      quantity: r.jumlah,
+      id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: r.nama,
+      quantity: r.kuantitas,
       price: r.harga,
-      total: r.jumlah * r.harga,
+      total: r.kuantitas * r.harga,
       unit: r.satuan,
     };
-
-    const order: ImportedOrder = {
-      namaPelanggan: r.namaPelanggan,
-      tanggal: new Date(r.tanggal),
-      items: [item], // Hanya satu item per pesanan
-    };
-
-    orders.push(order);
+    order.items.push(item);
   });
 
-  return orders.map(order => ({
+  return Array.from(grouped.values()).map(order => ({
     ...order,
     subtotal: order.items.reduce((sum, item) => sum + item.total, 0),
-    pajak: 0, // Default pajak 0, bisa disesuaikan
+    pajak: 0,
     totalPesanan: order.items.reduce((sum, item) => sum + item.total, 0),
     status: 'pending' as const,
   }));

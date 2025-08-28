@@ -157,14 +157,16 @@ const ChartSkeleton = () => (
   </Card>
 );
 
-// ✅ SIMPLIFIED Summary Cards Component - Only basic financial data
+// ✅ ENHANCED Summary Cards Component - With auto-refresh feedback
 const SummaryCards: React.FC<{
   totalIncome: number;
   totalExpense: number;
   balance: number;
   isLoading?: boolean;
+  isRefreshing?: boolean;
+  lastRefresh?: Date | null;
   onRefresh?: () => void;
-}> = ({ totalIncome, totalExpense, balance, isLoading, onRefresh }) => {
+}> = ({ totalIncome, totalExpense, balance, isLoading, isRefreshing, lastRefresh, onRefresh }) => {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
 
@@ -207,9 +209,31 @@ const SummaryCards: React.FC<{
                 {card.title}
               </CardTitle>
               {index === 0 && onRefresh && (
-                <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading}>
-                  <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {lastRefresh && (
+                    <span className="text-xs text-gray-500 hidden sm:inline">
+                      {new Date(lastRefresh).toLocaleTimeString('id-ID', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={onRefresh} 
+                    disabled={isLoading || isRefreshing}
+                    className={cn(
+                      "transition-colors",
+                      isRefreshing && "text-blue-600"
+                    )}
+                  >
+                    <RefreshCw className={cn(
+                      "h-3 w-3",
+                      (isLoading || isRefreshing) && "animate-spin"
+                    )} />
+                  </Button>
+                </div>
               )}
             </div>
           </CardHeader>
@@ -290,7 +314,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const FinancialReportPage: React.FC = () => {
   const isMobile = useIsMobile();
   
-  // ✅ SINGLE HOOK - All functionality consolidated
+  // ✅ SINGLE HOOK - All functionality consolidated with auto-refresh
   const {
     // Data
     filteredTransactions,
@@ -301,6 +325,8 @@ const FinancialReportPage: React.FC = () => {
     
     // State
     isLoading,
+    isRefreshing,
+    lastRefresh,
     hasTransactions,
     
     // Operations
@@ -308,6 +334,10 @@ const FinancialReportPage: React.FC = () => {
     updateTransaction,
     deleteTransaction,
     setDateRange,
+    
+    // Refresh operations
+    refresh,
+    forceRefresh,
     
     // Settings
     settings,
@@ -522,12 +552,15 @@ const FinancialReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ✅ SIMPLIFIED Summary Cards - Only basic financial data */}
+        {/* ✅ ENHANCED Summary Cards - With auto-refresh feedback */}
         <SummaryCards 
           totalIncome={totalIncome}
           totalExpense={totalExpense}
           balance={balance}
           isLoading={isLoading}
+          isRefreshing={isRefreshing}
+          lastRefresh={lastRefresh}
+          onRefresh={refresh}
         />
 
         {/* ✅ ENHANCED TABBED INTERFACE - Charts, Transactions, and UMKM Features */}
@@ -563,6 +596,9 @@ const FinancialReportPage: React.FC = () => {
                 filteredTransactions={filteredTransactions}
                 dateRange={dateRange}
                 isLoading={isLoading}
+                isRefreshing={isRefreshing}
+                onRefresh={refresh}
+                lastUpdated={lastRefresh}
               />
             </Suspense>
 
@@ -575,6 +611,9 @@ const FinancialReportPage: React.FC = () => {
               <CategoryCharts 
                 filteredTransactions={filteredTransactions}
                 isLoading={isLoading}
+                isRefreshing={isRefreshing}
+                onRefresh={refresh}
+                lastUpdated={lastRefresh}
               />
             </Suspense>
           </TabsContent>

@@ -22,11 +22,12 @@ import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization'; // Keep for transition
 import { logger } from '@/utils/logger';
 
-// ✅ TAMBAH: Props enhancement untuk useQuery support
+// ✅ ENHANCED: Props enhancement untuk useQuery support dengan auto-refresh
 interface FinancialChartsProps {
   filteredTransactions: any[];
   dateRange: { from: Date; to?: Date };
   isLoading?: boolean;
+  isRefreshing?: boolean;
   onRefresh?: () => void;
   lastUpdated?: Date;
 }
@@ -72,6 +73,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
   filteredTransactions, 
   dateRange,
   isLoading = false,
+  isRefreshing = false,
   onRefresh,
   lastUpdated
 }) => {
@@ -208,17 +210,21 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
             )}
           </div>
           
-          {/* ✅ TAMBAH: Refresh button */}
+          {/* ✅ ENHANCED: Refresh button dengan isRefreshing support */}
           {onRefresh && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onRefresh}
-              disabled={isLoading}
-              className="flex items-center gap-2"
+              disabled={isLoading || isRefreshing}
+              className={`flex items-center gap-2 transition-colors ${
+                isRefreshing ? 'text-blue-600' : ''
+              }`}
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Memuat...' : 'Refresh'}
+              <RefreshCw className={`h-4 w-4 ${
+                (isLoading || isRefreshing) ? 'animate-spin' : ''
+              }`} />
+              {isLoading ? 'Memuat...' : isRefreshing ? 'Refresh...' : 'Refresh'}
             </Button>
           )}
         </div>

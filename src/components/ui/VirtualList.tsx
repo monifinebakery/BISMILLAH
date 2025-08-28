@@ -32,21 +32,25 @@ const VirtualList = <T,>({
   loadMore,
   isLoadingMore = false
 }: VirtualListProps<T>) => {
-  const virtualScrolling = hasNextPage && loadMore
-    ? useInfiniteVirtualScrolling({
-        itemHeight,
-        containerHeight,
-        overscan,
-        data,
-        hasNextPage,
-        loadMore
-      })
-    : useVirtualScrolling({
-        itemHeight,
-        containerHeight,
-        overscan,
-        data
-      });
+  // Always call hooks - React Hooks must be called in the same order every time
+  const regularVirtualScrolling = useVirtualScrolling({
+    itemHeight,
+    containerHeight,
+    overscan,
+    data
+  });
+  
+  const infiniteVirtualScrolling = useInfiniteVirtualScrolling({
+    itemHeight,
+    containerHeight,
+    overscan,
+    data,
+    hasNextPage: hasNextPage || false,
+    loadMore: loadMore || (() => {})
+  });
+  
+  // Choose which one to use after calling both hooks
+  const virtualScrolling = (hasNextPage && loadMore) ? infiniteVirtualScrolling : regularVirtualScrolling;
 
   const {
     startIndex,

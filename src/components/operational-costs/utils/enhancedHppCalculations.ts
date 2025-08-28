@@ -220,9 +220,22 @@ export const calculateEnhancedHPP = async (
     }
     
     // 5. Calculate total HPP per pcs (Revision 4 formula)
+    console.log('🔥 [BEFORE ROUNDING] Values before final calculation:', {
+      bahanPerPcs,
+      tklPerPcs,
+      overheadPerPcs,
+      sum: bahanPerPcs + tklPerPcs + overheadPerPcs
+    });
+    
     const hppPerPcs = Math.round(bahanPerPcs + tklPerPcs + overheadPerPcs);
     const hppPerPorsi = hppPerPcs * jumlahPcsPerPorsi;
     const totalHPP = hppPerPorsi * jumlahPorsi;
+    
+    console.log('🔥 [AFTER ROUNDING] Final values:', {
+      hppPerPcs,
+      hppPerPorsi,
+      totalHPP
+    });
     
     // 6. Calculate selling prices based on mode
     let hargaJualPerPcs = 0;

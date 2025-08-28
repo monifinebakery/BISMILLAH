@@ -225,11 +225,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         sideOffset={8}
         avoidCollisions
         collisionPadding={16}
-        className="p-0 w-[min(92vw,720px)] min-w-[360px] max-h-[90vh] overflow-hidden z-[80]"
+        className="p-0 w-[min(95vw,900px)] min-w-[400px] max-h-[90vh] overflow-hidden z-[80]"
       >
         <div className="flex flex-col lg:flex-row bg-white border rounded-lg shadow-lg overflow-hidden w-full">
           {/* sidebar preset */}
-          <div className="w-full lg:w-40 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r">
+          <div className="w-full lg:w-44 xl:w-48 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r">
             <PresetButtons />
           </div>
 

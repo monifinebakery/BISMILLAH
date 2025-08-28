@@ -174,19 +174,20 @@ class OfflineStorageManager {
 }
 
 // Specialized storage managers for different data types
+
+interface CalculationEntry {
+  id: string;
+  type: 'hpp' | 'basic' | 'profit';
+  inputs: Record<string, any>;
+  result: number;
+  formula: string;
+  notes?: string;
+  timestamp: number;
+}
+
 export class CalculatorHistoryStorage {
   private storage = new OfflineStorageManager();
   private readonly KEY = 'calculator_history';
-
-  interface CalculationEntry {
-    id: string;
-    type: 'hpp' | 'basic' | 'profit';
-    inputs: Record<string, any>;
-    result: number;
-    formula: string;
-    notes?: string;
-    timestamp: number;
-  }
 
   addCalculation(entry: Omit<CalculationEntry, 'id' | 'timestamp'>): boolean {
     const history = this.getHistory();
@@ -228,25 +229,25 @@ export class CalculatorHistoryStorage {
   }
 }
 
+interface DraftOrder {
+  id: string;
+  customerName?: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+    notes?: string;
+  }>;
+  totalAmount: number;
+  notes?: string;
+  status: 'draft' | 'pending_sync' | 'synced';
+  created: number;
+  modified: number;
+}
+
 export class DraftOrderStorage {
   private storage = new OfflineStorageManager();
   private readonly KEY = 'draft_orders';
-
-  interface DraftOrder {
-    id: string;
-    customerName?: string;
-    items: Array<{
-      productName: string;
-      quantity: number;
-      price: number;
-      notes?: string;
-    }>;
-    totalAmount: number;
-    notes?: string;
-    status: 'draft' | 'pending_sync' | 'synced';
-    created: number;
-    modified: number;
-  }
 
   saveDraft(draft: Omit<DraftOrder, 'id' | 'created' | 'modified'>): string {
     const drafts = this.getDrafts();
@@ -342,23 +343,23 @@ export class CachedDataStorage {
   }
 }
 
+interface SyncOperation {
+  id: string;
+  type: 'create_order' | 'update_warehouse' | 'create_recipe' | 'update_supplier';
+  data: any;
+  endpoint: string;
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  priority: 'high' | 'normal' | 'low';
+  attempts: number;
+  maxAttempts: number;
+  created: number;
+  lastAttempt?: number;
+  error?: string;
+}
+
 export class SyncQueueStorage {
   private storage = new OfflineStorageManager();
   private readonly KEY = 'sync_queue';
-
-  interface SyncOperation {
-    id: string;
-    type: 'create_order' | 'update_warehouse' | 'create_recipe' | 'update_supplier';
-    data: any;
-    endpoint: string;
-    method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-    priority: 'high' | 'normal' | 'low';
-    attempts: number;
-    maxAttempts: number;
-    created: number;
-    lastAttempt?: number;
-    error?: string;
-  }
 
   addOperation(operation: Omit<SyncOperation, 'id' | 'attempts' | 'created'>): string {
     const queue = this.getQueue();

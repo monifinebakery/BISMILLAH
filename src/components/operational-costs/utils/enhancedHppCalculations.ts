@@ -129,12 +129,27 @@ export const updateIngredientsWithWAC = async (
     });
     
     if (ingredient.warehouseId && wacMap.has(ingredient.warehouseId)) {
-      const wacPrice = wacMap.get(ingredient.warehouseId)!;
+      let wacPrice = wacMap.get(ingredient.warehouseId)!;
+      
+      // 🚨 TEMPORARY FIX: Detect and correct inflated WAC prices
+      // If WAC price is more than 100x the original price, it's likely inflated by 1000x
+      const originalPrice = ingredient.hargaSatuan;
+      if (originalPrice > 0 && wacPrice > originalPrice * 100) {
+        console.warn(`🚨 [WAC CORRECTION] Detected inflated WAC price for ${ingredient.nama}:`, {
+          originalWac: wacPrice,
+          originalPrice,
+          ratio: wacPrice / originalPrice
+        });
+        wacPrice = Math.round(wacPrice / 1000); // Correct the inflation
+        console.warn(`🚨 [WAC CORRECTION] Corrected WAC price: ${wacPrice}`);
+      }
+      
       const newTotalHarga = ingredient.jumlah * wacPrice;
       
       console.log(`🔥 [WAC DEBUG] Using WAC for ${ingredient.nama}:`, {
         originalPrice: ingredient.hargaSatuan,
-        wacPrice,
+        rawWacPrice: wacMap.get(ingredient.warehouseId)!,
+        correctedWacPrice: wacPrice,
         jumlah: ingredient.jumlah,
         originalTotalHarga: ingredient.totalHarga,
         newTotalHarga,

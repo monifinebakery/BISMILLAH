@@ -80,7 +80,9 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
   return Array.from(grouped.values()).map(order => {
     const subtotal = order.items.reduce((sum, item) => sum + item.total, 0);
     return {
-      ...order,
+      namaPelanggan: order.namaPelanggan,
+      tanggal: order.tanggal,
+      items: order.items,
       subtotal,
       pajak: 0,
       totalPesanan: subtotal,

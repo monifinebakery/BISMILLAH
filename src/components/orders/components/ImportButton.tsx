@@ -33,7 +33,20 @@ const ImportButton: React.FC = () => {
           if (ok) success++;
         } catch (orderError: any) {
           console.error('Error adding individual order:', orderError);
-          const errorMsg = orderError?.message || orderError?.error?.message || String(orderError);
+          let errorMsg = 'Unknown error';
+          
+          if (typeof orderError === 'string') {
+            errorMsg = orderError;
+          } else if (orderError?.message) {
+            errorMsg = orderError.message;
+          } else if (orderError?.error?.message) {
+            errorMsg = orderError.error.message;
+          } else if (orderError?.toString && typeof orderError.toString === 'function') {
+            errorMsg = orderError.toString();
+          } else {
+            errorMsg = JSON.stringify(orderError, null, 2);
+          }
+          
           toast.error(`Gagal menambah pesanan: ${errorMsg}`);
         }
       }

@@ -531,11 +531,29 @@ const FinancialReportPage: React.FC = () => {
         />
 
         {/* ✅ ENHANCED TABBED INTERFACE - Charts, Transactions, and UMKM Features */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="charts">Charts & Reports</TabsTrigger>
-            <TabsTrigger value="transactions">Transaksi</TabsTrigger>
-            <TabsTrigger value="umkm">Fitur UMKM</TabsTrigger>
+        <div className="w-full overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0 h-auto sm:h-10 p-1 bg-muted">
+            <TabsTrigger 
+              value="charts" 
+              className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
+            >
+              <span className="hidden sm:inline">Charts & Reports</span>
+              <span className="sm:hidden">Charts</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="transactions" 
+              className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
+            >
+              Transaksi
+            </TabsTrigger>
+            <TabsTrigger 
+              value="umkm" 
+              className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
+            >
+              <span className="hidden sm:inline">Fitur UMKM</span>
+              <span className="sm:hidden">UMKM</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* ✅ CHARTS TAB - Financial charts and category charts */}
@@ -667,7 +685,8 @@ const FinancialReportPage: React.FC = () => {
               />
             </Suspense>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
 
         {/* ✅ DIALOGS - Only transaction and category dialogs */}
         <Suspense fallback={null}>

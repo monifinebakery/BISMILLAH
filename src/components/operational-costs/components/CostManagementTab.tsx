@@ -43,23 +43,31 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
 }) => {
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* HPP Summary Card */}
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-blue-800 text-base">
-              <Package className="h-4 w-4" />
-              Biaya HPP
+        <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] transform">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <CardHeader className="relative pb-3">
+            <CardTitle className="flex items-center justify-between text-blue-900">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                  <Package className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">💼 Biaya HPP</h3>
+                  <p className="text-xs text-blue-600 mt-1">Harga Pokok Produksi</p>
+                </div>
+              </div>
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button 
                       type="button"
-                      className="p-1 -m-1 touch-manipulation"
+                      className="p-2 bg-blue-100 hover:bg-blue-200 rounded-full transition-colors group-hover:scale-110 transform duration-300"
                       aria-label="Info biaya HPP"
                     >
-                      <DollarSign className="h-3 w-3 text-blue-500 hover:text-blue-700 transition-colors" />
+                      <DollarSign className="h-4 w-4 text-blue-600" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="bg-blue-50 border-blue-200 text-blue-900 max-w-xs">
@@ -69,29 +77,46 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
               </TooltipProvider>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-900">{formatCurrency(hppCosts)}</div>
-            <p className="text-sm text-blue-700 mt-1">
-              {costs.filter(c => c.group === 'hpp').length} item biaya
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-blue-900 mb-2 group-hover:text-blue-800 transition-colors">
+              {formatCurrency(hppCosts)}
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-blue-700">
+                📦 {costs.filter(c => c.group === 'hpp').length} item biaya
+              </p>
+              <div className="flex items-center gap-1 text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
+                <TrendingUp className="h-3 w-3" />
+                HPP
+              </div>
+            </div>
           </CardContent>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
         </Card>
 
         {/* Operational Summary Card */}
-        <Card className="border-orange-200 bg-white">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-orange-800 text-base">
-              <TrendingUp className="h-4 w-4" />
-              Biaya Operasional
+        <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-orange-50 to-red-100 hover:from-orange-100 hover:to-red-200 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] transform">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-600/5 to-red-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <CardHeader className="relative pb-3">
+            <CardTitle className="flex items-center justify-between text-orange-900">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                  <TrendingUp className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">🏪 Biaya Operasional</h3>
+                  <p className="text-xs text-orange-600 mt-1">Operasional Bisnis</p>
+                </div>
+              </div>
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="p-1 -m-1 touch-manipulation"
+                      className="p-2 bg-orange-100 hover:bg-orange-200 rounded-full transition-colors group-hover:scale-110 transform duration-300"
                       aria-label="Info biaya operasional"
                     >
-                      <DollarSign className="h-3 w-3 text-orange-500 hover:text-orange-700 transition-colors" />
+                      <DollarSign className="h-4 w-4 text-orange-600" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="bg-orange-50 border-orange-200 text-orange-900 max-w-xs">
@@ -101,52 +126,103 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
               </TooltipProvider>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-900">{formatCurrency(operationalCosts)}</div>
-            <p className="text-sm text-orange-700 mt-1">
-              {costs.filter(c => c.group === 'operasional').length} item biaya
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-orange-900 mb-2 group-hover:text-orange-800 transition-colors">
+              {formatCurrency(operationalCosts)}
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-orange-700">
+                🏢 {costs.filter(c => c.group === 'operasional').length} item biaya
+              </p>
+              <div className="flex items-center gap-1 text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
+                <TrendingUp className="h-3 w-3" />
+                OPS
+              </div>
+            </div>
           </CardContent>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-red-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+        </Card>
+
+        {/* Total Summary Card */}
+        <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-green-50 to-emerald-100 hover:from-green-100 hover:to-emerald-200 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] transform md:col-span-2 xl:col-span-1">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-600/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <CardHeader className="relative pb-3">
+            <CardTitle className="flex items-center justify-between text-green-900">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                  <DollarSign className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">📊 Total Biaya</h3>
+                  <p className="text-xs text-green-600 mt-1">Keseluruhan Per Bulan</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                  Monthly
+                </div>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-green-900 mb-2 group-hover:text-green-800 transition-colors">
+              {formatCurrency(totalMonthlyCosts)}
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-green-700">
+                💰 {costs.filter(c => c.status === 'aktif').length} biaya aktif
+              </p>
+              <div className="flex items-center gap-1 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                <TrendingUp className="h-3 w-3" />
+                TOTAL
+              </div>
+            </div>
+          </CardContent>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-emerald-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
         </Card>
       </div>
 
-      {/* Cost Management Table */}
-      <Card className="bg-white rounded-xl border border-gray-200/80">
-        <CardHeader className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      {/* Enhanced Cost Management Table */}
+      <Card className="bg-white rounded-2xl border-0 shadow-xl shadow-gray-200/50 overflow-hidden">
+        <CardHeader className="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <CardTitle>Kelola Biaya Operasional</CardTitle>
-              <p className="text-sm text-gray-600 mt-1">
-                Tambah, edit, atau hapus biaya bulanan untuk bisnis Anda
+              <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                📊 Kelola Biaya Operasional
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-2">
+                Tambah, edit, atau hapus biaya bulanan untuk bisnis Anda dengan mudah
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <Button
                 variant={isSelectionMode ? 'default' : 'outline'}
                 onClick={onToggleSelectionMode}
-                className={`w-full sm:w-auto ${isSelectionMode ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}`}
-
+                className={`group w-full sm:w-auto transition-all duration-300 transform hover:scale-105 ${
+                  isSelectionMode 
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg' 
+                    : 'border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400 shadow-md hover:shadow-lg'
+                }`}
                 size="default"
               >
                 {isSelectionMode ? (
                   <>
-                    <X className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <X className="h-4 w-4 mr-2 flex-shrink-0 group-hover:rotate-90 transition-transform duration-300" />
                     <span className="truncate">Keluar Mode</span>
                   </>
                 ) : (
                   <>
-                    <CheckSquare className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <CheckSquare className="h-4 w-4 mr-2 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
                     <span className="truncate">Mode Pilih</span>
                   </>
                 )}
               </Button>
               <Button
                 onClick={onOpenAddDialog}
-                className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700"
-
+                className="group w-full sm:w-auto bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 size="default"
               >
-                <Plus className="h-4 w-4 mr-2 flex-shrink-0" />
+                <Plus className="h-4 w-4 mr-2 flex-shrink-0 group-hover:rotate-180 transition-transform duration-300" />
                 <span className="truncate">Tambah Biaya</span>
               </Button>
             </div>
@@ -155,8 +231,8 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[800px]">
-              <TableHeader className="bg-gray-50 border-b border-gray-200 sticky top-0 z-[1]">
-                <TableRow>
+              <TableHeader className="bg-gradient-to-r from-gray-100 to-gray-50 border-b-2 border-gray-200 sticky top-0 z-[1]">
+                <TableRow className="hover:bg-gray-100 transition-colors duration-200">
                   {isSelectionMode && (
                     <TableHead className="w-12 text-center">
                       <Checkbox
@@ -177,108 +253,152 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
               </TableHeader>
               <TableBody>
                 {costs.map((cost) => (
-                  <TableRow key={cost.id} className="hover:bg-gray-50">
+                  <TableRow key={cost.id} className="group hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-orange-50/30 transition-all duration-300 border-b border-gray-100 hover:shadow-md hover:scale-[1.001] transform">
                     {isSelectionMode && (
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-4">
                         <Checkbox
                           checked={selectedIds.includes(cost.id)}
                           onCheckedChange={() => onSelectionChange?.(cost.id)}
                           aria-label={`Pilih biaya ${cost.nama_biaya}`}
+                          className="group-hover:scale-110 transition-transform duration-200"
                         />
                       </TableCell>
                     )}
-                    <TableCell>
-                      <div className="font-medium text-gray-900">{cost.nama_biaya}</div>
+                    <TableCell className="py-4">
+                      <div className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200">{cost.nama_biaya}</div>
                       {cost.deskripsi && (
-                        <div className="text-sm text-gray-500 mt-1 truncate max-w-xs">
+                        <div className="text-sm text-gray-500 mt-1 truncate max-w-xs group-hover:text-gray-600 transition-colors duration-200">
                           {cost.deskripsi}
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="text-right font-bold text-lg py-4 group-hover:text-green-700 transition-colors duration-200">
                       {formatCurrency(cost.jumlah_per_bulan)}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-4">
                       <Badge
                         variant={cost.group === 'hpp' ? 'default' : 'secondary'}
-                  className={cost.group === 'hpp'
-                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                          : 'bg-green-100 text-green-800 hover:bg-green-200'
-                        }
+                        className={`transition-all duration-300 group-hover:scale-105 ${
+                          cost.group === 'hpp'
+                            ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 shadow-md'
+                            : 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300 shadow-md'
+                        }`}
                       >
-                        {cost.group}
+                        {cost.group === 'hpp' ? '💼 HPP' : '🏪 OPS'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-4">
                       <Badge
                         variant="outline"
-                        className={cost.jenis === 'tetap'
-                          ? 'border-blue-300 text-blue-700'
-                          : 'border-purple-300 text-purple-700'
-                        }
+                        className={`transition-all duration-300 group-hover:scale-105 shadow-sm ${
+                          cost.jenis === 'tetap'
+                            ? 'border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                            : 'border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100'
+                        }`}
                       >
-                        {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
+                        {cost.jenis === 'tetap' ? '🔒 Tetap' : '🔄 Variabel'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-4">
                       <Badge
                         variant="outline"
-                        className={cost.status === 'aktif'
-                          ? 'border-green-300 text-green-700'
-                          : 'border-red-300 text-red-700'
-                        }
+                        className={`transition-all duration-300 group-hover:scale-105 shadow-sm ${
+                          cost.status === 'aktif'
+                            ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100'
+                            : 'border-red-300 text-red-700 bg-red-50 hover:bg-red-100'
+                        }`}
                       >
-                        {cost.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                        {cost.status === 'aktif' ? '✅ Aktif' : '❌ Nonaktif'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center text-sm text-gray-600">
-                      {formatDate(cost.created_at)}
+                    <TableCell className="text-center text-sm text-gray-600 py-4 group-hover:text-gray-700 transition-colors duration-200">
+                      📅 {formatDate(cost.created_at)}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center gap-1">
+                    <TableCell className="text-center py-4">
+                      <div className="flex justify-center gap-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => onEditCost(cost)}
-                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="h-9 w-9 p-0 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-300 hover:border-blue-600 transition-all duration-300 transform hover:scale-110 group-hover:shadow-md"
                         >
-                          <Edit2 className="h-3 w-3" />
+                          <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => onDeleteCost(cost.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="h-9 w-9 p-0 text-red-600 hover:text-white hover:bg-red-600 border-red-300 hover:border-red-600 transition-all duration-300 transform hover:scale-110 group-hover:shadow-md"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
 
-                {/* Empty state */}
+                {/* Enhanced Empty State */}
                 {costs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={isSelectionMode ? 8 : 7} className="text-center h-24">
-                      <div className="py-12 text-gray-500 space-y-4 max-w-md mx-auto">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-                          📝
+                    <TableCell colSpan={isSelectionMode ? 8 : 7} className="text-center h-24 bg-gradient-to-b from-gray-50 to-white">
+                      <div className="py-16 text-gray-500 space-y-6 max-w-lg mx-auto">
+                        {/* Animated Icon */}
+                        <div className="relative">
+                          <div className="w-24 h-24 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center mx-auto shadow-lg animate-bounce">
+                            <div className="text-4xl animate-pulse">💰</div>
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center animate-ping">
+                            <span className="text-xs text-white font-bold">+</span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-lg text-gray-700 mb-2">Belum ada biaya yang ditambahkan</p>
-                          <p className="text-sm text-gray-600 mb-4">
-                            Mulai dengan menambahkan biaya operasional bulanan seperti:
-                            <br /><strong>Gas, Sewa, Marketing, Gaji, Internet</strong>
+                        
+                        {/* Title & Description */}
+                        <div className="space-y-3">
+                          <h3 className="font-bold text-xl text-gray-700 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                            🎆 Siap Mulai Kelola Biaya?
+                          </h3>
+                          <p className="text-sm text-gray-600 leading-relaxed">
+                            Belum ada biaya operasional yang tercatat. Mari mulai dengan menambahkan biaya bulanan seperti:
                           </p>
                         </div>
-                        <div className="space-y-3">
-                          <Button onClick={onOpenAddDialog} size="lg" className="bg-orange-600 hover:bg-orange-700 px-6">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah Biaya Pertama
+                        
+                        {/* Example Cost Items */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto">
+                          {[
+                            { icon: '🔥', name: 'Gas' },
+                            { icon: '🏠', name: 'Sewa' },
+                            { icon: '📱', name: 'Internet' },
+                            { icon: '💼', name: 'Gaji' },
+                            { icon: '📢', name: 'Marketing' },
+                            { icon: '⚡', name: 'Listrik' }
+                          ].map((item, index) => (
+                            <div 
+                              key={item.name}
+                              className="flex items-center gap-2 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
+                              style={{animationDelay: `${index * 100}ms`}}
+                            >
+                              <span>{item.icon}</span>
+                              <span className="font-medium text-gray-700">{item.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="space-y-4">
+                          <Button 
+                            onClick={onOpenAddDialog} 
+                            size="lg" 
+                            className="group bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 px-8 py-3 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                          >
+                            <Plus className="h-5 w-5 mr-2 group-hover:rotate-180 transition-transform duration-300" />
+                            <span className="font-semibold">Tambah Biaya Pertama</span>
                           </Button>
-                          <div className="text-xs text-gray-500 mt-2">
-                            💡 Tip: Gunakan tombol "Setup Cepat" di header untuk template siap pakai
+                          
+                          <div className="flex items-center justify-center gap-6 text-xs text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <span className="text-lg animate-bounce">💡</span>
+                              <span>Tip: Gunakan "Setup Cepat" untuk template</span>
+                            </div>
                           </div>
                         </div>
                       </div>

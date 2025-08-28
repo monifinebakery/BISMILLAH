@@ -138,10 +138,27 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     
     try {
       const updated = await orderService.updateOrderStatus(userId, orderIdStr, statusStr);
+      
+      // ✅ IMMEDIATE UI UPDATE: Update state optimistically
       setOrders(prev => prev.map(o => (o.id === orderIdStr ? updated : o)));
+      
+      // ✅ FORCE REFRESH: Ensure UI reflects changes immediately
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
+      } else {
+        // Even if realtime is active, do a quick refresh to ensure sync
+        setTimeout(() => {
+          logger.debug('OrderProvider: Force refreshing data after status update');
+          refreshData();
+        }, 500);
       }
+      
+      logger.success('OrderProvider: Status updated successfully:', {
+        orderId: orderIdStr,
+        newStatus: statusStr,
+        orderNumber: updated.nomorPesanan
+      });
+      
       return true;
     } catch (error: any) {
       logger.error('OrderProvider: updateOrderStatus error:', error, { orderIdStr, statusStr, userId });

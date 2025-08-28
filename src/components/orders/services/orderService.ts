@@ -229,15 +229,32 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
   const transformedOrder = transformOrderFromDB(data);
   
   // ✅ AUTO FINANCIAL SYNC: Sync to financial when order completed
-  if (newStatus === 'completed') {
+  // Use the actual updated status from the database, not the input parameter
+  if (transformedOrder.status === 'completed') {
     try {
+      logger.info('📈 Triggering financial sync for completed order:', transformedOrder.nomorPesanan);
       const { syncOrderToFinancialTransaction } = await import('@/utils/orderFinancialSync');
-      await syncOrderToFinancialTransaction(transformedOrder, userId);
-      logger.info('📈 Order financial sync triggered for completed order:', transformedOrder.nomorPesanan);
+      const syncResult = await syncOrderToFinancialTransaction(transformedOrder, userIdStr);
+      
+      if (syncResult) {
+        logger.success('✅ Financial sync completed for order:', transformedOrder.nomorPesanan);
+      } else {
+        logger.warn('⚠️ Financial sync failed (non-critical):', transformedOrder.nomorPesanan);
+      }
     } catch (syncError) {
-      logger.error('Error in auto financial sync:', syncError);
+      logger.error('Error in auto financial sync:', syncError, {
+        orderId: transformedOrder.id,
+        orderNumber: transformedOrder.nomorPesanan,
+        amount: transformedOrder.totalPesanan
+      });
       // Don't throw - order status update should still succeed
     }
+  } else {
+    logger.debug('Order status is not completed, skipping financial sync:', {
+      orderId: transformedOrder.id,
+      status: transformedOrder.status,
+      orderNumber: transformedOrder.nomorPesanan
+    });
   }
 
   return transformedOrder;

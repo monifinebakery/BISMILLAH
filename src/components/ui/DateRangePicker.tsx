@@ -225,34 +225,34 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         sideOffset={8}
         avoidCollisions
         collisionPadding={16}
-        className="p-0 w-[min(92vw,720px)] min-w-[360px] max-h-[90vh] overflow-hidden z-[80]"
+        className="p-0 w-[min(95vw,1200px)] min-w-[500px] md:min-w-[800px] max-h-[90vh] overflow-hidden z-[80]"
       >
-        <div className="flex flex-col lg:flex-row bg-white border rounded-lg shadow-lg overflow-hidden w-full">
+        <div className="flex flex-col md:flex-row bg-white border rounded-lg shadow-lg overflow-hidden w-full">
           {/* sidebar preset */}
-          <div className="w-full lg:w-40 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r">
+          <div className="w-full md:w-48 lg:w-52 flex-shrink-0 bg-gray-50 border-b md:border-b-0 md:border-r">
             <PresetButtons />
           </div>
 
           {/* kalender + tombol */}
           <div className="p-3 md:p-4 bg-white overflow-hidden flex-1">
             <div className="max-w-full overflow-x-auto">
-              {/* 📱 Mobile / <lg : 1 bulan */}
+              {/* 📱 Mobile / <md : 1 bulan */}
               <Calendar
                 mode="range"
                 selected={calendarRange}
                 onSelect={handleCalendarChange}
                 numberOfMonths={1}
                 locale={id}
-                className="mx-auto lg:hidden"
+                className="mx-auto md:hidden"
               />
-              {/* 💻 Desktop / ≥lg : 2 bulan */}
+              {/* 💻 Desktop / ≥md : 2 bulan */}
               <Calendar
                 mode="range"
                 selected={calendarRange}
                 onSelect={handleCalendarChange}
                 numberOfMonths={2}
                 locale={id}
-                className="mx-auto hidden lg:block"
+                className="mx-auto hidden md:block"
               />
             </div>
 

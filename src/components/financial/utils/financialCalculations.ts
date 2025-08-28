@@ -340,13 +340,14 @@ export const sortTransactions = (
     let comparison = 0;
     
     switch (sortBy) {
-      case 'date':
+      case 'date': {
         const dateAResult = UnifiedDateHandler.parseDate(a.date);
         const dateBResult = UnifiedDateHandler.parseDate(b.date);
         const dateA = dateAResult.isValid && dateAResult.date ? dateAResult.date.getTime() : 0;
         const dateB = dateBResult.isValid && dateBResult.date ? dateBResult.date.getTime() : 0;
         comparison = dateA - dateB;
         break;
+      }
       case 'amount':
         comparison = (a.amount || 0) - (b.amount || 0);
         break;

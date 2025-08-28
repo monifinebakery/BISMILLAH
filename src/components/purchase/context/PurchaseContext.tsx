@@ -49,7 +49,7 @@ const warehouseQueryKeys = {
 const fetchPurchases = async (userId: string): Promise<Purchase[]> => {
   const { data, error } = await supabase
     .from('purchases')
-    .select('*')
+    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
     .eq('user_id', userId)
     .order('tanggal', { ascending: false });
 
@@ -76,7 +76,7 @@ const fetchPurchasesPaginated = async (
   // Ambil data dengan paginasi
   const { data, error } = await supabase
     .from('purchases')
-    .select('*')
+    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
     .eq('user_id', userId)
     .order('tanggal', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -100,7 +100,7 @@ const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'crea
   console.log('🔍 apiCreatePurchase fetching created record:', res.purchaseId);
   const { data, error } = await supabase
     .from('purchases')
-    .select('*')
+    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
     .eq('id', res.purchaseId)
     .eq('user_id', userId)
     .single();
@@ -122,7 +122,7 @@ const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId:
   console.log('🔍 apiUpdatePurchase fetching updated record:', id);
   const { data, error } = await supabase
     .from('purchases')
-    .select('*')
+    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
     .eq('id', id)
     .eq('user_id', userId)
     .single();
@@ -145,7 +145,7 @@ const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatu
   console.log('🔍 apiSetStatus fetching updated record:', id);
   const { data, error } = await supabase
     .from('purchases')
-    .select('*')
+    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
     .eq('id', id)
     .eq('user_id', userId)
     .single();

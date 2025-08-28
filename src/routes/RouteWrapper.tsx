@@ -12,7 +12,7 @@ export const RouteWrapper: React.FC<RouteWrapperProps> = ({ children, title, spe
   const ErrorBoundaryComponent = SpecialErrorBoundary || ErrorBoundary;
 
   return (
-    <React.Suspense fallback={<AppLoader title={title} />}>
+    <React.Suspense fallback={null}>
       <ErrorBoundaryComponent fallback={() => <AppError title={`Gagal Memuat ${title || 'Halaman'}`} />}>
         {children}
       </ErrorBoundaryComponent>

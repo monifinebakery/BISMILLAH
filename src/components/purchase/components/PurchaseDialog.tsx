@@ -305,15 +305,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             </CardHeader>
             <CardContent className="space-y-4 sm:space-y-6">
               {/* Supplier dan Tanggal */}
-              <div className="dialog-responsive-grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700 text-overflow-safe">Supplier *</Label>
+                  <Label className="text-sm font-medium text-gray-700">Supplier *</Label>
                   <Select
                     value={formData.supplier}
                     onValueChange={(value) => updateFormField('supplier', value)}
                     disabled={isSubmitting || isViewOnly}
                   >
-                    <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe">
+                    <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
                       <SelectValue placeholder="Pilih supplier" />
                     </SelectTrigger>
                     <SelectContent>
@@ -323,31 +323,31 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                           value={supplier.id} 
                           className="focus:bg-orange-50"
                         >
-                          <span className="text-overflow-safe">{supplier.nama}</span>
+                          <span className="truncate">{supplier.nama}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {validation.supplier && (
-                    <p className="text-xs text-red-500 text-overflow-safe">{validation.supplier}</p>
+                    <p className="text-xs text-red-500">{validation.supplier}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700 text-overflow-safe">Tanggal *</Label>
+                  <Label className="text-sm font-medium text-gray-700">Tanggal *</Label>
                   <Button
                     variant="outline"
-                    className={`h-11 w-full justify-start border-gray-200 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 input-mobile-safe ${!formData.tanggal && 'text-muted-foreground'}`}
+                    className={`h-11 w-full justify-start border-gray-200 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 ${!formData.tanggal && 'text-muted-foreground'}`}
                     disabled={isSubmitting || isViewOnly}
                     onClick={() => setIsCalendarOpen(true)}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                    <span className="text-overflow-safe truncate">
+                    <span className="truncate">
                       {formData.tanggal ? format(new Date(formData.tanggal), 'PPP', { locale: id }) : 'Pilih tanggal'}
                     </span>
                   </Button>
                   {validation.tanggal && (
-                    <p className="text-xs text-red-500 text-overflow-safe">{validation.tanggal}</p>
+                    <p className="text-xs text-red-500">{validation.tanggal}</p>
                   )}
                 </div>
               </div>
@@ -390,73 +390,135 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
               {/* Items Table */}
               {formData.items.length > 0 ? (
-                <div className="border rounded-lg">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kuantitas</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Satuan</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {formData.items.map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-gray-900">{item.nama}</div>
-                            <div className="text-sm text-gray-500">{item.satuan}</div>
+                <div className="border rounded-lg overflow-x-auto">
+                  {/* Mobile Card Layout */}
+                  <div className="block md:hidden">
+                    {formData.items.map((item, index) => (
+                      <div key={index} className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 truncate">{item.nama}</h4>
+                            <p className="text-sm text-gray-500">{item.satuan}</p>
                             {item.keterangan && (
-                              <div className="text-xs text-gray-400 mt-1">{item.keterangan}</div>
+                              <p className="text-xs text-gray-400 mt-1 line-clamp-2">{item.keterangan}</p>
                             )}
-                          </td>
-                          <td className="px-4 py-3 text-gray-900">
-                            {item.kuantitas} {item.satuan}
-                          </td>
-                          <td className="px-4 py-3 text-gray-900">
-                            {formatCurrency(item.hargaSatuan)}
-                          </td>
-                          <td className="px-4 py-3 font-medium text-gray-900">
-                            {formatCurrency(item.subtotal)}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditItem(index)}
-                                disabled={isSubmitting || isViewOnly}
-                                className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
-                              >
-                                <Edit3 className="h-3 w-3 text-gray-600" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => removeItem(index)}
-                                disabled={isSubmitting || isViewOnly}
-                                className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-3 w-3 text-red-600" />
-                              </Button>
-                            </div>
-                          </td>
+                          </div>
+                          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditItem(index)}
+                              disabled={isSubmitting || isViewOnly}
+                              className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
+                            >
+                              <Edit3 className="h-3 w-3 text-gray-600" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => removeItem(index)}
+                              disabled={isSubmitting || isViewOnly}
+                              className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3 w-3 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-500">Kuantitas:</span>
+                            <div className="font-medium text-gray-900">{item.kuantitas} {item.satuan}</div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Harga Satuan:</span>
+                            <div className="font-medium text-gray-900">{formatCurrency(item.hargaSatuan)}</div>
+                          </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-700">Subtotal:</span>
+                            <span className="font-bold text-green-600">{formatCurrency(item.subtotal)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="p-4 bg-gray-50 border-t">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-gray-900">Total Keseluruhan:</span>
+                        <span className="font-bold text-lg text-green-600">{formatCurrency(totalValue)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop Table Layout */}
+                  <div className="hidden md:block">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kuantitas</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Satuan</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50 font-semibold">
-                      <tr>
-                        <td colSpan={3} className="px-4 py-3 text-right text-gray-900">
-                          Total
-                        </td>
-                        <td className="px-4 py-3 text-gray-900">
-                          {formatCurrency(totalValue)}
-                        </td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {formData.items.map((item, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-gray-900">{item.nama}</div>
+                              <div className="text-sm text-gray-500">{item.satuan}</div>
+                              {item.keterangan && (
+                                <div className="text-xs text-gray-400 mt-1">{item.keterangan}</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-gray-900">
+                              {item.kuantitas} {item.satuan}
+                            </td>
+                            <td className="px-4 py-3 text-gray-900">
+                              {formatCurrency(item.hargaSatuan)}
+                            </td>
+                            <td className="px-4 py-3 font-medium text-gray-900">
+                              {formatCurrency(item.subtotal)}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditItem(index)}
+                                  disabled={isSubmitting || isViewOnly}
+                                  className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
+                                >
+                                  <Edit3 className="h-3 w-3 text-gray-600" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => removeItem(index)}
+                                  disabled={isSubmitting || isViewOnly}
+                                  className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-3 w-3 text-red-600" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50 font-semibold">
+                        <tr>
+                          <td colSpan={3} className="px-4 py-3 text-right text-gray-900">
+                            Total
+                          </td>
+                          <td className="px-4 py-3 text-gray-900">
+                            {formatCurrency(totalValue)}
+                          </td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-12 border border-dashed border-gray-200 rounded-lg">
@@ -473,16 +535,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           {/* Summary */}
           <Card className="border-gray-200">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex-1">
                   <p className="text-sm text-gray-600">Total Pembelian</p>
                   <p className="text-2xl font-bold text-green-600">
                     {formatCurrency(totalValue)}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <p className="text-sm text-gray-600">{formData.items.length} Item</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 truncate max-w-[200px] sm:max-w-none">
                     {formData.supplier
                       ? `Supplier: ${suppliers.find(s => s.id === formData.supplier)?.nama || 'Tidak diketahui'}`
                       : 'Supplier belum dipilih'}
@@ -496,17 +558,17 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
           {/* Footer Actions */}
           {mode !== 'view' && canEdit && (
-            <DialogFooter className="dialog-footer">
-              <div className="dialog-responsive-buttons">
+            <DialogFooter className="flex-col sm:flex-row gap-3 pt-6">
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleResetForm}
                   disabled={isSubmitting || !isDirty}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50 input-mobile-safe"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50 h-11"
                 >
                   <RotateCcw className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <span className="text-overflow-safe">Reset</span>
+                  <span className="truncate">Reset</span>
                 </Button>
 
                 <Button
@@ -514,10 +576,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   onClick={() => onSubmit()}
                   disabled={isSubmitting || !isDirty}
                   variant="outline"
-                  className="input-mobile-safe"
+                  className="h-11"
                 >
                   <Save className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <span className="text-overflow-safe">{mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}</span>
+                  <span className="truncate">{mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}</span>
                 </Button>
 
                 {purchase?.status !== 'completed' && (
@@ -525,17 +587,18 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     type="button"
                     onClick={() => onSubmit('completed')}
                     disabled={isSubmitting || !isDirty}
-                    className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500 input-mobile-safe"
+                    className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500 h-11 flex-1 sm:flex-none"
                   >
                     {isSubmitting ? (
                       <>
                         <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent flex-shrink-0"></div>
-                        <span className="text-overflow-safe">Menyimpan...</span>
+                        <span className="truncate">Menyimpan...</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="text-overflow-safe">Selesaikan & Update Gudang</span>
+                        <span className="hidden sm:inline">Selesaikan & Update Gudang</span>
+                        <span className="sm:hidden">Selesaikan</span>
                       </>
                     )}
                   </Button>

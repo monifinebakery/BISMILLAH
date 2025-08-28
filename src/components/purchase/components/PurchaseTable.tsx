@@ -95,23 +95,28 @@ StatusBadge.displayName = 'StatusBadge';
 const MemoizedPurchaseRow = React.memo(({
   purchase,
   isSelected,
+  editingStatusId,
   onToggleSelect,
   onEdit,
   onDelete,
   onStatusChange,
+  onEditStatus,
   getSupplierName
 }: {
   purchase: Purchase;
   isSelected: boolean;
+  editingStatusId: string | null;
   onToggleSelect: (id: string) => void;
   onEdit: (purchase: Purchase) => void;
   onDelete: (purchase: Purchase) => void;
   onStatusChange: (purchaseId: string, newStatus: string) => void;
+  onEditStatus: (id: string) => void;
   getSupplierName: (supplierId: string) => string;
 }) => {
   const handleToggleSelect = useCallback(() => onToggleSelect(purchase.id), [purchase.id, onToggleSelect]);
   const handleEdit = useCallback(() => onEdit(purchase), [purchase, onEdit]);
   const handleDelete = useCallback(() => onDelete(purchase), [purchase, onDelete]);
+  const handleEditStatus = useCallback(() => onEditStatus(purchase.id), [purchase.id, onEditStatus]);
 
   return (
     <TableRow className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}>
@@ -133,17 +138,35 @@ const MemoizedPurchaseRow = React.memo(({
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-gray-500">
-          {purchase.items?.length || 0} item
+        <div className="text-sm text-gray-900">
+          {purchase.items && purchase.items.length > 0 ? (
+            purchase.items.length === 1 ? (
+              // Single item: show name
+              <div className="font-medium">{purchase.items[0].nama}</div>
+            ) : (
+              // Multiple items: show first item + count
+              <div>
+                <div className="font-medium">{purchase.items[0].nama}</div>
+                <div className="text-xs text-gray-500">+{purchase.items.length - 1} item lainnya</div>
+              </div>
+            )
+          ) : (
+            <div className="text-gray-400 italic">Tidak ada item</div>
+          )}
         </div>
       </TableCell>
       <TableCell className="text-right">
         <div className="text-sm font-medium text-gray-900">
-          {formatCurrency(purchase.total_nilai)}
+          {formatCurrency(purchase.totalNilai)}
         </div>
       </TableCell>
       <TableCell>
-        <StatusBadge status={purchase.status} />
+        <StatusDropdown
+          purchase={purchase}
+          isEditing={editingStatusId === purchase.id}
+          onStartEdit={handleEditStatus}
+          onStatusChange={onStatusChange}
+        />
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
@@ -169,7 +192,8 @@ const MemoizedPurchaseRow = React.memo(({
     prevProps.purchase.id === nextProps.purchase.id &&
     prevProps.purchase.status === nextProps.purchase.status &&
     prevProps.purchase.updated_at === nextProps.purchase.updated_at &&
-    prevProps.isSelected === nextProps.isSelected
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.editingStatusId === nextProps.editingStatusId
   );
 });
 MemoizedPurchaseRow.displayName = 'MemoizedPurchaseRow';
@@ -551,7 +575,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                       className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
                     >
                       <Calendar className="h-4 w-4 mr-2" />
-                      Tanggal
+                      Tanggal Pembelian
                       {renderSortIcon('tanggal')}
                     </button>
                   </TableHead>
@@ -604,10 +628,12 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                     key={purchase.id}
                     purchase={purchase}
                     isSelected={selectedItems.includes(purchase.id)}
+                    editingStatusId={editingStatusId}
                     onToggleSelect={toggleSelectItem}
                     onEdit={onEdit}
                     onDelete={openDelete}
                     onStatusChange={handleStatusChange}
+                    onEditStatus={setEditingStatusId}
                     getSupplierName={getSupplierName}
                   />
                 ))}

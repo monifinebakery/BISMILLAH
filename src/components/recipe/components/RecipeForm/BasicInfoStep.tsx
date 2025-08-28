@@ -136,18 +136,18 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
       
       {/* Step Header */}
       <div className="text-center pb-4">
-        <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <ChefHat className="w-8 h-8 text-orange-600" />
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+          <ChefHat className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 text-overflow-safe">
           Informasi Dasar Resep
         </h2>
-        <p className="text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600 text-overflow-safe">
           Mulai dengan menambahkan informasi dasar tentang resep Anda
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         
         {/* Left Column */}
         <div className="space-y-6">
@@ -255,7 +255,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1 relative">
                   <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -263,29 +263,34 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
                     placeholder="Nama kategori baru"
-                    className="pl-10"
+                    className="pl-10 input-mobile-safe"
                     onKeyPress={(e) => e.key === 'Enter' && handleCustomCategorySubmit()}
                   />
                 </div>
-                <Button
-                  type="button"
-                  onClick={handleCustomCategorySubmit}
-                  disabled={!customCategory.trim()}
-                  size="sm"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowCustomCategory(false);
-                    setCustomCategory('');
-                  }}
-                  size="sm"
-                >
-                  Batal
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleCustomCategorySubmit}
+                    disabled={!customCategory.trim()}
+                    size="sm"
+                    className="input-mobile-safe flex-1 sm:flex-initial"
+                  >
+                    <Plus className="h-4 w-4 mr-1 sm:mr-0" />
+                    <span className="sm:hidden">Tambah</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowCustomCategory(false);
+                      setCustomCategory('');
+                    }}
+                    size="sm"
+                    className="input-mobile-safe flex-1 sm:flex-initial"
+                  >
+                    Batal
+                  </Button>
+                </div>
               </div>
             )}
             <p className="text-xs text-gray-500">

@@ -115,18 +115,60 @@ export const getIngredientsWAC = async (
 export const updateIngredientsWithWAC = async (
   ingredients: BahanResepWithWAC[]
 ): Promise<BahanResepWithWAC[]> => {
+  console.log('🔥 [WAC DEBUG] Input ingredients:', ingredients);
   const wacMap = await getIngredientsWAC(ingredients);
+  console.log('🔥 [WAC DEBUG] WAC map:', wacMap);
   
   return ingredients.map(ingredient => {
+    console.log(`🔥 [WAC DEBUG] Processing ingredient: ${ingredient.nama}`, {
+      warehouseId: ingredient.warehouseId,
+      currentHargaSatuan: ingredient.hargaSatuan,
+      currentTotalHarga: ingredient.totalHarga,
+      jumlah: ingredient.jumlah,
+      hasWAC: ingredient.warehouseId && wacMap.has(ingredient.warehouseId)
+    });
+    
     if (ingredient.warehouseId && wacMap.has(ingredient.warehouseId)) {
-      const wacPrice = wacMap.get(ingredient.warehouseId)!;
+      let wacPrice = wacMap.get(ingredient.warehouseId)!;
+      
+      // 🚨 TEMPORARY FIX: Detect and correct inflated WAC prices
+      // If WAC price is more than 100x the original price, it's likely inflated by 1000x
+      const originalPrice = ingredient.hargaSatuan;
+      if (originalPrice > 0 && wacPrice > originalPrice * 100) {
+        console.warn(`🚨 [WAC CORRECTION] Detected inflated WAC price for ${ingredient.nama}:`, {
+          originalWac: wacPrice,
+          originalPrice,
+          ratio: wacPrice / originalPrice
+        });
+        wacPrice = Math.round(wacPrice / 1000); // Correct the inflation
+        console.warn(`🚨 [WAC CORRECTION] Corrected WAC price: ${wacPrice}`);
+      }
+      
+      const newTotalHarga = ingredient.jumlah * wacPrice;
+      
+      console.log(`🔥 [WAC DEBUG] Using WAC for ${ingredient.nama}:`, {
+        originalPrice: ingredient.hargaSatuan,
+        rawWacPrice: wacMap.get(ingredient.warehouseId)!,
+        correctedWacPrice: wacPrice,
+        jumlah: ingredient.jumlah,
+        originalTotalHarga: ingredient.totalHarga,
+        newTotalHarga,
+        calculation: `${ingredient.jumlah} * ${wacPrice} = ${newTotalHarga}`
+      });
+      
       return {
         ...ingredient,
         wacPrice,
         hargaSatuan: wacPrice, // Use WAC as the price
-        totalHarga: ingredient.jumlah * wacPrice
+        totalHarga: newTotalHarga
       };
     }
+    
+    console.log(`🔥 [WAC DEBUG] No WAC for ${ingredient.nama}, keeping original:`, {
+      hargaSatuan: ingredient.hargaSatuan,
+      totalHarga: ingredient.totalHarga
+    });
+    
     return ingredient;
   });
 };
@@ -155,11 +197,26 @@ export const calculateEnhancedHPP = async (
     const ingredientsWithWAC = await updateIngredientsWithWAC(bahanResep);
     
     // 2. Calculate bahan per pcs (WAC × quantity per pcs)
-    const totalBahanCost = ingredientsWithWAC.reduce((sum, bahan) => 
-      sum + bahan.totalHarga, 0
-    );
+    console.log('🔥 [ENHANCED DEBUG] Calculating bahan cost:', {
+      ingredientsWithWAC,
+      jumlahPorsi,
+      jumlahPcsPerPorsi
+    });
+    
+    const totalBahanCost = ingredientsWithWAC.reduce((sum, bahan) => {
+      console.log(`🔥 Adding bahan: ${bahan.nama} = ${bahan.totalHarga}`);
+      return sum + bahan.totalHarga;
+    }, 0);
+    
     const totalPcs = jumlahPorsi * jumlahPcsPerPorsi;
     const bahanPerPcs = totalPcs > 0 ? totalBahanCost / totalPcs : 0;
+    
+    console.log('🔥 [ENHANCED DEBUG] Bahan calculation result:', {
+      totalBahanCost,
+      totalPcs,
+      bahanPerPcs,
+      calculation: `${totalBahanCost} / ${totalPcs} = ${bahanPerPcs}`
+    });
     
     // 3. Calculate TKL per pcs
     let tklPerPcs = 0;
@@ -205,9 +262,22 @@ export const calculateEnhancedHPP = async (
     }
     
     // 5. Calculate total HPP per pcs (Revision 4 formula)
+    console.log('🔥 [BEFORE ROUNDING] Values before final calculation:', {
+      bahanPerPcs,
+      tklPerPcs,
+      overheadPerPcs,
+      sum: bahanPerPcs + tklPerPcs + overheadPerPcs
+    });
+    
     const hppPerPcs = Math.round(bahanPerPcs + tklPerPcs + overheadPerPcs);
     const hppPerPorsi = hppPerPcs * jumlahPcsPerPorsi;
     const totalHPP = hppPerPorsi * jumlahPorsi;
+    
+    console.log('🔥 [AFTER ROUNDING] Final values:', {
+      hppPerPcs,
+      hppPerPorsi,
+      totalHPP
+    });
     
     // 6. Calculate selling prices based on mode
     let hargaJualPerPcs = 0;
@@ -224,6 +294,21 @@ export const calculateEnhancedHPP = async (
     }
     
     const hargaJualPerPorsi = hargaJualPerPcs * jumlahPcsPerPorsi;
+    
+    console.log('🔥 [ENHANCED DEBUG] TKL and Overhead calculation:', {
+      tklPerPcs,
+      overheadPerPcs,
+      overheadSource
+    });
+    
+    console.log('🔥 [ENHANCED DEBUG] Final HPP calculation:', {
+      bahanPerPcs,
+      tklPerPcs,
+      overheadPerPcs,
+      hppPerPcs: bahanPerPcs + tklPerPcs + overheadPerPcs,
+      hppPerPorsi: (bahanPerPcs + tklPerPcs + overheadPerPcs) * jumlahPcsPerPorsi,
+      totalHPP: (bahanPerPcs + tklPerPcs + overheadPerPcs) * jumlahPcsPerPorsi * jumlahPorsi
+    });
     
     const result: EnhancedHPPCalculationResult = {
       bahanPerPcs: Math.round(bahanPerPcs),
@@ -242,6 +327,8 @@ export const calculateEnhancedHPP = async (
         overheadSource
       }
     };
+    
+    console.log('🔥 [ENHANCED DEBUG] FINAL RESULT:', result);
     
     return result;
     

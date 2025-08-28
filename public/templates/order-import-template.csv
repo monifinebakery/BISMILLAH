@@ -1,7 +1,7 @@
-namaPelanggan,teleponPelanggan,emailPelanggan,alamatPengiriman,tanggal,namaItem,kuantitas,harga,catatan
-Budi Santoso,081234567890,budi@email.com,Jl. Sudirman No. 123 Jakarta,2024-01-15,Nasi Gudeg,2,25000,Pedas level 2
-Siti Aminah,087654321098,siti.aminah@gmail.com,Jl. Gajah Mada No. 45 Surabaya,2024-01-16,Soto Ayam,1,18000,Tambah kerupuk
-Ahmad Rahman,085123456789,ahmad.rahman@yahoo.com,Jl. Diponegoro No. 78 Bandung,2024-01-17,Gado-gado,1,15000,Extra kerupuk
-Dewi Lestari,082987654321,dewi.lestari@gmail.com,Jl. Malioboro No. 90 Yogyakarta,2024-01-18,Gudeg Yogya,3,22000,Paket lengkap
-Rudi Hartono,081555666777,rudi.hartono@yahoo.com,Jl. Braga No. 55 Bandung,2024-01-19,Bakso Malang,2,16000,Pedas sedang
-Lina Sari,087111222333,lina.sari@hotmail.com,Jl. Thamrin No. 200 Jakarta,2024-01-20,Rendang Padang,1,28000,Porsi besar
+tanggal,namaPelanggan,nama,jumlah,satuan,harga
+15/01/25,PT. Maju Jaya,tepung terigu,10,kg,120000
+16/01/25,CV. Sumber Rejeki,gula pasir,5,kg,75000
+17/01/25,Toko Bahan Kue,minyak goreng,2,liter,40000
+18/01/25,Warung Pak Budi,beras premium,25,kg,350000
+19/01/25,Restoran Sederhana,ayam segar,8,ekor,200000
+20/01/25,Catering Ibu Sari,sayur bayam,3,ikat,15000

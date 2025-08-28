@@ -3,21 +3,18 @@ import type { NewOrder, OrderItem } from '../types';
 export type ImportedOrder = Omit<NewOrder, 'status' | 'subtotal' | 'pajak' | 'totalPesanan'>;
 
 interface RawOrderRow {
-  namaPelanggan: string;
-  teleponPelanggan?: string;
-  emailPelanggan?: string;
-  alamatPengiriman?: string;
   tanggal: string;
+  namaPelanggan: string;
   namaItem: string;
-  kuantitas: number;
+  jumlah: number;
+  satuan: string;
   harga: number;
-  catatan?: string;
 }
 
 /**
  * Parse CSV file menjadi array pesanan.
- * Format kolom yang didukung:
- * namaPelanggan,teleponPelanggan,emailPelanggan,alamatPengiriman,tanggal,namaItem,kuantitas,harga,catatan
+ * Format kolom yang didukung (sesuai gambar):
+ * tanggal,namaPelanggan,namaItem,jumlah,satuan,harga
  * SETIAP BARIS = SATU PESANAN TERPISAH
  */
 export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
@@ -32,33 +29,27 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
     .map((h) => h.trim().toLowerCase());
 
   const getIndex = (name: string) => headers.indexOf(name.toLowerCase());
-  const idxNamaPelanggan = getIndex('namapelanggan');
-  const idxTeleponPelanggan = getIndex('teleponpelanggan');
-  const idxEmailPelanggan = getIndex('emailpelanggan');
-  const idxAlamatPengiriman = getIndex('alamatpengiriman');
   const idxTanggal = getIndex('tanggal');
-  const idxNamaItem = getIndex('namaitem');
-  const idxKuantitas = getIndex('kuantitas');
+  const idxNamaPelanggan = getIndex('namapelanggan');
+  const idxNamaItem = getIndex('namaitem') !== -1 ? getIndex('namaitem') : getIndex('nama'); // Support both 'nama' and 'namaitem'
+  const idxJumlah = getIndex('jumlah') !== -1 ? getIndex('jumlah') : getIndex('kuantitas'); // Support both 'jumlah' and 'kuantitas'
+  const idxSatuan = getIndex('satuan');
   const idxHarga = getIndex('harga');
-  const idxCatatan = getIndex('catatan');
 
-  // Kolom wajib: nama pelanggan, tanggal, nama item, kuantitas, harga
-  if ([idxNamaPelanggan, idxTanggal, idxNamaItem, idxKuantitas, idxHarga].some((i) => i === -1)) {
-    throw new Error('Kolom wajib tidak lengkap. Diperlukan: namaPelanggan, tanggal, namaItem, kuantitas, harga');
+  // Kolom wajib: tanggal, nama pelanggan, nama item, jumlah, harga
+  if ([idxTanggal, idxNamaPelanggan, idxNamaItem, idxJumlah, idxHarga].some((i) => i === -1)) {
+    throw new Error('Kolom wajib tidak lengkap. Diperlukan: tanggal, namaPelanggan, nama/namaItem, jumlah, harga');
   }
 
   const rows: RawOrderRow[] = lines.slice(1).map((line) => {
     const values = line.split(delimiter).map((v) => v.trim());
     return {
-      namaPelanggan: values[idxNamaPelanggan] || '',
-      teleponPelanggan: idxTeleponPelanggan !== -1 ? values[idxTeleponPelanggan] : undefined,
-      emailPelanggan: idxEmailPelanggan !== -1 ? values[idxEmailPelanggan] : undefined,
-      alamatPengiriman: idxAlamatPengiriman !== -1 ? values[idxAlamatPengiriman] : undefined,
       tanggal: values[idxTanggal] || '',
+      namaPelanggan: values[idxNamaPelanggan] || '',
       namaItem: values[idxNamaItem] || '',
-      kuantitas: parseFloat(values[idxKuantitas] || '0'),
+      jumlah: parseFloat(values[idxJumlah] || '0'),
+      satuan: idxSatuan !== -1 ? values[idxSatuan] || '' : '',
       harga: parseFloat(values[idxHarga] || '0'),
-      catatan: idxCatatan !== -1 ? values[idxCatatan] : undefined,
     };
   });
 
@@ -72,20 +63,16 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
     const item: OrderItem = {
       id: `item-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
       name: r.namaItem,
-      quantity: r.kuantitas,
+      quantity: r.jumlah,
       price: r.harga,
-      total: r.kuantitas * r.harga,
-      description: r.catatan,
+      total: r.jumlah * r.harga,
+      unit: r.satuan,
     };
 
     const order: ImportedOrder = {
       namaPelanggan: r.namaPelanggan,
-      teleponPelanggan: r.teleponPelanggan,
-      emailPelanggan: r.emailPelanggan,
-      alamatPengiriman: r.alamatPengiriman,
       tanggal: new Date(r.tanggal),
       items: [item], // Hanya satu item per pesanan
-      catatan: r.catatan,
     };
 
     orders.push(order);

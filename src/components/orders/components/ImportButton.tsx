@@ -64,7 +64,7 @@ const ImportButton: React.FC = () => {
 
   const showFormatInfo = () => {
     toast.info(
-      'Format CSV: namaPelanggan,teleponPelanggan,emailPelanggan,alamatPengiriman,tanggal(YYYY-MM-DD),namaItem,kuantitas,harga,catatan. Setiap baris = satu pesanan terpisah. Pemisah kolom boleh koma atau titik koma.',
+      'Format CSV: tanggal,namaPelanggan,nama,jumlah,satuan,harga. Setiap baris = satu pesanan terpisah. Contoh: 15/01/25,PT. Maju Jaya,tepung terigu,10,kg,120000. Pemisah kolom boleh koma atau titik koma.',
       { 
         duration: 8000,
         style: {

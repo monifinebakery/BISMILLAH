@@ -258,7 +258,7 @@ export interface OrderFormData extends NewOrder {}
 // Constants
 export const ORDER_STATUSES: OrderStatus[] = [
   'pending',
-  'confirmed', 
+  'confirmed',
   'preparing',
   'ready',
   'delivered',

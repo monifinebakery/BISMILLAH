@@ -29,7 +29,7 @@ const BulkActions = React.lazy(() =>
 );
 
 // ✅ ESSENTIAL TYPES: Only what's needed for this component
-import type { Order, NewOrder } from '../types';
+import type { Order, NewOrder, OrderStatus } from '../types';
 
 // ✅ SHARED COMPONENTS: Direct import
 import { PageLoading } from './shared/LoadingStates';
@@ -326,18 +326,17 @@ const OrdersPage: React.FC = () => {
         // ✅ STEP 1: Try updateOrderStatus if available
         if (typeof contextValue.updateOrderStatus === 'function') {
           logger.debug('Using contextValue.updateOrderStatus');
-          const success = await contextValue.updateOrderStatus(orderId, newStatus);
-          
-          if (success) {
-            const order = orders.find(o => o.id === orderId);
+          try {
+            await contextValue.updateOrderStatus({ id: orderId, status: newStatus as OrderStatus });
+            const order = finalOrders.find(o => o.id === orderId);
             logger.success('Status updated via updateOrderStatus:', { 
               orderId, 
               newStatus, 
               orderNumber: order?.nomorPesanan 
             });
             return; // Success toast handled by updateOrderStatus
-          } else {
-            logger.warn('updateOrderStatus returned false, trying fallback');
+          } catch (error) {
+            logger.warn('updateOrderStatus failed:', error, 'trying fallback');
           }
         } else {
           logger.warn('updateOrderStatus not available, trying fallback');
@@ -454,14 +453,14 @@ const OrdersPage: React.FC = () => {
     }
   }), [
     pageState.editingOrder, 
-    orders, 
+    finalOrders, 
     updateOrder, 
     updateOrderStatus, // ✅ FIXED: Include updateOrderStatus dependency
     addOrder, 
     deleteOrder, 
     uiState, 
     dialogHandlers,
-    refreshData // ✅ TAMBAHKAN: Dependency untuk refreshData
+    contextValue.refreshData // ✅ FIXED: Use contextValue.refreshData
   ]);
 
   // ✅ ENHANCED: WhatsApp integration with template

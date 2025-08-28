@@ -107,10 +107,11 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       // Cast to BahanBakuFrontend since that's what the API actually returns
       const frontendItem = selectedItem as any as BahanBakuFrontend;
       
-      console.log('Selected item (before conversion):', {
+      console.log('🚨 [WAREHOUSE DEBUG] Selected item (before conversion):', {
         nama: frontendItem.nama,
         harga: frontendItem.harga,
-        satuan: frontendItem.satuan
+        satuan: frontendItem.satuan,
+        rawItem: frontendItem
       });
       
       // 🆕 AUTO CONVERT: Convert warehouse unit to recipe-friendly smaller unit
@@ -118,13 +119,21 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       const warehouseUnit = frontendItem.satuan || 'pcs';
       const conversion = convertIngredientUnit(warehouseUnit, warehousePrice);
       
-      console.log('🆕 Unit conversion applied:', {
+      console.log('🚨 [CONVERSION DEBUG] Unit conversion applied:', {
         from: conversion.originalUnit,
         to: conversion.convertedUnit,
         priceFrom: conversion.originalPrice,
         priceTo: conversion.convertedPrice,
         isConverted: conversion.isConverted,
+        multiplier: conversion.conversionMultiplier,
         displayText: getConversionDisplayText(conversion)
+      });
+      
+      console.log('🚨 [CONVERSION DEBUG] Calculation check:', {
+        originalPrice: conversion.originalPrice,
+        multiplier: conversion.conversionMultiplier,
+        calculatedPrice: conversion.originalPrice / conversion.conversionMultiplier,
+        actualConvertedPrice: conversion.convertedPrice
       });
       
       // Update form with converted values
@@ -179,6 +188,14 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       totalHarga: newIngredient.jumlah! * newIngredient.hargaSatuan!,
       warehouseId: newIngredient.warehouseId, // Store warehouse reference
     };
+    
+    console.log('🚨 [INGREDIENT ADD] Adding ingredient:', {
+      ingredient,
+      jumlah: newIngredient.jumlah,
+      hargaSatuan: newIngredient.hargaSatuan,
+      totalHarga: newIngredient.jumlah! * newIngredient.hargaSatuan!,
+      calculation: `${newIngredient.jumlah} × ${newIngredient.hargaSatuan} = ${newIngredient.jumlah! * newIngredient.hargaSatuan!}`
+    });
 
     onUpdate('bahanResep', [...data.bahanResep, ingredient]);
     

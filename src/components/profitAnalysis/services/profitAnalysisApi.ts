@@ -57,7 +57,7 @@ export async function fetchBahanMap(): Promise<Record<string, any>> {
     // Use direct Supabase query instead of warehouse API to avoid type issues
     const { data: items, error } = await supabase
       .from('bahan_baku')
-      .select('*')
+      .select('id, nama, harga_rata_rata, harga_satuan, stok, satuan')
       .eq('user_id', user.id);
       
     if (error) throw error;

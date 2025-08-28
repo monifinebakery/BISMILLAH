@@ -93,7 +93,7 @@ const fetchAssets = async (userId: string): Promise<Asset[]> => {
   
   const { data, error } = await supabase
     .from('assets')
-    .select('*')
+    .select('id, user_id, nama, kategori, nilai_awal, nilai_sekarang, tanggal_beli, kondisi, lokasi, deskripsi, depresiasi, created_at, updated_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 

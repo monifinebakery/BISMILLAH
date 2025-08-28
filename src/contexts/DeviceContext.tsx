@@ -227,7 +227,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Check if device already exists
       const { data: existingDevice, error: fetchError } = await supabase
         .from('devices')
-        .select('*')
+        .select('id, device_id, device_name, last_active')
         .eq('user_id', userId)
         .eq('device_id', deviceId)
         .maybeSingle(); // Use maybeSingle instead of single to handle 0 rows
@@ -305,7 +305,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       const { data, error: fetchError } = await supabase
         .from('devices')
-        .select('*')
+        .select('id, device_id, device_type, os, browser, device_name, ip_address, last_active, is_current, created_at')
         .eq('user_id', userId)
         .order('last_active', { ascending: false });
 
@@ -348,7 +348,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Get paginated data
       const { data, error: fetchError } = await supabase
         .from('devices')
-        .select('*')
+        .select('id, device_id, device_type, os, browser, device_name, ip_address, last_active, is_current, created_at')
         .eq('user_id', userId)
         .order('last_active', { ascending: false })
         .range((page - 1) * limit, page * limit - 1);
@@ -448,7 +448,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Get all devices for the user
       const { data: allDevices, error: fetchError } = await supabase
         .from('devices')
-        .select('*')
+        .select('id, last_active')
         .eq('user_id', userId)
         .order('last_active', { ascending: false });
 

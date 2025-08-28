@@ -35,7 +35,7 @@ const activityApi = {
   async getActivities(userId: string): Promise<Activity[]> {
     const { data, error } = await supabase
       .from('activities')
-      .select('*')
+      .select('id, user_id, title, description, type, value, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(100);
@@ -70,7 +70,7 @@ const activityApi = {
     // Get total count
     const { count, error: countError } = await supabase
       .from('activities')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', userId);
 
     if (countError) {
@@ -81,7 +81,7 @@ const activityApi = {
     // Get paginated data
     const { data, error } = await supabase
       .from('activities')
-      .select('*')
+      .select('id, user_id, title, description, type, value, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);

@@ -475,7 +475,7 @@ export const allocationApi = {
 
       const { data, error } = await supabase
         .from('allocation_settings')
-        .select('*')
+        .select('user_id, metode, nilai, created_at, updated_at')
         .eq('user_id', userId) // ✅ Add user filter
         .maybeSingle(); // Use maybeSingle instead of single to handle no data case
 

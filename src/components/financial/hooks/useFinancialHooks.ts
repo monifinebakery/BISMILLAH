@@ -68,10 +68,16 @@ export const useFinancialData = () => {
     queryKey: financialQueryKeys.transactions(user?.id),
     queryFn: () => getFinancialTransactions(user!.id),
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1 * 60 * 1000, // 1 minute - reduced for more frequent updates
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // ✅ Enable automatic background refetching
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchInterval: 2 * 60 * 1000, // Auto-refresh every 2 minutes
+    refetchIntervalInBackground: false, // Only when tab is active
   });
 };
 

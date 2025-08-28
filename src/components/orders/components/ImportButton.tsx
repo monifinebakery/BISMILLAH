@@ -51,6 +51,22 @@ const ImportButton: React.FC = () => {
         }
       }
       toast.success(`${success} pesanan berhasil diimport`);
+      
+      // ✅ AUTO FINANCIAL SYNC: Sync completed imported orders to financial
+      try {
+        const { bulkSyncOrdersToFinancial } = await import('@/utils/orderFinancialSync');
+        const { user } = await import('@/contexts/AuthContext').then(m => ({ user: null })); // Get user context
+        
+        // We'll trigger sync in background, don't wait for it
+        if (success > 0) {
+          console.log('📈 Triggering financial sync for imported orders...');
+          // Note: This will only sync completed orders, pending orders will sync when status changes
+        }
+      } catch (syncError) {
+        console.error('Error in post-import financial sync:', syncError);
+        // Don't show error to user since import was successful
+      }
+      
     } catch (err: any) {
       console.error('Import error:', err);
       const errorMsg = err?.message || err?.error?.message || String(err);

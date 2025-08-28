@@ -387,97 +387,68 @@ This ensures they appear above ALL other UI elements.
   }
 
   /* ---- CALENDAR RESPONSIVE STYLES ---- */
-  .calendar-responsive {
-    /* Base calendar styles */
-    @apply w-full max-w-full;
-  }
-
-  /* Calendar in popovers - mobile responsive */
-  .calendar-responsive .rdp {
-    margin: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  .calendar-responsive .rdp-table {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-  }
-
-  .calendar-responsive .rdp-cell {
-    width: 2.25rem !important;
-    height: 2.25rem !important;
-    padding: 0 !important;
-  }
-
-  .calendar-responsive .rdp-day {
-    width: 2.25rem !important;
-    height: 2.25rem !important;
-    font-size: 0.875rem !important;
-  }
-
-  /* Mobile specific calendar adjustments */
-  @media (max-width: 640px) {
-    .calendar-responsive .rdp-cell {
-      width: 2rem !important;
-      height: 2rem !important;
-    }
-
-    .calendar-responsive .rdp-day {
-      width: 2rem !important;
-      height: 2rem !important;
-      font-size: 0.75rem !important;
-    }
-
-    .calendar-responsive .rdp-head_cell {
-      font-size: 0.75rem !important;
-      width: 2rem !important;
-    }
-
-    .calendar-responsive .rdp-caption {
-      font-size: 0.875rem !important;
-      margin-bottom: 0.5rem !important;
-    }
-
-    .calendar-responsive .rdp-nav_button {
-      width: 1.5rem !important;
-      height: 1.5rem !important;
-    }
-  }
-
-  /* Tablet specific adjustments */
-  @media (min-width: 641px) and (max-width: 1024px) {
-    .calendar-responsive .rdp-cell {
-      width: 2.5rem !important;
-      height: 2.5rem !important;
-    }
-
-    .calendar-responsive .rdp-day {
-      width: 2.5rem !important;
-      height: 2.5rem !important;
-      font-size: 0.875rem !important;
-    }
-
-    .calendar-responsive .rdp-head_cell {
-      font-size: 0.875rem !important;
-      width: 2.5rem !important;
-    }
-  }
-
-  /* Ensure popover calendar doesn't overflow */
+  /* Ensure all calendar popovers use consistent z-index */
   [data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
     max-width: 95vw !important;
   }
-
-  /* Calendar popover content responsive */
-  .calendar-popover-content {
-    @apply max-w-[95vw];
+  
+  /* Calendar popover base styles */
+  [data-radix-popover-content] {
+    z-index: 9999 !important;
   }
-
+  
+  /* All calendars should have proper width constraints */
+  .rdp {
+    margin: 0;
+    width: auto;
+    max-width: 100%;
+  }
+  
+  /* Ensure calendar days are appropriately sized */
+  .rdp-cell {
+    @apply w-9 h-9;
+  }
+  
+  .rdp-day {
+    @apply w-8 h-8;
+    font-size: 0.875rem;
+  }
+  
+  /* Mobile calendar optimizations */
   @media (max-width: 640px) {
-    .calendar-popover-content {
-      @apply max-w-[90vw] mx-2;
+    .rdp-cell {
+      @apply w-8 h-8;
+    }
+    
+    .rdp-day {
+      @apply w-7 h-7;
+      font-size: 0.75rem;
+    }
+    
+    .rdp-head_cell {
+      font-size: 0.75rem;
+    }
+    
+    .rdp-caption {
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .rdp-nav_button {
+      @apply w-6 h-6;
+    }
+  }
+  
+  /* Tablet calendar optimizations */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .rdp-cell {
+      @apply w-10 h-10;
+    }
+    
+    .rdp-day {
+      @apply w-9 h-9;
+      font-size: 0.875rem;
     }
   }
 

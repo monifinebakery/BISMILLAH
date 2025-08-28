@@ -1,7 +1,6 @@
 // src/components/purchase/components/PurchaseHeader.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   ShoppingCart,
   TrendingUp,
@@ -9,10 +8,8 @@ import {
   CheckCircle,
   FileText,
   Upload,
-  Zap,
-  BarChart3,
-  Package,
-  Star
+  Plus,
+  AlertTriangle
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { PurchaseHeaderProps } from '../types/purchase.types';
@@ -25,109 +22,112 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   className = '',
 }) => {
   return (
-    <Card className={`bg-gradient-to-r from-green-700 to-green-800 text-white border shadow-lg ${className}`}>
-      <div className="p-6">
-        {/* Main header content */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
-          {/* Left content */}
-          <div className="flex items-center gap-4 mb-4 lg:mb-0">
-            <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+    <>
+      {/* Alert for pending purchases */}
+      {pendingCount > 0 && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center gap-2 text-yellow-800">
+            <AlertTriangle className="h-4 w-4" />
+            <div className="flex-1">
+              <span className="text-sm font-medium">Perhatian: </span>
+              <span className="text-sm">
+                {pendingCount} pembelian masih pending. Segera proses untuk update stok yang akurat.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-6 mb-6 text-white shadow-lg ${className}`}>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="bg-white bg-opacity-10 p-3 rounded-xl backdrop-blur-sm">
               <ShoppingCart className="h-8 w-8 text-white" />
             </div>
+            
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold">
-                Manajemen Pembelian Bahan Baku
+              <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+                Manajemen Pembelian
               </h1>
-              <p className="text-sm opacity-90 mt-1">
-                Catat pembelian bahan baku langsung dari nota untuk hasil yang akurat.
+              <p className="text-white text-opacity-90">
+                Catat pembelian bahan baku langsung dari nota untuk hasil yang akurat
               </p>
             </div>
           </div>
-          
-          {/* Right actions */}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
-            {/* Import button */}
+
+          <div className="hidden md:flex gap-3">
             <Button
               onClick={() => onAddPurchase('import')}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-green-700 font-semibold rounded-lg border hover:bg-gray-100 transition-colors duration-200"
+              className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
             >
-              <Upload className="h-5 w-5" />
+              <Upload className="h-4 w-4" />
               Import Data
             </Button>
 
-            {/* Tambah dari Nota */}
             <Button
               onClick={() => onAddPurchase('packaging')}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-green-700 font-semibold rounded-lg border hover:bg-gray-100 transition-colors duration-200"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
             >
-              <FileText className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
               Tambah Pembelian
             </Button>
           </div>
         </div>
 
-        {/* Stats section */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Total Purchases */}
-          <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{totalPurchases}</div>
-                <div className="text-sm opacity-80">Total Pembelian</div>
-              </div>
-            </div>
-          </div>
+        <div className="flex md:hidden flex-col gap-3 mt-6">
+          <Button
+            onClick={() => onAddPurchase('import')}
+            className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+          >
+            <Upload className="h-4 w-4" />
+            Import Data
+          </Button>
+          <Button
+            onClick={() => onAddPurchase('packaging')}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-3 rounded-lg transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Pembelian
+          </Button>
+        </div>
 
-          {/* Total Value */}
-          <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                <ShoppingCart className="h-5 w-5 text-white" />
+        {(totalPurchases > 0 || totalValue > 0) && (
+          <div className="mt-4 pt-4 border-t border-white border-opacity-20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex flex-col">
+                <span className="text-white opacity-75 text-xs uppercase tracking-wide">Total Pembelian</span>
+                <span className="font-bold text-lg">
+                  {totalPurchases}
+                </span>
               </div>
-              <div>
-                <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
-                <div className="text-sm opacity-80">Total Nilai</div>
-              </div>
-            </div>
-          </div>
 
-          {/* Pending Count */}
-          <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 border border-white border-opacity-20">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                {pendingCount > 0 ? (
-                  <Clock className="h-5 w-5 text-white" />
-                ) : (
-                  <CheckCircle className="h-5 w-5 text-white" />
-                )}
+              <div className="flex flex-col">
+                <span className="text-white opacity-75 text-xs uppercase tracking-wide">Total Nilai</span>
+                <span className="font-bold text-lg">
+                  {formatCurrency(totalValue)}
+                </span>
               </div>
-              <div>
-                <div className="text-2xl font-bold">{pendingCount}</div>
-                <div className="text-sm opacity-80">
-                  {pendingCount > 0 ? 'Pending' : 'Semua Selesai'}
+
+              <div className="flex flex-col">
+                <span className="text-white opacity-75 text-xs uppercase tracking-wide">
+                  {pendingCount > 0 ? 'Pending' : 'Status'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`font-bold text-lg ${pendingCount > 0 ? 'text-yellow-200' : 'text-green-200'}`}>
+                    {pendingCount > 0 ? pendingCount : 'Selesai'}
+                  </span>
+                  {pendingCount > 0 ? (
+                    <Clock className="h-3 w-3 text-yellow-200" />
+                  ) : (
+                    <CheckCircle className="h-3 w-3 text-green-200" />
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Additional info if there are pending items */}
-        {pendingCount > 0 && (
-          <div className="mt-4 p-3 bg-yellow-500 bg-opacity-20 backdrop-blur-sm rounded-lg border border-yellow-300 border-opacity-30">
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4" />
-              <span>
-                Anda memiliki <strong>{pendingCount}</strong> pembelian yang masih pending. 
-                Segera proses untuk update stok yang akurat.
-              </span>
-            </div>
-          </div>
         )}
       </div>
-    </Card>
+    </>
   );
 };
 

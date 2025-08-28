@@ -344,14 +344,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         </span>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-auto p-0 z-[9999]" 
-                      align="start"
-                      side="bottom"
-                      sideOffset={8}
-                      avoidCollisions
-                      collisionPadding={16}
-                    >
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={formData.tanggal ? new Date(formData.tanggal) : undefined}
@@ -364,7 +357,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         }}
                         initialFocus
                         locale={id}
-                        className="calendar-responsive"
                       />
                     </PopoverContent>
                   </Popover>

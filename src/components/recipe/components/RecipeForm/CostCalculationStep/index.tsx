@@ -65,13 +65,13 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
       
       {/* Step Header */}
       <div className="text-center pb-4">
-        <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Zap className="w-8 h-8 text-purple-600" />
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+          <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 text-overflow-safe">
           Kalkulasi HPP Otomatis
         </h2>
-        <p className="text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600 text-overflow-safe">
           Sistem akan menghitung HPP dan harga jual secara otomatis menggunakan overhead dari biaya operasional
         </p>
       </div>
@@ -102,31 +102,31 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
             Hasil Kalkulasi HPP
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-600 font-medium">HPP per Pcs</p>
-              <p className="text-xl font-bold text-blue-900">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
+              <p className="text-xs sm:text-sm text-blue-600 font-medium text-overflow-safe">HPP per Pcs</p>
+              <p className="text-lg sm:text-xl font-bold text-blue-900 text-overflow-safe">
                 Rp {enhancedHppResult.hppPerPcs.toLocaleString('id-ID')}
               </p>
             </div>
             
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-sm text-purple-600 font-medium">HPP per Porsi</p>
-              <p className="text-xl font-bold text-purple-900">
+            <div className="bg-purple-50 p-3 sm:p-4 rounded-lg">
+              <p className="text-xs sm:text-sm text-purple-600 font-medium text-overflow-safe">HPP per Porsi</p>
+              <p className="text-lg sm:text-xl font-bold text-purple-900 text-overflow-safe">
                 Rp {enhancedHppResult.hppPerPorsi.toLocaleString('id-ID')}
               </p>
             </div>
             
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-green-600 font-medium">Harga Jual per Pcs</p>
-              <p className="text-xl font-bold text-green-900">
+            <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
+              <p className="text-xs sm:text-sm text-green-600 font-medium text-overflow-safe">Harga Jual per Pcs</p>
+              <p className="text-lg sm:text-xl font-bold text-green-900 text-overflow-safe">
                 Rp {enhancedHppResult.hargaJualPerPcs.toLocaleString('id-ID')}
               </p>
             </div>
             
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <p className="text-sm text-orange-600 font-medium">Total HPP</p>
-              <p className="text-xl font-bold text-orange-900">
+            <div className="bg-orange-50 p-3 sm:p-4 rounded-lg">
+              <p className="text-xs sm:text-sm text-orange-600 font-medium text-overflow-safe">Total HPP</p>
+              <p className="text-lg sm:text-xl font-bold text-orange-900 text-overflow-safe">
                 Rp {enhancedHppResult.totalHPP.toLocaleString('id-ID')}
               </p>
             </div>

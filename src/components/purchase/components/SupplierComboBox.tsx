@@ -280,3 +280,5 @@ export const SupplierComboBox: React.FC<SupplierComboBoxProps> = ({
     </div>
   );
 };
+
+export default SupplierComboBox;

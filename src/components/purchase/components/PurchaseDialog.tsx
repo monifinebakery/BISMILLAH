@@ -12,13 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+// Removed Select components - using SupplierComboBox instead
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -58,6 +52,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Import extracted components
 import { NewItemForm } from './dialogs/NewItemForm';
 import { SafeNumericInput } from './dialogs/SafeNumericInput';
+import { SupplierComboBox } from './SupplierComboBox';
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
@@ -308,26 +303,17 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">Supplier *</Label>
-                  <Select
+                  <SupplierComboBox
                     value={formData.supplier}
-                    onValueChange={(value) => updateFormField('supplier', value)}
+                    onValueChange={(supplierName, supplierId) => {
+                      // If supplier has ID, use ID, otherwise use name for new supplier
+                      updateFormField('supplier', supplierId || supplierName);
+                    }}
+                    suppliers={suppliers}
                     disabled={isSubmitting || isViewOnly}
-                  >
-                    <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-                      <SelectValue placeholder="Pilih supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem 
-                          key={supplier.id} 
-                          value={supplier.id} 
-                          className="focus:bg-orange-50"
-                        >
-                          <span className="truncate">{supplier.nama}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Pilih atau tulis nama supplier"
+                    hasError={!!validation.supplier}
+                  />
                   {validation.supplier && (
                     <p className="text-xs text-red-500">{validation.supplier}</p>
                   )}

@@ -52,7 +52,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Import extracted components
 import { NewItemForm } from './dialogs/NewItemForm';
 import { SafeNumericInput } from './dialogs/SafeNumericInput';
-import { SupplierComboBox } from './SupplierComboBox';
+import SupplierComboBox from './SupplierComboBox';
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {

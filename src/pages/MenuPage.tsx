@@ -15,7 +15,8 @@ import {
   Receipt, 
   DollarSign, 
   Bell,
-  TrendingUp // ✅ NEW: Icon for Profit Analysis
+  TrendingUp, // ✅ NEW: Icon for Profit Analysis
+  BookOpen // ✅ NEW: Icon for Tutorial
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -85,6 +86,12 @@ const MenuPage = () => {
       description: 'Hitung harga promo',
       icon: Calculator,
       path: '/promo',
+    },
+    {
+      title: 'Tutorial HPP',
+      description: 'Panduan lengkap HPP',
+      icon: BookOpen,
+      path: '/tutorial',
     },
     {
       title: 'Manajemen Resep',

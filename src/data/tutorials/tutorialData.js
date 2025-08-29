@@ -99,47 +99,32 @@ export const tutorialData = [
         title: "Cara Input Bahan Baku Step by Step",
         content: `
           <div class="tutorial-content">
-            <h3>📝 Langkah 1: Masuk ke Menu Bahan Baku</h3>
+            <h3>🛒 Langkah 1: Input Bahan Baku Melalui Pembelian</h3>
+            <p><strong>Penting:</strong> Untuk input bahan baku baru, mulai dari menu <strong>Pembelian</strong>, bukan dari menu Bahan Baku langsung.</p>
             <ol>
-              <li>Klik menu <strong>"Master Data"</strong> di sidebar</li>
-              <li>Pilih <strong>"Bahan Baku"</strong></li>
-              <li>Klik tombol <strong>"+ Tambah Bahan Baku"</strong></li>
+              <li>Klik menu <strong>"Pembelian"</strong> di sidebar</li>
+              <li>Klik tombol <strong>"+ Tambah Pembelian"</strong></li>
+              <li>Jika bahan baku belum ada, sistem akan otomatis buatkan data bahan baku baru</li>
             </ol>
 
-            <h3>📊 Langkah 2: Isi Data Bahan Baku</h3>
+            <h3>📊 Langkah 2: Isi Data Pembelian</h3>
             <div class="form-explanation">
-              <h4>📌 Field yang Harus Diisi:</h4>
+              <h4>📌 Field yang Harus Diisi saat Pembelian:</h4>
               <ul>
                 <li><strong>Nama Bahan:</strong> Nama bahan baku (contoh: Gula Pasir, Tepung Terigu)</li>
-                <li><strong>Kategori:</strong> Jenis bahan (Bahan Utama, Bumbu, Kemasan, dll)</li>
                 <li><strong>Satuan:</strong> Unit pengukuran (kg, gram, liter, pcs)</li>
-                <li><strong>Stok Minimal:</strong> Batas minimum stok untuk peringatan</li>
+                <li><strong>Tanggal Pembelian:</strong> Kapan barang dibeli</li>
+                <li><strong>Jumlah:</strong> Berapa banyak yang dibeli</li>
+                <li><strong>Harga per Satuan:</strong> Harga per unit</li>
+                <li><strong>Supplier:</strong> Nama toko/supplier</li>
               </ul>
             </div>
 
             <div class="example-box">
-              <h4>💡 Contoh Input Bahan Baku:</h4>
-              <div class="example-form">
-                <p><strong>Nama Bahan:</strong> Gula Pasir</p>
-                <p><strong>Kategori:</strong> Bahan Utama</p>
-                <p><strong>Satuan:</strong> kg</p>
-                <p><strong>Stok Minimal:</strong> 5</p>
-                <p><strong>Keterangan:</strong> Gula putih kualitas premium</p>
-              </div>
-            </div>
-
-            <h3>🛒 Langkah 3: Input Pembelian Bahan Baku</h3>
-            <ol>
-              <li>Setelah bahan baku tersimpan, klik <strong>"Input Pembelian"</strong></li>
-              <li>Isi tanggal pembelian</li>
-              <li>Isi jumlah yang dibeli</li>
-              <li>Isi harga per satuan</li>
-              <li>Sistem akan otomatis hitung total biaya</li>
-            </ol>
-
-            <div class="example-box">
               <h4>💡 Contoh Input Pembelian:</h4>
               <div class="example-form">
+                <p><strong>Nama Bahan:</strong> Gula Pasir</p>
+                <p><strong>Satuan:</strong> kg</p>
                 <p><strong>Tanggal:</strong> 29 Agustus 2024</p>
                 <p><strong>Jumlah:</strong> 25 kg</p>
                 <p><strong>Harga per kg:</strong> Rp 12.000</p>
@@ -147,6 +132,16 @@ export const tutorialData = [
                 <p><strong>Supplier:</strong> Toko Sembako Jaya</p>
               </div>
             </div>
+
+            <h3>📋 Langkah 3: Data Bahan Baku Otomatis Terbuat</h3>
+            <p>Setelah input pembelian, sistem akan otomatis:</p>
+            <ol>
+              <li>Membuat data bahan baku baru jika belum ada</li>
+              <li>Menghitung WAC (Weighted Average Cost) otomatis</li>
+              <li>Update stok di gudang</li>
+              <li>Siap digunakan untuk membuat resep</li>
+            </ol>
+
 
             <div class="tip-box">
               <h4>💡 Tips Penting:</h4>
@@ -720,313 +715,6 @@ export const tutorialData = [
                 <li><strong>Monitor:</strong> Track progress mingguan</li>
                 <li><strong>Adjust:</strong> Sesuaikan strategi jika perlu</li>
               </ol>
-            </div>
-          </div>
-        `
-      }
-    ]
-  },
-  {
-    id: 8,
-    title: "Panduan Lengkap Setup Awal",
-    subtitle: "Tutorial Onboarding dari Nol sampai Jadi",
-    duration: "30 menit",
-    difficulty: "Pemula",
-    icon: "🎯",
-    sections: [
-      {
-        id: "onboarding-complete",
-        title: "Setup Lengkap Sistem HPP dari Awal",
-        content: `
-          <div class="tutorial-content">
-            <h3>🎯 Panduan Lengkap Setup dari Nol</h3>
-            <p>Tutorial ini akan memandu Anda <strong>step-by-step setup sistem HPP dari awal sampai siap digunakan</strong> untuk analisis profit usaha.</p>
-
-            <div class="onboarding-steps">
-              <h4>🚀 Langkah-Langkah Setup Komprehensif</h4>
-              <p>Ikuti panduan ini <strong>urut dari atas ke bawah</strong> untuk setup sistem HPP yang sempurna:</p>
-            </div>
-
-            <div class="step-1">
-              <h4>📅 Step 1: Persiapan Data Master (Hari 1-2)</h4>
-              
-              <h5>📋 Yang Harus Anda Lakukan:</h5>
-              <ol>
-                <li><strong>Kumpulkan data bahan baku:</strong> Buat daftar semua bahan yang dipakai</li>
-                <li><strong>Siapkan nota pembelian:</strong> Kumpulkan nota belanja 2-4 minggu terakhir</li>
-                <li><strong>Identifikasi biaya operasional:</strong> Listrik, gas, sewa, gaji karyawan</li>
-                <li><strong>Tentukan produk fokus:</strong> Pilih 3-5 produk utama untuk dianalisis dulu</li>
-              </ol>
-
-              <h5>📝 Checklist Persiapan:</h5>
-              <div class="checklist">
-                <p>✅ <strong>Data bahan baku lengkap dengan satuan</strong></p>
-                <p>✅ <strong>Nota pembelian minimal 2 minggu</strong></p>
-                <p>✅ <strong>List semua biaya bulanan</strong></p>
-                <p>✅ <strong>Resep kasar produk utama</strong></p>
-              </div>
-
-              <div class="tip-box">
-                <h5>💡 Tips Persiapan:</h5>
-                <ul>
-                  <li><strong>Mulai dari yang paling laris:</strong> Fokus produk best-seller dulu</li>
-                  <li><strong>Timbang ulang:</strong> Pastikan takaran resep akurat</li>
-                  <li><strong>Catat waste:</strong> Hitung juga bahan yang terbuang</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="step-2">
-              <h4>⚙️ Step 2: Input Data ke Sistem (Hari 3-5)</h4>
-              
-              <h5>📊 Mulai Input Data Master:</h5>
-              
-              <div class="input-process">
-                <h6>1️⃣ Input Bahan Baku:</h6>
-                <ul>
-                  <li><strong>Masuk menu Master Data → Bahan Baku</strong></li>
-                  <li><strong>Input semua bahan satu per satu</strong> dengan nama, kategori, satuan</li>
-                  <li><strong>Jangan lupa tentukan stok minimal</strong> untuk alert reorder</li>
-                  <li><strong>Contoh:</strong> Daging ayam (kg), Gula pasir (kg), Bawang merah (kg)</li>
-                </ul>
-              </div>
-
-              <div class="input-process">
-                <h6>2️⃣ Input Pembelian Historical:</h6>
-                <ul>
-                  <li><strong>Input semua nota pembelian 2-4 minggu terakhir</strong></li>
-                  <li><strong>Sistem akan auto hitung WAC (Weighted Average Cost)</strong></li>
-                  <li><strong>Pastikan tanggal, jumlah, dan harga akurat</strong></li>
-                  <li><strong>Tips:</strong> Input dari yang terbaru ke yang terlama</li>
-                </ul>
-              </div>
-
-              <div class="input-process">
-                <h6>3️⃣ Input Biaya Operasional:</h6>
-                <ul>
-                  <li><strong>Listrik:</strong> Rp/bulan → sistem auto bagi per hari</li>
-                  <li><strong>Gas:</strong> Berapa tabung per bulan × harga tabung</li>
-                  <li><strong>Gaji karyawan:</strong> Total gaji semua staff</li>
-                  <li><strong>Sewa tempat:</strong> Sewa bulanan / 30 hari</li>
-                </ul>
-              </div>
-
-              <h5>✅ Target Pencapaian Step 2:</h5>
-              <div class="target-achievement">
-                <p>✅ <strong>Semua bahan baku terinput dengan harga WAC akurat</strong></p>
-                <p>✅ <strong>Biaya operasional lengkap per bulan dan per hari</strong></p>
-                <p>✅ <strong>Historical data minimal 2 minggu untuk akurasi WAC</strong></p>
-              </div>
-            </div>
-
-            <div class="step-3">
-              <h4>👨‍🍳 Step 3: Buat Resep dan Hitung HPP (Hari 6-7)</h4>
-              
-              <h5>📋 Proses Pembuatan Resep:</h5>
-              
-              <div class="recipe-process">
-                <h6>1️⃣ Standardisasi Resep:</h6>
-                <ul>
-                  <li><strong>Timbang ulang semua bahan</strong> untuk resep yang akurat</li>
-                  <li><strong>Tentukan yield:</strong> 1 resep menghasilkan berapa porsi</li>
-                  <li><strong>Hitung waste factor:</strong> Bahan yang terbuang dalam proses</li>
-                  <li><strong>Dokumentasi detail:</strong> Cara masak, lama masak, suhu, dll</li>
-                </ul>
-              </div>
-
-              <div class="recipe-process">
-                <h6>2️⃣ Input Resep ke Sistem:</h6>
-                <ul>
-                  <li><strong>Masuk menu Produk → Tambah Produk Baru</strong></li>
-                  <li><strong>Pilih bahan-bahan dari master data</strong></li>
-                  <li><strong>Input takaran masing-masing bahan</strong></li>
-                  <li><strong>Sistem auto hitung total HPP</strong></li>
-                </ul>
-              </div>
-
-              <h5>🧮 Review HPP yang Dihasilkan:</h5>
-              <div class="hpp-review">
-                <p><strong>Sistem akan menampilkan breakdown:</strong></p>
-                <ul>
-                  <li>💰 <strong>Biaya bahan baku per porsi</strong></li>
-                  <li>👥 <strong>Biaya tenaga kerja per porsi</strong></li>
-                  <li>⚡ <strong>Biaya overhead per porsi</strong></li>
-                  <li>📊 <strong>Total HPP dan persentase masing-masing</strong></li>
-                </ul>
-              </div>
-
-              <div class="analysis-first-results">
-                <h6>📈 Analisis Hasil Pertama:</h6>
-                <ul>
-                  <li><strong>Identifikasi produk dengan HPP tertinggi</strong></li>
-                  <li><strong>Bandingkan dengan harga jual saat ini</strong></li>
-                  <li><strong>Hitung margin profit masing-masing produk</strong></li>
-                  <li><strong>Temukan opportunity untuk optimasi</strong></li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="step-4">
-              <h4>📊 Step 4: Analisis dan Action Plan (Hari 8-14)</h4>
-              
-              <h5>🔍 Deep Dive Analysis:</h5>
-              
-              <div class="analysis-deep">
-                <h6>1️⃣ Profit Analysis per Produk:</h6>
-                <ul>
-                  <li><strong>Ranking produk by margin:</strong> Mana yang paling/kurang menguntungkan</li>
-                  <li><strong>Cost driver analysis:</strong> Komponen mana yang paling mahal</li>
-                  <li><strong>Volume vs margin:</strong> Produk laris tapi margin tipis?</li>
-                  <li><strong>Benchmarking:</strong> Bandingkan dengan standar industri</li>
-                </ul>
-              </div>
-
-              <div class="analysis-deep">
-                <h6>2️⃣ Identifikasi Quick Wins:</h6>
-                <ul>
-                  <li><strong>Nego supplier:</strong> Bahan mana yang bisa ditekan harganya</li>
-                  <li><strong>Recipe optimization:</strong> Bisa substitusi bahan yang lebih murah?</li>
-                  <li><strong>Portion control:</strong> Porsi terlalu besar untuk margin yang kecil?</li>
-                  <li><strong>Pricing adjustment:</strong> Produk mana yang underpriced</li>
-                </ul>
-              </div>
-
-              <h5>📋 Buat Action Plan Konkret:</h5>
-              <div class="action-plan-template">
-                <h6>📅 Week 1 Action Items:</h6>
-                <ul>
-                  <li>□ Nego dengan supplier untuk 3 bahan baku termahal</li>
-                  <li>□ Test recipe optimization untuk 1 produk margin terendah</li>
-                  <li>□ Survey harga kompetitor untuk benchmarking</li>
-                </ul>
-
-                <h6>📅 Week 2-3 Action Items:</h6>
-                <ul>
-                  <li>□ Implement pricing adjustment untuk produk underpriced</li>
-                  <li>□ Standardisasi porsi dengan alat ukur</li>
-                  <li>□ Train karyawan untuk SOP baru</li>
-                </ul>
-
-                <h6>📅 Week 4 Action Items:</h6>
-                <ul>
-                  <li>□ Monitor impact dari semua perubahan</li>
-                  <li>□ Adjust strategy berdasarkan hasil</li>
-                  <li>□ Plan untuk optimasi lanjutan</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="success-metrics">
-              <h4>📈 Indikator Keberhasilan Setup:</h4>
-              
-              <div class="success-indicator">
-                <h5>✅ Setup Berhasil Jika:</h5>
-                <ul>
-                  <li><strong>Data completeness:</strong> 95%+ bahan baku terinput dengan harga akurat</li>
-                  <li><strong>HPP calculation:</strong> Semua produk utama punya HPP yang terhitung</li>
-                  <li><strong>Profit visibility:</strong> Bisa lihat margin per produk dengan jelas</li>
-                  <li><strong>Action plan:</strong> Punya minimal 3 action item untuk optimasi</li>
-                </ul>
-              </div>
-
-              <div class="kpi-to-track">
-                <h5>📊 KPI yang Harus Dipantau:</h5>
-                <ul>
-                  <li><strong>Average Gross Margin:</strong> Target minimum 30%</li>
-                  <li><strong>HPP Accuracy:</strong> Selisih HPP vs actual cost < 5%</li>
-                  <li><strong>Cost Control:</strong> HPP tidak naik > 10% tanpa reason yang jelas</li>
-                  <li><strong>Profit Growth:</strong> Monthly profit growth > 5%</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="common-mistakes">
-              <h4>⚠️ Kesalahan Umum yang Harus Dihindari:</h4>
-              
-              <div class="mistake">
-                <h5>❌ Kesalahan Setup:</h5>
-                <ul>
-                  <li><strong>Data tidak lengkap:</strong> Input bahan baku asal-asalan, tidak akurat</li>
-                  <li><strong>Lupakan biaya tersembunyi:</strong> Tidak hitung listrik, gas, sewa</li>
-                  <li><strong>Resep tidak standar:</strong> Takaran masih kira-kira</li>
-                  <li><strong>Tidak update WAC:</strong> Pakai harga lama terus</li>
-                </ul>
-              </div>
-
-              <div class="mistake">
-                <h5>❌ Kesalahan Analisis:</h5>
-                <ul>
-                  <li><strong>Focus pada harga jual saja:</strong> Lupa optimasi cost</li>
-                  <li><strong>Ignore kompetitor:</strong> Set harga tanpa riset pasar</li>
-                  <li><strong>No action plan:</strong> Tau masalah tapi tidak execute</li>
-                  <li><strong>Tidak monitor progress:</strong> Set target tapi tidak track</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="next-steps">
-              <h4>🚀 Langkah Selanjutnya setelah Setup:</h4>
-              
-              <h5>📅 Month 2: Optimization Phase</h5>
-              <ul>
-                <li><strong>Implementasi action plan:</strong> Execute semua improvement yang sudah diidentifikasi</li>
-                <li><strong>A/B testing:</strong> Test perubahan resep, harga, atau proses secara bertahap</li>
-                <li><strong>Supplier diversification:</strong> Cari supplier alternatif untuk bahan baku kritikal</li>
-                <li><strong>Staff training:</strong> Train tim untuk SOP baru dan cost consciousness</li>
-              </ul>
-
-              <h5>📅 Month 3: Scaling Phase</h5>
-              <ul>
-                <li><strong>Product portfolio optimization:</strong> Focus pada high-margin products</li>
-                <li><strong>Volume strategy:</strong> Increase produksi untuk produk yang profitable</li>
-                <li><strong>Market expansion:</strong> Explore channel baru berdasarkan cost structure</li>
-                <li><strong>Innovation:</strong> Develop produk baru dengan margin target yang jelas</li>
-              </ul>
-
-              <h5>📅 Month 4+: Continuous Improvement</h5>
-              <ul>
-                <li><strong>Monthly HPP review:</strong> Rutin review dan update data</li>
-                <li><strong>Competitive analysis:</strong> Monitor pergerakan harga pasar</li>
-                <li><strong>Technology upgrade:</strong> Invest di tools untuk efficiency</li>
-                <li><strong>Team development:</strong> Build cost management capability</li>
-              </ul>
-            </div>
-
-            <div class="final-checklist">
-              <h4>📝 Final Checklist Setup Lengkap:</h4>
-              
-              <div class="checklist-final">
-                <h5>✅ Technical Setup:</h5>
-                <ul>
-                  <li>□ Semua bahan baku terinput dengan kategori yang tepat</li>
-                  <li>□ Historical purchase data minimal 4 minggu</li>
-                  <li>□ Biaya operasional lengkap dan akurat</li>
-                  <li>□ Resep standar untuk 100% produk aktif</li>
-                  <li>□ HPP terhitung untuk semua menu</li>
-                </ul>
-              </div>
-
-              <div class="checklist-final">
-                <h5>✅ Business Setup:</h5>
-                <ul>
-                  <li>□ Profit analysis per produk sudah clear</li>
-                  <li>□ Benchmarking dengan kompetitor done</li>
-                  <li>□ Action plan konkret dengan timeline</li>
-                  <li>□ Target KPI dan monitoring system ready</li>
-                  <li>□ Team briefing tentang cost management culture</li>
-                </ul>
-              </div>
-
-              <div class="success-guarantee">
-                <h5>🎯 Jaminan Keberhasilan:</h5>
-                <p><strong>Jika Anda mengikuti panduan ini 100%, dijamin dalam 30 hari Anda akan:</strong></p>
-                <ul>
-                  <li>📊 <strong>Punya visibility lengkap</strong> tentang cost structure bisnis</li>
-                  <li>💰 <strong>Tahu persis margin</strong> setiap produk yang Anda jual</li>
-                  <li>🎯 <strong>Punya action plan konkret</strong> untuk improve profitability</li>
-                  <li>📈 <strong>Siap untuk scale</strong> bisnis dengan profit yang predictable</li>
-                </ul>
-              </div>
             </div>
           </div>
         `

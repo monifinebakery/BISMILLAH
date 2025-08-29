@@ -29,11 +29,11 @@ const TutorialMenu = ({ onSelectTutorial }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 py-4 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 lg:mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-full text-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-600 text-white rounded-full text-2xl mb-4">
             📚
           </div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
@@ -48,7 +48,7 @@ const TutorialMenu = ({ onSelectTutorial }) => {
         {/* Learning Path Info */}
         <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8 mb-6 lg:mb-8">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 flex items-center">
-            <BookOpen className="mr-3 text-blue-600" size={24} />
+            <BookOpen className="mr-3 text-orange-600" size={24} />
             Learning Path untuk UMKM
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
@@ -57,15 +57,15 @@ const TutorialMenu = ({ onSelectTutorial }) => {
               <h3 className="font-semibold text-green-800">Dasar-Dasar</h3>
               <p className="text-sm text-green-600 mt-1">Pahami konsep HPP dan WAC</p>
             </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <div className="text-center p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
               <div className="text-3xl mb-2">📊</div>
-              <h3 className="font-semibold text-blue-800">Praktik</h3>
-              <p className="text-sm text-blue-600 mt-1">Input data dan buat resep</p>
+              <h3 className="font-semibold text-orange-800">Praktik</h3>
+              <p className="text-sm text-orange-600 mt-1">Input data dan buat resep</p>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+            <div className="text-center p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
               <div className="text-3xl mb-2">🚀</div>
-              <h3 className="font-semibold text-purple-800">Optimasi</h3>
-              <p className="text-sm text-purple-600 mt-1">Tingkatkan profit usaha</p>
+              <h3 className="font-semibold text-gray-800">Optimasi</h3>
+              <p className="text-sm text-gray-600 mt-1">Tingkatkan profit usaha</p>
             </div>
           </div>
         </div>
@@ -78,7 +78,7 @@ const TutorialMenu = ({ onSelectTutorial }) => {
               onClick={() => setSelectedDifficulty('all')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 selectedDifficulty === 'all' 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-orange-600 text-white' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -129,7 +129,7 @@ const TutorialMenu = ({ onSelectTutorial }) => {
                 {/* Tutorial Number & Icon */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
-                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg">
                       {index + 1}
                     </div>
                     <div className="ml-3 text-3xl">{tutorial.icon}</div>
@@ -140,7 +140,7 @@ const TutorialMenu = ({ onSelectTutorial }) => {
                 </div>
 
                 {/* Title & Subtitle */}
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
                   {tutorial.title}
                 </h3>
                 <p className="text-sm sm:text-base text-gray-600 mb-4 leading-relaxed">
@@ -168,7 +168,7 @@ const TutorialMenu = ({ onSelectTutorial }) => {
                 </div>
 
                 {/* Start Button */}
-                <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center group-hover:shadow-lg">
+                <button className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center group-hover:shadow-lg">
                   <Play size={18} className="mr-2" />
                   Mulai Tutorial
                   <ChevronRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
@@ -186,7 +186,7 @@ const TutorialMenu = ({ onSelectTutorial }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             <div>
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                <span className="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">1</span>
+                <span className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">1</span>
                 Pemula? Mulai dari sini!
               </h3>
               <ul className="space-y-2 text-sm text-gray-600">
@@ -222,13 +222,17 @@ const TutorialMenu = ({ onSelectTutorial }) => {
                   <span className="text-yellow-500 mr-2">✓</span>
                   Tutorial 6: Analisis Profit dan Margin
                 </li>
+                <li className="flex items-start">
+                  <span className="text-yellow-500 mr-2">✓</span>
+                  Tutorial 7: Strategi Optimasi Profit
+                </li>
               </ul>
             </div>
           </div>
           
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h4 className="font-semibold text-blue-900 mb-2">💡 Tips Belajar Efektif:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <h4 className="font-semibold text-orange-900 mb-2">💡 Tips Belajar Efektif:</h4>
+            <ul className="text-sm text-orange-800 space-y-1">
               <li>• <strong>Ikuti urutan tutorial</strong> - setiap tutorial membangun dari yang sebelumnya</li>
               <li>• <strong>Praktik langsung</strong> - gunakan data usaha Anda sendiri saat belajar</li>
               <li>• <strong>Jangan terburu-buru</strong> - pahami konsep sebelum lanjut ke tutorial berikutnya</li>
@@ -238,7 +242,7 @@ const TutorialMenu = ({ onSelectTutorial }) => {
         </div>
 
         {/* Benefits Section */}
-        <div className="mt-8 lg:mt-12 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-4 sm:p-6 lg:p-8">
+        <div className="mt-8 lg:mt-12 bg-gradient-to-r from-green-50 to-orange-50 rounded-xl p-4 sm:p-6 lg:p-8">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 text-center">
             🎯 Setelah Selesai Tutorial, Anda Akan Bisa:
           </h2>

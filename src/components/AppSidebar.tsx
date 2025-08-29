@@ -9,7 +9,7 @@ import { DashboardIcon } from "@radix-ui/react-icons";
 import {
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText,
   TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell,
-  BarChart3, WifiOff
+  BarChart3, WifiOff, BookOpen
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -69,6 +69,7 @@ export function AppSidebar() {
     { label: "Dashboard", items: [
       { title: "Dashboard", url: "/", icon: DashboardIcon },
       { title: "Kalkulator Promo", url: "/promo", icon: Calculator },
+      { title: "Tutorial HPP & WAC", url: "/tutorial", icon: BookOpen },
     ]},
     { label: "Hitung HPP", items: [
       { title: "Manajemen Resep", url: "/resep", icon: ChefHat },

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card } from "@/components/ui/card";
-import { ShoppingBag, Boxes, FileText, ChevronRight } from "lucide-react";
+import { ShoppingBag, Boxes, FileText, ChevronRight, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 
 // 🎯 Quick Action Item with Outline Design
@@ -56,6 +56,12 @@ const QuickActions: React.FC = () => {
   // ⚡ Actions configuration
   const actions = [
     {
+      to: "/tutorial",
+      icon: <BookOpen className="h-6 w-6" />,
+      label: "Tutorial HPP & WAC",
+      iconColor: "text-blue-600"
+    },
+    {
       to: "/pesanan",
       icon: <ShoppingBag className="h-6 w-6" />,
       label: "Kelola Pesanan",
@@ -89,7 +95,7 @@ const QuickActions: React.FC = () => {
       </div>
       
       {/* 📋 Quick Actions Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {actions.map((action) => (
           <QuickActionCard
             key={action.to}

@@ -28,9 +28,16 @@ const VERCEL_ENV = import.meta.env
 const NODE_ENV = import.meta.env.MODE; // Vite's environment mode
 const IS_DEV = NODE_ENV === "development";
 
-const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "").trim();
+const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "")
+  .trim()
+  .replace(/\n/g, '')
+  .replace(/\r/g, '');
+  
 const CAPTCHA_ENABLED_FLAG =
-  (import.meta.env.VITE_CAPTCHA_ENABLED ?? "true") === "true";
+  (import.meta.env.VITE_CAPTCHA_ENABLED ?? "true")
+    .trim()
+    .replace(/\n/g, '')
+    .replace(/\r/g, '') === "true";
 
 // Captcha enabled berdasarkan environment variable dan site key
 // Sederhana: jika flag enabled dan ada site key, maka aktif

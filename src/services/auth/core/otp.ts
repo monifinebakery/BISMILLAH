@@ -23,8 +23,22 @@ export const sendEmailOtp = async (
     };
     
     if (!skipCaptcha && captchaToken?.trim()) {
-      otpOptions.captchaToken = captchaToken;
-      logger.debug('Using captcha token for OTP');
+      // TEMPORARY DEBUG: Log captcha token details
+      console.log('🔑 Captcha Token Debug:', {
+        hasToken: !!captchaToken,
+        tokenLength: captchaToken.length,
+        tokenPrefix: captchaToken.substring(0, 10) + '...',
+        environment: import.meta.env.MODE
+      });
+      
+      // TEMPORARY: Skip captcha in development to debug other issues first
+      if (import.meta.env.MODE === 'development') {
+        logger.warn('TEMPORARILY SKIPPING CAPTCHA IN DEVELOPMENT FOR DEBUG');
+        console.warn('⚠️ CAPTCHA BYPASSED IN DEVELOPMENT - THIS IS TEMPORARY!');
+      } else {
+        otpOptions.captchaToken = captchaToken;
+        logger.debug('Using captcha token for OTP');
+      }
     }
 
     const { data, error } = await supabase.auth.signInWithOtp({

@@ -37,9 +37,10 @@ export interface StatusOption {
 // Form types
 export interface PurchaseFormData {
   supplier: string; // supplier ID
-  tanggal: Date;
+  tanggal: Date | string; // Allow both Date object and string for flexibility
   items: PurchaseItem[];
   metodePerhitungan: CalculationMethod;
+  keterangan?: string; // Add optional keterangan field
 }
 
 // ============ Stats ============

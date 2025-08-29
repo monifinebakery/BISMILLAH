@@ -4,9 +4,38 @@ import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
 
 /** Helper: format ke 'YYYY-MM-DD' untuk kolom DATE di DB */
-const toYMD = (d: Date | string): string => {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  return date.toISOString().slice(0, 10);
+const toYMD = (d: Date | string | null | undefined): string => {
+  if (!d) return new Date().toISOString().slice(0, 10);
+  
+  try {
+    let date: Date;
+    
+    if (d instanceof Date) {
+      date = d;
+    } else if (typeof d === 'string') {
+      // Handle various string formats
+      if (d.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // YYYY-MM-DD format - add time to avoid timezone issues
+        date = new Date(d + 'T12:00:00.000Z');
+      } else {
+        date = new Date(d);
+      }
+    } else {
+      logger.warn('Invalid date type for toYMD:', typeof d);
+      return new Date().toISOString().slice(0, 10);
+    }
+    
+    // Validate the date
+    if (isNaN(date.getTime())) {
+      logger.warn('Invalid date value for toYMD:', d);
+      return new Date().toISOString().slice(0, 10);
+    }
+    
+    return date.toISOString().slice(0, 10);
+  } catch (error) {
+    logger.error('Error in toYMD conversion:', error, d);
+    return new Date().toISOString().slice(0, 10);
+  }
 };
 
 /** ==== Helpers untuk packaging & harga ==== */

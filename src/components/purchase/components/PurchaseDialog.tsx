@@ -38,6 +38,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
@@ -329,7 +330,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span className="truncate">
-                      {formData.tanggal ? format(new Date(formData.tanggal), 'PPP', { locale: id }) : 'Pilih tanggal'}
+                      {formData.tanggal ? UserFriendlyDate.format(formData.tanggal) : 'Pilih tanggal'}
                     </span>
                   </Button>
                   {validation.tanggal && (
@@ -611,9 +612,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             <div className="dialog-body">
               <Calendar
                 mode="single"
-                selected={formData.tanggal ? new Date(formData.tanggal) : undefined}
+                selected={UserFriendlyDate.forCalendar(formData.tanggal)}
                 onSelect={(date) => {
-                  updateFormField('tanggal', date?.toISOString() || '');
+                  updateFormField('tanggal', date || new Date());
                   setIsCalendarOpen(false);
                 }}
                 disabled={(date) => {

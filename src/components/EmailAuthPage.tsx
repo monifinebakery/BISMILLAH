@@ -25,14 +25,27 @@ import TurnstileWrapper, { TurnstileWrapperRef } from "@/components/auth/Turnsti
 const VERCEL_ENV = import.meta.env
   .VITE_VERCEL_ENV as "production" | "preview" | "development" | undefined;
 
+const NODE_ENV = import.meta.env.MODE; // Vite's environment mode
+const IS_DEV = NODE_ENV === "development";
+
 const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "").trim();
 const CAPTCHA_ENABLED_FLAG =
   (import.meta.env.VITE_CAPTCHA_ENABLED ?? "true") === "true";
 
-// Captcha wajib di PREVIEW & PRODUCTION bila flag ON + sitekey ada.
-// Dev lokal tetap OFF.
-const REQUIRE_CAPTCHA =
-  CAPTCHA_ENABLED_FLAG && !!TURNSTILE_SITE_KEY && VERCEL_ENV !== "development";
+// Captcha enabled berdasarkan environment variable dan site key
+// Sederhana: jika flag enabled dan ada site key, maka aktif
+const REQUIRE_CAPTCHA = CAPTCHA_ENABLED_FLAG && !!TURNSTILE_SITE_KEY;
+
+// Debug logging untuk troubleshooting
+console.log('🔍 Captcha Environment Check:', {
+  NODE_ENV,
+  IS_DEV,
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
+  CAPTCHA_ENABLED_FLAG,
+  TURNSTILE_SITE_KEY: TURNSTILE_SITE_KEY ? 'SET' : 'NOT_SET',
+  REQUIRE_CAPTCHA,
+  NOTE: REQUIRE_CAPTCHA ? 'Captcha ENABLED' : 'Captcha DISABLED'
+});
 
 
 // ─────────────────────────────────────────────────────────────

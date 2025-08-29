@@ -4,7 +4,7 @@ import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile';
 
 interface TurnstileWrapperProps {
   siteKey: string;
-  onVerify: (token: string) => void;
+  onSuccess: (token: string) => void;
   onExpire: () => void;
   onError: (error: string) => void;
   theme?: 'light' | 'dark' | 'auto';
@@ -29,7 +29,7 @@ const TurnstileWrapper = forwardRef<TurnstileWrapperRef, TurnstileWrapperProps>(
     <Turnstile
       ref={turnstileRef}
       siteKey={props.siteKey}
-      onSuccess={props.onVerify}
+      onSuccess={props.onSuccess}
       onExpire={props.onExpire}
       onError={props.onError}
       options={{

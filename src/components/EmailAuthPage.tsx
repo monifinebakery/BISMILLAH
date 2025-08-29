@@ -137,10 +137,20 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   // Turnstile handlers
   const handleTurnstileSuccess = (token: string) => {
+    console.log('✅ Turnstile Success Handler:', {
+      token: token ? 'TOKEN_RECEIVED' : 'NO_TOKEN',
+      tokenLength: token?.length || 0,
+      mountedRef: mountedRef.current
+    });
+    
     if (mountedRef.current) {
       setTurnstileToken(token);
       setTurnstileError(null);
       logger.info("Turnstile verified successfully");
+      
+      console.log('✅ Turnstile Token Set:', {
+        newToken: token ? 'SET' : 'NOT_SET'
+      });
     }
   };
 
@@ -190,6 +200,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     cooldownTime === 0 &&
     authState !== "sending" &&
     (!REQUIRE_CAPTCHA || !!turnstileToken);
+
+  // Debug logging for button state
+  console.log('🔘 Button State Debug:', {
+    email,
+    isValidEmail: isValidEmail(email),
+    cooldownTime,
+    authState,
+    REQUIRE_CAPTCHA,
+    turnstileToken: turnstileToken ? 'HAS_TOKEN' : 'NO_TOKEN',
+    canSend,
+    buttonDisabled: !canSend
+  });
 
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {

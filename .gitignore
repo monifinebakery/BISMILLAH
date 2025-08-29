@@ -35,3 +35,4 @@ dist-ssr
 
 # Database backups
 backup*.sql
+.vercel

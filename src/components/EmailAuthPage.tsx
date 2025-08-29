@@ -40,10 +40,19 @@ const REQUIRE_CAPTCHA = CAPTCHA_ENABLED_FLAG && !!TURNSTILE_SITE_KEY;
 console.log('🔍 Captcha Environment Check:', {
   NODE_ENV,
   IS_DEV,
+  VERCEL_ENV,
   hostname: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
   CAPTCHA_ENABLED_FLAG,
+  RAW_CAPTCHA_ENABLED: import.meta.env.VITE_CAPTCHA_ENABLED,
   TURNSTILE_SITE_KEY: TURNSTILE_SITE_KEY ? 'SET' : 'NOT_SET',
+  RAW_TURNSTILE_SITE_KEY: import.meta.env.VITE_TURNSTILE_SITE_KEY,
   REQUIRE_CAPTCHA,
+  ALL_ENV_VARS: {
+    VITE_CAPTCHA_ENABLED: import.meta.env.VITE_CAPTCHA_ENABLED,
+    VITE_TURNSTILE_SITE_KEY: import.meta.env.VITE_TURNSTILE_SITE_KEY ? '***SET***' : 'NOT_SET',
+    VITE_VERCEL_ENV: import.meta.env.VITE_VERCEL_ENV,
+    MODE: import.meta.env.MODE
+  },
   NOTE: REQUIRE_CAPTCHA ? 'Captcha ENABLED' : 'Captcha DISABLED'
 });
 

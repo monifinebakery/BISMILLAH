@@ -124,9 +124,23 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
       } as any // ✅ FIXED: Type assertion for JSON compatibility
     });
 
-    if (!error) {
-      const created = Array.isArray(data) ? data[0] : data;
-      return transformOrderFromDB(created);
+    if (!error && data) {
+      // ✅ FIXED: Handle new return format from updated stored procedure
+      if (typeof data === 'object' && data.id) {
+        // New format: function returns complete order object
+        return transformOrderFromDB(data);
+      } else {
+        // Fallback: if it's still UUID, fetch the order
+        const { data: orderData, error: fetchError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', data)
+          .single();
+          
+        if (!fetchError && orderData) {
+          return transformOrderFromDB(orderData);
+        }
+      }
     }
     
     logger.warn('create_new_order function failed, falling back to direct insert:', error);
@@ -194,14 +208,30 @@ export async function updateOrder(userId: string, id: string, updatedData: Parti
 
 // Update only status
 export async function updateOrderStatus(userId: string, id: string, newStatus: string): Promise<Order> {
+  // ✅ PARAMETER VALIDATION: Ensure all parameters are strings
+  const userIdStr = String(userId);
+  const orderIdStr = String(id);
+  const statusStr = String(newStatus);
+  
+  logger.debug('orderService: updateOrderStatus called with:', {
+    userId: userIdStr,
+    orderId: orderIdStr,
+    newStatus: statusStr,
+    originalTypes: {
+      userId: typeof userId,
+      id: typeof id, 
+      newStatus: typeof newStatus
+    }
+  });
+  
   // ✅ FIXED: Validate status before update
-  const validatedStatus = validateStatus(newStatus);
+  const validatedStatus = validateStatus(statusStr);
   
   const { data, error } = await supabase
     .from('orders')
     .update({ status: validatedStatus, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('user_id', userId)
+    .eq('id', orderIdStr)
+    .eq('user_id', userIdStr)
     .select('*')
     .single();
 
@@ -213,15 +243,32 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
   const transformedOrder = transformOrderFromDB(data);
   
   // ✅ AUTO FINANCIAL SYNC: Sync to financial when order completed
-  if (newStatus === 'completed') {
+  // Use the actual updated status from the database, not the input parameter
+  if (transformedOrder.status === 'completed') {
     try {
+      logger.info('📈 Triggering financial sync for completed order:', transformedOrder.nomorPesanan);
       const { syncOrderToFinancialTransaction } = await import('@/utils/orderFinancialSync');
-      await syncOrderToFinancialTransaction(transformedOrder, userId);
-      logger.info('📈 Order financial sync triggered for completed order:', transformedOrder.nomorPesanan);
+      const syncResult = await syncOrderToFinancialTransaction(transformedOrder, userIdStr);
+      
+      if (syncResult) {
+        logger.success('✅ Financial sync completed for order:', transformedOrder.nomorPesanan);
+      } else {
+        logger.warn('⚠️ Financial sync failed (non-critical):', transformedOrder.nomorPesanan);
+      }
     } catch (syncError) {
-      logger.error('Error in auto financial sync:', syncError);
+      logger.error('Error in auto financial sync:', syncError, {
+        orderId: transformedOrder.id,
+        orderNumber: transformedOrder.nomorPesanan,
+        amount: transformedOrder.totalPesanan
+      });
       // Don't throw - order status update should still succeed
     }
+  } else {
+    logger.debug('Order status is not completed, skipping financial sync:', {
+      orderId: transformedOrder.id,
+      status: transformedOrder.status,
+      orderNumber: transformedOrder.nomorPesanan
+    });
   }
 
   return transformedOrder;

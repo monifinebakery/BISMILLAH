@@ -1,6 +1,7 @@
 import React, { ReactNode, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger';
 import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
 import OrderContext from './OrderContext';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
@@ -120,14 +121,47 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
 
   const updateOrderStatus = useCallback(async (id: string, status: string) => {
     if (!userId) return false;
+    
+    // ✅ VALIDATION: Ensure parameters are correct types
+    const orderIdStr = typeof id === 'object' && id !== null && 'id' in id ? (id as any).id : String(id);
+    const statusStr = typeof status === 'object' && status !== null && 'status' in status ? (status as any).status : String(status);
+    
+    logger.debug('OrderProvider: updateOrderStatus called with:', {
+      originalId: id,
+      originalIdType: typeof id,
+      resolvedId: orderIdStr,
+      originalStatus: status,
+      originalStatusType: typeof status, 
+      resolvedStatus: statusStr,
+      userId
+    });
+    
     try {
-      const updated = await orderService.updateOrderStatus(userId, id, status);
-      setOrders(prev => prev.map(o => (o.id === id ? updated : o)));
+      const updated = await orderService.updateOrderStatus(userId, orderIdStr, statusStr);
+      
+      // ✅ IMMEDIATE UI UPDATE: Update state optimistically
+      setOrders(prev => prev.map(o => (o.id === orderIdStr ? updated : o)));
+      
+      // ✅ FORCE REFRESH: Ensure UI reflects changes immediately
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
+      } else {
+        // Even if realtime is active, do a quick refresh to ensure sync
+        setTimeout(() => {
+          logger.debug('OrderProvider: Force refreshing data after status update');
+          refreshData();
+        }, 500);
       }
+      
+      logger.success('OrderProvider: Status updated successfully:', {
+        orderId: orderIdStr,
+        newStatus: statusStr,
+        orderNumber: updated.nomorPesanan
+      });
+      
       return true;
     } catch (error: any) {
+      logger.error('OrderProvider: updateOrderStatus error:', error, { orderIdStr, statusStr, userId });
       toast.error(`Gagal memperbarui pesanan: ${error.message}`);
       return false;
     }

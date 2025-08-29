@@ -15,7 +15,27 @@ export const orderApi = {
    */
   async updateOrderStatus(orderId: string, newStatus: OrderStatus, userId: string): Promise<Order> {
     try {
-      logger.debug('OrderAPI: Updating order status only:', { orderId, newStatus, userId });
+      // ✅ DEBUG: Enhanced logging to identify the issue
+      logger.debug('OrderAPI: Updating order status only:', { 
+        orderId, 
+        orderIdType: typeof orderId, 
+        newStatus, 
+        newStatusType: typeof newStatus,
+        userId,
+        userIdType: typeof userId,
+        isOrderIdString: typeof orderId === 'string',
+        orderIdValue: JSON.stringify(orderId)
+      });
+      
+      // ✅ VALIDATION: Ensure orderId is a string
+      if (typeof orderId !== 'string' || !orderId) {
+        throw new Error(`Invalid orderId: expected string, got ${typeof orderId} with value: ${JSON.stringify(orderId)}`);
+      }
+      
+      // ✅ VALIDATION: Ensure userId is a string
+      if (typeof userId !== 'string' || !userId) {
+        throw new Error(`Invalid userId: expected string, got ${typeof userId} with value: ${JSON.stringify(userId)}`);
+      }
       
       const { data, error } = await supabase
         .from('orders')

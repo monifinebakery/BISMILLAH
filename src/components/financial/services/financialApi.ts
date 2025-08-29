@@ -230,12 +230,46 @@ export const updateFinancialTransaction = async (
 
 export const deleteFinancialTransaction = async (id: string): Promise<boolean> => {
   try {
+    // Get the transaction details for cleanup
+    const { data: transaction, error: fetchError } = await supabase
+      .from('financial_transactions')
+      .select('id, user_id, related_id, type, amount, category, date')
+      .eq('id', id)
+      .single();
+      
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      logger.warn('Warning fetching transaction for deletion:', fetchError.message);
+    }
+    
+    // Delete the transaction
     const { error } = await supabase
       .from('financial_transactions')
       .delete()
       .eq('id', id);
 
     if (error) throw error;
+    
+    // 🧹 CLEANUP: Refresh materialized views that depend on financial_transactions
+    if (transaction) {
+      try {
+        // Refresh dashboard summary since financial data changed
+        await supabase.rpc('refresh_dashboard_views');
+        
+        // If this was related to a purchase/order, we might need to update related status
+        // Note: This is handled at the application level in purchase/order contexts
+        
+        logger.info(`✅ Financial transaction deleted with cleanup:`, {
+          id,
+          type: transaction.type,
+          amount: transaction.amount,
+          category: transaction.category,
+          relatedId: transaction.related_id
+        });
+      } catch (cleanupError) {
+        // Non-fatal cleanup errors
+        logger.warn('Warning: Failed to refresh views after transaction deletion:', cleanupError);
+      }
+    }
     
     return true;
   } catch (error: any) {
@@ -314,6 +348,18 @@ export const bulkDeleteFinancialTransactions = async (
   userId: string
 ): Promise<boolean> => {
   try {
+    // Get transaction details for cleanup logging
+    const { data: transactions, error: fetchError } = await supabase
+      .from('financial_transactions')
+      .select('id, type, amount, category, related_id')
+      .in('id', ids)
+      .eq('user_id', userId);
+      
+    if (fetchError) {
+      logger.warn('Warning fetching transactions for bulk deletion:', fetchError.message);
+    }
+    
+    // Delete the transactions
     const { error } = await supabase
       .from('financial_transactions')
       .delete()
@@ -321,6 +367,22 @@ export const bulkDeleteFinancialTransactions = async (
       .eq('user_id', userId);
 
     if (error) throw error;
+    
+    // 🧹 CLEANUP: Refresh materialized views after bulk deletion
+    try {
+      await supabase.rpc('refresh_dashboard_views');
+      
+      if (transactions) {
+        logger.info(`✅ Bulk deleted ${ids.length} financial transactions with cleanup:`, {
+          deletedCount: ids.length,
+          totalAmount: transactions.reduce((sum, t) => sum + t.amount, 0),
+          types: [...new Set(transactions.map(t => t.type))]
+        });
+      }
+    } catch (cleanupError) {
+      // Non-fatal cleanup errors
+      logger.warn('Warning: Failed to refresh views after bulk transaction deletion:', cleanupError);
+    }
     
     return true;
   } catch (error: any) {

@@ -232,11 +232,48 @@ class CrudService {
 
   async deleteBahanBaku(id: string): Promise<boolean> {
     try {
+      // First, get the bahan info for logging
+      const { data: existingBahan, error: fetchError } = await supabase
+        .from('bahan_baku')
+        .select('id, nama')
+        .eq('id', id)
+        .eq('user_id', this.config.userId || '')
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw new Error(`Failed to fetch material for deletion: ${fetchError.message}`);
+      }
+      
+      if (!existingBahan) {
+        console.log('🗑️ Material already deleted or not found');
+        return true;
+      }
+      
+      // 🧹 CLEANUP: Delete related pemakaian_bahan records 
+      // (though these should cascade delete automatically via FK)
+      const { error: usageCleanupError } = await supabase
+        .from('pemakaian_bahan')
+        .delete()
+        .eq('bahan_baku_id', id)
+        .eq('user_id', this.config.userId || '');
+        
+      if (usageCleanupError) {
+        console.warn('Warning: Failed to clean up pemakaian_bahan records:', usageCleanupError.message);
+        // Continue with deletion since FK should handle this
+      }
+      
+      // Note: We cannot easily clean up JSONB references in recipes.bahan_resep
+      // This would require a more complex query or app-level cleanup
+      // Consider adding a cleanup job or handling this in recipe context
+      
+      // Delete the main bahan_baku record
       let query = supabase.from('bahan_baku').delete().eq('id', id);
       if (this.config.userId) query = query.eq('user_id', this.config.userId);
 
       const { error } = await query;
       if (error) throw error;
+      
+      console.log(`✅ Material "${existingBahan.nama}" and related data deleted successfully`);
       return true;
     } catch (error: any) {
       this.handleError('Delete failed', error);
@@ -246,11 +283,35 @@ class CrudService {
 
   async bulkDeleteBahanBaku(ids: string[]): Promise<boolean> {
     try {
+      // First, get names for logging
+      const { data: existingBahan } = await supabase
+        .from('bahan_baku')
+        .select('id, nama')
+        .in('id', ids)
+        .eq('user_id', this.config.userId || '');
+        
+      const bahanNames = existingBahan?.map(b => b.nama) || [];
+      
+      // 🧹 CLEANUP: Delete related pemakaian_bahan records for all materials
+      const { error: usageCleanupError } = await supabase
+        .from('pemakaian_bahan')
+        .delete()
+        .in('bahan_baku_id', ids)
+        .eq('user_id', this.config.userId || '');
+        
+      if (usageCleanupError) {
+        console.warn('Warning: Failed to clean up pemakaian_bahan records:', usageCleanupError.message);
+        // Continue with deletion since FK should handle this
+      }
+      
+      // Delete the main bahan_baku records
       let query = supabase.from('bahan_baku').delete().in('id', ids);
       if (this.config.userId) query = query.eq('user_id', this.config.userId);
 
       const { error } = await query;
       if (error) throw error;
+      
+      console.log(`✅ Bulk deleted ${ids.length} materials and related data:`, bahanNames.join(', '));
       return true;
     } catch (error: any) {
       this.handleError('Bulk delete failed', error);

@@ -29,7 +29,7 @@ interface UseSupplierAutoSaveReturn {
 }
 
 export const useSupplierAutoSave = (): UseSupplierAutoSaveReturn => {
-  const { suppliers, addSupplier } = useSupplier();
+  const { suppliers, addSupplier, refreshSuppliers } = useSupplier();
 
   /**
    * Find existing supplier by name (case-insensitive)
@@ -54,10 +54,10 @@ export const useSupplierAutoSave = (): UseSupplierAutoSaveReturn => {
         return null;
       }
 
-      // Check if supplier already exists
+      // Check if supplier already exists in local state
       const existingSupplier = findSupplierByName(trimmedName);
       if (existingSupplier) {
-        logger.info('SupplierAutoSave', 'Supplier already exists:', existingSupplier.nama);
+        logger.info('SupplierAutoSave', 'Supplier already exists in local state:', existingSupplier.nama);
         return existingSupplier.id;
       }
 
@@ -81,9 +81,41 @@ export const useSupplierAutoSave = (): UseSupplierAutoSaveReturn => {
       }
     } catch (error) {
       logger.error('SupplierAutoSave', 'Error in autoSaveSupplier:', error);
+      
+      // Handle duplicate key constraint violation
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('duplicate key value violates unique constraint') || 
+          errorMessage.includes('suppliers_unique_user_nama')) {
+        logger.warn('SupplierAutoSave', 'Supplier already exists in database (constraint violation), searching again:', trimmedName);
+        
+        // The supplier exists in database but not in local state
+        // This can happen due to race conditions or stale local data
+        // We need to refresh suppliers and try to find it
+        try {
+          // Force refresh suppliers from database
+          logger.info('SupplierAutoSave', 'Refreshing suppliers after constraint violation');
+          await refreshSuppliers();
+          
+          // Try to find supplier again after refresh
+          const existingAfterError = findSupplierByName(trimmedName);
+          if (existingAfterError) {
+            logger.info('SupplierAutoSave', 'Found existing supplier after refresh:', existingAfterError.nama);
+            return existingAfterError.id;
+          }
+          
+          // If still not found, there might be a data sync issue
+          logger.warn('SupplierAutoSave', 'Supplier exists in database but not found locally, returning null');
+          return null;
+        } catch (retryError) {
+          logger.error('SupplierAutoSave', 'Error during retry after constraint violation:', retryError);
+          return null;
+        }
+      }
+      
+      // For other errors, return null
       return null;
     }
-  }, [findSupplierByName, addSupplier]);
+  }, [findSupplierByName, addSupplier, refreshSuppliers]);
 
   /**
    * Get supplier ID from name, create if doesn't exist

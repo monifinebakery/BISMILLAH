@@ -130,17 +130,56 @@ export const updateAsset = async (
 };
 
 /**
- * Delete asset
+ * Delete asset with cascade cleanup
+ * Cleans up related financial transactions (depreciation, asset sales, etc.)
  */
 export const deleteAsset = async (id: string, userId: string): Promise<void> => {
-  const { error } = await supabase
+  // First, get the asset info for logging and cleanup
+  const { data: existingAsset, error: fetchError } = await supabase
     .from('assets')
-    .delete()
+    .select('id, nama')
     .eq('id', id)
-    .eq('user_id', userId);
-
-  if (error) {
-    throw new Error(`Failed to delete asset: ${error.message}`);
+    .eq('user_id', userId)
+    .single();
+  
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    throw new Error(`Failed to fetch asset for deletion: ${fetchError.message}`);
+  }
+  
+  if (!existingAsset) {
+    // Asset already deleted or doesn't exist
+    return;
+  }
+  
+  try {
+    // 🧹 CLEANUP: Delete related financial transactions
+    // Look for any financial transactions that might reference this asset
+    const { error: cleanupError } = await supabase
+      .from('financial_transactions')
+      .delete()
+      .eq('user_id', userId)
+      .eq('related_id', id);
+      
+    if (cleanupError) {
+      console.warn('Warning: Failed to clean up financial transactions for asset:', cleanupError.message);
+      // Continue with asset deletion even if cleanup fails
+    }
+    
+    // Delete the asset itself
+    const { error: deleteError } = await supabase
+      .from('assets')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+  
+    if (deleteError) {
+      throw new Error(`Failed to delete asset: ${deleteError.message}`);
+    }
+    
+    console.log(`✅ Asset "${existingAsset.nama}" and related data deleted successfully`);
+    
+  } catch (error: any) {
+    throw new Error(`Asset deletion failed: ${error.message}`);
   }
 };
 

@@ -306,10 +306,22 @@ const useSupplierMutations = () => {
       }
       
       const errorMessage = error.message || 'Terjadi kesalahan sistem';
-      toast.error(`Gagal menambahkan supplier: ${errorMessage}`);
+      
+      // Handle duplicate constraint violation with user-friendly message
+      let userFriendlyMessage = errorMessage;
+      if (errorMessage.includes('duplicate key value violates unique constraint') || 
+          errorMessage.includes('suppliers_unique_user_nama')) {
+        userFriendlyMessage = `Supplier dengan nama "${variables.nama}" sudah ada. Silakan gunakan nama yang berbeda.`;
+        
+        // Don't show notification for duplicate - this is a user error, not system error
+        toast.error(userFriendlyMessage);
+        return;
+      }
+      
+      toast.error(`Gagal menambahkan supplier: ${userFriendlyMessage}`);
       
       addNotification(createNotificationHelper.systemError(
-        `Gagal menambahkan supplier ${variables.nama}: ${errorMessage}`
+        `Gagal menambahkan supplier ${variables.nama}: ${userFriendlyMessage}`
       ));
     },
     onSuccess: async (newSupplier, variables) => {

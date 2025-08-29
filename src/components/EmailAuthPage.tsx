@@ -1,4 +1,4 @@
-// src/components/auth/EmailAuthPage.tsx — OTP + hCaptcha (Preview & Prod)
+// src/components/auth/EmailAuthPage.tsx — OTP + Turnstile (Preview & Prod)
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from "lucide-react";
@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
+import TurnstileWrapper, { TurnstileWrapperRef } from "@/components/auth/TurnstileWrapper";
 
 // ─────────────────────────────────────────────────────────────
 // ENV flags (gunakan Vercel System Env yang diexpose otomatis)
@@ -24,25 +25,15 @@ import { useAuth } from "@/contexts/AuthContext";
 const VERCEL_ENV = import.meta.env
   .VITE_VERCEL_ENV as "production" | "preview" | "development" | undefined;
 
-const HCAPTCHA_SITE_KEY = (import.meta.env.VITE_HCAPTCHA_SITE_KEY ?? "").trim();
-const HCAPTCHA_ENABLED_FLAG =
-  (import.meta.env.VITE_HCAPTCHA_ENABLED ?? "false") === "true";
+const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "").trim();
+const CAPTCHA_ENABLED_FLAG =
+  (import.meta.env.VITE_CAPTCHA_ENABLED ?? "true") === "true";
 
 // Captcha wajib di PREVIEW & PRODUCTION bila flag ON + sitekey ada.
 // Dev lokal tetap OFF.
 const REQUIRE_CAPTCHA =
-  HCAPTCHA_ENABLED_FLAG && !!HCAPTCHA_SITE_KEY && VERCEL_ENV !== "development";
+  CAPTCHA_ENABLED_FLAG && !!TURNSTILE_SITE_KEY && VERCEL_ENV !== "development";
 
-// Dynamic hCaptcha import holder
-let HCaptchaComponent: React.ComponentType<{
-  sitekey: string;
-  onVerify: (token: string) => void;
-  onExpire: () => void;
-  onError: (error: unknown) => void;
-  theme?: string;
-  size?: string;
-  key?: number;
-}> | null = null;
 
 // ─────────────────────────────────────────────────────────────
 
@@ -84,53 +75,16 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  // hCaptcha state
-  const [hCaptchaToken, setHCaptchaToken] = useState<string | null>(null);
-  const [hCaptchaKey, setHCaptchaKey] = useState(0);
-  const [hCaptchaLoaded, setHCaptchaLoaded] = useState(!REQUIRE_CAPTCHA ? true : false);
-  const [hCaptchaLoadError, setHCaptchaLoadError] = useState(false);
+  // Turnstile state
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileError, setTurnstileError] = useState<string | null>(null);
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
+  const turnstileRef = useRef<TurnstileWrapperRef>(null);
 
-  // ─────────────────────────────────────────────────────────────
-  // Load hCaptcha hanya ketika diwajibkan
-  // ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout | undefined;
-
-    if (REQUIRE_CAPTCHA && !HCaptchaComponent) {
-      timeoutId = setTimeout(() => {
-        if (mountedRef.current && !hCaptchaLoaded) {
-          logger.warn("hCaptcha load timeout. Periksa CSP/ad-block/allowlist.");
-          setHCaptchaLoadError(true);
-          setHCaptchaLoaded(false); // tetap false agar tombol tidak bisa dipencet
-        }
-      }, 6000);
-
-      import("@hcaptcha/react-hcaptcha")
-        .then((m) => {
-          if (!mountedRef.current) return;
-          clearTimeout(timeoutId);
-          HCaptchaComponent = m.default;
-          setHCaptchaLoaded(true);
-          setHCaptchaKey((k) => k + 1);
-        })
-        .catch((e) => {
-          logger.error("Failed to load hCaptcha:", e);
-          if (!mountedRef.current) return;
-          clearTimeout(timeoutId);
-          setHCaptchaLoadError(true);
-          setHCaptchaLoaded(false);
-        });
-    }
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [hCaptchaLoaded]);
 
   // Cleanup
   useEffect(() => {
@@ -158,12 +112,39 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }, 1000);
   };
 
-  // Reset
-  const resetHCaptcha = () => {
+
+  // Turnstile handlers
+  const handleTurnstileSuccess = (token: string) => {
+    if (mountedRef.current) {
+      setTurnstileToken(token);
+      setTurnstileError(null);
+      logger.info("Turnstile verified successfully");
+    }
+  };
+
+  const handleTurnstileError = (error: string) => {
+    if (mountedRef.current) {
+      setTurnstileToken(null);
+      setTurnstileError(error);
+      logger.error("Turnstile error:", error);
+    }
+  };
+
+  const handleTurnstileExpire = () => {
+    if (mountedRef.current) {
+      setTurnstileToken(null);
+      setTurnstileError(null);
+      logger.info("Turnstile token expired");
+    }
+  };
+
+  // Reset functions
+  const resetTurnstile = () => {
     if (!mountedRef.current) return;
-    if (REQUIRE_CAPTCHA && hCaptchaLoaded) {
-      setHCaptchaToken(null);
-      setHCaptchaKey((k) => k + 1);
+    if (REQUIRE_CAPTCHA && turnstileRef.current) {
+      setTurnstileToken(null);
+      setTurnstileError(null);
+      turnstileRef.current.reset();
     }
   };
 
@@ -172,21 +153,21 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setAuthState("idle");
-    resetHCaptcha();
+    resetTurnstile();
   };
 
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // Tombol kirim aktif kalau:
+  // Button validation - send button active when:
   // - email valid
-  // - tidak cooldown & tidak sending
-  // - kalau captcha diwajibkan → harus ada token
+  // - no cooldown & not sending
+  // - if captcha required → must have token
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
     authState !== "sending" &&
-    (!REQUIRE_CAPTCHA || !!hCaptchaToken);
+    (!REQUIRE_CAPTCHA || !!turnstileToken);
 
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,7 +186,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error("Masukkan alamat email yang valid.");
       return;
     }
-    if (REQUIRE_CAPTCHA && !hCaptchaToken) {
+    if (REQUIRE_CAPTCHA && !turnstileToken) {
       toast.error("Harap selesaikan verifikasi captcha.");
       return;
     }
@@ -216,7 +197,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        REQUIRE_CAPTCHA ? hCaptchaToken : null,
+        REQUIRE_CAPTCHA ? turnstileToken : null,
         true,
         false
       );
@@ -250,7 +231,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
     }
-    if (REQUIRE_CAPTCHA && !hCaptchaToken) {
+    if (REQUIRE_CAPTCHA && !turnstileToken) {
       toast.error("Harap selesaikan verifikasi captcha.");
       return;
     }
@@ -262,7 +243,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        REQUIRE_CAPTCHA ? hCaptchaToken : null, // ⬅️ penting: kirim token juga saat resend
+        REQUIRE_CAPTCHA ? turnstileToken : null, // ⬅️ penting: kirim token juga saat resend
         true,
         true
       );
@@ -424,47 +405,24 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
-              {/* Widget hanya saat diwajibkan */}
-              {REQUIRE_CAPTCHA && hCaptchaLoaded && HCaptchaComponent && hCaptchaKey > 0 && (
+              {/* Turnstile Widget - hanya saat diwajibkan */}
+              {REQUIRE_CAPTCHA && (
                 <div className="flex justify-center">
-                  <HCaptchaComponent
-                    key={hCaptchaKey}
-                    sitekey={HCAPTCHA_SITE_KEY}
-                    onVerify={(token: string) => {
-                      if (mountedRef.current) {
-                        setHCaptchaToken(token);
-                        logger.info("hCaptcha verified");
-                      }
-                    }}
-                    onExpire={() => {
-                      if (mountedRef.current) {
-                        setHCaptchaToken(null);
-                        logger.info("hCaptcha expired");
-                      }
-                    }}
-                    onError={(err: unknown) => {
-                      logger.error("hCaptcha error:", err);
-                      if (mountedRef.current) {
-                        setHCaptchaToken(null);
-                        setHCaptchaLoadError(true);
-                        setHCaptchaLoaded(false);
-                      }
-                    }}
+                  <TurnstileWrapper
+                    ref={turnstileRef}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onSuccess={handleTurnstileSuccess}
+                    onError={handleTurnstileError}
+                    onExpire={handleTurnstileExpire}
                     theme="light"
-                    size="normal"
                   />
                 </div>
               )}
 
-              {/* Info status captcha */}
-              {REQUIRE_CAPTCHA && !hCaptchaLoaded && (
-                <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                  ⚠️ Captcha sedang dimuat... harap tunggu / pastikan hcaptcha.com tidak diblokir.
-                </div>
-              )}
-              {REQUIRE_CAPTCHA && hCaptchaLoadError && (
+              {/* Info status Turnstile */}
+              {REQUIRE_CAPTCHA && turnstileError && (
                 <div className="text-center text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
-                  Captcha gagal dimuat. Nonaktifkan ad-blocker / izinkan hcaptcha.com lalu refresh.
+                  Captcha error: {turnstileError}. Coba refresh halaman.
                 </div>
               )}
 

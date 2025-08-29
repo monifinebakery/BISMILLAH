@@ -2,39 +2,19 @@
 import { Purchase, PurchaseItem } from '../types/purchase.types';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
-/** Helper: format ke 'YYYY-MM-DD' untuk kolom DATE di DB */
+/** Helper: format ke 'YYYY-MM-DD' untuk kolom DATE di DB using UserFriendlyDate */
 const toYMD = (d: Date | string | null | undefined): string => {
-  if (!d) return new Date().toISOString().slice(0, 10);
+  if (!d) return UserFriendlyDate.toYMD(new Date());
   
   try {
-    let date: Date;
-    
-    if (d instanceof Date) {
-      date = d;
-    } else if (typeof d === 'string') {
-      // Handle various string formats
-      if (d.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        // YYYY-MM-DD format - add time to avoid timezone issues
-        date = new Date(d + 'T12:00:00.000Z');
-      } else {
-        date = new Date(d);
-      }
-    } else {
-      logger.warn('Invalid date type for toYMD:', typeof d);
-      return new Date().toISOString().slice(0, 10);
-    }
-    
-    // Validate the date
-    if (isNaN(date.getTime())) {
-      logger.warn('Invalid date value for toYMD:', d);
-      return new Date().toISOString().slice(0, 10);
-    }
-    
-    return date.toISOString().slice(0, 10);
+    // Use UserFriendlyDate for safe parsing and formatting
+    const parsedDate = UserFriendlyDate.safeParseToDate(d);
+    return UserFriendlyDate.toYMD(parsedDate);
   } catch (error) {
     logger.error('Error in toYMD conversion:', error, d);
-    return new Date().toISOString().slice(0, 10);
+    return UserFriendlyDate.toYMD(new Date());
   }
 };
 
@@ -142,13 +122,13 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       id: row.id,
       userId: row.user_id,
       supplier: row.supplier,
-      tanggal: safeParseDate(row.tanggal) ?? new Date(),
+      tanggal: UserFriendlyDate.safeParseToDate(row.tanggal),
       totalNilai: Number(row.total_nilai ?? 0),
       items,
       status: row.status,
       metodePerhitungan: row.metode_perhitungan,
-      createdAt: safeParseDate(row.created_at) ?? new Date(),
-      updatedAt: safeParseDate(row.updated_at) ?? new Date(),
+      createdAt: UserFriendlyDate.safeParseToDate(row.created_at),
+      updatedAt: UserFriendlyDate.safeParseToDate(row.updated_at),
     };
   } catch (error) {
     logger.error('Error transforming purchase from DB:', error);

@@ -614,14 +614,19 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 mode="single"
                 selected={UserFriendlyDate.forCalendar(formData.tanggal)}
                 onSelect={(date) => {
-                  updateFormField('tanggal', date || new Date());
+                  if (date) {
+                    // Use UserFriendlyDate to ensure consistent date handling
+                    const safeDate = UserFriendlyDate.safeParseToDate(date);
+                    updateFormField('tanggal', safeDate);
+                  } else {
+                    updateFormField('tanggal', new Date());
+                  }
                   setIsCalendarOpen(false);
                 }}
                 disabled={(date) => {
-                  const today = UnifiedDateHandler.parseDate(new Date());
-                  const minDate = UnifiedDateHandler.parseDate('1900-01-01');
-                  return date > (today.isValid && today.date ? today.date : new Date()) || 
-                         date < (minDate.isValid && minDate.date ? minDate.date : new Date('1900-01-01'));
+                  const today = new Date();
+                  const minDate = new Date('1900-01-01');
+                  return date > today || date < minDate;
                 }}
                 initialFocus
                 locale={id}

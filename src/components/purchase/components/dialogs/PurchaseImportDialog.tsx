@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { X, Upload, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { usePurchaseImport } from '../../hooks/usePurchaseImport';
 import { toast } from 'sonner';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 interface PurchaseImportDialogProps {
   isOpen: boolean;
@@ -196,7 +197,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                       {preview.valid.slice(0, 10).map((purchase, index) => (
                         <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                           <td className="px-4 py-2 border-b">
-                            {new Date(purchase.tanggal).toLocaleDateString('id-ID')}
+                            {UserFriendlyDate.formatToLocalString(purchase.tanggal)}
                           </td>
                           <td className="px-4 py-2 border-b truncate max-w-[120px]" title={purchase.supplier}>
                             {purchase.supplier}

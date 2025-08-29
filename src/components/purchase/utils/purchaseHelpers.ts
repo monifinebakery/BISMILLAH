@@ -376,10 +376,25 @@ export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
 };
 
 /**
- * Get supplier name with fallback
+ * Get supplier name with fallback (basic version - for simple display)
+ * NOTE: For proper supplier ID to name mapping, use the getSupplierName function
+ * from PurchaseTableContext which has access to the suppliers list
  */
 export const getSupplierName = (supplier?: string): string => {
   return supplier || 'Tidak ada supplier';
+};
+
+/**
+ * Create supplier name resolver with suppliers list
+ * This is used when you have access to the full suppliers list
+ */
+export const createSupplierNameResolver = (suppliers: Array<{ id: string; nama: string }>) => {
+  return (supplierId: string): string => {
+    if (!supplierId) return 'Tidak ada supplier';
+    
+    const supplier = suppliers.find(s => s.id === supplierId);
+    return supplier ? supplier.nama : supplierId; // Fallback to ID if not found
+  };
 };
 
 /**

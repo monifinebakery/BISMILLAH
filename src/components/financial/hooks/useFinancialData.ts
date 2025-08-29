@@ -5,6 +5,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { format, subDays, startOfMonth, endOfDay, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { enhancedDateUtils } from '@/utils/enhancedDateUtils';
 
 // ✅ FIXED: Import from correct file - changed from financialUtils to financialCalculations
 import {
@@ -59,7 +60,11 @@ export const useFinancialDataProcessing = (
   return useMemo(() => {
     // Filter transactions by date range
     const filteredTransactions = filterByDateRange(transactions, dateRange, 'date')
-      .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+      .sort((a, b) => {
+        const dateA = enhancedDateUtils.parseAndValidateTimestamp(a.date);
+        const dateB = enhancedDateUtils.parseAndValidateTimestamp(b.date);
+        return (dateB.isValid ? dateB.date.getTime() : 0) - (dateA.isValid ? dateA.date.getTime() : 0);
+      });
 
     // Calculate totals
     const totalIncome = calculateTotalIncome(filteredTransactions);
@@ -99,8 +104,9 @@ export const useFinancialChartDataProcessing = (
 
     // Process transactions
     filteredTransactions.forEach(t => {
-      const transactionDate = new Date(t.date!);
-      if (transactionDate) {
+      const dateResult = enhancedDateUtils.parseAndValidateTimestamp(t.date);
+      if (dateResult.isValid && dateResult.date) {
+        const transactionDate = dateResult.date;
         // Monthly data
         const monthStart = startOfMonth(transactionDate);
         const monthYearKey = format(monthStart, 'yyyy-MM');
@@ -135,10 +141,14 @@ export const useFinancialChartDataProcessing = (
         Saldo: value.income - value.expense,
         date: format(value.date, 'yyyy-MM-dd')
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a, b) => {
+        const dateA = enhancedDateUtils.parseAndValidateTimestamp(a.date);
+        const dateB = enhancedDateUtils.parseAndValidateTimestamp(b.date);
+        return (dateA.isValid ? dateA.date.getTime() : 0) - (dateB.isValid ? dateB.date.getTime() : 0);
+      });
 
     // Transform daily data (last 30 days)
-    const today = endOfDay(new Date());
+    const today = endOfDay(enhancedDateUtils.getCurrentTimestamp());
     for (let i = 0; i < 30; i++) {
       const currentDate = startOfDay(subDays(today, 29 - i));
       const dayKey = format(currentDate, 'yyyy-MM-dd');
@@ -238,7 +248,7 @@ export const useFinancialFormManagement = (
     amount: 0,
     category: '',
     description: '',
-    date: new Date()
+    date: enhancedDateUtils.getCurrentTimestamp()
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});

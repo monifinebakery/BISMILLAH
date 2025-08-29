@@ -23,6 +23,7 @@ import {
   isValidDate,
   formatDateForDisplay,
 } from "@/utils/unifiedDateUtils";
+import { enhancedDateUtils } from "@/utils/enhancedDateUtils";
 
 interface DateRange {
   from: Date;
@@ -48,7 +49,7 @@ const PRESETS = [
 ];
 
 const getPreset = (key: string): DateRange => {
-  const now = new Date();
+  const now = enhancedDateUtils.getCurrentTimestamp();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   switch (key) {
@@ -99,10 +100,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         onDateRangeChange(undefined);
         return;
       }
-      const from = safeParseDate(newRange.from);
-      const to = safeParseDate(newRange.to || newRange.from);
-      if (from && to && isValidDate(from) && isValidDate(to)) {
-        onDateRangeChange({ from, to });
+      const fromResult = enhancedDateUtils.parseAndValidateTimestamp(newRange.from);
+      const toResult = enhancedDateUtils.parseAndValidateTimestamp(newRange.to || newRange.from);
+      
+      if (fromResult.isValid && toResult.isValid && fromResult.date && toResult.date) {
+        onDateRangeChange({ from: fromResult.date, to: toResult.date });
         onPageChange?.(1);
       }
     },
@@ -126,9 +128,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   const calendarRange = React.useMemo(() => {
     if (!dateRange?.from) return undefined;
-    const from = safeParseDate(dateRange.from);
-    const to = safeParseDate(dateRange.to);
-    return from && to ? { from, to } : undefined;
+    const fromResult = enhancedDateUtils.parseAndValidateTimestamp(dateRange.from);
+    const toResult = enhancedDateUtils.parseAndValidateTimestamp(dateRange.to);
+    return fromResult.isValid && toResult.isValid && fromResult.date && toResult.date 
+      ? { from: fromResult.date, to: toResult.date } 
+      : undefined;
   }, [dateRange]);
 
   const displayText = formatRange(dateRange) || placeholder;

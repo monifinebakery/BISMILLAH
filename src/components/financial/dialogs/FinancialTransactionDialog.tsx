@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 // ✅ UPDATED: Import unified date handler for consistency
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { formatDateToYYYYMMDD, safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
+import { enhancedDateUtils } from '@/utils/enhancedDateUtils';
 import { logger } from '@/utils/logger';
 
 // ✅ UPDATED: Support both category formats
@@ -71,7 +72,7 @@ const getInitialFormState = (): Omit<Transaction, 'id'> => ({
   amount: 0,
   category: '',
   description: '',
-  date: new Date(),
+  date: enhancedDateUtils.getCurrentTimestamp(),
 });
 
 // Form validation
@@ -108,17 +109,17 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
     }
   }, [categories, isOpen]);
 
-  // Initialize form data when dialog opens or transaction changes using UnifiedDateHandler
+  // Initialize form data when dialog opens or transaction changes using enhancedDateUtils
   useEffect(() => {
     if (isOpen) {
       if (transaction) {
-        const dateResult = UnifiedDateHandler.parseDate(transaction.date);
+        const dateResult = enhancedDateUtils.parseAndValidateTimestamp(transaction.date);
         setFormData({
           type: transaction.type,
           amount: transaction.amount,
           category: transaction.category,
           description: transaction.description,
-          date: dateResult.isValid && dateResult.date ? dateResult.date : new Date(),
+          date: dateResult.isValid && dateResult.date ? dateResult.date : enhancedDateUtils.getCurrentTimestamp(),
         });
       } else {
         setFormData(getInitialFormState());

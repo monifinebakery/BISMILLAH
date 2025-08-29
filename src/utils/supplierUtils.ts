@@ -10,6 +10,8 @@ import type {
   SupplierDbUpdate
 } from '@/types/supplier';
 
+import { parsePostgresTimestamp } from '@/utils/timestampUtils';
+
 // ================================================================
 // VALIDATION UTILITIES
 // ================================================================
@@ -102,18 +104,24 @@ export const validateSupplierForm = (formData: SupplierFormData): SupplierValida
 // DATA TRANSFORMATION UTILITIES
 // ================================================================
 
-export const transformSupplierFromDB = (dbRow: SupplierDbRow): Supplier => ({
-  id: dbRow.id,
-  nama: dbRow.nama,
-  kontak: dbRow.kontak,
-  email: dbRow.email || undefined,
-  telepon: dbRow.telepon || undefined,
-  alamat: dbRow.alamat || undefined,
-  catatan: dbRow.catatan || undefined,
-  userId: dbRow.user_id,
-  createdAt: new Date(dbRow.created_at),
-  updatedAt: new Date(dbRow.updated_at),
-});
+export const transformSupplierFromDB = (dbRow: SupplierDbRow): Supplier => {
+  // Safely parse timestamps from database
+  const createdAt = parsePostgresTimestamp(dbRow.created_at) || new Date();
+  const updatedAt = parsePostgresTimestamp(dbRow.updated_at) || createdAt;
+  
+  return {
+    id: dbRow.id,
+    nama: dbRow.nama,
+    kontak: dbRow.kontak,
+    email: dbRow.email || undefined,
+    telepon: dbRow.telepon || undefined,
+    alamat: dbRow.alamat || undefined,
+    catatan: dbRow.catatan || undefined,
+    userId: dbRow.user_id,
+    createdAt,
+    updatedAt,
+  };
+};
 
 export const transformSupplierToDBInsert = (
   supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt' | 'userId'>,

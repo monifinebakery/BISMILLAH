@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { UnifiedDateHandler, PurchaseDateUtils } from '@/utils/unifiedDateHandler';
+import { enhancedDateUtils } from '@/utils/enhancedDateUtils';
 import type { Purchase } from '../types/purchase.types';
 import {
   transformPurchasesFromDB,
@@ -64,7 +65,7 @@ export class PurchaseApiService {
       // Step 1: Update purchase status to completed
       const { error: updateError } = await supabase
         .from('purchases')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .update({ status: 'completed', updated_at: enhancedDateUtils.toDatabaseTimestamp(enhancedDateUtils.getCurrentTimestamp()) })
         .eq('id', purchaseId)
         .eq('user_id', userId);
 
@@ -97,7 +98,7 @@ export class PurchaseApiService {
           // Rollback purchase status if warehouse sync fails
           await supabase
             .from('purchases')
-            .update({ status: 'pending', updated_at: new Date().toISOString() })
+            .update({ status: 'pending', updated_at: enhancedDateUtils.toDatabaseTimestamp(enhancedDateUtils.getCurrentTimestamp()) })
             .eq('id', purchaseId)
             .eq('user_id', userId);
           
@@ -212,8 +213,8 @@ export class PurchaseApiService {
           ...purchaseData,
           id: data.id,
           userId,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: enhancedDateUtils.getCurrentTimestamp(),
+          updatedAt: enhancedDateUtils.getCurrentTimestamp()
         } as Purchase);
       }
       return { success: true, error: null, purchaseId: data?.id };
@@ -374,7 +375,7 @@ export class PurchaseApiService {
           // Then update the status
           const { error } = await supabase
             .from('purchases')
-            .update({ status: newStatus, updated_at: new Date().toISOString() })
+            .update({ status: newStatus, updated_at: enhancedDateUtils.toDatabaseTimestamp(enhancedDateUtils.getCurrentTimestamp()) })
             .eq('id', id)
             .eq('user_id', userId);
           

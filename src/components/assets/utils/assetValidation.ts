@@ -2,6 +2,7 @@
 
 import { AssetFormData, AssetFormErrors } from '../types';
 import { FORM_VALIDATION_RULES, ASSET_CATEGORIES, ASSET_CONDITIONS } from './assetConstants';
+import { enhancedDateUtils } from '@/utils/enhancedDateUtils';
 
 /**
  * Validate individual form field
@@ -62,14 +63,14 @@ export const validateField = (field: keyof AssetFormData, value: any): string | 
       if (rules.required && !value) {
         return 'Tanggal pembelian wajib diisi';
       }
-      if (value && !(value instanceof Date)) {
-        return 'Format tanggal tidak valid';
-      }
-      if (value instanceof Date && isNaN(value.getTime())) {
-        return 'Tanggal tidak valid';
-      }
-      if (value instanceof Date && value > new Date()) {
-        return 'Tanggal pembelian tidak boleh di masa depan';
+      if (value) {
+        const dateResult = enhancedDateUtils.parseAndValidateTimestamp(value);
+        if (!dateResult.isValid) {
+          return dateResult.error || 'Format tanggal tidak valid';
+        }
+        if (dateResult.date && dateResult.date > enhancedDateUtils.getCurrentTimestamp()) {
+          return 'Tanggal pembelian tidak boleh di masa depan';
+        }
       }
       break;
       
@@ -162,7 +163,8 @@ export const hasRequiredFields = (formData: AssetFormData): boolean => {
   return requiredFields.every(field => {
     const value = formData[field];
     if (field === 'tanggalPembelian') {
-      return value instanceof Date && !isNaN(value.getTime());
+      const dateResult = enhancedDateUtils.parseAndValidateTimestamp(value);
+      return dateResult.isValid && dateResult.date;
     }
     return value !== '' && value !== null && value !== undefined;
   });
@@ -197,8 +199,10 @@ export const hasFormChanged = (
     const initial = initialData[field];
     
     if (field === 'tanggalPembelian') {
-      const currentTime = current instanceof Date ? current.getTime() : null;
-      const initialTime = initial instanceof Date ? initial.getTime() : null;
+      const currentResult = enhancedDateUtils.parseAndValidateTimestamp(current);
+      const initialResult = enhancedDateUtils.parseAndValidateTimestamp(initial);
+      const currentTime = currentResult.isValid && currentResult.date ? currentResult.date.getTime() : null;
+      const initialTime = initialResult.isValid && initialResult.date ? initialResult.date.getTime() : null;
       return currentTime !== initialTime;
     }
     

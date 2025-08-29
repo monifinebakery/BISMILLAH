@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 // ✅ UPDATED: Import unified date utilities for consistency
 import { UnifiedDateHandler, WarehouseDateUtils } from '@/utils/unifiedDateHandler';
+import { enhancedDateUtils } from '@/utils/enhancedDateUtils';
 import type { BahanBaku, BahanBakuFrontend } from '../types';
 
 export interface ServiceConfig {
@@ -27,9 +28,9 @@ const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
     harga: Number(dbItem.harga_satuan) || 0,
     hargaRataRata: wac,
     supplier: dbItem.supplier || '',
-    expiry: dbItem.tanggal_kadaluwarsa || undefined,
-    createdAt: dbItem.created_at,
-    updatedAt: dbItem.updated_at,
+    expiry: dbItem.tanggal_kadaluwarsa ? enhancedDateUtils.parseAndValidateTimestamp(dbItem.tanggal_kadaluwarsa).date : undefined,
+    createdAt: enhancedDateUtils.parseAndValidateTimestamp(dbItem.created_at).date,
+    updatedAt: enhancedDateUtils.parseAndValidateTimestamp(dbItem.updated_at).date,
   };
 };
 
@@ -45,7 +46,7 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     harga_satuan: frontendItem.harga,
     harga_rata_rata: frontendItem.hargaRataRata,
     supplier: frontendItem.supplier || '',
-    tanggal_kadaluwarsa: frontendItem.expiry || null,
+    tanggal_kadaluwarsa: frontendItem.expiry ? enhancedDateUtils.toDatabaseTimestamp(frontendItem.expiry) : null,
   };
   if (userId) dbItem.user_id = userId;
 
@@ -141,8 +142,8 @@ class CrudService {
     endDate: Date
   ): Promise<BahanBakuFrontend[]> {
     try {
-      const startYMD = UnifiedDateHandler.toDatabaseString(startDate) || '';
-      const endYMD = UnifiedDateHandler.toDatabaseString(endDate) || '';
+      const startYMD = enhancedDateUtils.toDatabaseTimestamp(startDate);
+      const endYMD = enhancedDateUtils.toDatabaseTimestamp(endDate);
 
       console.log('🔍 Fetching warehouse materials by date range (IMPROVED):', {
         startDate: startYMD,

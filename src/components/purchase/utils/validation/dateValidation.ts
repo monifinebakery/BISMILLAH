@@ -83,11 +83,42 @@ export const validateDate = (
     return { isValid: true };
   }
 
-  // Check if valid date
-  if (!(date instanceof Date) || isNaN(date.getTime())) {
+  // Enhanced date validation to handle various formats
+  let parsedDate: Date;
+  
+  try {
+    if (date instanceof Date) {
+      parsedDate = new Date(date);
+    } else if (typeof date === 'string') {
+      // Handle timestamp with timezone (PostgreSQL timestamptz format)
+      if (date.includes('T') && (date.includes('Z') || date.includes('+') || date.endsWith('00'))) {
+        parsedDate = new Date(date);
+      } else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Handle YYYY-MM-DD format
+        parsedDate = new Date(date + 'T00:00:00.000Z');
+      } else {
+        parsedDate = new Date(date);
+      }
+    } else if (typeof date === 'number') {
+      parsedDate = new Date(date);
+    } else {
+      return {
+        isValid: false,
+        error: `Format ${fieldName.toLowerCase()} tidak valid - tipe data tidak didukung`,
+      };
+    }
+    
+    // Check if the parsed date is valid
+    if (isNaN(parsedDate.getTime())) {
+      return {
+        isValid: false,
+        error: `Format ${fieldName.toLowerCase()} tidak valid - tidak dapat diparse sebagai tanggal`,
+      };
+    }
+  } catch (error) {
     return {
       isValid: false,
-      error: `Format ${fieldName.toLowerCase()} tidak valid`,
+      error: `Format ${fieldName.toLowerCase()} tidak valid - error parsing: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 

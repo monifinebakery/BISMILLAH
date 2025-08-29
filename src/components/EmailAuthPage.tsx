@@ -201,17 +201,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     authState !== "sending" &&
     (!REQUIRE_CAPTCHA || !!turnstileToken);
 
-  // Debug logging for button state
-  console.log('🔘 Button State Debug:', {
-    email,
-    isValidEmail: isValidEmail(email),
-    cooldownTime,
-    authState,
-    REQUIRE_CAPTCHA,
-    turnstileToken: turnstileToken ? 'HAS_TOKEN' : 'NO_TOKEN',
-    canSend,
-    buttonDisabled: !canSend
-  });
+  // Debug logging for button state (only when state changes)
+  useEffect(() => {
+    console.log('🔘 Button State Debug:', {
+      email,
+      isValidEmail: isValidEmail(email),
+      cooldownTime,
+      authState,
+      REQUIRE_CAPTCHA,
+      turnstileToken: turnstileToken ? 'HAS_TOKEN' : 'NO_TOKEN',
+      canSend,
+      buttonDisabled: !canSend
+    });
+  }, [email, cooldownTime, authState, turnstileToken, canSend]);
 
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {

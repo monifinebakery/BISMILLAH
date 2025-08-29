@@ -23,7 +23,7 @@ export const sendEmailOtp = async (
     };
     
     if (!skipCaptcha && captchaToken?.trim()) {
-      // TEMPORARY DEBUG: Log captcha token details
+      // DEBUG: Log captcha token details
       console.log('🔑 Captcha Token Debug:', {
         hasToken: !!captchaToken,
         tokenLength: captchaToken.length,
@@ -31,14 +31,8 @@ export const sendEmailOtp = async (
         environment: import.meta.env.MODE
       });
       
-      // TEMPORARY: Skip captcha in development to debug other issues first
-      if (import.meta.env.MODE === 'development') {
-        logger.warn('TEMPORARILY SKIPPING CAPTCHA IN DEVELOPMENT FOR DEBUG');
-        console.warn('⚠️ CAPTCHA BYPASSED IN DEVELOPMENT - THIS IS TEMPORARY!');
-      } else {
-        otpOptions.captchaToken = captchaToken;
-        logger.debug('Using captcha token for OTP');
-      }
+      otpOptions.captchaToken = captchaToken;
+      logger.debug('Using captcha token for OTP');
     }
 
     const { data, error } = await supabase.auth.signInWithOtp({

@@ -5,7 +5,7 @@ import { logger } from '@/utils/logger';
 import { FollowUpTemplateProvider } from '@/contexts/FollowUpTemplateContext';
 import OrderContext from './OrderContext';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
-import { safeParseDate, isValidDate } from '@/utils/unifiedDateUtils'; // Keep for transition
+// Using UnifiedDateHandler for consistent date handling
 import { transformOrderFromDB } from '../utils';
 import type { Order, NewOrder, OrderStatus } from '../types';
 import { useOrderConnection } from '../hooks/useOrderConnection';
@@ -13,6 +13,16 @@ import { useOrderSubscription } from '../hooks/useOrderSubscription';
 import * as orderService from '../services/orderService';
 
 interface Props { children: ReactNode }
+
+// Helper function for date validation
+const isValidDate = (date: any): boolean => {
+  if (!date) return false;
+  if (date instanceof Date) {
+    return !isNaN(date.getTime()) && date.getTime() > 0;
+  }
+  const parsed = UnifiedDateHandler.parseDate(date);
+  return parsed.isValid && parsed.date !== undefined;
+};
 
 export const OrderProvider: React.FC<Props> = ({ children }) => {
   const { user } = useAuth();

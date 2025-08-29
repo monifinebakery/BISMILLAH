@@ -423,10 +423,10 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 break-words">
-                Auto-Link Pembayaran <span className="hidden sm:inline">Terdeteksi</span> (DEBUG)
+                Pembayaran Terdeteksi
               </h2>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Hubungkan pembayaran webhook ke akun Anda
+                Klik hubungkan untuk akses aplikasi
               </p>
               
               {/* ✅ ENHANCED DEBUG: Show detailed user info */}
@@ -486,7 +486,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
                         {currentUser?.email || 'Current User'}
                       </p>
                       <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                        Pembayaran akan dihubungkan ke akun ini
+                        Akun yang akan dihubungkan
                       </p>
                     </div>
                   </div>

@@ -1,14 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { getAllTutorials } from '../../data/tutorials/tutorialData';
 import { ChevronRight, Clock, Star, BookOpen, Play } from 'lucide-react';
 
 const TutorialMenu = ({ onSelectTutorial }) => {
-  const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const tutorials = getAllTutorials();
-
-  const filteredTutorials = tutorials.filter(tutorial => 
-    selectedDifficulty === 'all' || tutorial.difficulty === selectedDifficulty
-  );
 
   const getDifficultyColor = (difficulty) => {
     switch(difficulty) {
@@ -70,56 +65,10 @@ const TutorialMenu = ({ onSelectTutorial }) => {
           </div>
         </div>
 
-        {/* Filter */}
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6 lg:mb-8">
-          <h3 className="font-semibold text-gray-900 mb-4">Filter berdasarkan Level:</h3>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            <button
-              onClick={() => setSelectedDifficulty('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedDifficulty === 'all' 
-                ? 'bg-orange-600 text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Semua Tutorial
-            </button>
-            <button
-              onClick={() => setSelectedDifficulty('Pemula')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedDifficulty === 'Pemula' 
-                ? 'bg-green-600 text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Pemula
-            </button>
-            <button
-              onClick={() => setSelectedDifficulty('Menengah')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedDifficulty === 'Menengah' 
-                ? 'bg-yellow-600 text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Menengah
-            </button>
-            <button
-              onClick={() => setSelectedDifficulty('Lanjutan')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedDifficulty === 'Lanjutan' 
-                ? 'bg-red-600 text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Lanjutan
-            </button>
-          </div>
-        </div>
 
         {/* Tutorial Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-          {filteredTutorials.map((tutorial, index) => (
+          {tutorials.map((tutorial, index) => (
             <div 
               key={tutorial.id}
               className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden group cursor-pointer"

@@ -63,7 +63,7 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
 
   if (isCompleted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-4 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-orange-50 py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           {/* Completion Screen */}
           <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8 lg:p-12 text-center">
@@ -71,7 +71,7 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
               Selamat! Tutorial Selesai!
             </h1>
-            <h2 className="text-lg sm:text-xl text-blue-600 font-semibold mb-6">
+            <h2 className="text-lg sm:text-xl text-orange-600 font-semibold mb-6">
               {tutorial.title}
             </h2>
             
@@ -91,45 +91,45 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={handleRestartTutorial}
-                className="flex items-center justify-center px-6 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium"
+                className="flex items-center justify-center px-4 py-2 sm:px-6 sm:py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm sm:text-base"
               >
-                <RotateCcw size={18} className="mr-2" />
+                <RotateCcw size={16} className="mr-2" />
                 Ulangi Tutorial
               </button>
               
               {onNextTutorial && (
                 <button
                   onClick={onNextTutorial}
-                  className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  className="flex items-center justify-center px-4 py-2 sm:px-6 sm:py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm sm:text-base"
                 >
                   Tutorial Selanjutnya
-                  <ChevronRight size={18} className="ml-2" />
+                  <ChevronRight size={16} className="ml-2" />
                 </button>
               )}
               
               <button
                 onClick={onBack}
-                className="flex items-center justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                className="flex items-center justify-center px-4 py-2 sm:px-6 sm:py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm sm:text-base"
               >
-                <Home size={18} className="mr-2" />
+                <Home size={16} className="mr-2" />
                 Kembali ke Menu
               </button>
             </div>
 
             {/* Next Steps */}
-            <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg text-left">
-              <h3 className="text-lg font-bold text-blue-800 mb-4">🚀 Langkah Selanjutnya:</h3>
-              <ul className="space-y-2 text-sm text-blue-700">
+            <div className="mt-8 p-6 bg-orange-50 border border-orange-200 rounded-lg text-left">
+              <h3 className="text-lg font-bold text-orange-800 mb-4">🚀 Langkah Selanjutnya:</h3>
+              <ul className="space-y-2 text-sm text-orange-700">
                 <li className="flex items-start">
-                  <span className="text-blue-500 mr-2">•</span>
+                  <span className="text-orange-500 mr-2">•</span>
                   <strong>Praktikkan langsung:</strong> Gunakan pengetahuan ini untuk usaha Anda
                 </li>
                 <li className="flex items-start">
-                  <span className="text-blue-500 mr-2">•</span>
+                  <span className="text-orange-500 mr-2">•</span>
                   <strong>Lanjutkan tutorial:</strong> Ada tutorial lanjutan yang bisa membantu Anda lebih dalam
                 </li>
                 <li className="flex items-start">
-                  <span className="text-blue-500 mr-2">•</span>
+                  <span className="text-orange-500 mr-2">•</span>
                   <strong>Monitor hasil:</strong> Pantau perkembangan profit usaha Anda setiap minggu
                 </li>
               </ul>
@@ -203,7 +203,7 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-orange-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
@@ -217,7 +217,7 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
                   onClick={() => setCurrentSectionIndex(index)}
                   className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                     index === currentSectionIndex
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-orange-600 text-white'
                       : completedSections.has(index)
                       ? 'bg-green-100 text-green-800'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -247,32 +247,34 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between items-center bg-white rounded-xl shadow-lg p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white rounded-xl shadow-lg p-4 sm:p-6 gap-3 sm:gap-4">
           <button
             onClick={handlePrevSection}
             disabled={isFirstSection}
-            className={`flex items-center px-6 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex items-center justify-center px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               isFirstSection
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-gray-600 text-white hover:bg-gray-700'
             }`}
           >
-            <ChevronLeft size={18} className="mr-2" />
-            Sebelumnya
+            <ChevronLeft size={16} className="mr-2" />
+            <span className="hidden sm:inline">Sebelumnya</span>
+            <span className="sm:hidden">Prev</span>
           </button>
 
-          <div className="text-center flex-1 mx-4">
-            <p className="text-sm text-gray-600">
+          <div className="text-center flex-1 mx-0 sm:mx-4 order-first sm:order-none">
+            <p className="text-xs sm:text-sm text-gray-600">
               Bagian {currentSectionIndex + 1} dari {tutorial.sections.length}
             </p>
           </div>
 
           <button
             onClick={handleNextSection}
-            className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="flex items-center justify-center px-4 py-2 sm:px-6 sm:py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm sm:text-base"
           >
-            {isLastSection ? 'Selesai' : 'Selanjutnya'}
-            <ChevronRight size={18} className="ml-2" />
+            <span className="hidden sm:inline">{isLastSection ? 'Selesai' : 'Selanjutnya'}</span>
+            <span className="sm:hidden">{isLastSection ? 'Done' : 'Next'}</span>
+            <ChevronRight size={16} className="ml-2" />
           </button>
         </div>
       </div>

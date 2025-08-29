@@ -101,10 +101,24 @@ export const tutorialData = [
           <div class="tutorial-content">
             <h3>🛒 Langkah 1: Input Bahan Baku Melalui Pembelian</h3>
             <p><strong>Penting:</strong> Untuk input bahan baku baru, mulai dari menu <strong>Pembelian</strong>, bukan dari menu Bahan Baku langsung.</p>
+            
+            <div class="tip-box">
+              <h4>🤖 Sistem Otomatis Pintar</h4>
+              <p>Aplikasi ini menggunakan <strong>sistem otomatis</strong> yang akan:</p>
+              <ul>
+                <li>✅ <strong>Auto-create bahan baku:</strong> Jika nama bahan belum ada, sistem otomatis buat data baru</li>
+                <li>✅ <strong>Auto-update WAC:</strong> Harga rata-rata bahan otomatis terupdate setiap pembelian</li>
+                <li>✅ <strong>Auto-update stok:</strong> Stok gudang otomatis bertambah setelah pembelian</li>
+                <li>✅ <strong>Auto-sync resep:</strong> Resep yang menggunakan bahan ini langsung terupdate harganya</li>
+              </ul>
+            </div>
+            
+            <h4>📱 Step-by-Step Input:</h4>
             <ol>
               <li>Klik menu <strong>"Pembelian"</strong> di sidebar</li>
               <li>Klik tombol <strong>"+ Tambah Pembelian"</strong></li>
-              <li>Jika bahan baku belum ada, sistem akan otomatis buatkan data bahan baku baru</li>
+              <li>Sistem akan tanya: "Beli bahan baku apa?"</li>
+              <li>Ketik nama bahan - jika belum ada, sistem otomatis buatkan</li>
             </ol>
 
             <h3>📊 Langkah 2: Isi Data Pembelian</h3>
@@ -133,14 +147,29 @@ export const tutorialData = [
               </div>
             </div>
 
-            <h3>📋 Langkah 3: Data Bahan Baku Otomatis Terbuat</h3>
-            <p>Setelah input pembelian, sistem akan otomatis:</p>
-            <ol>
-              <li>Membuat data bahan baku baru jika belum ada</li>
-              <li>Menghitung WAC (Weighted Average Cost) otomatis</li>
-              <li>Update stok di gudang</li>
-              <li>Siap digunakan untuk membuat resep</li>
-            </ol>
+            <h3>🤖 Langkah 3: Magic Otomatis Sistem</h3>
+            <p>Begitu Anda klik "Simpan Pembelian", sistem langsung bekerja otomatis:</p>
+            
+            <div class="example-box">
+              <h4>⚡ Proses Otomatis dalam 1 Detik:</h4>
+              <ol>
+                <li><strong>Detik 1:</strong> Sistem cek - "Apakah 'Gula Pasir' sudah ada di database?"</li>
+                <li><strong>Jika belum ada:</strong> Auto-create bahan baku baru dengan nama "Gula Pasir"</li>
+                <li><strong>Jika sudah ada:</strong> Ambil data yang existing</li>
+                <li><strong>Hitung WAC baru:</strong> (Stok lama × Harga lama + Stok baru × Harga baru) ÷ Total stok</li>
+                <li><strong>Update stok:</strong> Stok lama + Stok pembelian baru</li>
+                <li><strong>Sync ke semua resep:</strong> Semua resep yang pakai "Gula Pasir" otomatis update HPP</li>
+                <li><strong>Update dashboard:</strong> Grafik dan laporan otomatis refresh</li>
+              </ol>
+            </div>
+            
+            <h4>🔄 Sistem Sinkronisasi Real-Time:</h4>
+            <ul>
+              <li><strong>Pesanan selesai → Otomatis masuk laporan pemasukan</strong></li>
+              <li><strong>Pesanan dibatalkan → Otomatis hilang dari laporan</strong></li>
+              <li><strong>Bahan baku habis → Otomatis muncul alert reorder</strong></li>
+              <li><strong>Harga bahan naik → HPP semua resep otomatis update</strong></li>
+            </ul>
 
 
             <div class="tip-box">
@@ -524,12 +553,44 @@ export const tutorialData = [
               </div>
             </div>
 
+            <h3>🤖 Sistem Integrasi Otomatis</h3>
+            <div class="tip-box">
+              <h4>⚡ Magic Behind the Scene</h4>
+              <p>Aplikasi ini punya <strong>sistem integrasi real-time</strong> yang sangat powerful:</p>
+              <ul>
+                <li>📈 <strong>Pesanan Selesai → Auto Masuk Laporan:</strong> Begitu status pesanan berubah jadi "Selesai", revenue otomatis masuk ke laporan pemasukan</li>
+                <li>🚫 <strong>Pesanan Dibatalkan → Auto Hilang:</strong> Kalau ada yang cancel, laporan langsung bersih otomatis</li>
+                <li>📦 <strong>Stok Auto Update:</strong> Setiap pesanan selesai, stok bahan baku otomatis berkurang sesuai resep</li>
+                <li>🚨 <strong>Alert Otomatis:</strong> Stok habis? Sistem langsung kasih warning</li>
+                <li>📊 <strong>Dashboard Real-Time:</strong> Semua grafik dan angka update setiap detik</li>
+              </ul>
+            </div>
+            
+            <h4>🔄 Contoh Flow Otomatis:</h4>
+            <div class="example-box">
+              <h5>Skenario: Pesanan 10 Bakso Selesai</h5>
+              <ol>
+                <li><strong>User ubah status:</strong> "Dalam Proses" → "Selesai"</li>
+                <li><strong>Sistem langsung:</strong>
+                  <ul>
+                    <li>Catat revenue: 10 × Rp 15.000 = Rp 150.000</li>
+                    <li>Hitung profit: Rp 150.000 - (10 × HPP Rp 9.775) = Rp 52.250</li>
+                    <li>Kurangi stok: Daging sapi -10kg, Tepung tapioka -2kg, dst</li>
+                    <li>Update dashboard: Profit hari ini +Rp 52.250</li>
+                    <li>Cek alert: "Daging sapi tersisa 5kg, perlu restock!"</li>
+                  </ul>
+                </li>
+                <li><strong>Semua selesai dalam < 1 detik!</strong></li>
+              </ol>
+            </div>
+
             <h3>📋 Cara Akses Analisis Profit:</h3>
             <ol>
               <li>Masuk ke menu <strong>"Analisis Profit"</strong></li>
               <li>Pilih periode analisis (hari, minggu, bulan)</li>
               <li>Pilih produk yang ingin dianalisis</li>
               <li>Sistem tampilkan profit breakdown lengkap</li>
+              <li><strong>Bonus:</strong> Data sudah real-time, tidak perlu refresh manual!</li>
             </ol>
 
             <div class="profit-dashboard">

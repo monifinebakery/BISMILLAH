@@ -1,27 +1,9 @@
 import React from 'react';
 import { getAllTutorials } from '../../data/tutorials/tutorialData';
-import { ChevronRight, Clock, Star, BookOpen, Play } from 'lucide-react';
+import { ChevronRight, Clock, BookOpen, Play } from 'lucide-react';
 
 const TutorialMenu = ({ onSelectTutorial }) => {
   const tutorials = getAllTutorials();
-
-  const getDifficultyColor = (difficulty) => {
-    switch(difficulty) {
-      case 'Pemula': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Menengah': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Lanjutan': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getDifficultyStars = (difficulty) => {
-    switch(difficulty) {
-      case 'Pemula': return 1;
-      case 'Menengah': return 2;
-      case 'Lanjutan': return 3;
-      default: return 1;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 py-4 px-4 sm:px-6 lg:px-8">
@@ -76,16 +58,11 @@ const TutorialMenu = ({ onSelectTutorial }) => {
             >
               <div className="p-4 sm:p-6 lg:p-8">
                 {/* Tutorial Number & Icon */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                      {index + 1}
-                    </div>
-                    <div className="ml-3 text-3xl">{tutorial.icon}</div>
+                <div className="flex items-center mb-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                    {index + 1}
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(tutorial.difficulty)}`}>
-                    {tutorial.difficulty}
-                  </div>
+                  <div className="ml-3 text-3xl">{tutorial.icon}</div>
                 </div>
 
                 {/* Title & Subtitle */}
@@ -97,22 +74,10 @@ const TutorialMenu = ({ onSelectTutorial }) => {
                 </p>
 
                 {/* Meta Info */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center mb-4">
                   <div className="flex items-center text-sm text-gray-500">
                     <Clock size={16} className="mr-2" />
                     <span>{tutorial.duration}</span>
-                  </div>
-                  <div className="flex items-center">
-                    {[...Array(3)].map((_, i) => (
-                      <Star 
-                        key={i}
-                        size={16} 
-                        className={i < getDifficultyStars(tutorial.difficulty) 
-                          ? 'text-yellow-400 fill-current' 
-                          : 'text-gray-300'
-                        }
-                      />
-                    ))}
                   </div>
                 </div>
 

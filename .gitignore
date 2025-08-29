@@ -29,6 +29,9 @@ dist-ssr
 .env.production         
 .env.development.local 
 .env.production.local
+.env. preview
+.env.vercel.preview
+.env.vercel.production
 .env.test.local
 # Local Netlify folder
 .netlify

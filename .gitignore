@@ -23,16 +23,18 @@ dist-ssr
 *.sln
 *.sw?
 # Environment files - NEVER commit these!
-.env                    
+.env*                   
 .env.local             
 .env.development        
 .env.production         
+.env.preview
 .env.development.local 
 .env.production.local
 .env. preview
 .env.vercel.preview
 .env.vercel.production
 .env.test.local
+.env.vercel.*
 # Local Netlify folder
 .netlify
 

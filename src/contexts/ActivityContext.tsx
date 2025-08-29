@@ -9,6 +9,7 @@ import { useAuth } from './AuthContext';
 // ✅ UPDATED: Import unified date handler for consistency
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
+import { enhancedDateUtils } from '@/utils/enhancedDateUtils';
 
 // ===== QUERY KEYS =====
 export const activityQueryKeys = {
@@ -45,10 +46,10 @@ const activityApi = {
       throw new Error('Gagal memuat riwayat aktivitas: ' + error.message);
     }
 
-    // Helper function to safely parse dates using UnifiedDateHandler
+    // Helper function to safely parse dates using enhancedDateUtils
     const safeParseDateUnified = (dateInput: any): Date => {
-      const result = UnifiedDateHandler.parseDate(dateInput);
-      return result.isValid && result.date ? result.date : new Date();
+      const result = enhancedDateUtils.parseAndValidateTimestamp(dateInput);
+      return result.isValid && result.date ? result.date : enhancedDateUtils.getCurrentTimestamp();
     };
 
     return data ? data.map((item) => ({
@@ -93,10 +94,10 @@ const activityApi = {
 
     const totalCount = count || 0;
     const totalPages = Math.ceil(totalCount / limit);
-    // Helper function to safely parse dates using UnifiedDateHandler
+    // Helper function to safely parse dates using enhancedDateUtils
     const safeParseDateUnified = (dateInput: any): Date => {
-      const result = UnifiedDateHandler.parseDate(dateInput);
-      return result.isValid && result.date ? result.date : new Date();
+      const result = enhancedDateUtils.parseAndValidateTimestamp(dateInput);
+      return result.isValid && result.date ? result.date : enhancedDateUtils.getCurrentTimestamp();
     };
 
     const activities = data ? data.map((item): Activity => ({
@@ -139,10 +140,10 @@ const activityApi = {
       throw new Error('Gagal menambahkan aktivitas: ' + error.message);
     }
 
-    // Helper function to safely parse dates using UnifiedDateHandler
+    // Helper function to safely parse dates using enhancedDateUtils
     const safeParseDateUnified = (dateInput: any): Date => {
-      const result = UnifiedDateHandler.parseDate(dateInput);
-      return result.isValid && result.date ? result.date : new Date();
+      const result = enhancedDateUtils.parseAndValidateTimestamp(dateInput);
+      return result.isValid && result.date ? result.date : enhancedDateUtils.getCurrentTimestamp();
     };
 
     return {
@@ -206,12 +207,13 @@ const useActivityMutations = (userId?: string) => {
       const previousActivities = queryClient.getQueryData(activityQueryKeys.list(userId));
 
       // ✅ Optimistic update
+      const now = enhancedDateUtils.getCurrentTimestamp();
       const optimisticActivity: Activity = {
         id: `temp-${Date.now()}`,
         userId: userId || '',
-        timestamp: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        timestamp: now,
+        createdAt: now,
+        updatedAt: now,
         ...newActivity,
       };
 

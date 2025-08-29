@@ -15,6 +15,7 @@ import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
+import { enhancedDateUtils } from '@/utils/enhancedDateUtils';
 
 // Interface
 interface AssetContextType {
@@ -42,9 +43,9 @@ const transformAssetFromDB = (dbAsset: any): Asset | null => {
       return null;
     }
 
-    // Helper function to safely parse dates using UnifiedDateHandler
+    // Helper function to safely parse dates using enhancedDateUtils
     const safeParseDateUnified = (dateInput: any): Date | null => {
-      const result = UnifiedDateHandler.parseDate(dateInput);
+      const result = enhancedDateUtils.parseAndValidateTimestamp(dateInput);
       return result.isValid && result.date ? result.date : null;
     };
 
@@ -77,7 +78,7 @@ const transformAssetToDB = (asset: Partial<Asset>) => {
   if (asset.nilaiAwal !== undefined) updateData.nilai_awal = asset.nilaiAwal;
   if (asset.nilaiSaatIni !== undefined) updateData.nilai_sekarang = asset.nilaiSaatIni;
   if (asset.tanggalPembelian !== undefined) {
-    updateData.tanggal_beli = asset.tanggalPembelian ? UnifiedDateHandler.toDatabaseString(asset.tanggalPembelian) : null;
+    updateData.tanggal_beli = asset.tanggalPembelian ? enhancedDateUtils.toDatabaseTimestamp(asset.tanggalPembelian) : null;
   }
   if (asset.kondisi !== undefined) updateData.kondisi = asset.kondisi;
   if (asset.lokasi !== undefined) updateData.lokasi = asset.lokasi?.trim();
@@ -200,7 +201,7 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   logger.debug('🔍 AssetProvider rendered', {
     userId: user?.id,
-    timestamp: new Date().toISOString()
+    timestamp: enhancedDateUtils.getCurrentTimestamp().toISOString()
   });
 
   // ✅ useQuery for fetching assets

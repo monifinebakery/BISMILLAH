@@ -5,6 +5,7 @@ import { Purchase, PurchaseFormData, PurchaseItem } from '../types/purchase.type
 import { validatePurchaseForm, ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
 import { usePurchase } from './usePurchase';
+import { useSupplierAutoSave } from './useSupplierAutoSave';
 import { logger } from '@/utils/logger';
 
 interface UsePurchaseFormProps {
@@ -59,6 +60,7 @@ export const usePurchaseForm = ({
 }: UsePurchaseFormProps): UsePurchaseFormReturn => {
   // Dependencies
   const { addPurchase, updatePurchase } = usePurchase();
+  const { getOrCreateSupplierId } = useSupplierAutoSave();
 
   // Form state
   const [formData, setFormDataState] = useState<PurchaseFormData>(() => {
@@ -200,8 +202,27 @@ export const usePurchaseForm = ({
     try {
       const status = newStatus ?? (mode === 'edit' && initialData ? initialData.status : 'pending' as const);
 
+      // ✅ AUTO-SAVE SUPPLIER: Handle supplier auto-save before purchase
+      let supplierIdToUse = formData.supplier;
+      
+      // Check if supplier is a new name (not an existing ID)
+      if (formData.supplier && !formData.supplier.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        // This looks like a supplier name, not an ID - try to auto-save
+        logger.info('PurchaseForm', 'Auto-saving supplier:', formData.supplier);
+        
+        const savedSupplierId = await getOrCreateSupplierId(formData.supplier);
+        if (savedSupplierId) {
+          supplierIdToUse = savedSupplierId;
+          logger.info('PurchaseForm', 'Supplier auto-saved with ID:', savedSupplierId);
+        } else {
+          logger.warn('PurchaseForm', 'Failed to auto-save supplier, using name as is');
+          // Continue with supplier name - the backend should handle it
+        }
+      }
+
       const purchaseData = {
         ...formData,
+        supplier: supplierIdToUse, // Use the resolved supplier ID or name
         totalNilai: totalValue,
         status,
       };
@@ -234,7 +255,8 @@ export const usePurchaseForm = ({
     initialData, 
     onSuccess, 
     onError, 
-    validateForm
+    validateForm,
+    getOrCreateSupplierId
   ]);
 
   // Reset form

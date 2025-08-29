@@ -5,6 +5,7 @@ import { loadXLSX } from '@/components/warehouse/dialogs/import-utils';
 import { usePurchase } from './usePurchase';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+import { useSupplierAutoSave } from './useSupplierAutoSave';
 
 // Define the import data structure
 export interface PurchaseImportData {
@@ -74,6 +75,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
   const { addPurchase } = usePurchase();
   const { suppliers } = useSupplier();
   const { bahanBaku: warehouseItems } = useBahanBaku();
+  const { getOrCreateSupplierId } = useSupplierAutoSave();
 
   const validate = (data: any): string[] => {
     const errors: string[] = [];
@@ -280,20 +282,39 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
 
     try {
       let successCount = 0;
+      const newSuppliers: string[] = []; // Track newly created suppliers
       
       for (const purchaseData of preview.valid) {
         try {
-          // Convert supplier name to ID if needed
+          // ✅ AUTO-SAVE SUPPLIER: Get or create supplier from import data
+          console.log('🔄 [IMPORT SUPPLIER] Processing supplier:', purchaseData.supplier);
+          
           let supplierId = purchaseData.supplier;
           
-          // Try to find supplier by name
-          const supplier = suppliers?.find(s => 
-            s.nama.toLowerCase() === purchaseData.supplier.toLowerCase() ||
-            s.id === purchaseData.supplier
-          );
-          
-          if (supplier) {
-            supplierId = supplier.id;
+          // Check if supplier looks like UUID (existing ID)
+          if (!purchaseData.supplier.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            // This is a supplier name, not ID - try auto-save
+            const existingSupplier = suppliers?.find(s => 
+              s.nama.toLowerCase() === purchaseData.supplier.toLowerCase()
+            );
+            
+            const resolvedSupplierId = await getOrCreateSupplierId(purchaseData.supplier);
+            if (resolvedSupplierId) {
+              supplierId = resolvedSupplierId;
+              
+              // Track if this is a new supplier (wasn't in suppliers list before)
+              if (!existingSupplier && !newSuppliers.includes(purchaseData.supplier)) {
+                newSuppliers.push(purchaseData.supplier);
+              }
+              
+              console.log('✅ [IMPORT SUPPLIER] Auto-saved/found supplier:', {
+                name: purchaseData.supplier,
+                id: supplierId,
+                isNew: !existingSupplier
+              });
+            } else {
+              console.warn('⚠️ [IMPORT SUPPLIER] Failed to auto-save supplier, using name:', purchaseData.supplier);
+            }
           }
           
           const purchase = {
@@ -365,7 +386,21 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
       }
 
       if (successCount > 0) {
-        toast.success(`${successCount} pembelian berhasil diimport!`);
+        // Success message with supplier info
+        let message = `${successCount} pembelian berhasil diimport!`;
+        if (newSuppliers.length > 0) {
+          message += ` ${newSuppliers.length} supplier baru ditambahkan: ${newSuppliers.join(', ')}`;
+          toast.success(message, { duration: 5000 });
+          
+          // Additional info toast for new suppliers
+          toast.info(
+            `🏢 Supplier baru tersedia di menu Supplier Management`, 
+            { duration: 3000 }
+          );
+        } else {
+          toast.success(message);
+        }
+        
         setPreview(null);
         onImportComplete();
         return true;

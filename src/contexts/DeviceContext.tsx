@@ -279,12 +279,9 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      // Mark other devices as not current
-      await supabase
-        .from('devices')
-        .update({ is_current: false })
-        .neq('device_id', deviceId)
-        .eq('user_id', userId);
+      // ✅ ALLOW CONCURRENT SESSIONS: Don't mark other devices as not current
+      // Users can now be logged in on multiple devices simultaneously
+      // Each device maintains its own is_current: true state
 
       // Cleanup old devices periodically
       await cleanupOldDevices(userId);

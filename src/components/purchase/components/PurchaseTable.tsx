@@ -228,14 +228,14 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
   const {
     filteredPurchases,
     suppliers,
+    getSupplierName: getSupplierNameFromTableContext
   } = usePurchaseTable();
 
   // ✅ Purchase context for bulk operations
   const {
     updatePurchase,
     deletePurchase,
-    setStatus,
-    getSupplierName: getSupplierNameFromContext
+    setStatus
   } = usePurchase();
   
   // ✅ DEBUG: Log setStatus availability

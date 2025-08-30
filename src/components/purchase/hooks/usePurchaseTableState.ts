@@ -2,6 +2,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Purchase } from '../types/purchase.types';
 import { paginatePurchases, sortPurchasesByField, filterPurchasesForTable } from '../utils/purchaseTableHelpers';
+import { safeGetSupplierName } from '../utils/purchaseHelpers';
 
 interface UsePurchaseTableStateProps {
   initialPurchases: Purchase[];
@@ -69,12 +70,9 @@ export const usePurchaseTableState = ({ initialPurchases, suppliers }: UsePurcha
     setCurrentPage(1);
   }, []);
 
-  // Get supplier name
+  // Get supplier name - using safe resolver
   const getSupplierName = useCallback((supplierId: string): string => {
-    const supplier = suppliers.find(
-      s => s.id === supplierId || s.nama === supplierId
-    );
-    return supplier ? supplier.nama : supplierId || 'Supplier Tidak Dikenal';
+    return safeGetSupplierName(supplierId, suppliers, 'Supplier Tidak Dikenal');
   }, [suppliers]);
 
   return {

@@ -346,8 +346,12 @@ export const getItemsPreview = (items: Purchase['items'], maxItems: number = 2):
 
 /**
  * Export purchases data to CSV format
+ * Enhanced to show supplier names instead of IDs
  */
-export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
+export const exportPurchasesToCSV = (
+  purchases: Purchase[], 
+  suppliers?: Array<{ id: string; nama: string }> | null
+): string => {
   const headers = [
     'Tanggal',
     'Supplier', 
@@ -358,9 +362,12 @@ export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
     'Dibuat'
   ];
 
+  // Create supplier name resolver
+  const getSupplierName = createSupplierNameResolver(suppliers);
+
   const rows = purchases.map(purchase => [
     new Date(purchase.tanggal).toLocaleDateString('id-ID'),
-    purchase.supplier || '',
+    getSupplierName(purchase.supplier),                    // ✅ FIXED: Show supplier name instead of ID
     (purchase.totalNilai ?? 0).toString(),                 // ✅ aman null/undefined
     getStatusDisplayText(purchase.status),
     (purchase.items?.length ?? 0).toString(),              // ✅ aman
@@ -381,20 +388,91 @@ export const exportPurchasesToCSV = (purchases: Purchase[]): string => {
  * from PurchaseTableContext which has access to the suppliers list
  */
 export const getSupplierName = (supplier?: string): string => {
-  return supplier || 'Tidak ada supplier';
+  if (!supplier || typeof supplier !== 'string') return 'Tidak ada supplier';
+  return supplier.trim() || 'Tidak ada supplier';
 };
 
 /**
  * Create supplier name resolver with suppliers list
  * This is used when you have access to the full suppliers list
+ * Enhanced with robust error handling and validation
  */
-export const createSupplierNameResolver = (suppliers: Array<{ id: string; nama: string }>) => {
-  return (supplierId: string): string => {
-    if (!supplierId) return 'Tidak ada supplier';
+export const createSupplierNameResolver = (suppliers?: Array<{ id: string; nama: string }> | null) => {
+  return (supplierId?: string | null): string => {
+    // Defensive checks for null/undefined/empty inputs
+    if (!supplierId || typeof supplierId !== 'string') {
+      return 'Tidak ada supplier';
+    }
     
-    const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier ? supplier.nama : supplierId; // Fallback to ID if not found
+    const cleanSupplierId = supplierId.trim();
+    if (!cleanSupplierId) {
+      return 'Tidak ada supplier';
+    }
+    
+    // Handle empty or invalid suppliers array
+    if (!suppliers || !Array.isArray(suppliers) || suppliers.length === 0) {
+      return cleanSupplierId; // Return ID as fallback if no suppliers list
+    }
+    
+    try {
+      // Find supplier by ID with safe property access
+      const supplier = suppliers.find(s => {
+        if (!s || typeof s !== 'object') return false;
+        if (!s.id || typeof s.id !== 'string') return false;
+        return s.id === cleanSupplierId;
+      });
+      
+      if (supplier && supplier.nama && typeof supplier.nama === 'string') {
+        const supplierName = supplier.nama.trim();
+        return supplierName || cleanSupplierId; // Fallback to ID if name is empty
+      }
+      
+      // If not found by exact ID match, try fuzzy match by name
+      const fuzzyMatch = suppliers.find(s => {
+        if (!s || !s.nama || typeof s.nama !== 'string') return false;
+        return s.nama.toLowerCase().trim() === cleanSupplierId.toLowerCase();
+      });
+      
+      if (fuzzyMatch && fuzzyMatch.nama) {
+        return fuzzyMatch.nama.trim();
+      }
+      
+      // Return ID as final fallback
+      return cleanSupplierId;
+    } catch (error) {
+      // Log error but don't break the UI
+      console.warn('Error in supplier name resolution:', error);
+      return cleanSupplierId;
+    }
   };
+};
+
+/**
+ * Safe supplier name validator - checks if a supplier name/ID is valid
+ */
+export const isValidSupplier = (supplierId?: string | null): boolean => {
+  return !!(supplierId && typeof supplierId === 'string' && supplierId.trim().length > 0);
+};
+
+/**
+ * Safe supplier resolver that never throws errors
+ * Always returns a string, even in case of complete failure
+ */
+export const safeGetSupplierName = (
+  supplierId?: string | null, 
+  suppliers?: Array<{ id: string; nama: string }> | null,
+  fallback: string = 'Supplier Tidak Dikenal'
+): string => {
+  try {
+    if (!isValidSupplier(supplierId)) return fallback;
+    
+    const resolver = createSupplierNameResolver(suppliers);
+    const result = resolver(supplierId!);
+    
+    return result || fallback;
+  } catch {
+    return fallback;
+  }
 };
 
 /**

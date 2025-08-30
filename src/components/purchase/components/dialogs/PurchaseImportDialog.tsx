@@ -5,6 +5,8 @@ import { X, Upload, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { usePurchaseImport } from '../../hooks/usePurchaseImport';
 import { toast } from 'sonner';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
+import { useSupplier } from '@/contexts/SupplierContext';
+import { createSupplierNameResolver } from '../../utils/purchaseHelpers';
 
 interface PurchaseImportDialogProps {
   isOpen: boolean;
@@ -28,6 +30,10 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
     downloadTemplate,
     executeImport
   } = usePurchaseImport({ onImportComplete });
+  
+  // Get suppliers for name resolution
+  const { suppliers } = useSupplier();
+  const getSupplierName = createSupplierNameResolver(suppliers || []);
 
   if (!isOpen) return null;
 
@@ -199,8 +205,8 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                           <td className="px-4 py-2 border-b">
                             {UserFriendlyDate.formatToLocalString(purchase.tanggal)}
                           </td>
-                          <td className="px-4 py-2 border-b truncate max-w-[120px]" title={purchase.supplier}>
-                            {purchase.supplier}
+                          <td className="px-4 py-2 border-b truncate max-w-[120px]" title={getSupplierName(purchase.supplier)}>
+                            {getSupplierName(purchase.supplier)}
                           </td>
                           <td className="px-4 py-2 border-b truncate max-w-[150px]" title={purchase.items[0]?.nama}>
                             {purchase.items[0]?.nama || '-'}

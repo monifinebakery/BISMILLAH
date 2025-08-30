@@ -142,16 +142,16 @@ const MemoizedPurchaseRow = React.memo(({
           {purchase.items && purchase.items.length > 0 ? (
             purchase.items.length === 1 ? (
               // Single item: show name
-              <div className="font-medium">{purchase.items[0].nama}</div>
+              <div className="font-medium">{purchase.items[0].nama || 'Item tanpa nama'}</div>
             ) : (
               // Multiple items: show first item + count
               <div>
-                <div className="font-medium">{purchase.items[0].nama}</div>
+                <div className="font-medium">{purchase.items[0].nama || 'Item tanpa nama'}</div>
                 <div className="text-xs text-gray-500">+{purchase.items.length - 1} item lainnya</div>
               </div>
             )
           ) : (
-            <div className="text-gray-400 italic">Tidak ada item</div>
+            <div className="text-gray-400 italic">Data sedang dimuat...</div>
           )}
         </div>
       </TableCell>

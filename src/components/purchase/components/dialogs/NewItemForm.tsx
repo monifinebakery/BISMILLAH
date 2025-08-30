@@ -112,12 +112,6 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
         totalBayar: prev.kuantitas ? (toNumber(prev.kuantitas) * effectivePrice).toString() : ''
       }));
       
-      // Show pricing info to user
-      if (selectedWarehouseItemData.isUsingWac) {
-        toast.info(`Menggunakan harga WAC: ${formatCurrency(effectivePrice)} per ${item.satuan}`);
-      } else {
-        toast.info(`Menggunakan harga input: ${formatCurrency(effectivePrice)} per ${item.satuan}`);
-      }
     }
   }, [selectedWarehouseItemData]);
   

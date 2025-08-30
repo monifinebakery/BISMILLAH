@@ -287,15 +287,85 @@ export function createCalendarDate(input: any): Date | undefined {
 }
 
 /**
+ * Format date with custom Intl.DateTimeFormat options
+ */
+export function formatToLocalString(input: any, options?: Intl.DateTimeFormatOptions): string {
+  const parseResult = parseUserDate(input);
+  
+  if (!parseResult.success || !parseResult.date) {
+    return 'Format tidak valid';
+  }
+
+  try {
+    // Default options for Indonesian locale
+    const defaultOptions: Intl.DateTimeFormatOptions = {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'Asia/Jakarta'
+    };
+
+    const formatOptions = options ? { ...defaultOptions, ...options } : defaultOptions;
+
+    return new Intl.DateTimeFormat('id-ID', formatOptions).format(parseResult.date);
+  } catch (error) {
+    logger.error('Error formatting date with custom options:', error, input, options);
+    // Fallback to simple format
+    return parseResult.date.toLocaleDateString('id-ID');
+  }
+}
+
+/**
+ * Safe date parsing to Date object
+ */
+export function safeParseToDate(input: any): Date {
+  const parseResult = parseUserDate(input);
+  return parseResult.success && parseResult.date ? parseResult.date : new Date();
+}
+
+/**
+ * Format date to YYYY-MM-DD for database storage
+ */
+export function toYMD(input: any): string {
+  const parseResult = parseUserDate(input);
+  
+  if (!parseResult.success || !parseResult.date) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  try {
+    const date = parseResult.date;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    logger.error('Error formatting date to YYYY-MM-DD:', error, input);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+}
+
+/**
  * Comprehensive date utilities for purchase forms
  */
 export const UserFriendlyDate = {
   parse: parseUserDate,
   format: formatUserDate,
   formatForDB: formatForDatabase,
+  formatToLocalString: formatToLocalString,
   validate: getDateValidationMessage,
   suggest: suggestDateFormat,
   forCalendar: createCalendarDate,
+  safeParseToDate: safeParseToDate,
+  toYMD: toYMD,
   
   // Quick validation check
   isValid: (input: any): boolean => parseUserDate(input).success,

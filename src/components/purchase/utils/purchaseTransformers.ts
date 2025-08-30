@@ -1,6 +1,5 @@
 // src/components/purchase/utils/purchaseTransformers.ts
 import { Purchase, PurchaseItem } from '../types/purchase.types';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 

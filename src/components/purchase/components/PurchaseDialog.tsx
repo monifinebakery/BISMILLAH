@@ -132,43 +132,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     },
   });
 
-  // Lightweight warehouse items fetch (avoid WarehouseContext import)
-  const [warehouseItems, setWarehouseItems] = useState<Array<{ id: string; nama: string; satuan: string; stok: number; harga?: number; hargaRataRata?: number }>>([]);
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user?.id) return;
-        const { data, error } = await supabase
-          .from('bahan_baku')
-          .select('id, nama, satuan, stok, harga_satuan, harga_rata_rata')
-          .eq('user_id', user.id)
-          .order('nama', { ascending: true });
-        if (error) throw error;
-        if (!mounted) return;
-        const items = (data || []).map((row: any) => ({
-          id: row.id,
-          nama: row.nama,
-          satuan: row.satuan,
-          stok: Number(row.stok) || 0,
-          harga: Number(row.harga_satuan) || 0,
-          hargaRataRata: row.harga_rata_rata != null ? Number(row.harga_rata_rata) : undefined,
-        }));
-        setWarehouseItems(items);
-      } catch (_) {
-        // swallow; dialog can still work for manual items
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
 
   // Item management
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
-  
-  // New item form state
-  const [isSelectingExistingItem, setIsSelectingExistingItem] = useState(false);
-  const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
   
   // Calendar modal state
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -241,11 +207,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     toast.success(`${item.nama} berhasil diperbarui`);
   }, [updateItem]);
 
-  // Toggle between new item and existing item selection
-  const toggleSelectionMode = useCallback(() => {
-    setIsSelectingExistingItem(prev => !prev);
-    setSelectedWarehouseItem('');
-  }, []);
 
   // Izinkan edit selama status tidak "Dibatalkan"
   const canEdit = !purchase || purchase.status !== 'cancelled';
@@ -365,14 +326,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             <CardContent className="space-y-6">
               {/* Add New Item Form */}
               <NewItemForm
-                warehouseItems={warehouseItems}
-                isSelectingExistingItem={isSelectingExistingItem}
-                selectedWarehouseItem={selectedWarehouseItem}
                 onAddItem={handleAddNewItem}
-                onUpdateItem={handleUpdateExistingItem}
-                onToggleSelectionMode={toggleSelectionMode}
-                onSelectWarehouseItem={setSelectedWarehouseItem}
-                existingItems={formData.items}
               />
 
               {/* Items Table */}

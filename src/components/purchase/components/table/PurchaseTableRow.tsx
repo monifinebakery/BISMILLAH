@@ -7,6 +7,7 @@ import { getFormattedTotalQuantities } from '../../utils/purchaseHelpers';
 import { Purchase } from '../../types/purchase.types';
 import { StatusDropdown } from './StatusDropdown';
 import { ActionButtons } from './ActionButtons';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 interface PurchaseTableRowProps {
   purchase: Purchase;
@@ -47,14 +48,14 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
       <TableCell>
         <div>
           <div className="font-medium">
-            {new Date(purchase.tanggal).toLocaleDateString('id-ID', {
+            {UserFriendlyDate.formatToLocalString(purchase.tanggal, {
               day: 'numeric',
               month: 'short',
               year: 'numeric'
             })}
           </div>
           <div className="text-xs text-gray-500">
-            {new Date(purchase.createdAt || purchase.tanggal).toLocaleDateString('id-ID')}
+            {UserFriendlyDate.formatToLocalString(purchase.createdAt || purchase.tanggal)}
           </div>
         </div>
       </TableCell>

@@ -1,27 +1,10 @@
 import React from 'react';
 import { getAllTutorials } from '../../data/tutorials/tutorialData';
-import { ChevronRight, Clock, Star, BookOpen, Play } from 'lucide-react';
+import { ChevronRight, Clock, BookOpen, Play } from 'lucide-react';
 
 const TutorialMenu = ({ onSelectTutorial }) => {
   const tutorials = getAllTutorials();
 
-  const getDifficultyColor = (difficulty) => {
-    switch(difficulty) {
-      case 'Pemula': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Menengah': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Lanjutan': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getDifficultyStars = (difficulty) => {
-    switch(difficulty) {
-      case 'Pemula': return 1;
-      case 'Menengah': return 2;
-      case 'Lanjutan': return 3;
-      default: return 1;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 py-4 px-4 sm:px-6 lg:px-8">
@@ -76,16 +59,11 @@ const TutorialMenu = ({ onSelectTutorial }) => {
             >
               <div className="p-4 sm:p-6 lg:p-8">
                 {/* Tutorial Number & Icon */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                      {index + 1}
-                    </div>
-                    <div className="ml-3 text-3xl">{tutorial.icon}</div>
+                <div className="flex items-center mb-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                    {index + 1}
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(tutorial.difficulty)}`}>
-                    {tutorial.difficulty}
-                  </div>
+                  <div className="ml-3 text-3xl">{tutorial.icon}</div>
                 </div>
 
                 {/* Title & Subtitle */}
@@ -97,22 +75,10 @@ const TutorialMenu = ({ onSelectTutorial }) => {
                 </p>
 
                 {/* Meta Info */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center mb-4">
                   <div className="flex items-center text-sm text-gray-500">
                     <Clock size={16} className="mr-2" />
                     <span>{tutorial.duration}</span>
-                  </div>
-                  <div className="flex items-center">
-                    {[...Array(3)].map((_, i) => (
-                      <Star 
-                        key={i}
-                        size={16} 
-                        className={i < getDifficultyStars(tutorial.difficulty) 
-                          ? 'text-yellow-400 fill-current' 
-                          : 'text-gray-300'
-                        }
-                      />
-                    ))}
                   </div>
                 </div>
 
@@ -132,50 +98,52 @@ const TutorialMenu = ({ onSelectTutorial }) => {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">
             🚀 Panduan Cepat Memulai
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 gap-6 lg:gap-8">
             <div>
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                <span className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">1</span>
-                Pemula? Mulai dari sini!
+                <span className="bg-orange-100 text-orange-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">📚</span>
+                Urutan Tutorial yang Disarankan:
               </h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Tutorial 1: Pengenalan HPP dan WAC
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Tutorial 2: Input Data Bahan Baku
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Tutorial 3: Input Biaya Operasional
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                <span className="bg-yellow-100 text-yellow-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold mr-2">2</span>
-                Sudah Paham Dasar?
-              </h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start">
-                  <span className="text-yellow-500 mr-2">✓</span>
-                  Tutorial 4: Membuat Resep Produk
-                </li>
-                <li className="flex items-start">
-                  <span className="text-yellow-500 mr-2">✓</span>
-                  Tutorial 5: Perhitungan HPP Otomatis
-                </li>
-                <li className="flex items-start">
-                  <span className="text-yellow-500 mr-2">✓</span>
-                  Tutorial 6: Analisis Profit dan Margin
-                </li>
-                <li className="flex items-start">
-                  <span className="text-yellow-500 mr-2">✓</span>
-                  Tutorial 7: Strategi Optimasi Profit
-                </li>
-              </ul>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2">Fondasi Dasar:</h4>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-start">
+                      <span className="text-blue-500 mr-2">1️⃣</span>
+                      Pengenalan HPP dan WAC
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-blue-500 mr-2">2️⃣</span>
+                      Input Data Bahan Baku
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-blue-500 mr-2">3️⃣</span>
+                      Input Biaya Operasional
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2">Implementasi & Optimasi:</h4>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-start">
+                      <span className="text-purple-500 mr-2">4️⃣</span>
+                      Membuat Resep Produk
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-purple-500 mr-2">5️⃣</span>
+                      Perhitungan HPP Otomatis
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-purple-500 mr-2">6️⃣</span>
+                      Analisis Profit dan Margin
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-purple-500 mr-2">7️⃣</span>
+                      Strategi Optimasi Profit
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
           

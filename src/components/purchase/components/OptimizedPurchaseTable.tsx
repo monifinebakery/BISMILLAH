@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 // Import our performance optimization utilities
 import {
@@ -118,7 +119,8 @@ ActionButtons.displayName = 'ActionButtons';
 const createPurchaseColumns = (
   onEdit: (purchase: Purchase) => void,
   onDelete: (id: string) => void,
-  onStatusChange: (id: string, status: PurchaseStatus) => void
+  onStatusChange: (id: string, status: PurchaseStatus) => void,
+  getSupplierName: (supplierId: string) => string
 ) => [
   {
     key: 'tanggal',
@@ -127,7 +129,7 @@ const createPurchaseColumns = (
     sortable: true,
     render: (purchase: Purchase) => (
       <span className="text-sm font-medium">
-        {new Date(purchase.tanggal).toLocaleDateString('id-ID')}
+        {UserFriendlyDate.formatToLocalString(purchase.tanggal)}
       </span>
     )
   },
@@ -138,7 +140,7 @@ const createPurchaseColumns = (
     sortable: true,
     render: (purchase: Purchase) => (
       <span className="text-sm text-gray-900">
-        {purchase.supplier}
+        {getSupplierName(purchase.supplier)}
       </span>
     )
   },
@@ -234,7 +236,7 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
   userId
 }) => {
   // Context data
-  const { filteredPurchases, suppliers } = usePurchaseTable();
+  const { filteredPurchases, suppliers, getSupplierName } = usePurchaseTable();
   const { updatePurchase } = usePurchase();
 
   // Performance optimizations
@@ -256,8 +258,9 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
 
       // Handle special cases
       if (sortColumn === 'tanggal') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+        // Use UserFriendlyDate for timezone-safe parsing
+        aValue = UserFriendlyDate.safeParseToDate(aValue).getTime();
+        bValue = UserFriendlyDate.safeParseToDate(bValue).getTime();
       } else if (sortColumn === 'total_nilai') {
         aValue = Number(aValue) || 0;
         bValue = Number(bValue) || 0;
@@ -271,8 +274,8 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
 
   // Memoized table columns
   const columns = useMemo(() => 
-    createPurchaseColumns(onEdit, onDelete, handleStatusChangeOptimistic),
-    [onEdit, onDelete]
+    createPurchaseColumns(onEdit, onDelete, handleStatusChangeOptimistic, getSupplierName),
+    [onEdit, onDelete, getSupplierName]
   );
 
   // ===========================================

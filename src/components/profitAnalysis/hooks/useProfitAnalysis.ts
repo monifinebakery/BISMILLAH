@@ -579,10 +579,8 @@ export const useProfitAnalysis = (
         bahanMapQuery.refetch(),
         pemakaianQuery.refetch()
       ]);
-      toast.success('Data WAC berhasil diperbarui');
     } catch (error) {
       logger.error('❌ Refresh WAC failed:', error);
-      toast.error('Gagal memperbarui data WAC');
     }
   }, [bahanMapQuery, pemakaianQuery]);
 

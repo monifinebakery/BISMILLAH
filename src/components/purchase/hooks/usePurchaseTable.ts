@@ -5,7 +5,8 @@ import { Purchase, PurchaseStatus } from '../types/purchase.types';
 import { 
   searchPurchases, 
   filterPurchasesByStatus, 
-  sortPurchases 
+  sortPurchases,
+  safeGetSupplierName
 } from '../utils/purchaseHelpers';
 
 interface UsePurchaseTableProps {
@@ -77,12 +78,9 @@ export const usePurchaseTable = ({
 
 
 
-  // Helper function to get supplier name
+  // Helper function to get supplier name - using safe resolver
   const getSupplierName = useCallback((supplierId: string): string => {
-    const supplier = suppliers.find(
-      s => s.id === supplierId || s.nama === supplierId
-    );
-    return supplier?.nama || supplierId;
+    return safeGetSupplierName(supplierId, suppliers, 'Supplier Tidak Dikenal');
   }, [suppliers]);
 
   return {

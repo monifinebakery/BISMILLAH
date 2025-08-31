@@ -4,7 +4,6 @@ export const tutorialData = [
     title: "Selamat Datang di Sistem HPP",
     subtitle: "Panduan Lengkap Memulai Perhitungan HPP untuk UMKM",
     duration: "8 menit",
-    difficulty: "Pemula",
     icon: "👋",
     sections: [
       {
@@ -91,7 +90,6 @@ export const tutorialData = [
     title: "Input Data Bahan Baku",
     subtitle: "Langkah Pertama Menghitung HPP",
     duration: "15 menit",
-    difficulty: "Pemula",
     icon: "📋",
     sections: [
       {
@@ -162,7 +160,6 @@ export const tutorialData = [
     title: "Input Biaya Operasional",
     subtitle: "Menghitung Biaya Tak Langsung",
     duration: "12 menit",
-    difficulty: "Pemula",
     icon: "⚡",
     sections: [
       {
@@ -263,7 +260,6 @@ export const tutorialData = [
     title: "Membuat Resep Produk",
     subtitle: "Menentukan Komposisi dan Takaran",
     duration: "20 menit",
-    difficulty: "Menengah",
     icon: "👨‍🍳",
     sections: [
       {
@@ -365,7 +361,6 @@ export const tutorialData = [
     title: "Perhitungan HPP Otomatis",
     subtitle: "Sistem Menghitung HPP untuk Anda",
     duration: "10 menit",
-    difficulty: "Pemula",
     icon: "🧮",
     sections: [
       {
@@ -461,7 +456,6 @@ export const tutorialData = [
     title: "Analisis Profit dan Margin",
     subtitle: "Memahami Keuntungan Usaha Anda",
     duration: "15 menit",
-    difficulty: "Menengah",
     icon: "💰",
     sections: [
       {
@@ -599,7 +593,6 @@ export const tutorialData = [
     title: "Strategi Optimasi Profit",
     subtitle: "Tips Meningkatkan Keuntungan",
     duration: "18 menit",
-    difficulty: "Lanjutan",
     icon: "🚀",
     sections: [
       {

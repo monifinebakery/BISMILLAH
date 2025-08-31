@@ -38,6 +38,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 import { PurchaseDialogProps, PurchaseItem } from '../types/purchase.types';
 import { usePurchaseForm } from '../hooks/usePurchaseForm';
@@ -131,43 +132,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     },
   });
 
-  // Lightweight warehouse items fetch (avoid WarehouseContext import)
-  const [warehouseItems, setWarehouseItems] = useState<Array<{ id: string; nama: string; satuan: string; stok: number; harga?: number; hargaRataRata?: number }>>([]);
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user?.id) return;
-        const { data, error } = await supabase
-          .from('bahan_baku')
-          .select('id, nama, satuan, stok, harga_satuan, harga_rata_rata')
-          .eq('user_id', user.id)
-          .order('nama', { ascending: true });
-        if (error) throw error;
-        if (!mounted) return;
-        const items = (data || []).map((row: any) => ({
-          id: row.id,
-          nama: row.nama,
-          satuan: row.satuan,
-          stok: Number(row.stok) || 0,
-          harga: Number(row.harga_satuan) || 0,
-          hargaRataRata: row.harga_rata_rata != null ? Number(row.harga_rata_rata) : undefined,
-        }));
-        setWarehouseItems(items);
-      } catch (_) {
-        // swallow; dialog can still work for manual items
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
 
   // Item management
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
-  
-  // New item form state
-  const [isSelectingExistingItem, setIsSelectingExistingItem] = useState(false);
-  const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<string>('');
   
   // Calendar modal state
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -240,11 +207,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     toast.success(`${item.nama} berhasil diperbarui`);
   }, [updateItem]);
 
-  // Toggle between new item and existing item selection
-  const toggleSelectionMode = useCallback(() => {
-    setIsSelectingExistingItem(prev => !prev);
-    setSelectedWarehouseItem('');
-  }, []);
 
   // Izinkan edit selama status tidak "Dibatalkan"
   const canEdit = !purchase || purchase.status !== 'cancelled';
@@ -329,7 +291,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span className="truncate">
-                      {formData.tanggal ? format(new Date(formData.tanggal), 'PPP', { locale: id }) : 'Pilih tanggal'}
+                      {formData.tanggal ? UserFriendlyDate.format(formData.tanggal) : 'Pilih tanggal'}
                     </span>
                   </Button>
                   {validation.tanggal && (
@@ -364,14 +326,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             <CardContent className="space-y-6">
               {/* Add New Item Form */}
               <NewItemForm
-                warehouseItems={warehouseItems}
-                isSelectingExistingItem={isSelectingExistingItem}
-                selectedWarehouseItem={selectedWarehouseItem}
                 onAddItem={handleAddNewItem}
-                onUpdateItem={handleUpdateExistingItem}
-                onToggleSelectionMode={toggleSelectionMode}
-                onSelectWarehouseItem={setSelectedWarehouseItem}
-                existingItems={formData.items}
               />
 
               {/* Items Table */}
@@ -611,16 +566,21 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             <div className="dialog-body">
               <Calendar
                 mode="single"
-                selected={formData.tanggal ? new Date(formData.tanggal) : undefined}
+                selected={UserFriendlyDate.forCalendar(formData.tanggal)}
                 onSelect={(date) => {
-                  updateFormField('tanggal', date?.toISOString() || '');
+                  if (date) {
+                    // Use UserFriendlyDate to ensure consistent date handling
+                    const safeDate = UserFriendlyDate.safeParseToDate(date);
+                    updateFormField('tanggal', safeDate);
+                  } else {
+                    updateFormField('tanggal', new Date());
+                  }
                   setIsCalendarOpen(false);
                 }}
                 disabled={(date) => {
-                  const today = UnifiedDateHandler.parseDate(new Date());
-                  const minDate = UnifiedDateHandler.parseDate('1900-01-01');
-                  return date > (today.isValid && today.date ? today.date : new Date()) || 
-                         date < (minDate.isValid && minDate.date ? minDate.date : new Date('1900-01-01'));
+                  const today = new Date();
+                  const minDate = new Date('1900-01-01');
+                  return date > today || date < minDate;
                 }}
                 initialFocus
                 locale={id}

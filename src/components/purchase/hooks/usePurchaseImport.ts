@@ -6,6 +6,7 @@ import { usePurchase } from './usePurchase';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useSupplierAutoSave } from './useSupplierAutoSave';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 // Define the import data structure
 export interface PurchaseImportData {
@@ -83,9 +84,10 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
     if (!data.tanggal) {
       errors.push('Tanggal pembelian tidak boleh kosong');
     } else {
-      const date = new Date(data.tanggal);
-      if (isNaN(date.getTime())) {
-        errors.push('Format tanggal tidak valid');
+      // Use UserFriendlyDate for comprehensive validation
+      const parseResult = UserFriendlyDate.parse(data.tanggal);
+      if (!parseResult.success) {
+        errors.push(`Format tanggal tidak valid: ${parseResult.error || 'Gunakan format DD/MM/YYYY atau YYYY-MM-DD'}`);
       }
     }
 
@@ -317,9 +319,12 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
             }
           }
           
+          // Use UserFriendlyDate for safe parsing
+          const parsedDate = UserFriendlyDate.safeParseToDate(purchaseData.tanggal);
+          
           const purchase = {
             supplier: supplierId,
-            tanggal: new Date(purchaseData.tanggal),
+            tanggal: parsedDate,
             items: purchaseData.items.map(item => {
               // 🔧 AUTOMATIC UNIT PRICE CALCULATION: Same as manual entry
               // Calculate unit price from total payment ÷ quantity

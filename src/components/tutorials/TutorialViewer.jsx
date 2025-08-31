@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Home, Clock, Star, CheckCircle, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, Clock, CheckCircle, RotateCcw } from 'lucide-react';
 import './tutorial.css';
 
 const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
@@ -41,23 +41,6 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
     setIsCompleted(false);
   };
 
-  const getDifficultyColor = (difficulty) => {
-    switch(difficulty) {
-      case 'Pemula': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Menengah': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Lanjutan': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getDifficultyStars = (difficulty) => {
-    switch(difficulty) {
-      case 'Pemula': return 1;
-      case 'Menengah': return 2;
-      case 'Lanjutan': return 3;
-      default: return 1;
-    }
-  };
 
   const progress = ((completedSections.size + (isCompleted ? 1 : 0)) / tutorial.sections.length) * 100;
 
@@ -155,10 +138,6 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
                 <ChevronLeft size={20} className="mr-1" />
                 Kembali ke Menu
               </button>
-              
-              <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(tutorial.difficulty)}`}>
-                {tutorial.difficulty}
-              </div>
             </div>
 
             {/* Tutorial Info */}
@@ -174,22 +153,10 @@ const TutorialViewer = ({ tutorial, onBack, onNextTutorial }) => {
                   </div>
                 </div>
                 
-                <div className="flex items-center mt-4 space-x-6">
+                <div className="flex items-center mt-4">
                   <div className="flex items-center text-sm text-gray-500">
                     <Clock size={16} className="mr-2" />
                     <span>{tutorial.duration}</span>
-                  </div>
-                  <div className="flex items-center">
-                    {[...Array(3)].map((_, i) => (
-                      <Star 
-                        key={i}
-                        size={16} 
-                        className={i < getDifficultyStars(tutorial.difficulty) 
-                          ? 'text-yellow-400 fill-current' 
-                          : 'text-gray-300'
-                        }
-                      />
-                    ))}
                   </div>
                 </div>
               </div>

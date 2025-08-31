@@ -1,7 +1,7 @@
 // src/components/purchase/services/purchaseApi.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { UnifiedDateHandler, PurchaseDateUtils } from '@/utils/unifiedDateHandler';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 import type { Purchase } from '../types/purchase.types';
 import {
   transformPurchasesFromDB,

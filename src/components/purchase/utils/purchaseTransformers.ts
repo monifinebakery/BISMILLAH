@@ -1,12 +1,20 @@
 // src/components/purchase/utils/purchaseTransformers.ts
 import { Purchase, PurchaseItem } from '../types/purchase.types';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
-/** Helper: format ke 'YYYY-MM-DD' untuk kolom DATE di DB */
-const toYMD = (d: Date | string): string => {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  return date.toISOString().slice(0, 10);
+/** Helper: format ke 'YYYY-MM-DD' untuk kolom DATE di DB using UserFriendlyDate */
+const toYMD = (d: Date | string | null | undefined): string => {
+  if (!d) return UserFriendlyDate.toYMD(new Date());
+  
+  try {
+    // Use UserFriendlyDate for safe parsing and formatting
+    const parsedDate = UserFriendlyDate.safeParseToDate(d);
+    return UserFriendlyDate.toYMD(parsedDate);
+  } catch (error) {
+    logger.error('Error in toYMD conversion:', error, d);
+    return UserFriendlyDate.toYMD(new Date());
+  }
 };
 
 /** ==== Helpers untuk packaging & harga ==== */
@@ -76,8 +84,34 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
   try {
     const row = dbItem as DbPurchaseRow;
 
+    // 🔍 DEBUG: Log raw purchase data for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 [TRANSFORM] Raw purchase data from DB:', {
+        id: row.id,
+        supplier: row.supplier,
+        total_nilai: row.total_nilai,
+        items_raw: row.items,
+        items_type: typeof row.items,
+        items_is_array: Array.isArray(row.items),
+        items_length: Array.isArray(row.items) ? row.items.length : 'not array',
+        items_string_length: typeof row.items === 'string' ? row.items.length : 'not string'
+      });
+      
+      // Additional debugging for items
+      if (Array.isArray(row.items)) {
+        console.log('🔍 [TRANSFORM] Items array details:', row.items.map((item, idx) => ({
+          index: idx,
+          raw: item,
+          nama: item?.nama,
+          bahan_baku_id: item?.bahan_baku_id,
+          jumlah: item?.jumlah,
+          harga_per_satuan: item?.harga_per_satuan
+        })));
+      }
+    }
+
     const items: PurchaseItem[] = Array.isArray(row.items)
-      ? row.items.map((i: any) => {
+      ? row.items.map((i: any, itemIndex: number) => {
           // dukung key lama & baru
           const qtyBase = toNumber(i.qty_base ?? i.jumlah ?? i.kuantitas);
           const baseUnit = i.base_unit ?? i.satuan ?? '';
@@ -105,21 +139,48 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
             base_unit: baseUnit,
             harga_per_satuan: hargaPerSatuan,
           };
+          
+          // 🔍 DEBUG: Log each item transformation
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`🔍 [TRANSFORM] Item ${itemIndex} transformation:`, {
+              input: i,
+              output: out,
+              nama_empty: !out.nama || out.nama === '',
+              kuantitas_zero: out.kuantitas === 0,
+              harga_zero: out.hargaSatuan === 0
+            });
+          }
+          
           return out as PurchaseItem;
         })
       : [];
+      
+    // 🔍 DEBUG: Log final transformed items
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 [TRANSFORM] Final transformed items for purchase:', row.id, {
+        items_count: items.length,
+        items_summary: items.map(item => ({
+          nama: item.nama,
+          kuantitas: item.kuantitas,
+          hargaSatuan: item.hargaSatuan,
+          has_nama: !!item.nama && item.nama !== '',
+          has_quantity: item.kuantitas > 0,
+          has_price: item.hargaSatuan > 0
+        }))
+      });
+    }
 
     return {
       id: row.id,
       userId: row.user_id,
       supplier: row.supplier,
-      tanggal: safeParseDate(row.tanggal) ?? new Date(),
+      tanggal: UserFriendlyDate.safeParseToDate(row.tanggal),
       totalNilai: Number(row.total_nilai ?? 0),
       items,
       status: row.status,
       metodePerhitungan: row.metode_perhitungan,
-      createdAt: safeParseDate(row.created_at) ?? new Date(),
-      updatedAt: safeParseDate(row.updated_at) ?? new Date(),
+      createdAt: UserFriendlyDate.safeParseToDate(row.created_at),
+      updatedAt: UserFriendlyDate.safeParseToDate(row.updated_at),
     };
   } catch (error) {
     logger.error('Error transforming purchase from DB:', error);

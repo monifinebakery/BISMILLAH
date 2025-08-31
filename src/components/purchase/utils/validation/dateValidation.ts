@@ -1,25 +1,23 @@
 // src/components/purchase/utils/validation/dateValidation.ts
 
 import { FieldValidation, ValidationResult, DateConstraints } from './types';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 /**
- * Validate purchase date
+ * Enhanced purchase date validation with user-friendly error messages
  */
-export const validatePurchaseDate = (tanggal?: Date): FieldValidation => {
-  if (!tanggal) {
+export const validatePurchaseDate = (tanggal?: Date | string): FieldValidation => {
+  // Use UserFriendlyDate for comprehensive parsing
+  const parseResult = UserFriendlyDate.parse(tanggal);
+  
+  if (!parseResult.success) {
     return {
       isValid: false,
-      error: 'Tanggal pembelian harus diisi',
+      error: parseResult.error || 'Format tanggal tidak valid',
     };
   }
 
-  if (!(tanggal instanceof Date) || isNaN(tanggal.getTime())) {
-    return {
-      isValid: false,
-      error: 'Format tanggal tidak valid',
-    };
-  }
-
+  const date = parseResult.date!;
   const now = new Date();
   const oneYearFromNow = new Date();
   oneYearFromNow.setFullYear(now.getFullYear() + 1);
@@ -28,7 +26,7 @@ export const validatePurchaseDate = (tanggal?: Date): FieldValidation => {
   oneYearAgo.setFullYear(now.getFullYear() - 1);
 
   // Check if date is too far in the future
-  if (tanggal > oneYearFromNow) {
+  if (date > oneYearFromNow) {
     return {
       isValid: false,
       error: 'Tanggal pembelian tidak boleh lebih dari 1 tahun ke depan',
@@ -36,15 +34,15 @@ export const validatePurchaseDate = (tanggal?: Date): FieldValidation => {
   }
 
   // Check if date is too far in the past
-  if (tanggal < oneYearAgo) {
+  if (date < oneYearAgo) {
     return {
       isValid: true,
       warning: 'Tanggal pembelian lebih dari 1 tahun yang lalu',
     };
   }
 
-  // Check if date is in the future
-  if (tanggal > now) {
+  // Check if date is in the future (allow future dates but warn)
+  if (date > now) {
     return {
       isValid: true,
       warning: 'Tanggal pembelian adalah tanggal masa depan',

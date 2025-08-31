@@ -6,9 +6,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Purchase } from '../../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
-import { getSupplierName, getFormattedTotalQuantities } from '../../utils/purchaseHelpers';
+import { getFormattedTotalQuantities } from '../../utils/purchaseHelpers';
 import { StatusDropdown } from './StatusDropdown';
 import { ActionButtons } from './ActionButtons';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 interface PurchaseTableRowProps {
   purchase: Purchase;
@@ -19,6 +20,7 @@ interface PurchaseTableRowProps {
   onEdit: (purchase: Purchase) => void;
   onDelete: (purchase: Purchase) => void;
   onStatusChange: (purchaseId: string, newStatus: any) => Promise<void>;
+  getSupplierName: (supplierId: string) => string;
 }
 
 export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
@@ -30,6 +32,7 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
   onEdit,
   onDelete,
   onStatusChange,
+  getSupplierName,
 }) => {
   return (
     <TableRow className="hover:bg-gray-50">
@@ -44,14 +47,14 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
       <TableCell>
         <div>
           <div className="font-medium">
-            {new Date(purchase.tanggal).toLocaleDateString('id-ID', {
+            {UserFriendlyDate.formatToLocalString(purchase.tanggal, {
               day: 'numeric',
               month: 'short',
               year: 'numeric'
             })}
           </div>
           <div className="text-xs text-gray-500">
-            {new Date(purchase.createdAt || purchase.tanggal).toLocaleDateString('id-ID')}
+            {UserFriendlyDate.formatToLocalString(purchase.createdAt || purchase.tanggal)}
           </div>
         </div>
       </TableCell>

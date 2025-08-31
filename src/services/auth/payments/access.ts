@@ -26,7 +26,16 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
     // ✅ STEP 1: Check if user has linked payment (ONLY linked payments)
     const { data: linkedPayments, error: linkedError } = await supabase
       .from('user_payments')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        order_id,
+        email,
+        payment_status,
+        is_paid,
+        created_at,
+        updated_at
+      `)
       .eq('user_id', user.id)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
@@ -64,7 +73,17 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
     // ✅ STEP 2: Check for unlinked payments - NO AUTO-LINK
     const { data: unlinkedPayments, error: unlinkedError } = await supabase
       .from('user_payments')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        order_id,
+        email,
+        payment_status,
+        is_paid,
+        amount,
+        pg_reference_id,
+        created_at
+      `)
       .eq('email', user.email)
       .is('user_id', null)
       .eq('is_paid', true)

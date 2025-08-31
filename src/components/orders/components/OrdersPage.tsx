@@ -378,7 +378,7 @@ const OrdersPage: React.FC = () => {
           })
           .eq('id', orderId)
           .eq('user_id', user.user.id)
-          .select('*') // ✅ Get full order data for financial sync
+          .select(`\n          id,\n          nomor_pesanan,\n          tanggal,\n          nama_pelanggan,\n          telepon_pelanggan,\n          email_pelanggan,\n          alamat_pengiriman,\n          status,\n          total_pesanan,\n          catatan,\n          items,\n          created_at,\n          updated_at\n        `)         id,\n          nomor_pesanan,\n          tanggal,\n          nama_pelanggan,\n          telepon_pelanggan,\n          email_pelanggan,\n          alamat_pengiriman,\n          status,\n          total_pesanan,\n          catatan,\n          items,\n          created_at,\n          updated_at\n        `) // ✅ Get full order data for financial sync
           .single();
 
         if (error) {

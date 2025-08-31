@@ -71,7 +71,21 @@ export async function fetchOrdersPaginated(
     const offset = (page - 1) * limit;
     const { data, error } = await supabase
       .from('orders')
-      .select('*')
+      .select(`
+        id,
+        nomor_pesanan,
+        tanggal,
+        nama_pelanggan,
+        telepon_pelanggan,
+        email_pelanggan,
+        alamat_pengiriman,
+        status,
+        total_pesanan,
+        catatan,
+        items,
+        created_at,
+        updated_at
+      `)
       .eq('user_id', userId)
       .order('tanggal', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -133,7 +147,21 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
         // Fallback: if it's still UUID, fetch the order
         const { data: orderData, error: fetchError } = await supabase
           .from('orders')
-          .select('*')
+          .select(`
+            id,
+            nomor_pesanan,
+            tanggal,
+            nama_pelanggan,
+            telepon_pelanggan,
+            email_pelanggan,
+            alamat_pengiriman,
+            status,
+            total_pesanan,
+            catatan,
+            items,
+            created_at,
+            updated_at
+          `)
           .eq('id', data)
           .single();
           
@@ -177,7 +205,21 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
   const { data, error } = await supabase
     .from('orders')
     .insert(insertData)
-    .select('*')
+    .select(`
+      id,
+      nomor_pesanan,
+      tanggal,
+      nama_pelanggan,
+      telepon_pelanggan,
+      email_pelanggan,
+      alamat_pengiriman,
+      status,
+      total_pesanan,
+      catatan,
+      items,
+      created_at,
+      updated_at
+    `)
     .single();
 
   if (error) {
@@ -195,7 +237,21 @@ export async function updateOrder(userId: string, id: string, updatedData: Parti
     .update(transformOrderToDB(updatedData))
     .eq('id', id)
     .eq('user_id', userId)
-    .select('*')
+    .select(`
+      id,
+      nomor_pesanan,
+      tanggal,
+      nama_pelanggan,
+      telepon_pelanggan,
+      email_pelanggan,
+      alamat_pengiriman,
+      status,
+      total_pesanan,
+      catatan,
+      items,
+      created_at,
+      updated_at
+    `)
     .single();
 
   if (error) {
@@ -232,7 +288,21 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
     .update({ status: validatedStatus, updated_at: new Date().toISOString() })
     .eq('id', orderIdStr)
     .eq('user_id', userIdStr)
-    .select('*')
+    .select(`
+      id,
+      nomor_pesanan,
+      tanggal,
+      nama_pelanggan,
+      telepon_pelanggan,
+      email_pelanggan,
+      alamat_pengiriman,
+      status,
+      total_pesanan,
+      catatan,
+      items,
+      created_at,
+      updated_at
+    `)
     .single();
 
   if (error) {

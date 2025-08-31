@@ -57,17 +57,66 @@ const baseUnits = [
   { value: 'meter', label: 'meter', category: 'Panjang', baseUnit: 'meter', multiplier: 1 },
 ];
 
+// Helper function to fetch suppliers with ID and name for mapping
+const fetchSuppliersWithMapping = async (): Promise<{ id: string; nama: string }[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      logger.warn('No user found for fetching suppliers');
+      return [];
+    }
+    
+    const { data: suppliers, error } = await supabase
+      .from('suppliers')
+      .select('id, nama')
+      .eq('user_id', user.id)
+      .order('nama');
+      
+    if (error) {
+      logger.error('Failed to fetch suppliers from table:', error);
+      return [];
+    }
+    
+    return suppliers || [];
+  } catch (error) {
+    logger.error('Failed to fetch suppliers with mapping:', error);
+    return [];
+  }
+};
+
+// Helper function to resolve supplier ID to name
+const resolveSupplierIdToName = (supplierId: string, suppliersList: { id: string; nama: string }[]): string => {
+  if (!supplierId) return '';
+  
+  // If it's already a name (not UUID format), return as is
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(supplierId)) {
+    return supplierId;
+  }
+  
+  // Find supplier by ID
+  const supplier = suppliersList.find(s => s.id === supplierId);
+  return supplier ? supplier.nama : supplierId; // Fallback to ID if not found
+};
+
+// Helper function to resolve supplier name to ID for saving
+const resolveSupplierNameToId = (supplierName: string, suppliersList: { id: string; nama: string }[]): string => {
+  if (!supplierName) return '';
+  
+  // Find supplier by name
+  const supplier = suppliersList.find(s => s.nama === supplierName);
+  return supplier ? supplier.id : supplierName; // Fallback to name if not found
+};
+
 const fetchDialogData = async (type: 'categories' | 'suppliers'): Promise<string[]> => {
   try {
     if (type === 'categories') {
       return [...FNB_COGS_CATEGORIES];
     }
-    const { data: { user } } = await supabase.auth.getUser();
-    const service = await warehouseApi.createService('crud', { userId: user?.id });
-    const items = await service.fetchBahanBaku();
-    const field = 'supplier';
-    const values = [...new Set(items.map(item => item[field]).filter(Boolean))];
-    return values.sort();
+    
+    // Fetch suppliers from suppliers table and return names only
+    const suppliers = await fetchSuppliersWithMapping();
+    return suppliers.map(s => s.nama).filter(Boolean);
   } catch (error) {
     logger.error(`Failed to fetch ${type}:`, error);
     return type === 'categories' ? [...FNB_COGS_CATEGORIES] : [];
@@ -94,34 +143,53 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   const isEditMode = mode === 'edit' || !!item;
 
+  // Query untuk daftar suppliers (nama saja untuk dropdown)
   const { data: queriedSuppliers = [], isLoading: suppliersLoading, refetch: refetchSuppliers } = useQuery({
     queryKey: ['dialog-suppliers'],
     queryFn: () => fetchDialogData('suppliers'),
     enabled: isOpen,
     staleTime: 5 * 60 * 1000,
   });
+  
+  // Query untuk mapping supplier ID ke nama (untuk resolve existing data)
+  const { data: suppliersMapping = [] } = useQuery({
+    queryKey: ['dialog-suppliers-mapping'],
+    queryFn: fetchSuppliersWithMapping,
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000,
+  });
+  
   const availableCategories = [...FNB_COGS_CATEGORIES];
   const availableSuppliers = queriedSuppliers.length > 0 ? queriedSuppliers : propSuppliers;
 
   useEffect(() => {
     if (isEditMode && item) {
+      // Resolve supplier ID to name for display
+      const resolvedSupplierName = suppliersMapping.length > 0 
+        ? resolveSupplierIdToName(item.supplier || '', suppliersMapping)
+        : item.supplier || '';
+        
+      logger.debug('Resolving supplier for edit mode:', {
+        originalSupplier: item.supplier,
+        resolvedSupplierName,
+        mappingCount: suppliersMapping.length
+      });
+      
       setFormData({
         nama: item.nama || '',
         kategori: item.kategori || '',
-        supplier: item.supplier || '',
+        supplier: resolvedSupplierName,
         stok: Number(item.stok) || 0,
         minimum: Number(item.minimum) || 0,
         satuan: item.satuan || '',
         harga: Number(item.harga) || 0,
         expiry: item.expiry ? item.expiry.split('T')[0] : '',
       });
-
-      // Price suggestion removed
     } else {
       setFormData(initialFormData);
     }
     setErrors([]);
-  }, [isEditMode, item, isOpen]);
+  }, [isEditMode, item, isOpen, suppliersMapping]);
 
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -151,10 +219,21 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
     setIsSubmitting(true);
     try {
+      // Resolve supplier name back to ID for saving
+      const resolvedSupplierId = suppliersMapping.length > 0 
+        ? resolveSupplierNameToId(formData.supplier.trim(), suppliersMapping)
+        : formData.supplier.trim();
+        
+      logger.debug('Resolving supplier for submission:', {
+        supplierName: formData.supplier.trim(),
+        resolvedSupplierId,
+        mappingCount: suppliersMapping.length
+      });
+      
       const submitData = {
         nama: formData.nama.trim(),
         kategori: formData.kategori.trim(),
-        supplier: formData.supplier.trim(),
+        supplier: resolvedSupplierId,
         stok: formData.stok,
         minimum: formData.minimum,
         satuan: formData.satuan.trim(),

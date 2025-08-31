@@ -34,7 +34,14 @@ const MandatoryUpgradeModal = () => {
         // Check if payment record already exists
         const { data: existingPayment } = await supabase
           .from('user_payments')
-          .select('*')
+          .select(`
+            id,
+            user_id,
+            order_id,
+            email,
+            payment_status,
+            is_paid
+          `)
           .eq('user_id', user.id)
           .single();
 

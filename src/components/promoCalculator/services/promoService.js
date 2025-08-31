@@ -11,7 +11,7 @@ export const promoService = {
 
       let query = supabase
         .from('promos')
-        .select('*')
+        .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
         .eq('user_id', user.id);
 
       // Apply search filter
@@ -77,9 +77,9 @@ export const promoService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+.select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `){ data, error } = await supabase
         .from('promos')
-        .select('*')
+        .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)
         .eq('id', id)
         .eq('user_id', user.id)
         .single();

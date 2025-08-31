@@ -78,7 +78,7 @@ const fetchPromos = async (userId: string): Promise<Promo[]> => {
   
   const { data, error } = await supabase
     .from('promos')
-    .select('*')
+    .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 

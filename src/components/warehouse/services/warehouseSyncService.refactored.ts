@@ -355,7 +355,15 @@ export class WarehouseSyncService {
     try {
       const { data, error } = await supabase
         .from('bahan_baku')
-        .select('*')
+        .select(`
+          id,
+          nama,
+          stok,
+          harga_satuan,
+          harga_rata_rata,
+          satuan,
+          updated_at
+        `)
         .eq('user_id', this.userId);
 
       if (error) throw error;
@@ -373,8 +381,23 @@ export class WarehouseSyncService {
   private async getCompletedPurchases(): Promise<Purchase[]> {
     try {
       const { data, error } = await supabase
-        .from('purchases')
-        .select('*')
+        .from('user_warehouse_items')
+        .select(`
+          id,
+          user_id,
+          name,
+          stock,
+          unit_price,
+          average_cost,
+          unit,
+          category
+        `)
+        .eq('user_id', userId);
+    status,
+          items,
+          tanggal,
+          created_at
+        `)
         .eq('user_id', this.userId)
         .eq('status', 'completed');
 
@@ -619,7 +642,7 @@ export class WarehouseSyncService {
       // Get current item data
       const { data: currentItem, error: itemError } = await supabase
         .from('bahan_baku')
-        .select('*')
+        .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)         id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
         .eq('id', itemId)
         .eq('user_id', this.userId)
         .single();

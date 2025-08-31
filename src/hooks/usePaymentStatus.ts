@@ -61,7 +61,7 @@ export const usePaymentStatus = () => {
       // ✅ STEP 1: Check for LINKED payments only
       const { data: linkedPayments, error: linkedError } = await supabase
         .from('user_payments')
-        .select('*')
+        .select(`\n          id,\n          user_id,\n          order_id,\n          email,\n          payment_status,\n          is_paid,\n          pg_reference_id,\n          created_at,\n          amount\n        `)         id,\n          user_id,\n          order_id,\n          email,\n          payment_status,\n          is_paid,\n          pg_reference_id,\n          created_at,\n          amount\n        `)
         .eq('user_id', user.id)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -92,12 +92,12 @@ export const usePaymentStatus = () => {
 
       // ✅ STEP 2: Check for UNLINKED payments (SIMPLIFIED - only by email)
       if (process.env.NODE_ENV === 'development') {
-        logger.hook('usePaymentStatus', 'Checking for unlinked payments...');
+        log.select(`\n          id,\n          user_id,\n          order_id,\n          email,\n          payment_status,\n          is_paid,\n          pg_reference_id,\n          created_at,\n          amount\n        `)ePaymentStatus', 'Checking for unlinked payments...');
       }
       
       const { data: unlinkedPayments, error: unlinkedError } = await supabase
         .from('user_payments')
-        .select('*')
+        .select(`\n          id,\n          user_id,\n          order_id,\n          email,\n          payment_status,\n          is_paid,\n          pg_reference_id,\n          created_at,\n          amount\n        `)
         .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')

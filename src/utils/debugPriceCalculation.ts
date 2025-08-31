@@ -19,7 +19,7 @@ export const debugPriceCalculation = async () => {
     console.log('\n📦 [DEBUG] Checking warehouse items...');
     const { data: warehouseItems, error: warehouseError } = await supabase
       .from('bahan_baku')
-      .select('*')
+      .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
       .eq('user_id', user.id);
 
     if (warehouseError) {
@@ -40,9 +40,9 @@ export const debugPriceCalculation = async () => {
 
     // 2. Check purchases
     console.log('\n💰 [DEBUG] Checking purchases...');
-    const { data: purchases, error: purchaseError } = await supabase
+    const { data: purch.select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `) purchaseError } = await supabase
       .from('purchases')
-      .select('*')
+      .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 

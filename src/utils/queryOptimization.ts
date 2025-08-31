@@ -271,7 +271,7 @@ const { data } = await supabase
 import { QueryPerformanceTracker } from '@/utils/queryOptimization';
 
 const start = performance.now();
-const { data } = await supabase.from('purchases').select('*');
+const { data } = await supabase.from('purchases').select(`\n          id,\n          nomor_pesanan,\n          tanggal,\n          nama_pelanggan,\n          telepon_pelanggan,\n          email_pelanggan,\n          alamat_pengiriman,\n          status,\n          total_pesanan,\n          catatan,\n          items,\n          created_at,\n          updated_at\n        `)         id,\n          nomor_pesanan,\n          tanggal,\n          nama_pelanggan,\n          telepon_pelanggan,\n          email_pelanggan,\n          alamat_pengiriman,\n          status,\n          total_pesanan,\n          catatan,\n          items,\n          created_at,\n          updated_at\n        `);
 const end = performance.now();
 QueryPerformanceTracker.trackQuery('purchases:fetchAll', end - start);
 

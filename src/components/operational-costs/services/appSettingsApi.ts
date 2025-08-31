@@ -34,7 +34,15 @@ export const appSettingsApi = {
 
       const { data, error } = await supabase
         .from('app_settings')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          target_output_monthly,
+          overhead_per_pcs,
+          operasional_per_pcs,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', userId)
         .maybeSingle();
 

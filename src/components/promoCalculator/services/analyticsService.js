@@ -9,7 +9,7 @@ export const analyticsService = {
       // For now, we'll simulate analytics data
       const { data: promos, error } = await supabase
         .from('promos')
-        .select('*')
+        .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
         .eq('user_id', user.id);
 
       if (error) throw error;
@@ -76,9 +76,9 @@ export const analyticsService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+.select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `){ data, error } = await supabase
         .from('promos')
-        .select('*')
+        .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)
         .eq('id', promoId)
         .eq('user_id', user.id)
         .single();

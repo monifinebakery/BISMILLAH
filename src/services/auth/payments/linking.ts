@@ -106,7 +106,16 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     // ✅ STEP 1: Check if already linked to this user (FIXED)
     const { data: existingLink, error: existingError } = await supabase
       .from('user_payments')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        order_id,
+        email,
+        payment_status,
+        is_paid,
+        created_at,
+        updated_at
+      `)
       .eq('order_id', orderId.trim())
       .eq('user_id', finalUserId) // ✅ FIXED: Use sanitized ID
       .limit(1);
@@ -121,7 +130,17 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
     // ✅ STEP 2: Find unlinked payment
     const { data: payments, error: findError } = await supabase
       .from('user_payments')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        order_id,
+        email,
+        payment_status,
+        is_paid,
+        amount,
+        pg_reference_id,
+        created_at
+      `)
       .eq('order_id', orderId.trim())
       .is('user_id', null)
       .eq('is_paid', true)
@@ -185,7 +204,17 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
       .from('user_payments')
       .update(updateData)
       .eq('id', payment.id)
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        order_id,
+        email,
+        payment_status,
+        is_paid,
+        amount,
+        created_at,
+        updated_at
+      `)
       .single();
 
     if (updateError) {
@@ -276,7 +305,16 @@ export const checkUserHasPayment = async (email: string, userId: string): Promis
     
     const { data, error } = await supabase
       .from('user_payments')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        order_id,
+        email,
+        payment_status,
+        is_paid,
+        amount,
+        created_at
+      `)
       .eq('email', email)
       .eq('user_id', sanitizedUserId) // ✅ Use sanitized ID
       .eq('is_paid', true)
@@ -311,7 +349,13 @@ export const debugConstraintIssue = async (email: string, userId: string) => {
     
     const { data: emailPayments } = await supabase
       .from('user_payments')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        order_id,
+        email,
+        created_at
+      `)
       .eq('email', email);
     
     // ✅ Use sanitized ID if valid, otherwise skip user query
@@ -319,7 +363,13 @@ export const debugConstraintIssue = async (email: string, userId: string) => {
     if (sanitizedUserId) {
       const { data } = await supabase
         .from('user_payments')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          order_id,
+          email,
+          created_at
+        `)
         .eq('user_id', sanitizedUserId);
       userPayments = data;
     }

@@ -698,7 +698,17 @@ const getWarehouseData = async (userId: string) => {
     // Use direct Supabase query instead of warehouse API
     const { data, error } = await supabase
       .from('bahan_baku')
-      .select('*')
+      .select(`
+        id,
+        nama,
+        harga_satuan,
+        harga_rata_rata,
+        stok,
+        satuan,
+        kategori,
+        created_at,
+        updated_at
+      `)
       .eq('user_id', userId);
       
     if (error) throw error;

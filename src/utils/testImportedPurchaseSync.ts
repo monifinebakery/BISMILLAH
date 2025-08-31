@@ -15,7 +15,7 @@ export const testImportedPurchaseSync = async () => {
     // Look for imported purchases (those with [IMPORTED] in item descriptions)
     const { data: purchases } = await supabase
       .from('purchases')
-      .select('*')
+      .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)         id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
       .eq('user_id', user.id);
 
     if (!purchases || purchases.length === 0) {
@@ -41,13 +41,12 @@ export const testImportedPurchaseSync = async () => {
     }
 
     const testPurchase = importedPurchases[0];
-    console.log('🔍 [IMPORTED TEST] Testing with purchase:', testPurchase.id);
-    console.log('🔍 [IMPORTED TEST] Purchase items:', testPurchase.items);
+    console.log('🔍 [IMPORTED TEST] Testing with purchase:', testPurchase.select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)nsole.log('🔍 [IMPORTED TEST] Purchase items:', testPurchase.items);
 
     // Check warehouse before
     const { data: warehouseBefore } = await supabase
       .from('bahan_baku')
-      .select('*')
+      .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
       .eq('user_id', user.id);
     
     console.log('🏪 [IMPORTED TEST] Warehouse before:', warehouseBefore?.map(item => ({
@@ -61,7 +60,7 @@ export const testImportedPurchaseSync = async () => {
     await PurchaseApiService.setPurchaseStatus(testPurchase.id, user.id, 'pending');
     
     console.log('🔄 [IMPORTED TEST] Now setting purchase to completed (should force sync)...');
-    const result = await PurchaseApiService.setPurchaseStatus(testPurchase.id, user.id, 'completed');
+    const result = await PurchaseApiS.select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)rchaseStatus(testPurchase.id, user.id, 'completed');
     
     if (result.success) {
       console.log('✅ [IMPORTED TEST] Status updated successfully');
@@ -72,7 +71,7 @@ export const testImportedPurchaseSync = async () => {
       // Check warehouse after
       const { data: warehouseAfter } = await supabase
         .from('bahan_baku')
-        .select('*')
+        .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
         .eq('user_id', user.id);
       
       console.log('🏪 [IMPORTED TEST] Warehouse after:', warehouseAfter?.map(item => ({
@@ -93,7 +92,7 @@ export const testImportedPurchaseSync = async () => {
         });
         
         if (!hasChanges) {
-          console.warn('⚠️ [IMPORTED TEST] No stock changes detected - sync may have failed');
+   .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)le.warn('⚠️ [IMPORTED TEST] No stock changes detected - sync may have failed');
         }
       }
       
@@ -113,7 +112,7 @@ const createTestImportedPurchase = async (userId: string) => {
     // Get or create a warehouse item to test with
     let { data: warehouseItem } = await supabase
       .from('bahan_baku')
-      .select('*')
+      .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
       .eq('user_id', userId)
       .limit(1)
       .single();

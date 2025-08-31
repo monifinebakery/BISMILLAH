@@ -97,7 +97,7 @@ const fetchTemplates = async (userId: string): Promise<Record<string, string>> =
   
   const { data, error } = await supabase
     .from('followup_templates')
-    .select('*')
+    .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
     .eq('user_id', userId);
   
   if (error) {

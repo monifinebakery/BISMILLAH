@@ -177,7 +177,16 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
           // ✅ DEBUG: First check if payment exists and is unlinked
           const { data: checkData, error: checkError } = await supabaseClient
             .from('user_payments')
-            .select('*')
+            .select(`
+              id,
+              user_id,
+              order_id,
+              email,
+              payment_status,
+              is_paid,
+              pg_reference_id,
+              created_at
+            `)
             .eq('order_id', payment.order_id);
 
           logger.debug('AutoLinkingPopup: Pre-update check:', {
@@ -224,7 +233,16 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             .update(updateData)
             .eq('order_id', payment.order_id)
             .is('user_id', null) // ✅ SAFETY: Only update if still unlinked
-            .select('*');
+            .select(`
+              id,
+              user_id,
+              order_id,
+              email,
+              payment_status,
+              is_paid,
+              created_at,
+              updated_at
+            `);
 
           logger.debug('AutoLinkingPopup: Update result:', {
             order_id: payment.order_id,
@@ -265,7 +283,14 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             // ✅ DEBUG: Check why no rows were updated
             const { data: recheckData } = await supabaseClient
               .from('user_payments')
-              .select('*')
+              .select(`
+                id,
+                user_id,
+                order_id,
+                email,
+                payment_status,
+                is_paid
+              `)
               .eq('order_id', payment.order_id);
 
             logger.debug('AutoLinkingPopup: Recheck after failed update:', {

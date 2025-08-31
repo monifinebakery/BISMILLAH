@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.15.0",
   "scripts": {
     "dev": "vite --port 5174 --strictPort",
     "dev:5173": "vite --port 5173",    
@@ -15,9 +16,9 @@
     "analyze:server": "cross-env VITE_ANALYZE=true vite build && vite preview --port 5500",
     "lint": "eslint .",
     "clean": "rm -rf node_modules/.vite dist",
-    "clean:all": "rm -rf node_modules .vite dist package-lock.json pnpm-lock.yaml",
-    "check-deps": "npm ls react react-dom || pnpm ls react react-dom",
-    "check-react": "npm ls | grep react || pnpm ls | grep react",
+    "clean:all": "rm -rf node_modules .vite dist pnpm-lock.yaml",
+    "check-deps": "pnpm ls react react-dom",
+    "check-react": "pnpm ls | grep react",
     "push": "./auto-push.sh",
     "push:quick": "git add -A && git commit -m '🚀 Quick update' && git push",
     "push:msg": "./auto-push.sh"

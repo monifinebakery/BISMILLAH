@@ -31,11 +31,11 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   const [enhancedHppResult, setEnhancedHppResult] = React.useState<EnhancedHPPCalculationResult | null>(null);
   const [isEnhancedMode, setIsEnhancedMode] = React.useState(true); // Default to enhanced mode
 
-  // Manual selling price state
-  const [isManualPricingMode, setIsManualPricingMode] = React.useState(false);
+  // Manual selling price state - get from form data
+  const [isManualPricingMode, setIsManualPricingMode] = React.useState(data.isManualPricingEnabled || false);
   const [manualPrices, setManualPrices] = React.useState({
-    hargaJualPorsi: 0,
-    hargaJualPerPcs: 0,
+    hargaJualPorsi: data.manualSellingPricePerPortion || 0,
+    hargaJualPerPcs: data.manualSellingPricePerPiece || 0,
   });
 
   // Handle enhanced HPP result updates
@@ -189,7 +189,25 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                   type="button"
                   variant={isManualPricingMode ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setIsManualPricingMode(!isManualPricingMode)}
+                  onClick={() => {
+                    const newMode = !isManualPricingMode;
+                    setIsManualPricingMode(newMode);
+                    onUpdate('isManualPricingEnabled', newMode);
+                    
+                    if (newMode) {
+                      // Enable manual mode - sync current values to database fields
+                      onUpdate('manualSellingPricePerPortion', manualPrices.hargaJualPorsi);
+                      onUpdate('manualSellingPricePerPiece', manualPrices.hargaJualPerPcs);
+                    } else {
+                      // Disable manual mode - clear database fields and use auto prices
+                      onUpdate('manualSellingPricePerPortion', 0);
+                      onUpdate('manualSellingPricePerPiece', 0);
+                      if (enhancedHppResult) {
+                        onUpdate('hargaJualPorsi', enhancedHppResult.hargaJualPerPorsi);
+                        onUpdate('hargaJualPerPcs', enhancedHppResult.hargaJualPerPcs);
+                      }
+                    }
+                  }}
                   className="text-xs h-7 px-3"
                 >
                   {isManualPricingMode ? (
@@ -243,6 +261,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                           const value = parseFloat(e.target.value) || 0;
                           setManualPrices(prev => ({ ...prev, hargaJualPorsi: value }));
                           onUpdate('hargaJualPorsi', value);
+                          onUpdate('manualSellingPricePerPortion', value);
                         }}
                         placeholder={enhancedHppResult.hargaJualPerPorsi.toLocaleString('id-ID')}
                         className="text-sm flex-1"
@@ -284,6 +303,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                           const value = parseFloat(e.target.value) || 0;
                           setManualPrices(prev => ({ ...prev, hargaJualPerPcs: value }));
                           onUpdate('hargaJualPerPcs', value);
+                          onUpdate('manualSellingPricePerPiece', value);
                         }}
                         placeholder={enhancedHppResult.hargaJualPerPcs.toLocaleString('id-ID')}
                         className="text-sm flex-1"
@@ -325,6 +345,8 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                       });
                       onUpdate('hargaJualPorsi', enhancedHppResult.hargaJualPerPorsi);
                       onUpdate('hargaJualPerPcs', enhancedHppResult.hargaJualPerPcs);
+                      onUpdate('manualSellingPricePerPortion', enhancedHppResult.hargaJualPerPorsi);
+                      onUpdate('manualSellingPricePerPiece', enhancedHppResult.hargaJualPerPcs);
                     }}
                     className="text-xs h-8 px-3"
                   >
@@ -343,6 +365,8 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                       });
                       onUpdate('hargaJualPorsi', roundedPorsi);
                       onUpdate('hargaJualPerPcs', roundedPcs);
+                      onUpdate('manualSellingPricePerPortion', roundedPorsi);
+                      onUpdate('manualSellingPricePerPiece', roundedPcs);
                     }}
                     className="text-xs h-8 px-3"
                   >
@@ -361,6 +385,8 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                       });
                       onUpdate('hargaJualPorsi', roundedPorsi);
                       onUpdate('hargaJualPerPcs', roundedPcs);
+                      onUpdate('manualSellingPricePerPortion', roundedPorsi);
+                      onUpdate('manualSellingPricePerPiece', roundedPcs);
                     }}
                     className="text-xs h-8 px-3"
                   >

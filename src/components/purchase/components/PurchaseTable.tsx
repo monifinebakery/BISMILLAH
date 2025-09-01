@@ -134,7 +134,7 @@ const MemoizedPurchaseRow = React.memo(({
       </TableCell>
       <TableCell>
         <div className="text-sm text-gray-900">
-          {purchase.supplier || 'Supplier Tidak Diketahui'}
+          {getSupplierName ? getSupplierName(purchase.supplier) : (purchase.supplier || 'Supplier Tidak Diketahui')}
         </div>
       </TableCell>
       <TableCell>

@@ -31,7 +31,8 @@ const ImportButton: React.FC = () => {
       }
       
       toast.loading(`Mengimpor ${orders.length} pesanan...`, { id: loadingToast });
-      console.log('Parsed orders:', orders); // Debug log
+      console.log('📄 Parsed orders from CSV:', orders);
+      console.log('📦 First order items:', orders[0]?.items); // Debug items specifically
       
       // ✅ Use bulkAddOrders for better performance and auto UI update
       const result = await bulkAddOrders(orders);

@@ -487,7 +487,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <p className="text-sm text-gray-600">{formData.items.length} Item</p>
                   <p className="text-sm text-gray-500 truncate max-w-[200px] sm:max-w-none">
                     {formData.supplier
-                      ? `Supplier: ${suppliers.find(s => s.id === formData.supplier)?.nama || 'Tidak diketahui'}`
+                      ? `Supplier: ${formData.supplier}`
                       : 'Supplier belum dipilih'}
                   </p>
                 </div>

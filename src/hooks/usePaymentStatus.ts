@@ -18,7 +18,6 @@ export interface PaymentStatus {
   is_paid: boolean;
   created_at: Date | undefined;
   updated_at: Date | undefined;
-  workspace_id: string | null; // ✅ ADDED: Missing column
   // ❌ REMOVED: Non-existent columns
   // payment_date, amount, marketing_channel, campaign_id, currency, customer_name
 }
@@ -70,7 +69,6 @@ export const usePaymentStatus = () => {
           pg_reference_id,
           created_at,
           updated_at,
-          workspace_id
         `)
         .eq('user_id', user.id)
         .eq('is_paid', true)
@@ -117,7 +115,6 @@ export const usePaymentStatus = () => {
           pg_reference_id,
           created_at,
           updated_at,
-          workspace_id
         `)
         .is('user_id', null)
         .eq('is_paid', true)

@@ -187,8 +187,7 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               is_paid,
               pg_reference_id,
               created_at,
-              updated_at,
-              workspace_id
+              updated_at
             `)
             .eq('order_id', payment.order_id);
 
@@ -230,25 +229,56 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
 
           logger.debug('AutoLinkingPopup: Update data:', updateData);
 
-          // ✅ DEBUG: Enhanced update with better conditions
-          const { data, error, count } = await supabaseClient
-            .from('user_payments')
-            .update(updateData)
-            .eq('order_id', payment.order_id)
-            .is('user_id', null) // ✅ SAFETY: Only update if still unlinked
-            .select(`
-              id,
-              user_id,
-              order_id,
-              name,
-              email,
-              payment_status,
-              is_paid,
-              pg_reference_id,
-              created_at,
-              updated_at,
-              workspace_id
-            `);
+          // ✅ ENHANCED: Try stored function first (bypasses RLS), fallback to direct update
+          let data, error, count;
+          
+          try {
+            // Method 1: Use stored function that bypasses RLS
+            logger.debug('AutoLinkingPopup: Trying stored function approach...');
+            const { data: functionResult, error: functionError } = await supabaseClient
+              .rpc('link_payment_to_user', {
+                p_order_id: payment.order_id,
+                p_user_id: sanitizedUserId,
+                p_user_email: currentUser.email
+              });
+
+            if (!functionError && functionResult?.success) {
+              logger.success('AutoLinkingPopup: Stored function succeeded!');
+              data = [functionResult.data];
+              error = null;
+              count = 1;
+            } else if (!functionError && !functionResult?.success) {
+              logger.warn('AutoLinkingPopup: Stored function returned failure:', functionResult);
+              throw new Error(functionResult?.error || 'Stored function failed');
+            } else {
+              logger.warn('AutoLinkingPopup: Stored function not available, trying direct update...', functionError);
+              throw functionError;
+            }
+          } catch (funcError) {
+            // Method 2: Fallback to direct update (original approach)
+            logger.debug('AutoLinkingPopup: Fallback to direct update approach...');
+            const updateResult = await supabaseClient
+              .from('user_payments')
+              .update(updateData)
+              .eq('order_id', payment.order_id)
+              .is('user_id', null) // ✅ SAFETY: Only update if still unlinked
+              .select(`
+                id,
+                user_id,
+                order_id,
+                name,
+                email,
+                payment_status,
+                is_paid,
+                pg_reference_id,
+                created_at,
+                updated_at
+              `);
+            
+            data = updateResult.data;
+            error = updateResult.error;
+            count = updateResult.count;
+          }
 
           logger.debug('AutoLinkingPopup: Update result:', {
             order_id: payment.order_id,
@@ -286,29 +316,107 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
           }
 
           if (!data || data.length === 0) {
-            // ✅ DEBUG: Check why no rows were updated
+            // ✅ ENHANCED DEBUG: Detailed investigation of why no rows were updated
+            console.error('🚨 DEBUG 250901: UPDATE returned no rows! Investigating...');
+            
+            // Check if payment still exists and get full details
             const { data: recheckData } = await supabaseClient
               .from('user_payments')
-              .select(`
-                id,
-                user_id,
-                order_id,
-                email,
-                payment_status,
-                is_paid
-              `)
+              .select('*') // Get ALL columns for debugging
               .eq('order_id', payment.order_id);
 
-            logger.debug('AutoLinkingPopup: Recheck after failed update:', {
-              order_id: payment.order_id,
-              recheckData,
-              wasAlreadyLinked: recheckData?.[0]?.user_id !== null
-            });
+            // Check how many rows match each condition separately
+            const { count: totalOrderMatches } = await supabaseClient
+              .from('user_payments')
+              .select('*', { count: 'exact', head: true })
+              .eq('order_id', payment.order_id);
 
+            const { count: userIdNullMatches } = await supabaseClient
+              .from('user_payments')
+              .select('*', { count: 'exact', head: true })
+              .eq('order_id', payment.order_id)
+              .is('user_id', null);
+
+            const { count: paidMatches } = await supabaseClient
+              .from('user_payments')
+              .select('*', { count: 'exact', head: true })
+              .eq('order_id', payment.order_id)
+              .eq('is_paid', true);
+
+            const { count: settledMatches } = await supabaseClient
+              .from('user_payments')
+              .select('*', { count: 'exact', head: true })
+              .eq('order_id', payment.order_id)
+              .eq('payment_status', 'settled');
+
+            const { count: allConditionsMatch } = await supabaseClient
+              .from('user_payments')
+              .select('*', { count: 'exact', head: true })
+              .eq('order_id', payment.order_id)
+              .is('user_id', null)
+              .eq('is_paid', true)
+              .eq('payment_status', 'settled');
+
+            const debugInfo = {
+              error_code: '250901EYIRBGB',
+              order_id: payment.order_id,
+              attempted_user_id: sanitizedUserId,
+              update_data: updateData,
+              current_payment_data: recheckData?.[0],
+              condition_analysis: {
+                total_with_order_id: totalOrderMatches,
+                with_null_user_id: userIdNullMatches,
+                with_is_paid_true: paidMatches,
+                with_settled_status: settledMatches,
+                all_conditions_match: allConditionsMatch
+              },
+              potential_issues: []
+            };
+
+            // Analyze potential issues
+            if (totalOrderMatches === 0) {
+              debugInfo.potential_issues.push('Order ID not found in database');
+            }
+            if (userIdNullMatches === 0 && totalOrderMatches > 0) {
+              debugInfo.potential_issues.push('Payment already has user_id (not null)');
+            }
+            if (paidMatches === 0 && totalOrderMatches > 0) {
+              debugInfo.potential_issues.push('Payment is_paid is false');
+            }
+            if (settledMatches === 0 && totalOrderMatches > 0) {
+              debugInfo.potential_issues.push('Payment status is not settled');
+            }
+            if (allConditionsMatch === 0) {
+              debugInfo.potential_issues.push('No rows match all conditions for update');
+            }
+
+            console.error('🚨 DETAILED DEBUG INFO:', debugInfo);
+            logger.error('AutoLinkingPopup: Detailed debug info for failed update:', debugInfo);
+
+            // Provide specific error based on analysis
             if (recheckData?.[0]?.user_id !== null) {
-              throw new Error('Payment was linked by another process');
+              const linkedUserId = recheckData[0].user_id;
+              if (linkedUserId === sanitizedUserId) {
+                // Already linked to same user - treat as success
+                logger.info('AutoLinkingPopup: Payment already linked to same user');
+                results.push({
+                  order_id: payment.order_id,
+                  success: true,
+                  data: recheckData[0],
+                  note: 'Already linked to current user'
+                });
+                continue; // Skip to next payment
+              } else {
+                throw new Error(`Payment already linked to different user: ${linkedUserId}`);
+              }
+            } else if (totalOrderMatches === 0) {
+              throw new Error(`Order ${payment.order_id} not found in database`);
+            } else if (!recheckData?.[0]?.is_paid) {
+              throw new Error(`Order ${payment.order_id} is not marked as paid (is_paid=${recheckData?.[0]?.is_paid})`);
+            } else if (recheckData?.[0]?.payment_status !== 'settled') {
+              throw new Error(`Order ${payment.order_id} status is '${recheckData?.[0]?.payment_status}', not 'settled'`);
             } else {
-              throw new Error('No rows updated - payment may not exist or conditions not met');
+              throw new Error(`No rows updated for Order ${payment.order_id}. Debug: ${JSON.stringify(debugInfo.condition_analysis)}`);
             }
           }
 

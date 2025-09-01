@@ -63,7 +63,6 @@ export const useUnlinkedPayments = (
           pg_reference_id,
           created_at,
           updated_at,
-          workspace_id
         `)
         .is('user_id', null)
         .eq('is_paid', true)

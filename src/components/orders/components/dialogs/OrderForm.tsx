@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 // Import Recipe Context dan Types
 import { useRecipe } from '@/contexts/RecipeContext';
@@ -175,15 +176,22 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
   // Add item from recipe
   const addItemFromRecipe = (recipe: Recipe) => {
+    const pricePerPortion = recipe.hargaJualPorsi || recipe.hppPerPorsi || 0;
+    const pricePerPiece = recipe.hargaJualPerPcs || (pricePerPortion / (recipe.jumlahPcsPerPorsi || 1)) || 0;
+    const defaultPricingMode = 'per_portion'; // Default to per portion
+    
     const newItem: OrderItem = {
       id: Date.now().toString(),
       name: recipe.namaResep,
       quantity: 1,
-      price: recipe.hargaJualPorsi || recipe.hppPerPorsi || 0,
-      total: recipe.hargaJualPorsi || recipe.hppPerPorsi || 0,
+      price: pricePerPortion, // Default to per portion price
+      total: pricePerPortion,
       recipeId: recipe.id,
       recipeCategory: recipe.kategoriResep,
       isFromRecipe: true,
+      pricingMode: defaultPricingMode,
+      pricePerPortion: pricePerPortion,
+      pricePerPiece: pricePerPiece,
     };
     
     setFormData(prev => ({
@@ -211,16 +219,28 @@ const OrderForm: React.FC<OrderFormProps> = ({
     }));
   };
 
-  // Update item
+  // Update item with pricing mode support
   const updateItem = (itemId: string, field: keyof OrderItem, value: any) => {
     setFormData(prev => ({
       ...prev,
       items: prev.items.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value };
-          if (field === 'quantity' || field === 'price') {
+          
+          // Handle pricing mode changes
+          if (field === 'pricingMode') {
+            if (value === 'per_portion' && updatedItem.pricePerPortion) {
+              updatedItem.price = updatedItem.pricePerPortion;
+            } else if (value === 'per_piece' && updatedItem.pricePerPiece) {
+              updatedItem.price = updatedItem.pricePerPiece;
+            }
             updatedItem.total = updatedItem.quantity * updatedItem.price;
           }
+          // Handle quantity or direct price changes
+          else if (field === 'quantity' || field === 'price') {
+            updatedItem.total = updatedItem.quantity * updatedItem.price;
+          }
+          
           return updatedItem;
         }
         return item;
@@ -548,6 +568,43 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         </div>
                       </div>
                       
+                      {/* Pricing Mode Selection (only for recipe items) */}
+                      {item.isFromRecipe && (item.pricePerPortion || item.pricePerPiece) && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <Label className="text-sm font-medium text-blue-900 mb-2 block">
+                            💰 Mode Harga Jual
+                          </Label>
+                          <RadioGroup
+                            value={item.pricingMode || 'per_portion'}
+                            onValueChange={(value) => updateItem(item.id, 'pricingMode', value)}
+                            className="flex flex-col sm:flex-row gap-3"
+                          >
+                            {item.pricePerPortion && (
+                              <div className="flex items-center space-x-2 bg-white p-2 rounded border">
+                                <RadioGroupItem value="per_portion" id={`${item.id}-per_portion`} />
+                                <Label htmlFor={`${item.id}-per_portion`} className="text-sm flex-1 cursor-pointer">
+                                  <div className="font-medium">Per Porsi</div>
+                                  <div className="text-xs text-gray-500">
+                                    Rp {item.pricePerPortion?.toLocaleString('id-ID')}
+                                  </div>
+                                </Label>
+                              </div>
+                            )}
+                            {item.pricePerPiece && (
+                              <div className="flex items-center space-x-2 bg-white p-2 rounded border">
+                                <RadioGroupItem value="per_piece" id={`${item.id}-per_piece`} />
+                                <Label htmlFor={`${item.id}-per_piece`} className="text-sm flex-1 cursor-pointer">
+                                  <div className="font-medium">Per Pcs</div>
+                                  <div className="text-xs text-gray-500">
+                                    Rp {item.pricePerPiece?.toLocaleString('id-ID')}
+                                  </div>
+                                </Label>
+                              </div>
+                            )}
+                          </RadioGroup>
+                        </div>
+                      )}
+                      
                       {/* Bottom Row: Quantity, Price, and Total */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div>
@@ -563,7 +620,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         </div>
                         
                         <div>
-                          <Label className="text-xs text-gray-500 font-medium">Harga Satuan</Label>
+                          <Label className="text-xs text-gray-500 font-medium">
+                            Harga {item.pricingMode === 'per_piece' ? 'Per Pcs' : 'Per Porsi'}
+                          </Label>
                           <Input
                             type="number"
                             placeholder="Harga"
@@ -571,7 +630,13 @@ const OrderForm: React.FC<OrderFormProps> = ({
                             onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
                             min="0"
                             className="mt-1"
+                            disabled={item.isFromRecipe} // Disable manual price editing for recipe items
                           />
+                          {item.isFromRecipe && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              Harga dari resep ({item.pricingMode === 'per_piece' ? 'per pcs' : 'per porsi'})
+                            </p>
+                          )}
                         </div>
                         
                         <div className="col-span-2 md:col-span-2">
@@ -581,7 +646,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                               Rp {item.total.toLocaleString('id-ID')}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {item.quantity} × Rp {item.price.toLocaleString('id-ID')}
+                              {item.quantity} × Rp {item.price.toLocaleString('id-ID')} {item.pricingMode === 'per_piece' ? '(per pcs)' : '(per porsi)'}
                             </div>
                           </div>
                         </div>

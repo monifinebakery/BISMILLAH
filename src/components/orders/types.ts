@@ -4,13 +4,17 @@ export interface OrderItem {
   id: string;
   name: string;
   quantity: number;
-  price: number;
+  price: number; // Current active price based on pricing mode
   total: number;
   recipeId?: string;
   recipeCategory?: string;
   isFromRecipe?: boolean;
   description?: string;
   unit?: string;
+  // New fields for per piece pricing support
+  pricingMode?: 'per_portion' | 'per_piece';
+  pricePerPortion?: number;
+  pricePerPiece?: number;
 }
 
 export interface Order {

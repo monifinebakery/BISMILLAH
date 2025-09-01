@@ -24,7 +24,7 @@ const invalidateRelatedCaches = () => {
   }
 };
 
-// 🔄 Helper untuk membuat financial transaction otomatis
+// 🔄 Helper untuk membuat financial transaction otomatis (with duplicate prevention)
 const createFinancialTransactionForCost = async (cost: OperationalCost, userId: string) => {
   try {
     console.log('💰 Creating financial transaction for operational cost:', {
@@ -34,6 +34,43 @@ const createFinancialTransactionForCost = async (cost: OperationalCost, userId: 
       status: cost.status
     });
     
+    // 🔍 Check if transaction already exists to prevent duplicates
+    const { data: existingTransactions } = await supabase
+      .from('financial_transactions')
+      .select('id, amount')
+      .eq('user_id', userId)
+      .eq('related_id', cost.id)
+      .eq('type', 'expense')
+      .eq('category', 'Biaya Operasional');
+    
+    if (existingTransactions && existingTransactions.length > 0) {
+      const existingTransaction = existingTransactions[0];
+      
+      // If transaction exists but amount is different, update it
+      if (existingTransaction.amount !== cost.jumlah_per_bulan) {
+        console.log('💰 Updating existing financial transaction amount:', {
+          transactionId: existingTransaction.id,
+          oldAmount: existingTransaction.amount,
+          newAmount: cost.jumlah_per_bulan
+        });
+        
+        await supabase
+          .from('financial_transactions')
+          .update({
+            amount: cost.jumlah_per_bulan,
+            description: `Biaya Operasional: ${cost.nama_biaya}`,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingTransaction.id);
+          
+        console.log('✅ Financial transaction amount updated for operational cost');
+      } else {
+        console.log('ℹ️ Financial transaction already exists with same amount, skipping creation');
+      }
+      return;
+    }
+    
+    // Create new transaction if none exists
     await addFinancialTransaction({
       type: 'expense',
       amount: cost.jumlah_per_bulan,
@@ -45,7 +82,7 @@ const createFinancialTransactionForCost = async (cost: OperationalCost, userId: 
     
     console.log('✅ Financial transaction created for operational cost');
   } catch (error) {
-    logger.error('Error creating financial transaction for operational cost:', error);
+    logger.error('Error creating/updating financial transaction for operational cost:', error);
     // Don't throw error, just log it so operational cost creation doesn't fail
   }
 };

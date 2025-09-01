@@ -152,6 +152,32 @@ const OrdersPage: React.FC = () => {
 
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
   const { getWhatsappUrl } = useOrderFollowUp();
+  
+  // ✅ IMPORT REFRESH LISTENER: Listen untuk bulk import events
+  React.useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    
+    const setupListener = async () => {
+      const { orderEvents } = await import('../utils/orderEvents');
+      
+      unsubscribe = orderEvents.on('order:bulk_imported', (data) => {
+        console.log('📡 Bulk import event received in OrdersPage:', data);
+        // Refresh paginated data setelah import
+        setTimeout(() => {
+          refetchPaginated();
+          console.log('✅ Paginated data refreshed after bulk import');
+        }, 500);
+      });
+    };
+    
+    setupListener();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [refetchPaginated]);
 
   // ✅ DATA SELECTION: Pilih data berdasarkan mode lazy loading
   const finalOrders = paginatedData?.orders || [];

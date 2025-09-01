@@ -292,11 +292,15 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       // ✅ EMIT EVENT: Trigger cross-component refresh for bulk import
       emitOrdersBulkImported(success);
       
-      // ✅ FORCE REFRESH: Always refresh data after bulk import to ensure consistency
+  // ✅ FORCE REFRESH: Always refresh data after bulk import to ensure consistency
       console.log('🔄 Triggering force refresh after bulk import...');
       setTimeout(async () => {
         await refreshData();
         console.log('✅ Force refresh completed');
+        
+        // ✅ EMIT EVENT: Also trigger refresh for paginated data
+        emitOrdersBulkImported(success);
+        console.log('📡 Emitted bulk import event for paginated data refresh');
       }, 1000);
       
       // ✅ INVALIDATE PROFIT ANALYSIS: Bulk imported orders affect profit calculations

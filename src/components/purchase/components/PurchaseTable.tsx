@@ -111,7 +111,7 @@ const MemoizedPurchaseRow = React.memo(({
   onDelete: (purchase: Purchase) => void;
   onStatusChange: (purchaseId: string, newStatus: string) => void;
   onEditStatus: (id: string) => void;
-  getSupplierName: (supplierId: string) => string;
+  getSupplierName?: (supplierName: string) => string; // Optional since supplier field now stores name directly
 }) => {
   const handleToggleSelect = useCallback(() => onToggleSelect(purchase.id), [purchase.id, onToggleSelect]);
   const handleEdit = useCallback(() => onEdit(purchase), [purchase, onEdit]);
@@ -134,7 +134,7 @@ const MemoizedPurchaseRow = React.memo(({
       </TableCell>
       <TableCell>
         <div className="text-sm text-gray-900">
-          {getSupplierName(purchase.supplier)}
+          {purchase.supplier || 'Supplier Tidak Diketahui'}
         </div>
       </TableCell>
       <TableCell>

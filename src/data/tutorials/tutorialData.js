@@ -250,6 +250,19 @@ export const tutorialData = [
                 <p><strong>Biaya listrik per porsi bakso: Rp 100</strong></p>
               </div>
             </div>
+            
+            <h3>🔄 Langkah Selanjutnya - Gunakan Kalkulator Dual Mode:</h3>
+            <div class="tip-box bg-blue-50 p-4 rounded-lg border border-blue-200 my-4">
+              <h4 class="font-bold text-blue-800 mb-2">💡 Langkah Penting Setelah Input Biaya!</h4>
+              <ol class="list-decimal pl-5 text-blue-700 space-y-2">
+                <li>Setelah selesai menambahkan semua biaya operasional, klik tab <strong>"Kalkulator Dual Mode"</strong></li>
+                <li>Di halaman kalkulator, klik tombol <strong>"Hitung Biaya per PCS"</strong></li>
+                <li>Review hasil perhitungan overhead per pcs</li>
+                <li>Klik tombol <strong>"Gunakan Angka Ini"</strong> untuk menyimpan hasil perhitungan</li>
+                <li>Sekarang nilai overhead sudah tersimpan dan akan digunakan dalam perhitungan HPP produk Anda</li>
+              </ol>
+              <p class="mt-3 text-blue-600"><strong>Catatan:</strong> Langkah ini sangat penting agar perhitungan HPP lebih akurat dengan memperhitungkan biaya operasional!</p>
+            </div>
           </div>
         `
       }
@@ -708,6 +721,120 @@ export const tutorialData = [
                 <li><strong>Monitor:</strong> Track progress mingguan</li>
                 <li><strong>Adjust:</strong> Sesuaikan strategi jika perlu</li>
               </ol>
+            </div>
+          </div>
+        `
+      }
+    ]
+  },
+  {
+    id: 8,
+    title: "Gabung Channel WhatsApp",
+    subtitle: "Bergabung dengan Komunitas UMKM",
+    duration: "3 menit",
+    icon: "📱",
+    sections: [
+      {
+        id: "whatsapp-channel",
+        title: "Cara Join Channel WhatsApp HPP Calculator",
+        content: `
+          <div class="tutorial-content">
+            <h3>📱 Kenapa Harus Join Channel WhatsApp?</h3>
+            <p>Channel WhatsApp HPP Calculator adalah tempat untuk <strong>mendapatkan tips bisnis, update fitur terbaru, dan sharing pengalaman</strong> dengan sesama UMKM.</p>
+            
+            <div class="benefits-box bg-green-50 p-4 rounded-lg border border-green-200 my-4">
+              <h4 class="font-bold text-green-800 mb-3">🎯 Yang Akan Anda Dapatkan:</h4>
+              <ul class="text-green-700 space-y-2">
+                <li>• <strong>Tips bisnis mingguan:</strong> Strategi praktis tingkatkan profit</li>
+                <li>• <strong>Update fitur baru:</strong> Fitur terbaru aplikasi HPP Calculator</li>
+                <li>• <strong>Sharing experience:</strong> Cerita sukses dari UMKM lain</li>
+                <li>• <strong>Diskusi HPP:</strong> Tanya jawab seputar perhitungan HPP</li>
+                <li>• <strong>Template gratis:</strong> Excel template, SOP, dll</li>
+                <li>• <strong>Promo khusus:</strong> Diskon untuk upgrade premium</li>
+              </ul>
+            </div>
+            
+            <h3>📲 Cara Join Channel:</h3>
+            <div class="steps-container">
+              <div class="step-box bg-blue-50 p-4 rounded-lg border border-blue-200 my-3">
+                <h4 class="font-bold text-blue-800 mb-2">1️⃣ Klik Link Channel</h4>
+                <p class="text-blue-700 mb-3">Klik tombol di bawah ini untuk langsung join channel WhatsApp:</p>
+                <a href="https://whatsapp.com/channel/0029VaAqXWRELcJ2nBYNDj1l" 
+                   target="_blank" 
+                   class="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+                  📱 Join Channel WhatsApp Sekarang
+                </a>
+              </div>
+              
+              <div class="step-box bg-orange-50 p-4 rounded-lg border border-orange-200 my-3">
+                <h4 class="font-bold text-orange-800 mb-2">2️⃣ Atau Manual via WhatsApp</h4>
+                <p class="text-orange-700 mb-2">Jika link tidak berfungsi, bisa join manual:</p>
+                <ol class="list-decimal pl-5 text-orange-700 space-y-1">
+                  <li>Buka WhatsApp di HP Anda</li>
+                  <li>Klik icon "Cari" atau "Search"</li>
+                  <li>Ketik: <strong>"HPP Calculator untuk UMKM"</strong></li>
+                  <li>Pilih channel yang muncul</li>
+                  <li>Klik "Ikuti" atau "Follow"</li>
+                </ol>
+              </div>
+              
+              <div class="step-box bg-purple-50 p-4 rounded-lg border border-purple-200 my-3">
+                <h4 class="font-bold text-purple-800 mb-2">3️⃣ Copy Link Manual</h4>
+                <p class="text-purple-700 mb-2">Atau copy link ini dan paste di WhatsApp:</p>
+                <div class="bg-gray-100 p-2 rounded border text-sm font-mono break-all">
+                  https://whatsapp.com/channel/0029VaAqXWRELcJ2nBYNDj1l
+                </div>
+              </div>
+            </div>
+            
+            <div class="community-info bg-yellow-50 p-4 rounded-lg border border-yellow-200 my-4">
+              <h4 class="font-bold text-yellow-800 mb-3">👥 Tentang Komunitas:</h4>
+              <ul class="text-yellow-700 space-y-2">
+                <li>• <strong>Channel Khusus UMKM:</strong> Fokus pada bisnis skala kecil-menengah</li>
+                <li>• <strong>Gratis selamanya:</strong> Tidak ada biaya langganan</li>
+                <li>• <strong>Content berkualitas:</strong> Hanya tips yang sudah terbukti efektif</li>
+                <li>• <strong>Update rutin:</strong> Minimal 2-3 konten per minggu</li>
+                <li>• <strong>Support langsung:</strong> Admin siap bantu jika ada pertanyaan</li>
+              </ul>
+            </div>
+            
+            <div class="example-content bg-gray-50 p-4 rounded-lg border border-gray-200 my-4">
+              <h4 class="font-bold text-gray-800 mb-3">📋 Contoh Content Channel:</h4>
+              <div class="space-y-3">
+                <div class="content-example">
+                  <h5 class="font-semibold text-gray-700">💡 Tips Bisnis:</h5>
+                  <p class="text-gray-600 text-sm italic">"Cara Kurangi HPP 15% dengan Negosiasi Smart ke Supplier"</p>
+                </div>
+                <div class="content-example">
+                  <h5 class="font-semibold text-gray-700">📊 Case Study:</h5>
+                  <p class="text-gray-600 text-sm italic">"Bakso Bu Sari: Dari Rugi ke Profit 40% dalam 3 Bulan"</p>
+                </div>
+                <div class="content-example">
+                  <h5 class="font-semibold text-gray-700">🆕 Update Fitur:</h5>
+                  <p class="text-gray-600 text-sm italic">"Fitur Baru: Import Data Excel Langsung ke HPP Calculator"</p>
+                </div>
+                <div class="content-example">
+                  <h5 class="font-semibold text-gray-700">🎁 Template Gratis:</h5>
+                  <p class="text-gray-600 text-sm italic">"Download Excel Template Analisis Break Even Point"</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="cta-final bg-green-50 p-4 rounded-lg border border-green-200 text-center my-4">
+              <h4 class="font-bold text-green-800 mb-2">🚀 Jangan Lewatkan!</h4>
+              <p class="text-green-700 mb-3">Join sekarang dan dapatkan akses ke komunitas UMKM yang supportive!</p>
+              <a href="https://whatsapp.com/channel/0029VaAqXWRELcJ2nBYNDj1l" 
+                 target="_blank" 
+                 class="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg text-lg">
+                📱 Join Channel Sekarang Juga!
+              </a>
+            </div>
+            
+            <div class="note-box bg-blue-50 p-3 rounded border border-blue-200 mt-4">
+              <p class="text-blue-700 text-sm">
+                <strong>💡 Catatan:</strong> Channel ini adalah one-way broadcast, jadi Anda hanya menerima pesan dari admin. 
+                Untuk diskusi atau tanya jawab, akan ada group terpisah yang linknya akan dibagikan di channel.
+              </p>
             </div>
           </div>
         `

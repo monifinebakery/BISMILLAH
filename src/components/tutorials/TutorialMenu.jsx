@@ -141,6 +141,10 @@ const TutorialMenu = ({ onSelectTutorial }) => {
                       <span className="text-purple-500 mr-2">7️⃣</span>
                       Strategi Optimasi Profit
                     </li>
+                    <li className="flex items-start">
+                      <span className="text-green-500 mr-2">8️⃣</span>
+                      Join Channel WhatsApp
+                    </li>
                   </ul>
                 </div>
               </div>

@@ -268,8 +268,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <SupplierComboBox
                     value={formData.supplier}
                     onValueChange={(supplierName, supplierId) => {
-                      // If supplier has ID, use ID, otherwise use name for new supplier
-                      updateFormField('supplier', supplierId || supplierName);
+                      // Always use supplier name for consistency
+                      updateFormField('supplier', supplierName);
                     }}
                     suppliers={suppliers}
                     disabled={isSubmitting || isViewOnly}

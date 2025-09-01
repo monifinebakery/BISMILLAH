@@ -38,6 +38,29 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     hargaJualPerPcs: data.manualSellingPricePerPiece || 0,
   });
 
+  // Sync state with form data when it changes (for existing recipes)
+  React.useEffect(() => {
+    setIsManualPricingMode(data.isManualPricingEnabled || false);
+    setManualPrices({
+      hargaJualPorsi: data.manualSellingPricePerPortion || 0,
+      hargaJualPerPcs: data.manualSellingPricePerPiece || 0,
+    });
+  }, [data.isManualPricingEnabled, data.manualSellingPricePerPortion, data.manualSellingPricePerPiece]);
+
+  // When manual pricing is enabled, also show manual prices instead of auto prices in the display
+  const displayPrices = React.useMemo(() => {
+    if (isManualPricingMode && enhancedHppResult) {
+      return {
+        hargaJualPerPorsi: manualPrices.hargaJualPorsi || enhancedHppResult.hargaJualPerPorsi,
+        hargaJualPerPcs: manualPrices.hargaJualPerPcs || enhancedHppResult.hargaJualPerPcs,
+      };
+    }
+    return enhancedHppResult ? {
+      hargaJualPerPorsi: enhancedHppResult.hargaJualPerPorsi,
+      hargaJualPerPcs: enhancedHppResult.hargaJualPerPcs,
+    } : { hargaJualPerPorsi: 0, hargaJualPerPcs: 0 };
+  }, [isManualPricingMode, manualPrices, enhancedHppResult]);
+
   // Handle enhanced HPP result updates
   const handleEnhancedHppChange = React.useCallback((result: EnhancedHPPCalculationResult | null) => {
     setEnhancedHppResult(result);
@@ -135,9 +158,12 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
             </div>
             
             <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
-              <p className="text-xs sm:text-sm text-green-600 font-medium text-overflow-safe">Harga Jual per Pcs</p>
+              <p className="text-xs sm:text-sm text-green-600 font-medium text-overflow-safe">
+                Harga Jual per Pcs
+                {isManualPricingMode && <span className="text-orange-600 ml-1">(Manual)</span>}
+              </p>
               <p className="text-lg sm:text-xl font-bold text-green-900 text-overflow-safe">
-                Rp {enhancedHppResult.hargaJualPerPcs.toLocaleString('id-ID')}
+                Rp {displayPrices.hargaJualPerPcs.toLocaleString('id-ID')}
               </p>
             </div>
             
@@ -195,9 +221,19 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                     onUpdate('isManualPricingEnabled', newMode);
                     
                     if (newMode) {
-                      // Enable manual mode - sync current values to database fields
-                      onUpdate('manualSellingPricePerPortion', manualPrices.hargaJualPorsi);
-                      onUpdate('manualSellingPricePerPiece', manualPrices.hargaJualPerPcs);
+                      // Enable manual mode - use current form values or auto-calculated values as starting point
+                      const initialPorsiPrice = data.hargaJualPorsi || enhancedHppResult.hargaJualPerPorsi;
+                      const initialPcsPrice = data.hargaJualPerPcs || enhancedHppResult.hargaJualPerPcs;
+                      
+                      setManualPrices({
+                        hargaJualPorsi: initialPorsiPrice,
+                        hargaJualPerPcs: initialPcsPrice,
+                      });
+                      
+                      onUpdate('manualSellingPricePerPortion', initialPorsiPrice);
+                      onUpdate('manualSellingPricePerPiece', initialPcsPrice);
+                      onUpdate('hargaJualPorsi', initialPorsiPrice);
+                      onUpdate('hargaJualPerPcs', initialPcsPrice);
                     } else {
                       // Disable manual mode - clear database fields and use auto prices
                       onUpdate('manualSellingPricePerPortion', 0);

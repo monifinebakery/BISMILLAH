@@ -54,7 +54,13 @@ import {
   getTransactionsByDateRange,
   deleteFinancialTransaction,
   getFinancialTransactionsPaginated,
+  bulkDeleteFinancialTransactions,
 } from '../services/financialApi'; // ✅ Sesuaikan path ini
+
+// Import filter hooks and components
+import { useTransactionFilters } from '../hooks/useTransactionFilters';
+import TransactionFiltersComponent from './TransactionFilters';
+import TransactionBulkActions from './TransactionBulkActions';
 
 // ✅ Types - Sebaiknya diimpor dari file types terpisah jika memungkinkan
 interface FinancialTransaction {

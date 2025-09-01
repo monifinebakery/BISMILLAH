@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,10 +10,12 @@ import { Download, Info, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrder } from '../context/OrderContext';
 import { parseOrderCSV } from '../utils/orderImport';
+import ImportTutorialDialog from './ImportTutorialDialog';
 
 const ImportButton: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { bulkAddOrders, refreshData } = useOrder();
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const handleFile = async (file: File) => {
     // Show loading state
@@ -77,41 +79,14 @@ const ImportButton: React.FC = () => {
     }
   };
 
-  const downloadTemplate = (withDocs = false) => {
+  const downloadTemplate = () => {
     const link = document.createElement('a');
-    link.href = withDocs 
-      ? '/templates/order-import-template-with-docs.csv'
-      : '/templates/order-import-template.csv';
-    link.download = withDocs 
-      ? 'order-import-template-with-docs.csv'
-      : 'order-import-template.csv';
+    link.href = '/templates/order-import-template.csv';
+    link.download = 'template-import-pesanan.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const showFormatInfo = () => {
-    toast.info(
-      'Format CSV baru mendukung pricing per pcs! Kolom wajib: pelanggan, tanggal(YYYY-MM-DD), nama, kuantitas, satuan, harga. Kolom opsional: pricing_mode(per_portion/per_piece), price_per_portion, price_per_piece. Pemisah: koma/titik koma.',
-      { duration: 8000 }
-    );
-  };
-  
-  const showAdvancedFormatInfo = () => {
-    toast.info(
-      <div className="space-y-2 text-sm">
-        <div className="font-semibold">Format CSV dengan Per-Piece Pricing:</div>
-        <div className="space-y-1">
-          <div><strong>Kolom Wajib:</strong> pelanggan, tanggal, nama, kuantitas, satuan, harga</div>
-          <div><strong>Kolom Opsional:</strong> pricing_mode, price_per_portion, price_per_piece</div>
-          <div><strong>pricing_mode:</strong> 'per_portion' atau 'per_piece'</div>
-          <div><strong>Jika per_portion:</strong> wajib isi price_per_portion</div>
-          <div><strong>Jika per_piece:</strong> wajib isi price_per_piece</div>
-          <div><strong>Jika kosong:</strong> gunakan kolom harga</div>
-        </div>
-      </div>,
-      { duration: 12000 }
-    );
+    toast.success('Template CSV berhasil didownload!');
   };
 
   return (
@@ -134,24 +109,24 @@ const ImportButton: React.FC = () => {
             Import
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56">
+        <DropdownMenuContent className="w-48">
           <DropdownMenuItem onClick={() => inputRef.current?.click()} className="cursor-pointer">
             <Upload className="h-4 w-4 mr-2" /> Upload CSV
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => downloadTemplate(false)} className="cursor-pointer">
-            <Download className="h-4 w-4 mr-2" /> Template Sederhana
+          <DropdownMenuItem onClick={downloadTemplate} className="cursor-pointer">
+            <Download className="h-4 w-4 mr-2" /> Download Template
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => downloadTemplate(true)} className="cursor-pointer">
-            <Download className="h-4 w-4 mr-2" /> Template + Panduan
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={showFormatInfo} className="cursor-pointer">
-            <Info className="h-4 w-4 mr-2" /> Info Format
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={showAdvancedFormatInfo} className="cursor-pointer">
-            <Info className="h-4 w-4 mr-2" /> Per-Piece Pricing
+          <DropdownMenuItem onClick={() => setShowTutorial(true)} className="cursor-pointer">
+            <Info className="h-4 w-4 mr-2" /> Cara Import
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      
+      <ImportTutorialDialog
+        open={showTutorial}
+        onOpenChange={setShowTutorial}
+        onDownloadTemplate={downloadTemplate}
+      />
     </>
   );
 };

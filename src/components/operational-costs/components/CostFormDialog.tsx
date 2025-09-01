@@ -169,7 +169,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel">
+        <div className="dialog-panel dialog-panel-lg">
           <DialogHeader className="dialog-header">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">

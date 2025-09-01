@@ -38,6 +38,7 @@ import { logger } from '@/utils/logger';
 // ✅ DEBUG: Context debugger for development
 import ContextDebugger from '@/components/debug/ContextDebugger';
 import OrderUpdateMonitor from '@/components/debug/OrderUpdateMonitor';
+import OrderEventMonitor from '@/components/debug/OrderEventMonitor';
 
 // ✅ TAMBAHKAN IMPORTS: Untuk fallback langsung ke Supabase dan getStatusText
 import { supabase } from '@/integrations/supabase/client';
@@ -601,6 +602,7 @@ const OrdersPage: React.FC = () => {
     <div className="w-full p-4 sm:p-8">
       {/* ✅ DEBUG: Context debugger - only in development */}
       {import.meta.env.DEV && <ContextDebugger />}
+      {import.meta.env.DEV && <OrderEventMonitor />}
       
       {/* ✅ ENHANCED: Header with template integration info and debug button */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">

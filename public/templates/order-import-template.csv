@@ -1,4 +1,4 @@
-pelanggan;tanggal;nama;kuantitas;satuan;pricing_mode;price_per_portion;price_per_piece;harga
-PT Contoh;2025-01-01;Nasi Gudeg;10;porsi;per_portion;50000;;50000
-PT Contoh;2025-01-01;Es Teh Manis;5;gelas;;;5000
-Toko ABC;2025-01-02;Kerupuk;20;pcs;per_piece;;2500;2500
+pelanggan;tanggal_pesanan;tanggal_selesai;nama;kuantitas;satuan;pricing_mode;price_per_portion;price_per_piece;harga
+PT Contoh;2025-01-01;2025-01-02;Nasi Gudeg;10;porsi;per_portion;50000;;50000
+PT Contoh;2025-01-01;2025-01-02;Es Teh Manis;5;gelas;;;5000
+Toko ABC;2025-01-02;2025-01-03;Kerupuk;20;pcs;per_piece;;2500;2500

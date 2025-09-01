@@ -27,7 +27,6 @@ import paymentRoutes from '@/routes/payment';
 import promoRoutes from '@/routes/promo';
 import preloadingRoutes from '@/routes/preloading';
 import networkOptimizationRoutes from '@/routes/network-optimization';
-import offlineRoutes from '@/routes/offline';
 import notFoundRoutes from '@/routes/not-found';
 import tutorialRoutes from '@/routes/tutorial';
 
@@ -68,7 +67,6 @@ export const AppRouter: React.FC = () => (
       {promoRoutes}
       {preloadingRoutes}
       {networkOptimizationRoutes}
-      {offlineRoutes}
       {tutorialRoutes}
       
       {/* Development only - Calendar responsiveness test */}

@@ -9,13 +9,15 @@ export const getSupportedOrderImportHeaders = () => {
   return {
     required: {
       pelanggan: 'Nama pelanggan atau toko',
-      tanggal: 'Tanggal pesanan (YYYY-MM-DD)',
       nama: 'Nama produk/item',
       kuantitas: 'Jumlah pesanan (angka)',
       satuan: 'Satuan kuantitas (porsi, pcs, gelas, dll)',
       harga: 'Harga default (untuk backward compatibility)'
     },
     optional: {
+      tanggal_pesanan: 'Tanggal pesanan (YYYY-MM-DD) - default: hari ini',
+      tanggal_selesai: 'Tanggal selesai pesanan (YYYY-MM-DD) - opsional',
+      tanggal: 'Tanggal pesanan (backward compatibility)',
       pricing_mode: 'Mode pricing: per_portion atau per_piece',
       price_per_portion: 'Harga per porsi (wajib jika pricing_mode = per_portion)',
       price_per_piece: 'Harga per pcs (wajib jika pricing_mode = per_piece)'
@@ -66,7 +68,9 @@ export const validateOrderImportHeaders = (headers: string[]): { isValid: boolea
 
 interface RawRow {
   pelanggan: string;
-  tanggal: string;
+  tanggal_pesanan?: string;
+  tanggal_selesai?: string;
+  tanggal?: string; // backward compatibility
   nama: string;
   kuantitas: number;
   satuan: string;
@@ -101,7 +105,9 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
 
   const getIndex = (name: string) => headers.indexOf(name);
   const idxPelanggan = getIndex('pelanggan');
-  const idxTanggal = getIndex('tanggal');
+  const idxTanggalPesanan = getIndex('tanggal_pesanan');
+  const idxTanggalSelesai = getIndex('tanggal_selesai');
+  const idxTanggal = getIndex('tanggal'); // backward compatibility
   const idxNama = getIndex('nama');
   const idxQty = getIndex('kuantitas');
   const idxSatuan = getIndex('satuan');
@@ -112,8 +118,9 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
   const idxPricePerPortion = getIndex('price_per_portion');
   const idxPricePerPiece = getIndex('price_per_piece');
 
-  if ([idxPelanggan, idxTanggal, idxNama, idxQty, idxSatuan, idxHarga].some((i) => i === -1)) {
-    throw new Error('Kolom wajib tidak lengkap. Diperlukan: pelanggan, tanggal, nama, kuantitas, satuan, harga');
+  // Check required columns - tanggal is optional now (can use tanggal_pesanan or default to today)
+  if ([idxPelanggan, idxNama, idxQty, idxSatuan, idxHarga].some((i) => i === -1)) {
+    throw new Error('Kolom wajib tidak lengkap. Diperlukan: pelanggan, nama, kuantitas, satuan, harga');
   }
 
   const rows: RawRow[] = lines.slice(1).map((line, lineIndex) => {
@@ -126,7 +133,9 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
     
     return {
       pelanggan: values[idxPelanggan] || '',
-      tanggal: values[idxTanggal] || '',
+      tanggal_pesanan: idxTanggalPesanan >= 0 ? values[idxTanggalPesanan] : undefined,
+      tanggal_selesai: idxTanggalSelesai >= 0 ? values[idxTanggalSelesai] : undefined,
+      tanggal: idxTanggal >= 0 ? values[idxTanggal] : undefined, // backward compatibility
       nama: values[idxNama] || '',
       kuantitas: parseFloat(values[idxQty] || '0'),
       satuan: values[idxSatuan] || '',
@@ -187,8 +196,16 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
   const errors: string[] = [];
 
   rows.forEach((r, index) => {
-    if (!r.pelanggan || !r.tanggal || !r.nama) {
-      errors.push(`Baris ${index + 2}: Pelanggan, tanggal, dan nama barang wajib diisi`);
+    if (!r.pelanggan || !r.nama) {
+      errors.push(`Baris ${index + 2}: Pelanggan dan nama barang wajib diisi`);
+      return;
+    }
+    
+    // Determine order date: prefer tanggal_pesanan, then tanggal, then today
+    const orderDate = r.tanggal_pesanan || r.tanggal || new Date().toISOString().split('T')[0];
+    
+    if (!orderDate) {
+      errors.push(`Baris ${index + 2}: Tanggal pesanan tidak valid`);
       return;
     }
     
@@ -200,12 +217,14 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
     try {
       const pricing = calculateItemPricing(r, index);
       
-      const key = `${r.pelanggan}-${r.tanggal}`;
+      const orderDate = r.tanggal_pesanan || r.tanggal || new Date().toISOString().split('T')[0];
+      const key = `${r.pelanggan}-${orderDate}`;
       let order = grouped.get(key);
       if (!order) {
         order = {
           namaPelanggan: r.pelanggan,
-          tanggal: new Date(r.tanggal),
+          tanggal: new Date(orderDate),
+          tanggalSelesai: r.tanggal_selesai ? new Date(r.tanggal_selesai) : undefined,
           items: [],
         };
         grouped.set(key, order);
@@ -240,6 +259,7 @@ export async function parseOrderCSV(file: File): Promise<ImportedOrder[]> {
     return {
       namaPelanggan: order.namaPelanggan,
       tanggal: order.tanggal,
+      tanggalSelesai: order.tanggalSelesai,
       items: order.items,
       subtotal,
       pajak: 0,

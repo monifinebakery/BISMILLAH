@@ -60,6 +60,7 @@ export interface NewOrder {
   pajak?: number;
   totalPesanan?: number;
   tanggal?: Date;
+  tanggalSelesai?: Date;
 }
 
 export type OrderStatus = 

@@ -3,7 +3,7 @@
  * Provides cross-component communication for immediate UI updates
  */
 
-type OrderEventType = 
+export type OrderEventType = 
   | 'order:created'
   | 'order:updated' 
   | 'order:deleted'
@@ -11,7 +11,7 @@ type OrderEventType =
   | 'order:bulk_imported'
   | 'order:refresh_needed';
 
-interface OrderEventData {
+export interface OrderEventData {
   orderId?: string;
   orderIds?: string[];
   count?: number;

@@ -130,6 +130,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh
+      emitOrderUpdated(id);
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal memperbarui pesanan: ${error.message}`);
@@ -159,6 +163,9 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       
       // ✅ IMMEDIATE UI UPDATE: Update state optimistically
       setOrders(prev => prev.map(o => (o.id === orderIdStr ? updated : o)));
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh
+      emitOrderStatusChanged(orderIdStr, statusStr);
       
       // ✅ FORCE REFRESH: Ensure UI reflects changes immediately
       if (fallbackModeRef.current) {
@@ -193,6 +200,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh
+      emitOrderDeleted(id);
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal menghapus pesanan: ${error.message}`);
@@ -208,6 +219,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh for each order
+      ids.forEach(id => emitOrderStatusChanged(id, status));
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal memperbarui pesanan: ${error.message}`);
@@ -223,6 +238,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh for each deleted order
+      ids.forEach(id => emitOrderDeleted(id));
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal menghapus pesanan: ${error.message}`);

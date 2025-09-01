@@ -14,7 +14,7 @@ import ImportTutorialDialog from './ImportTutorialDialog';
 
 const ImportButton: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { bulkAddOrders, refreshData } = useOrder();
+  const { bulkAddOrders } = useOrder();
   const [showTutorial, setShowTutorial] = useState(false);
 
   const handleFile = async (file: File) => {
@@ -43,9 +43,8 @@ const ImportButton: React.FC = () => {
       if (success > 0) {
         toast.success(`${success} dari ${total} pesanan berhasil diimport!`);
         
-        // ✅ FORCE REFRESH: Ensure UI is updated immediately
-        console.log('🔄 Forcing data refresh after import...');
-        await refreshData();
+        // ✅ AUTO-REFRESH: bulkAddOrders already handles event emission and UI refresh
+        console.log('✨ Import complete - auto-refresh triggered by order events');
         
         if (success < total) {
           toast.warning(`${total - success} pesanan gagal diimport. Periksa data CSV.`);

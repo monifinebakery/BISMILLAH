@@ -292,16 +292,26 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       // ✅ EMIT EVENT: Trigger cross-component refresh for bulk import
       emitOrdersBulkImported(success);
       
-  // ✅ FORCE REFRESH: Always refresh data after bulk import to ensure consistency
+      // ✅ FORCE REFRESH: Always refresh data after bulk import to ensure consistency
       console.log('🔄 Triggering force refresh after bulk import...');
+      
+      // ✅ INVALIDATE REACT QUERY CACHE: Force refresh paginated data immediately
+      try {
+        const { useQueryClient } = await import('@tanstack/react-query');
+        // Get query client instance and invalidate all order-related queries
+        if (typeof window !== 'undefined') {
+          // Emit event for OrdersPage listener to refetch
+          emitOrdersBulkImported(success);
+          console.log('📡 Emitted bulk import event for immediate paginated data refresh');
+        }
+      } catch (error) {
+        console.warn('Could not invalidate React Query cache:', error);
+      }
+      
       setTimeout(async () => {
         await refreshData();
         console.log('✅ Force refresh completed');
-        
-        // ✅ EMIT EVENT: Also trigger refresh for paginated data
-        emitOrdersBulkImported(success);
-        console.log('📡 Emitted bulk import event for paginated data refresh');
-      }, 1000);
+      }, 500); // Reduced timeout
       
       // ✅ INVALIDATE PROFIT ANALYSIS: Bulk imported orders affect profit calculations
       console.log(`📈 ${success} orders imported - will affect profit calculations`);

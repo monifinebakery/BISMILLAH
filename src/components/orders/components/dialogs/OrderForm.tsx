@@ -302,19 +302,17 @@ const OrderForm: React.FC<OrderFormProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        centerMode="overlay" 
-        size="md+" 
+        size="xl" 
         className="w-full max-w-4xl max-h-[95vh] overflow-y-auto"
       >
-        <div className="dialog-panel dialog-panel-md-plus">
-          <DialogHeader className="dialog-header">
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {isEditMode ? 'Edit Pesanan' : 'Pesanan Baru'}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {isEditMode ? 'Edit Pesanan' : 'Pesanan Baru'}
+          </DialogTitle>
+        </DialogHeader>
 
-          <div className="dialog-body">
+        <div className="flex-1 overflow-y-auto p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
           {/* Customer Information */}
           <div className="space-y-4">
@@ -718,27 +716,26 @@ const OrderForm: React.FC<OrderFormProps> = ({
           </div>
 
             </form>
-          </div>
-
-          <DialogFooter className="dialog-footer">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading || formData.items.length === 0}
-              className="min-w-[120px] bg-orange-500 hover:bg-orange-600"
-              onClick={handleSubmit}
-            >
-              {loading ? 'Menyimpan...' : (isEditMode ? 'Update Pesanan' : 'Buat Pesanan')}
-            </Button>
-          </DialogFooter>
         </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading || formData.items.length === 0}
+            className="min-w-[120px] bg-orange-500 hover:bg-orange-600"
+            onClick={handleSubmit}
+          >
+            {loading ? 'Menyimpan...' : (isEditMode ? 'Update Pesanan' : 'Buat Pesanan')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

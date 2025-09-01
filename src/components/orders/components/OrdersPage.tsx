@@ -210,10 +210,10 @@ const OrdersPage: React.FC = () => {
     }
   }, [paginatedData]);
 
-  // ✅ UI STATE: Optimized with memoization
+  // ✅ UI STATE: Optimized with memoization - ONLY for filtering, search, pagination
   const uiState = useOrderUI(finalOrders, itemsPerPage);
 
-  // ✅ BULK OPERATIONS: Table selection state
+  // ✅ BULK OPERATIONS: Table selection state - ONLY for selection
   const {
     selectedIds,
     selectedOrders,
@@ -225,6 +225,28 @@ const OrdersPage: React.FC = () => {
     enterSelectionMode,
     exitSelectionMode,
   } = useOrderTable(finalOrders);
+  
+  // ✅ HYBRID STATE: Merge UI state with selection state
+  const hybridUiState = {
+    ...uiState,
+    // Override selection-related properties with useOrderTable values
+    selectedOrderIds: selectedIds,
+    isSelectionMode: isSelectionMode,
+    toggleSelectOrder: (orderId: string, forceValue?: boolean) => {
+      toggleOrderSelection(orderId);
+    },
+    toggleSelectionMode: () => {
+      if (isSelectionMode) {
+        exitSelectionMode();
+      } else {
+        enterSelectionMode();
+      }
+    },
+    clearSelection: clearSelection,
+    getSelectedOrders: (allOrders: Order[]) => {
+      return selectedOrders;
+    }
+  };
 
   // ✅ CONSOLIDATED: Single state object
   const [pageState, setPageState] = useState<OrdersPageState>(initialState);
@@ -506,6 +528,12 @@ const OrdersPage: React.FC = () => {
           });
           // Success toast is handled in addOrder/updateOrder functions
           dialogHandlers.closeOrderForm();
+          
+          // ✅ IMMEDIATE REFRESH: Refresh paginated data after form submit
+          setTimeout(() => {
+            refetchPaginated();
+            console.log('✅ Paginated data refreshed after order form submit');
+          }, 500);
         }
       } catch (error) {
         logger.error('Error submitting order:', error);
@@ -695,11 +723,11 @@ const OrdersPage: React.FC = () => {
         </div>
       }>
         <OrderControls 
-          uiState={uiState} 
+          uiState={hybridUiState} 
           loading={finalIsLoading} 
         />
         <OrderFilters 
-          uiState={uiState} 
+          uiState={hybridUiState} 
           loading={finalIsLoading} 
         />
         

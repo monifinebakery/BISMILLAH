@@ -181,11 +181,14 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               id,
               user_id,
               order_id,
+              name,
               email,
               payment_status,
               is_paid,
               pg_reference_id,
-              created_at
+              created_at,
+              updated_at,
+              workspace_id
             `)
             .eq('order_id', payment.order_id);
 
@@ -237,11 +240,14 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
               id,
               user_id,
               order_id,
+              name,
               email,
               payment_status,
               is_paid,
+              pg_reference_id,
               created_at,
-              updated_at
+              updated_at,
+              workspace_id
             `);
 
           logger.debug('AutoLinkingPopup: Update result:', {

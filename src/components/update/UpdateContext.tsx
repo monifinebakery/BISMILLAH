@@ -45,7 +45,18 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         logger.warn('Could not check admin status, assuming non-admin:', adminCheckError);
       }
 
-      let query = supabase.from('app_updates').select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `);
+      let query = supabase.from('app_updates').select(`
+        id,
+        title,
+        description,
+        version,
+        release_date,
+        is_active,
+        priority,
+        changelog,
+        created_at,
+        updated_at
+      `);
       if (isAdmin) {
         query = query.order('release_date', { ascending: false });
       } else {

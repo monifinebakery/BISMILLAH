@@ -349,7 +349,15 @@ export const getCurrentAppSettings = async (): Promise<AppSettings | null> => {
 
     const { data: settings, error } = await supabase
       .from('app_settings')
-      .select(`\n          id,\n          user_id,\n          target_output_monthly,\n          overhead_per_pcs,\n          operasional_per_pcs,\n          created_at,\n          updated_at\n        `)         id,\n          user_id,\n          target_output_monthly,\n          overhead_per_pcs,\n          operasional_per_pcs,\n          created_at,\n          updated_at\n        `)
+      .select(`
+        id,
+        user_id,
+        target_output_monthly,
+        overhead_per_pcs,
+        operasional_per_pcs,
+        created_at,
+        updated_at
+      `)
       .eq('user_id', user.id)
       .maybeSingle(); // Use maybeSingle() to avoid PGRST116 error
 

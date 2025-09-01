@@ -12,17 +12,15 @@ export interface PaymentStatus {
   user_id: string | null;
   order_id: string | null;
   pg_reference_id: string | null;
+  name: string | null; // ✅ FIXED: Use 'name' instead of 'customer_name'
   email: string | null;
   payment_status: string | null;
   is_paid: boolean;
   created_at: Date | undefined;
   updated_at: Date | undefined;
-  payment_date: Date | undefined;
-  amount: number | null;
-  marketing_channel: string | null;
-  campaign_id: string | null;
-  currency: string | null;
-  customer_name: string | null;
+  workspace_id: string | null; // ✅ ADDED: Missing column
+  // ❌ REMOVED: Non-existent columns
+  // payment_date, amount, marketing_channel, campaign_id, currency, customer_name
 }
 
 export const usePaymentStatus = () => {
@@ -58,10 +56,22 @@ export const usePaymentStatus = () => {
         logger.hook('usePaymentStatus', 'Checking payment for user:', user.email);
       }
 
-      // ✅ STEP 1: Check for LINKED payments only
+      // ✅ STEP 1: Check for LINKED payments only - FIXED SCHEMA
       const { data: linkedPayments, error: linkedError } = await supabase
         .from('user_payments')
-        .select(`\n          id,\n          user_id,\n          order_id,\n          email,\n          payment_status,\n          is_paid,\n          pg_reference_id,\n          created_at,\n          amount\n        `)         id,\n          user_id,\n          order_id,\n          email,\n          payment_status,\n          is_paid,\n          pg_reference_id,\n          created_at,\n          amount\n        `)
+        .select(`
+          id,
+          user_id,
+          order_id,
+          name,
+          email,
+          payment_status,
+          is_paid,
+          pg_reference_id,
+          created_at,
+          updated_at,
+          workspace_id
+        `)
         .eq('user_id', user.id)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -82,7 +92,6 @@ export const usePaymentStatus = () => {
           ...payment,
           created_at: safeParseDate(payment.created_at),
           updated_at: safeParseDate(payment.updated_at),
-          payment_date: safeParseDate(payment.payment_date),
         };
       }
 
@@ -92,12 +101,24 @@ export const usePaymentStatus = () => {
 
       // ✅ STEP 2: Check for UNLINKED payments (SIMPLIFIED - only by email)
       if (process.env.NODE_ENV === 'development') {
-        log.select(`\n          id,\n          user_id,\n          order_id,\n          email,\n          payment_status,\n          is_paid,\n          pg_reference_id,\n          created_at,\n          amount\n        `)ePaymentStatus', 'Checking for unlinked payments...');
+        logger.hook('usePaymentStatus', 'Checking for unlinked payments...');
       }
       
       const { data: unlinkedPayments, error: unlinkedError } = await supabase
         .from('user_payments')
-        .select(`\n          id,\n          user_id,\n          order_id,\n          email,\n          payment_status,\n          is_paid,\n          pg_reference_id,\n          created_at,\n          amount\n        `)
+        .select(`
+          id,
+          user_id,
+          order_id,
+          name,
+          email,
+          payment_status,
+          is_paid,
+          pg_reference_id,
+          created_at,
+          updated_at,
+          workspace_id
+        `)
         .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -118,7 +139,6 @@ export const usePaymentStatus = () => {
           ...payment,
           created_at: safeParseDate(payment.created_at),
           updated_at: safeParseDate(payment.updated_at),
-          payment_date: safeParseDate(payment.payment_date),
         };
       }
 
@@ -344,7 +364,7 @@ export const usePaymentStatus = () => {
     needsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
-    userName: paymentStatus?.customer_name || null,
+    userName: paymentStatus?.name || null, // ✅ FIXED: Use 'name' instead of 'customer_name'
     hasValidPayment,
     isLinkedToCurrentUser
   };

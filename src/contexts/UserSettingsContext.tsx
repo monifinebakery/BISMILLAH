@@ -58,7 +58,18 @@ const userSettingsApi = {
 
     const { data, error } = await supabase
       .from('user_settings')
-      .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
+      .select(`
+        id,
+        user_id,
+        business_name,
+        owner_name,
+        email,
+        phone,
+        address,
+        notifications,
+        updated_at,
+        created_at
+      `)
       .eq('user_id', userId)
       .maybeSingle();
 

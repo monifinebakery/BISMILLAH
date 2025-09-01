@@ -68,7 +68,18 @@ export const AdminUpdatesPage: React.FC = () => {
       
       const { data, error } = await supabase
         .from('app_updates')
-        .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
+        .select(`
+          id,
+          title,
+          description,
+          version,
+          release_date,
+          is_active,
+          priority,
+          changelog,
+          created_at,
+          updated_at
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {

@@ -50,7 +50,18 @@ const fetchSuppliersPaginated = async (
   // Get paginated data
   const { data, error } = await supabase
     .from('suppliers')
-    .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
+    .select(`
+      id,
+      user_id,
+      nama,
+      kontak,
+      email,
+      telepon,
+      alamat,
+      catatan,
+      created_at,
+      updated_at
+    `)
     .eq('user_id', userId)
     .order('nama', { ascending: true })
     .range(offset, offset + limit - 1);

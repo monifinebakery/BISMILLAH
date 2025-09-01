@@ -119,6 +119,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   } = usePurchaseForm({
     mode,
     initialData: purchase,
+    suppliers, // Pass suppliers to enable ID->name conversion
     onSuccess: () => {
       toast.success(
         mode === 'create' 

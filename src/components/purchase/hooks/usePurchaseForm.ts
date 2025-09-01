@@ -11,6 +11,7 @@ import { logger } from '@/utils/logger';
 interface UsePurchaseFormProps {
   mode: 'create' | 'edit';
   initialData?: Purchase | null;
+  suppliers?: Array<{ id: string; nama: string }> | null;
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
@@ -55,6 +56,7 @@ const defaultFormData: PurchaseFormData = {
 export const usePurchaseForm = ({
   mode,
   initialData,
+  suppliers,
   onSuccess,
   onError,
 }: UsePurchaseFormProps): UsePurchaseFormReturn => {
@@ -62,11 +64,23 @@ export const usePurchaseForm = ({
   const { addPurchase, updatePurchase } = usePurchase();
   const { getOrCreateSupplierId } = useSupplierAutoSave();
 
-  // Form state
-  const [formData, setFormDataState] = useState<PurchaseFormData>(() => {
+  // Form data state
+  const [formDataState, setFormDataState] = useState<PurchaseFormData>(() => {
     if (mode === 'edit' && initialData) {
+      // Convert supplier ID to name for editing
+      let supplierName = initialData.supplier;
+      
+      // If supplier looks like an ID (UUID pattern), try to find the supplier name
+      if (initialData.supplier && initialData.supplier.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        // Find supplier by ID to get the name
+        const supplierFound = suppliers?.find(s => s.id === initialData.supplier);
+        if (supplierFound) {
+          supplierName = supplierFound.nama;
+        }
+      }
+      
       return {
-        supplier: initialData.supplier,
+        supplier: supplierName,
         tanggal: initialData.tanggal,
         items: initialData.items,
         metodePerhitungan: initialData.metodePerhitungan ?? 'AVERAGE',
@@ -87,10 +101,13 @@ export const usePurchaseForm = ({
   const validationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Calculate total value
-  const totalValue = calculatePurchaseTotal(formData.items);
+  const totalValue = calculatePurchaseTotal(formDataState.items);
+
+  // Expose form data with consistent name
+  const formData = formDataState;
 
   // ✅ ULTRA LIGHTWEIGHT: Skip all validation for form field updates
-  const setFormData = useCallback((data: PurchaseFormData, skipValidation = true) => { // Default skip!
+  const setFormDataFn = useCallback((data: PurchaseFormData, skipValidation = true) => { // Default skip!
     setFormDataState(data);
     setIsDirty(true);
 
@@ -262,8 +279,18 @@ export const usePurchaseForm = ({
   // Reset form
   const handleReset = useCallback(() => {
     if (mode === 'edit' && initialData) {
+      // Convert supplier ID to name when resetting, same as initialization
+      let supplierName = initialData.supplier;
+      
+      if (initialData.supplier && initialData.supplier.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        const supplierFound = suppliers?.find(s => s.id === initialData.supplier);
+        if (supplierFound) {
+          supplierName = supplierFound.nama;
+        }
+      }
+      
       setFormDataState({
-        supplier: initialData.supplier,
+        supplier: supplierName,
         tanggal: initialData.tanggal,
         items: initialData.items,
         metodePerhitungan: initialData.metodePerhitungan ?? 'AVERAGE',
@@ -278,7 +305,7 @@ export const usePurchaseForm = ({
       errors: [],
       warnings: [],
     });
-  }, [mode, initialData]);
+  }, [mode, initialData, suppliers]);
 
   // Cleanup pending validation timeout on unmount
   useEffect(() => {
@@ -292,7 +319,7 @@ export const usePurchaseForm = ({
   return {
     // Form data
     formData,
-    setFormData,
+    setFormData: setFormDataFn,
     updateFormField,
 
 

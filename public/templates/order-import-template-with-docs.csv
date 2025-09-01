@@ -1,0 +1,28 @@
+# Template Import Pesanan - Panduan Lengkap
+# 
+# Kolom Wajib:
+# - pelanggan: Nama pelanggan atau toko
+# - tanggal: Format YYYY-MM-DD (contoh: 2025-01-01)
+# - nama: Nama produk/item pesanan
+# - kuantitas: Jumlah pesanan (angka)
+# - satuan: Satuan kuantitas (porsi, pcs, gelas, dll)
+# - harga: Harga default (untuk backward compatibility)
+#
+# Kolom Opsional (Pricing Per Piece):
+# - pricing_mode: per_portion atau per_piece
+# - price_per_portion: Harga per porsi (jika pricing_mode = per_portion)
+# - price_per_piece: Harga per pcs (jika pricing_mode = per_piece)
+#
+# Catatan:
+# - Jika pricing_mode kosong, akan menggunakan kolom 'harga'
+# - Jika pricing_mode = per_portion, wajib isi price_per_portion
+# - Jika pricing_mode = per_piece, wajib isi price_per_piece
+# - Total otomatis dihitung: kuantitas × harga_aktif
+#
+# Contoh Data:
+pelanggan;tanggal;nama;kuantitas;satuan;pricing_mode;price_per_portion;price_per_piece;harga
+PT Contoh;2025-01-01;Nasi Gudeg;10;porsi;per_portion;50000;15000;50000
+PT Contoh;2025-01-01;Es Teh Manis;5;gelas;per_piece;;8000;8000
+Toko ABC;2025-01-02;Ayam Bakar;3;porsi;per_portion;75000;25000;75000
+Restoran XYZ;2025-01-02;Kerupuk;20;pcs;per_piece;;2500;2500
+Cafe DEF;2025-01-03;Kopi Susu;2;gelas;;;<notfilled>;25000

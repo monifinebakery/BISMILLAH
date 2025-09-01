@@ -10,6 +10,8 @@ import { transformOrderFromDB } from '../utils';
 import type { Order, NewOrder, OrderStatus } from '../types';
 import { useOrderConnection } from '../hooks/useOrderConnection';
 import { useOrderSubscription } from '../hooks/useOrderSubscription';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
+import { orderEvents, emitOrderCreated, emitOrderUpdated, emitOrderDeleted, emitOrderStatusChanged, emitOrdersBulkImported } from '../utils/orderEvents';
 import * as orderService from '../services/orderService';
 
 interface Props { children: ReactNode }
@@ -70,6 +72,19 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     { shouldAttemptConnection, recordConnectionFailure, setIsConnected }
   );
 
+  // ✅ AUTO-REFRESH: Listen to order events for immediate UI updates
+  useEffect(() => {
+    const unsubscribe = orderEvents.on('order:refresh_needed', (data) => {
+      console.log('🔔 Auto-refresh triggered by order event:', data);
+      // Debounce multiple rapid events
+      setTimeout(() => {
+        refreshData();
+      }, 300);
+    });
+
+    return unsubscribe;
+  }, [refreshData]);
+
   useEffect(() => {
     if (userId) {
       refreshData();
@@ -93,6 +108,9 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh
+      emitOrderCreated(created.id);
       
       // ✅ INVALIDATE PROFIT ANALYSIS: New orders affect profit calculations
       console.log('📈 Order added - will affect profit calculations');
@@ -218,29 +236,56 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     let success = 0;
     const results = [];
     
+    // Show progress for large imports
+    const isLargeImport = orders.length > 5;
+    let processed = 0;
+    
     for (const order of orders) {
       try {
         const created = await orderService.addOrder(userId, order);
         results.push(created);
         success++;
+        processed++;
+        
+        // Log progress for large imports
+        if (isLargeImport && processed % 5 === 0) {
+          console.log(`📋 Import progress: ${processed}/${orders.length} orders added`);
+        }
       } catch (error) {
+        processed++;
         console.error('Error adding order during bulk import:', error);
       }
     }
     
-    // Update state with all successfully created orders at once
+    // ✅ IMMEDIATE STATE UPDATE: Update state with all successfully created orders at once
     if (results.length > 0) {
-      setOrders(prev => [...results, ...prev]);
-      if (fallbackModeRef.current) {
-        throttledFetch(refreshData);
-      }
+      console.log(`✨ Updating UI state with ${results.length} new orders`);
+      setOrders(prev => {
+        // Sort by date (newest first) and avoid duplicates
+        const newOrders = results.filter(newOrder => 
+          !prev.some(existingOrder => existingOrder.id === newOrder.id)
+        );
+        return [...newOrders, ...prev].sort((a, b) => 
+          new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+        );
+      });
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh for bulk import
+      emitOrdersBulkImported(success);
+      
+      // ✅ FORCE REFRESH: Always refresh data after bulk import to ensure consistency
+      console.log('🔄 Triggering force refresh after bulk import...');
+      setTimeout(async () => {
+        await refreshData();
+        console.log('✅ Force refresh completed');
+      }, 1000);
       
       // ✅ INVALIDATE PROFIT ANALYSIS: Bulk imported orders affect profit calculations
       console.log(`📈 ${success} orders imported - will affect profit calculations`);
     }
     
     return { success, total: orders.length };
-  }, [userId, throttledFetch, refreshData]);
+  }, [userId, refreshData]);
 
   // ULTRA PERFORMANCE: Memoized computed values untuk mencegah re-calculation
   const ordersRef = useRef(orders);

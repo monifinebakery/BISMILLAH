@@ -137,7 +137,6 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
         email,
         payment_status,
         is_paid,
-        amount,
         pg_reference_id,
         created_at
       `)
@@ -211,7 +210,6 @@ export const linkPaymentToUser = async (orderId: string, user: any): Promise<Pay
         email,
         payment_status,
         is_paid,
-        amount,
         created_at,
         updated_at
       `)
@@ -312,7 +310,6 @@ export const checkUserHasPayment = async (email: string, userId: string): Promis
         email,
         payment_status,
         is_paid,
-        amount,
         created_at
       `)
       .eq('email', email)

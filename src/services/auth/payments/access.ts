@@ -80,7 +80,6 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
         email,
         payment_status,
         is_paid,
-        amount,
         pg_reference_id,
         created_at
       `)

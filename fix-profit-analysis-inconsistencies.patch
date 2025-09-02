@@ -1,0 +1,35 @@
+--- a/src/components/profitAnalysis/services/profitAnalysisApi.ts
++++ b/src/components/profitAnalysis/services/profitAnalysisApi.ts
+@@ -239,7 +239,10 @@ export function calculatePemakaianValue(p: any, bahanMap: Record<string, any>):
+   const qty = Number(p.qty_base || 0);
+   if (typeof p.hpp_value === 'number') return Number(p.hpp_value);
+   if (typeof p.harga_efektif === 'number') return qty * Number(p.harga_efektif);
+-  const bahan = bahanMap[p.bahan_baku_id];
++  
++  // ✅ FLEXIBLE ID MATCHING
++  const itemId = p.bahan_baku_id || p.bahanBakuId || p.id;
++  const bahan = bahanMap[itemId];
+   if (!bahan) return 0;
+   return qty * getEffectiveUnitPrice(bahan);
+ }
+@@ -1503,7 +1506,10 @@ const profitAnalysisApi = {
+ 
+       if (bahanMap && Object.keys(bahanMap).length > 0 && pemakaian && pemakaian.length > 0) {
+         const fnbBreakdown: FNBCOGSBreakdown[] = pemakaian.map(item => {
+-          const bahan = bahanMap[item.bahan_baku_id];
++          // ✅ FLEXIBLE ID MATCHING
++          const itemId = item.bahan_baku_id || item.bahanBakuId || item.id;
++          const bahan = bahanMap[itemId];
++          
+           if (!bahan) return null;
+ 
+           const qty = Number(item.qty_base || 0);
+@@ -1512,7 +1518,7 @@ const profitAnalysisApi = {
+           const category = profitAnalysisApi.categorizeFNBItem(bahan.nama || '');
+ 
+           return {
+-            item_id: item.bahan_baku_id,
++            item_id: itemId,
+             item_name: bahan.nama || 'Unknown',
+             category,
+             quantity_used: qty,

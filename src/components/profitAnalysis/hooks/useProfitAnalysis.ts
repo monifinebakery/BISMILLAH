@@ -16,22 +16,18 @@ import {
   FNBCOGSBreakdown,
   FNBLabels
 } from '../types/profitAnalysis.types';
-// ✅ IMPORT PROFIT ANALYSIS SERVICES & WAC HELPERS
-import profitAnalysisApi, {
-  calculateProfitAnalysisDaily,
-  fetchBahanMap,
+// ✅ IMPORT PROFIT ANALYSIS SERVICES
+import profitAnalysisApi from '../services/profitAnalysisApi';
+// ✅ IMPORT MODULAR HELPERS
+import { calculateProfitAnalysisDaily } from '../services/calculationUtils';
+import { 
+  fetchBahanMap, 
   fetchPemakaianByPeriode,
-  calculatePemakaianValue,
-} from '../services/profitAnalysisApi';
+  getCurrentUserId as getAuthUserId
+} from '../services/warehouseHelpers';
 
-// Helper function untuk get current user ID
-const getCurrentUserId = async (): Promise<string | null> => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
-    return null;
-  }
-  return user.id;
-};
+// Helper function untuk get current user ID (use modular version)
+const getCurrentUserId = getAuthUserId;
 import { calcHPP } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';

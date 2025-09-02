@@ -55,8 +55,24 @@ import {
 import { FNB_THRESHOLDS } from '../constants/profitConstants';
 
 // Note: Helper functions have been moved to separate modules for better code organization
-// Daily calculation is now imported from calculationUtils.ts
-export { calculateProfitAnalysisDaily };
+// Re-export commonly used functions for backward compatibility
+export { calculateProfitAnalysisDaily, calculatePemakaianValue } from './calculationUtils';
+export { 
+  fetchBahanMap, 
+  fetchPemakaianByPeriode, 
+  getEffectiveUnitPrice,
+  getCurrentUserId
+} from './warehouseHelpers';
+export { 
+  generatePeriods, 
+  getDateRangeFromPeriod, 
+  assessDataQuality 
+} from './dataProcessingHelpers';
+export { 
+  categorizeFNBItem,
+  getFNBCOGSBreakdown,
+  generateFNBInsights
+} from './fnbHelpers';
 
 // Note: Parsing functions have been moved to dataProcessingHelpers.ts
 // Fallback functions have been moved to fallbackHelpers.ts

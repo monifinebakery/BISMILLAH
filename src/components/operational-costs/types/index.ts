@@ -79,6 +79,7 @@ export interface CostValidationErrors {
   jumlah_per_bulan?: string;
   jenis?: string;
   status?: string;
+  tanggal?: string; // ✅ NEW: Date field validation
 }
 
 export interface AllocationValidationErrors {

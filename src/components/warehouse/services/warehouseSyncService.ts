@@ -415,9 +415,18 @@ export class WarehouseSyncService {
           purchases?.forEach(purchase => {
             if (purchase.items && Array.isArray(purchase.items)) {
               purchase.items.forEach((purchaseItem: any) => {
-                if (purchaseItem.bahan_baku_id === item.id) {
-                  const qty = Number(purchaseItem.jumlah || 0);
-                  const price = Number(purchaseItem.harga_per_satuan || 0);
+                // ✅ FLEXIBLE ID MATCHING - handle all possible ID field names
+                const itemId = purchaseItem.bahanBakuId || purchaseItem.bahan_baku_id || purchaseItem.id;
+                
+                if (itemId === item.id) {
+                  // ✅ FLEXIBLE FIELD MATCHING - handle all possible field names
+                  const qty = Number(purchaseItem.kuantitas || purchaseItem.jumlah || 0);
+                  const price = Number(
+                    purchaseItem.hargaSatuan || 
+                    purchaseItem.harga_per_satuan || 
+                    purchaseItem.harga_satuan || 
+                    0
+                  );
                   totalQuantity += qty;
                   totalValue += qty * price;
                 }
@@ -660,9 +669,18 @@ export class WarehouseSyncService {
       purchases?.forEach(purchase => {
         if (purchase.items && Array.isArray(purchase.items)) {
           purchase.items.forEach((item: any) => {
-            if (item.bahan_baku_id === itemId) {
-              const qty = Number(item.jumlah || 0);
-              const price = Number(item.harga_per_satuan || 0);
+            // ✅ FLEXIBLE ID MATCHING - handle all possible ID field names
+            const purchaseItemId = item.bahanBakuId || item.bahan_baku_id || item.id;
+            
+            if (purchaseItemId === itemId) {
+              // ✅ FLEXIBLE FIELD MATCHING - handle all possible field names
+              const qty = Number(item.kuantitas || item.jumlah || 0);
+              const price = Number(
+                item.hargaSatuan || 
+                item.harga_per_satuan || 
+                item.harga_satuan || 
+                0
+              );
               totalQuantity += qty;
               totalValue += qty * price;
             }

@@ -28,6 +28,8 @@ const CostForm: React.FC<CostFormProps> = ({
     jumlah_per_bulan: 0,
     jenis: 'tetap',
     status: 'aktif',
+    // ✅ ADD: Date field for cost tracking
+    tanggal: new Date().toISOString().split('T')[0], // Default to today
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -126,6 +128,7 @@ const CostForm: React.FC<CostFormProps> = ({
           jumlah_per_bulan: 0,
           jenis: 'tetap',
           status: 'aktif',
+          tanggal: new Date().toISOString().split('T')[0], // ✅ Reset to today
         });
         setWarnings([]);
         setIsProductionStaff(null);
@@ -262,6 +265,31 @@ const CostForm: React.FC<CostFormProps> = ({
           
           {errors.jumlah_per_bulan && (
             <p className="mt-1 text-sm text-red-600">{errors.jumlah_per_bulan}</p>
+          )}
+        </div>
+
+        {/* ✅ NEW: Tanggal Biaya */}
+        <div>
+          <label htmlFor="tanggal" className="block text-sm font-medium text-gray-700 mb-1">
+            Tanggal Biaya <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            id="tanggal"
+            value={formData.tanggal || new Date().toISOString().split('T')[0]}
+            onChange={(e) => handleInputChange('tanggal', e.target.value)}
+            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.tanggal ? 'border-red-300' : 'border-gray-300'
+            }`}
+            disabled={loading}
+            max={new Date().toISOString().split('T')[0]} // Don't allow future dates
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Tanggal mulai berlaku biaya ini (tidak boleh tanggal masa depan)
+          </p>
+          
+          {errors.tanggal && (
+            <p className="mt-1 text-sm text-red-600">{errors.tanggal}</p>
           )}
         </div>
 

@@ -28,8 +28,9 @@ export interface CostFormData {
   jumlah_per_bulan: number;
   jenis: 'tetap' | 'variabel';
   status: 'aktif' | 'nonaktif';
-  group: 'hpp' | 'operasional'; // New: Dual-mode cost group
+  group?: 'hpp' | 'operasional'; // New: Dual-mode cost group (optional for backward compatibility)
   deskripsi?: string;
+  tanggal?: string; // ✅ NEW: Date field for cost tracking (YYYY-MM-DD format)
   // Note: cost_category is not included as it's a generated column
 }
 

@@ -214,21 +214,8 @@ const OrdersPage: React.FC = () => {
   // Pass current pagination state and sync it with useOrderUI
   const uiState = useOrderUI(finalOrders, itemsPerPage);
   
-  // ✅ SYNC PAGINATION: Keep useOrderUI in sync with React Query pagination
-  React.useEffect(() => {
-    if (uiState.itemsPerPage !== itemsPerPage) {
-      console.log('Syncing itemsPerPage from useOrderUI:', uiState.itemsPerPage);
-      setItemsPerPage(uiState.itemsPerPage);
-      setCurrentPage(1); // Reset to first page when items per page changes
-    }
-  }, [uiState.itemsPerPage, itemsPerPage]);
-  
-  React.useEffect(() => {
-    if (uiState.currentPage !== currentPage) {
-      console.log('Syncing currentPage from useOrderUI:', uiState.currentPage);
-      setCurrentPage(uiState.currentPage);
-    }
-  }, [uiState.currentPage, currentPage]);
+  // ✅ REMOVED: Conflicting sync effects that were causing circular updates
+  // The hybridUiState now properly manages the pagination state
 
   // ✅ BULK OPERATIONS: Table selection state - ONLY for selection
   const {
@@ -263,7 +250,7 @@ const OrdersPage: React.FC = () => {
     getSelectedOrders: (allOrders: Order[]) => {
       return selectedOrders;
     },
-    // ✅ OVERRIDE: Use React Query pagination state instead of useOrderUI internal state
+  // ✅ OVERRIDE: Use React Query pagination state instead of useOrderUI internal state
     currentPage: currentPage,
     totalPages: paginationInfo.totalPages,
     totalItems: paginationInfo.totalCount,
@@ -276,6 +263,11 @@ const OrdersPage: React.FC = () => {
       console.log('hybridUiState.setItemsPerPage called:', perPage);
       setItemsPerPage(perPage);
       setCurrentPage(1); // Reset to first page
+      // ✅ TRIGGER IMMEDIATE REFETCH: Force refetch when items per page changes
+      setTimeout(() => {
+        refetchPaginated();
+        console.log('✅ Paginated data refreshed after items per page change');
+      }, 100);
     }
   };
 

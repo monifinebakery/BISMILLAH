@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 // ✅ UPDATED: Import unified date utilities for consistency
 import { UnifiedDateHandler, WarehouseDateUtils } from '@/utils/unifiedDateHandler';
+// ✅ NEW: Import standardized date range filtering
+import { applyStandardDateRangeFilters, STANDARD_DATE_FIELDS } from '@/utils/standardDateRangeFiltering';
 import type { BahanBaku, BahanBakuFrontend } from '../types';
 
 export interface ServiceConfig {
@@ -141,34 +143,39 @@ class CrudService {
     endDate: Date
   ): Promise<BahanBakuFrontend[]> {
     try {
-      const startYMD = UnifiedDateHandler.toDatabaseString(startDate) || '';
-      const endYMD = UnifiedDateHandler.toDatabaseString(endDate) || '';
-
-      console.log('🔍 Fetching warehouse materials by date range (IMPROVED):', {
-        startDate: startYMD,
-        endDate: endYMD,
+      console.log('🔍 Fetching warehouse materials by date range (FIXED):', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
         userId: this.config.userId
       });
 
-      // Get materials that existed during the period (created before or during the period)
+      // ✅ FIXED: Use standardized date range filtering with both start and end dates
       let query = supabase.from('bahan_baku').select(`
         id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
         tanggal_kadaluwarsa, created_at, updated_at,
         harga_rata_rata
-      `)
-      .lte('created_at', endYMD + 'T23:59:59.999Z') // Created before or during the period
-      .order('nama', { ascending: true });
+      `);
 
       if (this.config.userId) query = query.eq('user_id', this.config.userId);
 
-      const { data, error } = await query;
+      // Apply proper date range filtering (both start and end dates)
+      query = applyStandardDateRangeFilters(query, {
+        startDate,
+        endDate,
+        dateField: STANDARD_DATE_FIELDS.CREATED_AT
+      });
+
+      const { data, error } = await query.order('nama', { ascending: true });
       if (error) throw error;
 
       const materials = (data || []).map((item: any) => transformToFrontend(item));
 
-      console.log('🔍 Filtered warehouse materials result (IMPROVED):', {
+      console.log('🔍 FIXED warehouse materials result:', {
         totalMaterials: materials.length,
-        dateRange: { startYMD, endYMD },
+        dateRange: {
+          start: startDate.toISOString(),
+          end: endDate.toISOString()
+        },
         materials: materials.slice(0, 3).map(m => ({
           nama: m.nama,
           stok: m.stok,

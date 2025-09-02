@@ -6,6 +6,8 @@ import { logger } from '@/utils/logger';
 import { UnifiedDateHandler, normalizeDateForDatabase } from '@/utils/unifiedDateHandler';
 import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; // Keep for transition compatibility
 import { addFinancialTransaction } from '@/components/financial/services/financialApi';
+// ✅ NEW: Import standardized date range filtering
+import { applyStandardDateRangeFilters, STANDARD_DATE_FIELDS } from '@/utils/standardDateRangeFiltering';
 // 🔄 For cache invalidation - will be used by components
 let globalQueryClient: any = null;
 export const setQueryClient = (client: any) => {
@@ -125,24 +127,27 @@ export const operationalCostApi = {
         return { data: [], error: 'User tidak ditemukan. Silakan login kembali.' };
       }
 
-      const startYMD = UnifiedDateHandler.toDatabaseString(startDate) || '';
-      const endYMD = UnifiedDateHandler.toDatabaseString(endDate) || '';
-
-      console.log('🔍 Fetching operational costs by date range:', {
-        startDate: startYMD,
-        endDate: endYMD,
+      console.log('🔍 Fetching operational costs by date range (FIXED):', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
         userId: resolvedUserId
       });
 
-      // Get costs that were created/updated within the date range
-      // AND are currently active
-      const { data, error } = await supabase
+      // ✅ FIXED: Use standardized date range filtering with both start and end dates
+      let query = supabase
         .from('operational_costs')
         .select('id, user_id, nama_biaya, jenis, jumlah_per_bulan, status, deskripsi, created_at, updated_at, cost_category, group, effective_date')
         .eq('user_id', resolvedUserId)
-        .eq('status', 'aktif') // Only active costs
-        .lte('created_at', endYMD + 'T23:59:59.999Z') // Created before or during the period
-        .order('created_at', { ascending: false });
+        .eq('status', 'aktif'); // Only active costs
+
+      // Apply proper date range filtering (both start and end dates)
+      query = applyStandardDateRangeFilters(query, {
+        startDate,
+        endDate,
+        dateField: STANDARD_DATE_FIELDS.CREATED_AT
+      });
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -156,10 +161,13 @@ export const operationalCostApi = {
         deskripsi: item.deskripsi || undefined
       }));
 
-      console.log('🔍 Filtered operational costs result:', {
+      console.log('🔍 FIXED operational costs result:', {
         totalCosts: typedData.length,
         activeCosts: typedData.filter(c => c.status === 'aktif').length,
-        dateRange: { startYMD, endYMD },
+        dateRange: {
+          start: startDate.toISOString(),
+          end: endDate.toISOString()
+        },
         costs: typedData.map(c => ({
           nama: c.nama_biaya,
           jumlah: c.jumlah_per_bulan,

@@ -767,51 +767,19 @@ export const profitAnalysisApi = {
 
       logger.info('🔄 Calculating profit analysis for period:', period);
       
-      // ✅ TRY METHOD 1: Use stored function (fastest, most accurate)
-      try {
-        // Use type assertion to bypass TypeScript RPC validation
-        const { data: profitData, error: profitError } = await (supabase as any)
-          .rpc('calculate_realtime_profit', {
-            p_user_id: userId,
-            p_period: period
-          });
-
-        if (!profitError && profitData && profitData.length > 0) {
-          const result = profitData[0];
-          
-          const calculation: RealTimeProfitCalculation = {
-            period,
-            revenue_data: {
-              total: Number(result.total_revenue) || 0,
-              transactions: parseTransactions(result.revenue_transactions)
-            },
-            cogs_data: {
-              total: Number(result.total_cogs) || 0,
-              materials: parseCOGSTransactions(result.cogs_transactions)
-            },
-            opex_data: {
-              total: Number(result.total_opex) || 0,
-              costs: parseOpExCosts(result.opex_costs)
-            },
-            calculated_at: new Date().toISOString()
-          };
-
-          logger.success('✅ Stored function calculation completed:', {
-            period,
-            revenue: calculation.revenue_data.total,
-            cogs: calculation.cogs_data.total,
-            opex: calculation.opex_data.total
-          });
-
-          return {
-            data: calculation,
-            success: true,
-            message: 'Analisis profit berhasil dihitung (stored function)'
-          };
-        }
-      } catch (storedFunctionError) {
-        logger.warn('⚠️ Stored function failed, falling back to API integration:', storedFunctionError);
-      }
+      // 🚨 TEMPORARY FIX: Skip stored function dan langsung use API integration
+      // untuk menghindari inconsistency dengan financial reports
+      logger.info('🔄 Using direct API integration (temporary fix for data consistency)');
+      
+      // ✅ METHOD 1 (DISABLED): Stored function - DISABLED for debugging
+      // Stored function might have different filtering logic than financial reports
+      // try {
+      //   const { data: profitData, error: profitError } = await (supabase as any)
+      //     .rpc('calculate_realtime_profit', {
+      //       p_user_id: userId,
+      //       p_period: period
+      //     });
+      // }
 
       // ✅ FALLBACK METHOD 2: Use API integration (compatibility)
       logger.info('🔄 Using API integration fallback');

@@ -211,7 +211,24 @@ const OrdersPage: React.FC = () => {
   }, [paginatedData]);
 
   // ✅ UI STATE: Optimized with memoization - ONLY for filtering, search, pagination
+  // Pass current pagination state and sync it with useOrderUI
   const uiState = useOrderUI(finalOrders, itemsPerPage);
+  
+  // ✅ SYNC PAGINATION: Keep useOrderUI in sync with React Query pagination
+  React.useEffect(() => {
+    if (uiState.itemsPerPage !== itemsPerPage) {
+      console.log('Syncing itemsPerPage from useOrderUI:', uiState.itemsPerPage);
+      setItemsPerPage(uiState.itemsPerPage);
+      setCurrentPage(1); // Reset to first page when items per page changes
+    }
+  }, [uiState.itemsPerPage, itemsPerPage]);
+  
+  React.useEffect(() => {
+    if (uiState.currentPage !== currentPage) {
+      console.log('Syncing currentPage from useOrderUI:', uiState.currentPage);
+      setCurrentPage(uiState.currentPage);
+    }
+  }, [uiState.currentPage, currentPage]);
 
   // ✅ BULK OPERATIONS: Table selection state - ONLY for selection
   const {
@@ -226,7 +243,7 @@ const OrdersPage: React.FC = () => {
     exitSelectionMode,
   } = useOrderTable(finalOrders);
   
-  // ✅ HYBRID STATE: Merge UI state with selection state
+  // ✅ HYBRID STATE: Merge UI state with selection state and pagination state
   const hybridUiState = {
     ...uiState,
     // Override selection-related properties with useOrderTable values
@@ -245,6 +262,20 @@ const OrdersPage: React.FC = () => {
     clearSelection: clearSelection,
     getSelectedOrders: (allOrders: Order[]) => {
       return selectedOrders;
+    },
+    // ✅ OVERRIDE: Use React Query pagination state instead of useOrderUI internal state
+    currentPage: currentPage,
+    totalPages: paginationInfo.totalPages,
+    totalItems: paginationInfo.totalCount,
+    itemsPerPage: itemsPerPage,
+    setCurrentPage: (page: number) => {
+      console.log('hybridUiState.setCurrentPage called:', page);
+      setCurrentPage(page);
+    },
+    setItemsPerPage: (perPage: number) => {
+      console.log('hybridUiState.setItemsPerPage called:', perPage);
+      setItemsPerPage(perPage);
+      setCurrentPage(1); // Reset to first page
     }
   };
 

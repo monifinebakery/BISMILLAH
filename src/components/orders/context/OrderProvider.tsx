@@ -47,21 +47,43 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
   }, [userId]);
 
   const handleRealtimeEvent = useCallback((payload: any) => {
+    console.log('🔥 Real-time event received:', payload.eventType, payload.new?.id, payload.new?.status);
+    
     setOrders(prev => {
       let next = [...prev];
+      
       if (payload.eventType === 'DELETE' && payload.old?.id) {
         next = next.filter(o => o.id !== payload.old.id);
+        console.log('🗑️ Real-time DELETE applied:', payload.old.id);
       }
+      
       if (payload.eventType === 'INSERT' && payload.new) {
         const newOrder = transformOrderFromDB(payload.new);
         if (!next.some(o => o.id === newOrder.id)) {
           next = [newOrder, ...next];
+          console.log('✨ Real-time INSERT applied:', newOrder.id, newOrder.nomorPesanan);
         }
       }
+      
       if (payload.eventType === 'UPDATE' && payload.new) {
         const updated = transformOrderFromDB(payload.new);
+        const oldOrder = next.find(o => o.id === updated.id);
         next = next.map(o => (o.id === updated.id ? updated : o));
+        
+        console.log('🔄 Real-time UPDATE applied:', {
+          orderId: updated.id,
+          orderNumber: updated.nomorPesanan,
+          oldStatus: oldOrder?.status,
+          newStatus: updated.status,
+          statusChanged: oldOrder?.status !== updated.status
+        });
+        
+        // Force immediate UI update for status changes
+        if (oldOrder?.status !== updated.status) {
+          console.log('📱 Status change detected - forcing immediate UI update');
+        }
       }
+      
       return next;
     });
   }, []);
@@ -76,10 +98,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
   useEffect(() => {
     const unsubscribe = orderEvents.on('order:refresh_needed', (data) => {
       console.log('🔔 Auto-refresh triggered by order event:', data);
-      // Debounce multiple rapid events
+      // Minimal debounce for rapid events - faster response
       setTimeout(() => {
         refreshData();
-      }, 300);
+      }, 50); // Reduced from 300ms to 50ms for much faster updates
     });
 
     return unsubscribe;
@@ -167,15 +189,16 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       // ✅ EMIT EVENT: Trigger cross-component refresh
       emitOrderStatusChanged(orderIdStr, statusStr);
       
-      // ✅ FORCE REFRESH: Ensure UI reflects changes immediately
+      // ✅ IMMEDIATE REFRESH: Force immediate UI update without delay
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       } else {
-        // Even if realtime is active, do a quick refresh to ensure sync
+        // Real-time is active, but ensure immediate sync for status updates
+        logger.debug('OrderProvider: Triggering immediate refresh after status update');
+        // Reduce delay significantly for better UX
         setTimeout(() => {
-          logger.debug('OrderProvider: Force refreshing data after status update');
           refreshData();
-        }, 500);
+        }, 100); // Reduced from 500ms to 100ms
       }
       
       logger.success('OrderProvider: Status updated successfully:', {

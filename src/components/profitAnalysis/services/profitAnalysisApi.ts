@@ -144,7 +144,14 @@ export async function fetchPemakaianDailyAggregates(start: string, end: string):
         });
         
         mvData.forEach((row: any) => {
-          const day = normalizeDateForDatabase(new Date(row.date));
+          // Improved date handling for materialized view data
+          let day: string;
+          if (typeof row.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(row.date)) {
+            day = row.date; // Already in YYYY-MM-DD format
+          } else {
+            day = normalizeDateForDatabase(new Date(row.date));
+          }
+          
           const hpp = Number(row.total_hpp) || 0;
           result.set(day, hpp);
           logger.debug(`📅 MV COGS: ${row.date} -> ${day}, HPP: ${hpp}`);
@@ -265,12 +272,13 @@ export async function calculateProfitAnalysisDaily(
     });
 
     // Fetch financial transactions in range with proper date filtering
+    // Ensure we get ALL transactions in the date range (inclusive)
     const { data: trx, error: trxErr } = await supabase
       .from('financial_transactions')
       .select('id, user_id, type, category, amount, description, date')
       .eq('user_id', authUserId)
-      .gte('date', startYMD)
-      .lte('date', endYMD)
+      .gte('date', startYMD)  // >= start date (inclusive)
+      .lte('date', endYMD)    // <= end date (inclusive)
       .order('date', { ascending: true });
     if (trxErr) throw trxErr;
     
@@ -299,8 +307,21 @@ export async function calculateProfitAnalysisDaily(
     incomeTransactions.forEach((t: any) => {
       if (!t.date) return;
       totalTransactions++;
-      // Use centralized date normalization
-      const dayKey = normalizeDateForDatabase(new Date(t.date));
+      
+      // Improved date handling - ensure consistent parsing
+      let dayKey: string;
+      if (typeof t.date === 'string') {
+        // If already string format YYYY-MM-DD, use directly
+        if (/^\d{4}-\d{2}-\d{2}$/.test(t.date)) {
+          dayKey = t.date;
+        } else {
+          // Parse ISO string or other formats
+          dayKey = normalizeDateForDatabase(new Date(t.date));
+        }
+      } else {
+        dayKey = normalizeDateForDatabase(t.date);
+      }
+      
       const amount = Number(t.amount) || 0;
       
       logger.debug(`📊 Processing transaction: ${t.date} -> ${dayKey}, amount: ${amount}`);

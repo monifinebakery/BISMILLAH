@@ -35,14 +35,7 @@ import { FNB_LABELS } from '../constants/profitConstants';
 import { getEffectiveCogs, shouldUseWAC } from '@/utils/cogsCalculation';
 import { safeCalculateMargins, monitorDataQuality } from '@/utils/profitValidation';
 import { getCurrentPeriod } from '../utils/profitTransformers';
-// ✅ ADD: Import WAC validation utilities
-import { 
-  validateWACConsistency, 
-  performComprehensiveValidation,
-  calculateDataQualityMetrics,
-  type WACValidationResult,
-  type DataQualityMetrics
-} from '@/utils/profitAnalysisConsistency';
+// WAC validation utilities removed
 
 
 // Query Keys
@@ -100,10 +93,7 @@ export interface UseProfitAnalysisReturn {
     hppBreakdown: FNBCOGSBreakdown[];
   };
   
-  // ✅ ADD: WAC Validation properties
-  wacValidation: WACValidationResult | null;
-  dataQualityMetrics: DataQualityMetrics | null;
-  validationScore: number; // 0-100 overall data quality score
+  // WAC Validation properties removed
   
   // Utilities
   getProfitByPeriod: (period: string) => RealTimeProfitCalculation | undefined;
@@ -136,10 +126,7 @@ export const useProfitAnalysis = (
   const [profitHistory, setProfitHistory] = useState<RealTimeProfitCalculation[]>([]);
   const [error, setError] = useState<string | null>(null);
   
-  // ✅ ADD: WAC Validation state
-  const [wacValidation, setWacValidation] = useState<WACValidationResult | null>(null);
-  const [dataQualityMetrics, setDataQualityMetrics] = useState<DataQualityMetrics | null>(null);
-  const [validationScore, setValidationScore] = useState<number>(0);
+  // WAC Validation state removed
 
   // ✅ MAIN QUERY: Current analysis (supports harian, bulanan, tahunan)
   const currentAnalysisKey =
@@ -484,72 +471,7 @@ export const useProfitAnalysis = (
     }
   }, [revenue, cogs, opex, currentData, totalHPP, hppBreakdown]); // ✅ Sekarang menggunakan primitive value dan data WAC
 
-  // ✅ ADD: WAC Validation Effect
-  useEffect(() => {
-    if (!enableWAC || !currentData) {
-      setWacValidation(null);
-      setDataQualityMetrics(null);
-      setValidationScore(0);
-      return;
-    }
-
-    try {
-      // Run WAC validation
-      const validation = validateWACConsistency(
-        currentData as RealTimeProfitCalculation,
-        totalHPP,
-        revenue
-      );
-      setWacValidation(validation);
-
-      // Calculate data quality metrics
-      const qualityMetrics = calculateDataQualityMetrics(
-        currentData as RealTimeProfitCalculation,
-        totalHPP
-      );
-      setDataQualityMetrics(qualityMetrics);
-
-      // Run comprehensive validation for overall score
-      const comprehensiveResult = performComprehensiveValidation(
-        currentData as RealTimeProfitCalculation,
-        profitMetrics,
-        totalHPP,
-        revenue
-      );
-      setValidationScore(comprehensiveResult.overallScore);
-
-      // Log validation results
-      if (!validation.isValid) {
-        logger.warn('WAC validation issues detected:', {
-          issues: validation.issues,
-          severity: validation.severity,
-          period: (currentData && 'period' in currentData) ? currentData.period : 'unknown'
-        });
-      }
-
-      if (qualityMetrics.dataConsistency < 80) {
-        logger.warn('Low data consistency detected:', {
-          consistency: qualityMetrics.dataConsistency,
-          wacAvailable: qualityMetrics.wacAvailability,
-          apiCogsAvailable: qualityMetrics.apiCogsAvailability
-        });
-      }
-
-    } catch (error) {
-      logger.error('Error in WAC validation:', error);
-      setWacValidation({
-        isValid: false,
-        wacValue: totalHPP,
-        apiCogsValue: 0,
-        variance: 0,
-        variancePercentage: 0,
-        severity: 'high',
-        issues: ['Validation error occurred'],
-        recommendations: ['Check data integrity and try again']
-      });
-      setValidationScore(0);
-    }
-  }, [enableWAC, currentData, totalHPP, revenue, profitMetrics]);
+  // WAC Validation effect removed
 
   // ✅ ACTIONS
   const calculateProfit = useCallback(
@@ -787,10 +709,7 @@ export const useProfitAnalysis = (
     // Computed values
     profitMetrics,
     
-    // ✅ ADD: WAC Validation properties
-    wacValidation,
-    dataQualityMetrics,
-    validationScore,
+    // WAC Validation properties removed
     
     // Utilities
     getProfitByPeriod,

@@ -139,12 +139,27 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     hasMissingData: !suppliers?.length
   }), [suppliers]);
 
+  // Get current base path (handle both /pembelian and /purchase)
+  const getBasePath = useCallback(() => {
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/pembelian')) {
+      return '/pembelian';
+    }
+    return '/purchase';
+  }, []);
+
   // Navigation actions
   const navigationActions = useMemo(() => ({
     purchase: {
       openAdd: () => {
         validatePrerequisites();
-        navigate('/purchase/add');
+        const basePath = getBasePath();
+        if (basePath === '/pembelian') {
+          // For old path, navigate to new structure
+          navigate('/purchase/add');
+        } else {
+          navigate('/purchase/add');
+        }
       },
       openEdit: (purchase: any) => {
         navigate(`/purchase/edit/${purchase.id}`);

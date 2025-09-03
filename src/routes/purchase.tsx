@@ -11,32 +11,45 @@ const PurchaseAddEditPage = React.lazy(() =>
 );
 
 const purchaseRoutes = (
-  <Route path="purchase">
-    <Route 
-      index 
+  <>
+    {/* Original route for backward compatibility */}
+    <Route
+      path="pembelian"
       element={
         <RouteWrapper title="Memuat Pembelian">
           <PurchaseManagement />
         </RouteWrapper>
-      } 
+      }
     />
-    <Route 
-      path="add" 
-      element={
-        <RouteWrapper title="Tambah Pembelian">
-          <PurchaseAddEditPage />
-        </RouteWrapper>
-      } 
-    />
-    <Route 
-      path="edit/:id" 
-      element={
-        <RouteWrapper title="Edit Pembelian">
-          <PurchaseAddEditPage />
-        </RouteWrapper>
-      } 
-    />
-  </Route>
+    
+    {/* New routes structure */}
+    <Route path="purchase">
+      <Route 
+        index 
+        element={
+          <RouteWrapper title="Memuat Pembelian">
+            <PurchaseManagement />
+          </RouteWrapper>
+        } 
+      />
+      <Route 
+        path="add" 
+        element={
+          <RouteWrapper title="Tambah Pembelian">
+            <PurchaseAddEditPage />
+          </RouteWrapper>
+        } 
+      />
+      <Route 
+        path="edit/:id" 
+        element={
+          <RouteWrapper title="Edit Pembelian">
+            <PurchaseAddEditPage />
+          </RouteWrapper>
+        } 
+      />
+    </Route>
+  </>
 );
 
 export default purchaseRoutes;

@@ -95,25 +95,13 @@ export default defineConfig(({ mode }) => {
           manualChunks: (id) => {
             // Node modules splitting
             if (id.includes('node_modules')) {
-              // Critical heavy libraries - separate chunks
+              // Only separate libraries that don't depend on React
               if (id.includes('xlsx') || id.includes('exceljs') || id.includes('file-saver')) return 'excel';
-              if (id.includes('recharts') || id.includes('d3-')) return 'recharts';
               if (id.includes('@supabase/supabase-js')) return 'supabase';
-              
-              // Keep React ecosystem together to avoid context issues
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react/jsx-runtime') || 
-                  id.includes('react-router') || id.includes('@remix-run/router')) return 'vendor';
-              
-              // Query and state management
-              if (id.includes('@tanstack/react-query') || id.includes('@tanstack/query-core')) return 'react-query';
-              
-              // UI libraries
-              if (id.includes('@radix-ui') || id.includes('lucide-react') || id.includes('@hookform')) return 'ui-libs';
-              
-              // Date/time libraries
               if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) return 'date-utils';
               
-              // All other node_modules
+              // Keep ALL React-dependent libraries in vendor to avoid context/forwardRef issues
+              // This includes: react, react-dom, recharts, @radix-ui, @tanstack, etc.
               return 'vendor';
             }
             

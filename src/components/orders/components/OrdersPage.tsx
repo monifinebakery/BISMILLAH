@@ -1,6 +1,7 @@
 // src/components/orders/components/OrdersPage.tsx - FIXED STATUS UPDATE INTEGRATION
 
 import React, { useState, useCallback, Suspense, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -92,31 +93,26 @@ const OrderDialogs = React.lazy(() =>
   })
 );
 
-// ✅ INTERFACES: Consolidated component state
+// ✅ INTERFACES: Simplified component state - only template manager needed now
 interface OrdersPageState {
   dialogs: {
-    orderForm: boolean;
     templateManager: boolean;
-    detail: boolean;
   };
-  editingOrder: Order | null;
   selectedOrderForTemplate: Order | null;
-  viewingOrder: Order | null;
 }
 
 const initialState: OrdersPageState = {
   dialogs: {
-    orderForm: false,
-    templateManager: false,
-    detail: false
+    templateManager: false
   },
-  editingOrder: null,
-  selectedOrderForTemplate: null,
-  viewingOrder: null
+  selectedOrderForTemplate: null
 };
 
 const OrdersPage: React.FC = () => {
   logger.component('OrdersPage', 'Component mounted');
+
+  // ✅ NAVIGATION: React Router navigation
+  const navigate = useNavigate();
 
   // ✅ AUTH: Get current user
   const { user } = useAuth();
@@ -191,26 +187,8 @@ const OrdersPage: React.FC = () => {
   // ✅ CONSOLIDATED: Single state object
   const [pageState, setPageState] = useState<OrdersPageState>(initialState);
 
-  // ✅ MEMOIZED: Dialog handlers
+  // ✅ SIMPLIFIED: Only template manager handler needed now
   const dialogHandlers = useMemo(() => ({
-    openOrderForm: (order: Order | null = null) => {
-      logger.component('OrdersPage', 'Opening order form:', { isEdit: !!order, orderId: order?.id });
-      setPageState(prev => ({
-        ...prev,
-        dialogs: { ...prev.dialogs, orderForm: true },
-        editingOrder: order
-      }));
-    },
-
-    closeOrderForm: () => {
-      logger.component('OrdersPage', 'Closing order form');
-      setPageState(prev => ({
-        ...prev,
-        dialogs: { ...prev.dialogs, orderForm: false },
-        editingOrder: null
-      }));
-    },
-
     openTemplateManager: () => {
       logger.component('OrdersPage', 'Opening template manager');
       setPageState(prev => ({
@@ -227,36 +205,18 @@ const OrdersPage: React.FC = () => {
         dialogs: { ...prev.dialogs, templateManager: false },
         selectedOrderForTemplate: null
       }));
-    },
-
-    openDetail: (order: Order) => {
-      logger.component('OrdersPage', 'Opening order detail dialog', { orderId: order.id, nomorPesanan: order.nomorPesanan });
-      setPageState(prev => ({
-        ...prev,
-        dialogs: { ...prev.dialogs, detail: true },
-        viewingOrder: order
-      }));
-    },
-
-    closeDetail: () => {
-      logger.component('OrdersPage', 'Closing order detail dialog');
-      setPageState(prev => ({
-        ...prev,
-        dialogs: { ...prev.dialogs, detail: false },
-        viewingOrder: null
-      }));
     }
   }), []);
 
-  // ✅ 🚀 FIXED: Business logic handlers with proper status update
+  // ✅ 🚀 FIXED: Business logic handlers with navigation to full pages
   const businessHandlers = useMemo(() => ({
     newOrder: () => {
       try {
-        logger.component('OrdersPage', 'New order button clicked');
-        dialogHandlers.openOrderForm();
+        logger.component('OrdersPage', 'New order button clicked - navigating to add page');
+        navigate('/pesanan/add');
       } catch (error) {
-        logger.error('Error opening new order form:', error);
-        toast.error('Gagal membuka form pesanan baru');
+        logger.error('Error navigating to new order page:', error);
+        toast.error('Gagal membuka halaman pesanan baru');
       }
     },
 
@@ -267,11 +227,11 @@ const OrdersPage: React.FC = () => {
           toast.error('Data pesanan tidak valid');
           return;
         }
-        logger.component('OrdersPage', 'Edit order requested:', { orderId: order.id, nomorPesanan: order.nomorPesanan });
-        dialogHandlers.openOrderForm(order);
+        logger.component('OrdersPage', 'Edit order requested - navigating to edit page:', { orderId: order.id, nomorPesanan: order.nomorPesanan });
+        navigate(`/pesanan/edit/${order.id}`);
       } catch (error) {
-        logger.error('Error opening edit form:', error);
-        toast.error('Gagal membuka form edit pesanan');
+        logger.error('Error navigating to edit order page:', error);
+        toast.error('Gagal membuka halaman edit pesanan');
       }
     },
 
@@ -439,63 +399,15 @@ const OrdersPage: React.FC = () => {
       }
     },
 
-    submitOrder: async (data: Partial<Order> | Partial<NewOrder>) => {
-      const isEditingMode = !!pageState.editingOrder;
-      
-      try {
-        if (!data) {
-          logger.warn('Invalid order data for submit:', data);
-          toast.error('Data pesanan tidak valid');
-          return;
-        }
-
-        logger.component('OrdersPage', 'Order submission started:', { 
-          isEdit: isEditingMode, 
-          orderId: pageState.editingOrder?.id 
-        });
-
-        let success = false;
-        if (isEditingMode && pageState.editingOrder?.id) {
-          success = await updateOrder(pageState.editingOrder.id, data);
-        } else {
-          success = await addOrder(data as NewOrder);
-        }
-
-        if (success) {
-          logger.success('Order submitted successfully:', { 
-            isEdit: isEditingMode, 
-            orderId: pageState.editingOrder?.id 
-          });
-          // Success toast is handled in addOrder/updateOrder functions
-          dialogHandlers.closeOrderForm();
-          
-          // ✅ IMMEDIATE REFRESH: Refresh context data after form submit
-          if (refreshData) {
-            setTimeout(() => {
-              refreshData();
-              console.log('✅ Orders data refreshed after form submit');
-            }, 500);
-          }
-        }
-      } catch (error) {
-        logger.error('Error submitting order:', error);
-        toast.error(
-          isEditingMode 
-            ? 'Gagal memperbarui pesanan' 
-            : 'Gagal menambahkan pesanan'
-        );
-      }
-    }
+    // NOTE: submitOrder is no longer needed since we moved to full pages
+    // Kept for compatibility but not used
   }), [
-    pageState.editingOrder, 
+    navigate, // ✅ NAVIGATION: Include navigate dependency
     finalOrders, 
-    updateOrder, 
     updateOrderStatus, // ✅ FIXED: Include updateOrderStatus dependency
-    addOrder, 
     deleteOrder, 
     uiState, 
-    dialogHandlers,
-    contextValue.refreshData // ✅ FIXED: Use contextValue.refreshData
+    contextValue // ✅ FIXED: Use entire contextValue to avoid stale closures
   ]);
 
   // ✅ ENHANCED: WhatsApp integration with template
@@ -534,14 +446,24 @@ const OrdersPage: React.FC = () => {
     [getWhatsappUrl]
   );
 
-  // ✅ ENHANCED: View detail handler
+  // ✅ ENHANCED: View detail handler with navigation to full page
   const handleViewDetail = useCallback((order: Order) => {
-    logger.component('OrdersPage', 'View detail requested:', {
-      orderId: order.id,
-      nomorPesanan: order.nomorPesanan
-    });
-    dialogHandlers.openDetail(order);
-  }, [dialogHandlers]);
+    try {
+      if (!order?.id) {
+        logger.warn('Invalid order data for view:', order);
+        toast.error('Data pesanan tidak valid');
+        return;
+      }
+      logger.component('OrdersPage', 'View detail requested - navigating to view page:', {
+        orderId: order.id,
+        nomorPesanan: order.nomorPesanan
+      });
+      navigate(`/pesanan/view/${order.id}`);
+    } catch (error) {
+      logger.error('Error navigating to view order page:', error);
+      toast.error('Gagal membuka halaman detail pesanan');
+    }
+  }, [navigate]);
 
   // ✅ DEBUG: Test function for status update (development only)
   const debugStatusUpdate = useCallback(async () => {
@@ -723,18 +645,23 @@ const OrdersPage: React.FC = () => {
         />
         
         
-        <OrderDialogs
-          showOrderForm={pageState.dialogs.orderForm}
-          editingOrder={pageState.editingOrder}
-          showTemplateManager={pageState.dialogs.templateManager}
-          selectedOrderForTemplate={pageState.selectedOrderForTemplate}
-          showDetailDialog={pageState.dialogs.detail}
-          detailOrder={pageState.viewingOrder}
-          onSubmitOrder={businessHandlers.submitOrder}
-          onCloseOrderForm={dialogHandlers.closeOrderForm}
-          onCloseTemplateManager={dialogHandlers.closeTemplateManager}
-          onCloseDetail={dialogHandlers.closeDetail}
-        />
+        {/* ✅ ONLY TEMPLATE MANAGER: Keep only template manager dialog since form and detail are now full pages */}
+        {pageState.dialogs.templateManager && (
+          <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div></div>}>
+            <OrderDialogs
+              showOrderForm={false}
+              editingOrder={null}
+              showTemplateManager={pageState.dialogs.templateManager}
+              selectedOrderForTemplate={pageState.selectedOrderForTemplate}
+              showDetailDialog={false}
+              detailOrder={null}
+              onSubmitOrder={() => {}}
+              onCloseOrderForm={() => {}}
+              onCloseTemplateManager={dialogHandlers.closeTemplateManager}
+              onCloseDetail={() => {}}
+            />
+          </Suspense>
+        )}
       </Suspense>
       
       {/* ✅ DEBUG: Real-time monitoring component - only in development */}

@@ -1,7 +1,8 @@
 // src/components/warehouse/components/DialogManager.tsx
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 
@@ -13,6 +14,11 @@ const ImportExportDialog = lazy(() => import('../dialogs/ImportExportDialog'));
 const DialogLoader = () => (
   <Dialog open={true}>
     <DialogContent centerMode="overlay">
+      <DialogHeader>
+        <VisuallyHidden>
+          <DialogTitle>Memuat Dialog</DialogTitle>
+        </VisuallyHidden>
+      </DialogHeader>
       <div className="dialog-panel">
         <div className="dialog-body flex flex-col items-center justify-center py-8">
           <div className="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full mb-4"></div>
@@ -26,6 +32,9 @@ const DialogLoader = () => (
 const DialogError = ({ error, retry }: { error: Error; retry: () => void }) => (
   <Dialog open={true}>
     <DialogContent centerMode="overlay">
+      <DialogHeader>
+        <DialogTitle>Gagal Memuat Dialog</DialogTitle>
+      </DialogHeader>
       <div className="dialog-panel">
         <div className="dialog-body">
           <div className="flex items-center gap-3 mb-4">
@@ -33,7 +42,6 @@ const DialogError = ({ error, retry }: { error: Error; retry: () => void }) => (
               <span className="text-red-600 text-xl">⚠️</span>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">Gagal Memuat Dialog</h3>
               <p className="text-sm text-gray-600">Terjadi kesalahan saat memuat komponen</p>
             </div>
           </div>

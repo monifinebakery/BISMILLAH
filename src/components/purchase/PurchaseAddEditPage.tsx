@@ -24,7 +24,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
-import { id as localeId } from 'date-fns/locale';
+import { id as dateLocale } from 'date-fns/locale';
 
 import { PurchaseItem } from './types/purchase.types';
 import { usePurchaseForm } from './hooks/usePurchaseForm';
@@ -346,7 +346,7 @@ const PurchaseAddEditPage: React.FC = () => {
                         return date > today || date < minDate;
                       }}
                       initialFocus
-                      locale={localeId}
+                      locale={dateLocale}
                     />
                   </PopoverContent>
                 </Popover>

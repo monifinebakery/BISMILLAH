@@ -96,13 +96,13 @@ const ProductItem: React.FC<{
 }> = ({ product, rank, sortConfig, isLoading = false }) => {
   if (isLoading) {
     return (
-      <div className="p-4 flex items-center">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 animate-pulse mr-4"></div>
+      <div className="p-3 sm:p-4 flex items-center">
+        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 animate-pulse mr-3 sm:mr-4"></div>
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-gray-200 animate-pulse rounded w-3/4"></div>
-          <div className="h-3 bg-gray-200 animate-pulse rounded w-1/2"></div>
+          <div className="h-3 sm:h-4 bg-gray-200 animate-pulse rounded w-3/4"></div>
+          <div className="h-2 sm:h-3 bg-gray-200 animate-pulse rounded w-1/2"></div>
         </div>
-        <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
+        <div className="w-16 sm:w-20 h-6 sm:h-8 bg-gray-200 animate-pulse rounded"></div>
       </div>
     );
   }
@@ -122,30 +122,30 @@ const ProductItem: React.FC<{
   const secondaryInfo = sortConfig.getSecondaryInfo(product);
 
   return (
-    <div className="p-4 flex items-center hover:bg-gray-50 transition-colors">
+    <div className="p-3 sm:p-4 flex items-center hover:bg-gray-50 transition-colors">
       {/* 🥇 Rank Badge */}
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${getRankBadgeStyle(rank)}`}>
-        <span className="text-sm font-bold text-white">{rank}</span>
+      <div className={`flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${getRankBadgeStyle(rank)}`}>
+        <span className="text-xs sm:text-sm font-bold text-white">{rank}</span>
       </div>
       
       {/* 📊 Product Info */}
-      <div className="ml-4 flex-1 min-w-0">
-        <p className="font-medium text-gray-800 truncate" title={product.name}>
+      <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+        <p className="font-medium text-gray-800 text-sm sm:text-base truncate" title={product.name}>
           {product.name}
         </p>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">
           {secondaryInfo}
         </p>
       </div>
 
       {/* 💰 Primary Metric */}
-      <div className="text-right ml-4">
-        <p className="font-semibold text-blue-600">
+      <div className="text-right ml-2 sm:ml-4 flex-shrink-0">
+        <p className="font-semibold text-blue-600 text-sm sm:text-base">
           {formattedValue}
         </p>
-        <div className="flex items-center gap-1 text-xs text-gray-400">
+        <div className="flex items-center justify-end gap-1 text-xs text-gray-400">
           {sortConfig.icon}
-          <span>{sortConfig.label}</span>
+          <span className="hidden sm:inline">{sortConfig.label}</span>
         </div>
       </div>
     </div>
@@ -167,12 +167,13 @@ const PaginationControls: React.FC<{
         size="sm" 
         onClick={() => onPageChange('prev')} 
         disabled={!hasPrev} 
-        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 min-w-[40px] h-8"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+        <span className="ml-1 hidden xs:inline text-xs sm:text-sm">Prev</span>
       </Button>
       
-      <span className="text-sm text-gray-600 font-medium">
+      <span className="text-xs sm:text-sm text-gray-600 font-medium px-2">
         {currentPage} dari {totalPages}
       </span>
       
@@ -181,9 +182,10 @@ const PaginationControls: React.FC<{
         size="sm" 
         onClick={() => onPageChange('next')} 
         disabled={!hasNext} 
-        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 min-w-[40px] h-8"
       >
-        <ChevronRight className="h-4 w-4" />
+        <span className="mr-1 hidden xs:inline text-xs sm:text-sm">Next</span>
+        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
       </Button>
     </CardFooter>
   );
@@ -242,12 +244,12 @@ const BestSellingProducts: React.FC<Props> = ({
     <Card className="bg-white border-1.5 border-gray-200">
       {/* 🏆 Header with Sort Selector */}
       <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-100 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
             <Trophy className="h-5 w-5 text-yellow-600" />
-            <span>Produk Terlaris</span>
+            <span className="text-base sm:text-lg">Produk Terlaris</span>
             {!isLoading && sortedProducts.length > 0 && (
-              <span className="text-sm font-normal text-gray-500">
+              <span className="text-xs sm:text-sm font-normal text-gray-500">
                 ({sortedProducts.length} produk)
               </span>
             )}
@@ -255,10 +257,10 @@ const BestSellingProducts: React.FC<Props> = ({
           
           {/* Sort Selector */}
           {!isLoading && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Urutkan:</span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">Urutkan:</span>
               <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                <SelectTrigger className="w-44 h-8 text-xs">
+                <SelectTrigger className="w-32 sm:w-44 h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -266,7 +268,7 @@ const BestSellingProducts: React.FC<Props> = ({
                     <SelectItem key={config.key} value={config.key}>
                       <div className="flex items-center gap-2">
                         {config.icon}
-                        <span>{config.label}</span>
+                        <span className="text-xs sm:text-sm">{config.label}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -304,11 +306,11 @@ const BestSellingProducts: React.FC<Props> = ({
               );
             })
           ) : !isLoading ? (
-            // 📭 Empty State
-            <div className="p-8 text-center text-gray-500">
-              <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="font-medium">Tidak ada data penjualan</p>
-              <p className="text-sm mt-1">pada periode yang dipilih.</p>
+            // 📝 Empty State
+            <div className="p-6 sm:p-8 text-center text-gray-500">
+              <Package className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3" />
+              <p className="font-medium text-sm sm:text-base">Tidak ada data penjualan</p>
+              <p className="text-xs sm:text-sm mt-1">pada periode yang dipilih.</p>
             </div>
           ) : null}
         </div>

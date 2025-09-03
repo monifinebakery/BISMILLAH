@@ -138,13 +138,15 @@ export const useRecipeOperations = ({
           jumlahPcsPerPorsi
         );
 
+        // ✅ PERBAIKAN: Jangan override harga jual otomatis jika user sudah set manual
         finalUpdates = {
           ...finalUpdates,
           totalHpp: calculation.totalHPP,
           hppPerPorsi: calculation.hppPerPorsi,
-          hargaJualPorsi: calculation.hargaJualPorsi,
           hppPerPcs: calculation.hppPerPcs,
-          hargaJualPerPcs: calculation.hargaJualPerPcs,
+          // Hanya update harga jual jika tidak ada di updates (user tidak mengubahnya)
+          ...(updates.hargaJualPorsi === undefined ? { hargaJualPorsi: calculation.hargaJualPorsi } : {}),
+          ...(updates.hargaJualPerPcs === undefined ? { hargaJualPerPcs: calculation.hargaJualPerPcs } : {}),
         };
       }
 

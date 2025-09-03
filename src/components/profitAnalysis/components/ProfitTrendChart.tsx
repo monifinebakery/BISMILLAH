@@ -41,10 +41,15 @@ const processTrendData = (
     profitHistory.find(h => h.period === period)
   ).filter(Boolean) as RealTimeProfitCalculation[];
   
+  // ✅ FIX: Ensure WAC data is synchronized before calculation
   const historicalCOGS = calculateHistoricalCOGS(
     sortedHistory, 
     effectiveCogs,
-    { preferWAC: true, validateRange: true }
+    { 
+      preferWAC: true, 
+      validateRange: true,
+      fallbackToEstimation: true // Add fallback for timing issues
+    }
   );
   
   return sortedHistory.map((analysis, index) => {
@@ -53,10 +58,19 @@ const processTrendData = (
     const opex = analysis.opex_data?.total || 0;
     const validationResult = safeCalculateMargins(revenue, cogsResult.value, opex);
     
+    // ✅ FIX: Calculate period-specific stock value instead of using static value
     let periodStockValue = 0;
     if (analysis.wac_data?.total_wac_cogs) {
+      // Use WAC data specific to this period
       periodStockValue = analysis.wac_data.total_wac_cogs;
+    } else if (analysis.cogs_data?.total && analysis.cogs_data.total > 0) {
+      // Use COGS data for this specific period as fallback
+      periodStockValue = analysis.cogs_data.total;
+    } else if (cogsResult.value > 0) {
+      // Use calculated COGS result for this period
+      periodStockValue = cogsResult.value;
     } else if (index === sortedHistory.length - 1 && wacStockValue) {
+      // Only use static WAC value as last resort for the most recent period
       periodStockValue = wacStockValue;
     }
 

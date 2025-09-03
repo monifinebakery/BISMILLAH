@@ -231,6 +231,19 @@ const ProfitBreakdownChart = ({
     });
   }
   
+  // ✅ ENHANCED: Add comprehensive data validation before using metrics
+  if (revenue < 0 || cogsResult.value < 0 || opex < 0) {
+    console.error('[BreakdownChart] Negative values detected:', { revenue, cogs: cogsResult.value, opex });
+  }
+  
+  if (cogsResult.value > revenue && revenue > 0) {
+    console.warn('[BreakdownChart] COGS exceeds Revenue:', {
+      cogs: cogsResult.value,
+      revenue,
+      percentage: ((cogsResult.value / revenue) * 100).toFixed(1) + '%'
+    });
+  }
+  
   // Use the validated metrics directly (safeCalculateMargins returns metrics directly, not in nested structure)
   const finalMetrics = {
     revenue,
@@ -239,7 +252,11 @@ const ProfitBreakdownChart = ({
     grossProfit: validationResult.grossProfit,
     netProfit: validationResult.netProfit,
     grossMargin: validationResult.grossMargin,
-    netMargin: validationResult.netMargin
+    netMargin: validationResult.netMargin,
+    // ✅ ADD: Data quality indicators
+    dataQuality: validationResult.qualityScore,
+    isValid: validationResult.isValid,
+    cogsSource: cogsResult.source
   };
   
   const barChartData = generateBarChartData(finalMetrics);

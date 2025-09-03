@@ -542,9 +542,14 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     [getIngredientPrice]
   );
 
-  // Analysis functions
+  // Analysis functions - ✅ UPDATED: Use new critical stock logic with 20% buffer
   const getLowStockItems = React.useCallback((): BahanBakuFrontend[] => {
-    return bahanBaku.filter(item => Number(item.stok) <= Number(item.minimum));
+    return bahanBaku.filter(item => {
+      const currentStock = Number(item.stok) || 0;
+      const minimumStock = Number(item.minimum) || 0;
+      const alertThreshold = minimumStock > 0 ? minimumStock * 1.2 : minimumStock;
+      return currentStock < alertThreshold;
+    });
   }, [bahanBaku]);
 
   const getOutOfStockItems = React.useCallback((): BahanBakuFrontend[] => {

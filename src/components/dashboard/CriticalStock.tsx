@@ -34,10 +34,10 @@ const StockItemRow: React.FC<{
     );
   }
 
-  // 🚨 Determine severity level
+  // 🚨 Determine severity level with better thresholds
   const isOutOfStock = item.stok === 0;
-  const isCritical = item.stok <= item.minimum * 0.5;
-  const isLow = item.stok <= item.minimum;
+  const isCritical = item.stok > 0 && item.stok <= item.minimum * 0.5; // Critical: 0-50% of minimum
+  const isLow = item.stok > item.minimum * 0.5 && item.stok < item.minimum * 1.2; // Low: 50%-120% of minimum
 
   let statusColor = 'text-yellow-600';
   let statusBg = 'bg-yellow-50';

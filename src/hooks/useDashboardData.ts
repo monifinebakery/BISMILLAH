@@ -416,7 +416,18 @@ export const useDashboardData = (dateRange: DateRange) => {
   const criticalStock = useMemo(() => {
     try {
       return bahanBaku
-        .filter(item => item && Number(item.stok) <= Number(item.minimum))
+        .filter(item => {
+          if (!item) return false;
+          const currentStock = Number(item.stok) || 0;
+          const minimumStock = Number(item.minimum) || 0;
+          
+          // Only show as critical if stock is below minimum OR
+          // if stock is exactly at minimum and minimum > 0 (to avoid division by zero)
+          // Add 20% buffer - only alert when stock is 20% below minimum threshold
+          const alertThreshold = minimumStock > 0 ? minimumStock * 1.2 : minimumStock;
+          
+          return currentStock < alertThreshold;
+        })
         .slice(0, 5);
     } catch (err) {
       logger.error('Dashboard - Critical stock error:', err);

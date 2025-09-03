@@ -51,7 +51,15 @@ const formatDate = (date: string | Date) =>
   new Intl.DateTimeFormat('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })
     .format(typeof date === 'string' ? new Date(date) : date);
 
-const getLowStockItems = (items: BahanBakuFrontend[]) => items.filter(i => i.stok <= i.minimum);
+// ✅ UPDATED: Use new critical stock logic with 20% buffer
+const getLowStockItems = (items: BahanBakuFrontend[]) => {
+  return items.filter(item => {
+    const currentStock = item.stok || 0;
+    const minimumStock = item.minimum || 0;
+    const alertThreshold = minimumStock > 0 ? minimumStock * 1.2 : minimumStock;
+    return currentStock < alertThreshold;
+  });
+};
 const getOutOfStockItems = (items: BahanBakuFrontend[]) => items.filter(i => i.stok === 0);
 const getExpiringItems = (items: BahanBakuFrontend[], days = 30) => {
   const threshold = new Date(); threshold.setDate(threshold.getDate() + days);
@@ -74,7 +82,15 @@ export const warehouseUtils = {
     }
     if (filters.category) filtered = filtered.filter(item => item.kategori === filters.category);
     if (filters.supplier) filtered = filtered.filter(item => item.supplier === filters.supplier);
-    if (filters.stockLevel === 'low') filtered = filtered.filter(item => item.stok <= item.minimum);
+    if (filters.stockLevel === 'low') {
+      // ✅ UPDATED: Use new critical stock logic with 20% buffer
+      filtered = filtered.filter(item => {
+        const currentStock = item.stok || 0;
+        const minimumStock = item.minimum || 0;
+        const alertThreshold = minimumStock > 0 ? minimumStock * 1.2 : minimumStock;
+        return currentStock < alertThreshold;
+      });
+    }
     if (filters.stockLevel === 'out') filtered = filtered.filter(item => item.stok === 0);
 
     if (filters.expiry === 'expiring') {

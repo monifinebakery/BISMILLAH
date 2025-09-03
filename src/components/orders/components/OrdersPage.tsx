@@ -33,6 +33,10 @@ const BulkActions = React.lazy(() =>
 // ✅ ESSENTIAL TYPES: Only what's needed for this component
 import type { Order, NewOrder, OrderStatus } from '../types';
 
+// ✅ STATISTICS: Import OrderStats component dan hook
+import OrderStats from './OrderStats';
+import { useOrderStats } from '../hooks/useOrderStats';
+
 // ✅ SHARED COMPONENTS: Direct import
 import { PageLoading } from './shared/LoadingStates';
 import { logger } from '@/utils/logger';
@@ -136,6 +140,9 @@ const OrdersPage: React.FC = () => {
 
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
   const { getWhatsappUrl } = useOrderFollowUp();
+  
+  // ✅ STATISTICS: Hook untuk menghitung statistik pesanan
+  const { stats: orderStats, isCalculating: isStatsLoading } = useOrderStats(finalOrders);
   
   // ✅ IMPORT REFRESH LISTENER: Listen untuk bulk import events
   React.useEffect(() => {
@@ -590,60 +597,68 @@ const OrdersPage: React.FC = () => {
       {import.meta.env.DEV && <ContextDebugger />}
       {import.meta.env.DEV && <OrderEventMonitor />}
       
-      {/* ✅ ENHANCED: Header with template integration info and debug button */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">
-        <div className="flex items-center gap-4 mb-4 lg:mb-0">
-          <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-            <FileText className="h-8 w-8 text-white" />
+      {/* ✅ ENHANCED: Header with template integration info, statistics, and debug button */}
+      <header className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">
+        {/* Top Section: Title and Actions */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 lg:mb-0">
+          <div className="flex items-center gap-4 mb-4 lg:mb-0">
+            <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+              <FileText className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Manajemen Pesanan</h1>
+              <p className="text-sm opacity-90 mt-1">
+                Kelola semua pesanan dari pelanggan Anda dengan template WhatsApp otomatis.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Manajemen Pesanan</h1>
-            <p className="text-sm opacity-90 mt-1">
-              Kelola semua pesanan dari pelanggan Anda dengan template WhatsApp otomatis.
-            </p>
+          
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            {/* ✅ DEBUG: Debug button for development */}
+            {import.meta.env.DEV && (
+              <Button
+                onClick={debugStatusUpdate}
+                variant="outline"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-all duration-200"
+              >
+                🐛 Debug Status
+              </Button>
+            )}
+            
+            {/* ✅ IMPORT BUTTON: Import CSV data with responsive design */}
+            <ImportButton />
+            
+            <Button
+              onClick={() => {
+                logger.component('OrdersPage', 'Template manager button clicked');
+                dialogHandlers.openTemplateManager();
+              }}
+              variant="outline"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300"
+            >
+              <MessageSquare className="h-5 w-5" />
+              <span className="hidden sm:inline">Kelola Template WhatsApp</span>
+              <span className="sm:hidden">Template</span>
+            </Button>
+            
+            <Button
+              onClick={() => {
+                logger.component('OrdersPage', 'New order button clicked from header');
+                businessHandlers.newOrder();
+              }}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200"
+            >
+              <Plus className="h-5 w-5" />
+              Pesanan Baru
+            </Button>
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-
-          {/* ✅ DEBUG: Debug button for development */}
-          {import.meta.env.DEV && (
-            <Button
-              onClick={debugStatusUpdate}
-              variant="outline"
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-all duration-200"
-            >
-              🐛 Debug Status
-            </Button>
-          )}
-          
-          {/* ✅ IMPORT BUTTON: Import CSV data with responsive design */}
-          <ImportButton />
-          
-          <Button
-            onClick={() => {
-              logger.component('OrdersPage', 'Template manager button clicked');
-              dialogHandlers.openTemplateManager();
-            }}
-            variant="outline"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300"
-          >
-            <MessageSquare className="h-5 w-5" />
-            <span className="hidden sm:inline">Kelola Template WhatsApp</span>
-            <span className="sm:hidden">Template</span>
-          </Button>
-          
-          <Button
-            onClick={() => {
-              logger.component('OrdersPage', 'New order button clicked from header');
-              businessHandlers.newOrder();
-            }}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200"
-          >
-            <Plus className="h-5 w-5" />
-            Pesanan Baru
-          </Button>
-        </div>
+        {/* ✅ STATISTICS: Order statistics dalam header dengan background gradient */}
+        <OrderStats 
+          stats={orderStats} 
+          isLoading={isStatsLoading || finalIsLoading}
+        />
       </header>
 
       {/* ✅ OPTIMIZED: Main content with better error handling */}

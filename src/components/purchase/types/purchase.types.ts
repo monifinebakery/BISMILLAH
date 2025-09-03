@@ -154,6 +154,7 @@ export interface PurchaseContextType {
 
   // Finders
   findPurchase: (id: string) => Purchase | undefined;
+  getPurchaseById: (id: string) => Purchase | undefined;
 }
 
 // Hook aliases

@@ -879,6 +879,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     stats,
     setStatus,
     findPurchase,
+    getPurchaseById: findPurchase, // Same as findPurchase for compatibility
     validatePrerequisites,
     getSupplierName,
   }), [

@@ -23,8 +23,6 @@ import {
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 import { PurchaseItem } from './types/purchase.types';
@@ -52,7 +50,19 @@ const PurchaseAddEditPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: purchaseId } = useParams<{ id: string }>();
   const { suppliers } = useSupplier();
-  const { getPurchaseById } = usePurchase();
+  
+  // Safely access the purchase context
+  let purchaseContext;
+  let getPurchaseById;
+  
+  try {
+    purchaseContext = usePurchase();
+    getPurchaseById = purchaseContext?.getPurchaseById;
+  } catch (error) {
+    console.error('Error accessing purchase context:', error);
+    purchaseContext = null;
+    getPurchaseById = undefined;
+  }
 
   const isEditing = !!purchaseId;
   const [purchase, setPurchase] = useState(null);
@@ -60,10 +70,10 @@ const PurchaseAddEditPage: React.FC = () => {
 
   // Load purchase data for editing
   useEffect(() => {
-    if (isEditing && purchaseId) {
+    if (isEditing && purchaseId && getPurchaseById) {
       setIsLoading(true);
       const purchaseData = getPurchaseById(purchaseId);
-      setPurchase(purchaseData);
+      setPurchase(purchaseData || null);
       setIsLoading(false);
     }
   }, [isEditing, purchaseId, getPurchaseById]);

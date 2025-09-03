@@ -100,6 +100,11 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     marginKeuntunganPersen: data.marginKeuntunganPersen || 0,
   }), [data]);
 
+  // Calculate accurate ingredient cost for display
+  const totalIngredientCost = data.bahanResep.reduce((sum, bahan) => sum + bahan.totalHarga, 0);
+  const totalPcs = data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1);
+  const accurateIngredientCostPerPcs = totalPcs > 0 ? totalIngredientCost / totalPcs : 0;
+
   return (
     <div className="space-y-6">
       
@@ -181,7 +186,23 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Bahan:</span>
-                <span className="font-medium">Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}</span>
+                <div className="text-right">
+                  {/* Show accurate ingredient cost with validation */}
+                  {Math.abs(enhancedHppResult.bahanPerPcs - accurateIngredientCostPerPcs) > accurateIngredientCostPerPcs * 0.5 ? (
+                    <div className="space-y-1">
+                      <span className="font-medium text-red-600">
+                        Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}
+                      </span>
+                      <div className="text-xs text-red-500">
+                        ⚠️ Validasi: Rp {accurateIngredientCostPerPcs.toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="font-medium">
+                      Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">TKL:</span>

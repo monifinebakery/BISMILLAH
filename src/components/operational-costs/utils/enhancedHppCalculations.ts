@@ -182,15 +182,22 @@ export const updateIngredientsWithWAC = async (
       // Sanity check: WAC shouldn't be ridiculously different from original price
       if (originalPrice > 0) {
         const ratio = wacPrice / originalPrice;
-        if (ratio > 1000 || ratio < 0.001) {
+        // More reasonable ratio check - WAC shouldn't be more than 10x or less than 0.1x the original price
+        if (ratio > 10 || ratio < 0.1) {
           console.warn(`⚠️ [WAC] WAC price seems unrealistic for ${ingredient.nama}:`, {
             wacPrice,
             originalPrice,
             ratio,
-            message: 'Using original price as fallback'
+            message: 'Using original price as fallback for safety'
           });
           return ingredient; // Keep original data
         }
+      }
+      
+      // Additional sanity check: WAC price shouldn't be more than 1 million per unit
+      if (wacPrice > 1000000) {
+        console.warn(`⚠️ [WAC] WAC price too high for ${ingredient.nama}: Rp ${wacPrice.toLocaleString()}, using original price`);
+        return ingredient;
       }
       
       const newTotalHarga = ingredient.jumlah * wacPrice;
@@ -360,6 +367,61 @@ export const calculateEnhancedHPP = async (
       totalHPP: (bahanPerPcs + tklPerPcs + overheadPerPcs) * jumlahPcsPerPorsi * jumlahPorsi
     });
     
+    // Additional validation check before creating result
+    if (bahanPerPcs > 100000) { // If bahan cost per pcs is more than Rp 100k, something is wrong
+      console.error('🚨 [VALIDATION ERROR] BahanPerPcs is too high:', {
+        bahanPerPcs,
+        totalBahanCost,
+        totalPcs,
+        ingredientsBreakdown: ingredientsWithWAC.map(ing => ({
+          nama: ing.nama,
+          jumlah: ing.jumlah,
+          hargaSatuan: ing.hargaSatuan,
+          totalHarga: ing.totalHarga,
+          wacPrice: ing.wacPrice
+        }))
+      });
+      
+      // Fall back to safer calculation without extreme WAC prices
+      const saferIngredients = bahanResep.map(ingredient => ({
+        ...ingredient,
+        // Ensure reasonable price limits
+        hargaSatuan: Math.min(ingredient.hargaSatuan, 50000), // Max 50k per unit
+        totalHarga: Math.min(ingredient.totalHarga, ingredient.jumlah * 50000)
+      }));
+      
+      const saferTotalBahanCost = saferIngredients.reduce((sum, bahan) => sum + bahan.totalHarga, 0);
+      const saferBahanPerPcs = totalPcs > 0 ? saferTotalBahanCost / totalPcs : 0;
+      
+      console.log('🔧 [FALLBACK] Using safer calculation:', {
+        originalBahanPerPcs: bahanPerPcs,
+        saferBahanPerPcs,
+        saferTotalBahanCost
+      });
+      
+      const saferHppPerPcs = Math.round(saferBahanPerPcs + tklPerPcs + overheadPerPcs);
+      const saferHppPerPorsi = saferHppPerPcs * jumlahPcsPerPorsi;
+      const saferTotalHPP = saferHppPerPorsi * jumlahPorsi;
+      
+      return {
+        bahanPerPcs: Math.round(saferBahanPerPcs),
+        tklPerPcs: Math.round(tklPerPcs),
+        overheadPerPcs: Math.round(overheadPerPcs),
+        hppPerPcs: saferHppPerPcs,
+        hppPerPorsi: saferHppPerPorsi,
+        totalHPP: saferTotalHPP,
+        hargaJualPerPcs: Math.round(saferHppPerPcs * (1 + (pricingMode.percentage || 25) / 100)),
+        hargaJualPerPorsi: Math.round(saferHppPerPcs * (1 + (pricingMode.percentage || 25) / 100)) * jumlahPcsPerPorsi,
+        calculationMethod: 'enhanced_dual_mode',
+        timestamp: new Date().toISOString(),
+        breakdown: {
+          ingredients: saferIngredients as BahanResepWithWAC[],
+          laborDetails,
+          overheadSource
+        }
+      };
+    }
+
     const result: EnhancedHPPCalculationResult = {
       bahanPerPcs: Math.round(bahanPerPcs),
       tklPerPcs: Math.round(tklPerPcs),

@@ -1,0 +1,35 @@
+<!-- Note: This would be the original image you sent, but I'll need to convert it properly -->
+<!-- For now, I'll create a more accurate representation based on your original image -->
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Orange gradient background matching the original -->
+  <defs>
+    <radialGradient id="bgGradient" cx="50%" cy="20%" r="80%">
+      <stop offset="0%" style="stop-color:#FF8C00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF4500;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background matching original gradient -->
+  <rect width="512" height="512" fill="url(#bgGradient)"/>
+  
+  <!-- Original Monifine logo as close as possible to your image -->
+  <g transform="translate(256, 256)">
+    <!-- The stylized M from your original image -->
+    <g fill="#FFD700" stroke="none">
+      <!-- Main M structure based on your image -->
+      <!-- This is my interpretation of the original design -->
+      <path d="M -60,-80 L -40,-80 L -40,80 L -60,80 Z" />
+      <path d="M 40,-80 L 60,-80 L 60,80 L 40,80 Z" />
+      <path d="M -40,-80 L -10,40 L 0,30 L 10,40 L 40,-80 L 20,-60 L 0,0 L -20,-60 Z" />
+      
+      <!-- Decorative elements -->
+      <polygon points="0,-100 8,-88 0,-76 -8,-88" />
+      <!-- Side decorative curves -->
+      <path d="M -80,-20 Q -90,-30 -85,-40 Q -80,-50 -75,-45 Q -80,-35 -80,-20" />
+      <path d="M 80,-20 Q 90,-30 85,-40 Q 80,-50 75,-45 Q 80,-35 80,-20" />
+    </g>
+  </g>
+  
+  <!-- Monifine text -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="48" font-weight="500" fill="#FFD700" text-anchor="middle">Monifine</text>
+</svg>

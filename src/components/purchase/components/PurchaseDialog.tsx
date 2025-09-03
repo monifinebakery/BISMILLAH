@@ -580,8 +580,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 }}
                 disabled={(date) => {
                   const today = new Date();
-                  const minDate = new Date('1900-01-01');
-                  return date > today || date < minDate;
+                  const fiveYearsAgo = new Date();
+                  fiveYearsAgo.setFullYear(today.getFullYear() - 5);
+                  // Allow past dates up to 5 years ago, no future dates beyond today
+                  return date > today || date < fiveYearsAgo;
                 }}
                 initialFocus
                 locale={id}

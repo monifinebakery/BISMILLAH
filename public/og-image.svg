@@ -25,18 +25,37 @@
   
   <!-- Main content container -->
   <g filter="url(#shadow)">
-    <!-- Crown logo -->
-    <g transform="translate(200, 200)">
-      <!-- Diamond on top -->
-      <polygon points="0,-25 15,-10 0,5 -15,-10" fill="url(#logoGradient)"/>
+    <!-- Monifine Logo - Stylized M -->
+    <g transform="translate(200, 220)">
+      <!-- Top diamond decorative element -->
+      <polygon points="0,-35 12,-25 0,-15 -12,-25" fill="url(#logoGradient)"/>
       
-      <!-- Crown curves -->
-      <path d="M -80,0 Q -80,-50 -25,-40 Q 0,-45 0,-20 Q 0,-45 25,-40 Q 80,-50 80,0 Q 80,25 50,30 L 50,50 Q 50,60 40,60 L -40,60 Q -50,60 -50,50 L -50,30 Q -80,25 -80,0 Z" fill="url(#logoGradient)"/>
+      <!-- Stylized M logo -->
+      <g fill="url(#logoGradient)" stroke="none">
+        <!-- Left leg of M -->
+        <rect x="-80" y="-15" width="25" height="120" rx="12"/>
+        
+        <!-- Left diagonal of M -->
+        <path d="M -55,-15 L -18,42 L -12,36 L -45,-15 Z" />
+        
+        <!-- Right diagonal of M -->
+        <path d="M 55,-15 L 18,42 L 12,36 L 45,-15 Z" />
+        
+        <!-- Right leg of M -->
+        <rect x="55" y="-15" width="25" height="120" rx="12"/>
+        
+        <!-- Center bottom connection -->
+        <circle cx="0" cy="48" r="10" />
+      </g>
       
-      <!-- Inner details -->
-      <circle cx="-45" cy="20" r="10" fill="#FFD700"/>
-      <circle cx="45" cy="20" r="10" fill="#FFD700"/>
-      <circle cx="0" cy="25" r="8" fill="#FFD700"/>
+      <!-- Decorative curved elements on sides -->
+      <g fill="url(#logoGradient)">
+        <!-- Left curve -->
+        <path d="M -105,25 Q -120,12 -110,0 Q -100,-12 -85,-6 Q -95,6 -105,25 Z" />
+        
+        <!-- Right curve -->
+        <path d="M 105,25 Q 120,12 110,0 Q 100,-12 85,-6 Q 95,6 105,25 Z" />
+      </g>
     </g>
     
     <!-- Main title -->

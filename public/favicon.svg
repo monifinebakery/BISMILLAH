@@ -10,12 +10,27 @@
   <!-- Background -->
   <rect width="32" height="32" fill="url(#bgGradient)" rx="4"/>
   
-  <!-- Simplified M logo -->
-  <g transform="translate(16, 8)">
-    <!-- Diamond -->
-    <polygon points="0,-2 2,-0.5 0,0.5 -2,-0.5" fill="#FFD700"/>
+  <!-- Simplified Monifine M logo -->
+  <g transform="translate(16, 10)">
+    <!-- Top diamond -->
+    <polygon points="0,-3 1.5,-1.5 0,0 -1.5,-1.5" fill="#FFD700"/>
     
-    <!-- M shape -->
-    <path d="M -8,2 L -8,12 L -6,12 L -6,5 L -2,9 L 0,7 L 2,9 L 6,5 L 6,12 L 8,12 L 8,2 L 4,2 L 0,8 L -4,2 Z" fill="#FFD700"/>
+    <!-- Stylized M -->
+    <g fill="#FFD700">
+      <!-- Left leg -->
+      <rect x="-7" y="0" width="3" height="12" rx="1.5"/>
+      <!-- Right leg -->
+      <rect x="4" y="0" width="3" height="12" rx="1.5"/>
+      <!-- Left diagonal -->
+      <path d="M -4,0 L -1,4 L 0,3 L -3,0 Z" />
+      <!-- Right diagonal -->
+      <path d="M 4,0 L 1,4 L 0,3 L 3,0 Z" />
+      <!-- Center dot -->
+      <circle cx="0" cy="5" r="1"/>
+    </g>
+    
+    <!-- Side curves -->
+    <path d="M -9,3 Q -10,2 -9.5,1 Q -9,0 -8,1 Q -8.5,2 -9,3 Z" fill="#FFD700"/>
+    <path d="M 9,3 Q 10,2 9.5,1 Q 9,0 8,1 Q 8.5,2 9,3 Z" fill="#FFD700"/>
   </g>
 </svg>

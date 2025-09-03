@@ -1,0 +1,33 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Orange gradient background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8C00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF4500;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="192" height="192" fill="url(#bgGradient)" rx="24"/>
+  
+  <!-- Crown icon -->
+  <g transform="translate(96, 52)">
+    <!-- Diamond on top -->
+    <polygon points="0,-8 5,-3 0,2 -5,-3" fill="url(#logoGradient)"/>
+    
+    <!-- Crown curves -->
+    <path d="M -24,0 Q -24,-16 -8,-12 Q 0,-14 0,-6 Q 0,-14 8,-12 Q 24,-16 24,0 Q 24,8 16,10 L 16,16 Q 16,20 12,20 L -12,20 Q -16,20 -16,16 L -16,10 Q -24,8 -24,0 Z" fill="url(#logoGradient)"/>
+    
+    <!-- Inner details -->
+    <circle cx="-14" cy="6" r="3" fill="#FFD700"/>
+    <circle cx="14" cy="6" r="3" fill="#FFD700"/>
+    <circle cx="0" cy="8" r="2.5" fill="#FFD700"/>
+  </g>
+  
+  <!-- Monifine text -->
+  <text x="96" y="142" font-family="Arial, sans-serif" font-size="24" font-weight="500" fill="url(#logoGradient)" text-anchor="middle">Monifine</text>
+</svg>

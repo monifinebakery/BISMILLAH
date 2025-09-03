@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Orange gradient background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8C00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF4500;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="32" height="32" fill="url(#bgGradient)" rx="4"/>
+  
+  <!-- Simplified M logo -->
+  <g transform="translate(16, 8)">
+    <!-- Diamond -->
+    <polygon points="0,-2 2,-0.5 0,0.5 -2,-0.5" fill="#FFD700"/>
+    
+    <!-- M shape -->
+    <path d="M -8,2 L -8,12 L -6,12 L -6,5 L -2,9 L 0,7 L 2,9 L 6,5 L 6,12 L 8,12 L 8,2 L 4,2 L 0,8 L -4,2 Z" fill="#FFD700"/>
+  </g>
+</svg>

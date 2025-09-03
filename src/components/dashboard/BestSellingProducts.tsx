@@ -8,6 +8,7 @@ import { Trophy, Package, ChevronLeft, ChevronRight, TrendingUp, DollarSign, Has
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
 import { calculatePagination } from '@/components/promoCalculator/utils/promoUtils';
+import { safeNumber, safeMultiply } from '@/utils/safeMath';
 
 interface Product {
   id: string;
@@ -37,7 +38,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     label: 'Total Pendapatan',
     icon: <DollarSign className="h-4 w-4" />,
     description: 'Berdasarkan total uang yang dihasilkan produk',
-    getValue: (product) => product.revenue || 0,
+    getValue: (product) => safeNumber(product.revenue),
     formatValue: (value) => formatCurrency(value),
     getSecondaryInfo: (product) => `${product.quantity} unit terjual`
   },
@@ -46,18 +47,18 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     label: 'Jumlah Terjual',
     icon: <Hash className="h-4 w-4" />,
     description: 'Berdasarkan unit yang berhasil terjual',
-    getValue: (product) => product.quantity,
+    getValue: (product) => safeNumber(product.quantity),
     formatValue: (value) => `${value.toLocaleString('id-ID')} unit`,
-    getSecondaryInfo: (product) => formatCurrency(product.revenue || 0)
+    getSecondaryInfo: (product) => formatCurrency(safeNumber(product.revenue))
   },
   profit: {
     key: 'profit',
     label: 'Total Keuntungan', 
     icon: <TrendingUp className="h-4 w-4" />,
     description: 'Berdasarkan profit bersih yang dihasilkan',
-    getValue: (product) => product.profit || 0,
+    getValue: (product) => safeNumber(product.profit),
     formatValue: (value) => formatCurrency(value),
-    getSecondaryInfo: (product) => `Margin ${product.marginPercent || 0}%`
+    getSecondaryInfo: (product) => `Margin ${safeNumber(product.marginPercent)}%`
   },
   hybrid: {
     key: 'hybrid',
@@ -66,17 +67,17 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     description: 'Kombinasi volume penjualan dan nilai pendapatan',
     getValue: (product) => {
       // Hybrid score: normalize both metrics and combine
-      const revenue = product.revenue || 0;
-      const quantity = product.quantity || 0;
+      const revenue = safeNumber(product.revenue);
+      const quantity = safeNumber(product.quantity);
       
       // Weight: 40% quantity + 60% revenue
       const normalizedQty = Math.min(quantity / 1000, 1); // Cap at 1000 units
       const normalizedRev = Math.min(revenue / 10000000, 1); // Cap at 10M
       
-      return (normalizedQty * 0.4 + normalizedRev * 0.6) * 100;
+      return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
     },
     formatValue: (value) => `${value.toFixed(1)} poin`,
-    getSecondaryInfo: (product) => `${product.quantity} unit • ${formatCurrency(product.revenue || 0)}`
+    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`
   }
 };
 

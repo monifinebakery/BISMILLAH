@@ -19,6 +19,7 @@ import {
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
 import { calculatePagination } from '@/components/promoCalculator/utils/promoUtils';
+import { safeNumber, safeMultiply, safeDivide } from '@/utils/safeMath';
 
 interface Product {
   id: string;
@@ -50,9 +51,9 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     label: 'Penjualan Terendah',
     icon: <Hash className="h-4 w-4" />,
     description: 'Produk dengan unit terjual paling sedikit',
-    getValue: (product) => product.quantity,
+    getValue: (product) => safeNumber(product.quantity),
     formatValue: (value) => `${value.toLocaleString('id-ID')} unit`,
-    getSecondaryInfo: (product) => formatCurrency(product.revenue || 0),
+    getSecondaryInfo: (product) => formatCurrency(safeNumber(product.revenue)),
     getWarningLevel: (value) => value < 5 ? 'high' : value < 20 ? 'medium' : 'low'
   },
   revenue: {
@@ -60,9 +61,9 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     label: 'Pendapatan Terendah',
     icon: <DollarSign className="h-4 w-4" />,
     description: 'Produk dengan total pendapatan paling rendah',
-    getValue: (product) => product.revenue || 0,
+    getValue: (product) => safeNumber(product.revenue),
     formatValue: (value) => formatCurrency(value),
-    getSecondaryInfo: (product) => `${product.quantity} unit terjual`,
+    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit terjual`,
     getWarningLevel: (value) => value < 100000 ? 'high' : value < 500000 ? 'medium' : 'low'
   },
   profit: {
@@ -70,9 +71,9 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     label: 'Keuntungan Terendah', 
     icon: <TrendingDown className="h-4 w-4" />,
     description: 'Produk dengan profit bersih paling rendah',
-    getValue: (product) => product.profit || 0,
+    getValue: (product) => safeNumber(product.profit),
     formatValue: (value) => formatCurrency(value),
-    getSecondaryInfo: (product) => `Margin ${product.marginPercent || 0}%`,
+    getSecondaryInfo: (product) => `Margin ${safeNumber(product.marginPercent)}%`,
     getWarningLevel: (value) => value < 50000 ? 'high' : value < 200000 ? 'medium' : 'low'
   },
   hybrid: {
@@ -81,17 +82,17 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     icon: <Target className="h-4 w-4" />,
     description: 'Kombinasi volume dan pendapatan terendah',
     getValue: (product) => {
-      const revenue = product.revenue || 0;
-      const quantity = product.quantity || 0;
+      const revenue = safeNumber(product.revenue);
+      const quantity = safeNumber(product.quantity);
       
       // Lower hybrid score = worse performance
-      const normalizedQty = Math.min(quantity / 1000, 1);
-      const normalizedRev = Math.min(revenue / 10000000, 1);
+      const normalizedQty = Math.min(safeDivide(quantity, 1000), 1);
+      const normalizedRev = Math.min(safeDivide(revenue, 10000000), 1);
       
-      return (normalizedQty * 0.4 + normalizedRev * 0.6) * 100;
+      return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
     },
     formatValue: (value) => `${value.toFixed(1)} poin`,
-    getSecondaryInfo: (product) => `${product.quantity} unit • ${formatCurrency(product.revenue || 0)}`,
+    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`,
     getWarningLevel: (value) => value < 10 ? 'high' : value < 30 ? 'medium' : 'low'
   }
 };
@@ -149,7 +150,7 @@ const ProductItem: React.FC<{
   const maxExpected = sortConfig.key === 'quantity' ? 100 : 
                      sortConfig.key === 'revenue' ? 1000000 : 
                      sortConfig.key === 'profit' ? 500000 : 50;
-  const performancePercent = Math.min(100, Math.max(5, (primaryValue / maxExpected) * 100));
+  const performancePercent = Math.min(100, Math.max(5, safeMultiply(safeDivide(primaryValue, maxExpected), 100)));
 
   return (
     <div className="p-4 hover:bg-gray-50 transition-colors">
@@ -223,7 +224,7 @@ const ProductInsights: React.FC<{
 
   const values = products.map(p => sortConfig.getValue(p));
   const total = values.reduce((sum, val) => sum + val, 0);
-  const average = total / values.length;
+  const average = safeDivide(total, values.length);
   const criticalCount = values.filter(val => sortConfig.getWarningLevel(val) === 'high').length;
 
   return (
@@ -252,7 +253,7 @@ const ProductInsights: React.FC<{
   );
 };
 
-// 🔄 Pagination Controls (same as BestSelling)
+// 🔄 Pagination Controls (responsive version)
 const PaginationControls: React.FC<{
   currentPage: number;
   totalPages: number;
@@ -267,12 +268,13 @@ const PaginationControls: React.FC<{
         size="sm" 
         onClick={() => onPageChange('prev')} 
         disabled={!hasPrev} 
-        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[40px] h-8"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+        <span className="ml-1 hidden xs:inline text-xs sm:text-sm">Prev</span>
       </Button>
       
-      <span className="text-sm text-gray-600 font-medium">
+      <span className="text-xs sm:text-sm text-gray-600 font-medium px-2">
         {currentPage} dari {totalPages}
       </span>
       
@@ -281,9 +283,10 @@ const PaginationControls: React.FC<{
         size="sm" 
         onClick={() => onPageChange('next')} 
         disabled={!hasNext} 
-        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+        className="text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[40px] h-8"
       >
-        <ChevronRight className="h-4 w-4" />
+        <span className="mr-1 hidden xs:inline text-xs sm:text-sm">Next</span>
+        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
       </Button>
     </CardFooter>
   );
@@ -341,12 +344,12 @@ const WorstSellingProducts: React.FC<Props> = ({
     <Card className="bg-white border-1.5 border-gray-200 hover:border-gray-300 transition-colors duration-300">
       {/* 📉 Header with Sort Selector */}
       <CardHeader className="bg-gradient-to-r from-gray-50 to-red-50 border-b border-gray-100 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-gray-800 text-lg">
             <TrendingDown className="h-5 w-5 text-red-600" />
-            <span>Produk Kurang Laris</span>
+            <span className="text-base sm:text-lg">Produk Kurang Laris</span>
             {!isLoading && sortedProducts.length > 0 && (
-              <span className="text-sm font-normal text-gray-500">
+              <span className="text-xs sm:text-sm font-normal text-gray-500">
                 ({sortedProducts.length} produk)
               </span>
             )}
@@ -354,10 +357,10 @@ const WorstSellingProducts: React.FC<Props> = ({
           
           {/* Sort Selector */}
           {!isLoading && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Urutkan:</span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">Urutkan:</span>
               <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                <SelectTrigger className="w-44 h-8 text-xs">
+                <SelectTrigger className="w-32 sm:w-44 h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -365,7 +368,7 @@ const WorstSellingProducts: React.FC<Props> = ({
                     <SelectItem key={config.key} value={config.key}>
                       <div className="flex items-center gap-2">
                         {config.icon}
-                        <span>{config.label}</span>
+                        <span className="text-xs sm:text-sm">{config.label}</span>
                       </div>
                     </SelectItem>
                   ))}

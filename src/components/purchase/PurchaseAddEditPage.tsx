@@ -24,6 +24,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
+import { id as localeId } from 'date-fns/locale';
 
 import { PurchaseItem } from './types/purchase.types';
 import { usePurchaseForm } from './hooks/usePurchaseForm';
@@ -281,9 +282,9 @@ const PurchaseAddEditPage: React.FC = () => {
                   suppliers={suppliers}
                   disabled={isSubmitting || isViewOnly}
                   placeholder="Pilih atau tulis nama supplier"
-                  hasError={!!validation.supplier}
+                  hasError={!!(validation?.supplier)}
                 />
-                {validation.supplier && (
+                {validation?.supplier && (
                   <p className="text-xs text-red-500">{validation.supplier}</p>
                 )}
               </div>
@@ -317,11 +318,11 @@ const PurchaseAddEditPage: React.FC = () => {
                         return date > today || date < minDate;
                       }}
                       initialFocus
-                      locale={id}
+                      locale={localeId}
                     />
                   </PopoverContent>
                 </Popover>
-                {validation.tanggal && (
+                {validation?.tanggal && (
                   <p className="text-xs text-red-500">{validation.tanggal}</p>
                 )}
               </div>

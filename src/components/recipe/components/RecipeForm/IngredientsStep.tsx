@@ -162,6 +162,10 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
 
   // Add new ingredient
   const handleAddIngredient = () => {
+    if (!newIngredient.warehouseId) {
+      toast.error('Bahan harus dipilih dari warehouse');
+      return;
+    }
     if (!newIngredient.nama?.trim()) {
       toast.error('Nama bahan harus dipilih');
       return;
@@ -313,7 +317,7 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
           Daftar Bahan-bahan
         </h2>
         <p className="text-sm sm:text-base text-gray-600 text-overflow-safe">
-          Pilih bahan dari warehouse atau tambahkan manual beserta takaran dan harganya
+          Pilih bahan dari warehouse untuk memastikan sinkronisasi harga dan stok
         </p>
       </div>
 
@@ -396,18 +400,6 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                     )}
                   </SelectContent>
                 </Select>
-                
-                {/* Manual input option */}
-                <div className="relative">
-                  <Input
-                    type="text"
-                    value={newIngredient.nama || ''}
-                    onChange={(e) => handleNewIngredientChange('nama', e.target.value)}
-                    placeholder="Atau ketik nama bahan manual"
-                    disabled={isLoading}
-                    className="text-sm"
-                  />
-                </div>
               </div>
             </div>
 
@@ -615,14 +607,6 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                               })}
                             </SelectContent>
                           </Select>
-                          <Input
-                            type="text"
-                            value={ingredient.nama}
-                            onChange={(e) => handleUpdateIngredient(index, 'nama', e.target.value)}
-                            className="border-none focus:border-orange-300 bg-transparent text-sm"
-                            placeholder="Atau edit manual"
-                            disabled={isLoading}
-                          />
                         </div>
                       </TableCell>
 
@@ -760,7 +744,7 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                   <li>• 🆕 Satuan besar (kg, liter) otomatis dikonversi ke satuan kecil (gram, ml)</li>
                   <li>• Pilih bahan dari warehouse untuk sinkronisasi harga otomatis</li>
                   <li>• Harga akan disesuaikan secara proporsional saat konversi</li>
-                  <li>• Atau ketik manual jika bahan belum ada di warehouse</li>
+                  <li>• Pastikan bahan sudah tersedia di warehouse sebelum membuat resep</li>
                   <li>• Update data warehouse untuk akurasi harga terbaru</li>
                 </ul>
               </div>

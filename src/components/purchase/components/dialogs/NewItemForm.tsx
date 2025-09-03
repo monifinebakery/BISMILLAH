@@ -15,6 +15,7 @@ import { SafeNumericInput } from './SafeNumericInput';
 // Avoid importing warehouseUtils to reduce bundle graph and prevent potential cycles
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
+import MaterialComboBox from '../MaterialComboBox';
 
 interface FormData {
   nama: string;
@@ -146,10 +147,12 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
               <Calculator className="h-4 w-4 text-orange-600 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-orange-800">
-                  💡 Hitung Harga Satuan Otomatis
+                  💡 Fitur Cerdas
                 </p>
                 <p className="text-xs text-orange-700 mt-1">
-                  Masukkan <strong>kuantitas</strong> dan <strong>total bayar</strong>, sistem akan menghitung harga satuan secara otomatis menggunakan rumus: <strong>Total Bayar ÷ Kuantitas</strong>
+                  • Pilih dari <strong>riwayat bahan baku</strong> yang pernah dibeli sebelumnya<br/>
+                  • <strong>Satuan otomatis</strong> akan dipilih berdasarkan riwayat<br/>
+                  • <strong>Harga satuan</strong> dihitung otomatis: Total Bayar ÷ Kuantitas
                 </p>
               </div>
             </div>
@@ -158,12 +161,23 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">Nama Bahan Baku *</Label>
-              <input
-                type="text"
+              <MaterialComboBox
                 value={formData.nama}
-                onChange={(e) => setFormData(prev => ({ ...prev, nama: e.target.value }))}
-                placeholder="Contoh: Tepung Terigu"
-                className="h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-orange-500/20"
+                onValueChange={(materialName, suggestedSatuan) => {
+                  setFormData(prev => ({ ...prev, nama: materialName }));
+                  // Auto-fill satuan if suggested and current satuan is empty
+                  if (suggestedSatuan && !prev.satuan) {
+                    setFormData(prevState => ({ ...prevState, satuan: suggestedSatuan }));
+                  }
+                }}
+                onSatuanSuggestion={(satuan) => {
+                  // Only auto-fill if current satuan is empty to avoid overriding user choice
+                  if (!formData.satuan) {
+                    setFormData(prev => ({ ...prev, satuan: satuan }));
+                  }
+                }}
+                placeholder="Pilih dari riwayat atau ketik nama bahan baru"
+                className="w-full"
               />
             </div>
             <div className="space-y-2">

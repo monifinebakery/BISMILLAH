@@ -11,6 +11,10 @@ export { default as LoadingState } from './LoadingState';
 export { default as EmptyState } from './EmptyState';
 export { default as PurchaseHeader } from './PurchaseHeader';
 
+// ✅ FORM COMPONENTS: For purchase form usage
+export { default as MaterialComboBox } from './MaterialComboBox';
+export { default as SupplierComboBox } from './SupplierComboBox';
+
 // ✅ TYPE-ONLY EXPORTS: Zero runtime cost
 export type {
   PurchaseHeaderProps,

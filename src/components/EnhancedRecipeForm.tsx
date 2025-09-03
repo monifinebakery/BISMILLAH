@@ -216,13 +216,13 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
 
   const addIngredient = () => {
     if (!newIngredient.selectedBahanId || newIngredient.jumlah <= 0) {
-      toast.error("Pilih bahan dan masukkan jumlah yang valid");
+      toast.error("Pilih bahan dari warehouse dan masukkan jumlah yang valid");
       return;
     }
 
     const selectedBahan = bahanBaku.find(item => item.id === newIngredient.selectedBahanId);
     if (!selectedBahan) {
-      toast.error("Bahan baku tidak ditemukan");
+      toast.error("Bahan baku tidak ditemukan di warehouse");
       return;
     }
 

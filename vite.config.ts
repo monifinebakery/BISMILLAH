@@ -91,7 +91,7 @@ export default defineConfig(({ mode }) => {
         // },
         external: ["next-themes"],
         output: {
-          // Enhanced chunk splitting for optimal loading
+          // Ultra-conservative chunk splitting - NO app code splitting to avoid React issues
           manualChunks: (id) => {
             // Node modules splitting
             if (id.includes('node_modules')) {
@@ -103,18 +103,8 @@ export default defineConfig(({ mode }) => {
               return 'vendor';
             }
             
-            // More conservative app code splitting
-            // Only split very large and isolated features
-            if (id.includes('/components/warehouse/WarehousePage') || 
-                id.includes('/components/operational-costs/OperationalCostPage')) {
-              return 'features-heavy';
-            }
-            if (id.includes('/components/profitAnalysis/') && !id.includes('/hooks/') && !id.includes('/context/')) {
-              return 'features-analysis';
-            }
-            
-            // Keep contexts, hooks, and utilities in main bundle to avoid dependency issues
-            // Keep most components in main bundle for better stability
+            // NO app code splitting - keep everything in main bundle for React access
+            // All components, hooks, contexts stay in main bundle to prevent forwardRef errors
           },
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",

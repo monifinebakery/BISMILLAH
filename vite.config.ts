@@ -100,9 +100,9 @@ export default defineConfig(({ mode }) => {
               if (id.includes('recharts') || id.includes('d3-')) return 'recharts';
               if (id.includes('@supabase/supabase-js')) return 'supabase';
               
-              // Core React ecosystem - shared chunk
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react/jsx-runtime')) return 'react-core';
-              if (id.includes('react-router') || id.includes('@remix-run/router')) return 'react-router';
+              // Keep React ecosystem together to avoid context issues
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react/jsx-runtime') || 
+                  id.includes('react-router') || id.includes('@remix-run/router')) return 'vendor';
               
               // Query and state management
               if (id.includes('@tanstack/react-query') || id.includes('@tanstack/query-core')) return 'react-query';
@@ -113,26 +113,22 @@ export default defineConfig(({ mode }) => {
               // Date/time libraries
               if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) return 'date-utils';
               
-              // All other node_modules - smaller vendor chunk
+              // All other node_modules
               return 'vendor';
             }
             
-            // App code splitting based on features
-            // Large feature modules
-            if (id.includes('/components/warehouse/') || id.includes('/components/operational-costs/')) {
+            // More conservative app code splitting
+            // Only split very large and isolated features
+            if (id.includes('/components/warehouse/WarehousePage') || 
+                id.includes('/components/operational-costs/OperationalCostPage')) {
               return 'features-heavy';
             }
-            if (id.includes('/components/orders/') || id.includes('/components/purchase/')) {
-              return 'features-core';
-            }
-            if (id.includes('/components/financial/') || id.includes('/components/profitAnalysis/')) {
+            if (id.includes('/components/profitAnalysis/') && !id.includes('/hooks/') && !id.includes('/context/')) {
               return 'features-analysis';
             }
-            if (id.includes('/components/promoCalculator/') || id.includes('/components/recipe/')) {
-              return 'features-tools';
-            }
             
-            // Keep small utilities and contexts in main bundle
+            // Keep contexts, hooks, and utilities in main bundle to avoid dependency issues
+            // Keep most components in main bundle for better stability
           },
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
@@ -169,13 +165,21 @@ export default defineConfig(({ mode }) => {
       include: [
         "react",
         "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
         "react-router-dom",
         "@tanstack/react-query",
-        "@supabase/supabase-js",
         "lucide-react",
-        "@radix-ui/react-icons"
+        "@radix-ui/react-icons",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select"
       ],
-      exclude: ["next-themes"]
+      exclude: [
+        "next-themes",
+        "@supabase/supabase-js"
+      ],
+      // Force include React ecosystem to avoid context issues
+      force: true
     },
     
     // Image optimization and asset handling

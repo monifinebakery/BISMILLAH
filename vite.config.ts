@@ -95,13 +95,12 @@ export default defineConfig(({ mode }) => {
           manualChunks: (id) => {
             // Node modules splitting
             if (id.includes('node_modules')) {
-              // Only separate libraries that don't depend on React
+              // Only separate libraries that are 100% independent of React
               if (id.includes('xlsx') || id.includes('exceljs') || id.includes('file-saver')) return 'excel';
-              if (id.includes('@supabase/supabase-js')) return 'supabase';
-              if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) return 'date-utils';
+              if (id.includes('@supabase/supabase-js') && !id.includes('react')) return 'supabase';
               
               // Keep ALL React-dependent libraries in vendor to avoid context/forwardRef issues
-              // This includes: react, react-dom, recharts, @radix-ui, @tanstack, etc.
+              // This includes: react, react-dom, recharts, @radix-ui, @tanstack, date libs with React deps, etc.
               return 'vendor';
             }
             

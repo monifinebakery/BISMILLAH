@@ -110,7 +110,9 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
         return;
       }
 
-      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.lists() });
+      // ✅ PERBAIKAN: Invalidate semua queries terkait recipe untuk memastikan stats ter-update
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
+      
       queryClient.setQueryData(
         RECIPE_QUERY_KEYS.detail(newRecipe.id), 
         newRecipe
@@ -144,11 +146,16 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
         return;
       }
 
-      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.lists() });
+      // ✅ PERBAIKAN: Invalidate semua queries terkait recipe untuk memastikan stats ter-update
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
+      
+      // Update cache detail untuk recipe ini
       queryClient.setQueryData(
         RECIPE_QUERY_KEYS.detail(updatedRecipe.id), 
         updatedRecipe
       );
+      
+      // Update cache list untuk mengupdate data recipe
       queryClient.setQueriesData(
         { queryKey: RECIPE_QUERY_KEYS.lists() },
         (oldData: Recipe[] | undefined) => {
@@ -158,6 +165,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
           );
         }
       );
+      
       toast.success('Resep berhasil diperbarui!');
       onSuccess?.(updatedRecipe, true);
       onNavigate('list');

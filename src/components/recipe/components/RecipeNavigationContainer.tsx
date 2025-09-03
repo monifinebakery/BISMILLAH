@@ -26,10 +26,13 @@ import RecipeFormPage from './RecipeFormPage';
 // Breadcrumb and view mode types
 import type { RecipeViewMode } from './RecipeBreadcrumb';
 
-// Query Keys
+// Query Keys - Menggunakan struktur yang sama dengan RecipeFormPage
 export const RECIPE_QUERY_KEYS = {
   all: ['recipes'] as const,
   lists: () => [...RECIPE_QUERY_KEYS.all, 'list'] as const,
+  list: (filters: Record<string, any>) => [...RECIPE_QUERY_KEYS.lists(), filters] as const,
+  details: () => [...RECIPE_QUERY_KEYS.all, 'detail'] as const,
+  detail: (id: string) => [...RECIPE_QUERY_KEYS.details(), id] as const,
   categories: () => [...RECIPE_QUERY_KEYS.all, 'categories'] as const,
 } as const;
 

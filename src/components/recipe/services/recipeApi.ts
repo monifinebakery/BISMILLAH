@@ -317,7 +317,25 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Updating recipe:', id);
+      
+      // ✅ DEBUG: Log data sebelum transform
+      logger.debug('RecipeAPI: Data before transform:', {
+        hppPerPorsi: updates.hppPerPorsi,
+        hargaJualPorsi: updates.hargaJualPorsi,
+        hppPerPcs: updates.hppPerPcs,
+        hargaJualPerPcs: updates.hargaJualPerPcs,
+      });
+      
       const dbUpdates = this.transformToDB(updates);
+      
+      // ✅ DEBUG: Log data setelah transform
+      logger.debug('RecipeAPI: Data after transform to DB:', {
+        hpp_per_porsi: dbUpdates.hpp_per_porsi,
+        harga_jual_porsi: dbUpdates.harga_jual_porsi,
+        hpp_per_pcs: dbUpdates.hpp_per_pcs,
+        harga_jual_per_pcs: dbUpdates.harga_jual_per_pcs,
+      });
+      
       const { data, error } = await supabase
         .from(this.tableName)
         .update({
@@ -347,12 +365,28 @@ class RecipeApiService {
         throw new Error(errorMsg);
       }
 
+      // ✅ DEBUG: Log raw data dari database
+      logger.debug('RecipeAPI: Raw data from database:', {
+        hpp_per_porsi: data.hpp_per_porsi,
+        harga_jual_porsi: data.harga_jual_porsi,
+        hpp_per_pcs: data.hpp_per_pcs,
+        harga_jual_per_pcs: data.harga_jual_per_pcs,
+      });
+      
       const dbItem: RecipeDB = {
         ...data,
         kategori_resep: data.kategori_resep || undefined,
         bahan_resep: (data.bahan_resep as any) || []
       } as RecipeDB;
       const transformedData = this.transformFromDB(dbItem);
+      
+      // ✅ DEBUG: Log data setelah transformasi balik ke frontend
+      logger.debug('RecipeAPI: Data after transform from DB:', {
+        hppPerPorsi: transformedData.hppPerPorsi,
+        hargaJualPorsi: transformedData.hargaJualPorsi,
+        hppPerPcs: transformedData.hppPerPcs,
+        hargaJualPerPcs: transformedData.hargaJualPerPcs,
+      });
 
       // ✅ TAMBAHKAN: Validasi hasil transformasi
       if (!transformedData.id) {

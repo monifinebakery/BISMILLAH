@@ -81,11 +81,8 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   } | null>(null);
   const [isEnhancedHppActive, setIsEnhancedHppActive] = useState(false); // Track enhanced HPP state
   const [enhancedHppResult, setEnhancedHppResult] = useState<EnhancedHPPCalculationResult | null>(null);
-  const [isManualPricingMode, setIsManualPricingMode] = useState(false); // Track manual pricing mode
-  const [manualSellingPrices, setManualSellingPrices] = useState({
-    hargaJualPorsi: 0,
-    hargaJualPerPcs: 0,
-  });
+  // Manual selling prices are now handled directly in the form data
+  // No separate manual pricing mode needed
 
   // Initialize form with existing data
   useEffect(() => {
@@ -138,18 +135,16 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
 
         setCalculationResults(calculation);
         
-        // Update form data with calculated values, but respect manual pricing mode
+        // Update form data with calculated HPP values only
+        // Selling prices are controlled by the user in the cost calculation step
         setFormData(prev => ({
           ...prev,
           totalHpp: calculation.totalHPP,
           hppPerPorsi: calculation.hppPerPorsi,
-          hargaJualPorsi: isManualPricingMode && manualSellingPrices.hargaJualPorsi > 0 
-            ? manualSellingPrices.hargaJualPorsi 
-            : calculation.hargaJualPorsi,
           hppPerPcs: calculation.hppPerPcs,
-          hargaJualPerPcs: isManualPricingMode && manualSellingPrices.hargaJualPerPcs > 0 
-            ? manualSellingPrices.hargaJualPerPcs 
-            : calculation.hargaJualPerPcs,
+          // Don't override user's selling prices
+          hargaJualPorsi: prev.hargaJualPorsi || 0,
+          hargaJualPerPcs: prev.hargaJualPerPcs || 0,
         }));
 
       } catch (error) {
@@ -165,10 +160,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     formData.marginKeuntunganPersen,
     formData.jumlahPcsPerPorsi,
     calculateHPP,
-    isEnhancedHppActive, // Add dependency to re-run when enhanced mode changes
-    isManualPricingMode, // Add dependency for manual pricing mode
-    manualSellingPrices.hargaJualPorsi, // Add dependency for manual prices
-    manualSellingPrices.hargaJualPerPcs
+    isEnhancedHppActive // Add dependency to re-run when enhanced mode changes
   ]);
 
   // Handle enhanced HPP result updates
@@ -724,188 +716,12 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                     </div>
                   </div>
 
-                  {/* Manual Pricing Option */}
-                  <Separator />
-                  
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-blue-900 flex items-center gap-2">
-                        💰 Harga Jual Manual
-                        <span className="text-xs font-normal text-blue-700">(opsional)</span>
-                      </h4>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsManualPricingMode(!isManualPricingMode)}
-                        className={`text-xs h-7 px-3 transition-colors ${
-                          isManualPricingMode 
-                            ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' 
-                            : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
-                        }`}
-                      >
-                        {isManualPricingMode ? 'Mode Manual Aktif' : 'Aktifkan Manual'}
-                      </Button>
-                    </div>
-                    
-                    {!isManualPricingMode ? (
-                      <p className="text-xs text-blue-700">
-                        Saat ini menggunakan harga jual otomatis berdasarkan margin keuntungan. 
-                        Klik "Aktifkan Manual" untuk mengatur harga jual secara manual.
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        <p className="text-xs text-blue-700 mb-3">
-                          Mode manual aktif. Anda dapat mengatur harga jual sendiri untuk per porsi dan per pcs.
-                        </p>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* Manual price per porsi */}
-                          <div className="bg-white p-3 rounded border">
-                            <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                              Harga Jual Per Porsi
-                            </Label>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">Rp</span>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="100"
-                                value={manualSellingPrices.hargaJualPorsi || ''}
-                                onChange={(e) => {
-                                  const value = parseFloat(e.target.value) || 0;
-                                  setManualSellingPrices(prev => ({ ...prev, hargaJualPorsi: value }));
-                                  setFormData(prev => ({ ...prev, hargaJualPorsi: value }));
-                                }}
-                                placeholder={formatCurrency(calculationResults.hargaJualPorsi).replace('Rp ', '').replace('.', '')}
-                                className="text-xs h-8"
-                              />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Auto: {formatCurrency(calculationResults.hargaJualPorsi)}
-                            </p>
-                          </div>
-                          
-                          {/* Manual price per pcs */}
-                          <div className="bg-white p-3 rounded border">
-                            <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                              Harga Jual Per Pcs
-                            </Label>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">Rp</span>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="100"
-                                value={manualSellingPrices.hargaJualPerPcs || ''}
-                                onChange={(e) => {
-                                  const value = parseFloat(e.target.value) || 0;
-                                  setManualSellingPrices(prev => ({ ...prev, hargaJualPerPcs: value }));
-                                  setFormData(prev => ({ ...prev, hargaJualPerPcs: value }));
-                                }}
-                                placeholder={formatCurrency(calculationResults.hargaJualPerPcs).replace('Rp ', '').replace('.', '')}
-                                className="text-xs h-8"
-                              />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Auto: {formatCurrency(calculationResults.hargaJualPerPcs)}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {/* Quick action buttons */}
-                        <div className="flex gap-2 flex-wrap">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setManualSellingPrices({
-                                hargaJualPorsi: calculationResults.hargaJualPorsi,
-                                hargaJualPerPcs: calculationResults.hargaJualPerPcs,
-                              });
-                              setFormData(prev => ({
-                                ...prev,
-                                hargaJualPorsi: calculationResults.hargaJualPorsi,
-                                hargaJualPerPcs: calculationResults.hargaJualPerPcs,
-                              }));
-                            }}
-                            className="text-xs h-7 px-3"
-                          >
-                            Reset ke Auto
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              // Round up to nearest 500
-                              const roundedPorsi = Math.ceil(calculationResults.hargaJualPorsi / 500) * 500;
-                              const roundedPcs = Math.ceil(calculationResults.hargaJualPerPcs / 500) * 500;
-                              setManualSellingPrices({
-                                hargaJualPorsi: roundedPorsi,
-                                hargaJualPerPcs: roundedPcs,
-                              });
-                              setFormData(prev => ({
-                                ...prev,
-                                hargaJualPorsi: roundedPorsi,
-                                hargaJualPerPcs: roundedPcs,
-                              }));
-                            }}
-                            className="text-xs h-7 px-3"
-                          >
-                            Bulatkan +500
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              // Round up to nearest 1000
-                              const roundedPorsi = Math.ceil(calculationResults.hargaJualPorsi / 1000) * 1000;
-                              const roundedPcs = Math.ceil(calculationResults.hargaJualPerPcs / 1000) * 1000;
-                              setManualSellingPrices({
-                                hargaJualPorsi: roundedPorsi,
-                                hargaJualPerPcs: roundedPcs,
-                              });
-                              setFormData(prev => ({
-                                ...prev,
-                                hargaJualPorsi: roundedPorsi,
-                                hargaJualPerPcs: roundedPcs,
-                              }));
-                            }}
-                            className="text-xs h-7 px-3"
-                          >
-                            Bulatkan +1000
-                          </Button>
-                        </div>
-                        
-                        {/* Profit preview with manual prices */}
-                        {(manualSellingPrices.hargaJualPorsi > 0 || manualSellingPrices.hargaJualPerPcs > 0) && (
-                          <div className="bg-green-50 border border-green-200 rounded p-2 mt-3">
-                            <p className="text-xs font-medium text-green-800 mb-1">Preview dengan Harga Manual:</p>
-                            <div className="text-xs text-green-700 space-y-1">
-                              {manualSellingPrices.hargaJualPorsi > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Profit per porsi:</span>
-                                  <span className="font-medium">
-                                    {formatCurrency(manualSellingPrices.hargaJualPorsi - calculationResults.hppPerPorsi)}
-                                  </span>
-                                </div>
-                              )}
-                              {manualSellingPrices.hargaJualPerPcs > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Profit per pcs:</span>
-                                  <span className="font-medium">
-                                    {formatCurrency(manualSellingPrices.hargaJualPerPcs - calculationResults.hppPerPcs)}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                  {/* Note: Manual selling price inputs are now handled in the CostCalculationStep component */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-700">
+                      💡 <strong>Info:</strong> Harga jual dapat diatur secara manual melalui form "Kalkulasi HPP & Harga Jual" 
+                      yang muncul setelah menambahkan bahan baku.
+                    </p>
                   </div>
                 </>
               ) : (

@@ -50,10 +50,7 @@ class RecipeApiService {
     jumlahPcsPerPorsi: Number(dbItem.jumlah_pcs_per_porsi) || 1,
     hppPerPcs: Number(dbItem.hpp_per_pcs) || 0,
     hargaJualPerPcs: Number(dbItem.harga_jual_per_pcs) || 0,
-    // Manual pricing fields
-    isManualPricingEnabled: dbItem.is_manual_pricing_enabled || false,
-    manualSellingPricePerPortion: Number(dbItem.manual_selling_price_per_portion) || 0,
-    manualSellingPricePerPiece: Number(dbItem.manual_selling_price_per_piece) || 0,
+    // Manual pricing fields removed - now fully manual system
   });
   // Transform frontend format to database format
   private transformToDB = (recipe: Partial<NewRecipe>) => ({
@@ -73,10 +70,7 @@ class RecipeApiService {
     jumlah_pcs_per_porsi: recipe.jumlahPcsPerPorsi || 1,
     hpp_per_pcs: recipe.hppPerPcs || 0,
     harga_jual_per_pcs: recipe.hargaJualPerPcs || 0,
-    // Manual pricing fields
-    is_manual_pricing_enabled: recipe.isManualPricingEnabled || false,
-    manual_selling_price_per_portion: recipe.manualSellingPricePerPortion || 0,
-    manual_selling_price_per_piece: recipe.manualSellingPricePerPiece || 0,
+    // Manual pricing fields removed - now fully manual system
   });
   /**
    * ✅ useQuery-optimized: Get all recipes
@@ -93,7 +87,7 @@ class RecipeApiService {
       logger.debug('RecipeAPI: Fetching recipes with filters:', filters);
       let query = supabase
         .from(this.tableName)
-        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs, is_manual_pricing_enabled, manual_selling_price_per_portion, manual_selling_price_per_piece')
+        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs')
         .eq('user_id', userId);
       // Apply filters
       if (filters?.category) {
@@ -172,7 +166,7 @@ class RecipeApiService {
       // Query untuk mendapatkan data dengan pagination
       let dataQuery = supabase
         .from(this.tableName)
-        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs, is_manual_pricing_enabled, manual_selling_price_per_portion, manual_selling_price_per_piece')
+        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs')
         .eq('user_id', userId);
       
       // Apply filters untuk data
@@ -236,7 +230,7 @@ class RecipeApiService {
       logger.debug('RecipeAPI: Fetching recipe by ID:', id);
       const { data, error } = await supabase
         .from(this.tableName)
-        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs, is_manual_pricing_enabled, manual_selling_price_per_portion, manual_selling_price_per_piece')
+        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs')
         .eq('id', id)
         .eq('user_id', userId)
         .single();

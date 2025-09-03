@@ -19,18 +19,18 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
 // Form components
-import BasicInfoStep from '../RecipeForm/BasicInfoStep';
-import IngredientsStep from '../RecipeForm/IngredientsStep';
-import CostCalculationStep from '../RecipeForm/CostCalculationStep/index';
+import BasicInfoStep from './RecipeForm/BasicInfoStep';
+import IngredientsStep from './RecipeForm/IngredientsStep';
+import CostCalculationStep from './RecipeForm/CostCalculationStep/index';
 
 // Utils and types
-import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
-import { recipeApi } from '../../services/recipeApi';
+import { validateRecipeData, calculateHPP } from '@/components/recipe/services/recipeUtils';
+import { recipeApi } from '@/components/recipe/services/recipeApi';
 import {
   type Recipe,
   type NewRecipe,
   type RecipeFormStep,
-} from '../../types';
+} from '@/components/recipe/types';
 
 // Import breadcrumb
 import RecipeBreadcrumb, { type RecipeViewMode } from './RecipeBreadcrumb';

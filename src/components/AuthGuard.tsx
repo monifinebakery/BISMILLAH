@@ -71,21 +71,40 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isReady, isLoading, location.pathname]);
 
-  // ✅ ENHANCED: Loading state with more detailed info
+  // ✅ ENHANCED: Loading state with PWA-specific messaging
   if (isLoading || !isReady) {
     console.log(`🔄 [AuthGuard #${renderCount}] Loading state:`, { isLoading, isReady });
+    
+    // ✅ PWA Detection
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                 (window.navigator as any).standalone === true;
+    
+    const loadingMessage = isPWA 
+      ? (!isReady ? 'Memuat aplikasi...' : 'Memverifikasi login...')
+      : (!isReady ? 'Memuat sistem...' : 'Memverifikasi sesi...');
+      
+    const subMessage = isPWA 
+      ? 'Harap tunggu sebentar'
+      : 'Sistem sedang mempersiapkan sesi Anda';
     
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Autentikasi</h2>
-          <p className="text-gray-500">
-            {!isReady ? 'Memuat sistem...' : 'Memverifikasi sesi...'}
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">
+            {isPWA ? '📱 ' : ''}Memuat Autentikasi
+          </h2>
+          <p className="text-gray-500 mb-2">
+            {loadingMessage}
           </p>
-          <p className="text-xs text-gray-400 mt-2">
-            Render #{renderCount} | isLoading: {isLoading.toString()} | isReady: {isReady.toString()}
+          <p className="text-sm text-gray-400">
+            {subMessage}
           </p>
+          {import.meta.env.DEV && (
+            <p className="text-xs text-gray-400 mt-3 font-mono">
+              {isPWA ? 'PWA' : 'Web'} | Render #{renderCount} | Loading: {isLoading.toString()} | Ready: {isReady.toString()}
+            </p>
+          )}
         </div>
       </div>
     );

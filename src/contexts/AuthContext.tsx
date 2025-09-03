@@ -52,25 +52,35 @@ const detectDeviceCapabilities = () => {
   return capabilities;
 };
 
-// ✅ Adaptive timeout - sama dengan authUtils
+// ✅ PWA-optimized adaptive timeout
 const getAdaptiveTimeout = (baseTimeout = 15000) => {
   const capabilities = detectDeviceCapabilities();
   let timeout = baseTimeout;
 
-  if (capabilities.isSlowDevice) {
+  // ✅ PWA Detection
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+               (window.navigator as any).standalone === true ||  
+               window.location.search.includes('pwa=true');
+  
+  // ✅ PWA gets shorter timeout for better UX
+  if (isPWA) {
+    timeout = Math.min(baseTimeout * 0.6, 8000); // PWA gets 60% of base timeout, max 8s
+    logger.debug('AuthContext: PWA detected, reducing timeout for better UX:', timeout);
+  } else if (capabilities.isSlowDevice) {
     timeout *= 2;
     logger.debug('AuthContext: Slow device detected, doubling timeout:', timeout);
   }
 
   if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
-    timeout *= 3;
-    logger.debug('AuthContext: Slow network detected, tripling timeout:', timeout);
+    timeout *= (isPWA ? 1.5 : 3); // PWA gets less penalty
+    logger.debug('AuthContext: Slow network detected, adjusting timeout:', timeout);
   } else if (capabilities.networkType === '3g') {
-    timeout *= 1.5;
-    logger.debug('AuthContext: 3G network detected, increasing timeout:', timeout);
+    timeout *= (isPWA ? 1.2 : 1.5); // PWA gets less penalty
+    logger.debug('AuthContext: 3G network detected, adjusting timeout:', timeout);
   }
 
-  return Math.min(timeout, 60000); // Max 60 seconds - sama dengan authUtils
+  // ✅ PWA max timeout is lower
+  return Math.min(timeout, isPWA ? 30000 : 60000);
 };
 
 // ✅ User sanitization dengan validasi yang lebih ketat
@@ -144,17 +154,22 @@ const validateSession = (session: Session | null): { session: Session | null; us
   return { session, user: sanitizedUser };
 };
 
-// ✅ Safe timeout wrapper yang konsisten dengan authUtils
+// ✅ PWA-optimized safe timeout wrapper
 const safeWithTimeout = async <T,>(
   promise: Promise<T>, 
   timeoutMs: number, 
   timeoutMessage: string,
   retryCount = 0
 ): Promise<{ data: T | null; error: Error | null }> => {
-  const maxRetries = 2;
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+               (window.navigator as any).standalone === true;
+  const maxRetries = isPWA ? 1 : 2; // PWA gets fewer retries for speed
   
   try {
-    const result = await withTimeout(promise, timeoutMs, timeoutMessage);
+    // ✅ Use withSoftTimeout for PWA to avoid hard failures
+    const result = isPWA 
+      ? await withSoftTimeout(promise, timeoutMs, timeoutMessage)
+      : await withTimeout(promise, timeoutMs, timeoutMessage);
     return { data: result, error: null };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -163,18 +178,20 @@ const safeWithTimeout = async <T,>(
       timeoutMs,
       timeoutMessage,
       error: errorMessage,
-      retryCount
+      retryCount,
+      isPWA
     });
 
-    // ✅ Retry logic untuk network errors - sama dengan authUtils
+    // ✅ PWA-optimized retry logic
     if (retryCount < maxRetries && (
       errorMessage.includes('network') || 
       errorMessage.includes('fetch') ||
       errorMessage.includes('timeout') ||
       errorMessage.includes('Failed to fetch')
     )) {
-      logger.warn(`🔄 Network error detected, retrying in ${(retryCount + 1) * 2} seconds...`);
-      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+      const retryDelay = isPWA ? 1000 : (retryCount + 1) * 2000; // PWA gets faster retry
+      logger.warn(`🔄 ${isPWA ? 'PWA' : 'Web'} error detected, retrying in ${retryDelay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
       return safeWithTimeout(promise, timeoutMs, timeoutMessage, retryCount + 1);
     }
     
@@ -205,7 +222,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshUser = async () => {
     try {
       logger.context('AuthContext', 'Manual user refresh triggered');
-      const adaptiveTimeout = getAdaptiveTimeout(10000);
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                   (window.navigator as any).standalone === true;
+      const adaptiveTimeout = getAdaptiveTimeout(isPWA ? 6000 : 10000); // PWA gets shorter timeout
+
+      logger.debug('AuthContext: refreshUser timeout settings:', {
+        isPWA,
+        adaptiveTimeout,
+        userAgent: navigator.userAgent.slice(0, 50)
+      });
 
       // ✅ FIX: Use safe timeout wrapper with retry
       const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
@@ -298,8 +323,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initializeAuth = async () => {
       try {
         logger.context('AuthContext', 'Initializing auth...');
-        const adaptiveTimeout = getAdaptiveTimeout(15000);
-        logger.debug('AuthContext: Using adaptive timeout:', adaptiveTimeout);
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                     (window.navigator as any).standalone === true;
+        const adaptiveTimeout = getAdaptiveTimeout(isPWA ? 8000 : 15000); // PWA gets shorter timeout
+        
+        logger.debug('AuthContext: Initialization settings:', {
+          isPWA,
+          adaptiveTimeout,
+          userAgent: navigator.userAgent.slice(0, 50),
+          networkType: (navigator as any).connection?.effectiveType || 'unknown'
+        });
 
         // ✅ Enhanced initialization dengan fallback
         const { data: sessionResult, error: timeoutError } = await safeWithTimeout(

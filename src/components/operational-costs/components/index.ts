@@ -6,7 +6,7 @@
  * Dependencies reduced by removing lazy loading complexity
  */
 
-// ✅ STATIC COMPONENTS ONLY (Always loaded)
+// STATIC COMPONENTS ONLY (Always loaded)
 export { default as CostForm } from './CostForm';
 export { default as CostList } from './CostList';
 export { default as CostSummaryCard } from './CostSummaryCard';
@@ -21,6 +21,6 @@ export { default as CalculatorTab } from './CalculatorTab';
 export { default as DualModeCalculator } from './DualModeCalculator';
 export { default as BulkActionsNew } from './BulkActionsNew';
 
-// ❌ REMOVED: Lazy loaded components - use direct imports when needed
+// REMOVED: Lazy loaded components - use direct imports when needed
 // - CostFormLazy, CostListLazy, etc.
 // These can be imported directly where needed for lazy loading

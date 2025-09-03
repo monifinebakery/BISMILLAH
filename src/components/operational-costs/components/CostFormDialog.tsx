@@ -323,7 +323,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <p className="font-medium text-amber-800 mb-1">
-                      💡 Saran Klasifikasi Otomatis
+                      Saran Klasifikasi Otomatis
                     </p>
                     <p className="text-amber-700 mb-2">
                       Berdasarkan nama "{formData.nama_biaya}", disarankan masuk kelompok:
@@ -407,7 +407,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                   </div>
                   {!cost && (
                     <p className="text-xs text-green-600 mt-2">
-                      💡 Tip: Sistem akan memberikan saran klasifikasi otomatis berdasarkan nama biaya
+                      Tip: Sistem akan memberikan saran klasifikasi otomatis berdasarkan nama biaya
                     </p>
                   )}
                 </div>
@@ -440,7 +440,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                   {cost ? 'Menyimpan...' : 'Menambah...'}
                 </>
               ) : (
-                cost ? '💾 Simpan Perubahan' : '➕ Tambah Biaya'
+                cost ? 'Simpan Perubahan' : 'Tambah Biaya'
               )}
             </Button>
           </DialogFooter>

@@ -1,5 +1,5 @@
 // src/components/operational-costs/types/index.ts
-// 🎯 Smart grouped re-exports based on usage patterns
+// Smart grouped re-exports based on usage patterns
 
 // === CORE ENTITIES ===
 // Main domain objects that most components need
@@ -79,7 +79,7 @@ export interface CostValidationErrors {
   jumlah_per_bulan?: string;
   jenis?: string;
   status?: string;
-  tanggal?: string; // ✅ NEW: Date field validation
+  tanggal?: string; // NEW: Date field validation
 }
 
 export interface AllocationValidationErrors {

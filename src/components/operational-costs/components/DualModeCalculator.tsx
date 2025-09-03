@@ -1,5 +1,5 @@
 // src/components/operational-costs/components/DualModeCalculator.tsx
-// 🧮 Dual-Mode Calculator Component (Revision 7)
+// Dual-Mode Calculator Component (Revision 7)
 // Separate calculator for HPP vs Operasional cost groups
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -282,7 +282,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
               </p>
               {productionData && (
                 <div className="text-xs text-green-600 bg-green-50 p-2 rounded border border-green-200">
-                  📊 Data produksi: {productionData.totalPcs.toLocaleString()} pcs dari {productionData.dataSource === 'orders' ? 'pesanan' : productionData.dataSource === 'recipes' ? 'resep' : 'estimasi'} 
+                  Data produksi: {productionData.totalPcs.toLocaleString()} pcs dari {productionData.dataSource === 'orders' ? 'pesanan' : productionData.dataSource === 'recipes' ? 'resep' : 'estimasi'} 
                   ({productionData.startDate} - {productionData.endDate})
                   <br />
                   Tingkat keyakinan: {productionData.confidence === 'high' ? 'Tinggi' : productionData.confidence === 'medium' ? 'Sedang' : 'Rendah'}
@@ -485,7 +485,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-sm">
                 <div className="space-y-2">
-                  <div className="font-medium text-green-800">✅ Hasil Tersimpan Otomatis</div>
+                  <div className="font-medium text-green-800">Hasil Tersimpan Otomatis</div>
                   <div className="text-green-700">
                     <strong>Cara Penggunaan:</strong><br />
                     • <strong>Overhead Pabrik</strong> ({formatCurrency(results.hpp.costPerUnit)}/pcs) → 
@@ -494,7 +494,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
                     Untuk analisis BEP dan pricing, tidak masuk HPP
                   </div>
                   <div className="text-xs text-green-600 bg-white p-2 rounded border border-green-200 mt-2">
-                    💡 Nilai overhead sudah disimpan ke pengaturan global dan akan digunakan secara otomatis dalam perhitungan HPP resep
+                    Nilai overhead sudah disimpan ke pengaturan global dan akan digunakan secara otomatis dalam perhitungan HPP resep
                   </div>
                 </div>
               </AlertDescription>

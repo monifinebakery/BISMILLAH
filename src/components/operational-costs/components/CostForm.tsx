@@ -28,7 +28,7 @@ const CostForm: React.FC<CostFormProps> = ({
     jumlah_per_bulan: 0,
     jenis: 'tetap',
     status: 'aktif',
-    // ✅ ADD: Date field for cost tracking
+    // ADD: Date field for cost tracking
     tanggal: new Date().toISOString().split('T')[0], // Default to today
   });
 
@@ -36,7 +36,7 @@ const CostForm: React.FC<CostFormProps> = ({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   
-  // ✅ NEW: State for staff type selection
+  // NEW: State for staff type selection
   const [showStaffTypeModal, setShowStaffTypeModal] = useState(false);
   const [isProductionStaff, setIsProductionStaff] = useState<boolean | null>(null);
 
@@ -47,7 +47,7 @@ const CostForm: React.FC<CostFormProps> = ({
     }
   }, [initialData]);
 
-  // ✅ Check if cost name is salary-related
+  // Check if cost name is salary-related
   const isSalaryRelated = (costName: string): boolean => {
     const salaryKeywords = [
       'gaji', 'salary', 'upah', 'honor', 'honorarium', 
@@ -67,7 +67,7 @@ const CostForm: React.FC<CostFormProps> = ({
       [field]: value,
     }));
 
-    // ✅ Check if this is a salary-related cost name
+    // Check if this is a salary-related cost name
     if (field === 'nama_biaya' && isSalaryRelated(value) && !initialData) {
       setShowStaffTypeModal(true);
       setIsProductionStaff(null);
@@ -83,7 +83,7 @@ const CostForm: React.FC<CostFormProps> = ({
     }
   };
 
-  // ✅ Handle staff type selection
+  // Handle staff type selection
   const handleStaffTypeSelection = (isProduction: boolean) => {
     setIsProductionStaff(isProduction);
     setShowStaffTypeModal(false);
@@ -92,12 +92,12 @@ const CostForm: React.FC<CostFormProps> = ({
     if (isProduction) {
       setWarnings(prev => [
         ...prev.filter(w => !w.includes('staf produksi')),
-        '💡 Gaji staf produksi ini akan digunakan dalam kalkulasi HPP resep sebagai biaya tenaga kerja langsung.'
+        'Gaji staf produksi ini akan digunakan dalam kalkulasi HPP resep sebagai biaya tenaga kerja langsung.'
       ]);
     } else {
       setWarnings(prev => [
         ...prev.filter(w => !w.includes('staf produksi')),
-        'ℹ️ Gaji staf non-produksi ini hanya akan masuk ke overhead costs, tidak langsung ke HPP resep.'
+        'Gaji staf non-produksi ini hanya akan masuk ke overhead costs, tidak langsung ke HPP resep.'
       ]);
     }
   };
@@ -128,7 +128,7 @@ const CostForm: React.FC<CostFormProps> = ({
           jumlah_per_bulan: 0,
           jenis: 'tetap',
           status: 'aktif',
-          tanggal: new Date().toISOString().split('T')[0], // ✅ Reset to today
+          tanggal: new Date().toISOString().split('T')[0], // Reset to today
         });
         setWarnings([]);
         setIsProductionStaff(null);
@@ -196,7 +196,7 @@ const CostForm: React.FC<CostFormProps> = ({
           )}
         </div>
 
-        {/* ✅ Staff Type Indicator */}
+        {/* Staff Type Indicator */}
         {isSalaryRelated(formData.nama_biaya) && isProductionStaff !== null && (
           <div className={`p-3 rounded-md border ${
             isProductionStaff 
@@ -268,7 +268,7 @@ const CostForm: React.FC<CostFormProps> = ({
           )}
         </div>
 
-        {/* ✅ NEW: Tanggal Biaya */}
+        {/* NEW: Tanggal Biaya */}
         <div>
           <label htmlFor="tanggal" className="block text-sm font-medium text-gray-700 mb-1">
             Tanggal Biaya <span className="text-red-500">*</span>
@@ -395,7 +395,7 @@ const CostForm: React.FC<CostFormProps> = ({
         </div>
       </form>
 
-      {/* ✅ Staff Type Selection Modal */}
+      {/* Staff Type Selection Modal */}
       {showStaffTypeModal && (
         <div className="dialog-overlay-center p-4">
           <div className="dialog-panel max-w-md w-full">
@@ -428,7 +428,7 @@ const CostForm: React.FC<CostFormProps> = ({
                       Koki, staf dapur, atau pekerja yang terlibat langsung dalam membuat produk makanan/minuman.
                     </p>
                     <p className="text-xs text-green-600 mt-2 font-medium">
-                      ✅ Akan digunakan dalam kalkulasi HPP resep
+                      Akan digunakan dalam kalkulasi HPP resep
                     </p>
                   </div>
                 </div>
@@ -452,7 +452,7 @@ const CostForm: React.FC<CostFormProps> = ({
                       Admin, kasir, marketing, cleaning service, atau staf yang tidak ikut proses produksi.
                     </p>
                     <p className="text-xs text-blue-600 mt-2 font-medium">
-                      ℹ️ Hanya masuk ke overhead costs
+                      Hanya masuk ke overhead costs
                     </p>
                   </div>
                 </div>

@@ -54,7 +54,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                   <Package className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">💼 Biaya HPP</h3>
+                  <h3 className="text-lg font-bold">Biaya HPP</h3>
                   <p className="text-xs text-blue-600 mt-1">Harga Pokok Produksi</p>
                 </div>
               </div>
@@ -82,7 +82,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <p className="text-sm text-blue-700">
-                📦 {costs.filter(c => c.group === 'hpp').length} item biaya
+                {costs.filter(c => c.group === 'hpp').length} item biaya
               </p>
               <div className="flex items-center gap-1 text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
                 <TrendingUp className="h-3 w-3" />
@@ -101,7 +101,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">🏪 Biaya Operasional</h3>
+                  <h3 className="text-lg font-bold">Biaya Operasional</h3>
                   <p className="text-xs text-orange-600 mt-1">Operasional Bisnis</p>
                 </div>
               </div>
@@ -129,7 +129,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <p className="text-sm text-orange-700">
-                🏢 {costs.filter(c => c.group === 'operasional').length} item biaya
+                {costs.filter(c => c.group === 'operasional').length} item biaya
               </p>
               <div className="flex items-center gap-1 text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
                 <TrendingUp className="h-3 w-3" />
@@ -148,7 +148,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                   <DollarSign className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">📊 Total Biaya</h3>
+                  <h3 className="text-lg font-bold">Total Biaya</h3>
                   <p className="text-xs text-green-600 mt-1">Keseluruhan Per Bulan</p>
                 </div>
               </div>
@@ -165,7 +165,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <p className="text-sm text-green-700">
-                💰 {costs.filter(c => c.status === 'aktif').length} biaya aktif
+                {costs.filter(c => c.status === 'aktif').length} biaya aktif
               </p>
               <div className="flex items-center gap-1 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
                 <TrendingUp className="h-3 w-3" />
@@ -182,7 +182,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                📊 Kelola Biaya Operasional
+                Kelola Biaya Operasional
               </CardTitle>
               <p className="text-sm text-gray-600 mt-2">
                 Tambah, edit, atau hapus biaya bulanan untuk bisnis Anda dengan mudah
@@ -277,7 +277,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                             : 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 shadow-md'
                         }
                       >
-                        {cost.group === 'hpp' ? '💼 HPP' : '🏪 OPS'}
+                        {cost.group === 'hpp' ? 'HPP' : 'OPS'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center py-4">
@@ -289,7 +289,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                             : 'border-purple-300 text-purple-700 bg-purple-50'
                         }`}
                       >
-                        {cost.jenis === 'tetap' ? '🔒 Tetap' : '🔄 Variabel'}
+                        {cost.jenis === 'tetap' ? 'Tetap' : 'Variabel'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center py-4">
@@ -301,11 +301,11 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                             : 'border-red-300 text-red-700 bg-red-50'
                         }`}
                       >
-                        {cost.status === 'aktif' ? '✅ Aktif' : '❌ Nonaktif'}
+                        {cost.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center text-sm text-gray-600 py-4">
-                      📅 {formatDate(cost.created_at)}
+                      {formatDate(cost.created_at)}
                     </TableCell>
                     <TableCell className="text-center py-4">
                       <div className="flex justify-center gap-2">
@@ -337,7 +337,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                       <div className="py-16 text-gray-500 space-y-6 max-w-lg mx-auto">
                         {/* Animated Icon */}
                         <div className="w-24 h-24 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                          <div className="text-4xl">💰</div>
+                          <div className="text-4xl text-orange-500">$</div>
                         </div>
                         
                         {/* Title & Description */}
@@ -353,18 +353,17 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                         {/* Example Cost Items */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto">
                           {[
-                            { icon: '🔥', name: 'Gas' },
-                            { icon: '🏠', name: 'Sewa' },
-                            { icon: '📱', name: 'Internet' },
-                            { icon: '💼', name: 'Gaji' },
-                            { icon: '📢', name: 'Marketing' },
-                            { icon: '⚡', name: 'Listrik' }
+                            { icon: '', name: 'Gas' },
+                            { icon: '', name: 'Sewa' },
+                            { icon: '', name: 'Internet' },
+                            { icon: '', name: 'Gaji' },
+                            { icon: '', name: 'Marketing' },
+                            { icon: '', name: 'Listrik' }
                           ].map((item, index) => (
                             <div 
                               key={item.name}
                               className="flex items-center gap-2 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-full"
                             >
-                              <span>{item.icon}</span>
                               <span className="font-medium text-gray-700">{item.name}</span>
                             </div>
                           ))}
@@ -383,7 +382,6 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                           
                           <div className="flex items-center justify-center gap-6 text-xs text-gray-500">
                             <div className="flex items-center gap-1">
-                              <span className="text-lg">💡</span>
                               <span>Tip: Gunakan "Setup Cepat" untuk template</span>
                             </div>
                           </div>

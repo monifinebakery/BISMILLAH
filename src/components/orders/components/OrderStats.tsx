@@ -1,7 +1,6 @@
 // src/components/orders/components/OrderStats.tsx - Statistics Header for Orders Page
 
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Tooltip,
   TooltipContent,
@@ -96,11 +95,11 @@ const TrendIndicator: React.FC<{
   );
 };
 
-// 📊 Individual Stat Card Component  
-const OrderStatCard: React.FC<{
+// 📊 Simple Stat Item Component (tanpa card)
+const OrderStatItem: React.FC<{
   icon: React.ReactNode;
   label: string;
-  shortLabel?: string; // Label pendek untuk mobile
+  shortLabel?: string;
   value: string | number;
   description?: string;
   iconColor: string;
@@ -132,56 +131,54 @@ const OrderStatCard: React.FC<{
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const cardContent = (
-    <Card className="bg-white bg-opacity-10 backdrop-blur-sm border-[1.5px] border-white border-opacity-30 hover:border-opacity-50 transition-all duration-300 h-full">
-      <CardContent className="p-4 h-full">
-        <div className="h-full flex flex-col">
-          {/* 🎨 Icon dan Trend - Top row */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="bg-white bg-opacity-20 p-2.5 rounded-xl flex-shrink-0 hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-              <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>
-                {icon}
-              </div>
+  const statContent = (
+    <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 hover:bg-opacity-20 transition-all duration-200 h-full">
+      <div className="h-full flex flex-col">
+        {/* 🎨 Icon dan Trend */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="bg-white bg-opacity-20 p-2 rounded-lg flex-shrink-0">
+            <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>
+              {icon}
             </div>
-            
-            {/* 📊 Trend Indicator */}
-            {trend && (
-              <TrendIndicator trend={trend} />
-            )}
           </div>
+          
+          {/* 📊 Trend Indicator */}
+          {trend && (
+            <TrendIndicator trend={trend} />
+          )}
+        </div>
 
-          {/* 🏷️ Label */}
-          <div className="mb-2">
-            <div className="text-xs sm:text-sm font-medium text-white text-opacity-90 uppercase tracking-wide leading-relaxed">
-              <span className="hidden sm:inline">{label}</span>
-              <span className="sm:hidden">{shortLabel || label}</span>
-            </div>
+        {/* 🏷️ Label */}
+        <div className="mb-2">
+          <div className="text-xs sm:text-sm font-medium text-white text-opacity-90 uppercase tracking-wide leading-relaxed">
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{shortLabel || label}</span>
           </div>
-          
-          {/* 💰 Value */}
-          <div className="mb-2 flex-1">
-            {isLoading ? (
-              <div className="h-6 sm:h-7 lg:h-8 bg-white bg-opacity-30 animate-pulse rounded w-full"></div>
-            ) : (
-              <div className="w-full">
-                <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${valueColor} leading-tight`}>
-                  {value}
-                </p>
-              </div>
-            )}
-          </div>
-          
-          {/* 📝 Description */}
-          {description && (
-            <div className="mt-auto">
-              <p className="text-xs text-white text-opacity-75 leading-tight">
-                {description}
+        </div>
+        
+        {/* 💰 Value */}
+        <div className="mb-2 flex-1">
+          {isLoading ? (
+            <div className="h-6 sm:h-7 lg:h-8 bg-white bg-opacity-30 animate-pulse rounded w-full"></div>
+          ) : (
+            <div className="w-full">
+              <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${valueColor} leading-tight`}>
+                {value}
               </p>
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+        
+        {/* 📝 Description */}
+        {description && (
+          <div className="mt-auto">
+            <p className="text-xs text-white text-opacity-75 leading-tight">
+              {description}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 
   if (tooltip) {
@@ -189,7 +186,7 @@ const OrderStatCard: React.FC<{
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            {cardContent}
+            {statContent}
           </TooltipTrigger>
           <TooltipContent 
             side="bottom" 
@@ -219,7 +216,7 @@ const OrderStatCard: React.FC<{
     );
   }
 
-  return cardContent;
+  return statContent;
 };
 
 const OrderStats: React.FC<Props> = ({ stats, isLoading }) => {
@@ -296,7 +293,7 @@ const OrderStats: React.FC<Props> = ({ stats, isLoading }) => {
       {/* Stats Grid - Responsive untuk mobile, tablet, dan desktop */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {statsConfig.map((stat) => (
-          <OrderStatCard
+          <OrderStatItem
             key={stat.key}
             icon={stat.icon}
             label={stat.label}

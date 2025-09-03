@@ -37,14 +37,16 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     hargaJualPerPcs: data.hargaJualPerPcs || 0,
   });
 
-  // Sync state with form data when it changes (for existing recipes)
+  // Sync state with form data ONLY on initial load or when switching between recipes
+  // Prevent overriding user manual input during edit
   React.useEffect(() => {
-    // Only update local state if form data has actually changed
-    // This prevents infinite loops and ensures proper sync
-    if (sellingPrices.hargaJualPorsi !== (data.hargaJualPorsi || 0) || 
-        sellingPrices.hargaJualPerPcs !== (data.hargaJualPerPcs || 0)) {
-      console.log('🔄 Syncing selling prices with form data:', {
-        current: sellingPrices,
+    // Only sync if this is the first time loading the data (initial load)
+    // Don't sync if user is actively editing (prevents override of manual input)
+    const isInitialLoad = sellingPrices.hargaJualPorsi === 0 && sellingPrices.hargaJualPerPcs === 0;
+    const hasValidFormData = (data.hargaJualPorsi || 0) > 0 || (data.hargaJualPerPcs || 0) > 0;
+    
+    if (isInitialLoad && hasValidFormData) {
+      console.log('📥 Initial sync with form data (edit mode):', {
         incoming: { 
           hargaJualPorsi: data.hargaJualPorsi || 0, 
           hargaJualPerPcs: data.hargaJualPerPcs || 0 
@@ -55,7 +57,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         hargaJualPerPcs: data.hargaJualPerPcs || 0,
       });
     }
-  }, [data.hargaJualPorsi, data.hargaJualPerPcs, sellingPrices.hargaJualPorsi, sellingPrices.hargaJualPerPcs]);
+  }, [data.hargaJualPorsi, data.hargaJualPerPcs]); // Removed local state from deps to prevent loops
 
   // Handle enhanced HPP result updates
   const handleEnhancedHppChange = React.useCallback((result: EnhancedHPPCalculationResult | null) => {

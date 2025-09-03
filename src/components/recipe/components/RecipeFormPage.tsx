@@ -239,13 +239,16 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
             formData.marginKeuntunganPersen || 0,
             formData.jumlahPcsPerPorsi || 1
           );
+          
+          // ✅ PERBAIKAN: Jangan override harga jual manual user
+          // Hanya update HPP values, biarkan harga jual tetap sesuai input user
           setFormData(prev => ({
             ...prev,
             totalHpp: calculation.totalHPP,
             hppPerPorsi: calculation.hppPerPorsi,
-            hargaJualPorsi: calculation.hargaJualPorsi,
             hppPerPcs: calculation.hppPerPcs,
-            hargaJualPerPcs: calculation.hargaJualPerPcs,
+            // Jangan update hargaJualPorsi dan hargaJualPerPcs otomatis
+            // Biarkan user yang menentukan harga jualnya
           }));
         } catch (error) {
           logger.warn('RecipeFormPage: Error calculating HPP:', error);
@@ -353,6 +356,17 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
       toast.error(`Form tidak valid: ${validation.errors[0]}`);
       return;
     }
+    
+    // ✅ DEBUG: Log form data sebelum submit
+    console.log('📤 Submitting form data:', {
+      hargaJualPorsi: formData.hargaJualPorsi,
+      hargaJualPerPcs: formData.hargaJualPerPcs,
+      hppPerPorsi: formData.hppPerPorsi,
+      hppPerPcs: formData.hppPerPcs,
+      namaResep: formData.namaResep,
+      isEdit: isEditMode
+    });
+    
     try {
       if (isEditMode && initialData?.id) {
         await updateRecipeMutation.mutateAsync({

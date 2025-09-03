@@ -91,20 +91,48 @@ export default defineConfig(({ mode }) => {
         // },
         external: ["next-themes"],
         output: {
-          // Smart chunking - only split large vendor libraries
+          // Enhanced chunk splitting for optimal loading
           manualChunks: (id) => {
+            // Node modules splitting
             if (id.includes('node_modules')) {
-              // Heavy libraries get their own chunks
-              if (id.includes('xlsx') || id.includes('exceljs')) return 'excel';
-              if (id.includes('chart.js') || id.includes('chartjs')) return 'chartjs';
-              if (id.includes('recharts')) return 'recharts';
-              if (id.includes('@tanstack/react-query')) return 'react-query';
+              // Critical heavy libraries - separate chunks
+              if (id.includes('xlsx') || id.includes('exceljs') || id.includes('file-saver')) return 'excel';
+              if (id.includes('recharts') || id.includes('d3-')) return 'recharts';
               if (id.includes('@supabase/supabase-js')) return 'supabase';
-              if (id.includes('react-router')) return 'router';
-              // All other node_modules go to vendor
+              
+              // Core React ecosystem - shared chunk
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react/jsx-runtime')) return 'react-core';
+              if (id.includes('react-router') || id.includes('@remix-run/router')) return 'react-router';
+              
+              // Query and state management
+              if (id.includes('@tanstack/react-query') || id.includes('@tanstack/query-core')) return 'react-query';
+              
+              // UI libraries
+              if (id.includes('@radix-ui') || id.includes('lucide-react') || id.includes('@hookform')) return 'ui-libs';
+              
+              // Date/time libraries
+              if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) return 'date-utils';
+              
+              // All other node_modules - smaller vendor chunk
               return 'vendor';
             }
-            // Keep app code in main bundle
+            
+            // App code splitting based on features
+            // Large feature modules
+            if (id.includes('/components/warehouse/') || id.includes('/components/operational-costs/')) {
+              return 'features-heavy';
+            }
+            if (id.includes('/components/orders/') || id.includes('/components/purchase/')) {
+              return 'features-core';
+            }
+            if (id.includes('/components/financial/') || id.includes('/components/profitAnalysis/')) {
+              return 'features-analysis';
+            }
+            if (id.includes('/components/promoCalculator/') || id.includes('/components/recipe/')) {
+              return 'features-tools';
+            }
+            
+            // Keep small utilities and contexts in main bundle
           },
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",

@@ -168,25 +168,28 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="dialog-overlay-center">
-        <div className="dialog-panel dialog-panel-lg">
-          <DialogHeader className="dialog-header">
+      <DialogContent 
+        className="sm:max-w-[700px] max-w-[95vw] w-full max-h-[90vh] p-0" 
+        centerMode="translate"
+        size="lg"
+      >
+          <DialogHeader className="p-6 pb-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Package className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Package className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <DialogTitle className="text-xl font-semibold">
+                <DialogTitle className="text-xl font-semibold text-gray-900">
                   {cost ? 'Edit Biaya Operasional' : 'Tambah Biaya Operasional'}
                 </DialogTitle>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 mt-1">
                   {cost ? 'Perbarui informasi biaya' : 'Tambahkan biaya operasional baru'}
                 </p>
               </div>
             </div>
           </DialogHeader>
 
-          <div className="dialog-body overflow-y-auto">
+          <div className="flex-1 overflow-y-auto p-6">
             <form id="cost-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Nama Biaya */}
           <div className="space-y-2">
@@ -418,7 +421,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             </form>
           </div>
           
-          <DialogFooter className="dialog-footer">
+          <DialogFooter className="p-6 pt-4 border-t border-gray-200">
             <Button
               type="button"
               variant="outline"
@@ -444,7 +447,6 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
               )}
             </Button>
           </DialogFooter>
-        </div>
       </DialogContent>
     </Dialog>
   );

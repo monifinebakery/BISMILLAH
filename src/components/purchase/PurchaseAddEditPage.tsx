@@ -68,17 +68,45 @@ const PurchaseAddEditPage: React.FC = () => {
   const isEditing = !!purchaseId;
   const [purchase, setPurchase] = useState(null);
   const [isLoading, setIsLoading] = useState(isEditing);
+  const [dataLoaded, setDataLoaded] = useState(!isEditing); // For create mode, data is immediately "loaded"
 
   // Load purchase data for editing
   useEffect(() => {
     if (isEditing && purchaseId && getPurchaseById) {
+      console.log('Loading purchase data for ID:', purchaseId);
       setIsLoading(true);
-      const purchaseData = getPurchaseById(purchaseId);
-      setPurchase(purchaseData || null);
+      setDataLoaded(false);
+      
+      try {
+        const purchaseData = getPurchaseById(purchaseId);
+        console.log('Retrieved purchase data:', purchaseData);
+        
+        if (purchaseData) {
+          setPurchase(purchaseData);
+          setDataLoaded(true);
+          toast.success('Data pembelian berhasil dimuat');
+        } else {
+          console.warn('Purchase not found for ID:', purchaseId);
+          toast.error('Data pembelian tidak ditemukan');
+          navigate('/purchase');
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading purchase data:', error);
+        toast.error('Gagal memuat data pembelian');
+        navigate('/purchase');
+        return;
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (!isEditing) {
+      // For create mode, ensure data is marked as loaded
+      setDataLoaded(true);
       setIsLoading(false);
     }
-  }, [isEditing, purchaseId, getPurchaseById]);
+  }, [isEditing, purchaseId, getPurchaseById, navigate]);
 
+  // Only initialize the form when data is loaded
   const {
     formData,
     updateFormField,
@@ -93,7 +121,7 @@ const PurchaseAddEditPage: React.FC = () => {
     totalValue,
   } = usePurchaseForm({
     mode: isEditing ? 'edit' : 'create',
-    initialData: purchase,
+    initialData: dataLoaded ? purchase : null, // Only pass data when it's loaded
     suppliers,
     onSuccess: () => {
       toast.success(

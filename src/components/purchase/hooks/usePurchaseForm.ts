@@ -51,6 +51,7 @@ const defaultFormData: PurchaseFormData = {
   items: [],
   // ✅ konsisten dengan transformer
   metodePerhitungan: 'AVERAGE',
+  keterangan: '',
 };
 
 export const usePurchaseForm = ({
@@ -67,6 +68,8 @@ export const usePurchaseForm = ({
   // Form data state
   const [formDataState, setFormDataState] = useState<PurchaseFormData>(() => {
     if (mode === 'edit' && initialData) {
+      console.log('Initializing form with purchase data:', initialData);
+      
       // Convert supplier ID to name for editing
       let supplierName = initialData.supplier;
       
@@ -79,15 +82,52 @@ export const usePurchaseForm = ({
         }
       }
       
-      return {
+      const formData = {
         supplier: supplierName,
         tanggal: initialData.tanggal,
-        items: initialData.items,
+        items: initialData.items || [],
         metodePerhitungan: initialData.metodePerhitungan ?? 'AVERAGE',
+        keterangan: initialData.keterangan || '',
       };
+      
+      console.log('Form initialized with:', formData);
+      return formData;
     }
+    
+    console.log('Form initialized with default data for create mode');
     return defaultFormData;
   });
+  
+  // ✅ RE-INITIALIZE form when initialData changes (for edit mode)
+  useEffect(() => {
+    if (mode === 'edit' && initialData) {
+      console.log('Re-initializing form due to initialData change:', initialData);
+      
+      // Convert supplier ID to name for editing
+      let supplierName = initialData.supplier;
+      
+      // If supplier looks like an ID (UUID pattern), try to find the supplier name
+      if (initialData.supplier && initialData.supplier.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        // Find supplier by ID to get the name
+        const supplierFound = suppliers?.find(s => s.id === initialData.supplier);
+        if (supplierFound) {
+          supplierName = supplierFound.nama;
+        }
+      }
+      
+      const formData = {
+        supplier: supplierName,
+        tanggal: initialData.tanggal,
+        items: initialData.items || [],
+        metodePerhitungan: initialData.metodePerhitungan ?? 'AVERAGE',
+        keterangan: initialData.keterangan || '',
+      };
+      
+      console.log('Form re-initialized with:', formData);
+      setFormDataState(formData);
+      setIsDirty(false); // Reset dirty state when reloading data
+    }
+  }, [mode, initialData, suppliers]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -294,6 +334,7 @@ export const usePurchaseForm = ({
         tanggal: initialData.tanggal,
         items: initialData.items,
         metodePerhitungan: initialData.metodePerhitungan ?? 'AVERAGE',
+        keterangan: initialData.keterangan || '',
       });
     } else {
       setFormDataState(defaultFormData);

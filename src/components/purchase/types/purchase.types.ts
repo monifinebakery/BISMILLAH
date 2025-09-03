@@ -20,6 +20,7 @@ export interface Purchase {
   items: PurchaseItem[];
   status: PurchaseStatus;
   metodePerhitungan: CalculationMethod;
+  keterangan?: string;        // Optional description/notes
   createdAt: Date;
   updatedAt: Date;
 }

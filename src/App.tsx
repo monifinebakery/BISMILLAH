@@ -3,6 +3,7 @@ import React, { Suspense, useEffect, useCallback } from 'react';
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Analytics } from "@vercel/analytics/react";
 import { AppProviders } from "@/contexts/AppProviders";
 import { AppRouter } from "@/config/routes";
 import { queryClient } from "@/config/queryClient";
@@ -91,6 +92,9 @@ const App = () => {
               {/* <MemoryMonitor /> */}
             </>
           )}
+          
+          {/* Vercel Analytics - Web visitor tracking */}
+          <Analytics />
         </AppProviders>
       </TooltipProvider>
     </QueryClientProvider>

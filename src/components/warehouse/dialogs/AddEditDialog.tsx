@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ErrorBoundary } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,53 @@ import { logger } from '@/utils/logger';
 import type { BahanBakuFrontend } from '../types';
 // Gunakan kategori HPP yang sama dengan analisis profit
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
+
+// Error Boundary Component for Dialog
+class DialogErrorBoundary extends React.Component<{ children: React.ReactNode; onError?: () => void }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    logger.error('Dialog Error Boundary caught error:', error);
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    logger.error('Dialog error details:', { error, errorInfo });
+    toast.error('Terjadi kesalahan pada dialog. Silakan coba lagi.');
+    this.props.onError?.();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Dialog open={true}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-red-600">⚠️ Terjadi Kesalahan</DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <p className="text-gray-600 mb-4">Dialog tidak dapat dimuat dengan benar. Silakan tutup dan coba lagi.</p>
+              <Button 
+                onClick={() => {
+                  this.setState({ hasError: false });
+                  this.props.onError?.();
+                }}
+                className="w-full"
+              >
+                Tutup Dialog
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 interface AddEditDialogProps {
   isOpen: boolean;
@@ -48,7 +95,8 @@ const initialFormData: FormData = {
 
 const baseUnits = [
   { value: 'gram', label: 'gram', category: 'Berat', baseUnit: 'gram', multiplier: 1 },
-  { value: 'kg', label: 'kilogram (kg)', category: 'Berat', baseUnit: 'gram', multiplier: 1000 },
+  { value: 'kilogram', label: 'kilogram', category: 'Berat', baseUnit: 'gram', multiplier: 1000 },
+  { value: 'kg', label: 'kg (kilogram)', category: 'Berat', baseUnit: 'gram', multiplier: 1000 },
   { value: 'ml', label: 'mililiter (ml)', category: 'Volume', baseUnit: 'ml', multiplier: 1 },
   { value: 'liter', label: 'liter', category: 'Volume', baseUnit: 'ml', multiplier: 1000 },
   { value: 'pcs', label: 'pieces (pcs)', category: 'Satuan', baseUnit: 'pcs', multiplier: 1 },
@@ -137,7 +185,6 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDropdown, setShowDropdown] = useState({
     suppliers: false,
-    units: false,
   });
   // Price suggestion removed
 
@@ -192,8 +239,14 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   }, [isEditMode, item, isOpen, suppliersMapping]);
 
   const handleFieldChange = (field: keyof FormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors.length > 0) setErrors([]);
+    try {
+      logger.debug('Field change:', { field, value, type: typeof value });
+      setFormData(prev => ({ ...prev, [field]: value }));
+      if (errors.length > 0) setErrors([]);
+    } catch (error) {
+      logger.error('Error in handleFieldChange:', error);
+      toast.error('Terjadi kesalahan saat mengubah field');
+    }
   };
 
   const validateForm = (): boolean => {
@@ -259,12 +312,11 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
       toast.error('Gagal memperbarui data');
     }
   };
-  const handleSelect = (field: 'supplier' | 'satuan', value: string) => {
+  const handleSelect = (field: 'supplier', value: string) => {
     handleFieldChange(field, value);
     setShowDropdown(prev => ({
       ...prev,
-      suppliers: field === 'supplier' ? false : prev.suppliers,
-      units: field === 'satuan' ? false : prev.units,
+      suppliers: false,
     }));
   };
 
@@ -295,13 +347,11 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
     return { level: stockData.level, label, colorClass, percentage: stockData.percentage };
   };
 
-  const filteredUnits = baseUnits.filter(unit => 
-    unit.label.toLowerCase().includes(formData.satuan.toLowerCase()) ||
-    unit.value.toLowerCase().includes(formData.satuan.toLowerCase())
-  );
+  // Remove filteredUnits since we're now using Select component
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <DialogErrorBoundary onError={onClose}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent centerMode="overlay" size="md+">
         <div className="dialog-panel dialog-panel-md-plus dialog-no-overflow">
           <DialogHeader className="dialog-header">
@@ -411,58 +461,53 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         )}
                       </div>
 
-                      <div className="relative">
+                      <div>
                         <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
                           Satuan Dasar * <span className="text-xs text-gray-500 ml-1">(satuan untuk stok dan harga)</span>
                         </label>
-                        <div className="relative">
-                          <Input
-                            value={formData.satuan}
-                            onChange={(e) => {
-                              handleFieldChange('satuan', e.target.value);
-                              setShowDropdown(prev => ({ ...prev, units: true }));
-                            }}
-                            onFocus={() => setShowDropdown(prev => ({ ...prev, units: true }))}
-                            onBlur={() => setTimeout(() => setShowDropdown(prev => ({ ...prev, units: false })), 200)}
-                            placeholder="Pilih satuan dasar"
-                            disabled={isSubmitting}
-                            required
-                            className="text-sm input-mobile-safe"
-                          />
-                          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                        </div>
-                        {showDropdown.units && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-md z-[110] max-h-48 sm:max-h-60 overflow-y-auto dialog-no-overflow">
-                            {filteredUnits.length > 0 ? (
-                              ['Berat', 'Volume', 'Satuan', 'Panjang'].map(category => {
-                                const categoryUnits = filteredUnits.filter(unit => unit.category === category);
-                                if (categoryUnits.length === 0) return null;
-                                return (
-                                  <div key={category}>
-                                    <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 border-b text-overflow-safe">
-                                      {category}
-                                    </div>
-                                    {categoryUnits.map((unit) => (
-                                      <button
-                                        key={unit.value}
-                                        type="button"
-                                        onClick={() => handleSelect('satuan', unit.value)}
-                                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs sm:text-sm flex justify-between input-mobile-safe"
-                                      >
-                                        <span className="text-overflow-safe truncate">{unit.label}</span>
-                                        <span className="text-gray-400 text-xs flex-shrink-0">{unit.value}</span>
-                                      </button>
-                                    ))}
+                        <Select
+                          value={formData.satuan}
+                          onValueChange={(value) => {
+                            try {
+                              logger.debug('🔄 Unit selection:', { value, timestamp: new Date().toISOString() });
+                              handleFieldChange('satuan', value);
+                              toast.success(`Satuan "${value}" dipilih`, { duration: 1000 });
+                            } catch (error) {
+                              logger.error('Error in unit selection:', error);
+                              toast.error('Gagal memilih satuan');
+                            }
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          <SelectTrigger className="text-sm input-mobile-safe">
+                            <SelectValue placeholder="Pilih satuan dasar" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-60 overflow-y-auto">
+                            {['Berat', 'Volume', 'Satuan', 'Panjang'].map(category => {
+                              const categoryUnits = baseUnits.filter(unit => unit.category === category);
+                              if (categoryUnits.length === 0) return null;
+                              return (
+                                <div key={category}>
+                                  <div className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 border-b">
+                                    {category}
                                   </div>
-                                );
-                              })
-                            ) : (
-                              <div className="px-3 py-2 text-xs sm:text-sm text-gray-500 text-overflow-safe">
-                                Tidak ada satuan yang cocok
-                              </div>
-                            )}
-                          </div>
-                        )}
+                                  {categoryUnits.map((unit) => (
+                                    <SelectItem 
+                                      key={unit.value} 
+                                      value={unit.value}
+                                      className="focus:bg-orange-50 cursor-pointer"
+                                    >
+                                      <div className="flex justify-between items-center w-full">
+                                        <span className="truncate">{unit.label}</span>
+                                        <span className="text-gray-400 text-xs ml-2 flex-shrink-0">{unit.value}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div>
@@ -604,7 +649,8 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
           </DialogFooter>
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </DialogErrorBoundary>
   );
 };
 

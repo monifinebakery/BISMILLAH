@@ -141,8 +141,17 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
   const handleAutoLinkPayments = async () => {
     if (!currentUser || selectedPayments.length === 0 || !supabaseClient) {
       logger.error('AutoLinkingPopup: Missing requirements for linking');
+      alert('❌ Persyaratan untuk linking tidak lengkap. Silakan refresh halaman.');
       return;
     }
+
+    // ✅ ENHANCED: Comprehensive user validation
+    logger.debug('AutoLinkingPopup: Validating user before linking:', {
+      userId: currentUser.id,
+      userIdType: typeof currentUser.id,
+      email: currentUser.email,
+      hasEmail: !!currentUser.email
+    });
 
     // ✅ CRITICAL: Validate and sanitize user ID before any operations
     const sanitizedUserId = sanitizeUserId(currentUser.id);
@@ -174,7 +183,13 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
         try {
           logger.debug('AutoLinkingPopup: Linking payment', payment.order_id, 'to user ID:', sanitizedUserId);
 
-          // ✅ DEBUG: First check if payment exists and is unlinked
+          // ✅ ENHANCED DEBUG: First check if payment exists and is unlinked
+          logger.debug('AutoLinkingPopup: Starting pre-check for payment:', {
+            order_id: payment.order_id,
+            target_user_id: sanitizedUserId,
+            target_email: currentUser.email
+          });
+          
           const { data: checkData, error: checkError } = await supabaseClient
             .from('user_payments')
             .select(`
@@ -200,7 +215,32 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
 
           if (checkError) {
             logger.error('AutoLinkingPopup: Pre-update check error:', checkError);
-            throw new Error(`Pre-check failed: ${checkError.message}`);
+            
+            // ✅ ENHANCED: Specific error handling for common issues
+            let errorMessage = 'Unknown database error';
+            
+            if (checkError?.message) {
+              errorMessage = checkError.message;
+            } else if (checkError?.error) {
+              errorMessage = checkError.error;
+            } else if (checkError?.code) {
+              errorMessage = `Database error (Code: ${checkError.code})`;
+            } else if (checkError?.details) {
+              errorMessage = checkError.details;
+            } else if (typeof checkError === 'string') {
+              errorMessage = checkError;
+            } else {
+              errorMessage = `Koneksi database bermasalah. Silakan coba lagi atau refresh halaman.`;
+            }
+            
+            // ✅ Specific error messages for Indonesian UI
+            if (errorMessage.includes('permission denied') || errorMessage.includes('42501')) {
+              errorMessage = 'Tidak memiliki izin akses. Silakan login ulang.';
+            } else if (errorMessage.includes('connection') || errorMessage.includes('network')) {
+              errorMessage = 'Koneksi internet bermasalah. Silakan coba lagi.';
+            }
+            
+            throw new Error(`Pre-check failed: ${errorMessage}`);
           }
 
           if (!checkData || checkData.length === 0) {

@@ -1,4 +1,4 @@
-// src/components/auth/EmailAuthPage.tsx — OTP + Turnstile (Preview & Prod)
+// src/components/auth/EmailAuthPage.tsx — Simple OTP Authentication
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from "lucide-react";
@@ -17,54 +17,8 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
-import CloudflareTurnstile, { CloudflareTurnstileRef as TurnstileWrapperRef } from '@/components/auth/CloudflareTurnstile';
-import { useIsMobile } from "@/hooks/use-mobile";
 
-// ─────────────────────────────────────────────────────────────
-// ENV flags (gunakan Vercel System Env yang diexpose otomatis)
-// ─────────────────────────────────────────────────────────────
-const VERCEL_ENV = import.meta.env
-  .VITE_VERCEL_ENV as "production" | "preview" | "development" | undefined;
-
-const NODE_ENV = import.meta.env.MODE; // Vite's environment mode
-const IS_DEV = NODE_ENV === "development";
-
-const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "")
-  .trim()
-  .replace(/\n/g, '')
-  .replace(/\r/g, '');
-  
-const CAPTCHA_ENABLED_FLAG =
-  (import.meta.env.VITE_CAPTCHA_ENABLED ?? "true")
-    .trim()
-    .replace(/\n/g, '')
-    .replace(/\r/g, '') === "true";
-
-// Simple Turnstile enablement - production only with proper site key
-const REQUIRE_CAPTCHA = VERCEL_ENV === 'production' && !!TURNSTILE_SITE_KEY && CAPTCHA_ENABLED_FLAG;
-
-// Debug logging untuk troubleshooting
-console.log('🔍 Captcha Environment Check:', {
-  NODE_ENV,
-  IS_DEV,
-  VERCEL_ENV,
-  hostname: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
-  CAPTCHA_ENABLED_FLAG,
-  RAW_CAPTCHA_ENABLED: import.meta.env.VITE_CAPTCHA_ENABLED,
-  TURNSTILE_SITE_KEY: TURNSTILE_SITE_KEY ? 'SET' : 'NOT_SET',
-  RAW_TURNSTILE_SITE_KEY: import.meta.env.VITE_TURNSTILE_SITE_KEY,
-  REQUIRE_CAPTCHA,
-  ALL_ENV_VARS: {
-    VITE_CAPTCHA_ENABLED: import.meta.env.VITE_CAPTCHA_ENABLED,
-    VITE_TURNSTILE_SITE_KEY: import.meta.env.VITE_TURNSTILE_SITE_KEY ? '***SET***' : 'NOT_SET',
-    VITE_VERCEL_ENV: import.meta.env.VITE_VERCEL_ENV,
-    MODE: import.meta.env.MODE
-  },
-  NOTE: REQUIRE_CAPTCHA ? 'Turnstile ENABLED' : 'Turnstile DISABLED'
-});
-
-
-// ─────────────────────────────────────────────────────────────
+// Simple OTP authentication without captcha
 
 type AuthState =
   | "idle"
@@ -96,7 +50,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
-  const isMobile = useIsMobile(768);
 
   // State
   const [email, setEmail] = useState("");
@@ -105,16 +58,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  // Turnstile state
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileError, setTurnstileError] = useState<string | null>(null);
-  const [turnstileRetryCount, setTurnstileRetryCount] = useState(0);
-
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
-  const turnstileRef = useRef<TurnstileWrapperRef>(null);
 
 
   // Cleanup
@@ -143,74 +90,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }, 1000);
   };
 
-
-  // Turnstile handlers
-  const handleTurnstileSuccess = (token: string) => {
-    console.log('✅ Turnstile Success Handler:', {
-      token: token ? 'TOKEN_RECEIVED' : 'NO_TOKEN',
-      tokenLength: token?.length || 0,
-      mountedRef: mountedRef.current
-    });
-    
-    if (mountedRef.current) {
-      setTurnstileToken(token);
-      setTurnstileError(null);
-      logger.info("Turnstile verified successfully");
-      
-      console.log('✅ Turnstile Token Set:', {
-        newToken: token ? 'SET' : 'NOT_SET'
-      });
-    }
-  };
-
-  const handleTurnstileError = (error: string) => {
-    if (mountedRef.current) {
-      setTurnstileToken(null);
-      setTurnstileRetryCount(prev => prev + 1);
-      
-      // Handle specific error codes with user-friendly messages
-      let friendlyError = error;
-      if (error === '600010' || error.includes('600010')) {
-        if (isMobile) {
-          friendlyError = 'Widget verifikasi mengalami masalah. Coba refresh halaman atau gunakan browser berbeda (Chrome/Safari).';
-        } else {
-          friendlyError = 'Widget verifikasi gagal dimuat. Refresh halaman untuk mencoba lagi.';
-        }
-      } else if (error.includes('network')) {
-        friendlyError = 'Masalah koneksi jaringan. Periksa internet Anda dan coba lagi.';
-      } else if (error.includes('timeout')) {
-        friendlyError = 'Waktu habis. Refresh halaman dan coba lagi.';
-      }
-      
-      setTurnstileError(friendlyError);
-      logger.error("Turnstile error:", error);
-    }
-  };
-
-  const handleTurnstileExpire = () => {
-    if (mountedRef.current) {
-      setTurnstileToken(null);
-      setTurnstileError(null);
-      logger.info("Turnstile token expired");
-    }
-  };
-
   // Reset functions
-  const resetTurnstile = () => {
-    if (!mountedRef.current) return;
-    if (REQUIRE_CAPTCHA && turnstileRef.current) {
-      setTurnstileToken(null);
-      setTurnstileError(null);
-      turnstileRef.current.reset();
-    }
-  };
-
   const resetForm = () => {
     if (!mountedRef.current) return;
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setAuthState("idle");
-    resetTurnstile();
   };
 
   // Validation
@@ -219,26 +104,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Button validation - send button active when:
   // - email valid
   // - no cooldown & not sending
-  // - if captcha required → must have token
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
-    authState !== "sending" &&
-    (!REQUIRE_CAPTCHA || !!turnstileToken);
-
-  // Debug logging for button state (only when state changes)
-  useEffect(() => {
-    console.log('🔘 Button State Debug:', {
-      email,
-      isValidEmail: isValidEmail(email),
-      cooldownTime,
-      authState,
-      REQUIRE_CAPTCHA,
-      turnstileToken: turnstileToken ? 'HAS_TOKEN' : 'NO_TOKEN',
-      canSend,
-      buttonDisabled: !canSend
-    });
-  }, [email, cooldownTime, authState, turnstileToken, canSend]);
+    authState !== "sending";
 
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,10 +126,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error("Masukkan alamat email yang valid.");
       return;
     }
-    if (REQUIRE_CAPTCHA && !turnstileToken) {
-      toast.error("Harap selesaikan verifikasi captcha terlebih dahulu.");
-      return;
-    }
 
     setAuthState("sending");
     setError("");
@@ -268,9 +133,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        REQUIRE_CAPTCHA ? turnstileToken : null,
+        null, // No captcha token
         true,
-        false // Never skip captcha
+        true // Skip captcha validation
       );
 
       if (!mountedRef.current) return;
@@ -302,10 +167,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
     }
-    if (REQUIRE_CAPTCHA && !turnstileToken) {
-      toast.error("Harap selesaikan verifikasi captcha.");
-      return;
-    }
 
     setAuthState("sending");
     setError("");
@@ -314,9 +175,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        REQUIRE_CAPTCHA ? turnstileToken : null, // ⬅️ penting: kirim token juga saat resend
+        null, // No captcha token
         true,
-        true
+        true // Skip captcha validation
       );
 
       if (!mountedRef.current) return;
@@ -476,34 +337,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
-              {/* Turnstile Widget - hanya saat diwajibkan */}
-              {REQUIRE_CAPTCHA && (
-                <div className="flex justify-center">
-                  <CloudflareTurnstile
-                    ref={turnstileRef}
-                    siteKey={TURNSTILE_SITE_KEY}
-                    onSuccess={handleTurnstileSuccess}
-                    onError={handleTurnstileError}
-                    onExpire={handleTurnstileExpire}
-                    theme="light"
-                  />
-                </div>
-              )}
-
-              {/* Info status Turnstile */}
-              {REQUIRE_CAPTCHA && turnstileError && (
-                <div className="text-center text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
-                  <div className="flex flex-col space-y-2">
-                    <span>🚨 {turnstileError}</span>
-                    <button 
-                      onClick={() => window.location.reload()} 
-                      className="text-xs underline hover:no-underline"
-                    >
-                      Klik untuk refresh halaman
-                    </button>
-                  </div>
-                </div>
-              )}
 
               <Button
                 onClick={handleSendOtp}
@@ -524,12 +357,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   "Kirim Kode Verifikasi"
                 )}
               </Button>
-
-              {!REQUIRE_CAPTCHA && (
-                <small className="block text-center text-sm text-muted-foreground">
-                  Verifikasi dimatikan di environment ini.
-                </small>
-              )}
 
               <p className="text-xs text-center text-gray-500">
                 Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)

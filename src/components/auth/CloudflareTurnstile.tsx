@@ -2,6 +2,7 @@
 import React, { useRef, useImperativeHandle, forwardRef, useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { logger } from '@/utils/logger';
+import { isDevelopmentMode } from '@/utils/mockTurnstileApi';
 
 // Extend Window interface for Turnstile
 declare global {
@@ -302,6 +303,14 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
     // Reset retry count on mount
     setRetryCount(0);
     
+    // Development mode: Skip Turnstile script loading, use mock button
+    if (isDevelopmentMode()) {
+      logger.info('🧪 [DEV] Using development mode Turnstile');
+      setIsReady(true);
+      setIsLoading(false);
+      return;
+    }
+    
     const delay = isMobile ? 500 : 100;
     const timer = setTimeout(() => {
       initializeTurnstile();
@@ -356,6 +365,32 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
             className="text-xs text-red-800 hover:text-red-900 underline"
           >
             Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Development mode: Show mock Turnstile button
+  if (isDevelopmentMode() && isReady) {
+    return (
+      <div className="flex items-center justify-center w-full">
+        <div className="p-4 border-2 border-orange-200 bg-orange-50 rounded-lg">
+          <div className="text-center mb-3">
+            <div className="text-sm font-medium text-orange-800 mb-1">🧪 Development Mode</div>
+            <div className="text-xs text-orange-600">Mock Turnstile Widget</div>
+          </div>
+          <button
+            onClick={() => {
+              // Simulate successful verification
+              const mockToken = `mock-token-${Date.now()}`;
+              logger.info('🧪 [DEV] Mock Turnstile verification triggered');
+              props.onSuccess(mockToken);
+            }}
+            className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded transition-colors"
+            disabled={props.disabled}
+          >
+            ✓ Verify (Mock)
           </button>
         </div>
       </div>

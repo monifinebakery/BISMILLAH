@@ -2,6 +2,7 @@
 // Server-side Turnstile validation using Cloudflare's Siteverify API
 
 import { logger } from '@/utils/logger';
+import { mockTurnstileValidation, isDevelopmentMode } from '@/utils/mockTurnstileApi';
 
 interface TurnstileValidationResponse {
   success: boolean;
@@ -44,7 +45,32 @@ export async function validateTurnstileToken(
   try {
     logger.info('🔐 Validating Turnstile token via API endpoint...');
     
-    // Call our secure API endpoint for validation
+    // Use mock API in development mode
+    if (isDevelopmentMode()) {
+      logger.info('🧪 [DEV] Using mock Turnstile validation');
+      const mockResult = await mockTurnstileValidation(token);
+      
+      if (!mockResult.valid) {
+        logger.warn('Mock Turnstile validation failed:', mockResult.error);
+        return {
+          valid: false,
+          error: mockResult.error || 'Mock validation failed'
+        };
+      }
+      
+      logger.info('✅ Mock Turnstile validation successful');
+      return {
+        valid: true,
+        details: {
+          success: true,
+          hostname: 'localhost',
+          action: expectedAction || 'login',
+          challenge_ts: new Date().toISOString()
+        }
+      };
+    }
+    
+    // Call our secure API endpoint for validation (production)
     const response = await fetch('/api/validate-turnstile', {
       method: 'POST',
       headers: {

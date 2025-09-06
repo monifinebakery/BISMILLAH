@@ -14,7 +14,7 @@ interface PreloadResource {
 class PreloadOptimizer {
   private preloadedResources = new Set<string>();
   private usedResources = new Set<string>();
-  private checkInterval: number | null = null;
+  private checkInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.init();
@@ -38,11 +38,11 @@ class PreloadOptimizer {
     // Monitor script loading - using safe context binding
     const self = this;
     const originalAppendChild = Node.prototype.appendChild;
-    Node.prototype.appendChild = function(newChild: any) {
-      if (newChild.tagName === 'SCRIPT' && newChild.src) {
+    Node.prototype.appendChild = function<T extends Node>(newChild: T): T {
+      if (newChild instanceof HTMLScriptElement && newChild.src) {
         self.markResourceAsUsed(newChild.src);
       }
-      return originalAppendChild.call(this, newChild);
+      return originalAppendChild.call(this, newChild) as T;
     };
 
     // Monitor CSS loading - using safe context binding
@@ -56,7 +56,7 @@ class PreloadOptimizer {
           if (name === 'href' && (this.rel === 'stylesheet' || this.as === 'style')) {
             self.markResourceAsUsed(value);
           }
-          return originalSetAttribute(name, value);
+          return originalSetAttribute.call(this, name, value);
         };
       }
       return element;
@@ -116,15 +116,15 @@ class PreloadOptimizer {
 
     // Event handlers are now added above with safeDom.addEventListener
 
-    safeDom.addEventListener(link, 'load', () => {
+    safeDom.addEventListener(link, 'load', (() => {
       this.markResourceAsUsed(resource.href);
       logger.debug('Preloaded resource loaded:', resource.href);
-    });
+    }) as EventListener);
 
-    safeDom.addEventListener(link, 'error', () => {
+    safeDom.addEventListener(link, 'error', (() => {
       logger.warn('Failed to preload resource:', resource.href);
       this.preloadedResources.delete(resource.href);
-    });
+    }) as EventListener);
 
     document.head.appendChild(link);
     logger.debug('Preloading resource:', resource.href);

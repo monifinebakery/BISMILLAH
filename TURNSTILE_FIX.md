@@ -22,6 +22,7 @@
 ## 🔧 Solusi yang Diterapkan
 
 ### 1. **Enhanced Content Security Policy (CSP)**
+**Berdasarkan [Cloudflare Official Documentation](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/)**
 ```html
 <!-- Updated CSP with proper Turnstile support -->
 <meta http-equiv="Content-Security-Policy" content="
@@ -62,6 +63,57 @@ if (error === '600010' || error.includes('600010')) {
   delete window.turnstile;
   // Retry with fresh script
 }
+```
+
+### 5. **Official Cloudflare API Integration** ✨ **NEW**
+**Widget Lifecycle Management** (as per [official docs](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/)):
+```typescript
+// Full widget control
+const turnstileRef = useRef<CloudflareTurnstileRef>(null);
+
+// Get current token
+const token = turnstileRef.current?.getResponse();
+
+// Check if expired
+const isExpired = turnstileRef.current?.isExpired();
+
+// Execute challenge manually
+turnstileRef.current?.execute();
+
+// Reset widget
+turnstileRef.current?.reset();
+```
+
+**Advanced Configuration Options**:
+```typescript
+<CloudflareTurnstile
+  siteKey="your-site-key"
+  theme="auto"           // auto, light, dark
+  size="flexible"        // normal, compact, flexible
+  execution="render"      // render, execute  
+  appearance="always"     // always, execute, interaction-only
+  action="login"          // custom action identifier
+  retry="auto"            // auto, never
+  refreshExpired="auto"   // auto, manual, never
+  onSuccess={handleSuccess}
+  onError={handleError}
+  onExpire={handleExpire}
+/>
+```
+
+### 6. **Testing Support** ✨ **NEW**
+**Official Cloudflare Testing Sitekeys**:
+```typescript
+import { TURNSTILE_TEST_SITEKEYS } from '@/utils/mockTurnstileApi';
+
+// Always passes
+TURNSTILE_TEST_SITEKEYS.ALWAYS_PASSES = '1x00000000000000000000AA'
+
+// Always fails  
+TURNSTILE_TEST_SITEKEYS.ALWAYS_FAILS = '2x00000000000000000000AB'
+
+// Always shows challenge
+TURNSTILE_TEST_SITEKEYS.ALWAYS_CHALLENGES = '3x00000000000000000000FF'
 ```
 
 ## 🚀 Cara Kerja

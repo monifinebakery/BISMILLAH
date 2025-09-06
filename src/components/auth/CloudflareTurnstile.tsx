@@ -12,6 +12,9 @@ declare global {
       reset: (widgetId?: string) => void;
       remove: (widgetId: string) => void;
       getResponse: (widgetId: string) => string;
+      isExpired?: (widgetId: string) => boolean;
+      execute?: (widgetId: string) => string;
+      ready?: (callback: () => void) => void;
     };
   }
 }
@@ -24,6 +27,12 @@ interface TurnstileRenderParams {
   theme?: 'light' | 'dark' | 'auto';
   size?: 'normal' | 'compact' | 'flexible';
   execution?: 'render' | 'execute';
+  appearance?: 'always' | 'execute' | 'interaction-only';
+  action?: string;
+  cData?: string;
+  retry?: 'auto' | 'never';
+  'retry-interval'?: number;
+  'refresh-expired'?: 'auto' | 'manual' | 'never';
 }
 
 interface CloudflareTurnstileProps {
@@ -34,10 +43,18 @@ interface CloudflareTurnstileProps {
   theme?: 'light' | 'dark' | 'auto';
   size?: 'normal' | 'compact' | 'flexible';
   disabled?: boolean;
+  execution?: 'render' | 'execute';
+  appearance?: 'always' | 'execute' | 'interaction-only';
+  action?: string;
+  retry?: 'auto' | 'never';
+  refreshExpired?: 'auto' | 'manual' | 'never';
 }
 
 export interface CloudflareTurnstileRef {
   reset: () => void;
+  getResponse: () => string | null;
+  isExpired: () => boolean;
+  execute: () => string | null;
 }
 
 const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnstileProps>((props, ref) => {
@@ -90,15 +107,14 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
         return;
       }
 
-      // Create a completely clean script with CSP compliance
+      // Create a completely clean script with CSP compliance (following official docs)
       console.log('🆕 Creating new Turnstile script');
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       script.type = 'text/javascript';
       script.crossOrigin = 'anonymous';
       script.referrerPolicy = 'strict-origin-when-cross-origin';
-      script.async = false; // Synchronous loading to avoid timing issues
-      script.defer = false;
+      script.defer = true; // Use defer as recommended by Cloudflare docs
       
       script.onload = () => {
         console.log('📦 Turnstile script loaded, checking availability...');
@@ -123,8 +139,16 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
           }
         };
         
-        // Start checking immediately
-        checkTurnstile();
+        // Use turnstile.ready() for better compatibility (official docs recommendation)
+        if (window.turnstile && window.turnstile.ready) {
+          window.turnstile.ready(() => {
+            console.log('✅ Turnstile ready via turnstile.ready()');
+            resolve();
+          });
+        } else {
+          // Fallback to polling
+          checkTurnstile();
+        }
       };
 
       script.onerror = (event) => {
@@ -162,6 +186,11 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
         sitekey: props.siteKey,
         theme: props.theme || (isMobile ? 'auto' : 'light'),
         size: props.size || (isMobile ? 'compact' : 'normal'),
+        execution: props.execution || 'render',
+        appearance: props.appearance || 'always',
+        action: props.action,
+        retry: props.retry || 'auto',
+        'refresh-expired': props.refreshExpired || 'auto',
         callback: (token: string) => {
           console.log('✅ Turnstile Success:', { 
             token: token ? 'RECEIVED' : 'EMPTY',
@@ -295,6 +324,25 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
       if (window.turnstile && widgetIdRef.current) {
         window.turnstile.reset(widgetIdRef.current);
       }
+    },
+    // Additional methods based on Cloudflare docs
+    getResponse: () => {
+      if (window.turnstile && widgetIdRef.current) {
+        return window.turnstile.getResponse(widgetIdRef.current);
+      }
+      return null;
+    },
+    isExpired: () => {
+      if (window.turnstile && widgetIdRef.current) {
+        return window.turnstile.isExpired ? window.turnstile.isExpired(widgetIdRef.current) : false;
+      }
+      return false;
+    },
+    execute: () => {
+      if (window.turnstile && widgetIdRef.current) {
+        return window.turnstile.execute ? window.turnstile.execute(widgetIdRef.current) : null;
+      }
+      return null;
     }
   }));
 

@@ -2,6 +2,8 @@
 // Enhanced device fingerprinting utilities for accurate device identification
 
 import { logger } from './logger';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 export interface DeviceFingerprint {
   id: string;
@@ -40,7 +42,7 @@ export const generateDeviceFingerprint = (): DeviceFingerprint => {
 
   // Enhanced canvas fingerprinting
   try {
-    const canvas = document.createElement('canvas');
+    const canvas = safeDom.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (ctx) {
       canvas.width = 200;
@@ -68,7 +70,7 @@ export const generateDeviceFingerprint = (): DeviceFingerprint => {
 
   // WebGL fingerprinting
   try {
-    const canvas = document.createElement('canvas');
+    const canvas = safeDom.createElement('canvas');
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl') as WebGLRenderingContext;
     if (gl && 'getExtension' in gl) {
       const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');

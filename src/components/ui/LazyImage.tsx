@@ -1,6 +1,8 @@
 // src/components/ui/LazyImage.tsx - Optimized Image Component with Lazy Loading
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface LazyImageProps {
   src: string;
@@ -190,7 +192,7 @@ export const compressImage = (
   quality: number = 0.8
 ): Promise<Blob> => {
   return new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
+    const canvas = safeDom.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
     const img = new Image();
 

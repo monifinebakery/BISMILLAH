@@ -23,6 +23,8 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface TrendData {
   type: 'up' | 'down' | 'flat';
@@ -204,8 +206,8 @@ const StatCard: React.FC<{
     };
     
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    safeDom.addEventListener(safeDom, window, 'resize', checkMobile);
+    return () => safeDom.removeEventListener(safeDom, window, 'resize', checkMobile);
   }, []);
 
   const cardContent = (

@@ -12,6 +12,7 @@ import {
   debugAuthState,
   cleanupAuthState 
 } from '@/lib/authUtils';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 // ✅ Menggunakan fungsi yang sama dari authUtils
 const detectDeviceCapabilities = () => {
@@ -421,7 +422,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
 
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    safeDom.addEventListener(safeDom, window, 'unhandledrejection', handleUnhandledRejection);
 
     initializeAuth();
 
@@ -468,7 +469,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       mounted = false;
       logger.context('AuthContext', 'Cleaning up auth subscription');
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      safeDom.removeEventListener(safeDom, window, 'unhandledrejection', handleUnhandledRejection);
       subscription.unsubscribe();
     };
   }, []);

@@ -37,6 +37,8 @@ interface VirtualTableColumn<T> {
 import { useAuth } from '@/contexts/AuthContext';
 import { deleteFinancialTransaction } from '../services/financialApi';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 // Types
 interface FinancialTransaction {
@@ -341,8 +343,8 @@ const VirtualTransactionTable: React.FC<VirtualTransactionTableProps> = ({
       setIsMobile(window.innerWidth < 768);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    safeDom.addEventListener(safeDom, window, 'resize', handleResize);
+    return () => safeDom.removeEventListener(safeDom, window, 'resize', handleResize);
   }, []);
 
   // Loading state

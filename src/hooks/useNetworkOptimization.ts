@@ -1,6 +1,8 @@
 // src/hooks/useNetworkOptimization.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '@/utils/logger';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface RequestConfig {
   url: string;
@@ -369,8 +371,8 @@ export const useNetworkOptimization = () => {
       logger.warn('Network connection lost');
     };
     
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    safeDom.addEventListener(safeDom, window, 'online', handleOnline);
+    safeDom.addEventListener(safeDom, window, 'offline', handleOffline);
     
     // Detect connection type if available
     if ('connection' in navigator) {
@@ -381,18 +383,18 @@ export const useNetworkOptimization = () => {
         setConnectionType(connection.effectiveType || 'unknown');
       };
       
-      connection.addEventListener('change', handleConnectionChange);
+      safeDom.addEventListener(connection, 'change', handleConnectionChange);
       
       return () => {
-        window.removeEventListener('online', handleOnline);
-        window.removeEventListener('offline', handleOffline);
-        connection.removeEventListener('change', handleConnectionChange);
+        safeDom.removeEventListener(safeDom, window, 'online', handleOnline);
+        safeDom.removeEventListener(safeDom, window, 'offline', handleOffline);
+        safeDom.removeEventListener(connection, 'change', handleConnectionChange);
       };
     }
     
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      safeDom.removeEventListener(safeDom, window, 'online', handleOnline);
+      safeDom.removeEventListener(safeDom, window, 'offline', handleOffline);
     };
   }, []);
 

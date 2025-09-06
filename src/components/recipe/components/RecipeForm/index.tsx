@@ -22,8 +22,8 @@ import CostCalculationStep from './CostCalculationStep/index';
 // Utils and types
 import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
 import { recipeApi } from '../../services/recipeApi';
-import {
-  RECIPE_CATEGORIES,
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+RECIPE_CATEGORIES,
   type Recipe,
   type NewRecipe,
   type RecipeFormStep,
@@ -220,13 +220,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
     const contentElement = contentRef.current;
     if (contentElement) {
-      contentElement.addEventListener('scroll', handleScroll);
+      safeDom.addEventListener(contentElement, 'scroll', handleScroll);
       handleScroll();
     }
 
     return () => {
       if (contentElement) {
-        contentElement.removeEventListener('scroll', handleScroll);
+        safeDom.removeEventListener(contentElement, 'scroll', handleScroll);
       }
     };
   }, [isOpen]);

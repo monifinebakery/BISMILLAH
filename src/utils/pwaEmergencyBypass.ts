@@ -1,6 +1,8 @@
 // PWA Emergency Bypass - Handle authentication loops and stuck states
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { safePerformance } from '@/utils/browserApiSafeWrappers';
+
 
 export interface PWAState {
   isStuck: boolean;
@@ -26,7 +28,7 @@ export function detectPWAStuckState(): PWAState {
   }
 
   const currentPath = window.location.pathname;
-  const timeOnPage = performance.now();
+  const timeOnPage = safePerformance.now();
   
   // Check debug values if available
   const authReady = (window as any).__DEBUG_AUTH_READY__;

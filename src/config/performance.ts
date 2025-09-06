@@ -1,6 +1,8 @@
 // src/config/performance.ts
 // Performance monitoring and optimization configuration
 
+import { safePerformance } from '@/utils/browserApiSafeWrappers';
+
 export const PERFORMANCE_CONFIG = {
   // React Query Cache Configuration
   CACHE: {
@@ -270,9 +272,9 @@ export const createPerformanceMonitor = () => {
   
   return {
     startTiming: (label: string) => {
-      const startTime = performance.now();
+      const startTime = safePerformance.now();
       return () => {
-        const duration = performance.now() - startTime;
+        const duration = safePerformance.now() - startTime;
         console.debug(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
         
         // Check against performance budget

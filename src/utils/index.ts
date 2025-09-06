@@ -1,6 +1,8 @@
 // utils/index.ts - Utils Exports
 
 import { DEVICE_BREAKPOINTS, INPUT_PATTERNS } from './constants';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 // 🔢 Calculation utilities
 export {
@@ -174,7 +176,7 @@ export const getInitials = (name: string): string => {
 
 export const downloadBlob = (blob: Blob, filename: string): void => {
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = safeDom.createElement('a');
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
@@ -189,7 +191,7 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     return true;
   } catch (error) {
     // Fallback for older browsers
-    const textArea = document.createElement('textarea');
+    const textArea = safeDom.createElement('textarea');
     textArea.value = text;
     document.body.appendChild(textArea);
     textArea.select();

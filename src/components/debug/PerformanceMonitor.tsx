@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Activity, Clock, HardDrive, Zap } from 'lucide-react';
+import { safePerformance } from '@/utils/browserApiSafeWrappers';
+
 
 interface PerformanceMetrics {
   bundleLoadTime: number;
@@ -34,8 +36,8 @@ const PerformanceMonitor: React.FC = () => {
   useEffect(() => {
     const calculateMetrics = () => {
       // Get performance timing
-      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-      const resources = performance.getEntriesByType('resource');
+      const navigation = safePerformance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      const resources = safePerformance.getEntriesByType('resource');
       
       // Bundle load time
       const jsResources = resources.filter(r => r.name.includes('.js'));

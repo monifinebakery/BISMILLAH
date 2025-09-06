@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -80,8 +81,8 @@ const SidebarProvider = React.forwardRef<
         toggleSidebar()
       }
     }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
+    safeDom.addEventListener(window, "keydown", onKey, undefined)
+    return () => safeDom.removeEventListener(window, "keydown", onKey, undefined)
   }, [toggleSidebar])
 
   const state = open ? "expanded" : "collapsed"

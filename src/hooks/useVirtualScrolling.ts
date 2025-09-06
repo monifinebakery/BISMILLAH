@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { safePerformance, safeDom } from '@/utils/browserApiSafeWrappers';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface VirtualScrollingOptions {
   itemHeight: number;
@@ -78,9 +81,9 @@ export const useVirtualScrolling = ({
     const element = scrollElementRef.current;
     if (!element) return;
 
-    element.addEventListener('scroll', handleScroll as any);
+    safeDom.addEventListener(element, 'scroll', handleScroll as any);
     return () => {
-      element.removeEventListener('scroll', handleScroll as any);
+      safeDom.removeEventListener(element, 'scroll', handleScroll as any);
     };
   }, [handleScroll]);
 
@@ -110,9 +113,9 @@ export const useVirtualScrollingPerformance = () => {
   });
 
   const measureRenderTime = useCallback((callback: () => void) => {
-    const start = performance.now();
+    const start = safePerformance.now();
     callback();
-    const end = performance.now();
+    const end = safePerformance.now();
     
     setMetrics(prev => ({
       ...prev,
@@ -122,11 +125,11 @@ export const useVirtualScrollingPerformance = () => {
 
   const trackScrollFPS = useCallback(() => {
     let frameCount = 0;
-    let lastTime = performance.now();
+    let lastTime = safePerformance.now();
     
     const countFrames = () => {
       frameCount++;
-      const currentTime = performance.now();
+      const currentTime = safePerformance.now();
       
       if (currentTime - lastTime >= 1000) {
         setMetrics(prev => ({

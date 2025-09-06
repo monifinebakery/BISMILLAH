@@ -1,6 +1,7 @@
 // src/hooks/usePreloading.ts
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 interface PreloadOptions {
   priority?: 'high' | 'low';
@@ -37,13 +38,13 @@ export const useResourcePreloader = () => {
 
     return new Promise<void>((resolve, reject) => {
       // Cek apakah resource sudah ada di cache browser
-      if (document.querySelector(`link[href="${url}"]`) || document.querySelector(`script[src="${url}"]`)) {
+      if (safeDom.querySelector(`link[href="${url}"]`) || safeDom.querySelector(`script[src="${url}"]`)) {
         preloadCache.current.add(url);
         resolve();
         return;
       }
 
-      const link = document.createElement('link');
+      const link = safeDom.createElement('link') as HTMLLinkElement;
       link.rel = 'preload';
       link.href = url;
       
@@ -258,7 +259,7 @@ export const useRoutePrefetcher = () => {
 
     try {
       // Untuk React Router, kita bisa prefetch dengan membuat link element
-      const link = document.createElement('link');
+      const link = safeDom.createElement('link') as HTMLLinkElement;
       link.rel = 'prefetch';
       link.href = href;
       if (options?.priority) {

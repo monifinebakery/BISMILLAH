@@ -10,6 +10,7 @@ import {
   calculateStatistics, 
   detectAnomalies
 } from '../../utils/advancedAnalytics';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 // ==============================================
 // MAIN CHART STATE HOOK
@@ -68,8 +69,8 @@ export function useProfitTrendChart({
     };
     
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    safeDom.addEventListener(window, 'resize', checkMobile, undefined);
+    return () => safeDom.removeEventListener(window, 'resize', checkMobile, undefined);
   }, []);
 
   // Data processing with caching

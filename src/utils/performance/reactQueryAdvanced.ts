@@ -6,6 +6,8 @@ import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef } from 'react';
 import { logger } from '@/utils/logger';
 import { SurgicalCache } from '@/utils/cacheOptimization';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 // ===========================================
 // 🔮 SMART PREFETCHING SYSTEM
@@ -128,13 +130,13 @@ export class SmartPrefetcher {
     if (element) {
       let hoverTimer: NodeJS.Timeout;
       
-      element.addEventListener('mouseenter', () => {
+      safeDom.addEventListener(element, 'mouseenter', () => {
         hoverTimer = setTimeout(() => {
           this.executePrefetch(userId, target, strategy);
         }, strategy.delay);
       });
       
-      element.addEventListener('mouseleave', () => {
+      safeDom.addEventListener(element, 'mouseleave', () => {
         clearTimeout(hoverTimer);
       });
     } else {
@@ -541,14 +543,14 @@ export const useSmartPrefetch = (userId: string) => {
     // Track user activity
     const handleActivity = () => instance.updateActivity();
     
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('scroll', handleActivity);
+    safeDom.addEventListener(safeDom, window, 'mousemove', handleActivity);
+    safeDom.addEventListener(safeDom, window, 'keydown', handleActivity);
+    safeDom.addEventListener(safeDom, window, 'scroll', handleActivity);
     
     return () => {
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('scroll', handleActivity);
+      safeDom.removeEventListener(safeDom, window, 'mousemove', handleActivity);
+      safeDom.removeEventListener(safeDom, window, 'keydown', handleActivity);
+      safeDom.removeEventListener(safeDom, window, 'scroll', handleActivity);
     };
   }, []);
   

@@ -10,6 +10,8 @@ import { Download, Info, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePurchase } from '../hooks/usePurchase';
 import { parsePurchaseCSV } from '../utils/purchaseImport';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 const ImportButton: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -36,7 +38,7 @@ const ImportButton: React.FC = () => {
   };
 
   const downloadTemplate = () => {
-    const link = document.createElement('a');
+    const link = safeDom.createElement('a');
     link.href = '/templates/purchase-import-template.csv';
     link.download = 'purchase-import-template.csv';
     document.body.appendChild(link);

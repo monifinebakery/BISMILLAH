@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { useOrder } from '../context/OrderContext';
 import { parseOrderCSV } from '../utils/orderImport';
 import ImportTutorialDialog from './ImportTutorialDialog';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 const ImportButton: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -80,7 +82,7 @@ const ImportButton: React.FC = () => {
   };
 
   const downloadTemplate = () => {
-    const link = document.createElement('a');
+    const link = safeDom.createElement('a');
     link.href = '/templates/order-import-template.csv';
     link.download = 'template-import-pesanan.csv';
     document.body.appendChild(link);

@@ -1,6 +1,8 @@
 // src/components/promoCalculator/components/PromoCard.jsx - Komponen untuk menampilkan card promo
 import React, { useState, useRef, useEffect } from 'react'; // ✅ Tambahkan useState, useRef, useEffect
 import { Edit, Trash2, Eye, Copy, MoreVertical } from 'lucide-react';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 const PromoCard = ({ 
   promo, 
@@ -95,13 +97,13 @@ const PromoCard = ({
     };
 
     if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      safeDom.addEventListener(safeDom, document, 'mousedown', handleClickOutside);
     } else {
-      document.removeEventListener('mousedown', handleClickOutside);
+      safeDom.removeEventListener(safeDom, document, 'mousedown', handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      safeDom.removeEventListener(safeDom, document, 'mousedown', handleClickOutside);
     };
   }, [isDropdownOpen]);
 

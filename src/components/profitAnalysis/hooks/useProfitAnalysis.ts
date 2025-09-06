@@ -35,6 +35,8 @@ import { FNB_LABELS } from '../constants/profitConstants';
 import { getEffectiveCogs, shouldUseWAC } from '@/utils/cogsCalculation';
 import { safeCalculateMargins, monitorDataQuality } from '@/utils/profitValidation';
 import { getCurrentPeriod } from '../utils/profitTransformers';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 // WAC validation utilities removed
 
 
@@ -677,12 +679,12 @@ export const useProfitAnalysis = (
     };
     
     // Listen for custom purchase completion events
-    window.addEventListener('purchase:completed', handlePurchaseCompletion as EventListener);
-    window.addEventListener('purchase:status:changed', handlePurchaseCompletion as EventListener);
+    safeDom.addEventListener(safeDom, window, 'purchase:completed', handlePurchaseCompletion as EventListener);
+    safeDom.addEventListener(safeDom, window, 'purchase:status:changed', handlePurchaseCompletion as EventListener);
     
     return () => {
-      window.removeEventListener('purchase:completed', handlePurchaseCompletion as EventListener);
-      window.removeEventListener('purchase:status:changed', handlePurchaseCompletion as EventListener);
+      safeDom.removeEventListener(safeDom, window, 'purchase:completed', handlePurchaseCompletion as EventListener);
+      safeDom.removeEventListener(safeDom, window, 'purchase:status:changed', handlePurchaseCompletion as EventListener);
     };
   }, [enableWAC, refreshWACData]);
 

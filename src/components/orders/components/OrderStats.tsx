@@ -20,6 +20,8 @@ import {
   Calendar
 } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface OrderStatsData {
   totalOrders: number;
@@ -127,8 +129,8 @@ const OrderStatItem: React.FC<{
     };
     
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    safeDom.addEventListener(safeDom, window, 'resize', checkMobile);
+    return () => safeDom.removeEventListener(safeDom, window, 'resize', checkMobile);
   }, []);
 
   const statContent = (

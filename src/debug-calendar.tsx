@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DateRangePicker from '@/components/ui/DateRangePicker';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface DateRange {
   from: Date;
@@ -15,8 +17,8 @@ export default function DebugCalendar() {
       setWindowWidth(window.innerWidth);
     };
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    safeDom.addEventListener(safeDom, window, 'resize', handleResize);
+    return () => safeDom.removeEventListener(safeDom, window, 'resize', handleResize);
   }, []);
 
   return (

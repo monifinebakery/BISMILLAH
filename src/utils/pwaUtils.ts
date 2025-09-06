@@ -1,4 +1,6 @@
 // PWA utilities for service worker registration and management
+import React from 'react';
+import { safeDom } from './browserApiSafeWrappers';
 
 export interface PWAInstallPrompt {
   prompt(): Promise<void>;
@@ -23,19 +25,19 @@ class PWAManager {
     console.log('[PWA] Initializing PWA manager...');
     
     // Listen for beforeinstallprompt event
-    window.addEventListener('beforeinstallprompt', (e: Event) => {
+    safeDom.addEventListener(window, 'beforeinstallprompt', (e: Event) => {
       console.log('[PWA] beforeinstallprompt event fired!');
       e.preventDefault();
       this.installPrompt = e as BeforeInstallPromptEvent;
       console.log('[PWA] Install prompt ready', { hasPrompt: !!this.installPrompt });
-    });
+    }, undefined);
 
     // Listen for app installed event
-    window.addEventListener('appinstalled', () => {
+    safeDom.addEventListener(window, 'appinstalled', () => {
       this.isInstalled = true;
       this.installPrompt = null;
       console.log('[PWA] App installed successfully');
-    });
+    }, undefined);
 
     // Check if app is already installed
     this.checkInstallStatus();
@@ -68,17 +70,17 @@ class PWAManager {
       console.log('[PWA] Service worker registered:', this.registration.scope);
 
       // Handle service worker updates
-      this.registration.addEventListener('updatefound', () => {
+      safeDom.addEventListener(this.registration, 'updatefound', () => {
         const newWorker = this.registration?.installing;
         if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
+          safeDom.addEventListener(newWorker, 'statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('[PWA] New service worker available');
               this.notifyUpdate();
             }
-          });
+          }, undefined);
         }
-      });
+      }, undefined);
 
       return this.registration;
     } catch (error) {
@@ -134,7 +136,7 @@ class PWAManager {
     // Check basic PWA requirements
     const hasServiceWorker = 'serviceWorker' in navigator;
     const isHTTPS = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    const hasManifest = document.querySelector('link[rel="manifest"]');
+    const hasManifest = safeDom.querySelector('link[rel="manifest"]');
     
     return hasServiceWorker && isHTTPS && !!hasManifest;
   }
@@ -253,13 +255,13 @@ class PWAManager {
     const handleOnline = () => callback(true);
     const handleOffline = () => callback(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    safeDom.addEventListener(window, 'online', handleOnline, undefined);
+    safeDom.addEventListener(window, 'offline', handleOffline, undefined);
 
     // Return cleanup function
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      safeDom.removeEventListener(window, 'online', handleOnline, undefined);
+      safeDom.removeEventListener(window, 'offline', handleOffline, undefined);
     };
   }
 }
@@ -291,17 +293,17 @@ export function usePWA() {
       setUpdateAvailable(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-    window.addEventListener('sw-update-available', handleSWUpdate);
+    safeDom.addEventListener(window, 'beforeinstallprompt', handleBeforeInstallPrompt, undefined);
+    safeDom.addEventListener(window, 'appinstalled', handleAppInstalled, undefined);
+    safeDom.addEventListener(window, 'sw-update-available', handleSWUpdate, undefined);
 
     // Listen for network changes
     const cleanupNetworkListener = pwaManager.onNetworkChange(setIsOnline);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-      window.removeEventListener('sw-update-available', handleSWUpdate);
+      safeDom.removeEventListener(window, 'beforeinstallprompt', handleBeforeInstallPrompt, undefined);
+      safeDom.removeEventListener(window, 'appinstalled', handleAppInstalled, undefined);
+      safeDom.removeEventListener(window, 'sw-update-available', handleSWUpdate, undefined);
       cleanupNetworkListener();
     };
   }, []);
@@ -336,5 +338,6 @@ export function usePWA() {
 
 // Import React for the hook
 import React from 'react';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 export default pwaManager;

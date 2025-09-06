@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface SwipeableToastProps {
   children: React.ReactNode;
@@ -136,12 +138,12 @@ export const SwipeableToast: React.FC<SwipeableToastProps> = ({
         }
       };
 
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-      document.addEventListener('mousemove', handleGlobalMouseMove);
+      safeDom.addEventListener(safeDom, document, 'mouseup', handleGlobalMouseUp);
+      safeDom.addEventListener(safeDom, document, 'mousemove', handleGlobalMouseMove);
 
       return () => {
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-        document.removeEventListener('mousemove', handleGlobalMouseMove);
+        safeDom.removeEventListener(safeDom, document, 'mouseup', handleGlobalMouseUp);
+        safeDom.removeEventListener(safeDom, document, 'mousemove', handleGlobalMouseMove);
       };
     }
   }, [isDragging, startX]);

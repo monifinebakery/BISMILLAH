@@ -32,6 +32,8 @@ import {
   type Recipe 
 } from '../../types';
 import { useRecipe } from '@/contexts/RecipeContext';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 type BasicInfoStepProps = Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'>;
 
@@ -368,7 +370,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       size="sm"
                       disabled={isLoading}
                       className="cursor-pointer"
-                      onClick={() => document.getElementById('recipe-photo-upload')?.click()}
+                      onClick={() => safeDom.getElementById('recipe-photo-upload')?.click()}
                     >
                       <Image className="w-4 h-4 mr-2" />
                       Pilih Foto
@@ -411,7 +413,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       size="sm"
                       disabled={isLoading}
                       className="w-full cursor-pointer"
-                      onClick={() => document.getElementById('recipe-photo-replace')?.click()}
+                      onClick={() => safeDom.getElementById('recipe-photo-replace')?.click()}
                     >
                       <Image className="w-4 h-4 mr-2" />
                       Ganti Foto

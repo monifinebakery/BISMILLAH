@@ -3,6 +3,8 @@
 
 import { logger } from './logger';
 import { supabase } from '@/integrations/supabase/client';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface ConnectionStatus {
   isConnected: boolean;
@@ -30,12 +32,12 @@ class RealtimeMonitor {
   private setupGlobalMonitoring() {
     // Monitor Supabase connection status globally
     if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => {
+      safeDom.addEventListener(safeDom, window, 'online', () => {
         logger.info('🌐 Network connection restored - checking Supabase connection');
         this.checkConnection();
       });
 
-      window.addEventListener('offline', () => {
+      safeDom.addEventListener(safeDom, window, 'offline', () => {
         logger.warn('🌐 Network connection lost - Supabase real-time will be affected');
         this.updateStatus({
           isConnected: false,

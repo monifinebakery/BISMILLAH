@@ -2,6 +2,8 @@
 // Optimizes preloading of Cloudflare Turnstile resources to prevent unused preload warnings
 
 import { logger } from './logger';
+import { safeDom, safeWindow, safeTimers } from './browserApiSafeWrappers';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 interface PreloadResource {
   href: string;
@@ -26,7 +28,7 @@ class PreloadOptimizer {
     this.startUsageMonitoring();
     
     // Clean up unused preloads periodically
-    this.checkInterval = window.setInterval(() => {
+    this.checkInterval = safeTimers.setInterval(() => {
       this.cleanupUnusedPreloads();
     }, 10000); // Check every 10 seconds
   }
@@ -34,31 +36,32 @@ class PreloadOptimizer {
   private startUsageMonitoring() {
     if (typeof window === 'undefined') return;
 
-    // Monitor script loading
+    // Monitor script loading - using safe context binding
+    const self = this;
     const originalAppendChild = Node.prototype.appendChild;
     Node.prototype.appendChild = function(newChild: any) {
       if (newChild.tagName === 'SCRIPT' && newChild.src) {
-        this.markResourceAsUsed(newChild.src);
+        self.markResourceAsUsed(newChild.src);
       }
       return originalAppendChild.call(this, newChild);
-    }.bind(this);
+    };
 
-    // Monitor CSS loading
-    const originalCreateElement = document.createElement;
+    // Monitor CSS loading - using safe context binding
+    const originalCreateElement = document.createElement.bind(document);
     document.createElement = function(tagName: string) {
-      const element = originalCreateElement.call(this, tagName);
+      const element = originalCreateElement(tagName);
       if (tagName.toLowerCase() === 'link') {
         const linkElement = element as HTMLLinkElement;
-        const originalSetAttribute = linkElement.setAttribute;
+        const originalSetAttribute = linkElement.setAttribute.bind(linkElement);
         linkElement.setAttribute = function(name: string, value: string) {
           if (name === 'href' && (this.rel === 'stylesheet' || this.as === 'style')) {
-            this.markResourceAsUsed(value);
+            self.markResourceAsUsed(value);
           }
-          return originalSetAttribute.call(this, name, value);
-        }.bind(this);
+          return originalSetAttribute(name, value);
+        };
       }
       return element;
-    }.bind(this);
+    };
   }
 
   public preloadTurnstileResources() {
@@ -87,7 +90,7 @@ class PreloadOptimizer {
       return; // Already preloaded
     }
 
-    const link = document.createElement('link');
+    const link = safeDom.createElement('link') as HTMLLinkElement;
     link.rel = 'preload';
     link.href = resource.href;
     link.as = resource.as;
@@ -103,16 +106,17 @@ class PreloadOptimizer {
     // Mark as preloaded immediately to avoid duplicates
     this.preloadedResources.add(resource.href);
 
-    // Add onload handler to mark as used
-    link.onload = () => {
+    // Event handlers are now added above with safeDom.addEventListener
+
+    safeDom.addEventListener(link, 'load', () => {
       this.markResourceAsUsed(resource.href);
       logger.debug('Preloaded resource loaded:', resource.href);
-    };
+    });
 
-    link.onerror = () => {
+    safeDom.addEventListener(link, 'error', () => {
       logger.warn('Failed to preload resource:', resource.href);
       this.preloadedResources.delete(resource.href);
-    };
+    });
 
     document.head.appendChild(link);
     logger.debug('Preloading resource:', resource.href);
@@ -124,7 +128,7 @@ class PreloadOptimizer {
   }
 
   private cleanupUnusedPreloads() {
-    const preloadLinks = document.querySelectorAll('link[rel="preload"]');
+    const preloadLinks = safeDom.querySelectorAll('link[rel="preload"]');
     
     preloadLinks.forEach(link => {
       const href = (link as HTMLLinkElement).href;
@@ -150,7 +154,7 @@ class PreloadOptimizer {
 
     if (isMobile) {
       // Delay preloading on mobile to prioritize critical resources
-      setTimeout(() => {
+      safeTimers.setTimeout(() => {
         this.preloadTurnstileResources();
       }, 1000);
     } else {
@@ -160,7 +164,7 @@ class PreloadOptimizer {
 
   public destroy() {
     if (this.checkInterval) {
-      clearInterval(this.checkInterval);
+      safeTimers.clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
   }

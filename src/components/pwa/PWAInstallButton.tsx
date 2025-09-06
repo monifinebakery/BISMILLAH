@@ -2,6 +2,8 @@ import React from 'react';
 import { usePWA } from '@/utils/pwaUtils';
 import { Download, Wifi, WifiOff, RefreshCw, Smartphone } from 'lucide-react';
 import MobilePWAInstructions from './MobilePWAInstructions';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface PWAInstallButtonProps {
   className?: string;
@@ -165,7 +167,7 @@ export function PWAStatus() {
       userAgent: navigator.userAgent.toLowerCase(),
       isHTTPS: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
       hasServiceWorker: 'serviceWorker' in navigator,
-      hasManifest: !!document.querySelector('link[rel="manifest"]')
+      hasManifest: !!safeDom.querySelector('link[rel="manifest"]')
     });
   }, []);
 

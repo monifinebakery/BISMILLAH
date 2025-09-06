@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/utils/logger';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface UseResponsiveTooltipReturn {
   isMobile: boolean;
@@ -27,10 +29,10 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
     };
     
     checkMobile();
-    window.addEventListener('resize', checkMobile);
+    safeDom.addEventListener(safeDom, window, 'resize', checkMobile);
     
     return () => {
-      window.removeEventListener('resize', checkMobile);
+      safeDom.removeEventListener(safeDom, window, 'resize', checkMobile);
     };
   }, []);
 
@@ -65,10 +67,10 @@ export const useResponsiveTooltip = (): UseResponsiveTooltipReturn => {
       }
     };
 
-    document.addEventListener('keydown', handleEscapeKey);
+    safeDom.addEventListener(safeDom, document, 'keydown', handleEscapeKey);
 
     return () => {
-      document.removeEventListener('keydown', handleEscapeKey);
+      safeDom.removeEventListener(safeDom, document, 'keydown', handleEscapeKey);
     };
   }, [showTooltip]);
 

@@ -11,6 +11,7 @@ import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'
 import { initToastSwipeHandlers } from '@/utils/toastSwipeHandler'
+import '@/utils/preload-optimizer'; // Auto-initialize preload optimizer
 
 // Vite inject via define() (lihat vite.config.ts)
 declare const __DEV__: boolean;

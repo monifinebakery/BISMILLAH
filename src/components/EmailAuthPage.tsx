@@ -107,6 +107,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Turnstile state
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
+  const [turnstileRetryCount, setTurnstileRetryCount] = useState(0);
+  const [allowMobileBypass, setAllowMobileBypass] = useState(false);
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -164,7 +166,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const handleTurnstileError = (error: string) => {
     if (mountedRef.current) {
       setTurnstileToken(null);
-      setTurnstileError(error);
+      
+      // Handle specific error codes with user-friendly messages
+      let friendlyError = error;
+      if (error === '600010' || error.includes('600010')) {
+        friendlyError = '600010 - Widget tidak dapat dimuat. Coba refresh halaman atau gunakan browser lain.';
+      } else if (error.includes('network')) {
+        friendlyError = 'Masalah koneksi jaringan. Periksa internet Anda.';
+      } else if (error.includes('timeout')) {
+        friendlyError = 'Waktu habis. Coba refresh halaman.';
+      }
+      
+      setTurnstileError(friendlyError);
       logger.error("Turnstile error:", error);
     }
   };

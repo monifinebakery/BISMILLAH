@@ -373,7 +373,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </Label>
                 <TurnstileWidget
                   ref={widgetRef}
-                  sitekey={import.meta.env.VITE_TURNSTILE_SITEKEY || ''}
+                  sitekey={(() => {
+                    const sitekey = import.meta.env.VITE_TURNSTILE_SITEKEY || '';
+                    console.log('🔑 Turnstile sitekey:', sitekey ? sitekey.substring(0, 8) + '...' : 'MISSING');
+                    return sitekey;
+                  })()
                   onSuccess={(token) => {
                     logger.debug('Turnstile verification successful');
                   }}

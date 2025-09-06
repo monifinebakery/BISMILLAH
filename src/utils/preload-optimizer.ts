@@ -232,16 +232,16 @@ class PreloadOptimizer {
 // Create singleton instance
 export const preloadOptimizer = new PreloadOptimizer();
 
-// Auto-optimize on module load
-if (typeof window !== 'undefined') {
-  // Wait for DOM to be ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      preloadOptimizer.optimizeForMobile();
-    });
-  } else {
-    preloadOptimizer.optimizeForMobile();
-  }
-}
+// Auto-optimize on module load - DISABLED to prevent unused preload warnings
+// if (typeof window !== 'undefined') {
+//   // Wait for DOM to be ready
+//   if (document.readyState === 'loading') {
+//     document.addEventListener('DOMContentLoaded', () => {
+//       preloadOptimizer.optimizeForMobile();
+//     });
+//   } else {
+//     preloadOptimizer.optimizeForMobile();
+//   }
+//}
 
 export default preloadOptimizer;

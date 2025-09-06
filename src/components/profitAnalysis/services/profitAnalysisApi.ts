@@ -5,6 +5,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import {
   ProfitApiResponse,
   DateRangeFilter,
   RevenueBreakdown,
@@ -34,14 +35,7 @@ import { generateDayList, calculateDailyOpEx } from '@/utils/dateNormalization';
  */
 const getCurrentUserId = async (): Promise<string | null> => {
   const { data: { user }, error } = await supabase.auth.getUser();
-const getCurrentUserId = async (): Promise<string | null> => {
-  const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) {
-    logger.error('Error getting current user:', error);
-    return null;
-  }
-  return user.id;
-};
     logger.error('Error getting current user:', error);
     return null;
   }
@@ -51,7 +45,7 @@ const getCurrentUserId = async (): Promise<string | null> => {
 // ===== WAREHOUSE + PEMAKAIAN HELPERS (export utk dipakai hooks) =====
 // Catatan: kolom snake_case mengikuti schema Supabase
 
-    const { data: { user } } = await supabase.auth.getUser();
+/**
  * Ambil semua bahan baku dan buat map by ID (pastikan field harga_rata_rata & harga_satuan ada)
  */
 export async function fetchBahanMap(): Promise<Record<string, any>> {
@@ -88,7 +82,7 @@ export function getEffectiveUnitPrice(item: any): number {
   return wac > 0 ? wac : base;
 }
 
-    const { data: { user } } = await supabase.auth.getUser();
+/**
  * Ambil pemakaian bahan dari tabel (ikut kolom harga_efektif / hpp_value) untuk user saat ini
  */
 export async function fetchPemakaianByPeriode(start: string, end: string): Promise<any[]> {

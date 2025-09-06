@@ -239,13 +239,15 @@ class RecipeApiService {
       if (error) {
         logger.error('RecipeAPI: Error updating recipe:', error);
         throw new Error(error.message);
+      }
+
+      // ✅ TAMBAHKAN: Validasi data dari Supabase
+      if (!data) {
+        const errorMsg = 'Gagal memperbarui resep: Data tidak diterima dari database';
+        logger.error('RecipeAPI: No data returned from Supabase after updating recipe');
         throw new Error(errorMsg);
       }
-        .insert({
-          ...dbData,
-          user_id: userId,
-          bahan_resep: dbData.bahan_resep as any
-        })
+      
       if (!data.id) {
         const errorMsg = 'Gagal memperbarui resep: ID tidak ditemukan dalam data dari database';
         logger.error('RecipeAPI: Updated recipe data missing ID:', data);
@@ -380,7 +382,7 @@ class RecipeApiService {
     }
   }
   /**
-      logger.debug('RecipeAPI: Duplicating recipe:', id, 'with new name:', newName);
+   * ✅ useMutation-optimized: Bulk update recipes
    */
   async bulkUpdateRecipes(updates: { id: string; data: Partial<NewRecipe> }[]): Promise<Recipe[]> {
     try {
@@ -419,7 +421,7 @@ class RecipeApiService {
           schema: 'public',
           table: this.tableName,
         },
-          .filter(Boolean)
+        async (payload: any) => {
           logger.debug('RecipeAPI: Real-time event received:', payload.eventType);
           try {
             // Check if the change is for current user

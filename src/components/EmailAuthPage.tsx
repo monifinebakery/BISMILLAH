@@ -122,16 +122,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
+  // Check if CAPTCHA is enabled
+  const isCaptchaEnabled = import.meta.env.VITE_CAPTCHA_ENABLED === 'true';
+  
   // Button validation - send button active when:
   // - email valid
-  // - no cooldown & not sending
-  // - turnstile token available
+  // - no cooldown & not sending  
+  // - if CAPTCHA enabled: turnstile token available
+  // - if CAPTCHA disabled: always ready
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
     authState !== "sending" &&
-    turnstileToken &&
-    !turnstileLoading;
+    (isCaptchaEnabled ? (turnstileToken && !turnstileLoading) : true);
 
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,7 +154,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
-    if (!turnstileToken) {
+    if (isCaptchaEnabled && !turnstileToken) {
       toast.error("Silakan selesaikan verifikasi keamanan terlebih dahulu.");
       return;
     }
@@ -162,9 +165,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        turnstileToken, // Use Turnstile token
+        isCaptchaEnabled ? turnstileToken : null, // Use Turnstile token only if CAPTCHA enabled
         true,
-        false // Don't skip captcha validation
+        !isCaptchaEnabled // Skip captcha validation if CAPTCHA disabled
       );
 
       if (!mountedRef.current) return;
@@ -204,9 +207,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        turnstileToken, // Use Turnstile token
+        isCaptchaEnabled ? turnstileToken : null, // Use Turnstile token only if CAPTCHA enabled
         true,
-        false // Don't skip captcha validation
+        !isCaptchaEnabled // Skip captcha validation if CAPTCHA disabled
       );
 
       if (!mountedRef.current) return;
@@ -366,42 +369,53 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
-              {/* Turnstile CAPTCHA */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
-                  Verifikasi Keamanan
-                </Label>
-                <TurnstileWidget
-                  ref={widgetRef}
-                  sitekey={(() => {
-                    const rawSitekey = import.meta.env.VITE_TURNSTILE_SITEKEY || '';
-                    // Remove ALL whitespace, newlines, and invisible characters
-                    const cleanSitekey = rawSitekey.replace(/\s+/g, '').trim();
-                    console.log('🔍 Raw sitekey:', JSON.stringify(rawSitekey));
-                    console.log('🔍 Clean sitekey:', JSON.stringify(cleanSitekey));
-                    console.log('🔍 Length - Raw:', rawSitekey.length, 'Clean:', cleanSitekey.length);
-                    return cleanSitekey;
-                  })()}
-                  onSuccess={(token) => {
-                    logger.debug('Turnstile verification successful');
-                  }}
-                  onError={(error) => {
-                    logger.error('Turnstile verification failed:', error);
-                    toast.error('Gagal memverifikasi CAPTCHA. Silakan coba lagi.');
-                  }}
-                  onExpired={() => {
-                    logger.warn('Turnstile token expired');
-                    toast.warning('Token keamanan telah kedaluwarsa. Silakan verifikasi ulang.');
-                  }}
-                  theme="light"
-                  size="flexible"
-                />
-                {turnstileError && (
-                  <p className="text-sm text-red-600 mt-1">
-                    {turnstileError}
+              {/* Turnstile CAPTCHA - Only show if enabled */}
+              {isCaptchaEnabled && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Verifikasi Keamanan
+                  </Label>
+                  <TurnstileWidget
+                    ref={widgetRef}
+                    sitekey={(() => {
+                      const rawSitekey = import.meta.env.VITE_TURNSTILE_SITEKEY || '';
+                      // Remove ALL whitespace, newlines, and invisible characters
+                      const cleanSitekey = rawSitekey.replace(/\s+/g, '').trim();
+                      console.log('🔍 Raw sitekey:', JSON.stringify(rawSitekey));
+                      console.log('🔍 Clean sitekey:', JSON.stringify(cleanSitekey));
+                      console.log('🔍 Length - Raw:', rawSitekey.length, 'Clean:', cleanSitekey.length);
+                      return cleanSitekey;
+                    })()}
+                    onSuccess={(token) => {
+                      logger.debug('Turnstile verification successful');
+                    }}
+                    onError={(error) => {
+                      logger.error('Turnstile verification failed:', error);
+                      toast.error('Gagal memverifikasi CAPTCHA. Silakan coba lagi.');
+                    }}
+                    onExpired={() => {
+                      logger.warn('Turnstile token expired');
+                      toast.warning('Token keamanan telah kedaluwarsa. Silakan verifikasi ulang.');
+                    }}
+                    theme="light"
+                    size="flexible"
+                  />
+                  {turnstileError && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {turnstileError}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* CAPTCHA disabled notice */}
+              {!isCaptchaEnabled && (
+                <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    🔒 Mode Development: CAPTCHA dinonaktifkan
                   </p>
-                )}
-              </div>
+                </div>
+              )}
 
               <Button
                 onClick={handleSendOtp}

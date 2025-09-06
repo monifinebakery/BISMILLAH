@@ -336,8 +336,4 @@ export function usePWA() {
   };
 }
 
-// Import React for the hook
-import React from 'react';
-import { safeDom } from '@/utils/browserApiSafeWrappers';
-
 export default pwaManager;

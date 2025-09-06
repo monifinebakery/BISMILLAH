@@ -100,4 +100,13 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   }
 
   // ✅ ENHANCED: Redirect logic with detailed logging
+  if (!user) {
+    console.log(`🔒 [AuthGuard #${renderCount}] No user found, redirecting to /auth`);
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
+
+  console.log(`✅ [AuthGuard #${renderCount}] User authenticated, rendering children`);
+  return <>{children}</>;
+};
+
+export { AuthGuard };

@@ -4,7 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/components/layout';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import EmailAuthPage from '@/components/EmailAuthPage';
-import AuthGuard from '@/components/AuthGuard';
+import { AuthGuard } from '@/components/AuthGuard';
 import PaymentGuard from '@/components/PaymentGuard';
 import { logger } from '@/utils/logger';
 

@@ -13,7 +13,8 @@ import {
   OpExBreakdown,
   FNBCOGSBreakdown,
   FNBAnalysisResult,
-  FNBInsight
+  FNBInsight,
+  RealTimeProfitCalculation
 } from '../types/profitAnalysis.types';
 
 // Import existing APIs with compatibility
@@ -1101,7 +1102,7 @@ export const profitAnalysisApi = {
         });
 
         const chunkResults = await Promise.all(chunkPromises);
-        chunkResults.forEach(result => {
+        chunkResults.forEach((result: RealTimeProfitCalculation | null) => {
           if (result) calculations.push(result);
         });
 
@@ -1299,7 +1300,16 @@ export const profitAnalysisApi = {
     }
   },
 
-    return this.calculateProfitAnalysis(currentPeriod, 'monthly');
+  // Method untuk menghitung analisis profit F&B
+  calculateFNBProfitAnalysis(
+    currentPeriod: string, 
+    frequency: string,
+    revenue: number,
+    cogs: number,
+    margins: any,
+    hppBreakdown: any[]
+  ): ProfitApiResponse<FNBAnalysisResult> {
+    try {
       const executiveInsights = null; // Simplified for this implementation
 
       // Generate F&B specific insights
@@ -1424,7 +1434,7 @@ export const profitAnalysisApi = {
       }
 
       const result: FNBAnalysisResult = {
-        period,
+        period: currentPeriod,
         insights,
         alerts,
         opportunities,

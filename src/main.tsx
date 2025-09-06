@@ -3,7 +3,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router } from "react-router-dom";
 import { ThemeProvider } from "@/lib/theme";
-import App from "./App.tsx";
+import App from "./App";
 import "./index.css";
 import "@/styles/toast-swipe.css";
 import "@/styles/mobile-input-fixes.css";
@@ -39,19 +39,31 @@ const appStartTime = safePerformance.now();
 // ------------------------------
 // Scheduler polyfill (fallback)
 // ------------------------------
-if (typeof globalThis !== "undefined" && !globalThis.scheduler) {
+interface SchedulerTask {
+  id: NodeJS.Timeout;
+}
+
+interface Scheduler {
+  unstable_scheduleCallback: (priority: any, callback: () => void) => SchedulerTask;
+  unstable_cancelCallback: (task: SchedulerTask) => void;
+  unstable_shouldYield: () => boolean;
+  unstable_requestPaint: () => void;
+  unstable_now: () => number;
+}
+
+if (typeof globalThis !== "undefined" && !(globalThis as any).scheduler) {
   if (__CONSOLE_ENABLED__ && effectiveDev) logger.info("Adding scheduler polyfill");
   const schedulerPolyfill: Scheduler = {
-    unstable_scheduleCallback: (_p, cb) => {
+    unstable_scheduleCallback: (_p: any, cb: () => void) => {
       const id = setTimeout(cb, 0);
       return { id };
     },
-    unstable_cancelCallback: (n) => n && clearTimeout(n.id),
+    unstable_cancelCallback: (n: SchedulerTask) => n && clearTimeout(n.id),
     unstable_shouldYield: () => false,
     unstable_requestPaint: () => {},
     unstable_now: () => safePerformance.now(),
   };
-  globalThis.scheduler = schedulerPolyfill;
+  (globalThis as any).scheduler = schedulerPolyfill;
 }
 
 // ------------------------------
@@ -79,15 +91,7 @@ logger.info("Initializing React application", {
 // Error boundary wrapper
 // ------------------------------
 const EnhancedErrorBoundary = ({ children }: { children: React.ReactNode }) => (
-  <ErrorBoundary
-    onError={(error: Error, errorInfo: React.ErrorInfo) => {
-      logger.criticalError("React Error Boundary caught error", {
-        error: error.message,
-        stack: error.stack,
-        errorInfo,
-      });
-    }}
-  >
+  <ErrorBoundary>
     {children}
   </ErrorBoundary>
 );
@@ -182,11 +186,13 @@ if (effectiveDev && "performance" in window) {
     if (window.performance.memory) {
       setInterval(() => {
         const m = window.performance.memory;
-        logger.debug("Memory Usage", {
-          used: Math.round(m.usedJSHeapSize / 1048576) + " MB",
-          total: Math.round(m.totalJSHeapSize / 1048576) + " MB",
-          limit: Math.round(m.jsHeapSizeLimit / 1048576) + " MB",
-        });
+        if (m) {
+          logger.debug("Memory Usage", {
+            used: Math.round(m.usedJSHeapSize / 1048576) + " MB",
+            total: Math.round(m.totalJSHeapSize / 1048576) + " MB",
+            limit: Math.round(m.jsHeapSizeLimit / 1048576) + " MB",
+          });
+        }
       }, 30000);
     }
   }

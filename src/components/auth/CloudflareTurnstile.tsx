@@ -137,9 +137,24 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
   }, []);
 
   const renderWidget = useCallback(() => {
-    if (!containerRef.current || !window.turnstile) return;
+    if (!containerRef.current || !window.turnstile) {
+      console.warn('❌ Cannot render: missing container or turnstile');
+      return;
+    }
+
+    // Check if already rendered in this container
+    if (widgetIdRef.current && containerRef.current.hasChildNodes()) {
+      console.log('♻️ Widget already rendered, skipping...');
+      return;
+    }
+
+    // Clear container first to prevent multiple renders
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+    }
 
     try {
+      console.log('🎨 Rendering new Turnstile widget...');
       const widgetId = window.turnstile.render(containerRef.current, {
         sitekey: props.siteKey,
         theme: props.theme || (isMobile ? 'auto' : 'light'),
@@ -160,11 +175,42 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
       });
 
       widgetIdRef.current = widgetId;
-      console.log('🎯 Turnstile Widget Rendered:', widgetId);
+      console.log('🎯 Turnstile Widget Rendered Successfully:', widgetId);
       
     } catch (error) {
-      console.error('Failed to render Turnstile widget:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error');
+      console.error('❌ Failed to render Turnstile widget:', error);
+      
+      // If error contains "already been rendered", clear and try once more
+      if (error instanceof Error && error.message.includes('already been rendered')) {
+        console.log('🔄 Clearing container and retrying...');
+        if (containerRef.current) {
+          containerRef.current.innerHTML = '';
+        }
+        widgetIdRef.current = null;
+        
+        // Retry after a short delay
+        setTimeout(() => {
+          if (containerRef.current && window.turnstile) {
+            try {
+              const retryWidgetId = window.turnstile.render(containerRef.current, {
+                sitekey: props.siteKey,
+                theme: props.theme || (isMobile ? 'auto' : 'light'),
+                size: props.size || (isMobile ? 'compact' : 'normal'),
+                callback: props.onSuccess,
+                'error-callback': props.onError,
+                'expired-callback': props.onExpire
+              });
+              widgetIdRef.current = retryWidgetId;
+              console.log('✅ Turnstile Widget Retry Successful:', retryWidgetId);
+            } catch (retryError) {
+              console.error('❌ Turnstile retry failed:', retryError);
+              setError(retryError instanceof Error ? retryError.message : 'Unknown error');
+            }
+          }
+        }, 100);
+      } else {
+        setError(error instanceof Error ? error.message : 'Unknown error');
+      }
     }
   }, [props, isMobile]);
 
@@ -208,18 +254,30 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
     return () => clearTimeout(timer);
   }, [isMobile, initializeTurnstile]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount and dependency changes
   useEffect(() => {
     return () => {
+      // Cleanup existing widget if any
       if (window.turnstile && widgetIdRef.current) {
         try {
+          console.log('🧹 Cleaning up Turnstile widget:', widgetIdRef.current);
           window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
         } catch (error) {
-          console.warn('Error removing Turnstile widget:', error);
+          console.warn('⚠️ Error removing Turnstile widget:', error);
         }
       }
+      
+      // Clear container
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+      
+      // Reset state
+      setIsReady(false);
+      setError(null);
     };
-  }, []);
+  }, [props.siteKey]); // Re-run when siteKey changes
 
   if (isLoading) {
     return (

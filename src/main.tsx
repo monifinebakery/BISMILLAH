@@ -12,7 +12,7 @@ import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'
 import { initToastSwipeHandlers } from '@/utils/toastSwipeHandler'
 import { safePerformance } from '@/utils/browserApiSafeWrappers';
-import '@/utils/preload-optimizer'; // Auto-initialize preload optimizer
+// import '@/utils/preload-optimizer'; // Temporarily disabled to prevent unused preload warnings
 
 // Vite inject via define() (lihat vite.config.ts)
 declare const __DEV__: boolean;

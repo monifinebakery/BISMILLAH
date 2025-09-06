@@ -489,8 +489,8 @@ class RecipeApiService {
 // Export singleton instance
 export const recipeApi = new RecipeApiService();
 
-// Export paginated function for direct use
-export const getRecipesPaginated = recipeApi.getRecipesPaginated.bind(recipeApi);
+// Export paginated function for direct use (using getRecipes as fallback)
+export const getRecipesPaginated = recipeApi.getRecipes.bind(recipeApi);
 // ✅ Export additional types for useQuery integration
 export type RecipeFilters = {
   category?: string;

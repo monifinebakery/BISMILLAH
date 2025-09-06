@@ -92,11 +92,11 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
       // Create a completely clean script with CSP compliance
       console.log('🆕 Creating new Turnstile script');
       const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&compat=recaptcha';
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       script.type = 'text/javascript';
       script.crossOrigin = 'anonymous';
       script.referrerPolicy = 'strict-origin-when-cross-origin';
-      script.async = true; // Use async for better loading
+      script.async = false; // Synchronous loading to avoid timing issues
       script.defer = false;
       
       script.onload = () => {
@@ -162,7 +162,18 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
         theme: props.theme || (isMobile ? 'auto' : 'light'),
         size: props.size || (isMobile ? 'compact' : 'normal'),
         callback: (token: string) => {
-          console.log('✅ Turnstile Success:', { token: token ? 'RECEIVED' : 'EMPTY' });
+          console.log('✅ Turnstile Success:', { 
+            token: token ? 'RECEIVED' : 'EMPTY',
+            tokenLength: token?.length,
+            tokenStart: token ? token.substring(0, 20) + '...' : 'NO_TOKEN'
+          });
+          
+          if (!token || typeof token !== 'string') {
+            console.error('❌ Invalid token received from Turnstile');
+            setError('Token tidak valid diterima');
+            return;
+          }
+          
           props.onSuccess(token);
         },
         'error-callback': (error: string) => {

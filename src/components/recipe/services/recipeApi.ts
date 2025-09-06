@@ -1,8 +1,7 @@
 // src/components/recipe/services/recipeApi.ts - useQuery Optimized
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import type { Recipe, RecipeDB, NewRecipe, BahanResep } from '../types';
-// ✅ Standardized API Response Types for useQuery
+import { Recipe, RecipeDB, NewRecipe } from '../types';
 export interface ApiResponse<T> {
   data: T;
   error?: string;
@@ -29,7 +28,8 @@ class RecipeApiService {
     return session.user.id;
   }
   // Transform database format to frontend format
-  private transformFromDB = (dbItem: RecipeDB): Recipe => ({
+  private transformFromDB(dbItem: RecipeDB): Recipe {
+    return {
     id: dbItem.id,
     userId: dbItem.user_id,
     createdAt: new Date(dbItem.created_at),
@@ -50,28 +50,31 @@ class RecipeApiService {
     jumlahPcsPerPorsi: Number(dbItem.jumlah_pcs_per_porsi) || 1,
     hppPerPcs: Number(dbItem.hpp_per_pcs) || 0,
     hargaJualPerPcs: Number(dbItem.harga_jual_per_pcs) || 0,
-    // Manual pricing fields removed - now fully manual system
-  });
+    };
+  }
+
   // Transform frontend format to database format
-  private transformToDB = (recipe: Partial<NewRecipe>) => ({
-    nama_resep: recipe.namaResep,
-    jumlah_porsi: recipe.jumlahPorsi,
-    kategori_resep: recipe.kategoriResep,
-    deskripsi: recipe.deskripsi,
-    foto_url: recipe.fotoUrl,
-    foto_base64: recipe.fotoBase64,
-    bahan_resep: recipe.bahanResep,
-    biaya_tenaga_kerja: recipe.biayaTenagaKerja || 0,
-    biaya_overhead: recipe.biayaOverhead || 0,
-    margin_keuntungan_persen: recipe.marginKeuntunganPersen || 0,
-    total_hpp: recipe.totalHpp || 0,
-    hpp_per_porsi: recipe.hppPerPorsi || 0,
-    harga_jual_porsi: recipe.hargaJualPorsi || 0,
-    jumlah_pcs_per_porsi: recipe.jumlahPcsPerPorsi || 1,
-    hpp_per_pcs: recipe.hppPerPcs || 0,
-    harga_jual_per_pcs: recipe.hargaJualPerPcs || 0,
-    // Manual pricing fields removed - now fully manual system
-  });
+  private transformToDB(recipe: Partial<NewRecipe>) {
+    return {
+      nama_resep: recipe.namaResep,
+      jumlah_porsi: recipe.jumlahPorsi,
+      kategori_resep: recipe.kategoriResep,
+      deskripsi: recipe.deskripsi,
+      foto_url: recipe.fotoUrl,
+      foto_base64: recipe.fotoBase64,
+      bahan_resep: recipe.bahanResep,
+      biaya_tenaga_kerja: recipe.biayaTenagaKerja || 0,
+      biaya_overhead: recipe.biayaOverhead || 0,
+      margin_keuntungan_persen: recipe.marginKeuntunganPersen || 0,
+      total_hpp: recipe.totalHpp || 0,
+      hpp_per_porsi: recipe.hppPerPorsi || 0,
+      harga_jual_porsi: recipe.hargaJualPorsi || 0,
+      jumlah_pcs_per_porsi: recipe.jumlahPcsPerPorsi || 1,
+      hpp_per_pcs: recipe.hppPerPcs || 0,
+      harga_jual_per_pcs: recipe.hargaJualPerPcs || 0,
+    };
+  }
+  
   /**
    * ✅ useQuery-optimized: Get all recipes
    * Automatically handles auth and throws errors for useQuery
@@ -122,102 +125,6 @@ class RecipeApiService {
         throw error;
       }
       throw new Error('Unexpected error fetching recipes');
-    }
-  }
-
-  /**
-   * ✅ Get recipes with pagination
-   */
-  async getRecipesPaginated(
-    filters?: {
-      category?: string;
-      search?: string;
-      sortBy?: string;
-      sortOrder?: 'asc' | 'desc';
-    },
-    params: PaginationParams = {}
-  ): Promise<PaginatedResponse<Recipe>> {
-    try {
-      const userId = await this.getCurrentUserId();
-      const { page = 1, limit = 20 } = params;
-      const offset = (page - 1) * limit;
-      
-      logger.debug('RecipeAPI: Fetching paginated recipes with filters:', filters, 'params:', params);
-      
-      // Query untuk mendapatkan total count
-      let countQuery = supabase
-        .from(this.tableName)
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
-      
-      // Apply filters untuk count
-      if (filters?.category) {
-        countQuery = countQuery.eq('kategori_resep', filters.category);
-      }
-      if (filters?.search) {
-        countQuery = countQuery.or(
-          `nama_resep.ilike.%${filters.search}%,kategori_resep.ilike.%${filters.search}%,deskripsi.ilike.%${filters.search}%`
-        );
-      }
-      
-      const { count, error: countError } = await countQuery;
-      if (countError) throw countError;
-      
-      // Query untuk mendapatkan data dengan pagination
-      let dataQuery = supabase
-        .from(this.tableName)
-        .select('id, user_id, created_at, updated_at, nama_resep, jumlah_porsi, kategori_resep, deskripsi, foto_url, bahan_resep, biaya_tenaga_kerja, biaya_overhead, margin_keuntungan_persen, total_hpp, hpp_per_porsi, harga_jual_porsi, jumlah_pcs_per_porsi, hpp_per_pcs, harga_jual_per_pcs')
-        .eq('user_id', userId);
-      
-      // Apply filters untuk data
-      if (filters?.category) {
-        dataQuery = dataQuery.eq('kategori_resep', filters.category);
-      }
-      if (filters?.search) {
-        dataQuery = dataQuery.or(
-          `nama_resep.ilike.%${filters.search}%,kategori_resep.ilike.%${filters.search}%,deskripsi.ilike.%${filters.search}%`
-        );
-      }
-      
-      // Apply sorting
-      const sortBy = filters?.sortBy || 'nama_resep';
-      const ascending = (filters?.sortOrder || 'asc') === 'asc';
-      dataQuery = dataQuery.order(sortBy, { ascending });
-      
-      // Apply pagination
-      dataQuery = dataQuery.range(offset, offset + limit - 1);
-      
-      const { data, error } = await dataQuery;
-      if (error) {
-        logger.error('RecipeAPI: Error fetching paginated recipes:', error);
-        throw new Error(error.message);
-      }
-      
-      const total = count || 0;
-      const totalPages = Math.ceil(total / limit);
-      const transformedData = (data || []).map((item) => {
-         const dbItem: RecipeDB = {
-           ...item,
-           kategori_resep: item.kategori_resep || undefined,
-           bahan_resep: (item.bahan_resep as any) || []
-         } as RecipeDB;
-         return this.transformFromDB(dbItem);
-       });
-      
-      logger.debug(`RecipeAPI: Successfully fetched ${transformedData.length} recipes (page ${page}/${totalPages})`);
-      
-      return {
-        data: transformedData,
-        total,
-        page,
-        limit,
-        totalPages
-      };
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Unexpected error fetching paginated recipes');
     }
   }
 
@@ -317,25 +224,7 @@ class RecipeApiService {
     try {
       const userId = await this.getCurrentUserId();
       logger.debug('RecipeAPI: Updating recipe:', id);
-      
-      // ✅ DEBUG: Log data sebelum transform
-      logger.debug('RecipeAPI: Data before transform:', {
-        hppPerPorsi: updates.hppPerPorsi,
-        hargaJualPorsi: updates.hargaJualPorsi,
-        hppPerPcs: updates.hppPerPcs,
-        hargaJualPerPcs: updates.hargaJualPerPcs,
-      });
-      
       const dbUpdates = this.transformToDB(updates);
-      
-      // ✅ DEBUG: Log data setelah transform
-      logger.debug('RecipeAPI: Data after transform to DB:', {
-        hpp_per_porsi: dbUpdates.hpp_per_porsi,
-        harga_jual_porsi: dbUpdates.harga_jual_porsi,
-        hpp_per_pcs: dbUpdates.hpp_per_pcs,
-        harga_jual_per_pcs: dbUpdates.harga_jual_per_pcs,
-      });
-      
       const { data, error } = await supabase
         .from(this.tableName)
         .update({
@@ -350,43 +239,25 @@ class RecipeApiService {
       if (error) {
         logger.error('RecipeAPI: Error updating recipe:', error);
         throw new Error(error.message);
-      }
-
-      // ✅ TAMBAHKAN: Validasi data dari Supabase
-      if (!data) {
-        const errorMsg = 'Gagal memperbarui resep: Data tidak diterima dari database';
-        logger.error('RecipeAPI: No data returned from Supabase after updating recipe', { id, updates });
         throw new Error(errorMsg);
       }
-
+        .insert({
+          ...dbData,
+          user_id: userId,
+          bahan_resep: dbData.bahan_resep as any
+        })
       if (!data.id) {
         const errorMsg = 'Gagal memperbarui resep: ID tidak ditemukan dalam data dari database';
         logger.error('RecipeAPI: Updated recipe data missing ID:', data);
         throw new Error(errorMsg);
       }
 
-      // ✅ DEBUG: Log raw data dari database
-      logger.debug('RecipeAPI: Raw data from database:', {
-        hpp_per_porsi: data.hpp_per_porsi,
-        harga_jual_porsi: data.harga_jual_porsi,
-        hpp_per_pcs: data.hpp_per_pcs,
-        harga_jual_per_pcs: data.harga_jual_per_pcs,
-      });
-      
       const dbItem: RecipeDB = {
         ...data,
         kategori_resep: data.kategori_resep || undefined,
         bahan_resep: (data.bahan_resep as any) || []
       } as RecipeDB;
       const transformedData = this.transformFromDB(dbItem);
-      
-      // ✅ DEBUG: Log data setelah transformasi balik ke frontend
-      logger.debug('RecipeAPI: Data after transform from DB:', {
-        hppPerPorsi: transformedData.hppPerPorsi,
-        hargaJualPorsi: transformedData.hargaJualPorsi,
-        hppPerPcs: transformedData.hppPerPcs,
-        hargaJualPerPcs: transformedData.hargaJualPerPcs,
-      });
 
       // ✅ TAMBAHKAN: Validasi hasil transformasi
       if (!transformedData.id) {
@@ -509,7 +380,7 @@ class RecipeApiService {
     }
   }
   /**
-   * ✅ useMutation-optimized: Bulk update recipes
+      logger.debug('RecipeAPI: Duplicating recipe:', id, 'with new name:', newName);
    */
   async bulkUpdateRecipes(updates: { id: string; data: Partial<NewRecipe> }[]): Promise<Recipe[]> {
     try {
@@ -548,7 +419,7 @@ class RecipeApiService {
           schema: 'public',
           table: this.tableName,
         },
-        async (payload) => {
+          .filter(Boolean)
           logger.debug('RecipeAPI: Real-time event received:', payload.eventType);
           try {
             // Check if the change is for current user

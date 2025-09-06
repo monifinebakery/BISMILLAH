@@ -72,6 +72,15 @@ export const requireAdmin = async (req: Request): Promise<{ user: any } | Respon
 // Middleware for checking payment status
 export const requirePayment = async (req: Request): Promise<{ user: any } | Response> => {
   try {
+    // ✅ Development bypass logic
+    const isDev = import.meta.env.MODE === 'development';
+    const bypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+    
+    if (bypassAuth) {
+      console.log('[API Middleware] Development bypass active - skipping payment check');
+      return { user: { id: 'dev-user', email: 'dev@example.com' } };
+    }
+    
     // First check authentication
     const authResult = await requireAuth(req);
     

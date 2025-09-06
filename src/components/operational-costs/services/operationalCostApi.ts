@@ -6,9 +6,6 @@ import { logger } from '@/utils/logger';
 import { UnifiedDateHandler, normalizeDateForDatabase } from '@/utils/unifiedDateHandler';
 import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; // Keep for transition compatibility
 import { addFinancialTransaction } from '@/components/financial/services/financialApi';
-// ✅ NEW: Import standardized date range filtering
-import { applyStandardDateRangeFilters, STANDARD_DATE_FIELDS } from '@/utils/standardDateRangeFiltering';
-// 🔄 For cache invalidation - will be used by components
 let globalQueryClient: any = null;
 export const setQueryClient = (client: any) => {
   globalQueryClient = client;
@@ -26,7 +23,7 @@ const invalidateRelatedCaches = () => {
   }
 };
 
-// 🔄 Helper untuk membuat financial transaction otomatis (with duplicate prevention)
+// 🔄 Helper untuk membuat financial transaction otomatis
 const createFinancialTransactionForCost = async (cost: OperationalCost, userId: string) => {
   try {
     console.log('💰 Creating financial transaction for operational cost:', {
@@ -36,43 +33,6 @@ const createFinancialTransactionForCost = async (cost: OperationalCost, userId: 
       status: cost.status
     });
     
-    // 🔍 Check if transaction already exists to prevent duplicates
-    const { data: existingTransactions } = await supabase
-      .from('financial_transactions')
-      .select('id, amount')
-      .eq('user_id', userId)
-      .eq('related_id', cost.id)
-      .eq('type', 'expense')
-      .eq('category', 'Biaya Operasional');
-    
-    if (existingTransactions && existingTransactions.length > 0) {
-      const existingTransaction = existingTransactions[0];
-      
-      // If transaction exists but amount is different, update it
-      if (existingTransaction.amount !== cost.jumlah_per_bulan) {
-        console.log('💰 Updating existing financial transaction amount:', {
-          transactionId: existingTransaction.id,
-          oldAmount: existingTransaction.amount,
-          newAmount: cost.jumlah_per_bulan
-        });
-        
-        await supabase
-          .from('financial_transactions')
-          .update({
-            amount: cost.jumlah_per_bulan,
-            description: `Biaya Operasional: ${cost.nama_biaya}`,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingTransaction.id);
-          
-        console.log('✅ Financial transaction amount updated for operational cost');
-      } else {
-        console.log('ℹ️ Financial transaction already exists with same amount, skipping creation');
-      }
-      return;
-    }
-    
-    // Create new transaction if none exists
     await addFinancialTransaction({
       type: 'expense',
       amount: cost.jumlah_per_bulan,
@@ -84,7 +44,7 @@ const createFinancialTransactionForCost = async (cost: OperationalCost, userId: 
     
     console.log('✅ Financial transaction created for operational cost');
   } catch (error) {
-    logger.error('Error creating/updating financial transaction for operational cost:', error);
+    logger.error('Error creating financial transaction for operational cost:', error);
     // Don't throw error, just log it so operational cost creation doesn't fail
   }
 };
@@ -102,7 +62,14 @@ import {
 
 // Helper function to get current user ID
 const getCurrentUserId = async (): Promise<string | null> => {
+const getCurrentUserId = async (): Promise<string | null> => {
   const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    logger.error('Error getting current user:', error);
+    return null;
+  }
+  return user.id;
+};
   if (error || !user) {
     logger.error('Error getting current user:', error);
     return null;
@@ -127,27 +94,24 @@ export const operationalCostApi = {
         return { data: [], error: 'User tidak ditemukan. Silakan login kembali.' };
       }
 
-      console.log('🔍 Fetching operational costs by date range (FIXED):', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+      const startYMD = UnifiedDateHandler.toDatabaseString(startDate) || '';
+      const endYMD = UnifiedDateHandler.toDatabaseString(endDate) || '';
+
+      console.log('🔍 Fetching operational costs by date range:', {
+        startDate: startYMD,
+        endDate: endYMD,
         userId: resolvedUserId
       });
 
-      // ✅ FIXED: Use standardized date range filtering with both start and end dates
-      let query = supabase
+      // Get costs that were created/updated within the date range
+      // AND are currently active
+      const { data, error } = await supabase
         .from('operational_costs')
         .select('id, user_id, nama_biaya, jenis, jumlah_per_bulan, status, deskripsi, created_at, updated_at, cost_category, group, effective_date')
         .eq('user_id', resolvedUserId)
-        .eq('status', 'aktif'); // Only active costs
-
-      // Apply proper date range filtering (both start and end dates)
-      query = applyStandardDateRangeFilters(query, {
-        startDate,
-        endDate,
-        dateField: STANDARD_DATE_FIELDS.CREATED_AT
-      });
-
-      const { data, error } = await query.order('created_at', { ascending: false });
+        .eq('status', 'aktif') // Only active costs
+        .lte('created_at', endYMD + 'T23:59:59.999Z') // Created before or during the period
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -161,13 +125,10 @@ export const operationalCostApi = {
         deskripsi: item.deskripsi || undefined
       }));
 
-      console.log('🔍 FIXED operational costs result:', {
+      console.log('🔍 Filtered operational costs result:', {
         totalCosts: typedData.length,
         activeCosts: typedData.filter(c => c.status === 'aktif').length,
-        dateRange: {
-          start: startDate.toISOString(),
-          end: endDate.toISOString()
-        },
+        dateRange: { startYMD, endYMD },
         costs: typedData.map(c => ({
           nama: c.nama_biaya,
           jumlah: c.jumlah_per_bulan,
@@ -228,8 +189,8 @@ export const operationalCostApi = {
       }));
 
       return { data: typedData };
-    } catch (error) {
-      logger.error('Error fetching costs:', error);
+    } catch (err) {
+      logger.error('Error fetching costs:', err);
       return { data: [], error: 'Gagal mengambil data biaya operasional' };
     }
   },
@@ -534,8 +495,8 @@ export const allocationApi = {
       } : null;
 
       return { data: typedData };
-    } catch (error) {
-      logger.error('Error fetching allocation settings:', error);
+    } catch (err) {
+      logger.error('Error fetching allocation settings:', err);
       return { data: null, error: 'Gagal mengambil pengaturan alokasi' };
     }
   },

@@ -1,10 +1,10 @@
 // src/components/orders/components/OrdersPage.tsx - FIXED STATUS UPDATE INTEGRATION
 
 import React, { useState, useCallback, Suspense, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ CONSOLIDATED: Order context and hooks
@@ -17,9 +17,6 @@ import { useOrderFollowUp } from '../hooks/useOrderFollowUp';
 
 // ✅ IMPORT FUNCTIONALITY: Import component for CSV uploads
 import ImportButton from './ImportButton';
-
-// ✅ TABLE FILTERS: Simple filters component like Purchase
-import { OrderTableFilters } from './table/OrderTableFilters';
 
 // ✅ BULK OPERATIONS: Lazy load BulkActions
 const BulkActions = React.lazy(() => 
@@ -34,10 +31,6 @@ const BulkActions = React.lazy(() =>
 // ✅ ESSENTIAL TYPES: Only what's needed for this component
 import type { Order, NewOrder, OrderStatus } from '../types';
 
-// ✅ STATISTICS: Import OrderStats component dan hook
-import OrderStats from './OrderStats';
-import { useOrderStats } from '../hooks/useOrderStats';
-
 // ✅ SHARED COMPONENTS: Direct import
 import { PageLoading } from './shared/LoadingStates';
 import { logger } from '@/utils/logger';
@@ -45,11 +38,11 @@ import { logger } from '@/utils/logger';
 // ✅ DEBUG: Context debugger for development
 import ContextDebugger from '@/components/debug/ContextDebugger';
 import OrderUpdateMonitor from '@/components/debug/OrderUpdateMonitor';
-import OrderEventMonitor from '@/components/debug/OrderEventMonitor';
 
 // ✅ TAMBAHKAN IMPORTS: Untuk fallback langsung ke Supabase dan getStatusText
 import { supabase } from '@/integrations/supabase/client';
-import { getStatusText } from '../constants';
+import { getStatusText } from '../constants'; // Pastikan path ini benar
+import { fetchOrdersPaginated } from '../services/orderService';
 
 // ✅ OPTIMIZED: Lazy loading with better error boundaries
 const OrderTable = React.lazy(() => 
@@ -93,29 +86,39 @@ const OrderDialogs = React.lazy(() =>
   })
 );
 
-// ✅ INTERFACES: Simplified component state - only template manager needed now
+// ✅ INTERFACES: Consolidated component state
 interface OrdersPageState {
   dialogs: {
+    orderForm: boolean;
     templateManager: boolean;
+    detail: boolean;
   };
+  editingOrder: Order | null;
   selectedOrderForTemplate: Order | null;
+  viewingOrder: Order | null;
 }
 
 const initialState: OrdersPageState = {
   dialogs: {
-    templateManager: false
+    orderForm: false,
+    templateManager: false,
+    detail: false
   },
-  selectedOrderForTemplate: null
+  editingOrder: null,
+  selectedOrderForTemplate: null,
+  viewingOrder: null
 };
 
 const OrdersPage: React.FC = () => {
   logger.component('OrdersPage', 'Component mounted');
 
-  // ✅ NAVIGATION: React Router navigation
-  const navigate = useNavigate();
-
   // ✅ AUTH: Get current user
   const { user } = useAuth();
+  
+  // ✅ DEV BYPASS: Bypass autentikasi untuk pengembangan
+  const isDev = import.meta.env.DEV;
+  const devBypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+  const effectiveUser = devBypassAuth ? { id: 'dev-user' } : user;
 
   // ✅ CONTEXTS: Direct usage with destructuring
   const contextValue = useOrder();
@@ -129,49 +132,66 @@ const OrdersPage: React.FC = () => {
     refreshData // ✅ TAMBAHKAN: Untuk refresh manual jika diperlukan
   } = contextValue;
 
-  // ✅ SIMPLIFIED: Use context data directly like PurchasePage
-  const finalOrders = orders;
-  const finalIsLoading = loading;
-  const finalError = null; // Error handling is done in context
+  // ✅ LAZY LOADING STATE: State untuk kontrol lazy loading
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [useLazyLoading] = useState(true);
+  const [paginationInfo, setPaginationInfo] = useState({ totalCount: 0, totalPages: 0 });
+
+  // ✅ LAZY LOADING QUERY: Fetch paginated data when lazy loading is enabled
+  const { 
+    data: paginatedData, 
+    isLoading: isPaginatedLoading, 
+    error: paginatedError,
+    refetch: refetchPaginated
+  } = useQuery({
+    queryKey: ['orders-paginated', user?.id, currentPage, itemsPerPage],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return fetchOrdersPaginated(user.id, currentPage, itemsPerPage);
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
   const { getWhatsappUrl } = useOrderFollowUp();
-  
-  // ✅ STATISTICS: Hook untuk menghitung statistik pesanan
-  const { stats: orderStats, isCalculating: isStatsLoading } = useOrderStats(finalOrders);
-  
-  // ✅ IMPORT REFRESH LISTENER: Listen untuk bulk import events
+
+  // ✅ DATA SELECTION: Pilih data berdasarkan mode lazy loading
+  const finalOrders = paginatedData?.orders || [];
+  const finalIsLoading = isPaginatedLoading;
+  const finalError = paginatedError;
+
+  // ✅ STATS CALCULATION: Hitung statistik berdasarkan data yang dipilih
+  const finalStats = useMemo(() => {
+    const dataToUse = paginatedData?.orders || [];
+    return {
+      total: paginationInfo.totalCount,
+      totalValue: dataToUse.reduce((sum: number, order: Order) => sum + (order.totalPesanan || 0), 0),
+      byStatus: dataToUse.reduce((acc: Record<string, number>, order: Order) => {
+        acc[order.status] = (acc[order.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      completionRate: dataToUse.length > 0
+        ? Math.round((dataToUse.filter((o: Order) => o.status === 'completed').length / dataToUse.length) * 100)
+        : 0
+    };
+  }, [paginatedData, paginationInfo.totalCount]);
+
+  // ✅ UPDATE PAGINATION INFO: Update when data changes
   React.useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-    
-    const setupListener = async () => {
-      const { orderEvents } = await import('../utils/orderEvents');
-      
-      unsubscribe = orderEvents.on('order:bulk_imported', (data) => {
-        console.log('📡 Bulk import event received in OrdersPage:', data);
-        // Refresh context data after import
-        if (refreshData) {
-          setTimeout(() => {
-            refreshData();
-            console.log('✅ Orders data refreshed after bulk import');
-          }, 500);
-        }
+    if (paginatedData) {
+      setPaginationInfo({ 
+        totalCount: paginatedData.totalCount, 
+        totalPages: paginatedData.totalPages 
       });
-    };
-    
-    setupListener();
+    }
+  }, [paginatedData]);
 
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [refreshData]);
+  // ✅ UI STATE: Optimized with memoization
+  const uiState = useOrderUI(finalOrders, itemsPerPage);
 
-  // ✅ SIMPLE STATE: Use useOrderUI hook for local filtering, pagination, and selection
-  const uiState = useOrderUI(finalOrders, 10);
-  
-  // ✅ BULK OPERATIONS: Table selection state - ONLY for selection
+  // ✅ BULK OPERATIONS: Table selection state
   const {
     selectedIds,
     selectedOrders,
@@ -187,8 +207,26 @@ const OrdersPage: React.FC = () => {
   // ✅ CONSOLIDATED: Single state object
   const [pageState, setPageState] = useState<OrdersPageState>(initialState);
 
-  // ✅ SIMPLIFIED: Only template manager handler needed now
+  // ✅ MEMOIZED: Dialog handlers
   const dialogHandlers = useMemo(() => ({
+    openOrderForm: (order: Order | null = null) => {
+      logger.component('OrdersPage', 'Opening order form:', { isEdit: !!order, orderId: order?.id });
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, orderForm: true },
+        editingOrder: order
+      }));
+    },
+
+    closeOrderForm: () => {
+      logger.component('OrdersPage', 'Closing order form');
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, orderForm: false },
+        editingOrder: null
+      }));
+    },
+
     openTemplateManager: () => {
       logger.component('OrdersPage', 'Opening template manager');
       setPageState(prev => ({
@@ -205,18 +243,36 @@ const OrdersPage: React.FC = () => {
         dialogs: { ...prev.dialogs, templateManager: false },
         selectedOrderForTemplate: null
       }));
+    },
+
+    openDetail: (order: Order) => {
+      logger.component('OrdersPage', 'Opening order detail dialog', { orderId: order.id, nomorPesanan: order.nomorPesanan });
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, detail: true },
+        viewingOrder: order
+      }));
+    },
+
+    closeDetail: () => {
+      logger.component('OrdersPage', 'Closing order detail dialog');
+      setPageState(prev => ({
+        ...prev,
+        dialogs: { ...prev.dialogs, detail: false },
+        viewingOrder: null
+      }));
     }
   }), []);
 
-  // ✅ 🚀 FIXED: Business logic handlers with navigation to full pages
+  // ✅ 🚀 FIXED: Business logic handlers with proper status update
   const businessHandlers = useMemo(() => ({
     newOrder: () => {
       try {
-        logger.component('OrdersPage', 'New order button clicked - navigating to add page');
-        navigate('/pesanan/add');
+        logger.component('OrdersPage', 'New order button clicked');
+        dialogHandlers.openOrderForm();
       } catch (error) {
-        logger.error('Error navigating to new order page:', error);
-        toast.error('Gagal membuka halaman pesanan baru');
+        logger.error('Error opening new order form:', error);
+        toast.error('Gagal membuka form pesanan baru');
       }
     },
 
@@ -227,11 +283,11 @@ const OrdersPage: React.FC = () => {
           toast.error('Data pesanan tidak valid');
           return;
         }
-        logger.component('OrdersPage', 'Edit order requested - navigating to edit page:', { orderId: order.id, nomorPesanan: order.nomorPesanan });
-        navigate(`/pesanan/edit/${order.id}`);
+        logger.component('OrdersPage', 'Edit order requested:', { orderId: order.id, nomorPesanan: order.nomorPesanan });
+        dialogHandlers.openOrderForm(order);
       } catch (error) {
-        logger.error('Error navigating to edit order page:', error);
-        toast.error('Gagal membuka halaman edit pesanan');
+        logger.error('Error opening edit form:', error);
+        toast.error('Gagal membuka form edit pesanan');
       }
     },
 
@@ -327,21 +383,7 @@ const OrdersPage: React.FC = () => {
           })
           .eq('id', orderId)
           .eq('user_id', user.user.id)
-          .select(`
-            id,
-            nomor_pesanan,
-            tanggal,
-            nama_pelanggan,
-            telepon_pelanggan,
-            email_pelanggan,
-            alamat_pengiriman,
-            status,
-            total_pesanan,
-            catatan,
-            items,
-            created_at,
-            updated_at
-          `) // ✅ Get full order data for financial sync
+          .select('*') // ✅ Get full order data for financial sync
           .single();
 
         if (error) {
@@ -399,15 +441,55 @@ const OrdersPage: React.FC = () => {
       }
     },
 
-    // NOTE: submitOrder is no longer needed since we moved to full pages
-    // Kept for compatibility but not used
+    submitOrder: async (data: Partial<Order> | Partial<NewOrder>) => {
+      const isEditingMode = !!pageState.editingOrder;
+      
+      try {
+        if (!data) {
+          logger.warn('Invalid order data for submit:', data);
+          toast.error('Data pesanan tidak valid');
+          return;
+        }
+
+        logger.component('OrdersPage', 'Order submission started:', { 
+          isEdit: isEditingMode, 
+          orderId: pageState.editingOrder?.id 
+        });
+
+        let success = false;
+        if (isEditingMode && pageState.editingOrder?.id) {
+          success = await updateOrder(pageState.editingOrder.id, data);
+        } else {
+          success = await addOrder(data as NewOrder);
+        }
+
+        if (success) {
+          logger.success('Order submitted successfully:', { 
+            isEdit: isEditingMode, 
+            orderId: pageState.editingOrder?.id 
+          });
+          // Success toast is handled in addOrder/updateOrder functions
+          dialogHandlers.closeOrderForm();
+        }
+      } catch (error) {
+        logger.error('Error submitting order:', error);
+        toast.error(
+          isEditingMode 
+            ? 'Gagal memperbarui pesanan' 
+            : 'Gagal menambahkan pesanan'
+        );
+      }
+    }
   }), [
-    navigate, // ✅ NAVIGATION: Include navigate dependency
+    pageState.editingOrder, 
     finalOrders, 
+    updateOrder, 
     updateOrderStatus, // ✅ FIXED: Include updateOrderStatus dependency
+    addOrder, 
     deleteOrder, 
     uiState, 
-    contextValue // ✅ FIXED: Use entire contextValue to avoid stale closures
+    dialogHandlers,
+    contextValue.refreshData // ✅ FIXED: Use contextValue.refreshData
   ]);
 
   // ✅ ENHANCED: WhatsApp integration with template
@@ -446,24 +528,14 @@ const OrdersPage: React.FC = () => {
     [getWhatsappUrl]
   );
 
-  // ✅ ENHANCED: View detail handler with navigation to full page
+  // ✅ ENHANCED: View detail handler
   const handleViewDetail = useCallback((order: Order) => {
-    try {
-      if (!order?.id) {
-        logger.warn('Invalid order data for view:', order);
-        toast.error('Data pesanan tidak valid');
-        return;
-      }
-      logger.component('OrdersPage', 'View detail requested - navigating to view page:', {
-        orderId: order.id,
-        nomorPesanan: order.nomorPesanan
-      });
-      navigate(`/pesanan/view/${order.id}`);
-    } catch (error) {
-      logger.error('Error navigating to view order page:', error);
-      toast.error('Gagal membuka halaman detail pesanan');
-    }
-  }, [navigate]);
+    logger.component('OrdersPage', 'View detail requested:', {
+      orderId: order.id,
+      nomorPesanan: order.nomorPesanan
+    });
+    dialogHandlers.openDetail(order);
+  }, [dialogHandlers]);
 
   // ✅ DEBUG: Test function for status update (development only)
   const debugStatusUpdate = useCallback(async () => {
@@ -501,6 +573,9 @@ const OrdersPage: React.FC = () => {
   logger.debug('OrdersPage render state:', {
     ordersCount: finalOrders.length,
     isLoading: finalIsLoading,
+    useLazyLoading,
+    currentPage,
+    totalPages: paginationInfo.totalPages,
     selectedOrdersCount: uiState.selectedOrderIds.length,
     dialogsOpen: pageState.dialogs,
     isEditingOrder: !!pageState.editingOrder,
@@ -517,70 +592,61 @@ const OrdersPage: React.FC = () => {
     <div className="w-full p-4 sm:p-8">
       {/* ✅ DEBUG: Context debugger - only in development */}
       {import.meta.env.DEV && <ContextDebugger />}
-      {import.meta.env.DEV && <OrderEventMonitor />}
       
-      {/* ✅ ENHANCED: Header with template integration info, statistics, and debug button */}
-      <header className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">
-        {/* Top Section: Title and Actions */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 lg:mb-0">
-          <div className="flex items-center gap-4 mb-4 lg:mb-0">
-            <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-              <FileText className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Manajemen Pesanan</h1>
-              <p className="text-sm opacity-90 mt-1">
-                Kelola semua pesanan dari pelanggan Anda dengan template WhatsApp otomatis.
-              </p>
-            </div>
+      {/* ✅ ENHANCED: Header with template integration info and debug button */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">
+        <div className="flex items-center gap-4 mb-4 lg:mb-0">
+          <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
+            <FileText className="h-8 w-8 text-white" />
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-            {/* ✅ DEBUG: Debug button for development */}
-            {import.meta.env.DEV && (
-              <Button
-                onClick={debugStatusUpdate}
-                variant="outline"
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-all duration-200"
-              >
-                🐛 Debug Status
-              </Button>
-            )}
-            
-            {/* ✅ IMPORT BUTTON: Import CSV data with responsive design */}
-            <ImportButton />
-            
-            <Button
-              onClick={() => {
-                logger.component('OrdersPage', 'Template manager button clicked');
-                dialogHandlers.openTemplateManager();
-              }}
-              variant="outline"
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300"
-            >
-              <MessageSquare className="h-5 w-5" />
-              <span className="hidden sm:inline">Kelola Template WhatsApp</span>
-              <span className="sm:hidden">Template</span>
-            </Button>
-            
-            <Button
-              onClick={() => {
-                logger.component('OrdersPage', 'New order button clicked from header');
-                businessHandlers.newOrder();
-              }}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200"
-            >
-              <Plus className="h-5 w-5" />
-              Pesanan Baru
-            </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Manajemen Pesanan</h1>
+            <p className="text-sm opacity-90 mt-1">
+              Kelola semua pesanan dari pelanggan Anda dengan template WhatsApp otomatis.
+            </p>
           </div>
         </div>
         
-        {/* ✅ STATISTICS: Order statistics dalam header dengan background gradient */}
-        <OrderStats 
-          stats={orderStats} 
-          isLoading={isStatsLoading || finalIsLoading}
-        />
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+
+          {/* ✅ DEBUG: Debug button for development */}
+          {import.meta.env.DEV && (
+            <Button
+              onClick={debugStatusUpdate}
+              variant="outline"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-all duration-200"
+            >
+              🐛 Debug Status
+            </Button>
+          )}
+          
+          {/* ✅ IMPORT BUTTON: Import CSV data with responsive design */}
+          <ImportButton />
+          
+          <Button
+            onClick={() => {
+              logger.component('OrdersPage', 'Template manager button clicked');
+              dialogHandlers.openTemplateManager();
+            }}
+            variant="outline"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300"
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span className="hidden sm:inline">Kelola Template WhatsApp</span>
+            <span className="sm:hidden">Template</span>
+          </Button>
+          
+          <Button
+            onClick={() => {
+              logger.component('OrdersPage', 'New order button clicked from header');
+              businessHandlers.newOrder();
+            }}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200"
+          >
+            <Plus className="h-5 w-5" />
+            Pesanan Baru
+          </Button>
+        </div>
       </header>
 
       {/* ✅ OPTIMIZED: Main content with better error handling */}
@@ -591,27 +657,13 @@ const OrdersPage: React.FC = () => {
           <div className="h-64 bg-gray-100 rounded animate-pulse" />
         </div>
       }>
-        {/* ✅ TABLE FILTERS: Simple filters and pagination like Purchase */}
-        <OrderTableFilters
-          searchQuery={uiState.filters.search}
-          setSearchQuery={(query) => uiState.updateFilters({ search: query })}
-          statusFilter={uiState.filters.status}
-          setStatusFilter={(status) => uiState.updateFilters({ status })}
-          itemsPerPage={uiState.itemsPerPage}
-          setItemsPerPage={uiState.setItemsPerPage}
-          filteredCount={uiState.filteredOrders.length}
-          selectedItemsCount={selectedIds.length}
-          onClearSelection={clearSelection}
-          onBulkDelete={() => {/* TODO: Implement bulk delete */}}
-          onResetFilters={uiState.clearFilters}
-          onToggleSelectionMode={() => {
-            if (isSelectionMode) {
-              exitSelectionMode();
-            } else {
-              enterSelectionMode();
-            }
-          }}
-          isSelectionMode={isSelectionMode}
+        <OrderControls 
+          uiState={uiState} 
+          loading={finalIsLoading} 
+        />
+        <OrderFilters 
+          uiState={uiState} 
+          loading={finalIsLoading} 
         />
         
         {/* ✅ BULK ACTIONS: Komponen untuk operasi massal */}
@@ -644,24 +696,49 @@ const OrdersPage: React.FC = () => {
           isAllSelected={isAllSelected}
         />
         
-        
-        {/* ✅ ONLY TEMPLATE MANAGER: Keep only template manager dialog since form and detail are now full pages */}
-        {pageState.dialogs.templateManager && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div></div>}>
-            <OrderDialogs
-              showOrderForm={false}
-              editingOrder={null}
-              showTemplateManager={pageState.dialogs.templateManager}
-              selectedOrderForTemplate={pageState.selectedOrderForTemplate}
-              showDetailDialog={false}
-              detailOrder={null}
-              onSubmitOrder={() => {}}
-              onCloseOrderForm={() => {}}
-              onCloseTemplateManager={dialogHandlers.closeTemplateManager}
-              onCloseDetail={() => {}}
-            />
-          </Suspense>
+        {/* ✅ PAGINATION CONTROLS: Untuk mode lazy loading */}
+        {paginationInfo.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 p-4 bg-white rounded-lg border">
+            <div className="text-sm text-gray-600">
+              Halaman {currentPage} dari {paginationInfo.totalPages}
+              ({paginationInfo.totalCount} total pesanan)
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                variant="outline"
+                size="sm"
+              >
+                Sebelumnya
+              </Button>
+              <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded text-sm font-medium">
+                {currentPage}
+              </span>
+              <Button
+                onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
+                disabled={currentPage === paginationInfo.totalPages}
+                variant="outline"
+                size="sm"
+              >
+                Selanjutnya
+              </Button>
+            </div>
+          </div>
         )}
+        
+        <OrderDialogs
+          showOrderForm={pageState.dialogs.orderForm}
+          editingOrder={pageState.editingOrder}
+          showTemplateManager={pageState.dialogs.templateManager}
+          selectedOrderForTemplate={pageState.selectedOrderForTemplate}
+          showDetailDialog={pageState.dialogs.detail}
+          detailOrder={pageState.viewingOrder}
+          onSubmitOrder={businessHandlers.submitOrder}
+          onCloseOrderForm={dialogHandlers.closeOrderForm}
+          onCloseTemplateManager={dialogHandlers.closeTemplateManager}
+          onCloseDetail={dialogHandlers.closeDetail}
+        />
       </Suspense>
       
       {/* ✅ DEBUG: Real-time monitoring component - only in development */}

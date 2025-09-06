@@ -6,62 +6,34 @@ import { getCurrentUser, isAuthenticated } from '@/services/auth';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
-import { useUnlinkedPayments } from './useUnlinkedPayments';
 
 export interface PaymentStatus {
   id: string;
   user_id: string | null;
   order_id: string | null;
   pg_reference_id: string | null;
-  name: string | null; // ✅ FIXED: Use 'name' instead of 'customer_name'
   email: string | null;
   payment_status: string | null;
   is_paid: boolean;
   created_at: Date | undefined;
   updated_at: Date | undefined;
-  // ❌ REMOVED: Non-existent columns
-  // payment_date, amount, marketing_channel, campaign_id, currency, customer_name
+  payment_date: Date | undefined;
+  amount: number | null;
+  marketing_channel: string | null;
+  campaign_id: string | null;
+  currency: string | null;
+  customer_name: string | null;
 }
 
 export const usePaymentStatus = () => {
   const queryClient = useQueryClient();
   const [showOrderPopup, setShowOrderPopup] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   
   // ✅ Refs to prevent subscription spam
   const channelRef = useRef<RealtimeChannel | null>(null);
   const authSubRef = useRef<any>(null);
   const currentUserRef = useRef<any>(null);
   const setupTimeoutRef = useRef<NodeJS.Timeout>();
-  
-  // ✅ Integrate unlinked payments detection
-  const {
-    unlinkedPayments,
-    isLoading: unlinkedLoading,
-    showAutoLinkPopup,
-    setShowAutoLinkPopup,
-    refetch: refetchUnlinked
-  } = useUnlinkedPayments(supabase, currentUser);
-  
-  // ✅ Track current user for unlinked payments
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const isAuth = await isAuthenticated();
-        if (isAuth) {
-          const user = await getCurrentUser();
-          setCurrentUser(user);
-        } else {
-          setCurrentUser(null);
-        }
-      } catch (error) {
-        logger.error('Error fetching current user:', error);
-        setCurrentUser(null);
-      }
-    };
-    
-    fetchCurrentUser();
-  }, []);
 
   const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
@@ -86,21 +58,10 @@ export const usePaymentStatus = () => {
         logger.hook('usePaymentStatus', 'Checking payment for user:', user.email);
       }
 
-      // ✅ STEP 1: Check for LINKED payments only - FIXED SCHEMA
+      // ✅ STEP 1: Check for LINKED payments only
       const { data: linkedPayments, error: linkedError } = await supabase
         .from('user_payments')
-        .select(`
-          id,
-          user_id,
-          order_id,
-          name,
-          email,
-          payment_status,
-          is_paid,
-          pg_reference_id,
-          created_at,
-          updated_at
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -121,6 +82,7 @@ export const usePaymentStatus = () => {
           ...payment,
           created_at: safeParseDate(payment.created_at),
           updated_at: safeParseDate(payment.updated_at),
+          payment_date: safeParseDate(payment.payment_date),
         };
       }
 
@@ -135,18 +97,7 @@ export const usePaymentStatus = () => {
       
       const { data: unlinkedPayments, error: unlinkedError } = await supabase
         .from('user_payments')
-        .select(`
-          id,
-          user_id,
-          order_id,
-          name,
-          email,
-          payment_status,
-          is_paid,
-          pg_reference_id,
-          created_at,
-          updated_at
-        `)
+        .select('*')
         .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -167,6 +118,7 @@ export const usePaymentStatus = () => {
           ...payment,
           created_at: safeParseDate(payment.created_at),
           updated_at: safeParseDate(payment.updated_at),
+          payment_date: safeParseDate(payment.payment_date),
         };
       }
 
@@ -351,7 +303,7 @@ export const usePaymentStatus = () => {
     };
   }, []); // ✅ Empty dependency array - only run once
 
-  // ✅ Enhanced payment status logic with unlinked payments consideration
+  // ✅ Simplified payment status logic
   const isLinkedToCurrentUser = paymentStatus?.user_id !== null && paymentStatus?.user_id !== undefined;
   
   const hasValidPayment = paymentStatus?.is_paid === true && 
@@ -363,12 +315,8 @@ export const usePaymentStatus = () => {
                             paymentStatus.is_paid === true &&
                             paymentStatus.payment_status === 'settled';
   
-  // ✅ CRITICAL FIX: User has access if they have valid payment OR unlinked payments that can be linked
-  const hasLinkablePayments = unlinkedPayments.length > 0;
-  const shouldAllowAccess = hasValidPayment || hasLinkablePayments;
-  
-  const needsPayment = !shouldAllowAccess;
-  const needsOrderLinking = !isLoading && (hasUnlinkedPayment || hasLinkablePayments);
+  const needsPayment = !hasValidPayment;
+  const needsOrderLinking = !isLoading && hasUnlinkedPayment;
 
   // ✅ Simplified debug logging
   useEffect(() => {
@@ -385,29 +333,37 @@ export const usePaymentStatus = () => {
     }
   }, [hasValidPayment, hasUnlinkedPayment, needsOrderLinking, isLinkedToCurrentUser, isLoading, paymentStatus]);
 
+  // ✅ Development bypass logic
+  const isDev = import.meta.env.MODE === 'development';
+  const bypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+  
+  // Apply bypass logic to payment status
+  const finalIsPaid = bypassAuth ? true : hasValidPayment;
+  const finalNeedsPayment = bypassAuth ? false : needsPayment;
+  const finalNeedsOrderLinking = bypassAuth ? false : needsOrderLinking;
+  
+  if (bypassAuth && process.env.NODE_ENV === 'development') {
+    logger.debug('usePaymentStatus: Development bypass active', {
+      isDev,
+      bypassAuth,
+      finalIsPaid,
+      finalNeedsPayment
+    });
+  }
+
   return {
     paymentStatus,
-    isLoading: isLoading || unlinkedLoading,
+    isLoading,
     error,
-    refetch: () => {
-      refetch();
-      refetchUnlinked();
-    },
-    isPaid: shouldAllowAccess, // ✅ FIXED: True if linked payment OR has linkable payments
-    needsPayment,
-    hasUnlinkedPayment,
-    needsOrderLinking,
+    refetch,
+    isPaid: finalIsPaid, // ✅ Bypassed in development mode
+    needsPayment: finalNeedsPayment,
+    hasUnlinkedPayment: bypassAuth ? false : hasUnlinkedPayment,
+    needsOrderLinking: finalNeedsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
-    userName: paymentStatus?.name || null, // ✅ FIXED: Use 'name' instead of 'customer_name'
-    hasValidPayment,
-    isLinkedToCurrentUser,
-    // ✅ NEW: Unlinked payments integration
-    unlinkedPayments,
-    currentUser,
-    showAutoLinkPopup,
-    setShowAutoLinkPopup,
-    hasLinkablePayments,
-    shouldAllowAccess
+    userName: paymentStatus?.customer_name || null,
+    hasValidPayment: finalIsPaid,
+    isLinkedToCurrentUser: bypassAuth ? true : isLinkedToCurrentUser
   };
 };

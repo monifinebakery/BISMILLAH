@@ -34,6 +34,11 @@ export default async function handler(request: Request) {
   try {
     // Get secret key from environment variables
     const secretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+    console.log('Environment check:', {
+      hasSecretKey: !!secretKey,
+      secretKeyStart: secretKey ? secretKey.substring(0, 10) + '...' : 'NOT_SET'
+    });
+    
     if (!secretKey) {
       console.error('CLOUDFLARE_TURNSTILE_SECRET_KEY not configured');
       return new Response(
@@ -46,8 +51,27 @@ export default async function handler(request: Request) {
     }
 
     // Parse request body
-    const body = await request.json() as ValidationRequest;
+    let body: ValidationRequest;
+    try {
+      body = await request.json() as ValidationRequest;
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ valid: false, error: 'Invalid request format' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
     const { token, expectedAction } = body;
+    
+    console.log('Request body parsed:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      expectedAction
+    });
 
     // Validate input
     if (!token || typeof token !== 'string') {

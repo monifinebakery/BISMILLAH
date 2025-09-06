@@ -23,6 +23,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // ✅ FIXED: Use AuthContext instead of direct Supabase calls
   const { user, session, isLoading: isAuthLoading, isReady } = useAuth();
   
+  // ✅ DEV BYPASS: Bypass untuk pengembangan
+  const isDev = import.meta.env.DEV;
+  const devBypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+  const devBypassPayment = isDev && import.meta.env.VITE_DEV_BYPASS_PAYMENT === 'true';
+  
+  const effectiveUser = devBypassAuth ? { id: 'dev-user' } : user;
+  const effectiveIsPaid = devBypassPayment || isPaid;
+  
   const [isAdmin, setIsAdmin] = React.useState(false);
 
   // ✅ SIMPLIFIED: Only check admin role when user changes

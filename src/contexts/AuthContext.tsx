@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 import { withTimeout, withSoftTimeout } from '@/utils/asyncUtils';
-
 // ✅ Import from authUtils untuk konsistensi
 import { 
   validateAuthSession, 
@@ -12,7 +11,6 @@ import {
   debugAuthState,
   cleanupAuthState 
 } from '@/lib/authUtils';
-import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 // ✅ Menggunakan fungsi yang sama dari authUtils
 const detectDeviceCapabilities = () => {
@@ -53,35 +51,25 @@ const detectDeviceCapabilities = () => {
   return capabilities;
 };
 
-// ✅ PWA-optimized adaptive timeout
+// ✅ Adaptive timeout - sama dengan authUtils
 const getAdaptiveTimeout = (baseTimeout = 15000) => {
   const capabilities = detectDeviceCapabilities();
   let timeout = baseTimeout;
 
-  // ✅ PWA Detection
-  const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-               (window.navigator as any).standalone === true ||  
-               window.location.search.includes('pwa=true');
-  
-  // ✅ PWA gets shorter timeout for better UX
-  if (isPWA) {
-    timeout = Math.min(baseTimeout * 0.6, 8000); // PWA gets 60% of base timeout, max 8s
-    logger.debug('AuthContext: PWA detected, reducing timeout for better UX:', timeout);
-  } else if (capabilities.isSlowDevice) {
+  if (capabilities.isSlowDevice) {
     timeout *= 2;
     logger.debug('AuthContext: Slow device detected, doubling timeout:', timeout);
   }
 
   if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
-    timeout *= (isPWA ? 1.5 : 3); // PWA gets less penalty
-    logger.debug('AuthContext: Slow network detected, adjusting timeout:', timeout);
+    timeout *= 3;
+    logger.debug('AuthContext: Slow network detected, tripling timeout:', timeout);
   } else if (capabilities.networkType === '3g') {
-    timeout *= (isPWA ? 1.2 : 1.5); // PWA gets less penalty
-    logger.debug('AuthContext: 3G network detected, adjusting timeout:', timeout);
+    timeout *= 1.5;
+    logger.debug('AuthContext: 3G network detected, increasing timeout:', timeout);
   }
 
-  // ✅ PWA max timeout is lower
-  return Math.min(timeout, isPWA ? 30000 : 60000);
+  return Math.min(timeout, 60000); // Max 60 seconds - sama dengan authUtils
 };
 
 // ✅ User sanitization dengan validasi yang lebih ketat
@@ -155,22 +143,17 @@ const validateSession = (session: Session | null): { session: Session | null; us
   return { session, user: sanitizedUser };
 };
 
-// ✅ PWA-optimized safe timeout wrapper
+// ✅ Safe timeout wrapper yang konsisten dengan authUtils
 const safeWithTimeout = async <T,>(
   promise: Promise<T>, 
   timeoutMs: number, 
   timeoutMessage: string,
   retryCount = 0
 ): Promise<{ data: T | null; error: Error | null }> => {
-  const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-               (window.navigator as any).standalone === true;
-  const maxRetries = isPWA ? 1 : 2; // PWA gets fewer retries for speed
+  const maxRetries = 2;
   
   try {
-    // ✅ Use withSoftTimeout for PWA to avoid hard failures
-    const result = isPWA 
-      ? await withSoftTimeout(promise, timeoutMs, timeoutMessage)
-      : await withTimeout(promise, timeoutMs, timeoutMessage);
+    const result = await withTimeout(promise, timeoutMs, timeoutMessage);
     return { data: result, error: null };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -179,20 +162,18 @@ const safeWithTimeout = async <T,>(
       timeoutMs,
       timeoutMessage,
       error: errorMessage,
-      retryCount,
-      isPWA
+      retryCount
     });
 
-    // ✅ PWA-optimized retry logic
+    // ✅ Retry logic untuk network errors - sama dengan authUtils
     if (retryCount < maxRetries && (
       errorMessage.includes('network') || 
       errorMessage.includes('fetch') ||
       errorMessage.includes('timeout') ||
       errorMessage.includes('Failed to fetch')
     )) {
-      const retryDelay = isPWA ? 1000 : (retryCount + 1) * 2000; // PWA gets faster retry
-      logger.warn(`🔄 ${isPWA ? 'PWA' : 'Web'} error detected, retrying in ${retryDelay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      logger.warn(`🔄 Network error detected, retrying in ${(retryCount + 1) * 2} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
       return safeWithTimeout(promise, timeoutMs, timeoutMessage, retryCount + 1);
     }
     
@@ -223,15 +204,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshUser = async () => {
     try {
       logger.context('AuthContext', 'Manual user refresh triggered');
-      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                   (window.navigator as any).standalone === true;
-      const adaptiveTimeout = getAdaptiveTimeout(isPWA ? 6000 : 10000); // PWA gets shorter timeout
-
-      logger.debug('AuthContext: refreshUser timeout settings:', {
-        isPWA,
-        adaptiveTimeout,
-        userAgent: navigator.userAgent.slice(0, 50)
-      });
+      const adaptiveTimeout = getAdaptiveTimeout(10000);
 
       // ✅ FIX: Use safe timeout wrapper with retry
       const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
@@ -314,66 +287,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return await debugAuthState();
     } catch (error) {
       logger.error('AuthContext: Error debugging auth:', error);
-      return { error: error.message };
+      return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
   };
 
   useEffect(() => {
     let mounted = true;
 
+    // ✅ Development bypass authentication
     const initializeAuth = async () => {
-      try {
-        logger.context('AuthContext', 'Initializing auth...');
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                     (window.navigator as any).standalone === true;
-        const adaptiveTimeout = getAdaptiveTimeout(isPWA ? 8000 : 15000); // PWA gets shorter timeout
+      if (import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+        logger.info('🔧 [DEV] Bypassing authentication with mock user');
         
-        logger.debug('AuthContext: Initialization settings:', {
-          isPWA,
-          adaptiveTimeout,
-          userAgent: navigator.userAgent.slice(0, 50),
-          networkType: (navigator as any).connection?.effectiveType || 'unknown'
-        });
-
-        // ✅ Enhanced initialization dengan fallback
-        const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
-          supabase.auth.getSession(),
-          adaptiveTimeout,
-          'Auth initialization timeout'
-        );
-
-        if (!mounted) return;
-
-        if (timeoutError) {
-          logger.error('AuthContext initialization timeout/error:', timeoutError);
-          
-          // ✅ Fallback strategy untuk slow devices
-          const capabilities = detectDeviceCapabilities();
-          if (capabilities.isSlowDevice || capabilities.networkType === '2g' || capabilities.networkType === '3g') {
-            logger.warn('AuthContext: Slow device/network detected, trying checkSessionExists fallback...');
-            
-            const sessionExists = await checkSessionExists();
-            if (sessionExists) {
-              logger.info('AuthContext: Session exists via fallback, will wait for auth state change');
-              // Don't set session to null, wait for onAuthStateChange
-              setIsLoading(false);
-              setIsReady(true);
-              return;
-            }
-          }
-          
-          setSession(null);
-          setUser(null);
+        const mockUser: User = {
+          id: import.meta.env.VITE_DEV_MOCK_USER_ID || 'dev-user-123',
+          email: import.meta.env.VITE_DEV_MOCK_USER_EMAIL || 'dev@localhost.com',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email_confirmed_at: new Date().toISOString(),
+          phone: '',
+          confirmed_at: new Date().toISOString(),
+          last_sign_in_at: new Date().toISOString(),
+          app_metadata: {},
+          user_metadata: {},
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const mockSession: Session = {
+          access_token: 'mock-access-token',
+          refresh_token: 'mock-refresh-token',
+          expires_in: 3600,
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          token_type: 'bearer',
+          user: mockUser
+        };
+        
+        if (mounted) {
+          setSession(mockSession);
+          setUser(mockUser);
           setIsLoading(false);
           setIsReady(true);
-          return;
         }
-
-        const { data: { session } } = sessionResult as any;
-        const { session: validSession, user: validUser } = validateSession(session);
         
-        logger.context('AuthContext', 'Initial session loaded and validated:', {
-          hasSession: !!validSession,
+        logger.success('🔧 [DEV] Mock authentication initialized:', {
+          userId: mockUser.id,
+          email: mockUser.email
+        });
+        
+        return;
+      }
+
+      try {
+        logger.context('AuthContext', 'Initializing auth...');
+        const adaptiveTimeout = getAdaptiveTimeout(15000);
+        // ✅ Enhanced initialization dengan fallback
+        logger.context('AuthContext', 'Auth initialization result:', {
           hasValidUser: !!validUser,
           userEmail: validUser?.email || 'none',
           userId: validUser?.id || 'none',
@@ -422,7 +392,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
 
-    safeDom.addEventListener(safeDom, window, 'unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     initializeAuth();
 
@@ -438,7 +408,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           event,
           currentPath: window.location.pathname,
         });
-
         const { session: validSession, user: validUser } = validateSession(session);
         setSession(validSession);
         setUser(validUser);
@@ -469,7 +438,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       mounted = false;
       logger.context('AuthContext', 'Cleaning up auth subscription');
-      safeDom.removeEventListener(safeDom, window, 'unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       subscription.unsubscribe();
     };
   }, []);

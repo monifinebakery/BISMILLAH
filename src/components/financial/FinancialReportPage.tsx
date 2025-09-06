@@ -25,6 +25,7 @@ import { useFinancialPage } from './hooks/useFinancialPages';
 import { useFinancialChartDataProcessing } from './hooks/useFinancialData';
 import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { useTransactionTable } from './hooks/useTransactionTable';
 
 // LAZY LOADED COMPONENTS
 const FinancialCharts = React.lazy(() => 
@@ -45,9 +46,9 @@ const CategoryCharts = React.lazy(() =>
   })
 );
 
-const TransactionTableWithFilters = React.lazy(() => 
-  import('./components/TransactionTableWithFilters').catch((error) => {
-    logger.error('Failed to load TransactionTableWithFilters', error);
+const TransactionTable = React.lazy(() => 
+  import('./components/TransactionTable').catch((error) => {
+    logger.error('Failed to load TransactionTable', error);
     return {
       default: () => <div className="p-4 text-center text-red-500">Gagal memuat tabel</div>
     };
@@ -79,6 +80,14 @@ const CategoryManagementDialog = React.lazy(() =>
   })
 );
 
+const BulkActions = React.lazy(() => 
+  import('./components/BulkActions').catch((error) => {
+    logger.error('Failed to load BulkActions', error);
+    return {
+      default: () => null
+    };
+  })
+);
 
 const DailyCashFlowTracker = React.lazy(() => 
   import('./components/DailyCashFlowTracker').catch((error) => {
@@ -338,6 +347,8 @@ const FinancialReportPage: React.FC = () => {
   // ✅ CHART DATA - Single hook
   const chartData = useFinancialChartDataProcessing(filteredTransactions);
 
+  // ✅ BULK OPERATIONS - Transaction table hook
+  const transactionTable = useTransactionTable(filteredTransactions);
 
   // ✅ STATE - Dialogs and active tab (only charts and transactions)
   const [activeTab, setActiveTab] = useState('charts');
@@ -609,14 +620,48 @@ const FinancialReportPage: React.FC = () => {
 
           {/* ✅ TRANSACTIONS TAB */}
           <TabsContent value="transactions" className="space-y-6">
+            {transactionTable.isSelectionMode && (
+              <Suspense fallback={null}>
+                <BulkActions
+                  selectedTransactions={transactionTable.selectedTransactions}
+                  selectedIds={transactionTable.selectedIds}
+                  onClearSelection={transactionTable.exitSelectionMode}
+                  onSelectAll={transactionTable.handleSelectAll}
+                  isAllSelected={transactionTable.isAllSelected}
+                  totalCount={filteredTransactions.length}
+                />
+              </Suspense>
+            )}
             <Suspense fallback={<ChartSkeleton />}>
-              <TransactionTableWithFilters
-                transactions={filteredTransactions}
-                onEditTransaction={openTransactionDialog}
-                onAddTransaction={() => openTransactionDialog()}
-                onDeleteTransaction={handleDeleteTransaction}
-                isLoading={isLoading}
-              />
+              {filteredTransactions.length > 100 ? (
+                <VirtualTransactionTable
+                  transactions={filteredTransactions}
+                  onEditTransaction={openTransactionDialog}
+                  onAddTransaction={() => openTransactionDialog()}
+                  onDeleteTransaction={handleDeleteTransaction}
+                  isLoading={isLoading}
+                  selectedIds={transactionTable.selectedIds}
+                  onSelectionChange={transactionTable.handleSelectionChange}
+                  isSelectionMode={transactionTable.isSelectionMode}
+                  onSelectAll={transactionTable.handleSelectAll}
+                  isAllSelected={transactionTable.isAllSelected}
+                  containerHeight={600}
+                  itemHeight={80}
+                />
+              ) : (
+                <TransactionTable
+                  transactions={filteredTransactions}
+                  onEditTransaction={openTransactionDialog}
+                  onAddTransaction={() => openTransactionDialog()}
+                  onDeleteTransaction={handleDeleteTransaction}
+                  isLoading={isLoading}
+                  selectedIds={transactionTable.selectedIds}
+                  onSelectionChange={transactionTable.handleSelectionChange}
+                  isSelectionMode={transactionTable.isSelectionMode}
+                  onSelectAll={transactionTable.handleSelectAll}
+                  isAllSelected={transactionTable.isAllSelected}
+                />
+              )}
             </Suspense>
           </TabsContent>
 

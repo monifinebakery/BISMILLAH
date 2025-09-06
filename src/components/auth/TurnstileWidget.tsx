@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { TurnstileConfig } from '../../types/turnstile';
-import { createSecureScript, isDomainAllowed, getCurrentCSP } from '../../utils/cspUtils';
 
 interface TurnstileWidgetProps {
   sitekey: string;
@@ -57,55 +56,27 @@ const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetProps>((
           return;
         }
 
-        // For development mode, update CSP if needed
-        if (import.meta.env.DEV) {
-          const currentCSP = getCurrentCSP();
-          if (currentCSP && !currentCSP.includes('https://challenges.cloudflare.com')) {
-            console.log('🔧 Development mode: Updating CSP for Turnstile');
-            const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]') as HTMLMetaElement;
-            if (cspMeta) {
-              const newCSP = currentCSP.replace(
-                'script-src \'self\' \'unsafe-inline\' \'unsafe-eval\'',
-                'script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://challenges.cloudflare.com https://*.cloudflare.com'
-              );
-              cspMeta.content = newCSP;
-              console.log('✅ CSP updated for development');
-            }
-          }
-        }
-
-        // Check CSP compatibility
-        const turnstileDomain = 'https://challenges.cloudflare.com';
-        const isAllowed = isDomainAllowed(turnstileDomain, 'script-src');
-        
-        if (!isAllowed && !import.meta.env.DEV) {
-          const cspPolicy = getCurrentCSP();
-          console.warn('CSP Policy:', cspPolicy);
-          console.warn('Turnstile domain not allowed in CSP:', turnstileDomain);
-          setError('CAPTCHA diblokir oleh kebijakan keamanan. Periksa CSP.');
-          reject(new Error('Turnstile blocked by Content Security Policy'));
-          return;
-        }
-
         try {
-          const script = createSecureScript('https://challenges.cloudflare.com/turnstile/v0/api.js', {
-            async: true,
-            defer: true,
-            onLoad: () => {
-              if (window.turnstile) {
-                setIsLoaded(true);
-                resolve();
-              } else {
-                setError('CAPTCHA script dimuat tapi tidak berfungsi');
-                reject(new Error('Turnstile script loaded but window.turnstile not available'));
-              }
-            },
-            onError: (error) => {
-              console.error('Turnstile script loading error:', error);
-              setError('Gagal memuat CAPTCHA. Periksa koneksi internet.');
-              reject(error);
+          const script = document.createElement('script');
+          script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+          script.async = true;
+          script.defer = true;
+          
+          script.onload = () => {
+            if (window.turnstile) {
+              setIsLoaded(true);
+              resolve();
+            } else {
+              setError('CAPTCHA script dimuat tapi tidak berfungsi');
+              reject(new Error('Turnstile script loaded but window.turnstile not available'));
             }
-          });
+          };
+          
+          script.onerror = () => {
+            console.error('Failed to load Turnstile script');
+            setError('Gagal memuat CAPTCHA. Periksa koneksi internet.');
+            reject(new Error('Failed to load Turnstile script'));
+          };
           
           document.head.appendChild(script);
         } catch (error) {

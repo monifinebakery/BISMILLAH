@@ -10,9 +10,7 @@ declare global {
       reset: (widgetId?: string) => void;
       remove: (widgetId: string) => void;
       getResponse: (widgetId: string) => string;
-      ready: (callback: () => void) => void;
     };
-    onTurnstileLoad?: () => void;
   }
 }
 
@@ -52,48 +50,89 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
 
   const loadTurnstileScript = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
-      // Check if already loaded
-      if (window.turnstile && scriptLoadedRef.current) {
+      console.log('🔄 Loading Turnstile script...');
+      
+      // Check if already loaded and working
+      if (window.turnstile && window.turnstile.render && scriptLoadedRef.current) {
+        console.log('✅ Turnstile already loaded and ready');
         resolve();
         return;
       }
 
-      // Check if script already exists
-      if (document.querySelector('script[src*="turnstile/v0/api.js"]')) {
-        // Wait for it to load
-        const checkTurnstile = () => {
-          if (window.turnstile) {
-            scriptLoadedRef.current = true;
-            resolve();
-          } else {
-            setTimeout(checkTurnstile, 100);
-          }
-        };
-        checkTurnstile();
+      // Remove any existing problematic scripts first
+      const existingScripts = document.querySelectorAll('script[src*="turnstile"]');
+      existingScripts.forEach(script => {
+        const src = script.getAttribute('src') || '';
+        console.log('🧹 Found existing Turnstile script:', src);
+        
+        // Check if script has async or defer attributes
+        if (script.hasAttribute('async') || script.hasAttribute('defer')) {
+          console.warn('⚠️ Removing problematic script with async/defer:', src);
+          script.remove();
+        }
+      });
+
+      // Clean up window.turnstile if it exists but is broken
+      if (window.turnstile && !window.turnstile.render) {
+        console.warn('🧹 Cleaning up broken Turnstile object');
+        delete window.turnstile;
+      }
+
+      // Check if we have a working script already
+      const workingScript = document.querySelector('script[src*="turnstile/v0/api.js"]');
+      if (workingScript && window.turnstile && window.turnstile.render) {
+        console.log('✅ Found working Turnstile script');
+        scriptLoadedRef.current = true;
+        resolve();
         return;
       }
 
-      // Load script dynamically - NO async/defer when using turnstile.ready()
+      // Create a completely clean script
+      console.log('🆕 Creating new Turnstile script');
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.type = 'text/javascript';
+      
+      // NO async/defer attributes to avoid conflicts with turnstile.ready()
+      // script.async = false; // Explicitly set to false
+      // script.defer = false; // Explicitly set to false
       
       script.onload = () => {
+        console.log('📦 Turnstile script loaded, checking availability...');
         scriptLoadedRef.current = true;
-        // Wait a bit for turnstile to initialize
-        setTimeout(() => {
-          if (window.turnstile) {
+        
+        // Poll for turnstile availability with more robust checking
+        let attempts = 0;
+        const maxAttempts = 30; // 3 seconds max
+        
+        const checkTurnstile = () => {
+          attempts++;
+          console.log(`🔍 Checking Turnstile availability (attempt ${attempts}/${maxAttempts})`);
+          
+          if (window.turnstile && typeof window.turnstile.render === 'function') {
+            console.log('✅ Turnstile API is ready!');
             resolve();
+          } else if (attempts < maxAttempts) {
+            setTimeout(checkTurnstile, 100);
           } else {
+            console.error('❌ Turnstile API not available after', maxAttempts * 100, 'ms');
             reject(new Error('Turnstile API not available after script load'));
           }
-        }, 50);
+        };
+        
+        // Start checking immediately
+        checkTurnstile();
       };
 
-      script.onerror = () => {
+      script.onerror = (event) => {
+        console.error('❌ Failed to load Turnstile script:', event);
+        scriptLoadedRef.current = false;
         reject(new Error('Failed to load Turnstile script'));
       };
 
+      // Add script to head
       document.head.appendChild(script);
+      console.log('📝 Turnstile script added to DOM');
     });
   }, []);
 
@@ -138,17 +177,12 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
     try {
       await loadTurnstileScript();
       
-      if (window.turnstile?.ready) {
-        window.turnstile.ready(() => {
-          renderWidget();
-          setIsReady(true);
-          setIsLoading(false);
-        });
-      } else {
-        renderWidget();
-        setIsReady(true);
-        setIsLoading(false);
-      }
+      // Don't use turnstile.ready() to avoid async/defer conflicts
+      // Instead, render directly after script loads
+      renderWidget();
+      setIsReady(true);
+      setIsLoading(false);
+      
     } catch (error) {
       console.error('Failed to initialize Turnstile:', error);
       setError(error instanceof Error ? error.message : 'Failed to load');

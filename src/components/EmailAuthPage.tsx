@@ -17,6 +17,8 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
+import TurnstileWidget from "@/components/auth/TurnstileWidget";
+import { useTurnstile } from "@/hooks/useTurnstile";
 
 // Simple OTP authentication without captcha
 
@@ -58,6 +60,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
+  // Turnstile hook
+  const {
+    token: turnstileToken,
+    isLoading: turnstileLoading,
+    error: turnstileError,
+    reset: resetTurnstile,
+    widgetRef
+  } = useTurnstile({
+    onSuccess: (token) => {
+      logger.debug('Turnstile token received:', token);
+    },
+    onError: () => {
+      logger.error('Turnstile error');
+      toast.error('Gagal memuat CAPTCHA. Silakan refresh halaman.');
+    }
+  });
+
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -96,6 +115,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setAuthState("idle");
+    // Reset Turnstile widget
+    resetTurnstile();
   };
 
   // Validation
@@ -104,10 +125,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Button validation - send button active when:
   // - email valid
   // - no cooldown & not sending
+  // - turnstile token available
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
-    authState !== "sending";
+    authState !== "sending" &&
+    turnstileToken &&
+    !turnstileLoading;
 
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,15 +151,20 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
+    if (!turnstileToken) {
+      toast.error("Silakan selesaikan verifikasi keamanan terlebih dahulu.");
+      return;
+    }
+
     setAuthState("sending");
     setError("");
 
     try {
       const success = await sendEmailOtp(
         email,
-        null, // No captcha token
+        turnstileToken, // Use Turnstile token
         true,
-        true // Skip captcha validation
+        false // Don't skip captcha validation
       );
 
       if (!mountedRef.current) return;
@@ -175,9 +204,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        null, // No captcha token
+        turnstileToken, // Use Turnstile token
         true,
-        true // Skip captcha validation
+        false // Don't skip captcha validation
       );
 
       if (!mountedRef.current) return;
@@ -337,6 +366,34 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
+              {/* Turnstile CAPTCHA */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  Verifikasi Keamanan
+                </Label>
+                <TurnstileWidget
+                  ref={widgetRef}
+                  sitekey={import.meta.env.VITE_TURNSTILE_SITEKEY || ''}
+                  onSuccess={(token) => {
+                    logger.debug('Turnstile verification successful');
+                  }}
+                  onError={(error) => {
+                    logger.error('Turnstile verification failed:', error);
+                    toast.error('Gagal memverifikasi CAPTCHA. Silakan coba lagi.');
+                  }}
+                  onExpired={() => {
+                    logger.warn('Turnstile token expired');
+                    toast.warning('Token keamanan telah kedaluwarsa. Silakan verifikasi ulang.');
+                  }}
+                  theme="light"
+                  size="normal"
+                />
+                {turnstileError && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {turnstileError}
+                  </p>
+                )}
+              </div>
 
               <Button
                 onClick={handleSendOtp}
@@ -428,7 +485,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
                       className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
-                      disabled={authState === "verifying" || authState === "success"}
+                      disabled={authState === "verifying"}
                     />
                   ))}
                 </div>
@@ -447,7 +504,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 ) : authState === "success" ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Berhasil! AuthGuard mengarahkan...
+                    Berhasil! Mengarahkan...
                   </>
                 ) : (
                   "Verifikasi Kode"

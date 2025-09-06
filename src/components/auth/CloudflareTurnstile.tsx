@@ -107,14 +107,15 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
         return;
       }
 
-      // Create a completely clean script with CSP compliance (following official docs)
+      // Create a completely clean script with CSP compliance
+      // NOTE: Cannot use async/defer when using turnstile.ready() - Cloudflare requirement
       console.log('🆕 Creating new Turnstile script');
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       script.type = 'text/javascript';
       script.crossOrigin = 'anonymous';
       script.referrerPolicy = 'strict-origin-when-cross-origin';
-      script.defer = true; // Use defer as recommended by Cloudflare docs
+      // No async/defer when using turnstile.ready() - Cloudflare requirement
       
       script.onload = () => {
         console.log('📦 Turnstile script loaded, checking availability...');
@@ -139,14 +140,21 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
           }
         };
         
-        // Use turnstile.ready() for better compatibility (official docs recommendation)
-        if (window.turnstile && window.turnstile.ready) {
-          window.turnstile.ready(() => {
-            console.log('✅ Turnstile ready via turnstile.ready()');
-            resolve();
-          });
+        // Use turnstile.ready() only if available and loaded without async/defer
+        // Cloudflare requires no async/defer when using turnstile.ready()
+        if (window.turnstile && typeof window.turnstile.ready === 'function') {
+          try {
+            window.turnstile.ready(() => {
+              console.log('✅ Turnstile ready via turnstile.ready()');
+              resolve();
+            });
+          } catch (readyError) {
+            console.warn('⚠️ turnstile.ready() failed, falling back to polling:', readyError);
+            checkTurnstile();
+          }
         } else {
-          // Fallback to polling
+          // Fallback to polling when ready() not available
+          console.log('🔄 Using polling fallback for Turnstile availability');
           checkTurnstile();
         }
       };

@@ -47,6 +47,7 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const loadTurnstileScript = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
@@ -87,11 +88,13 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
         return;
       }
 
-      // Create a completely clean script
+      // Create a completely clean script with CSP compliance
       console.log('🆕 Creating new Turnstile script');
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       script.type = 'text/javascript';
+      script.crossOrigin = 'anonymous';
+      script.referrerPolicy = 'strict-origin-when-cross-origin';
       
       // NO async/defer attributes to avoid conflicts with turnstile.ready()
       // script.async = false; // Explicitly set to false
@@ -165,8 +168,38 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
         },
         'error-callback': (error: string) => {
           console.error('❌ Turnstile Error:', error);
-          setError(error);
-          props.onError(error);
+          
+          // Handle specific error 600010 with automatic retry
+          if (error === '600010' || error.includes('600010')) {
+            console.log(`🔄 Error 600010 detected, retry count: ${retryCount}`);
+            
+            if (retryCount < 3) {
+              console.log('🔄 Attempting automatic retry...');
+              setRetryCount(prev => prev + 1);
+              
+              // Clear existing widget and retry after delay
+              setTimeout(() => {
+                if (containerRef.current) {
+                  containerRef.current.innerHTML = '';
+                }
+                widgetIdRef.current = null;
+                setError(null);
+                setTimeout(() => initializeTurnstile(), 100);
+              }, 2000 * retryCount + 1000); // Exponential backoff
+              
+              return; // Don't show error immediately, let retry happen
+            }
+            
+            // Max retries reached, show user-friendly error
+            const userFriendlyMessage = isMobile 
+              ? 'Widget verifikasi mengalami masalah. Coba refresh halaman atau gunakan browser berbeda (Chrome/Safari).'
+              : 'Widget verifikasi gagal dimuat. Refresh halaman untuk mencoba lagi.';
+            setError(userFriendlyMessage);
+            props.onError(userFriendlyMessage);
+          } else {
+            setError(error);
+            props.onError(error);
+          }
         },
         'expired-callback': () => {
           console.warn('⏰ Turnstile Expired');
@@ -246,6 +279,9 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
 
   // Initialize on mount
   useEffect(() => {
+    // Reset retry count on mount
+    setRetryCount(0);
+    
     const delay = isMobile ? 500 : 100;
     const timer = setTimeout(() => {
       initializeTurnstile();

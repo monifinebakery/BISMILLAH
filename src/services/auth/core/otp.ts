@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { validateEmail, getErrorMessage } from '@/services/auth/utils';
+import { validateTurnstileTokenWithRetry } from '@/services/auth/turnstile';
+
 
 export const sendEmailOtp = async (
   email: string, 
@@ -22,17 +24,42 @@ export const sendEmailOtp = async (
       shouldCreateUser: allowSignup,
     };
     
+    // CRITICAL: Server-side Turnstile validation
     if (!skipCaptcha && captchaToken?.trim()) {
-      // DEBUG: Log captcha token details
-      console.log('🔑 Captcha Token Debug:', {
-        hasToken: !!captchaToken,
-        tokenLength: captchaToken.length,
-        tokenPrefix: captchaToken.substring(0, 10) + '...',
-        environment: import.meta.env.MODE
-      });
+      logger.info('🔐 Validating Turnstile token server-side...');
       
-      otpOptions.captchaToken = captchaToken;
-      logger.debug('Using captcha token for OTP');
+      try {
+        // Validate Turnstile token using our secure API endpoint
+        const turnstileResult = await validateTurnstileTokenWithRetry(
+          captchaToken,
+          undefined, // IP is handled by the API endpoint
+          'email-otp' // expected action
+        );
+        
+        if (!turnstileResult.valid) {
+          logger.error('Turnstile validation failed:', turnstileResult.error);
+          toast.error('Verifikasi keamanan gagal: ' + turnstileResult.error);
+          return false;
+        }
+        
+        logger.success('✅ Turnstile token validated successfully');
+        
+        // DEBUG: Log validation success
+        console.log('🔑 Turnstile Validation Success:', {
+          hostname: turnstileResult.details?.hostname,
+          challenge_ts: turnstileResult.details?.challenge_ts,
+          action: turnstileResult.details?.action
+        });
+        
+      } catch (error) {
+        logger.error('Turnstile validation error:', error);
+        toast.error('Gagal memvalidasi token keamanan. Silakan coba lagi.');
+        return false;
+      }
+      
+      // Note: We don't pass the token to Supabase since we've already validated it
+      // This prevents potential issues with token reuse
+      logger.debug('Turnstile validated, proceeding with OTP send');
     }
 
     const { data, error } = await supabase.auth.signInWithOtp({

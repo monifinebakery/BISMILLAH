@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
-import TurnstileWrapper, { TurnstileWrapperRef } from "@/components/auth/TurnstileWrapper";
+import CloudflareTurnstile, { CloudflareTurnstileRef as TurnstileWrapperRef } from '@/components/auth/CloudflareTurnstile';
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // ─────────────────────────────────────────────────────────────
@@ -480,7 +480,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               {/* Turnstile Widget - hanya saat diwajibkan */}
               {REQUIRE_CAPTCHA && (
                 <div className="flex justify-center">
-                  <TurnstileWrapper
+                  <CloudflareTurnstile
                     ref={turnstileRef}
                     siteKey={TURNSTILE_SITE_KEY}
                     onSuccess={handleTurnstileSuccess}

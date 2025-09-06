@@ -72,12 +72,8 @@ class PreloadOptimizer {
         href: 'https://challenges.cloudflare.com/turnstile/v0/api.js',
         as: 'script',
         crossorigin: 'anonymous'
-      },
-      {
-        href: 'https://challenges.cloudflare.com/cdn-cgi/challenge-platform/',
-        as: 'fetch',
-        crossorigin: 'anonymous'
       }
+      // Removed invalid cdn-cgi/challenge-platform/ URL that causes CORS errors
     ];
 
     resources.forEach(resource => {
@@ -88,6 +84,12 @@ class PreloadOptimizer {
   private preloadResource(resource: PreloadResource) {
     if (this.preloadedResources.has(resource.href)) {
       return; // Already preloaded
+    }
+
+    // Validate resource URL before preloading
+    if (!this.isValidResourceUrl(resource.href)) {
+      logger.warn('Skipping invalid resource URL:', resource.href);
+      return;
     }
 
     const link = safeDom.createElement('link') as HTMLLinkElement;
@@ -125,6 +127,33 @@ class PreloadOptimizer {
   private markResourceAsUsed(url: string) {
     this.usedResources.add(url);
     logger.debug('Resource marked as used:', url);
+  }
+
+  private isValidResourceUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      
+      // Skip known problematic URLs
+      const problematicPaths = [
+        '/cdn-cgi/challenge-platform/',
+        '/cdn-cgi/challenge-platform',
+        '/challenge-platform/'
+      ];
+      
+      if (problematicPaths.some(path => urlObj.pathname.includes(path))) {
+        return false;
+      }
+      
+      // Only allow HTTPS for external resources
+      if (urlObj.protocol !== 'https:' && urlObj.hostname !== 'localhost' && urlObj.hostname !== '127.0.0.1') {
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      logger.warn('Invalid URL format:', url, error);
+      return false;
+    }
   }
 
   private cleanupUnusedPreloads() {

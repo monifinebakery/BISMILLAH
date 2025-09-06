@@ -279,7 +279,7 @@ describe('Supplier Name Resolver - Error Proof Tests', () => {
 
       const resolver = createSupplierNameResolver(largeSuppliersList);
 
-      const startTime = performance.now();
+      const startTime = performance.now.call(performance);
       
       // Test multiple lookups
       for (let i = 0; i < 100; i++) {
@@ -289,7 +289,7 @@ describe('Supplier Name Resolver - Error Proof Tests', () => {
         resolver('');
       }
       
-      const endTime = performance.now();
+      const endTime = performance.now.call(performance);
       const executionTime = endTime - startTime;
 
       // Should complete in reasonable time (less than 50ms for 400 operations on 10k items)

@@ -92,14 +92,12 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
       // Create a completely clean script with CSP compliance
       console.log('🆕 Creating new Turnstile script');
       const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&compat=recaptcha';
       script.type = 'text/javascript';
       script.crossOrigin = 'anonymous';
       script.referrerPolicy = 'strict-origin-when-cross-origin';
-      
-      // NO async/defer attributes to avoid conflicts with turnstile.ready()
-      // script.async = false; // Explicitly set to false
-      // script.defer = false; // Explicitly set to false
+      script.async = true; // Use async for better loading
+      script.defer = false;
       
       script.onload = () => {
         console.log('📦 Turnstile script loaded, checking availability...');
@@ -170,31 +168,41 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
         'error-callback': (error: string) => {
           console.error('❌ Turnstile Error:', error);
           
-          // Handle specific error 600010 with automatic retry
+          // Handle specific error 600010 - widget initialization failure
           if (error === '600010' || error.includes('600010')) {
-            console.log(`🔄 Error 600010 detected, retry count: ${retryCount}`);
+            console.log(`🔄 Error 600010 (Widget failed to initialize), retry count: ${retryCount}`);
             
-            if (retryCount < 3) {
-              console.log('🔄 Attempting automatic retry...');
+            if (retryCount < 2) { // Reduced retries for faster recovery
+              console.log('🔄 Attempting automatic retry with fresh script...');
               setRetryCount(prev => prev + 1);
               
-              // Clear existing widget and retry after delay
+              // Force complete cleanup and script reload
               setTimeout(() => {
+                // Remove all turnstile scripts
+                document.querySelectorAll('script[src*="turnstile"]').forEach(script => script.remove());
+                
+                // Clear window object
+                if (window.turnstile) {
+                  delete window.turnstile;
+                }
+                
+                // Clear container
                 if (containerRef.current) {
                   containerRef.current.innerHTML = '';
                 }
                 widgetIdRef.current = null;
+                scriptLoadedRef.current = false;
                 setError(null);
-                setTimeout(() => initializeTurnstile(), 100);
-              }, 2000 * retryCount + 1000); // Exponential backoff
+                
+                // Retry initialization with delay
+                setTimeout(() => initializeTurnstile(), 1000);
+              }, 500);
               
               return; // Don't show error immediately, let retry happen
             }
             
             // Max retries reached, show user-friendly error
-            const userFriendlyMessage = isMobile 
-              ? 'Widget verifikasi mengalami masalah. Coba refresh halaman atau gunakan browser berbeda (Chrome/Safari).'
-              : 'Widget verifikasi gagal dimuat. Refresh halaman untuk mencoba lagi.';
+            const userFriendlyMessage = 'Widget verifikasi gagal. Silakan refresh halaman untuk mencoba lagi.';
             setError(userFriendlyMessage);
             props.onError(userFriendlyMessage);
           } else {

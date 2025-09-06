@@ -3,7 +3,6 @@
 
 import { logger } from './logger';
 import { safeDom, safeWindow, safeTimers } from './browserApiSafeWrappers';
-import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 interface PreloadResource {
   href: string;
@@ -67,13 +66,20 @@ class PreloadOptimizer {
   public preloadTurnstileResources() {
     if (typeof window === 'undefined') return;
 
+    // Only preload if we actually need Turnstile (check for turnstile containers)
+    const turnstileElements = document.querySelectorAll('[data-sitekey], .cf-turnstile, .turnstile');
+    if (turnstileElements.length === 0) {
+      logger.debug('No Turnstile elements found, skipping preload');
+      return;
+    }
+
     const resources: PreloadResource[] = [
       {
         href: 'https://challenges.cloudflare.com/turnstile/v0/api.js',
         as: 'script',
         crossorigin: 'anonymous'
       }
-      // Removed invalid cdn-cgi/challenge-platform/ URL that causes CORS errors
+      // Only preload actual Turnstile script, not challenge platform URLs
     ];
 
     resources.forEach(resource => {
@@ -137,11 +143,29 @@ class PreloadOptimizer {
       const problematicPaths = [
         '/cdn-cgi/challenge-platform/',
         '/cdn-cgi/challenge-platform',
-        '/challenge-platform/'
+        '/challenge-platform/',
+        '/h/b/cmg/',  // Dynamic challenge platform paths
+        '/cmg/',      // Challenge manager paths
       ];
       
       if (problematicPaths.some(path => urlObj.pathname.includes(path))) {
+        logger.warn('Blocking problematic URL:', url);
         return false;
+      }
+      
+      // Only allow known safe Turnstile resources
+      const allowedPaths = [
+        '/turnstile/v0/api.js',
+        '/turnstile/v0/api.js?onload=',
+      ];
+      
+      // If it's a Cloudflare URL, must be in allowed paths
+      if (urlObj.hostname.includes('cloudflare.com')) {
+        const isAllowed = allowedPaths.some(path => urlObj.pathname.includes(path));
+        if (!isAllowed) {
+          logger.warn('Blocking non-whitelisted Cloudflare URL:', url);
+          return false;
+        }
       }
       
       // Only allow HTTPS for external resources
@@ -177,6 +201,11 @@ class PreloadOptimizer {
   public optimizeForMobile() {
     if (typeof window === 'undefined') return;
 
+    // Temporarily disable preloading to eliminate console warnings
+    // Only enable when Turnstile is actually implemented
+    logger.debug('Turnstile preloading disabled to prevent unused preload warnings');
+    
+    /* 
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
       navigator.userAgent
     );
@@ -189,6 +218,7 @@ class PreloadOptimizer {
     } else {
       this.preloadTurnstileResources();
     }
+    */
   }
 
   public destroy() {

@@ -40,9 +40,8 @@ const CAPTCHA_ENABLED_FLAG =
     .replace(/\n/g, '')
     .replace(/\r/g, '') === "true";
 
-// Captcha enabled berdasarkan environment variable dan site key
-// Sederhana: jika flag enabled dan ada site key, maka aktif
-const REQUIRE_CAPTCHA = CAPTCHA_ENABLED_FLAG && !!TURNSTILE_SITE_KEY;
+// Simple Turnstile enablement - production only with proper site key
+const REQUIRE_CAPTCHA = VERCEL_ENV === 'production' && !!TURNSTILE_SITE_KEY && CAPTCHA_ENABLED_FLAG;
 
 // Debug logging untuk troubleshooting
 console.log('🔍 Captcha Environment Check:', {
@@ -61,7 +60,7 @@ console.log('🔍 Captcha Environment Check:', {
     VITE_VERCEL_ENV: import.meta.env.VITE_VERCEL_ENV,
     MODE: import.meta.env.MODE
   },
-  NOTE: REQUIRE_CAPTCHA ? 'Captcha ENABLED' : 'Captcha DISABLED'
+  NOTE: REQUIRE_CAPTCHA ? 'Turnstile ENABLED' : 'Turnstile DISABLED'
 });
 
 
@@ -528,7 +527,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
               {!REQUIRE_CAPTCHA && (
                 <small className="block text-center text-sm text-muted-foreground">
-                  Captcha dimatikan di environment ini.
+                  Verifikasi dimatikan di environment ini.
                 </small>
               )}
 

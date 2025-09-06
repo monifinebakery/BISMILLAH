@@ -1,6 +1,7 @@
 // src/components/auth/CloudflareTurnstile.tsx
 import React, { useRef, useImperativeHandle, forwardRef, useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger';
 
 // Extend Window interface for Turnstile
 declare global {

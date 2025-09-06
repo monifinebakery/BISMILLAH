@@ -272,9 +272,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        REQUIRE_CAPTCHA ? turnstileToken : null,
+        REQUIRE_CAPTCHA && !allowMobileBypass ? turnstileToken : null,
         true,
-        false
+        allowMobileBypass // Skip captcha if mobile bypass is allowed
       );
 
       if (!mountedRef.current) return;
@@ -497,7 +497,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               {/* Info status Turnstile */}
               {REQUIRE_CAPTCHA && turnstileError && (
                 <div className="text-center text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
-                  Captcha error: {turnstileError}. Coba refresh halaman.
+                  Captcha error: {turnstileError}.
+                </div>
+              )}
+              
+              {/* Mobile bypass indicator */}
+              {allowMobileBypass && (
+                <div className="text-center text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
+                  ✅ Mode mobile bypass aktif - Anda dapat melanjutkan tanpa captcha
                 </div>
               )}
 

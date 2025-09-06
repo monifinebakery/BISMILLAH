@@ -73,11 +73,9 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
         return;
       }
 
-      // Load script dynamically
+      // Load script dynamically - NO async/defer when using turnstile.ready()
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      script.async = true;
-      script.defer = true;
       
       script.onload = () => {
         scriptLoadedRef.current = true;
@@ -88,7 +86,7 @@ const CloudflareTurnstile = forwardRef<CloudflareTurnstileRef, CloudflareTurnsti
           } else {
             reject(new Error('Turnstile API not available after script load'));
           }
-        }, 100);
+        }, 50);
       };
 
       script.onerror = () => {

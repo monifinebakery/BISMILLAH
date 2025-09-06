@@ -1,8 +1,6 @@
 // api/validate-turnstile.ts
 // Vercel Edge Function for server-side Turnstile validation
 
-import { NextRequest, NextResponse } from 'next/server';
-
 export const config = {
   runtime: 'edge',
 };
@@ -21,47 +19,59 @@ interface ValidationRequest {
   expectedAction?: string;
 }
 
-export default async function handler(req: NextRequest) {
+export default async function handler(request: Request) {
   // Only allow POST requests
-  if (req.method !== 'POST') {
-    return NextResponse.json(
-      { error: 'Method not allowed' },
-      { status: 405 }
+  if (request.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { 
+        status: 405,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 
   try {
     // Get secret key from environment variables
-    const secretKey = process.env.TURNSTILE_SECRET_KEY;
+    const secretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
     if (!secretKey) {
-      console.error('TURNSTILE_SECRET_KEY not configured');
-      return NextResponse.json(
-        { valid: false, error: 'Server configuration error' },
-        { status: 500 }
+      console.error('CLOUDFLARE_TURNSTILE_SECRET_KEY not configured');
+      return new Response(
+        JSON.stringify({ valid: false, error: 'Server configuration error' }),
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
     // Parse request body
-    const body = await req.json() as ValidationRequest;
+    const body = await request.json() as ValidationRequest;
     const { token, expectedAction } = body;
 
     // Validate input
     if (!token || typeof token !== 'string') {
-      return NextResponse.json(
-        { valid: false, error: 'Invalid token format' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ valid: false, error: 'Invalid token format' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
     if (token.length > 2048) {
-      return NextResponse.json(
-        { valid: false, error: 'Token too long' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ valid: false, error: 'Token too long' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
     // Get client IP address
-    const remoteip = getClientIP(req);
+    const remoteip = getClientIP(request);
 
     // Prepare form data for Cloudflare Siteverify API
     const formData = new FormData();
@@ -119,12 +129,18 @@ export default async function handler(req: NextRequest) {
       const primaryError = errorCodes[0] || 'unknown';
       const userError = errorMessages[primaryError] || 'Verification failed';
 
-      return NextResponse.json({
-        valid: false,
-        error: userError,
-        errorCodes,
-        details: result
-      });
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          error: userError,
+          errorCodes,
+          details: result
+        }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Additional validation checks
@@ -134,11 +150,17 @@ export default async function handler(req: NextRequest) {
         received: result.action
       });
       
-      return NextResponse.json({
-        valid: false,
-        error: 'Action verification failed',
-        details: result
-      });
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          error: 'Action verification failed',
+          details: result
+        }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Check token age (warn if older than 4 minutes)
@@ -158,35 +180,50 @@ export default async function handler(req: NextRequest) {
       challenge_ts: result.challenge_ts
     });
 
-    return NextResponse.json({
-      valid: true,
-      hostname: result.hostname,
-      action: result.action,
-      challenge_ts: result.challenge_ts
-    });
+    return new Response(
+      JSON.stringify({
+        valid: true,
+        hostname: result.hostname,
+        action: result.action,
+        challenge_ts: result.challenge_ts
+      }),
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
 
   } catch (error) {
     console.error('Turnstile validation error:', error);
     
     if (error instanceof Error) {
       if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-        return NextResponse.json(
-          { valid: false, error: 'Verification timeout - please try again' },
-          { status: 408 }
+        return new Response(
+          JSON.stringify({ valid: false, error: 'Verification timeout - please try again' }),
+          { 
+            status: 408,
+            headers: { 'Content-Type': 'application/json' }
+          }
         );
       }
       
       if (error.message.includes('network') || error.message.includes('fetch')) {
-        return NextResponse.json(
-          { valid: false, error: 'Network error - please check your connection' },
-          { status: 503 }
+        return new Response(
+          JSON.stringify({ valid: false, error: 'Network error - please check your connection' }),
+          { 
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          }
         );
       }
     }
 
-    return NextResponse.json(
-      { valid: false, error: 'Verification service error' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ valid: false, error: 'Verification service error' }),
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }
@@ -194,7 +231,7 @@ export default async function handler(req: NextRequest) {
 /**
  * Get client IP address from request headers
  */
-function getClientIP(req: NextRequest): string | undefined {
+function getClientIP(request: Request): string | undefined {
   // Try various headers in order of preference
   const headers = [
     'cf-connecting-ip',     // Cloudflare
@@ -207,7 +244,7 @@ function getClientIP(req: NextRequest): string | undefined {
   ];
 
   for (const header of headers) {
-    const value = req.headers.get(header);
+    const value = request.headers.get(header);
     if (value) {
       // Handle comma-separated IPs (x-forwarded-for can have multiple IPs)
       const ip = value.split(',')[0].trim();
@@ -217,6 +254,5 @@ function getClientIP(req: NextRequest): string | undefined {
     }
   }
 
-  // As last resort, try to get from connection
-  return req.ip || undefined;
+  return undefined;
 }

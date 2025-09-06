@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/lib/theme";
 import App from "./App.tsx";
 import "./index.css";
 import "@/styles/toast-swipe.css";
+import "@/styles/mobile-input-fixes.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'

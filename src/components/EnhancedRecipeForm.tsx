@@ -329,7 +329,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   const totalIngredientCost = formData.bahanResep.reduce((sum, item) => sum + item.totalHarga, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 recipe-form-mobile">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
         <Card>
@@ -375,14 +375,18 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   value={formData.jumlahPorsi}
                   onChange={(e) => handleInputChange('jumlahPorsi', parseInt(e.target.value) || 1)}
                   required
+                  mobileOptimized
                   className="mt-1"
                 />
+                <p className="text-xs text-gray-500 mt-1 sm:hidden">
+                  Gunakan nama yang mudah diingat dan menggambarkan resep
+                </p>
               </div>
               
               <div>
                 <Label htmlFor="jumlahPcsPerPorsi">
-                  Jumlah Pcs per Porsi *
-                  <span className="text-xs text-gray-500 ml-1">(untuk kalkulasi HPP per pcs)</span>
+                  Pcs per Porsi *
+                  <span className="text-xs text-gray-500 ml-1 hidden sm:inline">(untuk kalkulasi HPP per pcs)</span>
                 </Label>
                 <Input
                   id="jumlahPcsPerPorsi"
@@ -390,10 +394,12 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   min="1"
                   value={formData.jumlahPcsPerPorsi}
                   onChange={(e) => handleInputChange('jumlahPcsPerPorsi', parseInt(e.target.value) || 1)}
+                  mobileOptimized
                   className="mt-1"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Total produksi: {totalPcsProduced} pcs
+                  <span className="sm:hidden">Berapa potongan per porsi (misal: 1 porsi = 6 pcs donat)</span>
+                  <span className="hidden sm:inline">Total produksi: {totalPcsProduced} pcs</span>
                 </p>
               </div>
             </div>
@@ -436,8 +442,8 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Add Ingredient Form */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg">
-              <div className="md:col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg">
+              <div className="sm:col-span-2 md:col-span-2">
                 <Label className="text-sm">Nama Bahan *</Label>
                 <Select 
                   value={newIngredient.selectedBahanId} 
@@ -476,6 +482,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                     jumlah: parseFloat(e.target.value) || 0
                   }))}
                   placeholder="0"
+                  mobileOptimized
                   className="mt-1"
                 />
               </div>
@@ -497,7 +504,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
             {/* Ingredients Table */}
             {formData.bahanResep.length > 0 ? (
               <div className="border rounded-lg overflow-x-auto">
-                <Table>
+                <Table className="recipe-ingredients-table">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nama Bahan</TableHead>
@@ -527,9 +534,10 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                               step="0.1"
                               value={ingredient.jumlah}
                               onChange={(e) => updateIngredientQuantity(ingredient.id!, parseFloat(e.target.value) || 0)}
-                              className="w-20"
+                              mobileOptimized
+                              className="w-20 sm:w-20 min-w-[60px] flex-shrink-0"
                             />
-                            <span className="text-sm text-gray-500">{ingredient.satuan}</span>
+                            <span className="text-sm text-gray-500 flex-shrink-0">{ingredient.satuan}</span>
                           </div>
                         </TableCell>
                         <TableCell>{formatCurrency(ingredient.hargaSatuan)}</TableCell>
@@ -592,6 +600,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   value={formData.biayaTenagaKerja || ''}
                   onChange={(e) => handleInputChange('biayaTenagaKerja', parseFloat(e.target.value) || 0)}
                   placeholder="0"
+                  mobileOptimized
                   className="mt-1"
                 />
               </div>
@@ -605,6 +614,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   value={formData.biayaOverhead || ''}
                   onChange={(e) => handleInputChange('biayaOverhead', parseFloat(e.target.value) || 0)}
                   placeholder="0"
+                  mobileOptimized
                   className="mt-1"
                 />
               </div>
@@ -619,6 +629,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   value={formData.marginKeuntunganPersen || ''}
                   onChange={(e) => handleInputChange('marginKeuntunganPersen', parseFloat(e.target.value) || 0)}
                   placeholder="30"
+                  mobileOptimized
                   className="mt-1"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -767,15 +778,21 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         })()}
 
         {/* Form Actions */}
-        <div className="flex justify-end gap-3 pt-6 border-t">
-          <Button type="button" variant="outline" onClick={onCancel} size="lg">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel} 
+            size="lg"
+            className="w-full sm:w-auto"
+          >
             Batal
           </Button>
           <Button 
             type="submit" 
             size="lg"
             disabled={!formData.namaResep || formData.bahanResep.length === 0}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
           >
             {initialData ? 'Update Resep' : 'Simpan Resep'}
           </Button>

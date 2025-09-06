@@ -60,7 +60,7 @@ export interface Recipe {
 
 export interface NewRecipe {
   namaResep: string;
-  jumlahPorsi: number;
+  jumlahPorsi: number | string; // Allow string for temporary empty state during editing
   kategoriResep?: string;
   deskripsi?: string;
   fotoUrl?: string;
@@ -72,7 +72,7 @@ export interface NewRecipe {
   totalHpp?: number;
   hppPerPorsi?: number;
   hargaJualPorsi?: number;
-  jumlahPcsPerPorsi?: number;
+  jumlahPcsPerPorsi?: number | string; // Allow string for temporary empty state during editing
   hppPerPcs?: number;
   hargaJualPerPcs?: number;
 }

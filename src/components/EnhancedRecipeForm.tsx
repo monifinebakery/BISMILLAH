@@ -126,11 +126,11 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
 
         const calculation = calculateHPP(
           bahanForCalculation,
-          formData.jumlahPorsi,
+          typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1,
           formData.biayaTenagaKerja,
           formData.biayaOverhead,
           formData.marginKeuntunganPersen,
-          formData.jumlahPcsPerPorsi
+          typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1
         );
 
         setCalculationResults(calculation);
@@ -176,7 +176,9 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         hargaJualPorsi: result.hargaJualPerPorsi,
         hppPerPcs: result.hppPerPcs,
         hargaJualPerPcs: result.hargaJualPerPcs,
-        biayaOverhead: result.overheadPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1)
+        biayaOverhead: result.overheadPerPcs * 
+          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1)
       }));
       
       // Update calculation results for display
@@ -186,9 +188,15 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         hargaJualPorsi: result.hargaJualPerPorsi,
         hppPerPcs: result.hppPerPcs,
         hargaJualPerPcs: result.hargaJualPerPcs,
-        totalBahanBaku: result.bahanPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1),
-        biayaTenagaKerja: result.tklPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1),
-        biayaOverhead: result.overheadPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1)
+        totalBahanBaku: result.bahanPerPcs * 
+          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1),
+        biayaTenagaKerja: result.tklPerPcs * 
+          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1),
+        biayaOverhead: result.overheadPerPcs * 
+          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1)
       });
     }
   }, [formData.jumlahPorsi, formData.jumlahPcsPerPorsi]);
@@ -315,17 +323,27 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clean up form data - convert string values to numbers before validation and submission
+    const cleanFormData = {
+      ...formData,
+      jumlahPorsi: typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1,
+      jumlahPcsPerPorsi: typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1,
+    };
+    
     // Validate using context validation
-    const validation = validateRecipeData(formData);
+    const validation = validateRecipeData(cleanFormData);
     if (!validation.isValid) {
       toast.error(`Data resep tidak valid: ${validation.errors.join(', ')}`);
       return;
     }
 
-    onSave(formData);
+    onSave(cleanFormData);
   };
 
-  const totalPcsProduced = formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1);
+  const totalPcsProduced = (
+    (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+    (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1)
+  );
   const totalIngredientCost = formData.bahanResep.reduce((sum, item) => sum + item.totalHarga, 0);
 
   return (
@@ -372,8 +390,18 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   id="jumlahPorsi"
                   type="number"
                   min="1"
-                  value={formData.jumlahPorsi}
-                  onChange={(e) => handleInputChange('jumlahPorsi', parseInt(e.target.value) || 1)}
+                  value={formData.jumlahPorsi || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string during editing
+                    handleInputChange('jumlahPorsi', value === '' ? '' : parseInt(value) || 1);
+                  }}
+                  onBlur={(e) => {
+                    // Ensure we have at least 1 when user finishes editing
+                    if (!e.target.value || parseInt(e.target.value) < 1) {
+                      handleInputChange('jumlahPorsi', 1);
+                    }
+                  }}
                   required
                   mobileOptimized
                   className="mt-1"
@@ -392,8 +420,18 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   id="jumlahPcsPerPorsi"
                   type="number"
                   min="1"
-                  value={formData.jumlahPcsPerPorsi}
-                  onChange={(e) => handleInputChange('jumlahPcsPerPorsi', parseInt(e.target.value) || 1)}
+                  value={formData.jumlahPcsPerPorsi || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string during editing, default to 1 only on blur or if explicitly set to 0
+                    handleInputChange('jumlahPcsPerPorsi', value === '' ? '' : parseInt(value) || 1);
+                  }}
+                  onBlur={(e) => {
+                    // Ensure we have at least 1 when user finishes editing
+                    if (!e.target.value || parseInt(e.target.value) < 1) {
+                      handleInputChange('jumlahPcsPerPorsi', 1);
+                    }
+                  }}
                   mobileOptimized
                   className="mt-1"
                 />
@@ -719,7 +757,8 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                     <div className="text-center">
                       <div className="text-xs text-gray-300 mb-1">Total Profit Potensi</div>
                       <div className="font-bold text-lg">
-                        {formatCurrency((calculationResults.hargaJualPorsi - calculationResults.hppPerPorsi) * formData.jumlahPorsi)}
+                        {formatCurrency((calculationResults.hargaJualPorsi - calculationResults.hppPerPorsi) * 
+                          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1))}
                       </div>
                       <div className="text-xs text-gray-300 mt-1">
                         Margin {formData.marginKeuntunganPersen}%

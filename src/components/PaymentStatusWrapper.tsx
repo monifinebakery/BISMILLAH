@@ -51,8 +51,11 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
     );
   }
   
-  // ✅ Show payment required screen
-  if (needsPayment && !showAutoLinkPopup) {
+  // ✅ FIXED: Show payment required screen only if truly no payments available
+  const hasUnlinkedPayments = unlinkedPayments && unlinkedPayments.length > 0;
+  const shouldShowPaymentRequired = needsPayment && !hasUnlinkedPayments && !showAutoLinkPopup;
+  
+  if (shouldShowPaymentRequired) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full mx-4">
@@ -99,8 +102,8 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
     );
   }
   
-  // ✅ Show main app if payment confirmed
-  if (isPaid) {
+  // ✅ FIXED: Show main app if payment confirmed OR has linkable payments
+  if (isPaid || hasUnlinkedPayments) {
     return (
       <>
         {children}

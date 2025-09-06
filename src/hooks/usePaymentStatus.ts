@@ -6,6 +6,7 @@ import { getCurrentUser, isAuthenticated } from '@/services/auth';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
+import { useUnlinkedPayments } from './useUnlinkedPayments';
 
 export interface PaymentStatus {
   id: string;
@@ -25,12 +26,42 @@ export interface PaymentStatus {
 export const usePaymentStatus = () => {
   const queryClient = useQueryClient();
   const [showOrderPopup, setShowOrderPopup] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
   // ✅ Refs to prevent subscription spam
   const channelRef = useRef<RealtimeChannel | null>(null);
   const authSubRef = useRef<any>(null);
   const currentUserRef = useRef<any>(null);
   const setupTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // ✅ Integrate unlinked payments detection
+  const {
+    unlinkedPayments,
+    isLoading: unlinkedLoading,
+    showAutoLinkPopup,
+    setShowAutoLinkPopup,
+    refetch: refetchUnlinked
+  } = useUnlinkedPayments(supabase, currentUser);
+  
+  // ✅ Track current user for unlinked payments
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const isAuth = await isAuthenticated();
+        if (isAuth) {
+          const user = await getCurrentUser();
+          setCurrentUser(user);
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        logger.error('Error fetching current user:', error);
+        setCurrentUser(null);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
 
   const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
@@ -320,7 +351,7 @@ export const usePaymentStatus = () => {
     };
   }, []); // ✅ Empty dependency array - only run once
 
-  // ✅ Simplified payment status logic
+  // ✅ Enhanced payment status logic with unlinked payments consideration
   const isLinkedToCurrentUser = paymentStatus?.user_id !== null && paymentStatus?.user_id !== undefined;
   
   const hasValidPayment = paymentStatus?.is_paid === true && 
@@ -332,8 +363,12 @@ export const usePaymentStatus = () => {
                             paymentStatus.is_paid === true &&
                             paymentStatus.payment_status === 'settled';
   
-  const needsPayment = !hasValidPayment;
-  const needsOrderLinking = !isLoading && hasUnlinkedPayment;
+  // ✅ CRITICAL FIX: User has access if they have valid payment OR unlinked payments that can be linked
+  const hasLinkablePayments = unlinkedPayments.length > 0;
+  const shouldAllowAccess = hasValidPayment || hasLinkablePayments;
+  
+  const needsPayment = !shouldAllowAccess;
+  const needsOrderLinking = !isLoading && (hasUnlinkedPayment || hasLinkablePayments);
 
   // ✅ Simplified debug logging
   useEffect(() => {
@@ -352,10 +387,13 @@ export const usePaymentStatus = () => {
 
   return {
     paymentStatus,
-    isLoading,
+    isLoading: isLoading || unlinkedLoading,
     error,
-    refetch,
-    isPaid: hasValidPayment, // ✅ Only true if linked AND paid
+    refetch: () => {
+      refetch();
+      refetchUnlinked();
+    },
+    isPaid: shouldAllowAccess, // ✅ FIXED: True if linked payment OR has linkable payments
     needsPayment,
     hasUnlinkedPayment,
     needsOrderLinking,
@@ -363,6 +401,13 @@ export const usePaymentStatus = () => {
     setShowOrderPopup,
     userName: paymentStatus?.name || null, // ✅ FIXED: Use 'name' instead of 'customer_name'
     hasValidPayment,
-    isLinkedToCurrentUser
+    isLinkedToCurrentUser,
+    // ✅ NEW: Unlinked payments integration
+    unlinkedPayments,
+    currentUser,
+    showAutoLinkPopup,
+    setShowAutoLinkPopup,
+    hasLinkablePayments,
+    shouldAllowAccess
   };
 };

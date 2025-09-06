@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import TurnstileWrapper, { TurnstileWrapperRef } from "@/components/auth/TurnstileWrapper";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // ─────────────────────────────────────────────────────────────
 // ENV flags (gunakan Vercel System Env yang diexpose otomatis)
@@ -96,6 +97,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
+  const isMobile = useIsMobile(768);
 
   // State
   const [email, setEmail] = useState("");
@@ -166,11 +168,18 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const handleTurnstileError = (error: string) => {
     if (mountedRef.current) {
       setTurnstileToken(null);
+      setTurnstileRetryCount(prev => prev + 1);
       
       // Handle specific error codes with user-friendly messages
       let friendlyError = error;
       if (error === '600010' || error.includes('600010')) {
-        friendlyError = '600010 - Widget tidak dapat dimuat. Coba refresh halaman atau gunakan browser lain.';
+        friendlyError = 'Widget captcha mengalami masalah di mobile browser ini';
+        
+        // Allow bypass after multiple failures on mobile
+        if (turnstileRetryCount >= 2 && isMobile) {
+          setAllowMobileBypass(true);
+          friendlyError += '. Anda dapat melanjutkan tanpa verifikasi captcha.';
+        }
       } else if (error.includes('network')) {
         friendlyError = 'Masalah koneksi jaringan. Periksa internet Anda.';
       } else if (error.includes('timeout')) {
@@ -214,12 +223,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Button validation - send button active when:
   // - email valid
   // - no cooldown & not sending
-  // - if captcha required → must have token
+  // - if captcha required → must have token OR mobile bypass allowed
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
     authState !== "sending" &&
-    (!REQUIRE_CAPTCHA || !!turnstileToken);
+    (!REQUIRE_CAPTCHA || !!turnstileToken || allowMobileBypass);
 
   // Debug logging for button state (only when state changes)
   useEffect(() => {
@@ -252,8 +261,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error("Masukkan alamat email yang valid.");
       return;
     }
-    if (REQUIRE_CAPTCHA && !turnstileToken) {
-      toast.error("Harap selesaikan verifikasi captcha.");
+    if (REQUIRE_CAPTCHA && !turnstileToken && !allowMobileBypass) {
+      toast.error("Harap selesaikan verifikasi captcha atau coba refresh halaman.");
       return;
     }
 

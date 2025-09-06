@@ -1,6 +1,7 @@
 // src/hooks/usePerformanceMonitor.ts
 import { useEffect, useRef } from 'react';
 import { logger } from '@/utils/logger';
+import { safePerformance } from '@/utils/browserApiSafeWrappers';
 
 interface PerformanceOptions {
   componentName: string;
@@ -20,11 +21,11 @@ export const usePerformanceMonitor = (options: PerformanceOptions) => {
   // Mount time monitoring
   useEffect(() => {
     if (logMountTime) {
-      mountTimeRef.current = performance.now();
+      mountTimeRef.current = safePerformance.now();
       
       return () => {
         if (mountTimeRef.current) {
-          const mountDuration = performance.now() - mountTimeRef.current;
+          const mountDuration = safePerformance.now() - mountTimeRef.current;
           logger.perf(`${componentName} Mount`, mountDuration);
         }
       };
@@ -34,17 +35,17 @@ export const usePerformanceMonitor = (options: PerformanceOptions) => {
   // Render time monitoring
   useEffect(() => {
     if (logRenderTime && renderStartRef.current) {
-      const renderDuration = performance.now() - renderStartRef.current;
+      const renderDuration = safePerformance.now() - renderStartRef.current;
       logger.perf(`${componentName} Render`, renderDuration);
     }
     
     if (logRenderTime) {
-      renderStartRef.current = performance.now();
+      renderStartRef.current = safePerformance.now();
     }
     
     return () => {
       if (logRenderTime && renderStartRef.current) {
-        const renderDuration = performance.now() - renderStartRef.current;
+        const renderDuration = safePerformance.now() - renderStartRef.current;
         logger.perf(`${componentName} Render`, renderDuration);
         renderStartRef.current = null;
       }
@@ -53,12 +54,12 @@ export const usePerformanceMonitor = (options: PerformanceOptions) => {
 
   // Manual performance measurement
   const startMeasurement = (label: string) => {
-    performance.mark(`${componentName}-${label}-start`);
+    safePerformance.mark(`${componentName}-${label}-start`);
   };
 
   const endMeasurement = (label: string) => {
-    performance.mark(`${componentName}-${label}-end`);
-    const measure = performance.measure(
+    safePerformance.mark(`${componentName}-${label}-end`);
+    const measure = safePerformance.measure(
       `${componentName}-${label}`,
       `${componentName}-${label}-start`,
       `${componentName}-${label}-end`
@@ -67,9 +68,9 @@ export const usePerformanceMonitor = (options: PerformanceOptions) => {
     logger.perf(`${componentName} ${label}`, measure.duration);
     
     // Clean up marks
-    performance.clearMarks(`${componentName}-${label}-start`);
-    performance.clearMarks(`${componentName}-${label}-end`);
-    performance.clearMeasures(`${componentName}-${label}`);
+    safePerformance.clearMarks(`${componentName}-${label}-start`);
+    safePerformance.clearMarks(`${componentName}-${label}-end`);
+    safePerformance.clearMeasures(`${componentName}-${label}`);
     
     return measure.duration;
   };

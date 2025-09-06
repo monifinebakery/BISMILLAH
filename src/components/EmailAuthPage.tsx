@@ -110,7 +110,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [turnstileRetryCount, setTurnstileRetryCount] = useState(0);
-  const [allowMobileBypass, setAllowMobileBypass] = useState(false);
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -173,17 +172,15 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       // Handle specific error codes with user-friendly messages
       let friendlyError = error;
       if (error === '600010' || error.includes('600010')) {
-        friendlyError = 'Widget captcha mengalami masalah di mobile browser ini';
-        
-        // Allow bypass after multiple failures on mobile
-        if (turnstileRetryCount >= 2 && isMobile) {
-          setAllowMobileBypass(true);
-          friendlyError += '. Anda dapat melanjutkan tanpa verifikasi captcha.';
+        if (isMobile) {
+          friendlyError = 'Widget verifikasi mengalami masalah. Coba refresh halaman atau gunakan browser berbeda (Chrome/Safari).';
+        } else {
+          friendlyError = 'Widget verifikasi gagal dimuat. Refresh halaman untuk mencoba lagi.';
         }
       } else if (error.includes('network')) {
-        friendlyError = 'Masalah koneksi jaringan. Periksa internet Anda.';
+        friendlyError = 'Masalah koneksi jaringan. Periksa internet Anda dan coba lagi.';
       } else if (error.includes('timeout')) {
-        friendlyError = 'Waktu habis. Coba refresh halaman.';
+        friendlyError = 'Waktu habis. Refresh halaman dan coba lagi.';
       }
       
       setTurnstileError(friendlyError);
@@ -223,12 +220,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Button validation - send button active when:
   // - email valid
   // - no cooldown & not sending
-  // - if captcha required → must have token OR mobile bypass allowed
+  // - if captcha required → must have token
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
     authState !== "sending" &&
-    (!REQUIRE_CAPTCHA || !!turnstileToken || allowMobileBypass);
+    (!REQUIRE_CAPTCHA || !!turnstileToken);
 
   // Debug logging for button state (only when state changes)
   useEffect(() => {
@@ -261,8 +258,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error("Masukkan alamat email yang valid.");
       return;
     }
-    if (REQUIRE_CAPTCHA && !turnstileToken && !allowMobileBypass) {
-      toast.error("Harap selesaikan verifikasi captcha atau coba refresh halaman.");
+    if (REQUIRE_CAPTCHA && !turnstileToken) {
+      toast.error("Harap selesaikan verifikasi captcha terlebih dahulu.");
       return;
     }
 
@@ -272,9 +269,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        REQUIRE_CAPTCHA && !allowMobileBypass ? turnstileToken : null,
+        REQUIRE_CAPTCHA ? turnstileToken : null,
         true,
-        allowMobileBypass // Skip captcha if mobile bypass is allowed
+        false // Never skip captcha
       );
 
       if (!mountedRef.current) return;
@@ -497,14 +494,15 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               {/* Info status Turnstile */}
               {REQUIRE_CAPTCHA && turnstileError && (
                 <div className="text-center text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
-                  Captcha error: {turnstileError}.
-                </div>
-              )}
-              
-              {/* Mobile bypass indicator */}
-              {allowMobileBypass && (
-                <div className="text-center text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
-                  ✅ Mode mobile bypass aktif - Anda dapat melanjutkan tanpa captcha
+                  <div className="flex flex-col space-y-2">
+                    <span>🚨 {turnstileError}</span>
+                    <button 
+                      onClick={() => window.location.reload()} 
+                      className="text-xs underline hover:no-underline"
+                    >
+                      Klik untuk refresh halaman
+                    </button>
+                  </div>
                 </div>
               )}
 

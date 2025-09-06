@@ -11,6 +11,7 @@ import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'
 import { initToastSwipeHandlers } from '@/utils/toastSwipeHandler'
+import { safePerformance } from '@/utils/browserApiSafeWrappers';
 import '@/utils/preload-optimizer'; // Auto-initialize preload optimizer
 
 // Vite inject via define() (lihat vite.config.ts)
@@ -33,7 +34,7 @@ const effectiveDev = import.meta.env.DEV || VERCEL_ENV === "preview";
 // ------------------------------
 // App start timer
 // ------------------------------
-const appStartTime = performance.now();
+const appStartTime = safePerformance.now();
 
 // ------------------------------
 // Scheduler polyfill (fallback)
@@ -48,7 +49,7 @@ if (typeof globalThis !== "undefined" && !globalThis.scheduler) {
     unstable_cancelCallback: (n) => n && clearTimeout(n.id),
     unstable_shouldYield: () => false,
     unstable_requestPaint: () => {},
-    unstable_now: () => performance.now(),
+    unstable_now: () => safePerformance.now(),
   };
   globalThis.scheduler = schedulerPolyfill;
 }
@@ -112,7 +113,7 @@ root.render(
 // ------------------------------
 // Init timing
 // ------------------------------
-const appInitTime = performance.now() - appStartTime;
+const appInitTime = safePerformance.now() - appStartTime;
 logger.perf("App Initialization", appInitTime, {
   viteMode: import.meta.env.MODE,
   vercelEnv: VERCEL_ENV,
@@ -141,7 +142,7 @@ if (effectiveDev) {
     },
     performance: {
       initTime: appInitTime,
-      getCurrentTime: () => performance.now(),
+      getCurrentTime: () => safePerformance.now(),
       getInitDuration: () => appInitTime,
     },
     environment: {

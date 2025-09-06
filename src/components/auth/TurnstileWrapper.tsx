@@ -44,17 +44,28 @@ const TurnstileWrapper = forwardRef<TurnstileWrapperRef, TurnstileWrapperProps>(
   }));
 
   const handleError = useCallback((error: string) => {
-    console.log('Turnstile Error:', error);
+    console.log('🚨 Turnstile Error:', { error, isMobile, attempt: key + 1 });
     
-    // Simple retry for mobile widget errors
-    if (error === '600010' && isMobile) {
-      setTimeout(() => {
-        setKey(prev => prev + 1);
-      }, 2000);
+    // Enhanced mobile error handling with progressive retry
+    if (error === '600010' || error.includes('600010')) {
+      const attempt = key + 1;
+      
+      if (attempt <= 3) { // Max 3 retry attempts
+        const retryDelay = isMobile ? 3000 : 2000; // Longer delay for mobile
+        console.log(`🔄 Retrying Turnstile (attempt ${attempt}/3) in ${retryDelay}ms`);
+        
+        setTimeout(() => {
+          setKey(prev => prev + 1);
+        }, retryDelay);
+        
+        // Don't report error to parent until max retries reached
+        if (attempt < 3) return;
+      }
     }
     
+    // Report error to parent
     props.onError(error);
-  }, [props, isMobile]);
+  }, [props, isMobile, key]);
 
   if (!isReady) {
     return (

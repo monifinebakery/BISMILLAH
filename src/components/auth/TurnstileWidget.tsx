@@ -145,8 +145,19 @@ const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetProps>((
       return;
     }
 
+    // Validate sitekey before rendering
+    if (!sitekey || sitekey.length === 0) {
+      console.error('Turnstile sitekey is empty or undefined');
+      setError('Konfigurasi CAPTCHA tidak valid (sitekey kosong)');
+      return;
+    }
+
+    // Clean sitekey to remove any whitespace/newlines
+    const cleanSitekey = sitekey.replace(/\s+/g, '').trim();
+    console.log('🔧 TurnstileWidget - Using sitekey:', JSON.stringify(cleanSitekey));
+
     const config: TurnstileConfig = {
-      sitekey,
+      sitekey: cleanSitekey,
       theme,
       size,
       retry,
@@ -154,29 +165,43 @@ const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetProps>((
       'refresh-expired': refreshExpired,
       appearance,
       callback: (token: string) => {
+        console.log('✅ Turnstile success with token:', token.substring(0, 10) + '...');
         onSuccess?.(token);
       },
-      'error-callback': () => {
-        setError('Verifikasi CAPTCHA gagal');
+      'error-callback': (errorCode: string) => {
+        console.error('❌ Turnstile error:', errorCode);
+        setError(`Verifikasi CAPTCHA gagal: ${errorCode}`);
         onError?.();
       },
       'expired-callback': () => {
+        console.warn('⏰ Turnstile token expired');
         setError('CAPTCHA telah kedaluwarsa');
         onExpired?.();
       },
       'timeout-callback': () => {
+        console.warn('⏳ Turnstile timeout');
         setError('CAPTCHA timeout');
         onTimeout?.();
       }
     };
 
     try {
+      console.log('🚀 Rendering Turnstile widget with config:', {
+        sitekey: cleanSitekey.substring(0, 10) + '...',
+        theme,
+        size
+      });
       const id = window.turnstile.render(containerRef.current, config);
       setWidgetId(id);
       setError(null);
-    } catch (err) {
-      console.error('Error rendering Turnstile widget:', err);
-      setError('Gagal menampilkan CAPTCHA');
+      console.log('✅ Turnstile widget rendered successfully, ID:', id);
+    } catch (err: any) {
+      console.error('❌ Error rendering Turnstile widget:', err);
+      if (err.message && err.message.includes('Invalid input for parameter "sitekey"')) {
+        setError('Sitekey CAPTCHA tidak valid. Periksa konfigurasi.');
+      } else {
+        setError('Gagal menampilkan CAPTCHA: ' + (err.message || 'Unknown error'));
+      }
     }
 
     // Cleanup function

@@ -373,7 +373,15 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </Label>
                 <TurnstileWidget
                   ref={widgetRef}
-                  sitekey={import.meta.env.VITE_TURNSTILE_SITEKEY || ''}
+                  sitekey={(() => {
+                    const rawSitekey = import.meta.env.VITE_TURNSTILE_SITEKEY || '';
+                    // Remove ALL whitespace, newlines, and invisible characters
+                    const cleanSitekey = rawSitekey.replace(/\s+/g, '').trim();
+                    console.log('🔍 Raw sitekey:', JSON.stringify(rawSitekey));
+                    console.log('🔍 Clean sitekey:', JSON.stringify(cleanSitekey));
+                    console.log('🔍 Length - Raw:', rawSitekey.length, 'Clean:', cleanSitekey.length);
+                    return cleanSitekey;
+                  })()}
                   onSuccess={(token) => {
                     logger.debug('Turnstile verification successful');
                   }}
@@ -386,7 +394,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     toast.warning('Token keamanan telah kedaluwarsa. Silakan verifikasi ulang.');
                   }}
                   theme="light"
-                  size="normal"
+                  size="flexible"
                 />
                 {turnstileError && (
                   <p className="text-sm text-red-600 mt-1">

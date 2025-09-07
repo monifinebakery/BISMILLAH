@@ -17,8 +17,7 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
-import TurnstileWidget from "@/components/auth/TurnstileWidget";
-import { useTurnstile } from "@/hooks/useTurnstile";
+// Turnstile disabled - using simple OTP authentication
 
 // Simple OTP authentication without captcha
 
@@ -60,22 +59,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  // Turnstile hook
-  const {
-    token: turnstileToken,
-    isLoading: turnstileLoading,
-    error: turnstileError,
-    reset: resetTurnstile,
-    widgetRef
-  } = useTurnstile({
-    onSuccess: (token) => {
-      logger.debug('Turnstile token received:', token);
-    },
-    onError: () => {
-      logger.error('Turnstile error');
-      toast.error('Gagal memuat CAPTCHA. Silakan refresh halaman.');
-    }
-  });
+  // Simple OTP authentication without CAPTCHA
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -115,41 +99,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setAuthState("idle");
-    // Reset Turnstile widget
-    resetTurnstile();
   };
 
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // Check if CAPTCHA is enabled - robust detection
-  const isCaptchaEnabled = (() => {
-    const captchaEnv = import.meta.env.VITE_CAPTCHA_ENABLED;
-    console.log('🔍 CAPTCHA Environment Detection:', {
-      raw: captchaEnv,
-      type: typeof captchaEnv,
-      string: String(captchaEnv),
-      mode: import.meta.env.MODE,
-      isDev: import.meta.env.DEV,
-      isProd: import.meta.env.PROD
-    });
-    
-    // Multiple ways to detect 'true'
-    return captchaEnv === 'true' || 
-           captchaEnv === true || 
-           String(captchaEnv).toLowerCase().trim() === 'true';
-  })();
+  // CAPTCHA is disabled - using simple OTP authentication
+  const isCaptchaEnabled = false;
   
-  // Button validation - send button active when:
+  console.log('🔍 Simple OTP Authentication Mode:', {
+    captchaEnabled: isCaptchaEnabled,
+    mode: import.meta.env.MODE,
+    message: 'CAPTCHA disabled - Supabase handles authentication'
+  });
+  
+  // Simple button validation:
   // - email valid
-  // - no cooldown & not sending  
-  // - if CAPTCHA enabled: turnstile token available
-  // - if CAPTCHA disabled: always ready
+  // - no cooldown & not sending
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
-    authState !== "sending" &&
-    (isCaptchaEnabled ? (turnstileToken && !turnstileLoading) : true);
+    authState !== "sending";
 
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,10 +139,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
-    if (isCaptchaEnabled && !turnstileToken) {
-      toast.error("Silakan selesaikan verifikasi keamanan terlebih dahulu.");
-      return;
-    }
+    // No CAPTCHA validation needed
 
     setAuthState("sending");
     setError("");
@@ -180,9 +147,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        isCaptchaEnabled ? turnstileToken : null, // Use Turnstile token only if CAPTCHA enabled
-        true,
-        !isCaptchaEnabled // Skip captcha validation if CAPTCHA disabled
+        null, // No CAPTCHA token
+        true, // Allow signup
+        true  // Skip CAPTCHA validation
       );
 
       if (!mountedRef.current) return;
@@ -222,9 +189,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        isCaptchaEnabled ? turnstileToken : null, // Use Turnstile token only if CAPTCHA enabled
-        true,
-        !isCaptchaEnabled // Skip captcha validation if CAPTCHA disabled
+        null, // No CAPTCHA token
+        true, // Allow signup
+        true  // Skip CAPTCHA validation
       );
 
       if (!mountedRef.current) return;
@@ -384,53 +351,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
-              {/* Turnstile CAPTCHA - Only show if enabled */}
-              {isCaptchaEnabled && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Verifikasi Keamanan
-                  </Label>
-                  <TurnstileWidget
-                    ref={widgetRef}
-                    sitekey={(() => {
-                      const rawSitekey = import.meta.env.VITE_TURNSTILE_SITEKEY || '';
-                      // Remove ALL whitespace, newlines, and invisible characters
-                      const cleanSitekey = rawSitekey.replace(/\s+/g, '').trim();
-                      console.log('🔍 Raw sitekey:', JSON.stringify(rawSitekey));
-                      console.log('🔍 Clean sitekey:', JSON.stringify(cleanSitekey));
-                      console.log('🔍 Length - Raw:', rawSitekey.length, 'Clean:', cleanSitekey.length);
-                      return cleanSitekey;
-                    })()}
-                    onSuccess={(token) => {
-                      logger.debug('Turnstile verification successful');
-                    }}
-                    onError={(error) => {
-                      logger.error('Turnstile verification failed:', error);
-                      toast.error('Gagal memverifikasi CAPTCHA. Silakan coba lagi.');
-                    }}
-                    onExpired={() => {
-                      logger.warn('Turnstile token expired');
-                      toast.warning('Token keamanan telah kedaluwarsa. Silakan verifikasi ulang.');
-                    }}
-                    theme="light"
-                    size="flexible"
-                  />
-                  {turnstileError && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {turnstileError}
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              {/* CAPTCHA disabled notice */}
-              {!isCaptchaEnabled && (
-                <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    🔒 Mode Development: CAPTCHA dinonaktifkan
-                  </p>
-                </div>
-              )}
+              {/* Simple OTP Authentication - No CAPTCHA required */}
+              <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-700">
+                  📮 Simple OTP Authentication - No CAPTCHA required
+                </p>
+              </div>
 
               <Button
                 onClick={handleSendOtp}

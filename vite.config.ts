@@ -59,22 +59,65 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       // host: true, // uncomment kalau mau akses via LAN IP
       headers: {
+        // ✅ ENHANCED SECURITY HEADERS
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
         'X-XSS-Protection': '1; mode=block',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
-        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()'
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()',
+        // Strict Transport Security (HSTS)
+        'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+        // Content Security Policy
+        'Content-Security-Policy': [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://kewhzkfvswbimmwtpymw.supabase.co https://challenges.cloudflare.com",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: https: blob:",
+          "font-src 'self' data:",
+          "connect-src 'self' https://kewhzkfvswbimmwtpymw.supabase.co wss://kewhzkfvswbimmwtpymw.supabase.co https://challenges.cloudflare.com",
+          "frame-src https://challenges.cloudflare.com",
+          "worker-src 'self' blob:",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+          "frame-ancestors 'none'",
+          "upgrade-insecure-requests"
+        ].join('; '),
+        // Security additional headers
+        'Cross-Origin-Embedder-Policy': 'credentialless',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Resource-Policy': 'same-origin'
       }
     },
     preview: {
       port: 5500,
       strictPort: true,
       headers: {
+        // ✅ ENHANCED SECURITY HEADERS (same as server)
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
         'X-XSS-Protection': '1; mode=block',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
-        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()'
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()',
+        'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+        'Content-Security-Policy': [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://kewhzkfvswbimmwtpymw.supabase.co https://challenges.cloudflare.com",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: https: blob:",
+          "font-src 'self' data:",
+          "connect-src 'self' https://kewhzkfvswbimmwtpymw.supabase.co wss://kewhzkfvswbimmwtpymw.supabase.co https://challenges.cloudflare.com",
+          "frame-src https://challenges.cloudflare.com",
+          "worker-src 'self' blob:",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+          "frame-ancestors 'none'",
+          "upgrade-insecure-requests"
+        ].join('; '),
+        'Cross-Origin-Embedder-Policy': 'credentialless',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Resource-Policy': 'same-origin'
       }
     },
 

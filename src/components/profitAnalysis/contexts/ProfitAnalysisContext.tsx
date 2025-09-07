@@ -88,13 +88,19 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     queryKey: PROFIT_QUERY_KEYS.current(),
     queryFn: async () => {
       logger.info('🔄 Mengambil analisis profit bulan ini...');
-      const response = await profitAnalysisApi.getCurrentMonthProfit();
+      
+      // ✅ Generate current month period
+      const now = new Date();
+      const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      
+      const response = await profitAnalysisApi.calculateProfitAnalysis(currentPeriod);
       if (response.error) {
         throw new Error(response.error);
       }
       
-      logger.success(' Analisis profit berhasil dimuat:', {
-        revenue: response.data.revenue_data.total,
+      logger.success('✅ Analisis profit berhasil dimuat:', {
+        period: currentPeriod,
+        revenue: response.data.revenue_data?.total || 0,
         calculatedAt: response.data.calculated_at
       });
       

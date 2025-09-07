@@ -26,7 +26,18 @@ export const validateRequired = (value: string): { isValid: boolean; error?: str
 };
 
 export const validateEmail = (email: string): { isValid: boolean; error?: string } => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // ✅ Enhanced email validation with security considerations
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  // Check length limit (RFC 5321)
+  if (email.length > 254) {
+    return { isValid: false, error: "Email terlalu panjang" };
+  }
+  
+  // Check for dangerous characters that might indicate XSS attempts
+  if (email.includes('<') || email.includes('>') || email.includes('"')) {
+    return { isValid: false, error: "Email mengandung karakter tidak valid" };
+  }
   
   if (!emailRegex.test(email)) {
     return { isValid: false, error: "Format email tidak valid" };

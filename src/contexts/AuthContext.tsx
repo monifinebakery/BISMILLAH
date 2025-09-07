@@ -342,13 +342,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         logger.context('AuthContext', 'Initializing auth...');
         const adaptiveTimeout = getAdaptiveTimeout(15000);
+        
+        // ✅ Get session first
+        const { data: sessionResult, error: sessionError } = await safeWithTimeout(
+          supabase.auth.getSession(),
+          adaptiveTimeout,
+          'AuthContext initialization timeout'
+        );
+        
+        if (sessionError) {
+          logger.error('AuthContext: Session fetch failed:', sessionError);
+          return;
+        }
+        
+        const { data: { session: rawSession } } = sessionResult as any;
+        const { session: validSession, user: validUser } = validateSession(rawSession);
+        
         // ✅ Enhanced initialization dengan fallback
         logger.context('AuthContext', 'Auth initialization result:', {
           hasValidUser: !!validUser,
           userEmail: validUser?.email || 'none',
           userId: validUser?.id || 'none',
-          originalSessionValid: !!session,
-          wasUserSanitized: !!session?.user && !validUser,
+          originalSessionValid: !!rawSession,
+          wasUserSanitized: !!rawSession?.user && !validUser,
           adaptiveTimeout,
         });
 
@@ -356,7 +372,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(validUser);
 
         // ✅ Handle invalid session - consistent dengan authUtils
-        if (session && !validSession) {
+        if (rawSession && !validSession) {
           logger.warn('AuthContext: Invalid session detected, cleaning up...');
           try {
             cleanupAuthState(); // Gunakan dari authUtils

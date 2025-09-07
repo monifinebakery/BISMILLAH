@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const PaymentSuccessPage = React.lazy(() =>
   import(/* webpackChunkName: "misc" */ '@/pages/PaymentSuccessPage')
@@ -10,9 +10,13 @@ const paymentRoutes = (
   <Route
     path="payment-success"
     element={
-      <RouteWrapper title="Memuat Konfirmasi Pembayaran">
+      <OptimizedRouteWrapper 
+        routeName="payment" 
+        priority="low"
+        preloadOnHover={false}
+      >
         <PaymentSuccessPage />
-      </RouteWrapper>
+      </OptimizedRouteWrapper>
     }
   />
 );

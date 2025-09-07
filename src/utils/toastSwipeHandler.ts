@@ -1,5 +1,4 @@
 // Toast swipe gesture handler
-import { safeDom } from './browserApiSafeWrappers';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 let isSwipeListenerAdded = false;
@@ -169,12 +168,12 @@ export const initToastSwipeHandlers = () => {
   };
 
   // Add event listeners with safe DOM methods
-  safeDom.addEventListener(document, 'touchstart', handleTouchStart, { passive: true });
-  safeDom.addEventListener(document, 'touchmove', handleTouchMove, { passive: false });
-  safeDom.addEventListener(document, 'touchend', handleTouchEnd, { passive: true });
-  safeDom.addEventListener(document, 'mousedown', handleMouseDown, undefined);
-  safeDom.addEventListener(document, 'mousemove', handleMouseMove, undefined);
-  safeDom.addEventListener(document, 'mouseup', handleMouseUp, undefined);
+  safeDom.addEventListener(document, 'touchstart', handleTouchStart as EventListener, { passive: true });
+  safeDom.addEventListener(document, 'touchmove', handleTouchMove as EventListener, { passive: false });
+  safeDom.addEventListener(document, 'touchend', handleTouchEnd as EventListener, { passive: true });
+  safeDom.addEventListener(document, 'mousedown', handleMouseDown as EventListener, undefined);
+  safeDom.addEventListener(document, 'mousemove', handleMouseMove as EventListener, undefined);
+  safeDom.addEventListener(document, 'mouseup', handleMouseUp as EventListener, undefined);
 
   // Cleanup mouse events on mouse leave
   safeDom.addEventListener(document, 'mouseleave', () => {

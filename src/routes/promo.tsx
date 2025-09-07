@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const PromoCalculatorPage = React.lazy(() =>
   import(/* webpackChunkName: "promo" */ '@/pages/PromoCalculatorPage')
@@ -21,33 +21,49 @@ const promoRoutes = (
     <Route
       path="promo"
       element={
-        <RouteWrapper title="Memuat Kalkulator Promo">
+        <OptimizedRouteWrapper 
+          routeName="promo" 
+          priority="low"
+          preloadOnHover={false}
+        >
           <PromoCalculatorPage />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
     <Route
       path="promo/list"
       element={
-        <RouteWrapper title="Memuat Daftar Promo">
+        <OptimizedRouteWrapper 
+          routeName="promo-list" 
+          priority="low"
+          preloadOnHover={false}
+        >
           <PromoList />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
     <Route
       path="promo/create"
       element={
-        <RouteWrapper title="Memuat Form Promo">
+        <OptimizedRouteWrapper 
+          routeName="promo-create" 
+          priority="low"
+          preloadOnHover={false}
+        >
           <PromoFullCalculator />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
     <Route
       path="promo/edit/:id"
       element={
-        <RouteWrapper title="Memuat Editor Promo">
+        <OptimizedRouteWrapper 
+          routeName="promo-edit" 
+          priority="low"
+          preloadOnHover={false}
+        >
           <PromoFullCalculator />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
   </>

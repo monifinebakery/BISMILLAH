@@ -658,29 +658,9 @@ const WarehousePageContent: React.FC = () => {
             />
           )}
 
-          {/* Kontrol Paginasi */}
+          {/* Info Update */}
           <div className="p-4 border-t border-gray-200 bg-gray-50">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <label htmlFor="itemsPerPage">Items per page:</label>
-                  <select
-                    id="itemsPerPage"
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                </div>
-              </div>
-
               <div className="text-sm text-gray-600">
                 Terakhir diperbarui: {warehouseData.lastUpdated ? new Date(warehouseData.lastUpdated).toLocaleString('id-ID') : 'Tidak diketahui'}
                 {warehouseData.paginationInfo && (

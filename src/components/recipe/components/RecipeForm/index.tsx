@@ -23,7 +23,8 @@ import CostCalculationStep from './CostCalculationStep/index';
 import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
 import { recipeApi } from '../../services/recipeApi';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
-RECIPE_CATEGORIES,
+import {
+  RECIPE_CATEGORIES,
   type Recipe,
   type NewRecipe,
   type RecipeFormStep,

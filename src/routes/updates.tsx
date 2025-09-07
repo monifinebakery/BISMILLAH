@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const UpdatesPage = React.lazy(() =>
   import(/* webpackChunkName: "updates" */ '@/components/update').then(module => ({
@@ -19,17 +19,25 @@ const updateRoutes = (
     <Route
       path="updates"
       element={
-        <RouteWrapper title="Memuat Pembaruan">
+        <OptimizedRouteWrapper 
+          routeName="updates" 
+          priority="low"
+          preloadOnHover={false}
+        >
           <UpdatesPage />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
     <Route
       path="admin/updates"
       element={
-        <RouteWrapper title="Memuat Admin Updates">
+        <OptimizedRouteWrapper 
+          routeName="admin-updates" 
+          priority="low"
+          preloadOnHover={false}
+        >
           <AdminUpdatesPage />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
   </>

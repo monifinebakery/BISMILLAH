@@ -192,31 +192,6 @@ const TableControls: React.FC<{
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         {/* Left Side Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          {/* Items per page */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-700 whitespace-nowrap">Tampilkan</span>
-            <Select
-              value={uiState.itemsPerPage.toString()}
-              onValueChange={(value) => {
-                console.log('🔄 OrderControls: Dropdown value changed:', { from: uiState.itemsPerPage, to: parseInt(value) });
-                uiState.setItemsPerPage(parseInt(value));
-              }}
-              disabled={loading}
-            >
-              <SelectTrigger className="w-16 sm:w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TABLE_PAGE_SIZES.map((size) => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-gray-700 hidden sm:inline">item per halaman</span>
-          </div>
-          
           {/* Selection Mode Toggle - Always Visible */}
           {!uiState.isSelectionMode && (
             <Button

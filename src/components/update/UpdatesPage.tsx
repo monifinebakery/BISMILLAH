@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUpdates } from './UpdateContext';
 import { AppUpdate } from './types';
 import { UpdateCard } from './UpdateCard';
 import { Loader2, RefreshCw, CheckCircle2, Bell, Filter } from 'lucide-react';
 
-export const UpdatesPage: React.FC = () => {
+export const UpdatesPage: React.FC = React.memo(() => {
   const { markAllAsSeen, hasUnseenUpdates, refreshUpdates, loading: contextLoading, unseenUpdates } = useUpdates();
-  const [updates, setUpdates] = useState<AppUpdate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [priorityFilter, setPriorityFilter] = useState<'all' | 'critical' | 'high' | 'normal' | 'low'>('all');
   
-  // Lazy loading state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading] = useState(true);
+  // Consolidated state for pagination and filters
+  const [pageState, setPageState] = useState({
+    updates: [] as AppUpdate[],
+    loading: true,
+    currentPage: 1,
+    itemsPerPage: 10,
+    filter: 'all' as 'all' | 'unread',
+    priorityFilter: 'all' as 'all' | 'critical' | 'high' | 'normal' | 'low'
+  });
+  
   const [paginationInfo, setPaginationInfo] = useState<{
     total: number;
     totalPages: number;
@@ -24,8 +26,8 @@ export const UpdatesPage: React.FC = () => {
   } | null>(null);
 
 
-  const fetchUpdatesPaginated = async (page: number, limit: number) => {
-    setLoading(true);
+  const fetchUpdatesPaginated = useCallback(async (page: number, limit: number) => {
+    setPageState(prev => ({ ...prev, loading: true }));
     try {
       // Get total count
       const { count, error: countError } = await supabase
@@ -59,18 +61,14 @@ export const UpdatesPage: React.FC = () => {
       console.error('Error fetching paginated updates:', error);
       throw error;
     } finally {
-      setLoading(false);
+      setPageState(prev => ({ ...prev, loading: false }));
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    loadPaginatedData();
-  }, [currentPage, itemsPerPage]);
-
-  const loadPaginatedData = async () => {
+  const loadPaginatedData = useCallback(async () => {
     try {
-      const result = await fetchUpdatesPaginated(currentPage, itemsPerPage);
-      setUpdates(result.data);
+      const result = await fetchUpdatesPaginated(pageState.currentPage, pageState.itemsPerPage);
+      setPageState(prev => ({ ...prev, updates: result.data }));
       setPaginationInfo({
         total: result.total,
         totalPages: result.totalPages,
@@ -80,26 +78,32 @@ export const UpdatesPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading paginated data:', error);
     }
-  };
+  }, [fetchUpdatesPaginated, pageState.currentPage, pageState.itemsPerPage]);
 
-  const handleRefresh = async () => {
+  useEffect(() => {
+    loadPaginatedData();
+  }, [loadPaginatedData]);
+
+  const handleRefresh = useCallback(async () => {
     await loadPaginatedData();
     await refreshUpdates();
-  };
+  }, [loadPaginatedData, refreshUpdates]);
 
-  const handleMarkAllAsSeen = async () => {
+  const handleMarkAllAsSeen = useCallback(async () => {
     await markAllAsSeen();
     await loadPaginatedData();
-  };
+  }, [markAllAsSeen, loadPaginatedData]);
 
-  // Filter updates based on selected filters and unread status
-  const filteredUpdates = updates.filter(update => {
-    const matchesPriority = priorityFilter === 'all' || update.priority === priorityFilter;
-    const matchesFilter = filter === 'all' || (filter === 'unread' && unseenUpdates.some(u => u.id === update.id));
-    return matchesPriority && matchesFilter;
-  });
+  // Memoized filtered updates to prevent unnecessary re-calculations
+  const filteredUpdates = useMemo(() => {
+    return pageState.updates.filter(update => {
+      const matchesPriority = pageState.priorityFilter === 'all' || update.priority === pageState.priorityFilter;
+      const matchesFilter = pageState.filter === 'all' || (pageState.filter === 'unread' && unseenUpdates.some(u => u.id === update.id));
+      return matchesPriority && matchesFilter;
+    });
+  }, [pageState.updates, pageState.priorityFilter, pageState.filter, unseenUpdates]);
 
-  if (loading || contextLoading) {
+  if (pageState.loading || contextLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -140,7 +144,7 @@ export const UpdatesPage: React.FC = () => {
               <button
                 onClick={handleRefresh}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-                disabled={loading || contextLoading}
+                disabled={pageState.loading || contextLoading}
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
@@ -156,10 +160,9 @@ export const UpdatesPage: React.FC = () => {
                   <label htmlFor="itemsPerPage">Items per page:</label>
                   <select
                     id="itemsPerPage"
-                    value={itemsPerPage}
+                    value={pageState.itemsPerPage}
                     onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
+                      setPageState(prev => ({ ...prev, itemsPerPage: Number(e.target.value), currentPage: 1 }));
                     }}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                   >
@@ -189,8 +192,8 @@ export const UpdatesPage: React.FC = () => {
             </div>
             
             <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as 'all' | 'unread')}
+              value={pageState.filter}
+              onChange={(e) => setPageState(prev => ({ ...prev, filter: e.target.value as 'all' | 'unread' }))}
               className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 mr-4"
             >
               <option value="all">Semua</option>
@@ -198,8 +201,8 @@ export const UpdatesPage: React.FC = () => {
             </select>
 
             <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value as any)}
+              value={pageState.priorityFilter}
+              onChange={(e) => setPageState(prev => ({ ...prev, priorityFilter: e.target.value as any }))}
               className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Semua Prioritas</option>
@@ -221,7 +224,7 @@ export const UpdatesPage: React.FC = () => {
               Belum Ada Pembaruan
             </h3>
             <p className="text-gray-600">
-              {updates.length === 0
+              {pageState.updates.length === 0
                 ? "Belum ada pembaruan aplikasi. Pantau terus halaman ini untuk mendapatkan info terbaru!"
                 : "Tidak ada pembaruan yang sesuai dengan filter yang dipilih."
               }
@@ -249,20 +252,20 @@ export const UpdatesPage: React.FC = () => {
             
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
+                onClick={() => setPageState(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+                disabled={pageState.currentPage === 1}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Sebelumnya
               </button>
               
               <span className="px-3 py-2 text-sm">
-                {currentPage} / {paginationInfo.totalPages}
+                {pageState.currentPage} / {paginationInfo.totalPages}
               </span>
               
               <button
-                onClick={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
-                disabled={currentPage === paginationInfo.totalPages}
+                onClick={() => setPageState(prev => ({ ...prev, currentPage: Math.min(paginationInfo.totalPages, prev.currentPage + 1) }))}
+                disabled={pageState.currentPage === paginationInfo.totalPages}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Selanjutnya
@@ -273,4 +276,6 @@ export const UpdatesPage: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+export default UpdatesPage;

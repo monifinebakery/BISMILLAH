@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const DeviceManagementPage = React.lazy(() =>
   import(/* webpackChunkName: "misc" */ '@/components/devices/DeviceManagementPage')
@@ -10,9 +10,13 @@ const deviceRoutes = (
   <Route
     path="devices"
     element={
-      <RouteWrapper title="Memuat Manajemen Perangkat">
+      <OptimizedRouteWrapper 
+        routeName="devices" 
+        priority="low"
+        preloadOnHover={false}
+      >
         <DeviceManagementPage />
-      </RouteWrapper>
+      </OptimizedRouteWrapper>
     }
   />
 );

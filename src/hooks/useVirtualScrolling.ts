@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { safePerformance, safeDom } from '@/utils/browserApiSafeWrappers';
-import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 
 interface VirtualScrollingOptions {

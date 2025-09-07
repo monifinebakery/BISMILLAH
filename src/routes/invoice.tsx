@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const InvoicePage = React.lazy(() =>
   import(/* webpackChunkName: "misc" */ '@/components/invoice/InvoicePage')
@@ -10,9 +10,13 @@ const invoiceRoutes = (
   <Route
     path="invoice"
     element={
-      <RouteWrapper title="Memuat Invoice">
+      <OptimizedRouteWrapper 
+        routeName="invoice" 
+        priority="medium"
+        preloadOnHover={true}
+      >
         <InvoicePage />
-      </RouteWrapper>
+      </OptimizedRouteWrapper>
     }
   />
 );

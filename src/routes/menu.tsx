@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const MenuPage = React.lazy(() =>
   import(/* webpackChunkName: "misc" */ '@/pages/MenuPage')
@@ -10,9 +10,13 @@ const menuRoutes = (
   <Route
     path="menu"
     element={
-      <RouteWrapper title="Memuat Menu">
+      <OptimizedRouteWrapper 
+        routeName="menu" 
+        priority="low"
+        preloadOnHover={false}
+      >
         <MenuPage />
-      </RouteWrapper>
+      </OptimizedRouteWrapper>
     }
   />
 );

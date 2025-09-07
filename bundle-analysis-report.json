@@ -1,0 +1,520 @@
+{
+  "timestamp": "2025-09-07T06:54:56.235Z",
+  "totalFiles": 102,
+  "totalSize": 3163917,
+  "files": [
+    {
+      "name": "vendor-CYyXyb65.js",
+      "size": 1037410,
+      "sizeFormatted": "1013.1 KB"
+    },
+    {
+      "name": "index-BmuDucod.js",
+      "size": 523192,
+      "sizeFormatted": "510.93 KB"
+    },
+    {
+      "name": "excel-DGuHH-KN.js",
+      "size": 429493,
+      "sizeFormatted": "419.43 KB"
+    },
+    {
+      "name": "Recipes-C7Ohe1vx.js",
+      "size": 93329,
+      "sizeFormatted": "91.14 KB"
+    },
+    {
+      "name": "WarehousePage-CYLOLeap.js",
+      "size": 73228,
+      "sizeFormatted": "71.51 KB"
+    },
+    {
+      "name": "OperationalCostPage-DJov_dDL.js",
+      "size": 69056,
+      "sizeFormatted": "67.44 KB"
+    },
+    {
+      "name": "index-D20LxG4E.js",
+      "size": 54941,
+      "sizeFormatted": "53.65 KB"
+    },
+    {
+      "name": "Tutorial-DDQRyeeR.js",
+      "size": 54106,
+      "sizeFormatted": "52.84 KB"
+    },
+    {
+      "name": "PurchaseTable-kDbHkKcD.js",
+      "size": 42375,
+      "sizeFormatted": "41.38 KB"
+    },
+    {
+      "name": "PurchaseAddEditPage-Dya6HbS9.js",
+      "size": 38219,
+      "sizeFormatted": "37.32 KB"
+    },
+    {
+      "name": "ProfitTrendChart-0ZZDjNLp.js",
+      "size": 36033,
+      "sizeFormatted": "35.19 KB"
+    },
+    {
+      "name": "InvoicePage-DMvYOi4v.js",
+      "size": 30753,
+      "sizeFormatted": "30.03 KB"
+    },
+    {
+      "name": "OrdersPage-r4cvILoI.js",
+      "size": 28039,
+      "sizeFormatted": "27.38 KB"
+    },
+    {
+      "name": "Settings-Dm8aB_op.js",
+      "size": 24514,
+      "sizeFormatted": "23.94 KB"
+    },
+    {
+      "name": "PromoCalculator-Cg7bB32U.js",
+      "size": 24272,
+      "sizeFormatted": "23.7 KB"
+    },
+    {
+      "name": "FinancialReportPage-Dz1a-RAG.js",
+      "size": 20163,
+      "sizeFormatted": "19.69 KB"
+    },
+    {
+      "name": "index-mPXNX49U.js",
+      "size": 16887,
+      "sizeFormatted": "16.49 KB"
+    },
+    {
+      "name": "index-DS2BThXR.js",
+      "size": 16348,
+      "sizeFormatted": "15.96 KB"
+    },
+    {
+      "name": "OrdersAddEditPage-BD-ODs-C.js",
+      "size": 15823,
+      "sizeFormatted": "15.45 KB"
+    },
+    {
+      "name": "AddEditDialog-BRjIKCSG.js",
+      "size": 14898,
+      "sizeFormatted": "14.55 KB"
+    },
+    {
+      "name": "PurchasePage-DbWfWNp5.js",
+      "size": 14789,
+      "sizeFormatted": "14.44 KB"
+    },
+    {
+      "name": "ImportExportDialog-Cya-luZR.js",
+      "size": 14742,
+      "sizeFormatted": "14.4 KB"
+    },
+    {
+      "name": "CategoryManagerDialog-BdyAiqje.js",
+      "size": 14286,
+      "sizeFormatted": "13.95 KB"
+    },
+    {
+      "name": "Dashboard-C-pJzQLO.js",
+      "size": 14116,
+      "sizeFormatted": "13.79 KB"
+    },
+    {
+      "name": "OrderForm-DchB86L7.js",
+      "size": 14054,
+      "sizeFormatted": "13.72 KB"
+    },
+    {
+      "name": "PromoList-B_U3MrN_.js",
+      "size": 13845,
+      "sizeFormatted": "13.52 KB"
+    },
+    {
+      "name": "DetailedBreakdownTable-BhjYQa-U.js",
+      "size": 13830,
+      "sizeFormatted": "13.51 KB"
+    },
+    {
+      "name": "PurchaseImportDialog-CnbFfMMd.js",
+      "size": 12291,
+      "sizeFormatted": "12 KB"
+    },
+    {
+      "name": "CostDialog-BO_ikPEx.js",
+      "size": 12251,
+      "sizeFormatted": "11.96 KB"
+    },
+    {
+      "name": "PromoCalculatorPage-tjKVCZ74.js",
+      "size": 12205,
+      "sizeFormatted": "11.92 KB"
+    },
+    {
+      "name": "DeviceManagementPage-DJWAUDqK.js",
+      "size": 11991,
+      "sizeFormatted": "11.71 KB"
+    },
+    {
+      "name": "OrderTable-BP2GARKP.js",
+      "size": 11618,
+      "sizeFormatted": "11.35 KB"
+    },
+    {
+      "name": "TransactionTable-Bz-si3Eg.js",
+      "size": 11212,
+      "sizeFormatted": "10.95 KB"
+    },
+    {
+      "name": "ProfitBreakdownChart-BfntctT1.js",
+      "size": 11172,
+      "sizeFormatted": "10.91 KB"
+    },
+    {
+      "name": "ExpenseAlerts-CNBALxNW.js",
+      "size": 10627,
+      "sizeFormatted": "10.38 KB"
+    },
+    {
+      "name": "OrdersViewPage-Cv37yPnK.js",
+      "size": 10531,
+      "sizeFormatted": "10.28 KB"
+    },
+    {
+      "name": "DialogManager-C0axh0su.js",
+      "size": 9674,
+      "sizeFormatted": "9.45 KB"
+    },
+    {
+      "name": "SimpleBusinessReport-DBuSEubH.js",
+      "size": 9571,
+      "sizeFormatted": "9.35 KB"
+    },
+    {
+      "name": "BundleForm-DlSJoYL6.js",
+      "size": 9494,
+      "sizeFormatted": "9.27 KB"
+    },
+    {
+      "name": "VirtualList-BNCfXuAM.js",
+      "size": 9436,
+      "sizeFormatted": "9.21 KB"
+    },
+    {
+      "name": "WorstSellingProducts-B1BmsCKD.js",
+      "size": 9336,
+      "sizeFormatted": "9.12 KB"
+    },
+    {
+      "name": "PromoFullCalculator-Q_Hwoqdf.js",
+      "size": 9272,
+      "sizeFormatted": "9.05 KB"
+    },
+    {
+      "name": "FollowUpTemplateManager-Brv31cK3.js",
+      "size": 9157,
+      "sizeFormatted": "8.94 KB"
+    },
+    {
+      "name": "DebtTracker-DZ114nqH.js",
+      "size": 9124,
+      "sizeFormatted": "8.91 KB"
+    },
+    {
+      "name": "BogoForm-B0ISbwub.js",
+      "size": 8997,
+      "sizeFormatted": "8.79 KB"
+    },
+    {
+      "name": "BulkActions-CE3EJlYD.js",
+      "size": 8978,
+      "sizeFormatted": "8.77 KB"
+    },
+    {
+      "name": "BulkOperationsDialog-CbwSDpDm.js",
+      "size": 8912,
+      "sizeFormatted": "8.7 KB"
+    },
+    {
+      "name": "DiscountForm-JVLe36vN.js",
+      "size": 8513,
+      "sizeFormatted": "8.31 KB"
+    },
+    {
+      "name": "RecipeStats-D496IDDe.js",
+      "size": 8109,
+      "sizeFormatted": "7.92 KB"
+    },
+    {
+      "name": "StatsGrid-D59VF4bc.js",
+      "size": 7572,
+      "sizeFormatted": "7.39 KB"
+    },
+    {
+      "name": "VirtualTransactionTable-CYSXPwhW.js",
+      "size": 7543,
+      "sizeFormatted": "7.37 KB"
+    },
+    {
+      "name": "BestSellingProducts-CEbuwUj6.js",
+      "size": 6716,
+      "sizeFormatted": "6.56 KB"
+    },
+    {
+      "name": "OrderControls-BPeBUDfe.js",
+      "size": 6629,
+      "sizeFormatted": "6.47 KB"
+    },
+    {
+      "name": "RecipeFilters-cpdK364N.js",
+      "size": 6620,
+      "sizeFormatted": "6.46 KB"
+    },
+    {
+      "name": "AllocationDialog-QuUvwdEf.js",
+      "size": 6452,
+      "sizeFormatted": "6.3 KB"
+    },
+    {
+      "name": "DuplicateRecipeDialog-B51UKhgN.js",
+      "size": 6399,
+      "sizeFormatted": "6.25 KB"
+    },
+    {
+      "name": "FinancialTransactionDialog-CDiX-_Sk.js",
+      "size": 6240,
+      "sizeFormatted": "6.09 KB"
+    },
+    {
+      "name": "SavingsGoalTracker-5tqXOD_P.js",
+      "size": 6206,
+      "sizeFormatted": "6.06 KB"
+    },
+    {
+      "name": "RecentActivities-BUvNlT5D.js",
+      "size": 6185,
+      "sizeFormatted": "6.04 KB"
+    },
+    {
+      "name": "CategoryManagementDialog-CUvRT71U.js",
+      "size": 6055,
+      "sizeFormatted": "5.91 KB"
+    },
+    {
+      "name": "RecipeTable-D-68o6Wx.js",
+      "size": 6044,
+      "sizeFormatted": "5.9 KB"
+    },
+    {
+      "name": "SupplierDialog-BZrCVK3b.js",
+      "size": 5793,
+      "sizeFormatted": "5.66 KB"
+    },
+    {
+      "name": "DeleteRecipeDialog-D4L0AUhq.js",
+      "size": 5556,
+      "sizeFormatted": "5.43 KB"
+    },
+    {
+      "name": "PromoCard-DrXrrNK5.js",
+      "size": 5493,
+      "sizeFormatted": "5.36 KB"
+    },
+    {
+      "name": "promoService-Bv4ww6r3.js",
+      "size": 5231,
+      "sizeFormatted": "5.11 KB"
+    },
+    {
+      "name": "UMKMExpenseCategories-NIRFxP9M.js",
+      "size": 5224,
+      "sizeFormatted": "5.1 KB"
+    },
+    {
+      "name": "ProfitLossSimple-DI5KYYkg.js",
+      "size": 5013,
+      "sizeFormatted": "4.9 KB"
+    },
+    {
+      "name": "BulkEditDialog-BB7U-Dmc.js",
+      "size": 4964,
+      "sizeFormatted": "4.85 KB"
+    },
+    {
+      "name": "DailySummaryWidget-CSwhXfWI.js",
+      "size": 4857,
+      "sizeFormatted": "4.74 KB"
+    },
+    {
+      "name": "OrderFilters-QKl4zJsO.js",
+      "size": 4640,
+      "sizeFormatted": "4.53 KB"
+    },
+    {
+      "name": "BulkActions-CpVgoMxX.js",
+      "size": 4549,
+      "sizeFormatted": "4.44 KB"
+    },
+    {
+      "name": "MenuPage-D3Q1JQS4.js",
+      "size": 4458,
+      "sizeFormatted": "4.35 KB"
+    },
+    {
+      "name": "FinancialCharts-dzTd3Exv.js",
+      "size": 4454,
+      "sizeFormatted": "4.35 KB"
+    },
+    {
+      "name": "DailyCashFlowTracker-BlLJbvvf.js",
+      "size": 4403,
+      "sizeFormatted": "4.3 KB"
+    },
+    {
+      "name": "DateRangePicker-DYJSpbQJ.js",
+      "size": 4276,
+      "sizeFormatted": "4.18 KB"
+    },
+    {
+      "name": "OrderDetailDialog-DKY_S8Mk.js",
+      "size": 4033,
+      "sizeFormatted": "3.94 KB"
+    },
+    {
+      "name": "CategoryCharts-B3HV3tVV.js",
+      "size": 3994,
+      "sizeFormatted": "3.9 KB"
+    },
+    {
+      "name": "CriticalStock-yZj0e_hR.js",
+      "size": 3831,
+      "sizeFormatted": "3.74 KB"
+    },
+    {
+      "name": "BulkDeleteDialog-C_xs9lHa.js",
+      "size": 3661,
+      "sizeFormatted": "3.58 KB"
+    },
+    {
+      "name": "BulkEditDialog-CNQf2F7N.js",
+      "size": 3380,
+      "sizeFormatted": "3.3 KB"
+    },
+    {
+      "name": "OrderDialogs-LOT5SLjJ.js",
+      "size": 2876,
+      "sizeFormatted": "2.81 KB"
+    },
+    {
+      "name": "QuickActions-CSEuMQ9X.js",
+      "size": 2701,
+      "sizeFormatted": "2.64 KB"
+    },
+    {
+      "name": "LoadingState-iXMyYCHS.js",
+      "size": 2678,
+      "sizeFormatted": "2.62 KB"
+    },
+    {
+      "name": "componentOptimizations-BVfjte66.js",
+      "size": 2487,
+      "sizeFormatted": "2.43 KB"
+    },
+    {
+      "name": "PaymentSuccessPage-CKnIHR7X.js",
+      "size": 2199,
+      "sizeFormatted": "2.15 KB"
+    },
+    {
+      "name": "BulkDeleteDialog-C_1vPg-C.js",
+      "size": 2014,
+      "sizeFormatted": "1.97 KB"
+    },
+    {
+      "name": "command-DeV88VKt.js",
+      "size": 1983,
+      "sizeFormatted": "1.94 KB"
+    },
+    {
+      "name": "DeleteConfirmDialog-BPX4p0Jl.js",
+      "size": 1844,
+      "sizeFormatted": "1.8 KB"
+    },
+    {
+      "name": "useSupplierAutoSave-DqRNWC9u.js",
+      "size": 1781,
+      "sizeFormatted": "1.74 KB"
+    },
+    {
+      "name": "costValidation-CFGuHOHg.js",
+      "size": 1674,
+      "sizeFormatted": "1.63 KB"
+    },
+    {
+      "name": "orderFinancialSync-gVAJklPL.js",
+      "size": 1615,
+      "sizeFormatted": "1.58 KB"
+    },
+    {
+      "name": "import-utils-ClrVmvGd.js",
+      "size": 1583,
+      "sizeFormatted": "1.55 KB"
+    },
+    {
+      "name": "breadcrumb-DoOjxEkx.js",
+      "size": 1220,
+      "sizeFormatted": "1.19 KB"
+    },
+    {
+      "name": "SafeNumericInput-CxSh83lS.js",
+      "size": 892,
+      "sizeFormatted": "892 Bytes"
+    },
+    {
+      "name": "financialCalculations-D4DDSWfJ.js",
+      "size": 865,
+      "sizeFormatted": "865 Bytes"
+    },
+    {
+      "name": "switch-CRoLVrhZ.js",
+      "size": 801,
+      "sizeFormatted": "801 Bytes"
+    },
+    {
+      "name": "radio-group-ZduyfkE0.js",
+      "size": 749,
+      "sizeFormatted": "749 Bytes"
+    },
+    {
+      "name": "checkbox-BXxIFvS_.js",
+      "size": 666,
+      "sizeFormatted": "666 Bytes"
+    },
+    {
+      "name": "NotFound-C6c5cUQA.js",
+      "size": 620,
+      "sizeFormatted": "620 Bytes"
+    },
+    {
+      "name": "keyUtils--dpHpfVj.js",
+      "size": 609,
+      "sizeFormatted": "609 Bytes"
+    },
+    {
+      "name": "promoUtils-BM9MDJ1y.js",
+      "size": 218,
+      "sizeFormatted": "218 Bytes"
+    },
+    {
+      "name": "visually-hidden-C--GBmlA.js",
+      "size": 159,
+      "sizeFormatted": "159 Bytes"
+    }
+  ],
+  "recommendations": [
+    "Main bundle size terlalu besar, pertimbangkan code splitting lebih lanjut"
+  ]
+}

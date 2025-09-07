@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const NotFound = React.lazy(() =>
   import(/* webpackChunkName: "misc" */ '@/pages/NotFound')
@@ -10,9 +10,13 @@ const notFoundRoutes = (
   <Route
     path="*"
     element={
-      <RouteWrapper title="Halaman Tidak Ditemukan">
+      <OptimizedRouteWrapper 
+        routeName="not-found" 
+        priority="low"
+        preloadOnHover={false}
+      >
         <NotFound />
-      </RouteWrapper>
+      </OptimizedRouteWrapper>
     }
   />
 );

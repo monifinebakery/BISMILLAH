@@ -9,6 +9,7 @@ import { AppRouter } from "@/config/routes";
 import { queryClient } from "@/config/queryClient";
 import { AppLoader } from "@/components/loaders";
 import { logger } from "@/utils/logger";
+import { CodeSplittingProvider, CodeSplittingLoadingIndicator } from "@/providers/CodeSplittingProvider";
 // import MemoryMonitor from "@/components/MemoryMonitor";
 
 const App = () => {
@@ -79,23 +80,29 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {/* ✅ AppProviders already includes AuthProvider and PaymentProvider in correct order */}
-        <AppProviders>
-          <Suspense fallback={<AppLoader />}>
-            <AppRouter />
-          </Suspense>
+        {/* ✅ Code Splitting Provider untuk optimasi loading */}
+        <CodeSplittingProvider>
+          {/* ✅ AppProviders already includes AuthProvider and PaymentProvider in correct order */}
+          <AppProviders>
+            <Suspense fallback={<AppLoader />}>
+              <AppRouter />
+            </Suspense>
 
-          {/* ✅ Dev tools only in development */}
-          {import.meta.env.DEV && (
-            <>
-              <ReactQueryDevtools initialIsOpen={false} />
-              {/* <MemoryMonitor /> */}
-            </>
-          )}
-          
-          {/* Vercel Analytics - Web visitor tracking */}
-          <Analytics />
-        </AppProviders>
+            {/* ✅ Code Splitting Loading Indicator */}
+            <CodeSplittingLoadingIndicator show={import.meta.env.DEV} />
+
+            {/* ✅ Dev tools only in development */}
+            {import.meta.env.DEV && (
+              <>
+                <ReactQueryDevtools initialIsOpen={false} />
+                {/* <MemoryMonitor /> */}
+              </>
+            )}
+            
+            {/* Vercel Analytics - Web visitor tracking */}
+            <Analytics />
+          </AppProviders>
+        </CodeSplittingProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

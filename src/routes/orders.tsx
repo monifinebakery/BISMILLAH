@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 // Lazy load components
 const OrdersPage = React.lazy(() =>
@@ -21,9 +21,13 @@ const ordersRoutes = (
     <Route
       path="pesanan"
       element={
-        <RouteWrapper title="Memuat Pesanan">
+        <OptimizedRouteWrapper 
+          routeName="orders" 
+          priority="high"
+          preloadOnHover={true}
+        >
           <OrdersPage />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
     
@@ -31,9 +35,13 @@ const ordersRoutes = (
     <Route
       path="pesanan/add"
       element={
-        <RouteWrapper title="Tambah Pesanan">
+        <OptimizedRouteWrapper 
+          routeName="orders-add" 
+          priority="high"
+          preloadOnHover={true}
+        >
           <OrdersAddEditPage />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
     
@@ -41,9 +49,13 @@ const ordersRoutes = (
     <Route
       path="pesanan/edit/:id"
       element={
-        <RouteWrapper title="Edit Pesanan">
+        <OptimizedRouteWrapper 
+          routeName="orders-edit" 
+          priority="high"
+          preloadOnHover={true}
+        >
           <OrdersAddEditPage />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
     
@@ -51,9 +63,13 @@ const ordersRoutes = (
     <Route
       path="pesanan/view/:id"
       element={
-        <RouteWrapper title="Detail Pesanan">
+        <OptimizedRouteWrapper 
+          routeName="orders-view" 
+          priority="high"
+          preloadOnHover={true}
+        >
           <OrdersViewPage />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
   </>

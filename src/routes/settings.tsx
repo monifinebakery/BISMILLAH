@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const Settings = React.lazy(() =>
   import(/* webpackChunkName: "misc" */ '@/pages/Settings')
@@ -10,9 +10,13 @@ const settingsRoutes = (
   <Route
     path="pengaturan"
     element={
-      <RouteWrapper title="Memuat Pengaturan">
+      <OptimizedRouteWrapper 
+        routeName="settings" 
+        priority="low"
+        preloadOnHover={false}
+      >
         <Settings />
-      </RouteWrapper>
+      </OptimizedRouteWrapper>
     }
   />
 );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import RouteWrapper from './RouteWrapper';
+import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
 const PurchaseManagement = React.lazy(() =>
   import(/* webpackChunkName: "purchase" */ '@/components/purchase/PurchasePage')
@@ -16,9 +16,13 @@ const purchaseRoutes = (
     <Route
       path="pembelian"
       element={
-        <RouteWrapper title="Memuat Pembelian">
+        <OptimizedRouteWrapper 
+          routeName="purchase" 
+          priority="medium"
+          preloadOnHover={true}
+        >
           <PurchaseManagement />
-        </RouteWrapper>
+        </OptimizedRouteWrapper>
       }
     />
     
@@ -27,25 +31,37 @@ const purchaseRoutes = (
       <Route 
         index 
         element={
-          <RouteWrapper title="Memuat Pembelian">
+          <OptimizedRouteWrapper 
+            routeName="purchase" 
+            priority="medium"
+            preloadOnHover={true}
+          >
             <PurchaseManagement />
-          </RouteWrapper>
+          </OptimizedRouteWrapper>
         } 
       />
       <Route 
         path="add" 
         element={
-          <RouteWrapper title="Tambah Pembelian">
+          <OptimizedRouteWrapper 
+            routeName="purchase-add" 
+            priority="medium"
+            preloadOnHover={true}
+          >
             <PurchaseAddEditPage />
-          </RouteWrapper>
+          </OptimizedRouteWrapper>
         } 
       />
       <Route 
         path="edit/:id" 
         element={
-          <RouteWrapper title="Edit Pembelian">
+          <OptimizedRouteWrapper 
+            routeName="purchase-edit" 
+            priority="medium"
+            preloadOnHover={true}
+          >
             <PurchaseAddEditPage />
-          </RouteWrapper>
+          </OptimizedRouteWrapper>
         } 
       />
     </Route>

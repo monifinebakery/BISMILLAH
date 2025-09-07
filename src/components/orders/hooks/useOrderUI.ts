@@ -26,14 +26,14 @@ export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): U
   // Filter logic dengan semua fitur asli
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-      // Search filter - dari kode asli
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
+      // Search filter - improved with null handling and trim
+      if (filters.search && filters.search.trim()) {
+        const searchTerm = filters.search.toLowerCase().trim();
         const matchesSearch = 
           order.nomorPesanan.toLowerCase().includes(searchTerm) ||
           order.namaPelanggan.toLowerCase().includes(searchTerm) ||
-          order.teleponPelanggan.toLowerCase().includes(searchTerm) ||
-          order.emailPelanggan.toLowerCase().includes(searchTerm);
+          (order.teleponPelanggan?.toLowerCase().includes(searchTerm)) ||
+          (order.emailPelanggan?.toLowerCase().includes(searchTerm));
         
         if (!matchesSearch) return false;
       }
@@ -51,11 +51,11 @@ export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): U
         return false;
       }
 
-      // Amount range filter - dari kode asli
-      if (filters.minAmount !== null && order.totalPesanan < filters.minAmount) {
+      // Amount range filter - improved with null/undefined handling
+      if (filters.minAmount !== null && filters.minAmount !== undefined && order.totalPesanan < filters.minAmount) {
         return false;
       }
-      if (filters.maxAmount !== null && order.totalPesanan > filters.maxAmount) {
+      if (filters.maxAmount !== null && filters.maxAmount !== undefined && order.totalPesanan > filters.maxAmount) {
         return false;
       }
 

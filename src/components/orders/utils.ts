@@ -44,10 +44,10 @@ export const formatDateForDisplay = (date: Date | string | null): string => {
   
   try {
     return parsedDate.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit', 
-      year: 'numeric'
-    });
+          day: '2-digit',
+          month: '2-digit', 
+          year: 'numeric'
+        });
   } catch {
     return parsedDate.toLocaleDateString(); // Fallback
   }
@@ -65,8 +65,8 @@ export const transformOrderFromDB = (dbItem: any): Order => {
       id: dbItem.id || 'unknown',
       nomorPesanan: dbItem.nomor_pesanan || generateOrderNumber(),
       namaPelanggan: dbItem.nama_pelanggan || 'Unknown Customer',
-      teleponPelanggan: dbItem.telepon_pelanggan || '',
-      emailPelanggan: dbItem.email_pelanggan || '',
+      teleponPelanggan: dbItem.telepon_pelanggan || undefined,
+      emailPelanggan: dbItem.email_pelanggan || undefined,
       alamatPengiriman: dbItem.alamat_pengiriman || '',
       tanggal: safeParseDate(dbItem.tanggal) || new Date(),
       tanggalSelesai: safeParseDate(dbItem.tanggal_selesai) || undefined, // ✅ FIXED: Use undefined instead of null
@@ -80,7 +80,7 @@ export const transformOrderFromDB = (dbItem: any): Order => {
             const parsed = JSON.parse(dbItem.items);
             return Array.isArray(parsed) ? parsed : [];
           } catch (error) {
-            logger.warn('Failed to parse items JSON from database:', error, dbItem.items);
+            logger.warn(`Failed to parse items JSON from database: ${error}. Raw data: ${dbItem.items}`);
             return [];
           }
         }
@@ -349,8 +349,8 @@ const createFallbackOrder = (id?: string): Order => ({
   id: id || 'error-' + Date.now(),
   nomorPesanan: 'ERROR-' + Date.now().toString().slice(-6),
   namaPelanggan: 'Data Error',
-  teleponPelanggan: '',
-  emailPelanggan: '',
+  teleponPelanggan: undefined,
+  emailPelanggan: undefined,
   alamatPengiriman: '',
   tanggal: new Date(),
   tanggalSelesai: undefined, // ✅ FIXED: Use undefined instead of null
@@ -368,17 +368,17 @@ const createFallbackOrder = (id?: string): Order => ({
 // ✅ Made private since only used internally; export if needed elsewhere
 // Removed local generateOrderNumber - using imported one from formatUtils
 
-// ✅ SEARCH & FILTER: Optimized search functions
+// ✅ SEARCH & FILTER: Optimized search functions with improved null handling
 export const searchOrders = (orders: Order[], searchTerm: string): Order[] => {
-  if (!searchTerm.trim()) return orders;
+  if (!searchTerm || !searchTerm.trim()) return orders;
   
-  const lowerSearchTerm = searchTerm.toLowerCase();
+  const lowerSearchTerm = searchTerm.toLowerCase().trim();
   
   return orders.filter(order => 
     order.namaPelanggan.toLowerCase().includes(lowerSearchTerm) ||
     order.nomorPesanan.toLowerCase().includes(lowerSearchTerm) ||
-    order.teleponPelanggan?.toLowerCase().includes(lowerSearchTerm) ||
-    order.emailPelanggan?.toLowerCase().includes(lowerSearchTerm)
+    (order.teleponPelanggan?.toLowerCase().includes(lowerSearchTerm)) ||
+    (order.emailPelanggan?.toLowerCase().includes(lowerSearchTerm))
   );
 };
 

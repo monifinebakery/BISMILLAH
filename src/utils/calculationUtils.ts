@@ -2,6 +2,7 @@
 // ✅ IMPROVED: Calculation utilities with centralized logic integration
 
 import { safeCalculateMargins } from './profitValidation';
+import { parseRobustNumber } from './robustNumberParser';
 
 export const calculatePromoResult = (
   cost: number,
@@ -150,21 +151,10 @@ export const calculateStandardDeviation = (values: number[]): number => {
 };
 
 /**
- * ✅ NEW: Convert value to number with validation
+ * ✅ IMPROVED: Convert value to number with Indonesian locale support
  */
 export const toNumber = (value: unknown): number => {
-  if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
-    return value;
-  }
-  
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = parseFloat(value);
-    if (!isNaN(parsed) && isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  
-  return 0;
+  return parseRobustNumber(value, 0);
 };
 
 export default {

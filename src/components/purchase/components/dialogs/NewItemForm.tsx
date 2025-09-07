@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
+import { parseRobustNumber } from '@/utils/robustNumberParser';
 // Avoid importing warehouseUtils to reduce bundle graph and prevent potential cycles
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
@@ -29,22 +30,9 @@ interface NewItemFormProps {
   onAddItem: (item: PurchaseItem) => void;
 }
 
-// Helper function to convert string to number
+// Use robust number parser for better Indonesian format support
 const toNumber = (v: string | number | '' | undefined | null): number => {
-  if (v === '' || v == null) return 0;
-  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
-  
-  let s = v.toString().trim().replace(/\s+/g, '');
-  s = s.replace(/[^\d,.-]/g, '');
-  
-  if (s.includes(',') && s.includes('.')) {
-    s = s.replace(/\./g, '').replace(/,/g, '.');
-  } else {
-    s = s.replace(/,/g, '.');
-  }
-  
-  const n = Number(s);
-  return Number.isFinite(n) ? n : 0;
+  return parseRobustNumber(v, 0);
 };
 
 export const NewItemForm: React.FC<NewItemFormProps> = ({

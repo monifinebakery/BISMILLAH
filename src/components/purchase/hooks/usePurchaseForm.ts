@@ -248,8 +248,19 @@ export const usePurchaseForm = ({
 
   // Form submission
   const handleSubmit = useCallback(async (newStatus?: 'completed') => {
+    console.log('DEBUG: Form data before validation:', {
+      items: formData.items.map(item => ({
+        nama: item.nama,
+        kuantitas: item.kuantitas,
+        type: typeof item.kuantitas,
+        hargaSatuan: item.hargaSatuan,
+        subtotal: item.subtotal
+      }))
+    });
+    
     const validationResult = validateForm();
     if (!validationResult.isValid) {
+      console.error('DEBUG: Validation failed:', validationResult.errors);
       onError?.(validationResult.errors[0]);
       return;
     }
@@ -283,6 +294,17 @@ export const usePurchaseForm = ({
         totalNilai: totalValue,
         status,
       };
+      
+      console.log('DEBUG: Purchase data before API call:', {
+        supplier: purchaseData.supplier,
+        totalNilai: purchaseData.totalNilai,
+        items: purchaseData.items.map(item => ({
+          nama: item.nama,
+          kuantitas: item.kuantitas,
+          type: typeof item.kuantitas,
+          hargaSatuan: item.hargaSatuan,
+        }))
+      });
 
       let success = false;
       if (mode === 'create') {

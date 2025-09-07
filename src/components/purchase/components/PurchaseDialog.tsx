@@ -54,6 +54,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { NewItemForm } from './dialogs/NewItemForm';
 import { SafeNumericInput } from './dialogs/SafeNumericInput';
 import SupplierComboBox from './SupplierComboBox';
+// Import additional components for edit mode
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
@@ -336,52 +337,130 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   {/* Mobile Card Layout */}
                   <div className="block md:hidden">
                     {formData.items.map((item, index) => (
-                      <div key={index} className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 truncate">{item.nama}</h4>
-                            <p className="text-sm text-gray-500">{item.satuan}</p>
-                            {item.keterangan && (
-                              <p className="text-xs text-gray-400 mt-1 line-clamp-2">{item.keterangan}</p>
-                            )}
+                      <div key={index} className={`border-b border-gray-200 last:border-b-0 p-4 ${editingItemIndex === index ? 'bg-orange-50' : 'bg-white hover:bg-gray-50'}`}>
+                        {editingItemIndex === index ? (
+                          /* Edit Mode */
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-orange-800">Edit Item: {item.nama}</h4>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSaveEditedItem(index, item)}
+                                  className="h-8 px-3 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                                >
+                                  <Save className="h-3 w-3 mr-1" />
+                                  Simpan
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleCancelEditItem}
+                                  className="h-8 px-3 border-gray-300 text-gray-600 hover:bg-gray-50"
+                                >
+                                  <X className="h-3 w-3 mr-1" />
+                                  Batal
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-xs font-medium text-gray-700">Kuantitas</label>
+                                <SafeNumericInput
+                                  value={String(item.kuantitas)}
+                                  onChange={(e) => {
+                                    const newQty = parseFloat(e.target.value) || 0;
+                                    const newSubtotal = newQty * item.hargaSatuan;
+                                    updateItem(index, { kuantitas: newQty, subtotal: newSubtotal });
+                                  }}
+                                  className="mt-1 h-9 text-sm"
+                                  placeholder="0"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-gray-700">Harga Satuan</label>
+                                <SafeNumericInput
+                                  value={String(item.hargaSatuan)}
+                                  onChange={(e) => {
+                                    const newPrice = parseFloat(e.target.value) || 0;
+                                    const newSubtotal = item.kuantitas * newPrice;
+                                    updateItem(index, { hargaSatuan: newPrice, subtotal: newSubtotal });
+                                  }}
+                                  className="mt-1 h-9 text-sm"
+                                  placeholder="0"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="text-xs font-medium text-gray-700">Keterangan</label>
+                              <Textarea
+                                value={item.keterangan || ''}
+                                onChange={(e) => updateItem(index, { keterangan: e.target.value })}
+                                className="mt-1 text-sm"
+                                rows={2}
+                                placeholder="Keterangan opsional"
+                              />
+                            </div>
+                            
+                            <div className="p-3 bg-green-100 border border-green-200 rounded-lg">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="font-medium text-green-800">Subtotal:</span>
+                                <span className="font-bold text-green-900">{formatCurrency(item.subtotal)}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditItem(index)}
-                              disabled={isSubmitting || isViewOnly}
-                              className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
-                            >
-                              <Edit3 className="h-3 w-3 text-gray-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => removeItem(index)}
-                              disabled={isSubmitting || isViewOnly}
-                              className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-3 w-3 text-red-600" />
-                            </Button>
+                        ) : (
+                          /* Display Mode */
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate">{item.nama}</h4>
+                              <p className="text-sm text-gray-500">{item.satuan}</p>
+                              {item.keterangan && (
+                                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{item.keterangan}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditItem(index)}
+                                disabled={isSubmitting || isViewOnly}
+                                className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
+                              >
+                                <Edit3 className="h-3 w-3 text-gray-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => removeItem(index)}
+                                disabled={isSubmitting || isViewOnly}
+                                className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3 text-red-600" />
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500">Kuantitas:</span>
-                            <div className="font-medium text-gray-900">{item.kuantitas} {item.satuan}</div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500">Kuantitas:</span>
+                              <div className="font-medium text-gray-900">{item.kuantitas} {item.satuan}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Harga Satuan:</span>
+                              <div className="font-medium text-gray-900">{formatCurrency(item.hargaSatuan)}</div>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-gray-500">Harga Satuan:</span>
-                            <div className="font-medium text-gray-900">{formatCurrency(item.hargaSatuan)}</div>
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium text-gray-700">Subtotal:</span>
+                              <span className="font-bold text-green-600">{formatCurrency(item.subtotal)}</span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-gray-100">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-700">Subtotal:</span>
-                            <span className="font-bold text-green-600">{formatCurrency(item.subtotal)}</span>
-                          </div>
-                        </div>
+                        )}
+                      </div>
                       </div>
                     ))}
                     <div className="p-4 bg-gray-50 border-t">

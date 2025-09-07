@@ -2,6 +2,7 @@
 import { Purchase, PurchaseItem } from '../types/purchase.types';
 import { logger } from '@/utils/logger';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
+import { parseRobustNumber, parseQuantity, parsePrice } from '@/utils/robustNumberParser';
 import {
   transformFromDB,
   transformToDB,
@@ -26,7 +27,7 @@ const toYMD = (d: Date | string | null | undefined): string => {
 };
 
 /** ==== Helpers untuk packaging & harga ==== */
-const toNumber = (v: any, def = 0) => (v === null || v === undefined || v === '' ? def : Number(v));
+const toNumber = (v: any, def = 0) => parseRobustNumber(v, def);
 
 /** Hitung harga_per_satuan dari data kemasan jika ada */
 const deriveUnitPriceFromPackaging = (row: any): number | null => {
@@ -36,18 +37,21 @@ const deriveUnitPriceFromPackaging = (row: any): number | null => {
 
 /** ✅ HARDENED: Robust item mapper untuk DB format */
 const mapItemForDB = (i: any) => {
-  const jumlah = Number(
-    i.kuantitas ??
-    i.jumlah ??
-    i.qty_base ?? // fallback dari komponen lama
-    0
-  );
+  // Add logging to track quantity values before conversion
+  console.log('DEBUG: Item before conversion:', {
+    nama: i.nama,
+    rawKuantitas: i.kuantitas,
+    rawJumlah: i.jumlah,
+    rawQtyBase: i.qty_base,
+    typeKuantitas: typeof i.kuantitas,
+  });
+  
+  // Use robust number parsing for better data handling
+  const kuantitasRaw = i.kuantitas ?? i.jumlah ?? i.qty_base;
+  const jumlah = parseQuantity(kuantitasRaw);
 
-  const hargaPerSatuan = Number(
-    i.hargaSatuan ??
-    i.harga_per_satuan ??
-    0
-  );
+  const hargaRaw = i.hargaSatuan ?? i.harga_per_satuan;
+  const hargaPerSatuan = parsePrice(hargaRaw);
 
   const satuan = String(
     i.satuan ??
@@ -59,6 +63,14 @@ const mapItemForDB = (i: any) => {
     ? Number(i.subtotal)
     : jumlah * hargaPerSatuan;
 
+// Log final values after processing
+  console.log('DEBUG: Item after conversion:', {
+    nama: i.nama,
+    processedJumlah: jumlah,
+    finalJumlah: Math.max(0, jumlah),
+    isJumlahValid: !isNaN(jumlah) && jumlah > 0,
+  });
+  
   return {
     // ✅ KOLOM WAJIB: yang dibaca trigger WAC
     bahan_baku_id: String((i.bahanBakuId ?? i.bahan_baku_id) || ''),

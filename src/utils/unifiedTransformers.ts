@@ -220,7 +220,7 @@ export const PURCHASE_ITEM_FIELD_MAPPINGS = {
   toDB: {
     bahan_baku_id: 'bahanBakuId',
     nama: 'nama',
-    kuantitas: 'kuantitas',
+    jumlah: 'kuantitas', // ✅ FIX: Database uses 'jumlah' not 'kuantitas'
     satuan: 'satuan',
     harga_per_satuan: 'hargaSatuan',
     subtotal: 'subtotal',
@@ -230,7 +230,7 @@ export const PURCHASE_ITEM_FIELD_MAPPINGS = {
   fromDB: {
     bahanBakuId: 'bahan_baku_id',
     nama: 'nama',
-    kuantitas: 'kuantitas',
+    kuantitas: 'jumlah', // ✅ FIX: Database field is 'jumlah', frontend is 'kuantitas'
     satuan: 'satuan',
     hargaSatuan: 'harga_per_satuan',
     subtotal: 'subtotal',
@@ -251,7 +251,10 @@ export const transformPurchaseItemToDB = (item: any): any => {
  * Transform purchase item from database
  */
 export const transformPurchaseItemFromDB = (item: any): any => {
-  return transformFromDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.fromDB);
+  console.log('DEBUG transformPurchaseItemFromDB: Input item:', item);
+  const result = transformFromDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.fromDB);
+  console.log('DEBUG transformPurchaseItemFromDB: Transformed result:', result);
+  return result;
 };
 
 /**

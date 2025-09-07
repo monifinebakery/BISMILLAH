@@ -24,9 +24,18 @@ export const validatePurchaseItem = (item: PurchaseItem, itemNumber?: number): V
     errors.push(`${prefix}${nameValidation.error}`);
   }
 
-  // Quantity validation
+  // Quantity validation with logging
+  console.log('DEBUG: Validating quantity:', {
+    itemName: item.nama,
+    rawKuantitas: item.kuantitas,
+    typeKuantitas: typeof item.kuantitas,
+    isNumber: typeof item.kuantitas === 'number',
+    isValidNumber: Number.isFinite(Number(item.kuantitas))
+  });
+  
   const qtyValidation = validateQuantity(item.kuantitas);
   if (!qtyValidation.isValid && qtyValidation.error) {
+    console.error('DEBUG: Quantity validation failed:', qtyValidation.error, 'for item:', item.nama);
     errors.push(`${prefix}${qtyValidation.error}`);
   }
 

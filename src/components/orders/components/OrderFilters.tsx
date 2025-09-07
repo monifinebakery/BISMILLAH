@@ -152,7 +152,13 @@ const DateRangeFilter: React.FC<{
               </span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+          <PopoverContent 
+            className="w-auto p-0 max-w-[95vw]" 
+            align="start" 
+            sideOffset={4}
+            avoidCollisions
+            collisionPadding={16}
+          >
             <CalendarComponent
               mode="single"
               selected={dateFrom || undefined}
@@ -177,7 +183,13 @@ const DateRangeFilter: React.FC<{
               </span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+          <PopoverContent 
+            className="w-auto p-0 max-w-[95vw]" 
+            align="start" 
+            sideOffset={4}
+            avoidCollisions
+            collisionPadding={16}
+          >
             <CalendarComponent
               mode="single"
               selected={dateTo || undefined}

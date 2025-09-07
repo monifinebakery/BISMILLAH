@@ -20,8 +20,8 @@ function Calendar({
       classNames={{
         months:
           "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        // 👇 min width dinaikkan untuk layout desktop yang lebih lebar
-        month: "space-y-4 min-w-[320px] md:min-w-[380px] lg:min-w-[400px]",
+        // 👇 min width yang lebih responsif untuk semua ukuran layar
+        month: "space-y-4 min-w-[280px] sm:min-w-[320px] lg:min-w-[380px]",
         caption: "flex justify-center pt-1 relative items-center mb-2",
         caption_label: "text-sm font-medium text-gray-900",
         nav: "space-x-1 flex items-center",
@@ -34,13 +34,13 @@ function Calendar({
         table: "w-full border-collapse space-y-1",
         head_row: "flex mb-1",
         head_cell:
-          "text-muted-foreground rounded-md w-12 h-10 md:w-14 md:h-12 font-normal text-sm flex items-center justify-center",
+          "text-muted-foreground rounded-md w-10 h-8 sm:w-12 sm:h-10 md:w-14 md:h-12 font-normal text-sm flex items-center justify-center",
         row: "flex w-full mt-1",
         cell:
-          "h-12 w-12 md:h-14 md:w-14 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+          "h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-11 w-11 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 transition-colors"
+          "h-9 w-9 sm:h-11 sm:w-11 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 transition-colors text-xs sm:text-sm"
         ),
         day_range_end: "day-range-end",
         day_selected:

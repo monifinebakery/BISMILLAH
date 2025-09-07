@@ -18,8 +18,24 @@ import {
 } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
-// import { calculatePagination } from '@/components/promoCalculator/utils/promoUtils';
 import { safeNumber, safeMultiply, safeDivide } from '@/utils/safeMath';
+
+// 🔧 Local pagination calculation utility
+const calculatePagination = (currentPage: number, totalItems: number, itemsPerPage: number) => {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  
+  return {
+    currentPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    hasNext: currentPage < totalPages,
+    hasPrev: currentPage > 1,
+    totalItems
+  };
+};
 
 interface Product {
   id: string;

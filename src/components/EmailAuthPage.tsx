@@ -122,8 +122,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // Check if CAPTCHA is enabled
-  const isCaptchaEnabled = import.meta.env.VITE_CAPTCHA_ENABLED === 'true';
+  // Check if CAPTCHA is enabled - robust detection
+  const isCaptchaEnabled = (() => {
+    const captchaEnv = import.meta.env.VITE_CAPTCHA_ENABLED;
+    console.log('🔍 CAPTCHA Environment Detection:', {
+      raw: captchaEnv,
+      type: typeof captchaEnv,
+      string: String(captchaEnv),
+      mode: import.meta.env.MODE,
+      isDev: import.meta.env.DEV,
+      isProd: import.meta.env.PROD
+    });
+    
+    // Multiple ways to detect 'true'
+    return captchaEnv === 'true' || 
+           captchaEnv === true || 
+           String(captchaEnv).toLowerCase().trim() === 'true';
+  })();
   
   // Button validation - send button active when:
   // - email valid

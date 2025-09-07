@@ -23,11 +23,8 @@ import { calculateProfitAnalysisDaily } from '../services/calculationUtils';
 import { 
   fetchBahanMap, 
   fetchPemakaianByPeriode,
-  getCurrentUserId as getAuthUserId
+  getCurrentUserId
 } from '../services/warehouseHelpers';
-
-// Helper function untuk get current user ID (use modular version)
-const getCurrentUserId = getAuthUserId;
 import { calcHPP } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';
@@ -40,16 +37,8 @@ import { safeDom } from '@/utils/browserApiSafeWrappers';
 // WAC validation utilities removed
 
 
-// Query Keys
-export const PROFIT_QUERY_KEYS = {
-  analysis: (period?: string) => ['profit-analysis', 'calculation', period],
-  history: (dateRange?: DateRangeFilter) => ['profit-analysis', 'history', dateRange],
-  current: () => ['profit-analysis', 'current'],
-  realTime: (period: string) => ['profit-analysis', 'realtime', period],
-  // ✅ ADD WAC QUERY KEYS
-  bahanMap: () => ['profit-analysis', 'bahan-map'],
-  pemakaian: (start: string, end: string) => ['profit-analysis', 'pemakaian', start, end],
-} as const;
+// ✅ IMPROVED: Import centralized query keys
+import { PROFIT_QUERY_KEYS } from '../constants/queryKeys';
 
 export interface UseProfitAnalysisOptions {
   autoCalculate?: boolean;

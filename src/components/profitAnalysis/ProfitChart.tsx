@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/card';
 import { formatCurrency } from './utils/profitTransformers';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
+// ✅ IMPROVED: Import standardized COGS calculation
+import { getEffectiveCogs } from '@/utils/cogsCalculation';
 
 
 // Types
@@ -50,7 +52,16 @@ export function ProfitChart({
     
     return profitHistory.slice(-6).map((analysis) => {
       const revenue = analysis.revenue_data?.total || 0;
-      const cogs = effectiveCogs || analysis.cogs_data?.total || 0;
+      
+      // ✅ IMPROVED: Use standardized COGS calculation
+      const cogsResult = getEffectiveCogs(
+        analysis,
+        effectiveCogs,
+        revenue,
+        { preferWAC: Boolean(effectiveCogs && effectiveCogs > 0) }
+      );
+      const cogs = cogsResult.value;
+      
       const opex = analysis.opex_data?.total || 0;
       const netProfit = revenue - cogs - opex;
       

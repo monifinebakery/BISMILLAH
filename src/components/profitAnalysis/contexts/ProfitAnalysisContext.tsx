@@ -15,16 +15,8 @@ import {
 } from '../types/profitAnalysis.types';
 import profitAnalysisApi from '../services/profitAnalysisApi';
 
-// ✅ STANDARDIZED: Query Keys untuk React Query (sync with hooks)
-export const PROFIT_ANALYSIS_QUERY_KEYS = {
-  analysis: (period?: string) => ['profit-analysis', 'calculation', period],
-  history: (dateRange?: DateRangeFilter) => ['profit-analysis', 'history', dateRange],
-  current: () => ['profit-analysis', 'current'],
-  realTime: (period: string) => ['profit-analysis', 'realtime', period],
-  // ✅ ADD: WAC query keys for consistency
-  bahanMap: () => ['profit-analysis', 'bahan-map'],
-  pemakaian: (start: string, end: string) => ['profit-analysis', 'pemakaian', start, end],
-} as const;
+// ✅ IMPROVED: Import centralized query keys for consistency
+import { PROFIT_QUERY_KEYS } from '../constants/queryKeys';
 
 // State Management -  Fixed to use RealTimeProfitCalculation
 interface ProfitAnalysisState {
@@ -93,7 +85,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
 
   // Query untuk analisis bulan ini
   const currentAnalysisQuery = useQuery({
-    queryKey: PROFIT_ANALYSIS_QUERY_KEYS.current(),
+    queryKey: PROFIT_QUERY_KEYS.current(),
     queryFn: async () => {
       logger.info('🔄 Mengambil analisis profit bulan ini...');
       const response = await profitAnalysisApi.getCurrentMonthProfit();
@@ -161,10 +153,10 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       
       // Invalidate cache terkait
       queryClient.invalidateQueries({ 
-        queryKey: PROFIT_ANALYSIS_QUERY_KEYS.current() 
+        queryKey: PROFIT_QUERY_KEYS.current() 
       });
       queryClient.invalidateQueries({ 
-        queryKey: PROFIT_ANALYSIS_QUERY_KEYS.analysis() 
+        queryKey: PROFIT_QUERY_KEYS.analysis() 
       });
     }
   }, [calculateProfitMutation.isSuccess, calculateProfitMutation.data, queryClient]);
@@ -262,7 +254,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
       logger.info('🔄 Refreshing WAC data from context...');
       // Invalidate WAC-related queries
       await queryClient.invalidateQueries({ 
-        queryKey: PROFIT_ANALYSIS_QUERY_KEYS.bahanMap() 
+        queryKey: PROFIT_QUERY_KEYS.bahanMap() 
       });
       await queryClient.invalidateQueries({ 
         predicate: (query) => {

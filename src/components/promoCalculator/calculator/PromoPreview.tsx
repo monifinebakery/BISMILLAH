@@ -2,21 +2,12 @@
 
 import React from 'react';
 import { Save, TrendingUp, DollarSign, Percent, AlertCircle } from 'lucide-react';
+import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
 
 const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
   const { calculationResult } = data;
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(value || 0);
-  };
 
-  const formatPercent = (value) => {
-    return `${(value || 0).toFixed(1)}%`;
-  };
 
   if (!type) {
     return (
@@ -125,13 +116,13 @@ const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
               <div className="flex justify-between">
                 <span className="text-blue-700">Margin Normal:</span>
                 <span className="font-semibold text-blue-900">
-                  {formatPercent(calculationResult.normalMargin)}
+                  {formatPercentage(calculationResult.normalMargin / 100)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-blue-700">Margin Promo:</span>
                 <span className="font-semibold text-blue-900">
-                  {formatPercent(calculationResult.promoMargin)}
+                  {formatPercentage(calculationResult.promoMargin / 100)}
                 </span>
               </div>
             </div>
@@ -139,7 +130,7 @@ const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
               <div className="flex justify-between">
                 <span className="text-blue-700">Selisih:</span>
                 <span className={`font-semibold ${isMarginDecreased ? 'text-red-600' : 'text-green-600'}`}>
-                  {isMarginDecreased ? '' : '+'}{formatPercent(marginDiff)}
+                  {isMarginDecreased ? '' : '+'}{formatPercentage(marginDiff / 100)}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -214,7 +205,7 @@ const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
               </div>
               <div className="flex justify-between">
                 <span className="text-purple-700">Persentase Hemat:</span>
-                <span className="font-medium text-green-600">{formatPercent(calculationResult.savingsPercent)}</span>
+                <span className="font-medium text-green-600">{formatPercentage(calculationResult.savingsPercent / 100)}</span>
               </div>
             </div>
           </div>

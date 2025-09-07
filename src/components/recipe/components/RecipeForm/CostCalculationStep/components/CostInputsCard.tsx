@@ -45,8 +45,14 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
     onOverheadUpdate: (value) => onUpdate('biayaOverhead', value),
   });
 
-  // ✅ Calculate per-piece costs for display
-  const totalPieces = data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1);
+  // ✅ Calculate per-piece costs for display - handle string values
+  const jumlahPorsi = typeof data.jumlahPorsi === 'string' 
+    ? (data.jumlahPorsi === '' ? 1 : parseInt(data.jumlahPorsi)) || 1
+    : data.jumlahPorsi || 1;
+  const jumlahPcsPerPorsi = typeof data.jumlahPcsPerPorsi === 'string'
+    ? (data.jumlahPcsPerPorsi === '' ? 1 : parseInt(data.jumlahPcsPerPorsi)) || 1  
+    : (data.jumlahPcsPerPorsi || 1);
+  const totalPieces = jumlahPorsi * jumlahPcsPerPorsi;
   const ingredientCostPerPiece = totalPieces > 0 ? ingredientCost / totalPieces : 0;
 
   return (
@@ -71,11 +77,11 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             <div className="flex justify-between items-center">
               <span className="text-blue-700">Biaya per Porsi:</span>
               <Badge variant="outline" className="text-blue-700 border-blue-300">
-                {formatCurrency(data.jumlahPorsi > 0 ? ingredientCost / data.jumlahPorsi : 0)}
+                {formatCurrency(jumlahPorsi > 0 ? ingredientCost / jumlahPorsi : 0)}
               </Badge>
             </div>
             {/* ✅ NEW: Show per-piece cost if there are multiple pieces per portion */}
-            {(data.jumlahPcsPerPorsi || 1) > 1 && (
+            {jumlahPcsPerPorsi > 1 && (
               <div className="flex justify-between items-center">
                 <span className="text-blue-700">Biaya per Pcs:</span>
                 <Badge variant="outline" className="text-blue-700 border-blue-300">
@@ -86,9 +92,9 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             <div className="text-sm text-blue-600 bg-blue-100 p-2 rounded">
               {data.bahanResep.length} bahan telah dihitung otomatis
               {/* ✅ Show total pieces info */}
-              {(data.jumlahPcsPerPorsi || 1) > 1 && (
+              {jumlahPcsPerPorsi > 1 && (
                 <div className="mt-1 text-xs">
-                  Total: {data.jumlahPorsi} porsi × {data.jumlahPcsPerPorsi} pcs = {totalPieces} pcs
+                  Total: {jumlahPorsi} porsi × {jumlahPcsPerPorsi} pcs = {totalPieces} pcs
                 </div>
               )}
             </div>
@@ -140,7 +146,17 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 min="1"
                 max="100"
                 value={data.jumlahPcsPerPorsi || ''}
-                onChange={(e) => onUpdate('jumlahPcsPerPorsi', parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdate('jumlahPcsPerPorsi', '');
+                  } else {
+                    const numValue = parseInt(value);
+                    if (!isNaN(numValue) && numValue > 0) {
+                      onUpdate('jumlahPcsPerPorsi', numValue);
+                    }
+                  }
+                }}
                 placeholder="1"
                 className={''}
                 disabled={isLoading}

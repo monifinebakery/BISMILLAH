@@ -6,6 +6,7 @@ import { logger } from '@/utils/logger';
 import { UnifiedDateHandler, normalizeDateForDatabase } from '@/utils/unifiedDateHandler';
 import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; // Keep for transition compatibility
 import { addFinancialTransaction } from '@/components/financial/services/financialApi';
+import { getCurrentUserId } from '@/utils/authHelpers';
 let globalQueryClient: any = null;
 export const setQueryClient = (client: any) => {
   globalQueryClient = client;
@@ -60,22 +61,6 @@ import {
   CostListResponse 
 } from '../types';
 
-// Helper function to get current user ID
-const getCurrentUserId = async (): Promise<string | null> => {
-const getCurrentUserId = async (): Promise<string | null> => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
-    logger.error('Error getting current user:', error);
-    return null;
-  }
-  return user.id;
-};
-  if (error || !user) {
-    logger.error('Error getting current user:', error);
-    return null;
-  }
-  return user.id;
-};
 
 // ================================
 // OPERATIONAL COSTS API

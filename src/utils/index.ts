@@ -176,7 +176,7 @@ export const getInitials = (name: string): string => {
 
 export const downloadBlob = (blob: Blob, filename: string): void => {
   const url = URL.createObjectURL(blob);
-  const link = safeDom.createElement('a');
+  const link = safeDom.createElement('a') as HTMLAnchorElement;
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
@@ -191,7 +191,7 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     return true;
   } catch (error) {
     // Fallback for older browsers
-    const textArea = safeDom.createElement('textarea');
+    const textArea = safeDom.createElement('textarea') as HTMLTextAreaElement;
     textArea.value = text;
     document.body.appendChild(textArea);
     textArea.select();
@@ -341,3 +341,12 @@ export {
   isValidWhatsAppNumber,
   getWhatsAppChatURL,
 } from './whatsappHelpers';
+
+// ✅ Validation utilities
+export {
+  validateNumber,
+  validateRequired,
+  validateEmail,
+  validatePositiveInteger,
+  getErrorMessage
+} from './validation';

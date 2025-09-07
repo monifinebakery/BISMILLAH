@@ -5,6 +5,8 @@ import {
   ChevronUp, ChevronDown, Edit, Trash2, ToggleLeft, ToggleRight,
   Calendar, Gift, Percent, Package, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 const PromoTable = ({
   promos,
@@ -19,22 +21,7 @@ const PromoTable = ({
   onToggleStatus,
   onPaginationChange
 }: any) => {
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(value);
-  };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
 
   const getPromoIcon = (type) => {
     switch (type) {
@@ -229,10 +216,10 @@ const PromoTable = ({
                   {getStatusBadge(promo.status)}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {formatDate(promo.created_at)}
+                  {formatDateForDisplay(promo.created_at)}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {formatDate(promo.updated_at)}
+                  {formatDateForDisplay(promo.updated_at)}
                 </td>
                 <td className="px-6 py-4 text-sm">
                   <div className="flex items-center space-x-2">

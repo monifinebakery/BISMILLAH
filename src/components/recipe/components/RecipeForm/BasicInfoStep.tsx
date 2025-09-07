@@ -195,7 +195,17 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   type="number"
                   min="1"
                   value={data.jumlahPorsi || ''}
-                  onChange={(e) => onUpdate('jumlahPorsi', parseInt(e.target.value) || 1)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      onUpdate('jumlahPorsi', '');
+                    } else {
+                      const numValue = parseInt(value);
+                      if (!isNaN(numValue) && numValue > 0) {
+                        onUpdate('jumlahPorsi', numValue);
+                      }
+                    }
+                  }}
                   placeholder="1"
                   className={`pl-10 ${errors.jumlahPorsi ? 'border-red-300 focus:border-red-500' : ''}`}
                   disabled={isLoading}
@@ -215,8 +225,18 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 id="jumlahPcsPerPorsi"
                 type="number"
                 min="1"
-                value={data.jumlahPcsPerPorsi || 1}
-                onChange={(e) => onUpdate('jumlahPcsPerPorsi', parseInt(e.target.value) || 1)}
+                value={data.jumlahPcsPerPorsi || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdate('jumlahPcsPerPorsi', '');
+                  } else {
+                    const numValue = parseInt(value);
+                    if (!isNaN(numValue) && numValue > 0) {
+                      onUpdate('jumlahPcsPerPorsi', numValue);
+                    }
+                  }
+                }}
                 placeholder="1"
                 className={errors.jumlahPcsPerPorsi ? 'border-red-300 focus:border-red-500' : ''}
                 disabled={isLoading}

@@ -4,6 +4,8 @@ import React from 'react';
 import { 
   Edit, Trash2, ToggleLeft, ToggleRight, Gift, Percent, Package 
 } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 const PromoTableRow = ({ 
   promo, 
@@ -14,22 +16,7 @@ const PromoTableRow = ({
   onToggleStatus 
 }: any) => {
   
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(value || 0);
-  };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
 
   const getPromoIcon = (type) => {
     switch (type) {
@@ -152,10 +139,10 @@ const PromoTableRow = ({
       {/* Tanggal */}
       <td className="px-6 py-4 text-sm text-gray-500">
         <div className="space-y-1">
-          <div>{formatDate(promo.created_at)}</div>
+          <div>{formatDateForDisplay(promo.created_at)}</div>
           {promo.tanggal_mulai && (
             <div className="text-xs">
-              {formatDate(promo.tanggal_mulai)} - {formatDate(promo.tanggal_selesai)}
+              {formatDateForDisplay(promo.tanggal_mulai)} - {formatDateForDisplay(promo.tanggal_selesai)}
             </div>
           )}
         </div>

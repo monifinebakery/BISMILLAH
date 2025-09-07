@@ -251,17 +251,25 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       return;
     }
 
-    if (formData.bahanResep.length > 0 && formData.jumlahPorsi > 0) {
+    // Handle both number and string types
+    const jumlahPorsi = typeof formData.jumlahPorsi === 'string' 
+      ? (formData.jumlahPorsi === '' ? 0 : parseInt(formData.jumlahPorsi))
+      : formData.jumlahPorsi;
+    const jumlahPcsPerPorsi = typeof formData.jumlahPcsPerPorsi === 'string'
+      ? (formData.jumlahPcsPerPorsi === '' ? 1 : parseInt(formData.jumlahPcsPerPorsi))
+      : (formData.jumlahPcsPerPorsi || 1);
+      
+    if (formData.bahanResep.length > 0 && jumlahPorsi > 0) {
       setIsCalculating(true);
       const timer = setTimeout(() => {
         try {
           const calculation = calculateHPP(
             formData.bahanResep,
-            formData.jumlahPorsi,
+            jumlahPorsi,
             formData.biayaTenagaKerja || 0,
             formData.biayaOverhead || 0,
             formData.marginKeuntunganPersen || 0,
-            formData.jumlahPcsPerPorsi || 1
+            jumlahPcsPerPorsi
           );
           setFormData(prev => ({
             ...prev,
@@ -297,10 +305,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         if (!formData.namaResep.trim()) {
           stepErrors.namaResep = 'Nama resep wajib diisi';
         }
-        if (formData.jumlahPorsi <= 0) {
+        // Handle both number and string types for empty state
+        const jumlahPorsi = typeof formData.jumlahPorsi === 'string' 
+          ? (formData.jumlahPorsi === '' ? 0 : parseInt(formData.jumlahPorsi))
+          : formData.jumlahPorsi;
+        if (!jumlahPorsi || jumlahPorsi <= 0) {
           stepErrors.jumlahPorsi = 'Jumlah porsi harus lebih dari 0';
         }
-        if ((formData.jumlahPcsPerPorsi || 0) <= 0) {
+        
+        const jumlahPcsPerPorsi = typeof formData.jumlahPcsPerPorsi === 'string'
+          ? (formData.jumlahPcsPerPorsi === '' ? 0 : parseInt(formData.jumlahPcsPerPorsi))
+          : (formData.jumlahPcsPerPorsi || 0);
+        if (!jumlahPcsPerPorsi || jumlahPcsPerPorsi <= 0) {
           stepErrors.jumlahPcsPerPorsi = 'Jumlah pcs per porsi harus lebih dari 0';
         }
         break;
@@ -359,7 +375,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
 
   // Submit form
   const handleSubmit = async () => {
-    const validation = validateRecipeData(formData);
+    // Convert string values to numbers before validation and submission
+    const dataToSubmit = {
+      ...formData,
+      jumlahPorsi: typeof formData.jumlahPorsi === 'string' 
+        ? parseInt(formData.jumlahPorsi) || 1
+        : formData.jumlahPorsi,
+      jumlahPcsPerPorsi: typeof formData.jumlahPcsPerPorsi === 'string'
+        ? parseInt(formData.jumlahPcsPerPorsi) || 1
+        : (formData.jumlahPcsPerPorsi || 1)
+    };
+
+    const validation = validateRecipeData(dataToSubmit);
     if (!validation.isValid) {
       toast.error(`Form tidak valid: ${validation.errors[0]}`);
       return;
@@ -368,10 +395,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       if (isEditMode && initialData?.id) {
         await updateRecipeMutation.mutateAsync({
           id: initialData.id,
-          data: formData
+          data: dataToSubmit
         });
       } else {
-        await createRecipeMutation.mutateAsync(formData);
+        await createRecipeMutation.mutateAsync(dataToSubmit);
       }
     } catch (error) {
       logger.error('RecipeForm: Error in handleSubmit:', error);

@@ -14,6 +14,15 @@ export {
   getMonthName
 } from './profitConstants';
 
+// ✅ NEW: Export centralized query keys
+export {
+  PROFIT_QUERY_KEYS,
+  PROFIT_QUERY_MATCHERS,
+  queryKeyUtils,
+  type ProfitQueryKey,
+  type FnbQueryKey
+} from './queryKeys';
+
 // Export types berdasarkan konstanta
 export type PeriodType = 'monthly' | 'quarterly' | 'yearly';
 export type CalculationMethod = 'real_time' | 'stored';

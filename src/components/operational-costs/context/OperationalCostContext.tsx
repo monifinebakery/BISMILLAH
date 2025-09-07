@@ -453,13 +453,18 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       return false;
     }
 
-    try {
-      await createCostMutation.mutateAsync(data);
-      return true;
-    } catch (error) {
-      logger.error('❌ Create cost failed:', error);
-      return false;
-    }
+    return new Promise((resolve) => {
+      createCostMutation.mutate(data, {
+        onSuccess: (result) => {
+          resolve(!!result); // Return true if result exists
+        },
+        onError: (error) => {
+          logger.error('❌ Create cost failed:', error);
+          dispatch({ type: 'SET_ERROR', payload: 'Gagal menambahkan biaya operasional' });
+          resolve(false);
+        }
+      });
+    });
   }, [state.isAuthenticated, createCostMutation]);
 
   const updateCost = useCallback(async (id: string, data: Partial<CostFormData>): Promise<boolean> => {

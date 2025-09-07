@@ -6,18 +6,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { normalizeDateForDatabase } from '@/utils/unifiedDateHandler';
+import { getCurrentUserId } from '@/utils/authHelpers';
 
-/**
- * Get current user ID
- */
-export const getCurrentUserId = async (): Promise<string | null> => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
-    logger.error('Error getting current user:', error);
-    return null;
-  }
-  return user.id;
-};
+// Re-export for backward compatibility
+export { getCurrentUserId };
 
 /**
  * Ambil semua bahan baku dan buat map by ID (pastikan field harga_rata_rata & harga_satuan ada)

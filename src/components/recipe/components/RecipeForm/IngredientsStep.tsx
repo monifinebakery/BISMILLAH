@@ -708,22 +708,37 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                 <div className="flex justify-between">
                   <span className="text-blue-700">Biaya per Porsi:</span>
                   <span className="font-semibold text-blue-900">
-                    {formatCurrency(data.jumlahPorsi > 0 ? totalIngredientCost / data.jumlahPorsi : 0)}
+                    {(() => {
+                      const jumlahPorsi = typeof data.jumlahPorsi === 'string' 
+                        ? (data.jumlahPorsi === '' ? 1 : parseInt(data.jumlahPorsi)) || 1
+                        : (data.jumlahPorsi || 1);
+                      return formatCurrency(jumlahPorsi > 0 ? totalIngredientCost / jumlahPorsi : 0);
+                    })()}
                   </span>
                 </div>
 
-                {(data.jumlahPcsPerPorsi || 0) > 1 && (
-                  <div className="flex justify-between">
-                    <span className="text-blue-700">Biaya per Pcs:</span>
-                    <span className="font-semibold text-blue-900">
-                      {formatCurrency(
-                        data.jumlahPorsi > 0 && (data.jumlahPcsPerPorsi || 0) > 0 
-                          ? totalIngredientCost / (data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1))
-                          : 0
-                      )}
-                    </span>
-                  </div>
-                )}
+                {(() => {
+                  const jumlahPcsPerPorsi = typeof data.jumlahPcsPerPorsi === 'string'
+                    ? (data.jumlahPcsPerPorsi === '' ? 1 : parseInt(data.jumlahPcsPerPorsi)) || 1  
+                    : (data.jumlahPcsPerPorsi || 1);
+                  return jumlahPcsPerPorsi > 1 && (
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Biaya per Pcs:</span>
+                      <span className="font-semibold text-blue-900">
+                        {(() => {
+                          const jumlahPorsi = typeof data.jumlahPorsi === 'string' 
+                            ? (data.jumlahPorsi === '' ? 1 : parseInt(data.jumlahPorsi)) || 1
+                            : (data.jumlahPorsi || 1);
+                          return formatCurrency(
+                            jumlahPorsi > 0 && jumlahPcsPerPorsi > 0 
+                              ? totalIngredientCost / (jumlahPorsi * jumlahPcsPerPorsi)
+                              : 0
+                          );
+                        })()}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             </CardContent>
           </Card>

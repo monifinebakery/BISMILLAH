@@ -2,6 +2,14 @@
 import { Purchase, PurchaseItem } from '../types/purchase.types';
 import { logger } from '@/utils/logger';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
+import {
+  transformFromDB,
+  transformToDB,
+  transformArrayFromDB,
+  PURCHASE_FIELD_MAPPINGS,
+  PURCHASE_ITEM_FIELD_MAPPINGS,
+  COMMON_VALIDATORS
+} from '@/utils/unifiedTransformers';
 
 /** Helper: format ke 'YYYY-MM-DD' untuk kolom DATE di DB using UserFriendlyDate */
 const toYMD = (d: Date | string | null | undefined): string => {
@@ -82,105 +90,17 @@ type DbPurchaseRow = {
 /** ==== FRONTEND <- DB ==== */
 export const transformPurchaseFromDB = (dbItem: any): Purchase => {
   try {
-    const row = dbItem as DbPurchaseRow;
+    const baseData = transformFromDB(dbItem, PURCHASE_FIELD_MAPPINGS.fromDB);
 
-    // 🔍 DEBUG: Log raw purchase data for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 [TRANSFORM] Raw purchase data from DB:', {
-        id: row.id,
-        supplier: row.supplier,
-        total_nilai: row.total_nilai,
-        items_raw: row.items,
-        items_type: typeof row.items,
-        items_is_array: Array.isArray(row.items),
-        items_length: Array.isArray(row.items) ? row.items.length : 'not array',
-        items_string_length: typeof row.items === 'string' ? row.items.length : 'not string'
-      });
-      
-      // Additional debugging for items
-      if (Array.isArray(row.items)) {
-        console.log('🔍 [TRANSFORM] Items array details:', row.items.map((item, idx) => ({
-          index: idx,
-          raw: item,
-          nama: item?.nama,
-          bahan_baku_id: item?.bahan_baku_id,
-          jumlah: item?.jumlah,
-          harga_per_satuan: item?.harga_per_satuan
-        })));
-      }
-    }
-
-    const items: PurchaseItem[] = Array.isArray(row.items)
-      ? row.items.map((i: any, itemIndex: number) => {
-          // dukung key lama & baru
-          const qtyBase = toNumber(i.qty_base ?? i.jumlah ?? i.kuantitas);
-          const baseUnit = i.base_unit ?? i.satuan ?? '';
-          const hargaPerSatuan =
-            toNumber(i.harga_per_satuan ?? i.hargaSatuan);
-
-          const subtotal =
-            i.subtotal !== undefined && i.subtotal !== null
-              ? toNumber(i.subtotal)
-              : qtyBase * hargaPerSatuan;
-
-          // simpan juga info kemasan bila ada (opsional untuk UI)
-          const out: any = {
-            // shape lama agar kompatibel UI
-            bahanBakuId: i.bahan_baku_id ?? i.bahanBakuId ?? '',
-            nama: i.nama ?? '',
-            kuantitas: qtyBase,
-            satuan: baseUnit,
-            hargaSatuan: hargaPerSatuan,
-            subtotal,
-            keterangan: i.keterangan ?? i.catatan ?? undefined,
-
-            // simpan juga field baru (opsional)
-            qty_base: qtyBase,
-            base_unit: baseUnit,
-            harga_per_satuan: hargaPerSatuan,
-          };
-          
-          // 🔍 DEBUG: Log each item transformation
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`🔍 [TRANSFORM] Item ${itemIndex} transformation:`, {
-              input: i,
-              output: out,
-              nama_empty: !out.nama || out.nama === '',
-              kuantitas_zero: out.kuantitas === 0,
-              harga_zero: out.hargaSatuan === 0
-            });
-          }
-          
-          return out as PurchaseItem;
-        })
+    const items: PurchaseItem[] = Array.isArray(dbItem.items)
+      ? dbItem.items.map((item: any) => 
+          transformFromDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.fromDB)
+        )
       : [];
-      
-    // 🔍 DEBUG: Log final transformed items
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 [TRANSFORM] Final transformed items for purchase:', row.id, {
-        items_count: items.length,
-        items_summary: items.map(item => ({
-          nama: item.nama,
-          kuantitas: item.kuantitas,
-          hargaSatuan: item.hargaSatuan,
-          has_nama: !!item.nama && item.nama !== '',
-          has_quantity: item.kuantitas > 0,
-          has_price: item.hargaSatuan > 0
-        }))
-      });
-    }
 
     return {
-      id: row.id,
-      userId: row.user_id,
-      supplier: row.supplier,
-      tanggal: UserFriendlyDate.safeParseToDate(row.tanggal),
-      totalNilai: Number(row.total_nilai ?? 0),
-      items,
-      status: row.status,
-      metodePerhitungan: row.metode_perhitungan,
-      createdAt: UserFriendlyDate.safeParseToDate(row.created_at),
-      updatedAt: UserFriendlyDate.safeParseToDate(row.updated_at),
+      ...(baseData as any),
+      items
     };
   } catch (error) {
     logger.error('Error transforming purchase from DB:', error);
@@ -204,15 +124,12 @@ export const transformPurchaseForDB = (
   p: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
   userId: string
 ) => {
+  const baseData = transformToDB({...p, userId}, PURCHASE_FIELD_MAPPINGS.toDB);
+  
   return {
-    user_id: userId,
-    supplier: String(p.supplier || '').trim(),
-    tanggal: toYMD(p.tanggal),
-    total_nilai: Math.max(0, Number(p.totalNilai) || 0),
+    ...(baseData as any),
     // ✅ HARDENED: Gunakan mapper yang robust
     items: (p.items ?? []).map(mapItemForDB),
-    status: p.status ?? 'pending',
-    metode_perhitungan: p.metodePerhitungan ?? 'AVERAGE',
   };
 };
 

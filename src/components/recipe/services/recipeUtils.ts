@@ -184,7 +184,11 @@ export const validateRecipeData = (recipe: Partial<NewRecipe>): ValidationResult
     errors.push('Nama resep wajib diisi');
   }
 
-  if (!recipe.jumlahPorsi || recipe.jumlahPorsi <= 0) {
+  // Handle both number and string types for jumlahPorsi
+  const jumlahPorsi = typeof recipe.jumlahPorsi === 'string' 
+    ? (recipe.jumlahPorsi === '' ? 0 : parseInt(recipe.jumlahPorsi))
+    : recipe.jumlahPorsi;
+  if (!jumlahPorsi || jumlahPorsi <= 0) {
     errors.push('Jumlah porsi harus lebih dari 0');
   }
 
@@ -223,8 +227,14 @@ export const validateRecipeData = (recipe: Partial<NewRecipe>): ValidationResult
     errors.push('Margin keuntungan tidak boleh negatif');
   }
 
-  if (recipe.jumlahPcsPerPorsi !== undefined && recipe.jumlahPcsPerPorsi <= 0) {
-    errors.push('Jumlah pcs per porsi harus lebih dari 0');
+  // Handle both number and string types for jumlahPcsPerPorsi
+  if (recipe.jumlahPcsPerPorsi !== undefined) {
+    const jumlahPcsPerPorsi = typeof recipe.jumlahPcsPerPorsi === 'string'
+      ? (recipe.jumlahPcsPerPorsi === '' ? 0 : parseInt(recipe.jumlahPcsPerPorsi))
+      : recipe.jumlahPcsPerPorsi;
+    if (jumlahPcsPerPorsi <= 0) {
+      errors.push('Jumlah pcs per porsi harus lebih dari 0');
+    }
   }
 
   return {

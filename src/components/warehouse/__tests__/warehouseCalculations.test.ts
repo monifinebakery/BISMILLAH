@@ -2,7 +2,7 @@
 // Comprehensive test suite for warehouse calculation fixes
 
 import { warehouseUtils } from '../services/warehouseUtils';
-import { validatePurchaseForCompletion } from '../../purchase/utils/purchaseValidation';
+import { validatePurchaseData } from '@/utils/purchaseValidation';
 import type { BahanBakuFrontend } from '../types';
 import type { Purchase } from '../../purchase/types/purchase.types';
 
@@ -151,12 +151,9 @@ describe('Warehouse Calculation Fixes', () => {
         updatedAt: new Date()
       };
 
-      const validation = validatePurchaseForCompletion(validPurchase, {
-        enableStrictValidation: true,
-        checkWarehouseConsistency: false
-      });
+      const validation = validatePurchaseData(validPurchase);
 
-      expect(validation.canComplete).toBe(true);
+      expect(validation.isValid).toBe(true);
       expect(validation.errors).toHaveLength(0);
     });
 
@@ -183,9 +180,9 @@ describe('Warehouse Calculation Fixes', () => {
         updatedAt: new Date()
       };
 
-      const validation = validatePurchaseForCompletion(invalidPurchase);
+      const validation = validatePurchaseData(invalidPurchase);
       
-      expect(validation.canComplete).toBe(false);
+      expect(validation.isValid).toBe(false);
       expect(validation.errors.length).toBeGreaterThan(0);
     });
 
@@ -212,11 +209,11 @@ describe('Warehouse Calculation Fixes', () => {
         updatedAt: new Date()
       };
 
-      const validation = validatePurchaseForCompletion(inconsistentPurchase);
+      const validation = validatePurchaseData(inconsistentPurchase);
       
       expect(validation.warnings.length).toBeGreaterThan(0);
-      expect(validation.warnings.some(w => w.message.includes('subtotal'))).toBe(true);
-      expect(validation.warnings.some(w => w.message.includes('total'))).toBe(true);
+      expect(validation.warnings.some(w => w.includes('subtotal'))).toBe(true);
+      expect(validation.warnings.some(w => w.includes('total'))).toBe(true);
     });
 
     it('should validate against warehouse data consistency', () => {
@@ -259,15 +256,12 @@ describe('Warehouse Calculation Fixes', () => {
         updatedAt: new Date()
       };
 
-      const validation = validatePurchaseForCompletion(purchase, {
-        warehouseItems,
-        checkWarehouseConsistency: true
-      });
+      const validation = validatePurchaseData(purchase);
 
-      expect(validation.canComplete).toBe(true); // Warnings don't prevent completion
+      expect(validation.isValid).toBe(true); // Warnings don't prevent completion
       expect(validation.warnings.length).toBeGreaterThan(0);
-      expect(validation.warnings.some(w => w.message.includes('satuan'))).toBe(true);
-      expect(validation.warnings.some(w => w.message.includes('harga'))).toBe(true);
+      expect(validation.warnings.some(w => w.includes('satuan'))).toBe(true);
+      expect(validation.warnings.some(w => w.includes('harga'))).toBe(true);
     });
   });
 

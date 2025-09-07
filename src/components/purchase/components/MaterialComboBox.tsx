@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { MaterialsHistoryService, MaterialHistory } from '../services/materialsHistoryService';
-import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUserId } from '@/utils/authHelpers';
 
 export interface MaterialComboBoxProps {
   value: string;
@@ -50,13 +50,13 @@ const MaterialComboBox: React.FC<MaterialComboBoxProps> = ({
   const [userId, setUserId] = useState<string | null>(null);
   
   useEffect(() => {
-    const getCurrentUserId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
+    const loadUserId = async () => {
+      const currentUserId = await getCurrentUserId();
+      if (currentUserId) {
+        setUserId(currentUserId);
       }
     };
-    getCurrentUserId();
+    loadUserId();
   }, []);
 
   // Load materials history when component mounts or user changes

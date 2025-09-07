@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react'; // ✅ Tambahkan useState, useRef, useEffect
 import { Edit, Trash2, Eye, Copy, MoreVertical } from 'lucide-react';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
+import { formatCurrency } from '@/utils/formatUtils';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 
 const PromoCard = ({ 
@@ -18,13 +20,6 @@ const PromoCard = ({
   const dropdownRef = useRef(null); // Untuk mendeteksi klik di luar dropdown
 
   // Utility functions
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(value || 0);
-  };
 
   const getPromoTypeIcon = (type) => {
     const icons = {
@@ -44,14 +39,7 @@ const PromoCard = ({
     return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+
 
   const getPromoTypeText = (type) => {
     const types = {

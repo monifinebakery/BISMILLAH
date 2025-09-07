@@ -121,6 +121,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     cooldownTime === 0 &&
     authState !== "sending";
 
+  // OTP verification validation
+  const canVerify =
+    otp.every((d) => d !== "") &&
+    authState !== "verifying" &&
+    authState !== "success";
+
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
@@ -296,21 +302,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   const isLoading = authState === "sending" || authState === "verifying";
   const isSent = authState === "sent" || authState === "expired";
-  const canVerify =
-    otp.every((d) => d !== "") &&
-    authState !== "verifying" &&
-    authState !== "success";
 
   return (
-<<<<<<< HEAD
-    <div className="min-h-screen flex font-sans">
-      {/* Left Side - Orange Theme */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ backgroundColor: "#ea580c" }}>
-        <div className="relative z-10 flex flex-col justify-between w-full px-12 py-12">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3">
-              <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: "#ea580c" }}></div>
-=======
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
       <Card className="w-full max-w-md border rounded-xl overflow-hidden">
         {/* Header Accent */}
@@ -390,41 +383,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               <p className="text-xs text-center text-gray-500">
                 Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)
               </p>
->>>>>>> 3618fb4e22a6d5ead62a4dc6062b4fba29febbee
             </div>
-            <h1 className="text-xl font-semibold text-white">{appName}</h1>
-          </div>
-
-          <div className="flex-1 flex flex-col justify-center">
-            <h2 className="text-4xl text-white mb-6 leading-tight">Kelola bisnis Anda dengan mudah dan efisien.</h2>
-            <p className="text-white/90 text-lg leading-relaxed">
-              Masuk ke dashboard untuk menghitung harga pokok penjualan dan mengelola data bisnis Anda.
-            </p>
-          </div>
-
-          <div className="flex justify-between items-center text-white/70 text-sm">
-            <span>Copyright © 2025 {appName}.</span>
-            <span className="cursor-pointer hover:text-white/90">Kebijakan Privasi</span>
-          </div>
-        </div>
-      </div>
-
-<<<<<<< HEAD
-      {/* Right Side - Magic Link Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
-        <Card className="w-full max-w-md border-0 shadow-none">
-          <CardHeader className="space-y-4 pt-0">
-            {/* Mobile Logo */}
-            <div className="lg:hidden text-center mb-8">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-3"
-                style={{ backgroundColor: "#ea580c" }}
-              >
-                <div className="w-4 h-4 bg-white rounded-sm"></div>
-              </div>
-              <h1 className="text-xl font-semibold text-foreground">{appName}</h1>
-            </div>
-=======
+          ) : (
+            // OTP Verification
+            <div className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-gray-700 block text-center">
                   Masukkan Kode OTP (6 digit)
@@ -468,225 +430,21 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   "Verifikasi Kode"
                 )}
               </Button>
->>>>>>> 3618fb4e22a6d5ead62a4dc6062b4fba29febbee
 
-            <div className="flex justify-center mb-4">
-              {logoUrl ? (
-                <img src={logoUrl} alt={appName} className="h-16 w-auto" />
-              ) : (
-                <div className="h-16 w-16" style={{ backgroundColor: "#ea580c" }} className="rounded-full flex items-center justify-center">
-                  <Lock className="h-8 w-8 text-white" />
-                </div>
-              )}
-            </div>
-            <CardTitle className="text-2xl font-bold text-center text-gray-800">
-              {appName}
-            </CardTitle>
-            <CardDescription className="text-center text-gray-600">
-              {appDescription}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {!isSent ? (
-              // Email Input + Captcha
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                    Email Address
-                  </Label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Masukkan email Anda"
-                      value={email}
-                      onChange={handleEmailChange}
-                      className="pl-10 h-12 text-base border-gray-300 focus:border-orange-500 focus:ring-orange-500"
-                      disabled={isLoading}
-                      autoComplete="email"
-                      autoFocus
-                    />
-                  </div>
-                </div>
-
-                {/* Turnstile Widget - hanya saat diwajibkan */}
-                {REQUIRE_CAPTCHA && (
-                  <div className="flex justify-center">
-                    <TurnstileWrapper
-                      ref={turnstileRef}
-                      siteKey={TURNSTILE_SITE_KEY}
-                      onSuccess={handleTurnstileSuccess}
-                      onError={handleTurnstileError}
-                      onExpire={handleTurnstileExpire}
-                      theme="light"
-                    />
-                  </div>
-                )}
-
-                {/* Info status Turnstile */}
-                {REQUIRE_CAPTCHA && turnstileError && (
-                  <div className="text-center text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
-                    Captcha error: {turnstileError}. Coba refresh halaman.
-                  </div>
-                )}
-
+              <div className="text-center">
                 <Button
-                  onClick={handleSendOtp}
-                  className="w-full h-12 text-base font-medium text-white hover:opacity-90 rounded-lg border transition-all duration-200 disabled:opacity-50"
-                  style={{ backgroundColor: "#ea580c" }}
-                  disabled={!canSend}
+                  variant="link"
+                  onClick={handleResendOtp}
+                  disabled={cooldownTime > 0}
+                  className="text-orange-600 hover:text-orange-700 text-sm"
                 >
-                  {cooldownTime > 0 ? (
-                    <>
-                      <Clock className="mr-2 h-5 w-5" />
-                      Tunggu {cooldownTime}s
-                    </>
-                  ) : isLoading ? (
-                    <>
-                      <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
-                      Mengirim Kode...
-                    </>
-                  ) : (
-                    "Kirim Kode Verifikasi"
-                  )}
+                  {cooldownTime > 0 ? `Kirim ulang dalam ${cooldownTime}s` : "Kirim ulang kode"}
                 </Button>
-
-                {!REQUIRE_CAPTCHA && (
-                  <small className="block text-center text-sm text-muted-foreground">
-                    Captcha dimatikan di environment ini.
-                  </small>
-                )}
-
-                <p className="text-xs text-center text-gray-500">
-                  Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)
-                </p>
-              </div>
-            ) : (
-              // OTP Verification
-              <div className="space-y-6">
-                <div className="text-center space-y-2">
-                  <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                    <Mail className="h-8 w-8 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800">Cek Email Anda</h3>
-                  <p className="text-gray-600">Kode verifikasi telah dikirim ke</p>
-                  <p className="font-semibold text-gray-800">{email}</p>
-                </div>
-
-                {error && (
-                  <div
-                    className={`border rounded-lg p-3 ${
-                      authState === "expired"
-                        ? "bg-orange-50 border-orange-200"
-                        : "bg-red-50 border-red-200"
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <AlertCircle
-                        className={`w-4 h-4 mr-2 ${
-                          authState === "expired" ? "text-orange-600" : "text-red-600"
-                        }`}
-                      />
-                      <span
-                        className={`text-sm ${
-                          authState === "expired" ? "text-orange-800" : "text-red-800"
-                        }`}
-                      >
-                        {error}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {authState === "success" && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <div className="flex items-center">
-                      <RefreshCw className="w-4 h-4 mr-2 text-green-600 animate-spin" />
-                      <span className="text-sm text-green-800">
-                        Login berhasil! AuthGuard akan mengarahkan ke dashboard...
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-gray-700 block text-center">
-                    Masukkan Kode OTP (6 digit)
-                  </Label>
-                  <div className="flex justify-center space-x-2">
-                    {otp.map((digit, index) => (
-                      <input
-                        key={index}
-                        ref={(el) => (inputRefs.current[index] = el)}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9A-Z]*"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(index, e)}
-                        onPaste={index === 0 ? handlePaste : undefined}
-                        className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
-                        disabled={authState === "verifying" || authState === "success"}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleVerifyOtp}
-                  disabled={!canVerify}
-                  className="w-full h-12 text-base font-medium text-white hover:opacity-90 rounded-lg border transition-all duration-200 disabled:opacity-50"
-                  style={{ backgroundColor: "#ea580c" }}
-                >
-                  {authState === "verifying" ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Memverifikasi...
-                    </>
-                  ) : authState === "success" ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Berhasil! AuthGuard mengarahkan...
-                    </>
-                  ) : (
-                    "Verifikasi Kode"
-                  )}
-                </Button>
-
-                <div className="space-y-3">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                    <strong>Tips:</strong> Kode akan expired dalam 5 menit. Periksa folder spam
-                    jika tidak menerima email.
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    onClick={handleResendOtp}
-                    disabled={isLoading || cooldownTime > 0 || authState === "success"}
-                    className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    {cooldownTime > 0 ? `Tunggu ${cooldownTime}s` : "Kirim Ulang Kode"}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-
-          {cooldownTime > 0 && (
-            <div className="px-6 pb-6">
-              <div className="text-xs text-center text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200">
-                <Clock className="inline h-3 w-3 mr-1" />
-                Tunggu {cooldownTime} detik untuk mencegah spam
               </div>
             </div>
           )}
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

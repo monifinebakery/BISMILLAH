@@ -69,9 +69,15 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
       onUpdate('hppPerPorsi', result.hppPerPorsi);
       onUpdate('hppPerPcs', result.hppPerPcs);
       
-      // Update costs but not selling prices (user controls selling prices)
-      onUpdate('biayaTenagaKerja', result.tklPerPcs * (data.jumlahPorsi || 1) * (data.jumlahPcsPerPorsi || 1));
-      onUpdate('biayaOverhead', result.overheadPerPcs * (data.jumlahPorsi || 1) * (data.jumlahPcsPerPorsi || 1));
+      // Update costs but not selling prices (user controls selling prices) - handle string values
+      const jumlahPorsi = typeof data.jumlahPorsi === 'string' 
+        ? (data.jumlahPorsi === '' ? 1 : parseInt(data.jumlahPorsi)) || 1
+        : (data.jumlahPorsi || 1);
+      const jumlahPcsPerPorsi = typeof data.jumlahPcsPerPorsi === 'string'
+        ? (data.jumlahPcsPerPorsi === '' ? 1 : parseInt(data.jumlahPcsPerPorsi)) || 1  
+        : (data.jumlahPcsPerPorsi || 1);
+      onUpdate('biayaTenagaKerja', result.tklPerPcs * jumlahPorsi * jumlahPcsPerPorsi);
+      onUpdate('biayaOverhead', result.overheadPerPcs * jumlahPorsi * jumlahPcsPerPorsi);
     }
   }, [onUpdate, data.jumlahPorsi, data.jumlahPcsPerPorsi]);
 
@@ -83,19 +89,34 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     }
   }, [onEnhancedHppModeChange]);
 
-  // Prepare recipe data for enhanced HPP integration
-  const recipeDataForHpp = React.useMemo(() => ({
-    bahanResep: data.bahanResep || [],
-    jumlahPorsi: data.jumlahPorsi || 1,
-    jumlahPcsPerPorsi: data.jumlahPcsPerPorsi || 1,
-    biayaTenagaKerja: data.biayaTenagaKerja || 0,
-    biayaOverhead: data.biayaOverhead || 0,
-    marginKeuntunganPersen: data.marginKeuntunganPersen || 0,
-  }), [data]);
+  // Prepare recipe data for enhanced HPP integration - handle string values
+  const recipeDataForHpp = React.useMemo(() => {
+    const jumlahPorsi = typeof data.jumlahPorsi === 'string' 
+      ? (data.jumlahPorsi === '' ? 1 : parseInt(data.jumlahPorsi)) || 1
+      : (data.jumlahPorsi || 1);
+    const jumlahPcsPerPorsi = typeof data.jumlahPcsPerPorsi === 'string'
+      ? (data.jumlahPcsPerPorsi === '' ? 1 : parseInt(data.jumlahPcsPerPorsi)) || 1  
+      : (data.jumlahPcsPerPorsi || 1);
+      
+    return {
+      bahanResep: data.bahanResep || [],
+      jumlahPorsi,
+      jumlahPcsPerPorsi,
+      biayaTenagaKerja: data.biayaTenagaKerja || 0,
+      biayaOverhead: data.biayaOverhead || 0,
+      marginKeuntunganPersen: data.marginKeuntunganPersen || 0,
+    };
+  }, [data]);
 
-  // Calculate accurate ingredient cost for display
+  // Calculate accurate ingredient cost for display - handle string values
   const totalIngredientCost = data.bahanResep.reduce((sum, bahan) => sum + bahan.totalHarga, 0);
-  const totalPcs = data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1);
+  const jumlahPorsiForCalc = typeof data.jumlahPorsi === 'string' 
+    ? (data.jumlahPorsi === '' ? 1 : parseInt(data.jumlahPorsi)) || 1
+    : (data.jumlahPorsi || 1);
+  const jumlahPcsPerPorsiForCalc = typeof data.jumlahPcsPerPorsi === 'string'
+    ? (data.jumlahPcsPerPorsi === '' ? 1 : parseInt(data.jumlahPcsPerPorsi)) || 1  
+    : (data.jumlahPcsPerPorsi || 1);
+  const totalPcs = jumlahPorsiForCalc * jumlahPcsPerPorsiForCalc;
   const accurateIngredientCostPerPcs = totalPcs > 0 ? totalIngredientCost / totalPcs : 0;
 
   return (

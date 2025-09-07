@@ -4,17 +4,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from '@/utils/logger';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization';
+import { getCurrentUserId } from '@/utils/authHelpers';
 import { AppSettings, AppSettingsFormData, ApiResponse } from '../types/operationalCost.types';
-
-// Helper function to get current user ID
-const getCurrentUserId = async (): Promise<string | null> => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
-    logger.error('Error getting current user:', error);
-    return null;
-  }
-  return user.id;
-};
 
 // ================================
 // APP SETTINGS API

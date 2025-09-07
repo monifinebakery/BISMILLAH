@@ -1,6 +1,7 @@
 // src/components/recipe/services/recipeApi.ts - useQuery Optimized
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { getCurrentUserId as getAuthUserId } from '@/utils/authHelpers';
 import { Recipe, RecipeDB, NewRecipe } from '../types';
 export interface ApiResponse<T> {
   data: T;
@@ -18,14 +19,11 @@ class RecipeApiService {
   private readonly tableName = 'recipes';
   // ✅ Get current user ID with error handling
   private async getCurrentUserId(): Promise<string> {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) {
-      throw new Error(`Authentication error: ${error.message}`);
-    }
-    if (!session?.user) {
+    const userId = await getAuthUserId();
+    if (!userId) {
       throw new Error('User not authenticated');
     }
-    return session.user.id;
+    return userId;
   }
   // Transform database format to frontend format
   private transformFromDB(dbItem: RecipeDB): Recipe {

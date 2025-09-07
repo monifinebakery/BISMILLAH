@@ -20,10 +20,12 @@ interface OnboardingModalProps {
 type BusinessType = 'bakery' | 'restaurant' | 'cafe';
 
 const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSkip }) => {
-  const { actions } = useOperationalCost();
+  const { actions, state } = useOperationalCost();
+  const [loading, setLoading] = React.useState<BusinessType | null>(null);
 
   // Quick setup for common cost types
   const handleQuickSetup = async (type: BusinessType) => {
+    setLoading(type);
     const costTemplates = {
       bakery: [
         { nama_biaya: 'Gas Oven', jumlah_per_bulan: 500000, jenis: 'tetap' as const, group: 'hpp' as const },
@@ -50,19 +52,24 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSk
 
     const templates = costTemplates[type];
     let successCount = 0;
+    let errorCount = 0;
 
     for (const template of templates) {
       try {
         const success = await actions.createCost({ ...template, status: 'aktif' });
         if (success) successCount++;
+        else errorCount++;
       } catch (error) {
         console.error('Error creating template cost:', error);
+        errorCount++;
       }
     }
 
+    setLoading(null);
+
     if (successCount > 0) {
       toast.success(`Setup ${type} berhasil!`, {
-        description: `${successCount} biaya contoh telah ditambahkan. Silakan edit sesuai kebutuhan.`
+        description: `${successCount} biaya contoh telah ditambahkan${errorCount > 0 ? `, ${errorCount} gagal` : ''}. Silakan edit sesuai kebutuhan.`
       });
       
       // Trigger explicit data refresh to ensure costs are immediately visible
@@ -73,6 +80,10 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSk
       }
       
       onClose();
+    } else if (errorCount > 0) {
+      toast.error('Gagal setup template', {
+        description: 'Semua biaya gagal ditambahkan. Silakan coba lagi atau mulai dari kosong.'
+      });
     }
   };
 
@@ -118,36 +129,51 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSk
                   onClick={() => handleQuickSetup('bakery')}
                   className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
                   variant="outline"
+                  disabled={loading !== null}
                 >
                   <div className="text-left">
                     <div className="font-medium">🧁 Toko Roti/Bakery</div>
                     <div className="text-xs text-gray-600">Gas oven, sewa dapur, marketing, dll</div>
                   </div>
-                  <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                  {loading === 'bakery' ? (
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                  )}
                 </Button>
                 
                 <Button
                   onClick={() => handleQuickSetup('restaurant')}
                   className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
                   variant="outline"
+                  disabled={loading !== null}
                 >
                   <div className="text-left">
                     <div className="font-medium">🍽️ Restoran/Warung</div>
                     <div className="text-xs text-gray-600">Gas kompor, gaji koki, sewa, dll</div>
                   </div>
-                  <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                  {loading === 'restaurant' ? (
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                  )}
                 </Button>
                 
                 <Button
                   onClick={() => handleQuickSetup('cafe')}
                   className="w-full flex items-center justify-between p-4 h-auto bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200"
                   variant="outline"
+                  disabled={loading !== null}
                 >
                   <div className="text-left">
                     <div className="font-medium">☕ Cafe/Kedai Kopi</div>
                     <div className="text-xs text-gray-600">Coffee machine, barista, sewa, dll</div>
                   </div>
-                  <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                  {loading === 'cafe' ? (
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <div className="text-xs bg-gray-200 px-2 py-1 rounded">5 item</div>
+                  )}
                 </Button>
               </div>
 
@@ -164,8 +190,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, onSk
               onClick={onSkip}
               variant="outline"
               className="w-full sm:w-auto"
+              disabled={loading !== null}
             >
-              Mulai dari Kosong
+              {loading ? 'Loading...' : 'Mulai dari Kosong'}
             </Button>
           </DialogFooter>
         </div>

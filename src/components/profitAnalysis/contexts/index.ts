@@ -6,9 +6,17 @@
 export { 
   ProfitAnalysisProvider, 
   useProfitAnalysisContext,
-  PROFIT_ANALYSIS_QUERY_KEYS,
   default as ProfitAnalysisContext
 } from './ProfitAnalysisContext';
+
+// ✅ Import centralized query keys instead
+export { 
+  PROFIT_QUERY_KEYS,
+  PROFIT_QUERY_MATCHERS,
+  queryKeyUtils,
+  type ProfitQueryKey,
+  type FnbQueryKey
+} from '../constants/queryKeys';
 
 // Export types yang diperlukan
 export type {

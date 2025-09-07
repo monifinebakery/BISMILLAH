@@ -149,6 +149,24 @@ export const calculateStandardDeviation = (values: number[]): number => {
   return Math.sqrt(variance);
 };
 
+/**
+ * ✅ NEW: Convert value to number with validation
+ */
+export const toNumber = (value: unknown): number => {
+  if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+    return value;
+  }
+  
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed) && isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  
+  return 0;
+};
+
 export default {
   calculatePromoResult,
   analyzeMargin,
@@ -166,5 +184,6 @@ export default {
   calculateAverage,
   calculateMedian,
   calculateStandardDeviation,
+  toNumber,
 };
 

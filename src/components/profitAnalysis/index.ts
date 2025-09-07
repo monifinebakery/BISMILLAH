@@ -24,7 +24,11 @@ export type {
 export { 
   ProfitAnalysisProvider, 
   useProfitAnalysisContext,
-  PROFIT_ANALYSIS_QUERY_KEYS 
+  PROFIT_QUERY_KEYS,
+  PROFIT_QUERY_MATCHERS,
+  queryKeyUtils,
+  type ProfitQueryKey,
+  type FnbQueryKey
 } from './contexts';
 
 // ===== HOOKS =====
@@ -152,11 +156,12 @@ export type {
 
 // ===== CONVENIENT DEFAULT EXPORT =====
 // ✅ FIXED: Import separate instances to avoid reference issues
-import { ProfitAnalysisProvider as Provider, PROFIT_ANALYSIS_QUERY_KEYS as queryKeys } from './contexts/ProfitAnalysisContext';
+import { ProfitAnalysisProvider as Provider } from './contexts/ProfitAnalysisContext';
 import { useProfitAnalysis } from './hooks/useProfitAnalysis';
 import ProfitDashboard from './components/ProfitDashboard';
 import profitAnalysisApi from './services/profitAnalysisApi';
 import { PROFIT_CONSTANTS } from './constants/profitConstants';
+import { PROFIT_QUERY_KEYS as queryKeys } from './constants/queryKeys';
 
 // Default export untuk kemudahan penggunaan
 export default {

@@ -2,8 +2,11 @@
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { ERROR_MESSAGES } from './config';
-import { getErrorMessage } from '@/utils';
+import { getErrorMessage as utilGetErrorMessage } from '@/utils';
 
 export const validateEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
+
+// Re-export getErrorMessage for local use
+export const getErrorMessage = utilGetErrorMessage;

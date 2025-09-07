@@ -21,7 +21,69 @@ export const SEARCH_CONFIG = {};
 export const DATE_FORMATS = {};
 export const LOCALES = {};
 export const CURRENCY_CONFIG = {};
-export const SECURITY_CONFIG = {};
+export const SECURITY_CONFIG = {
+  RATE_LIMIT: {
+    WINDOW_MS: 900000, // 15 minutes
+    MAX_REQUESTS: 100,
+    MESSAGE: 'Terlalu banyak permintaan, coba lagi nanti'
+  },
+  CORS_OPTIONS: {
+    origin: process.env.NODE_ENV === 'production' 
+      ? ['https://yourdomain.com'] 
+      : ['http://localhost:3000', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  },
+  PASSWORD_POLICY: {
+    MIN_LENGTH: 8,
+    REQUIRE_UPPERCASE: true,
+    REQUIRE_LOWERCASE: true,
+    REQUIRE_NUMBER: true,
+    REQUIRE_SPECIAL_CHAR: true
+  },
+  SESSION: {
+    TIMEOUT: 3600000, // 1 hour
+    EXTEND_ON_ACTIVITY: true
+  },
+  HEADERS: {
+    CSP: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https:"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'self'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: true
+    },
+    HSTS: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: false
+    },
+    X_FRAME_OPTIONS: 'DENY',
+    X_CONTENT_TYPE_OPTIONS: 'nosniff',
+    X_XSS_PROTECTION: '1; mode=block',
+    REFERRER_POLICY: 'strict-origin-when-cross-origin'
+  },
+  VALIDATION: {
+    MAX_INPUT_LENGTH: 255,
+    MAX_TEXTAREA_LENGTH: 1000,
+    MAX_FILE_SIZE: 5242880, // 5MB
+    ALLOWED_FILE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'application/pdf']
+  },
+  ENCRYPTION: {
+    ALGORITHM: 'aes-256-gcm',
+    IV_LENGTH: 16,
+    SALT_LENGTH: 64,
+    ITERATIONS: 10000
+  }
+};
 export const ANALYTICS_EVENTS = {};
 export const FEATURE_FLAGS = {};
 export const LOADING_MESSAGES = {};

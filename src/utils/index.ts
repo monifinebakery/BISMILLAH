@@ -350,3 +350,17 @@ export {
   validatePositiveInteger,
   getErrorMessage
 } from './validation';
+
+// 🔒 Security utilities
+export {
+  RateLimiter,
+  validateInputLength,
+  validateTextareaLength,
+  validateFileType,
+  validateFileSize,
+  validatePassword,
+  sanitizeInput,
+  generateCSRFToken,
+  validateCSRFToken,
+  checkSessionTimeout
+} from './securityUtils';

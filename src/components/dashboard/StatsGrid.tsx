@@ -214,13 +214,13 @@ const StatCard: React.FC<{
     <Card className="bg-white border-[1.5px] border-gray-200 dark:border-gray-700 relative group h-full">
       <CardContent className="card-stats h-full relative">
         {/* Inset Border Effect */}
-        <div className="absolute inset-0 rounded-lg border-[1.5px] border-orange-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+        <div className="absolute inset-0 rounded-lg border-[1.5px] border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
         
         {/* Content */}
         <div className="relative h-full flex flex-col">
           {/* 🎨 Icon dan Trend - Top row */}
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <div className="border-[1.5px] border-orange-200 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-orange-300 group-hover:bg-orange-50 transition-all duration-300 flex items-center justify-center">
+            <div className="border-[1.5px] border-gray-200 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-gray-300 group-hover:bg-gray-50 transition-all duration-300 flex items-center justify-center">
               <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>
                 {icon}
               </div>
@@ -244,7 +244,7 @@ const StatCard: React.FC<{
                 {shortLabel || label}
               </div>
               {tooltip && (
-                <Info className="h-3 w-3 text-gray-400 group-hover:text-orange-500 transition-colors flex-shrink-0 mt-0.5" />
+                <Info className="h-3 w-3 text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0 mt-0.5" />
               )}
             </div>
           </div>
@@ -334,7 +334,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       label: 'Omzet',
       shortLabel: 'Omzet',
       value: formatCurrency(stats.revenue),
-      iconColor: 'text-orange-600',
+      iconColor: 'text-blue-600',
       trend: stats.trends?.revenue,
       tooltip: 'Total pendapatan kotor dari semua pesanan dalam periode yang dipilih. Ini adalah jumlah sebelum dikurangi biaya operasional dan HPP (Harga Pokok Penjualan).',
       syncStatus: null // Revenue is always from orders, no sync needed
@@ -359,7 +359,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
       description: isFromProfitAnalysis 
         ? syncInfo ? `(Margin: ${syncInfo.netMargin.toFixed(1)}%)` : '(Data Akurat)'
         : '(Estimasi 30%)',
-      iconColor: isFromProfitAnalysis ? 'text-green-600' : 'text-orange-600',
+      iconColor: isFromProfitAnalysis ? 'text-green-600' : 'text-blue-600',
       trend: stats.trends?.profit,
       tooltip: isFromProfitAnalysis 
         ? `Laba bersih berdasarkan analisis profit akurat dengan data COGS dari ${syncInfo?.cogsSource === 'wac' ? 'WAC (Weighted Average Cost)' : syncInfo?.cogsSource === 'inventory' ? 'nilai stok gudang' : 'estimasi'}. Data ini dihitung berdasarkan pendapatan dikurangi COGS dan biaya operasional.`

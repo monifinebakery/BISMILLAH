@@ -14,8 +14,8 @@ import { logger } from '@/utils/logger';
 import { safeNumber, safeDivide, safeMultiply, safeAdd } from '@/utils/safeMath';
 
 interface DateRange {
-  from: string;
-  to: string;
+  from: Date | string;
+  to: Date | string;
 }
 
 interface TrendData {
@@ -149,13 +149,18 @@ export const useDashboardData = (dateRange: DateRange) => {
   // 🔄 Current Period Data
   const currentData = useMemo(() => {
     try {
-      const filteredOrders = dateRange?.from && dateRange?.to 
-        ? filterByDateRange(orders, dateRange, 'tanggal') 
-        : [];
+      if (!dateRange?.from || !dateRange?.to) {
+        return { filteredOrders: [], filteredActivities: [] };
+      }
+
+      // Convert dates to string format for filterByDateRange
+      const dateRangeForFilter = {
+        from: dateRange.from instanceof Date ? dateRange.from.toISOString().split('T')[0] : dateRange.from,
+        to: dateRange.to instanceof Date ? dateRange.to.toISOString().split('T')[0] : dateRange.to
+      };
       
-      const filteredActivities = dateRange?.from && dateRange?.to 
-        ? filterByDateRange(activities, dateRange, 'timestamp') 
-        : [];
+      const filteredOrders = filterByDateRange(orders, dateRangeForFilter, 'tanggal');
+      const filteredActivities = filterByDateRange(activities, dateRangeForFilter, 'timestamp');
 
       return { filteredOrders, filteredActivities };
     } catch (err) {
@@ -168,8 +173,14 @@ export const useDashboardData = (dateRange: DateRange) => {
   // 📊 Previous Period Data
   const previousData = useMemo(() => {
     try {
-      const previousOrders = filterByDateRange(orders, previousPeriod, 'tanggal');
-      const previousActivities = filterByDateRange(activities, previousPeriod, 'timestamp');
+      // Convert dates to string format for filterByDateRange
+      const previousPeriodForFilter = {
+        from: previousPeriod.from instanceof Date ? previousPeriod.from.toISOString().split('T')[0] : previousPeriod.from,
+        to: previousPeriod.to instanceof Date ? previousPeriod.to.toISOString().split('T')[0] : previousPeriod.to
+      };
+      
+      const previousOrders = filterByDateRange(orders, previousPeriodForFilter, 'tanggal');
+      const previousActivities = filterByDateRange(activities, previousPeriodForFilter, 'timestamp');
 
       return { filteredOrders: previousOrders, filteredActivities: previousActivities };
     } catch (err) {

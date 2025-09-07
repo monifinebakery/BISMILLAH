@@ -34,8 +34,8 @@ const getDefaultDateRange = () => {
   try {
     const preset = getDateRangePreset('last30days');
     return {
-      from: normalizeDateForDatabase(preset.from),
-      to: normalizeDateForDatabase(preset.to)
+      from: preset.from,
+      to: preset.to
     };
   } catch (error) {
     logger.error('Dashboard - Error getting default date range:', error);
@@ -45,8 +45,8 @@ const getDefaultDateRange = () => {
     if (today && thirtyDaysAgo) {
       thirtyDaysAgo.setDate(today.getDate() - 30);
       return {
-        from: normalizeDateForDatabase(thirtyDaysAgo),
-        to: normalizeDateForDatabase(today)
+        from: thirtyDaysAgo,
+        to: today
       };
     }
     // Ultimate fallback
@@ -125,13 +125,11 @@ const Dashboard = () => {
       return;
     }
 
-    // Convert to normalized dates for database
-    const normalizedRange = {
-      from: normalizeDateForDatabase(fromDate),
-      to: normalizeDateForDatabase(toDate)
-    };
-    
-    setDateRange(normalizedRange);
+    // Keep as Date objects for useDashboardData
+    setDateRange({
+      from: fromDate,
+      to: toDate
+    });
   };
 
   // ⚠️ Error State
@@ -169,7 +167,7 @@ const Dashboard = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-        <div className="w-full p-4 sm:p-6 lg:p-8">
+        <div className="container-safe max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           
           {/* 🏠 Header Section */}
           <div className="mb-8">

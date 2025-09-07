@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trophy, Package, ChevronLeft, ChevronRight, TrendingUp, DollarSign, Hash, Target, BarChart3 } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
-import { calculatePagination } from '@/components/promoCalculator/utils/promoUtils';
+// import { calculatePagination } from '@/components/promoCalculator/utils/promoUtils';
 import { safeNumber, safeMultiply } from '@/utils/safeMath';
 
 interface Product {
@@ -40,7 +40,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     description: 'Berdasarkan total uang yang dihasilkan produk',
     getValue: (product) => safeNumber(product.revenue),
     formatValue: (value) => formatCurrency(value),
-    getSecondaryInfo: (product) => `${product.quantity} unit terjual`
+    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit terjual`
   },
   quantity: {
     key: 'quantity', 
@@ -76,7 +76,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
       
       return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
     },
-    formatValue: (value) => `${value.toFixed(1)} poin`,
+    formatValue: (value) => `${isNaN(value) || !isFinite(value) ? '0.0' : value.toFixed(1)} poin`,
     getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`
   }
 };
@@ -294,7 +294,7 @@ const BestSellingProducts: React.FC<Props> = ({
           {currentProducts.length > 0 ? (
             currentProducts.map((product, index) => {
               const rank = (paginationInfo.currentPage - 1) * itemsPerPage + index + 1;
-              const key = generateListKey('product', product.id, index, 'best');
+              const key = generateListKey('product', product.id, index);
               
               return (
                 <ProductItem

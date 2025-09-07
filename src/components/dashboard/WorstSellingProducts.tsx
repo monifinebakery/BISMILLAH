@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
-import { calculatePagination } from '@/components/promoCalculator/utils/promoUtils';
+// import { calculatePagination } from '@/components/promoCalculator/utils/promoUtils';
 import { safeNumber, safeMultiply, safeDivide } from '@/utils/safeMath';
 
 interface Product {
@@ -91,7 +91,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
       
       return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
     },
-    formatValue: (value) => `${value.toFixed(1)} poin`,
+    formatValue: (value) => `${isNaN(value) || !isFinite(value) ? '0.0' : value.toFixed(1)} poin`,
     getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`,
     getWarningLevel: (value) => value < 10 ? 'high' : value < 30 ? 'medium' : 'low'
   }
@@ -401,7 +401,7 @@ const WorstSellingProducts: React.FC<Props> = ({
           {currentProducts.length > 0 ? (
             currentProducts.map((product, index) => {
               const rank = (paginationInfo.currentPage - 1) * itemsPerPage + index + 1;
-              const key = generateListKey('product', product.id, index, 'worst');
+              const key = generateListKey('product', product.id, index);
               
               return (
                 <ProductItem

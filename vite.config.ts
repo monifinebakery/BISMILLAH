@@ -205,11 +205,12 @@ export default defineConfig(({ mode }) => {
         "lucide-react",
         "@radix-ui/react-icons",
         "@radix-ui/react-dialog",
-        "@radix-ui/react-select"
+        "@radix-ui/react-select",
+        "@supabase/supabase-js",
+        "@supabase/postgrest-js"
       ],
       exclude: [
-        "next-themes",
-        "@supabase/supabase-js"
+        "next-themes"
       ],
       // Force include React ecosystem to avoid context issues
       force: true

@@ -96,9 +96,9 @@ const StatusFilter: React.FC<{
                 w-2 h-2 rounded-full
                 ${status === 'pending' ? 'bg-yellow-400' : ''}
                 ${status === 'confirmed' ? 'bg-blue-400' : ''}
-                ${status === 'processing' ? 'bg-purple-400' : ''}
-                ${status === 'shipped' ? 'bg-indigo-400' : ''}
-                ${status === 'delivered' ? 'bg-green-400' : ''}
+                ${status === 'preparing' ? 'bg-purple-400' : ''}
+                 ${status === 'ready' ? 'bg-indigo-400' : ''}
+                 ${status === 'delivered' ? 'bg-green-400' : ''}
                 ${status === 'cancelled' ? 'bg-red-400' : ''}
                 ${status === 'completed' ? 'bg-emerald-400' : ''}
               `} />
@@ -136,62 +136,68 @@ const DateRangeFilter: React.FC<{
   };
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {/* Date From */}
-      <Popover open={isFromOpen} onOpenChange={setIsFromOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={`justify-start text-left font-normal ${!dateFrom && "text-muted-foreground"}`}
-            disabled={disabled}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: id }) : "Dari tanggal"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <CalendarComponent
-            mode="single"
-            selected={dateFrom || undefined}
-            onSelect={handleFromSelect}
-            disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate("1900-01-01") || new Date("1900-01-01"))}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Date From */}
+        <Popover open={isFromOpen} onOpenChange={setIsFromOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={`w-full justify-start text-left font-normal min-h-[40px] ${!dateFrom && "text-muted-foreground"}`}
+              disabled={disabled}
+            >
+              <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
+              <span className="truncate">
+                {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: id }) : "Dari tanggal"}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+            <CalendarComponent
+              mode="single"
+              selected={dateFrom || undefined}
+              onSelect={handleFromSelect}
+              disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate("1900-01-01") || new Date("1900-01-01"))}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
 
-      {/* Date To */}
-      <Popover open={isToOpen} onOpenChange={setIsToOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={`justify-start text-left font-normal ${!dateTo && "text-muted-foreground"}`}
-            disabled={disabled}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: id }) : "Sampai tanggal"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <CalendarComponent
-            mode="single"
-            selected={dateTo || undefined}
-            onSelect={handleToSelect}
-            disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate("1900-01-01") || new Date("1900-01-01"))}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+        {/* Date To */}
+        <Popover open={isToOpen} onOpenChange={setIsToOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={`w-full justify-start text-left font-normal min-h-[40px] ${!dateTo && "text-muted-foreground"}`}
+              disabled={disabled}
+            >
+              <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
+              <span className="truncate">
+                {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: id }) : "Sampai tanggal"}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+            <CalendarComponent
+              mode="single"
+              selected={dateTo || undefined}
+              onSelect={handleToSelect}
+              disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate("1900-01-01") || new Date("1900-01-01"))}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
 
       {/* Clear button */}
       {(dateFrom || dateTo) && (
-        <div className="col-span-2">
+        <div className="flex justify-center">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleClear}
             disabled={disabled}
-            className="w-full text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
           >
             <X className="h-3 w-3 mr-1" />
             Hapus Filter Tanggal

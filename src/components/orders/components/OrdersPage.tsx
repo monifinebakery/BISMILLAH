@@ -28,6 +28,15 @@ const BulkActions = React.lazy(() =>
   })
 );
 
+const OrderStatistics = React.lazy(() => 
+  import('./OrderStatistics').catch((error) => {
+    logger.error('Failed to load OrderStatistics component:', error);
+    return {
+      default: () => <div className="h-32 bg-gray-100 rounded animate-pulse" />
+    };
+  })
+);
+
 // ✅ ESSENTIAL TYPES: Only what's needed for this component
 import type { Order, NewOrder, OrderStatus } from '../types';
 
@@ -342,7 +351,7 @@ const OrdersPage: React.FC = () => {
             });
             return; // Success toast handled by updateOrderStatus
           } catch (error) {
-            logger.warn('updateOrderStatus failed:', error, 'trying fallback');
+            logger.warn('updateOrderStatus failed:', error);
           }
         } else {
           logger.warn('updateOrderStatus not available, trying fallback');
@@ -657,6 +666,14 @@ const OrdersPage: React.FC = () => {
           <div className="h-64 bg-gray-100 rounded animate-pulse" />
         </div>
       }>
+        {/* ✅ STATISTICS: Order statistics section */}
+         <Suspense fallback={<div className="h-32 bg-gray-100 rounded animate-pulse" />}>
+           <OrderStatistics 
+             orders={finalOrders} 
+             loading={finalIsLoading}
+           />
+         </Suspense>
+        
         <OrderControls 
           uiState={uiState} 
           loading={finalIsLoading} 

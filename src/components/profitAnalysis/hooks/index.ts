@@ -2,7 +2,8 @@
 // ==============================================
 
 // Direct exports untuk menghindari masalah "not defined"
-export { useProfitAnalysis, PROFIT_QUERY_KEYS } from './useProfitAnalysis';
+export { useProfitAnalysis } from './useProfitAnalysis';
+export { PROFIT_QUERY_KEYS } from '../constants/queryKeys';
 export { useProfitCalculation } from './useProfitCalculation';
 export { useProfitData } from './useProfitData';
 

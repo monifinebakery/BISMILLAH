@@ -1,6 +1,6 @@
 // 🎯 150 lines - All filters consolidated
 import React from 'react';
-import { Filter, Search, X, Calendar } from 'lucide-react';
+import { Filter, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,15 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
-import { safeParseDate } from '@/utils/unifiedDateUtils';
+import DateRangePicker from '@/components/ui/DateRangePicker';
 import type { UseOrderUIReturn } from '../types';
 import { ORDER_STATUSES, getStatusText } from '../constants';
 
@@ -111,112 +103,37 @@ const StatusFilter: React.FC<{
   );
 };
 
-// Date Range Filter Component (consolidated)
+// Date Range Filter Component using unified DateRangePicker
 const DateRangeFilter: React.FC<{
   dateFrom: Date | null;
   dateTo: Date | null;
   onChange: (dateFrom: Date | null, dateTo: Date | null) => void;
   disabled?: boolean;
 }> = ({ dateFrom, dateTo, onChange, disabled = false }) => {
-  const [isFromOpen, setIsFromOpen] = React.useState(false);
-  const [isToOpen, setIsToOpen] = React.useState(false);
+  // Convert separate dateFrom/dateTo to DateRange format
+  const dateRange = React.useMemo(() => {
+    if (dateFrom && dateTo) {
+      return { from: dateFrom, to: dateTo };
+    }
+    return undefined;
+  }, [dateFrom, dateTo]);
 
-  const handleFromSelect = (date: Date | undefined) => {
-    onChange(date || null, dateTo);
-    setIsFromOpen(false);
-  };
-
-  const handleToSelect = (date: Date | undefined) => {
-    onChange(dateFrom, date || null);
-    setIsToOpen(false);
-  };
-
-  const handleClear = () => {
-    onChange(null, null);
+  const handleDateRangeChange = (range: { from: Date; to: Date } | undefined) => {
+    if (range) {
+      onChange(range.from, range.to);
+    } else {
+      onChange(null, null);
+    }
   };
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-w-0">
-        {/* Date From */}
-        <Popover open={isFromOpen} onOpenChange={setIsFromOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={`w-full justify-start text-left font-normal min-h-[40px] overflow-hidden ${!dateFrom && "text-muted-foreground"}`}
-              disabled={disabled}
-            >
-              <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
-              <span className="truncate flex-1 min-w-0">
-                {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: id }) : "Dari tanggal"}
-              </span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent 
-            className="w-auto p-0 max-w-[95vw]" 
-            align="start" 
-            sideOffset={4}
-            avoidCollisions
-            collisionPadding={16}
-          >
-            <CalendarComponent
-              mode="single"
-              selected={dateFrom || undefined}
-              onSelect={handleFromSelect}
-              disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate("1900-01-01") || new Date("1900-01-01"))}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-
-        {/* Date To */}
-        <Popover open={isToOpen} onOpenChange={setIsToOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={`w-full justify-start text-left font-normal min-h-[40px] overflow-hidden ${!dateTo && "text-muted-foreground"}`}
-              disabled={disabled}
-            >
-              <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
-              <span className="truncate flex-1 min-w-0">
-                {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: id }) : "Sampai tanggal"}
-              </span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent 
-            className="w-auto p-0 max-w-[95vw]" 
-            align="start" 
-            sideOffset={4}
-            avoidCollisions
-            collisionPadding={16}
-          >
-            <CalendarComponent
-              mode="single"
-              selected={dateTo || undefined}
-              onSelect={handleToSelect}
-              disabled={(date) => date > (safeParseDate(new Date()) || new Date()) || date < (safeParseDate("1900-01-01") || new Date("1900-01-01"))}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Clear button */}
-      {(dateFrom || dateTo) && (
-        <div className="flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClear}
-            disabled={disabled}
-            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-          >
-            <X className="h-3 w-3 mr-1" />
-            Hapus Filter Tanggal
-          </Button>
-        </div>
-      )}
-    </div>
+    <DateRangePicker
+      dateRange={dateRange}
+      onDateRangeChange={handleDateRangeChange}
+      placeholder="Pilih rentang tanggal"
+      disabled={disabled}
+      className="w-full"
+    />
   );
 };
 

@@ -1,8 +1,15 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import DateRangePicker from '@/components/ui/DateRangePicker';
 import type { PurchaseFilters, PurchaseFiltersProps } from '../types/purchase.types';
 import { getStatusDisplayText } from '../utils/purchaseHelpers';
+
+// Define DateRange interface locally since it's not exported from DateRangePicker
+interface DateRange {
+  from: Date;
+  to: Date;
+}
 
 const PurchaseFilters: React.FC<PurchaseFiltersProps> = ({
   filters,
@@ -25,8 +32,12 @@ const PurchaseFilters: React.FC<PurchaseFiltersProps> = ({
     onChange({ ...filters, supplierFilter: value === 'all' ? undefined : value });
   };
 
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    onChange({ ...filters, dateRange: range });
+  };
+
   return (
-    <div className={`flex flex-col sm:flex-row gap-4 ${className}`}>
+    <div className={`flex flex-col lg:flex-row gap-4 ${className}`}>
       <Input
         placeholder="Cari supplier atau item..."
         value={filters.searchQuery}
@@ -45,6 +56,13 @@ const PurchaseFilters: React.FC<PurchaseFiltersProps> = ({
           <SelectItem value="cancelled">{getStatusDisplayText('cancelled')}</SelectItem>
         </SelectContent>
       </Select>
+
+      <DateRangePicker
+        dateRange={filters.dateRange}
+        onDateRangeChange={handleDateRangeChange}
+        placeholder="Pilih rentang tanggal"
+        className="w-full sm:w-auto"
+      />
 
       {suppliers.length > 0 && (
         <Select

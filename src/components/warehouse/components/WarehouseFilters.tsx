@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DateRangePicker from '@/components/ui/DateRangePicker';
 import { 
   Search, 
   Filter, 
@@ -23,6 +24,12 @@ import type { FilterState } from '../types';
 // Kategori default sinkron dengan analisis profit
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 
+// Define DateRange interface locally
+interface DateRange {
+  from: Date;
+  to: Date;
+}
+
 interface WarehouseFiltersProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
@@ -36,6 +43,8 @@ interface WarehouseFiltersProps {
   availableCategories: string[];
   availableSuppliers: string[];
   activeFiltersCount: number;
+  dateRange?: DateRange;
+  onDateRangeChange?: (range: DateRange | undefined) => void;
 }
 
 // ✅ TAMBAH: Query keys for filter data
@@ -83,7 +92,7 @@ const fetchSuppliers = async (): Promise<string[]> => {
         const items = await service.fetchBahanBaku();
         const supplierNames = new Set<string>();
         
-        items.forEach(item => {
+        items.forEach((item: any) => {
           if (item.supplier) {
             // Check if supplier is an ID that maps to a name
             const supplierName = supplierMap.get(item.supplier);
@@ -107,7 +116,7 @@ const fetchSuppliers = async (): Promise<string[]> => {
     });
     
     const items = await service.fetchBahanBaku();
-    const suppliers = [...new Set(items.map(item => item.supplier).filter(Boolean))];
+    const suppliers = [...new Set(items.map((item: any) => item.supplier).filter(Boolean))] as string[];
     return suppliers.sort();
   } catch (error) {
     logger.error('Failed to fetch suppliers:', error);
@@ -134,6 +143,8 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
   availableCategories: propCategories,
   availableSuppliers: propSuppliers,
   activeFiltersCount,
+  dateRange,
+  onDateRangeChange,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -382,6 +393,21 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               <option value="expired">Sudah Kadaluarsa</option>
             </select>
           </div>
+
+          {/* Date Range Filter */}
+          {onDateRangeChange && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rentang Tanggal
+              </label>
+              <DateRangePicker
+                dateRange={dateRange}
+                onDateRangeChange={onDateRangeChange}
+                placeholder="Pilih rentang tanggal"
+                className="w-full"
+              />
+            </div>
+          )}
         </div>
       )}
 

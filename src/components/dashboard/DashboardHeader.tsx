@@ -39,7 +39,7 @@ const DashboardHeader: React.FC<Props> = ({
   return (
     <div className="w-full">
       {/* 🌟 Content Container - Simplified */}
-      <div className="w-full bg-gradient-to-br from-blue-50 via-white to-slate-50 border-[1.5px] border-blue-200 dark:border-blue-700 rounded-2xl p-6 sm:p-8 mb-8">
+      <div className="w-full bg-gradient-to-br from-orange-50 via-white to-slate-50 border-[1.5px] border-orange-200 dark:border-orange-700 rounded-2xl p-6 sm:p-8 mb-8">
         
         {/* 🏠 Main Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -47,7 +47,7 @@ const DashboardHeader: React.FC<Props> = ({
           {/* 👋 Title & Greeting Section */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-gradient-to-br from-blue-600 to-slate-600 rounded-xl">
+              <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl">
                 <BarChart3 className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">
@@ -77,7 +77,7 @@ const DashboardHeader: React.FC<Props> = ({
           <div className="w-full lg:w-auto">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-blue-600" />
+                <Calendar className="h-4 w-4 text-orange-600" />
                 Pilih Periode Analisis
               </label>
               

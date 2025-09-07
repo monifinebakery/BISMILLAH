@@ -206,12 +206,12 @@ const StatCard: React.FC<{
     };
     
     checkMobile();
-    safeDom.addEventListener(safeDom, window, 'resize', checkMobile);
-    return () => safeDom.removeEventListener(safeDom, window, 'resize', checkMobile);
+    safeDom.addEventListener(window, 'resize', checkMobile);
+    return () => safeDom.removeEventListener(window, 'resize', checkMobile);
   }, []);
 
   const cardContent = (
-    <Card className="bg-white border-[1.5px] border-gray-200 dark:border-gray-700 relative group h-full">
+    <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 relative group h-full">
       <CardContent className="card-stats h-full relative">
         {/* Inset Border Effect */}
         <div className="absolute inset-0 rounded-lg border-[1.5px] border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
@@ -220,8 +220,8 @@ const StatCard: React.FC<{
         <div className="relative h-full flex flex-col">
           {/* 🎨 Icon dan Trend - Top row */}
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <div className="border-[1.5px] border-gray-200 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-gray-300 group-hover:bg-gray-50 transition-all duration-300 flex items-center justify-center">
-              <div className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`}>
+            <div className="bg-white/90 backdrop-blur-sm border border-gray-300 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-gray-300 group-hover:bg-gray-50 transition-all duration-300 flex items-center justify-center">
+              <div className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600">
                 {icon}
               </div>
             </div>
@@ -240,7 +240,7 @@ const StatCard: React.FC<{
           {/* 🏷️ Label - Full width */}
           <div className="mb-2 sm:mb-3">
             <div className="flex items-start gap-2">
-              <div className="card-label-responsive uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2">
+              <div className="card-label-responsive uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2 text-gray-600">
                 {shortLabel || label}
               </div>
               {tooltip && (

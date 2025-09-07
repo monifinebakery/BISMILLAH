@@ -64,37 +64,37 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
       title: 'Total Pesanan',
       value: statistics.totalOrders,
       icon: <Package className="h-5 w-5" />,
-      color: 'text-blue-600 bg-blue-50 border-blue-200'
+      color: 'text-gray-600 bg-white/80 border-gray-200'
     },
     {
       title: 'Total Pendapatan',
       value: formatCurrency(statistics.totalRevenue),
       icon: <DollarSign className="h-5 w-5" />,
-      color: 'text-green-600 bg-green-50 border-green-200'
+      color: 'text-gray-600 bg-white/80 border-gray-200'
     },
     {
       title: 'Pesanan Pending',
       value: statistics.pendingOrders,
       icon: <Clock className="h-5 w-5" />,
-      color: 'text-yellow-600 bg-yellow-50 border-yellow-200'
+      color: 'text-gray-600 bg-white/80 border-gray-200'
     },
     {
       title: 'Pesanan Selesai',
       value: statistics.completedOrders,
       icon: <CheckCircle className="h-5 w-5" />,
-      color: 'text-green-600 bg-green-50 border-green-200'
+      color: 'text-gray-600 bg-white/80 border-gray-200'
     },
     {
       title: 'Rata-rata Nilai Pesanan',
       value: formatCurrency(statistics.averageOrderValue),
       icon: <TrendingUp className="h-5 w-5" />,
-      color: 'text-purple-600 bg-purple-50 border-purple-200'
+      color: 'text-gray-600 bg-white/80 border-gray-200'
     },
     {
       title: 'Tingkat Penyelesaian',
       value: `${statistics.completionRate.toFixed(1)}%`,
       icon: <AlertCircle className="h-5 w-5" />,
-      color: 'text-indigo-600 bg-indigo-50 border-indigo-200'
+      color: 'text-gray-600 bg-white/80 border-gray-200'
     }
   ];
 

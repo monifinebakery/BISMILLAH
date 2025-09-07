@@ -137,17 +137,17 @@ const DateRangeFilter: React.FC<{
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-w-0">
         {/* Date From */}
         <Popover open={isFromOpen} onOpenChange={setIsFromOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={`w-full justify-start text-left font-normal min-h-[40px] ${!dateFrom && "text-muted-foreground"}`}
+              className={`w-full justify-start text-left font-normal min-h-[40px] overflow-hidden ${!dateFrom && "text-muted-foreground"}`}
               disabled={disabled}
             >
               <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
-              <span className="truncate">
+              <span className="truncate flex-1 min-w-0">
                 {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: id }) : "Dari tanggal"}
               </span>
             </Button>
@@ -168,11 +168,11 @@ const DateRangeFilter: React.FC<{
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={`w-full justify-start text-left font-normal min-h-[40px] ${!dateTo && "text-muted-foreground"}`}
+              className={`w-full justify-start text-left font-normal min-h-[40px] overflow-hidden ${!dateTo && "text-muted-foreground"}`}
               disabled={disabled}
             >
               <Calendar className="mr-2 h-4 w-4 flex-shrink-0" />
-              <span className="truncate">
+              <span className="truncate flex-1 min-w-0">
                 {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: id }) : "Sampai tanggal"}
               </span>
             </Button>

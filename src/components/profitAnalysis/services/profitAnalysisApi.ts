@@ -5,8 +5,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { 
-  RealTimeProfitCalculation,
+import {
   ProfitApiResponse,
   DateRangeFilter,
   RevenueBreakdown,
@@ -14,7 +13,8 @@ import {
   OpExBreakdown,
   FNBCOGSBreakdown,
   FNBAnalysisResult,
-  FNBInsight
+  FNBInsight,
+  RealTimeProfitCalculation
 } from '../types/profitAnalysis.types';
 
 // Import existing APIs with compatibility
@@ -1102,7 +1102,7 @@ export const profitAnalysisApi = {
         });
 
         const chunkResults = await Promise.all(chunkPromises);
-        chunkResults.forEach(result => {
+        chunkResults.forEach((result: RealTimeProfitCalculation | null) => {
           if (result) calculations.push(result);
         });
 
@@ -1300,40 +1300,16 @@ export const profitAnalysisApi = {
     }
   },
 
-  /**
-   * ✅ Get current month profit analysis
-   */
-  async getCurrentMonthProfit(): Promise<ProfitApiResponse<RealTimeProfitCalculation>> {
-    const currentPeriod = getCurrentPeriod();
-    return this.calculateProfitAnalysis(currentPeriod, 'monthly');
-  },
-
-  /**
-   * 🍽️ NEW: Generate F&B specific insights and recommendations
-   */
-  async generateFNBInsights(
-    period: string,
-    effectiveCogs?: number,
-    hppBreakdown?: FNBCOGSBreakdown[]
-  ): Promise<ProfitApiResponse<FNBAnalysisResult>> {
+  // Method untuk menghitung analisis profit F&B
+  calculateFNBProfitAnalysis(
+    currentPeriod: string, 
+    frequency: string,
+    revenue: number,
+    cogs: number,
+    margins: any,
+    hppBreakdown: any[]
+  ): ProfitApiResponse<FNBAnalysisResult> {
     try {
-      const profitResult = await this.calculateProfitAnalysis(period);
-      if (!profitResult.success) {
-        return {
-          data: {} as FNBAnalysisResult,
-          error: profitResult.error || 'Failed to get profit data',
-          success: false
-        };
-      }
-
-      const calculation = profitResult.data;
-      const revenue = calculation.revenue_data.total;
-      const cogs = effectiveCogs || calculation.cogs_data.total;
-      const opex = calculation.opex_data.total;
-      // ✅ IMPROVED: Use centralized calculation for consistency
-      const margins = safeCalculateMargins(revenue, cogs, opex);
-      
-      // Generate basic insights - use null for optional parameters
       const executiveInsights = null; // Simplified for this implementation
 
       // Generate F&B specific insights
@@ -1458,7 +1434,7 @@ export const profitAnalysisApi = {
       }
 
       const result: FNBAnalysisResult = {
-        period,
+        period: currentPeriod,
         insights,
         alerts,
         opportunities,

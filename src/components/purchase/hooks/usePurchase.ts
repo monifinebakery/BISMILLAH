@@ -12,6 +12,7 @@ export const usePurchase = (): PurchaseContextType => {
   const context = useContext(PurchaseContext);
   
   if (context === undefined) {
+    console.error('usePurchase: context is undefined. Make sure the component is wrapped with PurchaseProvider.');
     throw new Error('usePurchase must be used within a PurchaseProvider');
   }
   

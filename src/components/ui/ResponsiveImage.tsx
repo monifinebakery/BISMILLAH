@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useImageOptimization, useImagePerformanceMonitor } from '@/hooks/useImageOptimization';
 import { cn } from '@/lib/utils';
+import { safePerformance } from '@/utils/browserApiSafeWrappers';
+
 
 interface ResponsiveImageProps {
   src: string;
@@ -99,7 +101,7 @@ const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          setLoadStartTime(performance.now());
+          setLoadStartTime(safePerformance.now());
           observerRef.current?.disconnect();
         }
       },
@@ -119,19 +121,19 @@ const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
   // Start timing for priority images
   useEffect(() => {
     if (priority) {
-      setLoadStartTime(performance.now());
+      setLoadStartTime(safePerformance.now());
     }
   }, [priority]);
 
   const handleLoad = () => {
-    const loadTime = performance.now() - loadStartTime;
+    const loadTime = safePerformance.now() - loadStartTime;
     setIsLoaded(true);
     trackImageLoad(loadTime, true);
     onLoad?.();
   };
 
   const handleError = () => {
-    const loadTime = performance.now() - loadStartTime;
+    const loadTime = safePerformance.now() - loadStartTime;
     setHasError(true);
     trackImageLoad(loadTime, false);
     onError?.();

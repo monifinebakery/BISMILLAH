@@ -5,6 +5,8 @@ import type { BahanBakuImport } from '../types';
 import { headerMap, requiredFields, validate, loadXLSX } from '../dialogs/import-utils';
 // Sinkronkan kategori dengan analisis profit
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface UseImportExportProps {
   onImport: (data: BahanBakuImport[]) => Promise<boolean>;
@@ -293,7 +295,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
       ].join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const link = safeDom.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = `template_bahan_baku_${new Date().toISOString().split('T')[0]}.csv`;
       link.click();

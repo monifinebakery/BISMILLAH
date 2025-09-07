@@ -333,19 +333,37 @@ export const usePaymentStatus = () => {
     }
   }, [hasValidPayment, hasUnlinkedPayment, needsOrderLinking, isLinkedToCurrentUser, isLoading, paymentStatus]);
 
+  // ✅ Development bypass logic
+  const isDev = import.meta.env.MODE === 'development';
+  const bypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+  
+  // Apply bypass logic to payment status
+  const finalIsPaid = bypassAuth ? true : hasValidPayment;
+  const finalNeedsPayment = bypassAuth ? false : needsPayment;
+  const finalNeedsOrderLinking = bypassAuth ? false : needsOrderLinking;
+  
+  if (bypassAuth && process.env.NODE_ENV === 'development') {
+    logger.debug('usePaymentStatus: Development bypass active', {
+      isDev,
+      bypassAuth,
+      finalIsPaid,
+      finalNeedsPayment
+    });
+  }
+
   return {
     paymentStatus,
     isLoading,
     error,
     refetch,
-    isPaid: hasValidPayment, // ✅ Only true if linked AND paid
-    needsPayment,
-    hasUnlinkedPayment,
-    needsOrderLinking,
+    isPaid: finalIsPaid, // ✅ Bypassed in development mode
+    needsPayment: finalNeedsPayment,
+    hasUnlinkedPayment: bypassAuth ? false : hasUnlinkedPayment,
+    needsOrderLinking: finalNeedsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
     userName: paymentStatus?.customer_name || null,
-    hasValidPayment,
-    isLinkedToCurrentUser
+    hasValidPayment: finalIsPaid,
+    isLinkedToCurrentUser: bypassAuth ? true : isLinkedToCurrentUser
   };
 };

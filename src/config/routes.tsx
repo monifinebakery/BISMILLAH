@@ -4,7 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/components/layout';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import EmailAuthPage from '@/components/EmailAuthPage';
-import AuthGuard from '@/components/AuthGuard';
+import { AuthGuard } from '@/components/AuthGuard';
 import PaymentGuard from '@/components/PaymentGuard';
 import { logger } from '@/utils/logger';
 
@@ -27,7 +27,6 @@ import paymentRoutes from '@/routes/payment';
 import promoRoutes from '@/routes/promo';
 import preloadingRoutes from '@/routes/preloading';
 import networkOptimizationRoutes from '@/routes/network-optimization';
-import offlineRoutes from '@/routes/offline';
 import notFoundRoutes from '@/routes/not-found';
 import tutorialRoutes from '@/routes/tutorial';
 
@@ -68,7 +67,6 @@ export const AppRouter: React.FC = () => (
       {promoRoutes}
       {preloadingRoutes}
       {networkOptimizationRoutes}
-      {offlineRoutes}
       {tutorialRoutes}
       
       {/* Development only - Calendar responsiveness test */}

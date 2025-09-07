@@ -79,7 +79,17 @@ export const verifyCustomerOrder = async (email: string, orderId: string): Promi
     
     const { data, error } = await supabase
       .from('user_payments')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        order_id,
+        email,
+        payment_status,
+        is_paid,
+        pg_reference_id,
+        created_at,
+        updated_at
+      `)
       .eq('order_id', orderId.trim())
       .eq('is_paid', true)
       .eq('payment_status', 'settled')

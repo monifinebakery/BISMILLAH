@@ -1,30 +1,28 @@
 // src/components/purchase/PurchasePage.tsx - Fixed Delete with Proper Refresh
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { transformPurchasesFromDB } from './utils/purchaseTransformers';
 import { Purchase } from './types/purchase.types';
 
-// ✅ CONSOLIDATED: Context imports (kept as-is, already optimal)
+// Context imports
 import { PurchaseProvider } from './context/PurchaseContext';
 import { usePurchase } from './hooks/usePurchase';
 import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
-// ✅ DIRECT CONTEXT: No barrel imports
+// Direct context imports
 import { useSupplier } from '@/contexts/SupplierContext';
 
-// ✅ ESSENTIAL COMPONENTS: Direct imports (no barrel)
+// Component imports
 import {
   LoadingState,
   EmptyState,
   PurchaseHeader,
 } from './components';
 
-// ✅ OPTIMIZED: Lazy loading with comprehensive error boundaries
+// Lazy loaded components
 const PurchaseTable = React.lazy(() => 
   import('./components/PurchaseTable').catch(() => ({
     default: () => (
@@ -38,26 +36,7 @@ const PurchaseTable = React.lazy(() =>
 
 
 
-const PurchaseDialog = React.lazy(() => 
-  import('./components/PurchaseDialog').catch(() => ({
-    default: () => (
-      <div className="dialog-overlay-center">
-        <div className="dialog-panel max-w-md">
-          <div className="dialog-body">
-            <div className="text-red-500 text-lg mb-2">❌ Gagal memuat dialog</div>
-            <p className="text-gray-600 mb-4">Dialog tidak dapat dimuat. Silakan coba lagi.</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-            >
-              Muat Ulang
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }))
-);
+// Remove PurchaseDialog - now using full page
 
 const PurchaseImportDialog = React.lazy(() => 
   import('./components/dialogs/PurchaseImportDialog').catch(() => ({
@@ -91,27 +70,25 @@ interface PurchasePageProps {
 // ✅ CONSOLIDATED: State management
 interface AppState {
   dialogs: {
-    purchase: { isOpen: boolean; editing: any; mode: 'create' | 'edit' };
-    import: { isOpen: boolean }; // ✅ NEW: Import dialog state
+    import: { isOpen: boolean }; // Import dialog state
   };
   warnings: {
     dataWarning: { isVisible: boolean; hasShownToast: boolean };
   };
   ui: {
-    isDeleting: boolean; // ✅ NEW: Track delete state
+    isDeleting: boolean; // Track delete state
   };
 }
 
 const initialAppState: AppState = {
   dialogs: {
-    purchase: { isOpen: false, editing: null, mode: 'create' },
-    import: { isOpen: false }, // ✅ NEW: Import dialog state
+    import: { isOpen: false }, // Import dialog state
   },
   warnings: {
     dataWarning: { isVisible: false, hasShownToast: false }
   },
   ui: {
-    isDeleting: false // ✅ NEW: Track delete state
+    isDeleting: false // Track delete state
   }
 };
 
@@ -125,16 +102,12 @@ const AppLoader = ({ message = "Memuat..." }: { message?: string }) => (
   </div>
 );
 
-const QuickLoader = () => (
-  <div className="space-y-4">
-    <div className="h-12 bg-gray-100 rounded-lg animate-pulse" />
-    <div className="h-64 bg-gray-100 rounded-lg animate-pulse" />
-  </div>
-);
+// QuickLoader removed - unused
 
 // ✅ MAIN COMPONENT: Fixed delete handling
 const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) => {
-  // ✅ CONTEXTS: Direct usage
+  const navigate = useNavigate();
+  // CONTEXTS: Direct usage
   const purchaseContext = usePurchase();
   const { suppliers } = useSupplier();
   const { user } = useAuth();
@@ -166,38 +139,31 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
     hasMissingData: !suppliers?.length
   }), [suppliers]);
 
-  // ✅ CONSOLIDATED: All dialog actions
-  const dialogActions = useMemo(() => ({
+  // Get current base path (handle both /pembelian and /purchase)
+  const getBasePath = useCallback(() => {
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/pembelian')) {
+      return '/pembelian';
+    }
+    return '/purchase';
+  }, []);
+
+  // Navigation actions
+  const navigationActions = useMemo(() => ({
     purchase: {
       openAdd: () => {
         validatePrerequisites();
-        setAppState(prev => ({
-          ...prev,
-          dialogs: {
-            ...prev.dialogs,
-            purchase: { isOpen: true, editing: null, mode: 'create' }
-          }
-        }));
+        const basePath = getBasePath();
+        if (basePath === '/pembelian') {
+          // For old path, navigate to new structure
+          navigate('/purchase/add');
+        } else {
+          navigate('/purchase/add');
+        }
       },
       openEdit: (purchase: any) => {
-        // edit selalu diperbolehkan (stok/WAC diurus manual sync)
-        setAppState(prev => ({
-          ...prev,
-          dialogs: {
-            ...prev.dialogs,
-            purchase: { isOpen: true, editing: purchase, mode: 'edit' }
-          }
-        }));
+        navigate(`/purchase/edit/${purchase.id}`);
       },
-      close: async () => {
-        setAppState(prev => ({
-          ...prev,
-          dialogs: {
-            ...prev.dialogs,
-            purchase: { isOpen: false, editing: null, mode: 'create' }
-          }
-        }));
-      }
     },
     import: {
       open: () => {
@@ -217,7 +183,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             import: { isOpen: false }
           }
         }));
-        // ✅ FIXED: Refresh purchases after import
+        // Refresh purchases after import
         purchaseContext.refreshPurchases?.();
       }
     },
@@ -316,9 +282,9 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         pendingCount={finalStats.byStatus.pending}
         onAddPurchase={(intent) => {
           if (intent === 'import' as any) {
-            dialogActions.import.open();
+            navigationActions.import.open();
           } else {
-            dialogActions.purchase.openAdd();
+            navigationActions.purchase.openAdd();
           }
         }}
         className="mb-8"
@@ -327,7 +293,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Main content */}
       {!finalPurchases.length ? (
         <EmptyState
-          onAddPurchase={dialogActions.purchase.openAdd}
+          onAddPurchase={navigationActions.purchase.openAdd}
           hasSuppliers={!dataStatus.missingSuppliers}
         />
       ) : (
@@ -335,7 +301,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
           <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
             <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
               <PurchaseTable
-                onEdit={dialogActions.purchase.openEdit}
+                onEdit={navigationActions.purchase.openEdit}
                 onStatusChange={setStatus}
                 onDelete={async (purchaseId: string) => {
                   await businessHandlers.delete(purchaseId);
@@ -348,25 +314,14 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         </>
       )}
 
-      {/* ✅ OPTIMIZED: Conditional dialogs with better loading */}
-      <Suspense fallback={null}>
-        {appState.dialogs.purchase.isOpen && (
-          <PurchaseDialog
-            isOpen={appState.dialogs.purchase.isOpen}
-            mode={appState.dialogs.purchase.mode}
-            purchase={appState.dialogs.purchase.editing}
-            suppliers={suppliers}
-            onClose={dialogActions.purchase.close}
-          />
-        )}
-      </Suspense>
+      {/* Purchase dialog removed - using full page navigation */}
       
-      {/* ✅ NEW: Import dialog */}
+      {/* Import dialog */}
       <Suspense fallback={null}>
         {appState.dialogs.import.isOpen && (
           <PurchaseImportDialog
             isOpen={appState.dialogs.import.isOpen}
-            onClose={dialogActions.import.close}
+            onClose={navigationActions.import.close}
             onImportComplete={() => {
               // Refresh purchases after import
               purchaseContext.refreshPurchases();

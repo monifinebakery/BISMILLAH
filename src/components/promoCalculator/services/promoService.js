@@ -11,7 +11,20 @@ export const promoService = {
 
       let query = supabase
         .from('promos')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          nama_promo,
+          tipe_promo,
+          status,
+          data_promo,
+          calculation_result,
+          tanggal_mulai,
+          tanggal_selesai,
+          deskripsi,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', user.id);
 
       // Apply search filter
@@ -79,7 +92,20 @@ export const promoService = {
 
       const { data, error } = await supabase
         .from('promos')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          nama_promo,
+          tipe_promo,
+          status,
+          data_promo,
+          calculation_result,
+          tanggal_mulai,
+          tanggal_selesai,
+          deskripsi,
+          created_at,
+          updated_at
+        `)
         .eq('id', id)
         .eq('user_id', user.id)
         .single();

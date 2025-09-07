@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 // Device type definition
 export interface Device {
@@ -41,7 +43,7 @@ const generateDeviceId = (): string => {
   
   if (!deviceId) {
     // Generate a more stable device ID based on comprehensive browser characteristics
-    const canvas = document.createElement('canvas');
+    const canvas = safeDom.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
     // Enhanced fingerprinting components for better stability

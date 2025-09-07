@@ -18,7 +18,7 @@ export const testWarehouseSync = async () => {
     // Get all purchases
     const { data: purchases } = await supabase
       .from('purchases')
-      .select('*')
+      .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)         id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -37,12 +37,12 @@ export const testWarehouseSync = async () => {
       );
       
       if (result.success) {
-        console.log('✅ [TEST] Purchase status updated successfully');
+        con.select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)[TEST] Purchase status updated successfully');
         
         // Check warehouse items
         const { data: warehouseItems } = await supabase
           .from('bahan_baku')
-          .select('*')
+          .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
           .eq('user_id', user.id);
           
         console.log('🏪 [TEST] Warehouse items after sync:', warehouseItems);

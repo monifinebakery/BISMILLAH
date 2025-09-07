@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { normalizeDateRange } from '@/utils/dateNormalization';
+import { supabase } from '@/integrations/supabase/client';
 
 import { 
   ProfitAnalysis, 
@@ -15,13 +16,18 @@ import {
   FNBCOGSBreakdown,
   FNBLabels
 } from '../types/profitAnalysis.types';
-// ✅ IMPORT PROFIT ANALYSIS SERVICES & WAC HELPERS
-import profitAnalysisApi, {
-  calculateProfitAnalysisDaily,
-  fetchBahanMap,
+// ✅ IMPORT PROFIT ANALYSIS SERVICES
+import profitAnalysisApi from '../services/profitAnalysisApi';
+// ✅ IMPORT MODULAR HELPERS
+import { calculateProfitAnalysisDaily } from '../services/calculationUtils';
+import { 
+  fetchBahanMap, 
   fetchPemakaianByPeriode,
-  calculatePemakaianValue,
-} from '../services/profitAnalysisApi';
+  getCurrentUserId as getAuthUserId
+} from '../services/warehouseHelpers';
+
+// Helper function untuk get current user ID (use modular version)
+const getCurrentUserId = getAuthUserId;
 import { calcHPP } from '../utils/profitCalculations';
 // 🍽️ Import F&B constants
 import { FNB_LABELS } from '../constants/profitConstants';
@@ -29,14 +35,9 @@ import { FNB_LABELS } from '../constants/profitConstants';
 import { getEffectiveCogs, shouldUseWAC } from '@/utils/cogsCalculation';
 import { safeCalculateMargins, monitorDataQuality } from '@/utils/profitValidation';
 import { getCurrentPeriod } from '../utils/profitTransformers';
-// ✅ ADD: Import WAC validation utilities
-import { 
-  validateWACConsistency, 
-  performComprehensiveValidation,
-  calculateDataQualityMetrics,
-  type WACValidationResult,
-  type DataQualityMetrics
-} from '@/utils/profitAnalysisConsistency';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
+// WAC validation utilities removed
 
 
 // Query Keys
@@ -94,10 +95,7 @@ export interface UseProfitAnalysisReturn {
     hppBreakdown: FNBCOGSBreakdown[];
   };
   
-  // ✅ ADD: WAC Validation properties
-  wacValidation: WACValidationResult | null;
-  dataQualityMetrics: DataQualityMetrics | null;
-  validationScore: number; // 0-100 overall data quality score
+  // WAC Validation properties removed
   
   // Utilities
   getProfitByPeriod: (period: string) => RealTimeProfitCalculation | undefined;
@@ -130,10 +128,7 @@ export const useProfitAnalysis = (
   const [profitHistory, setProfitHistory] = useState<RealTimeProfitCalculation[]>([]);
   const [error, setError] = useState<string | null>(null);
   
-  // ✅ ADD: WAC Validation state
-  const [wacValidation, setWacValidation] = useState<WACValidationResult | null>(null);
-  const [dataQualityMetrics, setDataQualityMetrics] = useState<DataQualityMetrics | null>(null);
-  const [validationScore, setValidationScore] = useState<number>(0);
+  // WAC Validation state removed
 
   // ✅ MAIN QUERY: Current analysis (supports harian, bulanan, tahunan)
   const currentAnalysisKey =
@@ -149,12 +144,94 @@ export const useProfitAnalysis = (
           const from = dateRange.from;
           const to = dateRange.to;
           logger.info('🔄 Fetching daily profit analysis:', { from, to });
-          const daily = await calculateProfitAnalysisDaily(from, to);
-          if (!daily.success) throw new Error(daily.error || 'Failed daily analysis');
-          // For currentAnalysis, pick the last day; keep full list in history state below
-          const last = (daily.data || []).slice(-1)[0] ?? null;
-          setProfitHistory(daily.data || []);
-          return last;
+          
+          // 🚨 TEMPORARY FIX: Instead of daily calculation, aggregate all data in range
+          // to match financial reports behavior
+          logger.info('🔄 Using range aggregation instead of daily breakdown (consistency fix)');
+          
+          try {
+            // Use the same approach as financial reports: get all transactions in range
+            const authUserId = await getCurrentUserId();
+            if (!authUserId) throw new Error('Not authenticated');
+            
+            // Get all transactions in date range (same query as financial reports)
+            const { data: transactions } = await supabase
+              .from('financial_transactions')
+              .select('id, type, category, amount, description, date')
+              .eq('user_id', authUserId)
+              .gte('date', from.toISOString().split('T')[0])
+              .lte('date', to.toISOString().split('T')[0])
+              .order('date', { ascending: true });
+              
+            logger.info('📋 Total transactions in range:', { count: transactions?.length || 0 });
+            
+            // Filter income transactions (same as profit analysis logic)
+            const incomeTransactions = (transactions || []).filter(t => t.type === 'income');
+            const totalRevenue = incomeTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+            
+            logger.info('💰 Income analysis:', { 
+              incomeCount: incomeTransactions.length, 
+              totalRevenue,
+              sampleTransactions: incomeTransactions.slice(0, 3)
+            });
+            
+            // Create aggregated analysis for the entire range
+            const aggregatedAnalysis: RealTimeProfitCalculation = {
+              period: `${from.toISOString().split('T')[0]}_to_${to.toISOString().split('T')[0]}`,
+              revenue_data: {
+                total: totalRevenue,
+                transactions: incomeTransactions.map(t => ({
+                  category: t.category || 'Uncategorized',
+                  amount: t.amount || 0,
+                  description: t.description || '',
+                  date: t.date
+                }))
+              },
+              cogs_data: {
+                total: 0, // Will be calculated by WAC if available
+                materials: []
+              },
+              opex_data: {
+                total: 0, // Will be calculated by operational costs
+                costs: []
+              },
+              calculated_at: new Date().toISOString()
+            };
+            
+            // Set empty history for range mode
+            setProfitHistory([]);
+            
+            logger.success('✅ Range aggregation completed:', {
+              period: aggregatedAnalysis.period,
+              revenue: aggregatedAnalysis.revenue_data.total,
+              transactionCount: incomeTransactions.length
+            });
+            
+            return aggregatedAnalysis;
+            
+          } catch (rangeError) {
+            logger.error('❌ Range aggregation failed, falling back to daily:', rangeError);
+            
+            // Fallback to original daily calculation if range aggregation fails
+            const daily = await calculateProfitAnalysisDaily(from, to);
+            if (!daily.success) throw new Error(daily.error || 'Failed daily analysis');
+            
+            // Aggregate all days into single result for UI consistency
+            const totalRevenue = (daily.data || []).reduce((sum, d) => sum + d.revenue_data.total, 0);
+            const totalCogs = (daily.data || []).reduce((sum, d) => sum + d.cogs_data.total, 0);
+            const totalOpex = (daily.data || []).reduce((sum, d) => sum + d.opex_data.total, 0);
+            
+            const aggregated: RealTimeProfitCalculation = {
+              period: `${from.toISOString().split('T')[0]}_to_${to.toISOString().split('T')[0]}`,
+              revenue_data: { total: totalRevenue, transactions: [] },
+              cogs_data: { total: totalCogs, materials: [] },
+              opex_data: { total: totalOpex, costs: [] },
+              calculated_at: new Date().toISOString()
+            };
+            
+            setProfitHistory(daily.data || []);
+            return aggregated;
+          }
         }
 
         if (mode === 'yearly') {
@@ -396,72 +473,7 @@ export const useProfitAnalysis = (
     }
   }, [revenue, cogs, opex, currentData, totalHPP, hppBreakdown]); // ✅ Sekarang menggunakan primitive value dan data WAC
 
-  // ✅ ADD: WAC Validation Effect
-  useEffect(() => {
-    if (!enableWAC || !currentData) {
-      setWacValidation(null);
-      setDataQualityMetrics(null);
-      setValidationScore(0);
-      return;
-    }
-
-    try {
-      // Run WAC validation
-      const validation = validateWACConsistency(
-        currentData as RealTimeProfitCalculation,
-        totalHPP,
-        revenue
-      );
-      setWacValidation(validation);
-
-      // Calculate data quality metrics
-      const qualityMetrics = calculateDataQualityMetrics(
-        currentData as RealTimeProfitCalculation,
-        totalHPP
-      );
-      setDataQualityMetrics(qualityMetrics);
-
-      // Run comprehensive validation for overall score
-      const comprehensiveResult = performComprehensiveValidation(
-        currentData as RealTimeProfitCalculation,
-        profitMetrics,
-        totalHPP,
-        revenue
-      );
-      setValidationScore(comprehensiveResult.overallScore);
-
-      // Log validation results
-      if (!validation.isValid) {
-        logger.warn('WAC validation issues detected:', {
-          issues: validation.issues,
-          severity: validation.severity,
-          period: (currentData && 'period' in currentData) ? currentData.period : 'unknown'
-        });
-      }
-
-      if (qualityMetrics.dataConsistency < 80) {
-        logger.warn('Low data consistency detected:', {
-          consistency: qualityMetrics.dataConsistency,
-          wacAvailable: qualityMetrics.wacAvailability,
-          apiCogsAvailable: qualityMetrics.apiCogsAvailability
-        });
-      }
-
-    } catch (error) {
-      logger.error('Error in WAC validation:', error);
-      setWacValidation({
-        isValid: false,
-        wacValue: totalHPP,
-        apiCogsValue: 0,
-        variance: 0,
-        variancePercentage: 0,
-        severity: 'high',
-        issues: ['Validation error occurred'],
-        recommendations: ['Check data integrity and try again']
-      });
-      setValidationScore(0);
-    }
-  }, [enableWAC, currentData, totalHPP, revenue, profitMetrics]);
+  // WAC Validation effect removed
 
   // ✅ ACTIONS
   const calculateProfit = useCallback(
@@ -667,12 +679,12 @@ export const useProfitAnalysis = (
     };
     
     // Listen for custom purchase completion events
-    window.addEventListener('purchase:completed', handlePurchaseCompletion as EventListener);
-    window.addEventListener('purchase:status:changed', handlePurchaseCompletion as EventListener);
+    safeDom.addEventListener(safeDom, window, 'purchase:completed', handlePurchaseCompletion as EventListener);
+    safeDom.addEventListener(safeDom, window, 'purchase:status:changed', handlePurchaseCompletion as EventListener);
     
     return () => {
-      window.removeEventListener('purchase:completed', handlePurchaseCompletion as EventListener);
-      window.removeEventListener('purchase:status:changed', handlePurchaseCompletion as EventListener);
+      safeDom.removeEventListener(safeDom, window, 'purchase:completed', handlePurchaseCompletion as EventListener);
+      safeDom.removeEventListener(safeDom, window, 'purchase:status:changed', handlePurchaseCompletion as EventListener);
     };
   }, [enableWAC, refreshWACData]);
 
@@ -699,10 +711,7 @@ export const useProfitAnalysis = (
     // Computed values
     profitMetrics,
     
-    // ✅ ADD: WAC Validation properties
-    wacValidation,
-    dataQualityMetrics,
-    validationScore,
+    // WAC Validation properties removed
     
     // Utilities
     getProfitByPeriod,

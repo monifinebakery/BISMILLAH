@@ -100,7 +100,7 @@ export const testImportCalculation = async () => {
           // Check warehouse for any updates
           const { data: warehouseItems } = await supabase
             .from('bahan_baku')
-            .select('*')
+            .select(`\n          id,\n          -- TODO: Add specific columns for unknown\n        `)         id,\n          -- TODO: Add specific columns for unknown\n        `)
             .eq('user_id', user.id);
           
           console.log('🏪 [TEST IMPORT CALC] Current warehouse items:', warehouseItems?.map(item => ({

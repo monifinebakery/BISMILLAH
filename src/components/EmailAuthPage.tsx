@@ -1,4 +1,4 @@
-// src/components/auth/EmailAuthPage.tsx — OTP + Turnstile (Preview & Prod)
+// src/components/auth/EmailAuthPage.tsx — Simple OTP Authentication
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Clock, RefreshCw, AlertCircle } from "lucide-react";
@@ -17,51 +17,9 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
-import TurnstileWrapper, { TurnstileWrapperRef } from "@/components/auth/TurnstileWrapper";
+// Turnstile disabled - using simple OTP authentication
 
-// ─────────────────────────────────────────────────────────────
-// ENV flags (gunakan Vercel System Env yang diexpose otomatis)
-// ─────────────────────────────────────────────────────────────
-const VERCEL_ENV = import.meta.env
-  .VITE_VERCEL_ENV as "production" | "preview" | "development" | undefined;
-
-const NODE_ENV = import.meta.env.MODE; // Vite's environment mode
-const IS_DEV = NODE_ENV === "development";
-
-const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "")
-  .trim()
-  .replace(/\n/g, '')
-  .replace(/\r/g, '');
-  
-const CAPTCHA_ENABLED_FLAG =
-  (import.meta.env.VITE_CAPTCHA_ENABLED ?? "true")
-    .trim()
-    .replace(/\n/g, '')
-    .replace(/\r/g, '') === "true";
-
-// Captcha enabled berdasarkan environment variable dan site key
-// Sederhana: jika flag enabled dan ada site key, maka aktif
-const REQUIRE_CAPTCHA = CAPTCHA_ENABLED_FLAG && !!TURNSTILE_SITE_KEY;
-
-// Debug logging untuk troubleshooting
-console.log('🔍 Captcha Environment Check:', {
-  NODE_ENV,
-  IS_DEV,
-  VERCEL_ENV,
-  hostname: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
-  CAPTCHA_ENABLED_FLAG,
-  RAW_CAPTCHA_ENABLED: import.meta.env.VITE_CAPTCHA_ENABLED,
-  TURNSTILE_SITE_KEY: TURNSTILE_SITE_KEY ? 'SET' : 'NOT_SET',
-  RAW_TURNSTILE_SITE_KEY: import.meta.env.VITE_TURNSTILE_SITE_KEY,
-  REQUIRE_CAPTCHA,
-  ALL_ENV_VARS: {
-    VITE_CAPTCHA_ENABLED: import.meta.env.VITE_CAPTCHA_ENABLED,
-    VITE_TURNSTILE_SITE_KEY: import.meta.env.VITE_TURNSTILE_SITE_KEY ? '***SET***' : 'NOT_SET',
-    VITE_VERCEL_ENV: import.meta.env.VITE_VERCEL_ENV,
-    MODE: import.meta.env.MODE
-  },
-  NOTE: REQUIRE_CAPTCHA ? 'Captcha ENABLED' : 'Captcha DISABLED'
-});
+// Simple OTP authentication without captcha
 
 type AuthState =
   | "idle"
@@ -101,15 +59,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  // Turnstile state
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileError, setTurnstileError] = useState<string | null>(null);
+  // Simple OTP authentication without CAPTCHA
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
-  const turnstileRef = useRef<TurnstileWrapperRef>(null);
 
   // Cleanup
   useEffect(() => {
@@ -137,82 +92,34 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }, 1000);
   };
 
-  // Turnstile handlers
-  const handleTurnstileSuccess = (token: string) => {
-    console.log('✅ Turnstile Success Handler:', {
-      token: token ? 'TOKEN_RECEIVED' : 'NO_TOKEN',
-      tokenLength: token?.length || 0,
-      mountedRef: mountedRef.current
-    });
-    
-    if (mountedRef.current) {
-      setTurnstileToken(token);
-      setTurnstileError(null);
-      logger.info("Turnstile verified successfully");
-      
-      console.log('✅ Turnstile Token Set:', {
-        newToken: token ? 'SET' : 'NOT_SET'
-      });
-    }
-  };
-
-  const handleTurnstileError = (error: string) => {
-    if (mountedRef.current) {
-      setTurnstileToken(null);
-      setTurnstileError(error);
-      logger.error("Turnstile error:", error);
-    }
-  };
-
-  const handleTurnstileExpire = () => {
-    if (mountedRef.current) {
-      setTurnstileToken(null);
-      setTurnstileError(null);
-      logger.info("Turnstile token expired");
-    }
-  };
 
   // Reset functions
-  const resetTurnstile = () => {
-    if (!mountedRef.current) return;
-    if (REQUIRE_CAPTCHA && turnstileRef.current) {
-      setTurnstileToken(null);
-      setTurnstileError(null);
-      turnstileRef.current.reset();
-    }
-  };
-
   const resetForm = () => {
     if (!mountedRef.current) return;
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setAuthState("idle");
-    resetTurnstile();
   };
 
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // Button validation
+  // CAPTCHA is disabled - using simple OTP authentication
+  const isCaptchaEnabled = false;
+  
+  console.log('🔍 Simple OTP Authentication Mode:', {
+    captchaEnabled: isCaptchaEnabled,
+    mode: import.meta.env.MODE,
+    message: 'CAPTCHA disabled - Supabase handles authentication'
+  });
+  
+  // Simple button validation:
+  // - email valid
+  // - no cooldown & not sending
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
-    authState !== "sending" &&
-    (!REQUIRE_CAPTCHA || !!turnstileToken);
-
-  // Debug logging for button state
-  useEffect(() => {
-    console.log('🔘 Button State Debug:', {
-      email,
-      isValidEmail: isValidEmail(email),
-      cooldownTime,
-      authState,
-      REQUIRE_CAPTCHA,
-      turnstileToken: turnstileToken ? 'HAS_TOKEN' : 'NO_TOKEN',
-      canSend,
-      buttonDisabled: !canSend
-    });
-  }, [email, cooldownTime, authState, turnstileToken, canSend]);
+    authState !== "sending";
 
   // Handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,10 +138,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error("Masukkan alamat email yang valid.");
       return;
     }
-    if (REQUIRE_CAPTCHA && !turnstileToken) {
-      toast.error("Harap selesaikan verifikasi captcha.");
-      return;
-    }
+
+    // No CAPTCHA validation needed
 
     setAuthState("sending");
     setError("");
@@ -242,9 +147,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        REQUIRE_CAPTCHA ? turnstileToken : null,
-        true,
-        false
+        null, // No CAPTCHA token
+        true, // Allow signup
+        true  // Skip CAPTCHA validation
       );
 
       if (!mountedRef.current) return;
@@ -276,10 +181,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
       return;
     }
-    if (REQUIRE_CAPTCHA && !turnstileToken) {
-      toast.error("Harap selesaikan verifikasi captcha.");
-      return;
-    }
 
     setAuthState("sending");
     setError("");
@@ -288,9 +189,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        REQUIRE_CAPTCHA ? turnstileToken : null,
-        true,
-        true
+        null, // No CAPTCHA token
+        true, // Allow signup
+        true  // Skip CAPTCHA validation
       );
 
       if (!mountedRef.current) return;
@@ -401,6 +302,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     authState !== "success";
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen flex font-sans">
       {/* Left Side - Orange Theme */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ backgroundColor: "#ea580c" }}>
@@ -408,6 +310,87 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           <div className="flex items-center">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3">
               <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: "#ea580c" }}></div>
+=======
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
+      <Card className="w-full max-w-md border rounded-xl overflow-hidden">
+        {/* Header Accent */}
+        <div className="h-2 bg-gradient-to-r from-orange-500 to-red-500"></div>
+
+        <CardHeader className="space-y-4 pt-8">
+          <div className="flex justify-center mb-4">
+            {logoUrl ? (
+              <img src={logoUrl} alt={appName} className="h-16 w-auto" />
+            ) : (
+              <div className="h-16 w-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                <Lock className="h-8 w-8 text-white" />
+              </div>
+            )}
+          </div>
+          <CardTitle className="text-2xl font-bold text-center text-gray-800">
+            {appName}
+          </CardTitle>
+          <CardDescription className="text-center text-gray-600">
+            {appDescription}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {!isSent ? (
+            // Email Input + Captcha
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Masukkan email Anda"
+                    value={email}
+                    onChange={handleEmailChange}
+                    className="pl-10 py-3 text-base border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    disabled={isLoading}
+                    autoComplete="email"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Simple OTP Authentication - No CAPTCHA required */}
+              <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-700">
+                  📮 Simple OTP Authentication - No CAPTCHA required
+                </p>
+              </div>
+
+              <Button
+                onClick={handleSendOtp}
+                className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg border transition-all duration-200 disabled:opacity-50"
+                disabled={!canSend}
+              >
+                {cooldownTime > 0 ? (
+                  <>
+                    <Clock className="mr-2 h-5 w-5" />
+                    Tunggu {cooldownTime}s
+                  </>
+                ) : isLoading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                    Mengirim Kode...
+                  </>
+                ) : (
+                  "Kirim Kode Verifikasi"
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-gray-500">
+                Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)
+              </p>
+>>>>>>> 3618fb4e22a6d5ead62a4dc6062b4fba29febbee
             </div>
             <h1 className="text-xl font-semibold text-white">{appName}</h1>
           </div>
@@ -426,6 +409,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Right Side - Magic Link Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
         <Card className="w-full max-w-md border-0 shadow-none">
@@ -440,6 +424,51 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               </div>
               <h1 className="text-xl font-semibold text-foreground">{appName}</h1>
             </div>
+=======
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700 block text-center">
+                  Masukkan Kode OTP (6 digit)
+                </Label>
+                <div className="flex justify-center space-x-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9A-Z]*"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={index === 0 ? handlePaste : undefined}
+                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
+                      disabled={authState === "verifying"}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <Button
+                onClick={handleVerifyOtp}
+                disabled={!canVerify}
+                className="w-full py-3 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg border transition-all duration-200 disabled:opacity-50"
+              >
+                {authState === "verifying" ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Memverifikasi...
+                  </>
+                ) : authState === "success" ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Berhasil! Mengarahkan...
+                  </>
+                ) : (
+                  "Verifikasi Kode"
+                )}
+              </Button>
+>>>>>>> 3618fb4e22a6d5ead62a4dc6062b4fba29febbee
 
             <div className="flex justify-center mb-4">
               {logoUrl ? (

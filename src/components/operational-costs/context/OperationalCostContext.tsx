@@ -356,6 +356,19 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     const initializeAuth = async () => {
       try {
         logger.info('🔐 Initializing authentication');
+        
+        // 🚀 Development bypass for authentication
+        const isDevelopment = import.meta.env.MODE === 'development';
+        const bypassAuth = isDevelopment && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+        
+        if (bypassAuth) {
+          logger.info('🔓 Development bypass: Authentication bypassed');
+          if (mounted) {
+            dispatch({ type: 'SET_AUTH_STATE', payload: true });
+          }
+          return;
+        }
+        
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         

@@ -11,6 +11,7 @@ import { filterByDateRange, calculateGrossRevenue } from '@/components/financial
 
 import { formatCurrency } from '@/utils/formatUtils';
 import { logger } from '@/utils/logger';
+import { safeNumber, safeDivide, safeMultiply, safeAdd } from '@/utils/safeMath';
 
 interface DateRange {
   from: string;
@@ -190,7 +191,7 @@ export const useDashboardData = (dateRange: DateRange) => {
           const recipe = recipes.find(r => r?.namaResep === item.name);
           if (!recipe?.bahanResep) return;
           
-          const quantity = Number(item.quantity) || 0;
+          const quantity = safeNumber(item.quantity);
           
           recipe.bahanResep.forEach((ingredient: any) => {
             if (!ingredient?.nama) return;
@@ -231,7 +232,7 @@ export const useDashboardData = (dateRange: DateRange) => {
           const recipe = recipes.find(r => r?.namaResep === item.name);
           if (!recipe?.bahanResep) return;
           
-          const quantity = Number(item.quantity) || 0;
+          const quantity = safeNumber(item.quantity);
           
           recipe.bahanResep.forEach((ingredient: any) => {
             if (!ingredient?.nama) return;
@@ -268,7 +269,7 @@ export const useDashboardData = (dateRange: DateRange) => {
       
       // ✅ NEW: Use profit analysis data if available and current, otherwise fallback to estimate
       // Simple profit estimation (30% of revenue)
-      const profit = revenue * 0.3;
+      const profit = safeMultiply(revenue, 0.3);
       const isFromProfitAnalysis = false;
       const profitAnalysisSync = undefined;
       
@@ -301,7 +302,7 @@ export const useDashboardData = (dateRange: DateRange) => {
       
       const revenue = calculateGrossRevenue(filteredOrders, 'totalPesanan');
       const ordersCount = filteredOrders.length;
-      const profit = revenue * 0.3; // Use consistent estimation for trend comparison
+      const profit = safeMultiply(revenue, 0.3); // Use consistent estimation for trend comparison
 
       return {
         revenue,
@@ -364,16 +365,16 @@ export const useDashboardData = (dateRange: DateRange) => {
         order?.items?.forEach((item, itemIndex) => {
           if (!item?.name) return;
           
-          const quantity = Number(item.quantity) || 0;
-          const harga = Number(item.price) || 0;
+          const quantity = safeNumber(item.quantity);
+          const harga = safeNumber(item.price);
           const key = `${item.name}_${orderIndex}_${itemIndex}`;
           
           if (!productSales[item.name]) {
             productSales[item.name] = { quantity: 0, revenue: 0, key };
           }
           
-          productSales[item.name].quantity += quantity;
-          productSales[item.name].revenue += (quantity * harga);
+          productSales[item.name].quantity = safeAdd(productSales[item.name].quantity, quantity);
+          productSales[item.name].revenue = safeAdd(productSales[item.name].revenue, safeMultiply(quantity, harga));
         });
       });
       
@@ -383,7 +384,7 @@ export const useDashboardData = (dateRange: DateRange) => {
           name,
           quantity: data.quantity,
           revenue: data.revenue,
-          profit: data.revenue * 0.3, // Estimated profit
+          profit: safeMultiply(data.revenue, 0.3), // Estimated profit
           marginPercent: 30 // Default margin
         }))
         .sort((a, b) => b.revenue - a.revenue) // Sort by revenue instead of quantity
@@ -416,7 +417,18 @@ export const useDashboardData = (dateRange: DateRange) => {
   const criticalStock = useMemo(() => {
     try {
       return bahanBaku
-        .filter(item => item && Number(item.stok) <= Number(item.minimum))
+        .filter(item => {
+          if (!item) return false;
+          const currentStock = safeNumber(item.stok);
+          const minimumStock = safeNumber(item.minimum);
+          
+          // Only show as critical if stock is below minimum OR
+          // if stock is exactly at minimum and minimum > 0 (to avoid division by zero)
+          // Add 20% buffer - only alert when stock is 20% below minimum threshold
+          const alertThreshold = minimumStock > 0 ? safeMultiply(minimumStock, 1.2) : minimumStock;
+          
+          return currentStock < alertThreshold;
+        })
         .slice(0, 5);
     } catch (err) {
       logger.error('Dashboard - Critical stock error:', err);

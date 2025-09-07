@@ -13,6 +13,14 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const location = useLocation();
   const [renderCount, setRenderCount] = useState(0);
 
+  // ✅ Development bypass authentication
+  const isDevelopmentBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+  
+  if (isDevelopmentBypass) {
+    console.log('🔧 [DEV] AuthGuard: Bypassing authentication check');
+    return <>{children}</>;
+  }
+
   // ✅ FORCE RE-RENDER on auth state changes
   useEffect(() => {
     setRenderCount(prev => prev + 1);
@@ -92,20 +100,13 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   }
 
   // ✅ ENHANCED: Redirect logic with detailed logging
-  if (!user && location.pathname !== '/auth') {
-    console.log(`🚀 [AuthGuard #${renderCount}] EXECUTING REDIRECT to /auth`);
-    return <Navigate to="/auth" replace />;
+  if (!user) {
+    console.log(`🔒 [AuthGuard #${renderCount}] No user found, redirecting to /auth`);
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (user && location.pathname === '/auth') {
-    console.log(`🚀 [AuthGuard #${renderCount}] EXECUTING REDIRECT to / for user:`, user.email);
-    console.log(`🚀 [AuthGuard #${renderCount}] Current path was:`, location.pathname);
-    return <Navigate to="/" replace />;
-  }
-
-  // ✅ User terautentikasi dan di halaman yang benar
-  console.log(`✅ [AuthGuard #${renderCount}] Rendering protected content for user:`, user?.email);
+  console.log(`✅ [AuthGuard #${renderCount}] User authenticated, rendering children`);
   return <>{children}</>;
 };
 
-export default AuthGuard;
+export { AuthGuard };

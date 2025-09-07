@@ -82,8 +82,11 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
     const statusNames: Record<string, string> = {
       pending: 'Konfirmasi Pesanan',
       confirmed: 'Pesanan Dikonfirmasi',
-      shipping: 'Update Pengiriman', 
-      delivered: 'Pesanan Selesai',
+      preparing: 'Sedang Diproses',
+      ready: 'Siap Diambil/Dikirim',
+      shipping: 'Update Pengiriman', // Legacy support
+      delivered: 'Pesanan Diterima',
+      completed: 'Pesanan Selesai',
       cancelled: 'Pesanan Dibatalkan'
     };
     return statusNames[status] || status;

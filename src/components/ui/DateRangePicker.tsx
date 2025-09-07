@@ -49,22 +49,24 @@ const PRESETS = [
 
 const getPreset = (key: string): DateRange => {
   const now = new Date();
+  // Create dates in local timezone to avoid timezone conversion issues
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   switch (key) {
     case "today":
       return { from: today, to: today };
     case "week": {
-      const from = new Date(today);
-      from.setDate(from.getDate() - 6);
+      // Get start of week (7 days ago including today)
+      const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
       return { from, to: today };
     }
     case "month": {
-      const from = new Date(today);
-      from.setDate(from.getDate() - 29);
+      // Get last 30 days including today
+      const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29);
       return { from, to: today };
     }
     case "thisMonth": {
+      // Get first day of current month to today
       const from = new Date(now.getFullYear(), now.getMonth(), 1);
       return { from, to: today };
     }

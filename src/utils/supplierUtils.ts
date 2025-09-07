@@ -2,6 +2,8 @@
 // Utility functions and constants for supplier management
 
 import type { 
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
   Supplier, 
   SupplierFormData, 
   SupplierValidationError,
@@ -303,7 +305,7 @@ export const exportSuppliersToCSV = (suppliers: Supplier[]): string => {
 
 export const downloadCSV = (csvContent: string, filename: string = 'suppliers.csv') => {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
+  const link = safeDom.createElement('a');
   
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);

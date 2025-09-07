@@ -32,7 +32,7 @@ const followUpTemplateQueryKeys = {
   list: (userId?: string) => [...followUpTemplateQueryKeys.lists(), userId] as const,
 } as const;
 
-// ✅ ENHANCED: Default templates dengan items support
+// ✅ ENHANCED: Default templates dengan items support untuk semua status yang ada
 const DEFAULT_TEMPLATES = {
   pending: `Halo kak {{namaPelanggan}},
 
@@ -57,6 +57,30 @@ Total: {{totalPesanan}}
 
 Terima kasih!`,
 
+  preparing: `Halo kak {{namaPelanggan}},
+
+Update pesanan Anda #{{nomorPesanan}}: 
+Saat ini sedang DALAM PROSES pembuatan.
+
+Item yang sedang disiapkan:
+{{items}}
+
+Total: {{totalPesanan}}
+
+Mohon bersabar ya, kami pastikan kualitas terbaik! 👨‍🍳`,
+
+  ready: `Halo kak {{namaPelanggan}},
+
+Kabar gembira! Pesanan Anda #{{nomorPesanan}} sudah SIAP diambil/dikirim!
+
+Item yang siap:
+{{items}}
+
+Total: {{totalPesanan}}
+
+Silakan konfirmasi kapan bisa diambil/dikirim. Terima kasih! 📦`,
+
+  // Legacy: untuk kompatibilitas dengan sistem lama
   shipping: `Halo kak {{namaPelanggan}},
 
 Kabar baik! Pesanan Anda #{{nomorPesanan}} sudah dalam proses PENGIRIMAN.
@@ -70,14 +94,25 @@ Mohon ditunggu kedatangannya ya. Terima kasih!`,
 
   delivered: `Halo kak {{namaPelanggan}},
 
-Pesanan Anda #{{nomorPesanan}} telah TIBA.
+Pesanan Anda #{{nomorPesanan}} telah DITERIMA dengan baik.
 
 Item yang diterima:
 {{items}}
 
 Total: {{totalPesanan}}
 
-Terima kasih telah berbelanja! Ditunggu pesanan selanjutnya 😊`,
+Terima kasih telah berbelanja! Bagaimana rasanya? Ditunggu review dan pesanan selanjutnya 😊`,
+
+  completed: `Halo kak {{namaPelanggan}},
+
+Pesanan Anda #{{nomorPesanan}} telah SELESAI dengan sempurna! ✅
+
+Item yang sudah selesai:
+{{items}}
+
+Total: {{totalPesanan}}
+
+Terima kasih atas kepercayaannya! Jangan lupa kasih rating dan ditunggu pesanan selanjutnya ya 🌟`,
 
   cancelled: `Halo kak {{namaPelanggan}},
 
@@ -88,7 +123,7 @@ Item yang dibatalkan:
 
 Total: {{totalPesanan}}
 
-Terima kasih atas pengertiannya.`
+Terima kasih atas pengertiannya. Jika ada yang bisa kami bantu lagi, jangan sungkan hubungi kami ya 🙏`
 };
 
 // ✅ API Functions
@@ -97,7 +132,14 @@ const fetchTemplates = async (userId: string): Promise<Record<string, string>> =
   
   const { data, error } = await supabase
     .from('followup_templates')
-    .select('*')
+    .select(`
+      id,
+      user_id,
+      status,
+      template,
+      created_at,
+      updated_at
+    `)
     .eq('user_id', userId);
   
   if (error) {

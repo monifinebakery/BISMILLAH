@@ -88,10 +88,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     profitMetrics,
     labels,
     refreshWACData,
-    // ✅ ADD: WAC Validation properties
-    wacValidation,
-    dataQualityMetrics,
-    validationScore,
+    // WAC Validation properties removed
   } = useProfitAnalysis({
     defaultPeriod: defaultPeriod || getCurrentPeriod(),
     autoCalculate: true,
@@ -190,46 +187,6 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         </Alert>
       )}
 
-      {/* ✅ ADD: WAC Validation Alert */}
-      {wacValidation && !wacValidation.isValid && (
-        <Alert variant={wacValidation.severity === 'high' ? 'destructive' : 'default'}>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-2">
-              <p className="font-medium">Deteksi Inkonsistensi Data WAC</p>
-              <p className="text-sm">
-                Variance: {wacValidation.variancePercentage.toFixed(1)}% 
-                (WAC: Rp {wacValidation.wacValue.toLocaleString('id-ID')}, 
-                API COGS: Rp {wacValidation.apiCogsValue.toLocaleString('id-ID')})
-              </p>
-              {wacValidation.issues.length > 0 && (
-                <ul className="text-sm list-disc list-inside space-y-1">
-                  {wacValidation.issues.map((issue, index) => (
-                    <li key={index}>{issue}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* ✅ ADD: Data Quality Score */}
-      {dataQualityMetrics && validationScore < 80 && (
-        <Alert variant="default">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-2">
-              <p className="font-medium">Kualitas Data: {validationScore.toFixed(0)}/100</p>
-              <div className="text-sm space-y-1">
-                <p>Konsistensi Data: {Number(dataQualityMetrics?.dataConsistency || 0).toFixed(1)}%</p>
-                <p>Ketersediaan WAC: {Number(dataQualityMetrics?.wacAvailability || 0).toFixed(1)}%</p>
-                <p>Ketersediaan API COGS: {Number(dataQualityMetrics?.apiCogsAvailability || 0).toFixed(1)}%</p>
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
 
       <div className="hidden md:block">
         <ExecutiveSummarySection data={executiveSummary} isLoading={loading} showAdvancedMetrics={showAdvancedMetrics} />
@@ -354,8 +311,8 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         hppLabel={labels?.hppLabel}
         hppHint={labels?.hppHint}
         />
-      </div>
-    );
+    </div>
+  );
 };
 
 export default ProfitDashboard;

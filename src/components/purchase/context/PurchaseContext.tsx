@@ -187,16 +187,18 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.warn('addBahanBaku not available in warehouse context');
     return false;
   });
-  const getSupplierName = useCallback((supplierId: string): string => {
+  const getSupplierName = useCallback((supplierName: string): string => {
+    // Since supplier field now stores name directly, just return the name with fallback
     try {
-      const s = suppliers?.find(
-        (x: any) => x.id === supplierId || x.nama === supplierId
-      );
-      return s?.nama || supplierId || 'Supplier';
+      if (!supplierName || typeof supplierName !== 'string') {
+        return 'Supplier Tidak Diketahui';
+      }
+      const trimmedName = supplierName.trim();
+      return trimmedName || 'Supplier Tidak Diketahui';
     } catch {
-      return supplierId || 'Supplier';
+      return supplierName || 'Supplier Tidak Diketahui';
     }
-  }, [suppliers]);
+  }, []);
 
   // ✅ HELPER: Invalidate warehouse data after purchase changes
   const invalidateWarehouseData = useCallback(() => {
@@ -877,6 +879,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     stats,
     setStatus,
     findPurchase,
+    getPurchaseById: findPurchase, // Same as findPurchase for compatibility
     validatePrerequisites,
     getSupplierName,
   }), [

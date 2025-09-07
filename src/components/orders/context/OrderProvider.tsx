@@ -10,6 +10,8 @@ import { transformOrderFromDB } from '../utils';
 import type { Order, NewOrder, OrderStatus } from '../types';
 import { useOrderConnection } from '../hooks/useOrderConnection';
 import { useOrderSubscription } from '../hooks/useOrderSubscription';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
+import { orderEvents, emitOrderCreated, emitOrderUpdated, emitOrderDeleted, emitOrderStatusChanged, emitOrdersBulkImported } from '../utils/orderEvents';
 import * as orderService from '../services/orderService';
 
 interface Props { children: ReactNode }
@@ -55,21 +57,43 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
   }, [userId]);
 
   const handleRealtimeEvent = useCallback((payload: any) => {
+    console.log('🔥 Real-time event received:', payload.eventType, payload.new?.id, payload.new?.status);
+    
     setOrders(prev => {
       let next = [...prev];
+      
       if (payload.eventType === 'DELETE' && payload.old?.id) {
         next = next.filter(o => o.id !== payload.old.id);
+        console.log('🗑️ Real-time DELETE applied:', payload.old.id);
       }
+      
       if (payload.eventType === 'INSERT' && payload.new) {
         const newOrder = transformOrderFromDB(payload.new);
         if (!next.some(o => o.id === newOrder.id)) {
           next = [newOrder, ...next];
+          console.log('✨ Real-time INSERT applied:', newOrder.id, newOrder.nomorPesanan);
         }
       }
+      
       if (payload.eventType === 'UPDATE' && payload.new) {
         const updated = transformOrderFromDB(payload.new);
+        const oldOrder = next.find(o => o.id === updated.id);
         next = next.map(o => (o.id === updated.id ? updated : o));
+        
+        console.log('🔄 Real-time UPDATE applied:', {
+          orderId: updated.id,
+          orderNumber: updated.nomorPesanan,
+          oldStatus: oldOrder?.status,
+          newStatus: updated.status,
+          statusChanged: oldOrder?.status !== updated.status
+        });
+        
+        // Force immediate UI update for status changes
+        if (oldOrder?.status !== updated.status) {
+          console.log('📱 Status change detected - forcing immediate UI update');
+        }
       }
+      
       return next;
     });
   }, []);
@@ -79,6 +103,19 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     handleRealtimeEvent,
     { shouldAttemptConnection, recordConnectionFailure, setIsConnected }
   );
+
+  // ✅ AUTO-REFRESH: Listen to order events for immediate UI updates
+  useEffect(() => {
+    const unsubscribe = orderEvents.on('order:refresh_needed', (data) => {
+      console.log('🔔 Auto-refresh triggered by order event:', data);
+      // Minimal debounce for rapid events - faster response
+      setTimeout(() => {
+        refreshData();
+      }, 50); // Reduced from 300ms to 50ms for much faster updates
+    });
+
+    return unsubscribe;
+  }, [refreshData]);
 
   useEffect(() => {
     if (userId) {
@@ -104,6 +141,9 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
         throttledFetch(refreshData);
       }
       
+      // ✅ EMIT EVENT: Trigger cross-component refresh
+      emitOrderCreated(created.id);
+      
       // ✅ INVALIDATE PROFIT ANALYSIS: New orders affect profit calculations
       console.log('📈 Order added - will affect profit calculations');
       
@@ -122,6 +162,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh
+      emitOrderUpdated(id);
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal memperbarui pesanan: ${error.message}`);
@@ -152,15 +196,19 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       // ✅ IMMEDIATE UI UPDATE: Update state optimistically
       setOrders(prev => prev.map(o => (o.id === orderIdStr ? updated : o)));
       
-      // ✅ FORCE REFRESH: Ensure UI reflects changes immediately
+      // ✅ EMIT EVENT: Trigger cross-component refresh
+      emitOrderStatusChanged(orderIdStr, statusStr);
+      
+      // ✅ IMMEDIATE REFRESH: Force immediate UI update without delay
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       } else {
-        // Even if realtime is active, do a quick refresh to ensure sync
+        // Real-time is active, but ensure immediate sync for status updates
+        logger.debug('OrderProvider: Triggering immediate refresh after status update');
+        // Reduce delay significantly for better UX
         setTimeout(() => {
-          logger.debug('OrderProvider: Force refreshing data after status update');
           refreshData();
-        }, 500);
+        }, 100); // Reduced from 500ms to 100ms
       }
       
       logger.success('OrderProvider: Status updated successfully:', {
@@ -185,6 +233,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh
+      emitOrderDeleted(id);
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal menghapus pesanan: ${error.message}`);
@@ -200,6 +252,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh for each order
+      ids.forEach(id => emitOrderStatusChanged(id, status));
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal memperbarui pesanan: ${error.message}`);
@@ -215,6 +271,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
       if (fallbackModeRef.current) {
         throttledFetch(refreshData);
       }
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh for each deleted order
+      ids.forEach(id => emitOrderDeleted(id));
+      
       return true;
     } catch (error: any) {
       toast.error(`Gagal menghapus pesanan: ${error.message}`);
@@ -228,29 +288,70 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     let success = 0;
     const results = [];
     
+    // Show progress for large imports
+    const isLargeImport = orders.length > 5;
+    let processed = 0;
+    
     for (const order of orders) {
       try {
         const created = await orderService.addOrder(userId, order);
         results.push(created);
         success++;
+        processed++;
+        
+        // Log progress for large imports
+        if (isLargeImport && processed % 5 === 0) {
+          console.log(`📋 Import progress: ${processed}/${orders.length} orders added`);
+        }
       } catch (error) {
+        processed++;
         console.error('Error adding order during bulk import:', error);
       }
     }
     
-    // Update state with all successfully created orders at once
+    // ✅ IMMEDIATE STATE UPDATE: Update state with all successfully created orders at once
     if (results.length > 0) {
-      setOrders(prev => [...results, ...prev]);
-      if (fallbackModeRef.current) {
-        throttledFetch(refreshData);
+      console.log(`✨ Updating UI state with ${results.length} new orders`);
+      setOrders(prev => {
+        // Sort by date (newest first) and avoid duplicates
+        const newOrders = results.filter(newOrder => 
+          !prev.some(existingOrder => existingOrder.id === newOrder.id)
+        );
+        return [...newOrders, ...prev].sort((a, b) => 
+          new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+        );
+      });
+      
+      // ✅ EMIT EVENT: Trigger cross-component refresh for bulk import
+      emitOrdersBulkImported(success);
+      
+      // ✅ FORCE REFRESH: Always refresh data after bulk import to ensure consistency
+      console.log('🔄 Triggering force refresh after bulk import...');
+      
+      // ✅ INVALIDATE REACT QUERY CACHE: Force refresh paginated data immediately
+      try {
+        const { useQueryClient } = await import('@tanstack/react-query');
+        // Get query client instance and invalidate all order-related queries
+        if (typeof window !== 'undefined') {
+          // Emit event for OrdersPage listener to refetch
+          emitOrdersBulkImported(success);
+          console.log('📡 Emitted bulk import event for immediate paginated data refresh');
+        }
+      } catch (error) {
+        console.warn('Could not invalidate React Query cache:', error);
       }
+      
+      setTimeout(async () => {
+        await refreshData();
+        console.log('✅ Force refresh completed');
+      }, 500); // Reduced timeout
       
       // ✅ INVALIDATE PROFIT ANALYSIS: Bulk imported orders affect profit calculations
       console.log(`📈 ${success} orders imported - will affect profit calculations`);
     }
     
     return { success, total: orders.length };
-  }, [userId, throttledFetch, refreshData]);
+  }, [userId, refreshData]);
 
   // ULTRA PERFORMANCE: Memoized computed values untuk mencegah re-calculation
   const ordersRef = useRef(orders);

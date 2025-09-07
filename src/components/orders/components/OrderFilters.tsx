@@ -223,40 +223,44 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({ uiState, loading }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Search Filter */}
-        <SearchFilter
-          value={uiState.filters.search}
-          onChange={(search) => uiState.updateFilters({ search })}
-          disabled={loading}
-        />
-
-        {/* Status Filter */}
-        <StatusFilter
-          value={uiState.filters.status || 'all'}
-          onChange={(status) => uiState.updateFilters({ status: status === 'all' ? 'all' : status })}
-          disabled={loading}
-        />
-
-        {/* Date Range Filter */}
-        <DateRangeFilter
-          dateFrom={uiState.filters.dateFrom}
-          dateTo={uiState.filters.dateTo}
-          onChange={(dateFrom, dateTo) => uiState.updateFilters({ dateFrom, dateTo })}
-          disabled={loading}
-        />
-
-        {/* Clear All Filters */}
-        {uiState.hasActiveFilters && (
-          <Button
-            variant="outline"
-            onClick={uiState.clearFilters}
+      <div className="space-y-4">
+        {/* Row 1: Search and Status */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SearchFilter
+            value={uiState.filters.search}
+            onChange={(search) => uiState.updateFilters({ search })}
             disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <X className="h-4 w-4" />
-            Hapus Semua Filter
-          </Button>
+          />
+          <StatusFilter
+            value={uiState.filters.status || 'all'}
+            onChange={(status) => uiState.updateFilters({ status: status === 'all' ? 'all' : status })}
+            disabled={loading}
+          />
+        </div>
+
+        {/* Row 2: Date Range Filter (Full Width) */}
+        <div className="w-full">
+          <DateRangeFilter
+            dateFrom={uiState.filters.dateFrom}
+            dateTo={uiState.filters.dateTo}
+            onChange={(dateFrom, dateTo) => uiState.updateFilters({ dateFrom, dateTo })}
+            disabled={loading}
+          />
+        </div>
+
+        {/* Row 3: Clear All Filters */}
+        {uiState.hasActiveFilters && (
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={uiState.clearFilters}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              Hapus Semua Filter
+            </Button>
+          </div>
         )}
       </div>
     </div>

@@ -25,7 +25,15 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { RECIPE_CATEGORIES, type NewRecipe, type RecipeFormStepProps } from '../../types';
+import { 
+  getAllAvailableCategories, 
+  type NewRecipe, 
+  type RecipeFormStepProps, 
+  type Recipe 
+} from '../../types';
+import { useRecipe } from '@/contexts/RecipeContext';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 type BasicInfoStepProps = Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'>;
 
@@ -41,15 +49,10 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(
     data.fotoBase64 || data.fotoUrl || null
   );
+  const { recipes } = useRecipe();
 
-  // Get available categories including existing ones from data
-  const availableCategories = [
-    ...RECIPE_CATEGORIES,
-    ...(data.kategoriResep && !RECIPE_CATEGORIES.includes(data.kategoriResep as string)
-      ? [data.kategoriResep] 
-      : []
-    )
-  ];
+  // Get available categories dynamically from existing recipes
+  const availableCategories = getAllAvailableCategories(recipes);
 
   const handleCategoryChange = (value: string) => {
     if (value === 'custom') {
@@ -367,7 +370,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       size="sm"
                       disabled={isLoading}
                       className="cursor-pointer"
-                      onClick={() => document.getElementById('recipe-photo-upload')?.click()}
+                      onClick={() => safeDom.getElementById('recipe-photo-upload')?.click()}
                     >
                       <Image className="w-4 h-4 mr-2" />
                       Pilih Foto
@@ -410,7 +413,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       size="sm"
                       disabled={isLoading}
                       className="w-full cursor-pointer"
-                      onClick={() => document.getElementById('recipe-photo-replace')?.click()}
+                      onClick={() => safeDom.getElementById('recipe-photo-replace')?.click()}
                     >
                       <Image className="w-4 h-4 mr-2" />
                       Ganti Foto

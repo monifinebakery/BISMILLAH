@@ -119,6 +119,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   } = usePurchaseForm({
     mode,
     initialData: purchase,
+    suppliers, // Pass suppliers to enable ID->name conversion
     onSuccess: () => {
       toast.success(
         mode === 'create' 
@@ -268,8 +269,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <SupplierComboBox
                     value={formData.supplier}
                     onValueChange={(supplierName, supplierId) => {
-                      // If supplier has ID, use ID, otherwise use name for new supplier
-                      updateFormField('supplier', supplierId || supplierName);
+                      // Always use supplier name for consistency
+                      updateFormField('supplier', supplierName);
                     }}
                     suppliers={suppliers}
                     disabled={isSubmitting || isViewOnly}
@@ -487,7 +488,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <p className="text-sm text-gray-600">{formData.items.length} Item</p>
                   <p className="text-sm text-gray-500 truncate max-w-[200px] sm:max-w-none">
                     {formData.supplier
-                      ? `Supplier: ${suppliers.find(s => s.id === formData.supplier)?.nama || 'Tidak diketahui'}`
+                      ? `Supplier: ${formData.supplier}`
                       : 'Supplier belum dipilih'}
                   </p>
                 </div>
@@ -579,8 +580,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 }}
                 disabled={(date) => {
                   const today = new Date();
-                  const minDate = new Date('1900-01-01');
-                  return date > today || date < minDate;
+                  const fiveYearsAgo = new Date();
+                  fiveYearsAgo.setFullYear(today.getFullYear() - 5);
+                  // Allow past dates up to 5 years ago, no future dates beyond today
+                  return date > today || date < fiveYearsAgo;
                 }}
                 initialFocus
                 locale={id}

@@ -2,13 +2,15 @@
 // Utilitas untuk mengunduh invoice sebagai gambar tanpa dialog print
 
 /**
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
  * Alternative modern implementation for better browser compatibility
  */
 async function modernDomToImage(element: HTMLElement): Promise<string> {
   const rect = element.getBoundingClientRect();
   const scale = window.devicePixelRatio || 2;
   
-  const canvas = document.createElement('canvas');
+  const canvas = safeDom.createElement('canvas');
   canvas.width = rect.width * scale;
   canvas.height = rect.height * scale;
   
@@ -109,7 +111,7 @@ function cloneWithStyles(node: HTMLElement): HTMLElement {
 export const downloadInvoiceImage = async (
   format: 'png' | 'jpg' = 'png'
 ): Promise<void> => {
-  const element = document.getElementById('invoice-content');
+  const element = safeDom.getElementById('invoice-content');
   if (!element) {
     throw new Error('Elemen invoice tidak ditemukan');
   }
@@ -164,7 +166,7 @@ export const downloadInvoiceImage = async (
         img.src = src;
       });
 
-      const canvas = document.createElement('canvas');
+      const canvas = safeDom.createElement('canvas');
       const scale = window.devicePixelRatio || 2;
       canvas.width = width * scale;
       canvas.height = height * scale;
@@ -188,7 +190,7 @@ export const downloadInvoiceImage = async (
     }
 
     // Create download link
-    const link = document.createElement('a');
+    const link = safeDom.createElement('a');
     link.href = dataUrl;
     link.download = `invoice-${new Date().toISOString().split('T')[0]}.${format}`;
     document.body.appendChild(link);

@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { logger } from '@/utils/logger';
+import { safePerformance, safeDom } from '@/utils/browserApiSafeWrappers';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface PerformanceMetric {
   name: string;
@@ -23,7 +26,7 @@ export const PerformanceDashboard: React.FC = () => {
     const now = Date.now();
 
     // Navigation timing
-    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    const navigation = safePerformance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     if (navigation) {
       newMetrics.push(
         { name: 'Page Load', value: navigation.loadEventEnd - navigation.fetchStart, unit: 'ms', timestamp: now },
@@ -73,7 +76,7 @@ export const PerformanceDashboard: React.FC = () => {
     const dataStr = JSON.stringify(metrics, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
+    const link = safeDom.createElement('a');
     link.href = url;
     link.download = 'performance-metrics.json';
     link.click();

@@ -45,7 +45,7 @@ export const useOperationalCosts = (initialFilters?: CostFilters): UseOperationa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔄 Set up query client for cache invalidation
+  // Set up query client for cache invalidation
   useEffect(() => {
     setQueryClient(queryClient);
   }, [queryClient]);

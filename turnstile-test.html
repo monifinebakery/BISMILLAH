@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turnstile Test</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+    <h1>Cloudflare Turnstile Test</h1>
+    
+    <div id="turnstile-container"></div>
+    <div id="result"></div>
+    
+    <script>
+        // Test your sitekey directly
+        const SITEKEY = '0x4AAAAAABvpDKhb8eM31rVE';
+        
+        console.log('Testing sitekey:', SITEKEY);
+        console.log('Sitekey length:', SITEKEY.length);
+        
+        window.onload = function() {
+            try {
+                const widgetId = window.turnstile.render('#turnstile-container', {
+                    sitekey: SITEKEY,
+                    callback: function(token) {
+                        console.log('Success! Token:', token);
+                        document.getElementById('result').innerHTML = 
+                            '<div style="color: green;">✅ Success! Turnstile working correctly.</div>';
+                    },
+                    'error-callback': function(error) {
+                        console.error('Error:', error);
+                        document.getElementById('result').innerHTML = 
+                            '<div style="color: red;">❌ Error: ' + error + '</div>';
+                    }
+                });
+                
+                console.log('Widget ID:', widgetId);
+                
+            } catch (error) {
+                console.error('Render error:', error);
+                document.getElementById('result').innerHTML = 
+                    '<div style="color: red;">❌ Render Error: ' + error.message + '</div>';
+            }
+        };
+    </script>
+</body>
+</html>

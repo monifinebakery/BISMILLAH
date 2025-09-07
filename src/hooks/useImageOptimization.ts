@@ -1,5 +1,7 @@
 // src/hooks/useImageOptimization.ts - Image Optimization Hook
 import { useState, useEffect, useCallback } from 'react';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface ImageOptimizationConfig {
   enableWebP: boolean;
@@ -134,7 +136,7 @@ export const useImageOptimization = (config: Partial<ImageOptimizationConfig> = 
   // Compress image file
   const compressImageFile = useCallback(async (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
+      const canvas = safeDom.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         reject(new Error('Canvas context not available'));
@@ -232,7 +234,7 @@ export const createResponsiveSrcSet = (
 
 // Utility to check if image format is supported
 export const isImageFormatSupported = (format: string): boolean => {
-  const canvas = document.createElement('canvas');
+  const canvas = safeDom.createElement('canvas');
   canvas.width = 1;
   canvas.height = 1;
   

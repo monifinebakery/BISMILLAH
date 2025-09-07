@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,83 +10,85 @@ import { Download, Info, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrder } from '../context/OrderContext';
 import { parseOrderCSV } from '../utils/orderImport';
+import ImportTutorialDialog from './ImportTutorialDialog';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 const ImportButton: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { addOrder } = useOrder();
+  const { bulkAddOrders } = useOrder();
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const handleFile = async (file: File) => {
+    // Show loading state
+    const loadingToast = toast.loading(`Memproses file ${file.name}...`);
+    
     try {
+      // Parse CSV file
       const orders = await parseOrderCSV(file);
       if (!orders.length) {
-        toast.error('Tidak ada data yang dapat diimport');
+        toast.dismiss(loadingToast);
+        toast.error('Tidak ada data yang dapat diimport dari file ini');
         return;
       }
       
-      console.log('Parsed orders:', orders); // Debug log
+      toast.loading(`Mengimpor ${orders.length} pesanan...`, { id: loadingToast });
+      console.log('📄 Parsed orders from CSV:', orders);
+      console.log('📦 First order items:', orders[0]?.items); // Debug items specifically
       
-      let success = 0;
-      for (const o of orders) {
-        try {
-          console.log('Adding order:', o); // Debug log
-          const ok = await addOrder(o);
-          if (ok) success++;
-        } catch (orderError: any) {
-          console.error('Error adding individual order:', orderError);
-          let errorMsg = 'Unknown error';
-          
-          if (typeof orderError === 'string') {
-            errorMsg = orderError;
-          } else if (orderError?.message) {
-            errorMsg = orderError.message;
-          } else if (orderError?.error?.message) {
-            errorMsg = orderError.error.message;
-          } else if (orderError?.toString && typeof orderError.toString === 'function') {
-            errorMsg = orderError.toString();
-          } else {
-            errorMsg = JSON.stringify(orderError, null, 2);
-          }
-          
-          toast.error(`Gagal menambah pesanan: ${errorMsg}`);
+      // ✅ Use bulkAddOrders for better performance and auto UI update
+      const result = await bulkAddOrders(orders);
+      const { success, total } = result;
+      
+      // Dismiss loading and show result
+      toast.dismiss(loadingToast);
+      
+      if (success > 0) {
+        toast.success(`${success} dari ${total} pesanan berhasil diimport!`);
+        
+        // ✅ AUTO-REFRESH: bulkAddOrders already handles event emission and UI refresh
+        console.log('✨ Import complete - auto-refresh triggered by order events');
+        
+        if (success < total) {
+          toast.warning(`${total - success} pesanan gagal diimport. Periksa data CSV.`);
         }
+      } else {
+        toast.error(`Semua ${total} pesanan gagal diimport. Periksa format data CSV.`);
       }
-      toast.success(`${success} pesanan berhasil diimport`);
       
       // ✅ AUTO FINANCIAL SYNC: Sync completed imported orders to financial
-      try {
-        const { bulkSyncOrdersToFinancial } = await import('@/utils/orderFinancialSync');
-        const { user } = await import('@/contexts/AuthContext').then(m => ({ user: null })); // Get user context
-        
-        // We'll trigger sync in background, don't wait for it
-        if (success > 0) {
+      if (success > 0) {
+        try {
           console.log('📈 Triggering financial sync for imported orders...');
           // Note: This will only sync completed orders, pending orders will sync when status changes
+          const { bulkSyncOrdersToFinancial } = await import('@/utils/orderFinancialSync');
+          // Background sync - don't wait for it or show errors to user
+        } catch (syncError) {
+          console.error('Error in post-import financial sync:', syncError);
+          // Silent error - user doesn't need to know about financial sync issues
         }
-      } catch (syncError) {
-        console.error('Error in post-import financial sync:', syncError);
-        // Don't show error to user since import was successful
       }
       
     } catch (err: any) {
       console.error('Import error:', err);
+      toast.dismiss(loadingToast);
+      
       const errorMsg = err?.message || err?.error?.message || String(err);
-      toast.error(`Gagal mengimpor file: ${errorMsg}`);
+      toast.error(`Gagal mengimpor file: ${errorMsg}`, {
+        description: 'Periksa format CSV dan coba lagi. Gunakan template yang disediakan.',
+        duration: 8000
+      });
     }
   };
 
   const downloadTemplate = () => {
-    const link = document.createElement('a');
+    const link = safeDom.createElement('a');
     link.href = '/templates/order-import-template.csv';
-    link.download = 'order-import-template.csv';
+    link.download = 'template-import-pesanan.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const showFormatInfo = () => {
-    toast.info(
-      'Format CSV: pelanggan,tanggal(YYYY-MM-DD),nama,kuantitas,satuan,harga. Pemisah kolom boleh koma atau titik koma.',
-    );
+    toast.success('Template CSV berhasil didownload!');
   };
 
   return (
@@ -109,18 +111,24 @@ const ImportButton: React.FC = () => {
             Import
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <DropdownMenuContent className="w-48">
           <DropdownMenuItem onClick={() => inputRef.current?.click()} className="cursor-pointer">
             <Upload className="h-4 w-4 mr-2" /> Upload CSV
           </DropdownMenuItem>
           <DropdownMenuItem onClick={downloadTemplate} className="cursor-pointer">
             <Download className="h-4 w-4 mr-2" /> Download Template
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={showFormatInfo} className="cursor-pointer">
-            <Info className="h-4 w-4 mr-2" /> Cara Format
+          <DropdownMenuItem onClick={() => setShowTutorial(true)} className="cursor-pointer">
+            <Info className="h-4 w-4 mr-2" /> Cara Import
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      
+      <ImportTutorialDialog
+        open={showTutorial}
+        onOpenChange={setShowTutorial}
+        onDownloadTemplate={downloadTemplate}
+      />
     </>
   );
 };

@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 import { withTimeout, withSoftTimeout } from '@/utils/asyncUtils';
-
 // ✅ Import from authUtils untuk konsistensi
 import { 
   validateAuthSession, 
@@ -288,58 +287,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return await debugAuthState();
     } catch (error) {
       logger.error('AuthContext: Error debugging auth:', error);
-      return { error: error.message };
+      return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
   };
 
   useEffect(() => {
     let mounted = true;
 
+    // ✅ Development bypass authentication
     const initializeAuth = async () => {
+      if (import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+        logger.info('🔧 [DEV] Bypassing authentication with mock user');
+        
+        const mockUser: User = {
+          id: import.meta.env.VITE_DEV_MOCK_USER_ID || 'dev-user-123',
+          email: import.meta.env.VITE_DEV_MOCK_USER_EMAIL || 'dev@localhost.com',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email_confirmed_at: new Date().toISOString(),
+          phone: '',
+          confirmed_at: new Date().toISOString(),
+          last_sign_in_at: new Date().toISOString(),
+          app_metadata: {},
+          user_metadata: {},
+          identities: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const mockSession: Session = {
+          access_token: 'mock-access-token',
+          refresh_token: 'mock-refresh-token',
+          expires_in: 3600,
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          token_type: 'bearer',
+          user: mockUser
+        };
+        
+        if (mounted) {
+          setSession(mockSession);
+          setUser(mockUser);
+          setIsLoading(false);
+          setIsReady(true);
+        }
+        
+        logger.success('🔧 [DEV] Mock authentication initialized:', {
+          userId: mockUser.id,
+          email: mockUser.email
+        });
+        
+        return;
+      }
+
       try {
         logger.context('AuthContext', 'Initializing auth...');
         const adaptiveTimeout = getAdaptiveTimeout(15000);
-        logger.debug('AuthContext: Using adaptive timeout:', adaptiveTimeout);
-
         // ✅ Enhanced initialization dengan fallback
-        const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
-          supabase.auth.getSession(),
-          adaptiveTimeout,
-          'Auth initialization timeout'
-        );
-
-        if (!mounted) return;
-
-        if (timeoutError) {
-          logger.error('AuthContext initialization timeout/error:', timeoutError);
-          
-          // ✅ Fallback strategy untuk slow devices
-          const capabilities = detectDeviceCapabilities();
-          if (capabilities.isSlowDevice || capabilities.networkType === '2g' || capabilities.networkType === '3g') {
-            logger.warn('AuthContext: Slow device/network detected, trying checkSessionExists fallback...');
-            
-            const sessionExists = await checkSessionExists();
-            if (sessionExists) {
-              logger.info('AuthContext: Session exists via fallback, will wait for auth state change');
-              // Don't set session to null, wait for onAuthStateChange
-              setIsLoading(false);
-              setIsReady(true);
-              return;
-            }
-          }
-          
-          setSession(null);
-          setUser(null);
-          setIsLoading(false);
-          setIsReady(true);
-          return;
-        }
-
-        const { data: { session } } = sessionResult as any;
-        const { session: validSession, user: validUser } = validateSession(session);
-        
-        logger.context('AuthContext', 'Initial session loaded and validated:', {
-          hasSession: !!validSession,
+        logger.context('AuthContext', 'Auth initialization result:', {
           hasValidUser: !!validUser,
           userEmail: validUser?.email || 'none',
           userId: validUser?.id || 'none',
@@ -404,7 +408,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           event,
           currentPath: window.location.pathname,
         });
-
         const { session: validSession, user: validUser } = validateSession(session);
         setSession(validSession);
         setUser(validUser);

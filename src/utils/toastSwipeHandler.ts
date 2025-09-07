@@ -1,4 +1,7 @@
 // Toast swipe gesture handler
+import { safeDom } from './browserApiSafeWrappers';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 let isSwipeListenerAdded = false;
 
 interface SwipeState {
@@ -165,16 +168,16 @@ export const initToastSwipeHandlers = () => {
     swipeState = null;
   };
 
-  // Add event listeners
-  document.addEventListener('touchstart', handleTouchStart, { passive: true });
-  document.addEventListener('touchmove', handleTouchMove, { passive: false });
-  document.addEventListener('touchend', handleTouchEnd, { passive: true });
-  document.addEventListener('mousedown', handleMouseDown);
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseup', handleMouseUp);
+  // Add event listeners with safe DOM methods
+  safeDom.addEventListener(document, 'touchstart', handleTouchStart, { passive: true });
+  safeDom.addEventListener(document, 'touchmove', handleTouchMove, { passive: false });
+  safeDom.addEventListener(document, 'touchend', handleTouchEnd, { passive: true });
+  safeDom.addEventListener(document, 'mousedown', handleMouseDown, undefined);
+  safeDom.addEventListener(document, 'mousemove', handleMouseMove, undefined);
+  safeDom.addEventListener(document, 'mouseup', handleMouseUp, undefined);
 
   // Cleanup mouse events on mouse leave
-  document.addEventListener('mouseleave', () => {
+  safeDom.addEventListener(document, 'mouseleave', () => {
     if (swipeState) {
       swipeState.element.style.transform = 'translateX(0) scale(1)';
       swipeState.element.style.opacity = '1';
@@ -182,7 +185,7 @@ export const initToastSwipeHandlers = () => {
       hideSwipeIndicator(swipeState.element);
       swipeState = null;
     }
-  });
+  }, undefined);
 
   isSwipeListenerAdded = true;
 };
@@ -191,7 +194,7 @@ const showSwipeIndicator = (element: HTMLElement, distance: number) => {
   let indicator = element.querySelector('.toast-swipe-indicator') as HTMLElement;
   
   if (!indicator) {
-    indicator = document.createElement('div');
+    indicator = safeDom.createElement('div') as HTMLElement;
     indicator.className = 'toast-swipe-indicator';
     indicator.innerHTML = `
       <span style="font-size: 12px;">Swipe</span>

@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
+
 export const analyticsService = {
   // ✅ Get promo analytics for date range
   getAnalytics: async (dateRange) => {
@@ -9,7 +11,17 @@ export const analyticsService = {
       // For now, we'll simulate analytics data
       const { data: promos, error } = await supabase
         .from('promos')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          nama_promo,
+          tipe_promo,
+          status,
+          data_promo,
+          calculation_result,
+          created_at,
+          updated_at
+        `)
         .eq('user_id', user.id);
 
       if (error) throw error;
@@ -78,7 +90,17 @@ export const analyticsService = {
 
       const { data, error } = await supabase
         .from('promos')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          nama_promo,
+          tipe_promo,
+          status,
+          data_promo,
+          calculation_result,
+          created_at,
+          updated_at
+        `)
         .eq('id', promoId)
         .eq('user_id', user.id)
         .single();

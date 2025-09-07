@@ -1,6 +1,8 @@
 // src/components/ui/VirtualTable.tsx - Advanced Virtual Scrolling Table
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { safePerformance } from '@/utils/browserApiSafeWrappers';
+
 
 interface VirtualTableColumn<T> {
   key: string;
@@ -427,7 +429,7 @@ export const useVirtualTablePerformance = () => {
   });
 
   const trackRender = useCallback((startTime: number, visibleItems: number, totalItems: number) => {
-    const renderTime = performance.now() - startTime;
+    const renderTime = safePerformance.now() - startTime;
     setMetrics(prev => ({
       ...prev,
       renderTime,

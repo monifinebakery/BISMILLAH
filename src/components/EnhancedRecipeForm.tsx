@@ -81,6 +81,8 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   } | null>(null);
   const [isEnhancedHppActive, setIsEnhancedHppActive] = useState(false); // Track enhanced HPP state
   const [enhancedHppResult, setEnhancedHppResult] = useState<EnhancedHPPCalculationResult | null>(null);
+  // Manual selling prices are now handled directly in the form data
+  // No separate manual pricing mode needed
 
   // Initialize form with existing data
   useEffect(() => {
@@ -124,23 +126,25 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
 
         const calculation = calculateHPP(
           bahanForCalculation,
-          formData.jumlahPorsi,
+          typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1,
           formData.biayaTenagaKerja,
           formData.biayaOverhead,
           formData.marginKeuntunganPersen,
-          formData.jumlahPcsPerPorsi
+          typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1
         );
 
         setCalculationResults(calculation);
         
-        // Update form data with calculated values
+        // Update form data with calculated HPP values only
+        // Selling prices are controlled by the user in the cost calculation step
         setFormData(prev => ({
           ...prev,
           totalHpp: calculation.totalHPP,
           hppPerPorsi: calculation.hppPerPorsi,
-          hargaJualPorsi: calculation.hargaJualPorsi,
           hppPerPcs: calculation.hppPerPcs,
-          hargaJualPerPcs: calculation.hargaJualPerPcs,
+          // Don't override user's selling prices
+          hargaJualPorsi: prev.hargaJualPorsi || 0,
+          hargaJualPerPcs: prev.hargaJualPerPcs || 0,
         }));
 
       } catch (error) {
@@ -172,7 +176,9 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         hargaJualPorsi: result.hargaJualPerPorsi,
         hppPerPcs: result.hppPerPcs,
         hargaJualPerPcs: result.hargaJualPerPcs,
-        biayaOverhead: result.overheadPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1)
+        biayaOverhead: result.overheadPerPcs * 
+          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1)
       }));
       
       // Update calculation results for display
@@ -182,9 +188,15 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         hargaJualPorsi: result.hargaJualPerPorsi,
         hppPerPcs: result.hppPerPcs,
         hargaJualPerPcs: result.hargaJualPerPcs,
-        totalBahanBaku: result.bahanPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1),
-        biayaTenagaKerja: result.tklPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1),
-        biayaOverhead: result.overheadPerPcs * formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1)
+        totalBahanBaku: result.bahanPerPcs * 
+          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1),
+        biayaTenagaKerja: result.tklPerPcs * 
+          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1),
+        biayaOverhead: result.overheadPerPcs * 
+          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1)
       });
     }
   }, [formData.jumlahPorsi, formData.jumlahPcsPerPorsi]);
@@ -212,13 +224,13 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
 
   const addIngredient = () => {
     if (!newIngredient.selectedBahanId || newIngredient.jumlah <= 0) {
-      toast.error("Pilih bahan dan masukkan jumlah yang valid");
+      toast.error("Pilih bahan dari warehouse dan masukkan jumlah yang valid");
       return;
     }
 
     const selectedBahan = bahanBaku.find(item => item.id === newIngredient.selectedBahanId);
     if (!selectedBahan) {
-      toast.error("Bahan baku tidak ditemukan");
+      toast.error("Bahan baku tidak ditemukan di warehouse");
       return;
     }
 
@@ -311,21 +323,31 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clean up form data - convert string values to numbers before validation and submission
+    const cleanFormData = {
+      ...formData,
+      jumlahPorsi: typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1,
+      jumlahPcsPerPorsi: typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1,
+    };
+    
     // Validate using context validation
-    const validation = validateRecipeData(formData);
+    const validation = validateRecipeData(cleanFormData);
     if (!validation.isValid) {
       toast.error(`Data resep tidak valid: ${validation.errors.join(', ')}`);
       return;
     }
 
-    onSave(formData);
+    onSave(cleanFormData);
   };
 
-  const totalPcsProduced = formData.jumlahPorsi * (formData.jumlahPcsPerPorsi || 1);
+  const totalPcsProduced = (
+    (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
+    (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1)
+  );
   const totalIngredientCost = formData.bahanResep.reduce((sum, item) => sum + item.totalHarga, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 recipe-form-mobile">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
         <Card>
@@ -368,28 +390,54 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   id="jumlahPorsi"
                   type="number"
                   min="1"
-                  value={formData.jumlahPorsi}
-                  onChange={(e) => handleInputChange('jumlahPorsi', parseInt(e.target.value) || 1)}
+                  value={formData.jumlahPorsi || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string during editing
+                    handleInputChange('jumlahPorsi', value === '' ? '' : parseInt(value) || 1);
+                  }}
+                  onBlur={(e) => {
+                    // Ensure we have at least 1 when user finishes editing
+                    if (!e.target.value || parseInt(e.target.value) < 1) {
+                      handleInputChange('jumlahPorsi', 1);
+                    }
+                  }}
                   required
+                  mobileOptimized
                   className="mt-1"
                 />
+                <p className="text-xs text-gray-500 mt-1 sm:hidden">
+                  Gunakan nama yang mudah diingat dan menggambarkan resep
+                </p>
               </div>
               
               <div>
                 <Label htmlFor="jumlahPcsPerPorsi">
-                  Jumlah Pcs per Porsi *
-                  <span className="text-xs text-gray-500 ml-1">(untuk kalkulasi HPP per pcs)</span>
+                  Pcs per Porsi *
+                  <span className="text-xs text-gray-500 ml-1 hidden sm:inline">(untuk kalkulasi HPP per pcs)</span>
                 </Label>
                 <Input
                   id="jumlahPcsPerPorsi"
                   type="number"
                   min="1"
-                  value={formData.jumlahPcsPerPorsi}
-                  onChange={(e) => handleInputChange('jumlahPcsPerPorsi', parseInt(e.target.value) || 1)}
+                  value={formData.jumlahPcsPerPorsi || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string during editing, default to 1 only on blur or if explicitly set to 0
+                    handleInputChange('jumlahPcsPerPorsi', value === '' ? '' : parseInt(value) || 1);
+                  }}
+                  onBlur={(e) => {
+                    // Ensure we have at least 1 when user finishes editing
+                    if (!e.target.value || parseInt(e.target.value) < 1) {
+                      handleInputChange('jumlahPcsPerPorsi', 1);
+                    }
+                  }}
+                  mobileOptimized
                   className="mt-1"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Total produksi: {totalPcsProduced} pcs
+                  <span className="sm:hidden">Berapa potongan per porsi (misal: 1 porsi = 6 pcs donat)</span>
+                  <span className="hidden sm:inline">Total produksi: {totalPcsProduced} pcs</span>
                 </p>
               </div>
             </div>
@@ -432,8 +480,8 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Add Ingredient Form */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg">
-              <div className="md:col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg">
+              <div className="sm:col-span-2 md:col-span-2">
                 <Label className="text-sm">Nama Bahan *</Label>
                 <Select 
                   value={newIngredient.selectedBahanId} 
@@ -472,6 +520,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                     jumlah: parseFloat(e.target.value) || 0
                   }))}
                   placeholder="0"
+                  mobileOptimized
                   className="mt-1"
                 />
               </div>
@@ -493,7 +542,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
             {/* Ingredients Table */}
             {formData.bahanResep.length > 0 ? (
               <div className="border rounded-lg overflow-x-auto">
-                <Table>
+                <Table className="recipe-ingredients-table">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nama Bahan</TableHead>
@@ -523,9 +572,10 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                               step="0.1"
                               value={ingredient.jumlah}
                               onChange={(e) => updateIngredientQuantity(ingredient.id!, parseFloat(e.target.value) || 0)}
-                              className="w-20"
+                              mobileOptimized
+                              className="w-20 sm:w-20 min-w-[60px] flex-shrink-0"
                             />
-                            <span className="text-sm text-gray-500">{ingredient.satuan}</span>
+                            <span className="text-sm text-gray-500 flex-shrink-0">{ingredient.satuan}</span>
                           </div>
                         </TableCell>
                         <TableCell>{formatCurrency(ingredient.hargaSatuan)}</TableCell>
@@ -588,6 +638,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   value={formData.biayaTenagaKerja || ''}
                   onChange={(e) => handleInputChange('biayaTenagaKerja', parseFloat(e.target.value) || 0)}
                   placeholder="0"
+                  mobileOptimized
                   className="mt-1"
                 />
               </div>
@@ -601,6 +652,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   value={formData.biayaOverhead || ''}
                   onChange={(e) => handleInputChange('biayaOverhead', parseFloat(e.target.value) || 0)}
                   placeholder="0"
+                  mobileOptimized
                   className="mt-1"
                 />
               </div>
@@ -615,6 +667,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                   value={formData.marginKeuntunganPersen || ''}
                   onChange={(e) => handleInputChange('marginKeuntunganPersen', parseFloat(e.target.value) || 0)}
                   placeholder="30"
+                  mobileOptimized
                   className="mt-1"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -704,12 +757,21 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
                     <div className="text-center">
                       <div className="text-xs text-gray-300 mb-1">Total Profit Potensi</div>
                       <div className="font-bold text-lg">
-                        {formatCurrency((calculationResults.hargaJualPorsi - calculationResults.hppPerPorsi) * formData.jumlahPorsi)}
+                        {formatCurrency((calculationResults.hargaJualPorsi - calculationResults.hppPerPorsi) * 
+                          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1))}
                       </div>
                       <div className="text-xs text-gray-300 mt-1">
                         Margin {formData.marginKeuntunganPersen}%
                       </div>
                     </div>
+                  </div>
+
+                  {/* Note: Manual selling price inputs are now handled in the CostCalculationStep component */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-700">
+                      💡 <strong>Info:</strong> Harga jual dapat diatur secara manual melalui form "Kalkulasi HPP & Harga Jual" 
+                      yang muncul setelah menambahkan bahan baku.
+                    </p>
                   </div>
                 </>
               ) : (
@@ -755,15 +817,21 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         })()}
 
         {/* Form Actions */}
-        <div className="flex justify-end gap-3 pt-6 border-t">
-          <Button type="button" variant="outline" onClick={onCancel} size="lg">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel} 
+            size="lg"
+            className="w-full sm:w-auto"
+          >
             Batal
           </Button>
           <Button 
             type="submit" 
             size="lg"
             disabled={!formData.namaResep || formData.bahanResep.length === 0}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
           >
             {initialData ? 'Update Resep' : 'Simpan Resep'}
           </Button>

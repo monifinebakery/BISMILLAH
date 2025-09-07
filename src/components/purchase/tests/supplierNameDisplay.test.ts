@@ -111,7 +111,7 @@ describe('Supplier Name Display', () => {
       const getSupplierName = createSupplierNameResolver(largeSuppliersList);
 
       // Test lookup performance
-      const startTime = performance.now();
+      const startTime = performance.now.call(performance);
       
       // Test multiple lookups
       expect(getSupplierName('supplier-0')).toBe('Supplier Name 0');
@@ -119,7 +119,7 @@ describe('Supplier Name Display', () => {
       expect(getSupplierName('supplier-999')).toBe('Supplier Name 999');
       expect(getSupplierName('non-existent')).toBe('non-existent');
       
-      const endTime = performance.now();
+      const endTime = performance.now.call(performance);
       const executionTime = endTime - startTime;
 
       // Should complete in reasonable time (less than 10ms for 1000 items)

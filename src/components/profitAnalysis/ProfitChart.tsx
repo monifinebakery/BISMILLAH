@@ -13,6 +13,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { formatCurrency } from './utils/profitTransformers';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 // Types
 export interface ProfitChartProps {
@@ -68,8 +70,8 @@ export function ProfitChart({
   React.useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    safeDom.addEventListener(safeDom, window, 'resize', checkMobile);
+    return () => safeDom.removeEventListener(safeDom, window, 'resize', checkMobile);
   }, []);
   
   // Calculate trend

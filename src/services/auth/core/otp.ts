@@ -1,8 +1,9 @@
-// src/services/auth/core/otp.ts - ENHANCED FOR RELIABILITY
+// src/services/auth/core/otp.ts - Simple OTP authentication
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { validateEmail, getErrorMessage } from '@/services/auth/utils';
+
 
 export const sendEmailOtp = async (
   email: string, 
@@ -22,31 +23,56 @@ export const sendEmailOtp = async (
       shouldCreateUser: allowSignup,
     };
     
-    if (!skipCaptcha && captchaToken?.trim()) {
-      // DEBUG: Log captcha token details
-      console.log('🔑 Captcha Token Debug:', {
-        hasToken: !!captchaToken,
-        tokenLength: captchaToken.length,
-        tokenPrefix: captchaToken.substring(0, 10) + '...',
-        environment: import.meta.env.MODE
-      });
-      
-      otpOptions.captchaToken = captchaToken;
-      logger.debug('Using captcha token for OTP');
-    }
+    // No captcha validation - simple OTP authentication
+    logger.debug('Proceeding with OTP send (no captcha validation)');
 
+    console.log('🔧 [DEBUG] Sending OTP request to Supabase:', {
+      email,
+      otpOptions,
+      skipCaptcha,
+      captchaToken: captchaToken ? 'HAS_TOKEN' : 'NO_TOKEN'
+    });
+    
     const { data, error } = await supabase.auth.signInWithOtp({
       email: email,
       options: otpOptions,
+    });
+    
+    console.log('🔧 [DEBUG] Supabase OTP response:', {
+      hasData: !!data,
+      hasError: !!error,
+      errorMessage: error?.message,
+      errorCode: error?.status,
+      errorDetails: error
     });
 
     if (error) {
       logger.error('OTP send error:', error);
       
+      // Handle specific error cases
       if (error.message?.includes('Signups not allowed') && allowSignup) {
         logger.info('Signup disabled, trying existing users only...');
         toast.info('Mencoba untuk pengguna terdaftar...');
         return await sendEmailOtp(email, captchaToken, false, skipCaptcha);
+      }
+      
+      // Handle 500 Internal Server Error
+      if (error.status === 500 || error.message?.includes('500')) {
+        logger.error('Supabase 500 error - possible configuration issue');
+        toast.error('Server error: Periksa konfigurasi Supabase (CAPTCHA harus dinonaktifkan)');
+        return false;
+      }
+      
+      // Handle rate limiting
+      if (error.status === 429 || error.message?.includes('rate limit') || error.message?.includes('too many')) {
+        toast.error('Terlalu banyak permintaan. Tunggu beberapa menit sebelum mencoba lagi.');
+        return false;
+      }
+      
+      // Handle CAPTCHA-related errors
+      if (error.message?.includes('captcha') || error.message?.includes('CAPTCHA')) {
+        toast.error('Error CAPTCHA: Pastikan CAPTCHA dinonaktifkan di Supabase dashboard.');
+        return false;
       }
       
       const errorMsg = getErrorMessage(error);

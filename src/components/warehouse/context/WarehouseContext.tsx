@@ -18,6 +18,8 @@ import { supabase } from '@/integrations/supabase/client';
 // Types - ✅ FIXED: Use correct BahanResep type from recipe components
 import type { BahanBakuFrontend } from '../types';
 import type { BahanResep } from '@/components/recipe/types';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 // Query keys
 const warehouseQueryKeys = {
@@ -212,12 +214,12 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     const handleOnline = () => setIsConnected(true);
     const handleOffline = () => setIsConnected(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    safeDom.addEventListener(safeDom, window, 'online', handleOnline);
+    safeDom.addEventListener(safeDom, window, 'offline', handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      safeDom.removeEventListener(safeDom, window, 'online', handleOnline);
+      safeDom.removeEventListener(safeDom, window, 'offline', handleOffline);
     };
   }, []);
 
@@ -542,9 +544,14 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     [getIngredientPrice]
   );
 
-  // Analysis functions
+  // Analysis functions - ✅ UPDATED: Use new critical stock logic with 20% buffer
   const getLowStockItems = React.useCallback((): BahanBakuFrontend[] => {
-    return bahanBaku.filter(item => Number(item.stok) <= Number(item.minimum));
+    return bahanBaku.filter(item => {
+      const currentStock = Number(item.stok) || 0;
+      const minimumStock = Number(item.minimum) || 0;
+      const alertThreshold = minimumStock > 0 ? minimumStock * 1.2 : minimumStock;
+      return currentStock < alertThreshold;
+    });
   }, [bahanBaku]);
 
   const getOutOfStockItems = React.useCallback((): BahanBakuFrontend[] => {

@@ -6,6 +6,34 @@ import { isAuthenticated, getCurrentUser } from '@/services/auth/core/authentica
 
 export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
   try {
+    // ✅ Development bypass logic
+    const isDev = import.meta.env.MODE === 'development';
+    const bypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+    
+    if (bypassAuth) {
+      logger.debug('[AccessCheck] Development bypass active - granting full access');
+      return {
+         hasAccess: true,
+         isAuthenticated: true,
+         paymentRecord: {
+           id: 'dev-bypass',
+           user_id: 'dev-user',
+           order_id: 'DEV-BYPASS',
+           is_paid: true,
+           payment_status: 'settled',
+           email: 'dev@example.com',
+           customer_name: 'Development User',
+           created_at: new Date().toISOString(),
+           updated_at: new Date().toISOString(),
+           pg_reference_id: null,
+           name: 'Development User'
+         } as any,
+         needsOrderVerification: false,
+         needsLinking: false,
+         message: 'Development bypass - akses penuh tersedia'
+       };
+    }
+    
     const isAuth = await isAuthenticated();
     const user = await getCurrentUser();
 

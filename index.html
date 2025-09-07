@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- PWA Manifest -->
@@ -14,25 +15,34 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Monifine" />
-    <link rel="apple-touch-icon" href="/monifine-logo-orange.svg" />
+    <link rel="apple-touch-icon" href="/monifine-192.png">
     
     <!-- Microsoft Tiles -->
     <meta name="msapplication-TileColor" content="#FF7A00" />
-    <meta name="msapplication-TileImage" content="/monifine-logo-orange.svg" />
+    <meta name="msapplication-TileImage" content="/monifine-512.png" />
+    
+    <!-- Mobile-specific security headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://*.cloudflare.com; style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; connect-src 'self' https: wss: https://*.supabase.co https://challenges.cloudflare.com https://*.cloudflare.com; img-src 'self' data: https:; font-src 'self' data:; frame-src 'self' https://challenges.cloudflare.com https://*.cloudflare.com; object-src 'none'; base-uri 'self'; worker-src 'self' blob: data:; child-src 'self' https://challenges.cloudflare.com https://*.cloudflare.com">
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), autoplay=(), fullscreen=()">
+    
+    <!-- Mobile optimization -->
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-title" content="Monifine">
     
     
-    <title>Kalkulator HPP - Hitung Harga Pokok Penjualan</title>
-    <meta name="description" content="Kalkulator HPP untuk menghitung Harga Pokok Penjualan dan menentukan harga jual optimal produk Anda" />
+    <title>Monifine - Kalkulator HPP & Warehouse Management</title>
+    <meta name="description" content="Monifine - Aplikasi kalkulator HPP untuk menghitung Harga Pokok Penjualan dan manajemen warehouse lengkap" />
     <meta name="author" content="Lovable" />
-    <meta property="og:title" content="Kalkulator HPP - Hitung Harga Pokok Penjualan" />
-    <meta property="og:description" content="Kalkulator HPP untuk menghitung Harga Pokok Penjualan dan menentukan harga jual optimal produk Anda" />
+    <meta property="og:title" content="Monifine - Kalkulator HPP & Warehouse Management" />
+    <meta property="og:description" content="Monifine - Aplikasi kalkulator HPP untuk menghitung Harga Pokok Penjualan dan manajemen warehouse lengkap" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://kalkulator.monifine.my.id/opengraph-image-p98pqg.png" />
+    <meta property="og:image" content="https://kalkulator.monifine.my.id/og-image.svg" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://kalkulator.monifine.my.id/opengraph-image-p98pqg.png" />
+    <meta name="twitter:image" content="https://kalkulator.monifine.my.id/og-image.svg" />
 
-    </head>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

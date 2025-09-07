@@ -197,7 +197,10 @@ const TableControls: React.FC<{
             <span className="text-sm text-gray-700 whitespace-nowrap">Tampilkan</span>
             <Select
               value={uiState.itemsPerPage.toString()}
-              onValueChange={(value) => uiState.setItemsPerPage(parseInt(value))}
+              onValueChange={(value) => {
+                console.log('🔄 OrderControls: Dropdown value changed:', { from: uiState.itemsPerPage, to: parseInt(value) });
+                uiState.setItemsPerPage(parseInt(value));
+              }}
               disabled={loading}
             >
               <SelectTrigger className="w-16 sm:w-20">

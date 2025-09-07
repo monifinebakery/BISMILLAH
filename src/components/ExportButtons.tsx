@@ -5,6 +5,8 @@ import { Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; // Keep for transition
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface ExportButtonsProps {
   data: Array<Record<string, unknown>>;
@@ -43,7 +45,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
 
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = safeDom.createElement('a');
       a.href = url;
       a.download = `${filename}-${UnifiedDateHandler.toDatabaseString(new Date())}.txt`;
       document.body.appendChild(a);
@@ -114,7 +116,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       const BOM = '\uFEFF';
       const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = safeDom.createElement('a');
       a.href = url;
       a.download = `${filename}-${UnifiedDateHandler.toDatabaseString(new Date())}.csv`;
       document.body.appendChild(a);

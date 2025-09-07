@@ -14,12 +14,13 @@ export interface PurchaseItem {
 export interface Purchase {
   id: string;
   userId: string;
-  supplier: string;           // supplier ID (relasi)
+  supplier: string;           // supplier name (nama supplier)
   tanggal: Date;
   totalNilai: number;
   items: PurchaseItem[];
   status: PurchaseStatus;
   metodePerhitungan: CalculationMethod;
+  keterangan?: string;        // Optional description/notes
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,7 +37,7 @@ export interface StatusOption {
 
 // Form types
 export interface PurchaseFormData {
-  supplier: string; // supplier ID
+  supplier: string; // supplier name (nama supplier)
   tanggal: Date | string; // Allow both Date object and string for flexibility
   items: PurchaseItem[];
   metodePerhitungan: CalculationMethod;
@@ -76,7 +77,7 @@ export interface PurchaseItemDB {
 // Payload INSERT ke tabel purchases
 export interface CreatePurchaseRequest {
   user_id: string;
-  supplier: string; // supplier ID
+  supplier: string; // supplier name (nama supplier)
   tanggal: string; // 'YYYY-MM-DD'
   total_nilai: number;
   items: PurchaseItemDB[]; // ✅ gunakan shape DB
@@ -154,6 +155,7 @@ export interface PurchaseContextType {
 
   // Finders
   findPurchase: (id: string) => Purchase | undefined;
+  getPurchaseById: (id: string) => Purchase | undefined;
 }
 
 // Hook aliases

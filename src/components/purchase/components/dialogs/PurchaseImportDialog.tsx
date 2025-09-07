@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { createSupplierNameResolver } from '../../utils/purchaseHelpers';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface PurchaseImportDialogProps {
   isOpen: boolean;
@@ -91,7 +93,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                 onDrop={handleFileDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                onClick={() => document.getElementById('file-input')?.click()}
+                onClick={() => safeDom.getElementById('file-input')?.click()}
               >
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">

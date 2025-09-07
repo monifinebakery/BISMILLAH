@@ -91,20 +91,20 @@ export default defineConfig(({ mode }) => {
         // },
         external: ["next-themes"],
         output: {
-          // Smart chunking - only split large vendor libraries
+          // Ultra-conservative chunk splitting - NO app code splitting to avoid React issues
           manualChunks: (id) => {
+            // Node modules splitting
             if (id.includes('node_modules')) {
-              // Heavy libraries get their own chunks
-              if (id.includes('xlsx') || id.includes('exceljs')) return 'excel';
-              if (id.includes('chart.js') || id.includes('chartjs')) return 'chartjs';
-              if (id.includes('recharts')) return 'recharts';
-              if (id.includes('@tanstack/react-query')) return 'react-query';
-              if (id.includes('@supabase/supabase-js')) return 'supabase';
-              if (id.includes('react-router')) return 'router';
-              // All other node_modules go to vendor
+              // Only separate libraries that are 100% pure utilities with zero dependencies
+              if (id.includes('xlsx') || id.includes('exceljs') || id.includes('file-saver')) return 'excel';
+              
+              // Keep ALL other libraries in vendor to avoid any dependency/initialization issues
+              // This includes: react, react-dom, recharts, @radix-ui, @tanstack, supabase, date libs, etc.
               return 'vendor';
             }
-            // Keep app code in main bundle
+            
+            // NO app code splitting - keep everything in main bundle for React access
+            // All components, hooks, contexts stay in main bundle to prevent forwardRef errors
           },
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
@@ -141,13 +141,21 @@ export default defineConfig(({ mode }) => {
       include: [
         "react",
         "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
         "react-router-dom",
         "@tanstack/react-query",
-        "@supabase/supabase-js",
         "lucide-react",
-        "@radix-ui/react-icons"
+        "@radix-ui/react-icons",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select"
       ],
-      exclude: ["next-themes"]
+      exclude: [
+        "next-themes",
+        "@supabase/supabase-js"
+      ],
+      // Force include React ecosystem to avoid context issues
+      force: true
     },
     
     // Image optimization and asset handling

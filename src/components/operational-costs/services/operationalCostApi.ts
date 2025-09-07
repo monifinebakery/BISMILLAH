@@ -6,7 +6,6 @@ import { logger } from '@/utils/logger';
 import { UnifiedDateHandler, normalizeDateForDatabase } from '@/utils/unifiedDateHandler';
 import { safeParseDate, toSafeISOString } from '@/utils/unifiedDateUtils'; // Keep for transition compatibility
 import { addFinancialTransaction } from '@/components/financial/services/financialApi';
-// 🔄 For cache invalidation - will be used by components
 let globalQueryClient: any = null;
 export const setQueryClient = (client: any) => {
   globalQueryClient = client;
@@ -63,7 +62,14 @@ import {
 
 // Helper function to get current user ID
 const getCurrentUserId = async (): Promise<string | null> => {
+const getCurrentUserId = async (): Promise<string | null> => {
   const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    logger.error('Error getting current user:', error);
+    return null;
+  }
+  return user.id;
+};
   if (error || !user) {
     logger.error('Error getting current user:', error);
     return null;
@@ -183,8 +189,8 @@ export const operationalCostApi = {
       }));
 
       return { data: typedData };
-    } catch (error) {
-      logger.error('Error fetching costs:', error);
+    } catch (err) {
+      logger.error('Error fetching costs:', err);
       return { data: [], error: 'Gagal mengambil data biaya operasional' };
     }
   },
@@ -489,8 +495,8 @@ export const allocationApi = {
       } : null;
 
       return { data: typedData };
-    } catch (error) {
-      logger.error('Error fetching allocation settings:', error);
+    } catch (err) {
+      logger.error('Error fetching allocation settings:', err);
       return { data: null, error: 'Gagal mengambil pengaturan alokasi' };
     }
   },

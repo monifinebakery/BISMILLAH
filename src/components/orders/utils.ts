@@ -70,7 +70,22 @@ export const transformOrderFromDB = (dbItem: any): Order => {
       alamatPengiriman: dbItem.alamat_pengiriman || '',
       tanggal: safeParseDate(dbItem.tanggal) || new Date(),
       tanggalSelesai: safeParseDate(dbItem.tanggal_selesai) || undefined, // ✅ FIXED: Use undefined instead of null
-      items: Array.isArray(dbItem.items) ? dbItem.items : [],
+      items: (() => {
+        // ✅ FIXED: Properly parse JSON string items from database
+        if (Array.isArray(dbItem.items)) {
+          return dbItem.items;
+        }
+        if (typeof dbItem.items === 'string') {
+          try {
+            const parsed = JSON.parse(dbItem.items);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (error) {
+            logger.warn('Failed to parse items JSON from database:', error, dbItem.items);
+            return [];
+          }
+        }
+        return [];
+      })(),
       totalPesanan: Number(dbItem.total_pesanan) || 0,
       status: dbItem.status || 'pending',
       catatan: dbItem.catatan || '',

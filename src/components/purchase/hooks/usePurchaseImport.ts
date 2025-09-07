@@ -7,6 +7,8 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useSupplierAutoSave } from './useSupplierAutoSave';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 // Define the import data structure
 export interface PurchaseImportData {
@@ -123,7 +125,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const link = safeDom.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
     link.setAttribute('download', 'template_pembelian.csv');

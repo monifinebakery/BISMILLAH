@@ -1,6 +1,8 @@
 // src/hooks/useResourceCleanup.ts
 import { useEffect, useRef, useCallback } from 'react';
 import { logger } from '@/utils/logger';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 interface CleanupFunction {
   id: string;
@@ -122,10 +124,10 @@ export const useEventListenerCleanup = () => {
   const addEventListener = useCallback((target: EventTarget, event: string, handler: EventListener, options?: AddEventListenerOptions) => {
     const id = `event-${event}-${Date.now()}`;
     
-    target.addEventListener(event, handler, options);
+    safeDom.addEventListener(target, event, handler, options);
     
     addCleanup(id, () => {
-      target.removeEventListener(event, handler, options);
+      safeDom.removeEventListener(target, event, handler, options);
     }, `Event listener: ${event}`);
 
     return () => removeCleanup(id);

@@ -2,6 +2,8 @@
 
 import { logger } from '@/utils/logger';
 import type { CostCalculationData, CostBreakdown, ProfitAnalysis } from './types';
+import { safePerformance } from '@/utils/browserApiSafeWrappers';
+
 
 /**
  * Calculate ingredient cost from recipe materials
@@ -9,7 +11,7 @@ import type { CostCalculationData, CostBreakdown, ProfitAnalysis } from './types
  */
 export const calculateIngredientCost = (bahanResep: any[]): number => {
   logger.perf('calculateIngredientCost', 0); // Start performance tracking
-  const startTime = performance.now();
+  const startTime = safePerformance.now();
   
   if (!bahanResep || bahanResep.length === 0) {
     logger.debug('No ingredients provided for cost calculation');
@@ -35,7 +37,7 @@ export const calculateIngredientCost = (bahanResep: any[]): number => {
     return total + subtotal;
   }, 0);
 
-  const duration = performance.now() - startTime;
+  const duration = safePerformance.now() - startTime;
   logger.perf('calculateIngredientCost', duration, { 
     totalCost, 
     ingredientCount: bahanResep.length 
@@ -48,7 +50,7 @@ export const calculateIngredientCost = (bahanResep: any[]): number => {
  * Calculate complete cost breakdown
  */
 export const calculateCostBreakdown = (data: CostCalculationData): CostBreakdown => {
-  const startTime = performance.now();
+  const startTime = safePerformance.now();
   logger.debug('Starting cost breakdown calculation', data);
   
   const ingredientCost = calculateIngredientCost(data.bahanResep);
@@ -68,7 +70,7 @@ export const calculateCostBreakdown = (data: CostCalculationData): CostBreakdown
     costPerPiece,
   };
 
-  const duration = performance.now() - startTime;
+  const duration = safePerformance.now() - startTime;
   logger.perf('calculateCostBreakdown', duration, breakdown);
   
   return breakdown;
@@ -81,7 +83,7 @@ export const calculateProfitAnalysis = (
   costBreakdown: CostBreakdown,
   data: CostCalculationData
 ): ProfitAnalysis => {
-  const startTime = performance.now();
+  const startTime = safePerformance.now();
   logger.debug('Starting profit analysis calculation', { 
     costBreakdown, 
     marginPercent: data.marginKeuntunganPersen 
@@ -113,7 +115,7 @@ export const calculateProfitAnalysis = (
     profitabilityLevel,
   };
 
-  const duration = performance.now() - startTime;
+  const duration = safePerformance.now() - startTime;
   logger.perf('calculateProfitAnalysis', duration, analysis);
   
   // Debug logging to help track the issue

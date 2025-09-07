@@ -483,7 +483,7 @@ describe('Date Handling Consistency in Purchase Module', () => {
 
   describe('Performance and Memory', () => {
     test('should handle large batches of date operations efficiently', () => {
-      const startTime = performance.now();
+      const startTime = performance.now.call(performance);
       
       // Process 1000 dates
       const dates = Array.from({ length: 1000 }, (_, i) => {
@@ -497,7 +497,7 @@ describe('Date Handling Consistency in Purchase Module', () => {
         UserFriendlyDate.toYMD(date);
       });
 
-      const endTime = performance.now();
+      const endTime = performance.now.call(performance);
       const duration = endTime - startTime;
 
       // Should process 1000 dates in reasonable time (< 100ms)

@@ -568,6 +568,33 @@ const OrderTable: React.FC<OrderTableProps> = ({
           </tbody>
         </table>
       </div>
+      
+      {/* ✅ PAGINATION CONTROLS: Like Purchase */}
+      {uiState.totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 border-t">
+          <div className="text-sm text-gray-700">
+            Menampilkan {((uiState.currentPage - 1) * uiState.itemsPerPage) + 1} - {Math.min(uiState.currentPage * uiState.itemsPerPage, uiState.totalItems)} dari {uiState.totalItems} pesanan
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => uiState.setCurrentPage(Math.max(1, uiState.currentPage - 1))}
+              disabled={uiState.currentPage === 1}
+            >
+              Sebelumnya
+            </button>
+            
+            <button
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => uiState.setCurrentPage(Math.min(uiState.totalPages, uiState.currentPage + 1))}
+              disabled={uiState.currentPage === uiState.totalPages}
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

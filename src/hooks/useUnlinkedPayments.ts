@@ -52,7 +52,18 @@ export const useUnlinkedPayments = (
       // ✅ SIMPLIFIED: Query without auth_email
       const fetchPromise = client
         .from('user_payments')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          order_id,
+          name,
+          email,
+          payment_status,
+          is_paid,
+          pg_reference_id,
+          created_at,
+          updated_at
+        `)
         .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')

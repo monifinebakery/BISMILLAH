@@ -47,6 +47,10 @@ const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // ✅ FIX: ALL HOOKS CALLED IN EXACT SAME ORDER EVERY TIME
   
+  // Check for development bypass
+  const isDev = import.meta.env.DEV;
+  const bypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+  
   // 1. useAuth - ALWAYS called first
   const { user, isLoading: authLoading, isReady: authReady } = useAuth();
   
@@ -55,9 +59,9 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [showMandatoryUpgrade, setShowMandatoryUpgrade] = useState(false);
   const [previewTimeLeft, setPreviewTimeLeft] = useState(60);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
-  const [accessMessage, setAccessMessage] = useState('Checking access...');
-  const [accessLoading, setAccessLoading] = useState(true);
+  const [hasAccess, setHasAccess] = useState(bypassAuth); // Set to true if bypassing
+  const [accessMessage, setAccessMessage] = useState(bypassAuth ? 'Development bypass active' : 'Checking access...');
+  const [accessLoading, setAccessLoading] = useState(!bypassAuth); // Skip loading if bypassing
 
   // 3. usePaymentStatus - ALWAYS called (no conditionals)
   const { 
@@ -131,8 +135,9 @@ const accessPromise = getUserAccessStatus();
     } catch (error) {
       logger.error('PaymentContext access check failed:', error);
       
-      if (error.message?.includes('Auth session missing') || 
-          error.message?.includes('session missing')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage?.includes('Auth session missing') || 
+          errorMessage?.includes('session missing')) {
         setHasAccess(false);
         setAccessMessage('Session expired. Please login again.');
         setIsUserValid(false);
@@ -268,7 +273,12 @@ const accessPromise = getUserAccessStatus();
       currentUserEmail: user?.email,
       currentUserId: user?.id,
       autoLinkCount,
-      totalUnlinkedCount: (hasUnlinkedPayment ? 1 : 0) + autoLinkCount
+      totalUnlinkedCount: (hasUnlinkedPayment ? 1 : 0) + autoLinkCount,
+      // Development bypass info
+      isDev,
+      bypassAuth,
+      finalIsPaid: bypassAuth ? true : isPaid,
+      finalNeedsPayment: bypassAuth ? false : needsPayment
     });
   }, [
     authReady,
@@ -281,7 +291,10 @@ const accessPromise = getUserAccessStatus();
     user?.email,
     user?.id,
     autoLinkCount, 
-    hasUnlinkedPayment
+    hasUnlinkedPayment,
+    isDev,
+    bypassAuth,
+    needsPayment
   ]);
 
   // ✅ Calculate derived values AFTER all hooks
@@ -289,15 +302,20 @@ const accessPromise = getUserAccessStatus();
   const totalUnlinkedCount = unlinkedPaymentCount + autoLinkCount;
   const isLoading = paymentLoading || authLoading || accessLoading;
 
+  // ✅ Development bypass overrides
+  const finalIsPaid = bypassAuth ? true : isPaid;
+  const finalNeedsPayment = bypassAuth ? false : needsPayment;
+  const finalShowMandatoryUpgrade = bypassAuth ? false : showMandatoryUpgrade;
+
   // ✅ RETURN: Always return same structure
   return (
     <PaymentContext.Provider value={{
       // Original context values
-      isPaid,
+      isPaid: finalIsPaid,
       isLoading,
       paymentStatus,
-      needsPayment,
-      showMandatoryUpgrade,
+      needsPayment: finalNeedsPayment,
+      showMandatoryUpgrade: finalShowMandatoryUpgrade,
       previewTimeLeft,
       showUpgradePopup,
       setShowUpgradePopup,

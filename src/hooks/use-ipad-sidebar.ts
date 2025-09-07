@@ -1,5 +1,7 @@
 // src/hooks/use-ipad-sidebar.ts
 import { useState, useEffect } from 'react';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
+
 
 export function useIsPad() {
   const [isIPad, setIsIPad] = useState(false);
@@ -26,10 +28,10 @@ export function useIsPad() {
     checkIsIPad();
     
     // Listen for resize events
-    window.addEventListener('resize', checkIsIPad);
+    safeDom.addEventListener(safeDom, window, 'resize', checkIsIPad);
     
     return () => {
-      window.removeEventListener('resize', checkIsIPad);
+      safeDom.removeEventListener(safeDom, window, 'resize', checkIsIPad);
     };
   }, []);
 

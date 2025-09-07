@@ -33,6 +33,7 @@ export interface DateRangePreset {
 
 /**
  * Ultimate safe date parser - handles all possible inputs
+ * Improved timezone handling to preserve user intent
  */
 export const safeParseDate = (date: any): Date | null => {
   if (!date) {
@@ -62,8 +63,22 @@ export const safeParseDate = (date: any): Date | null => {
         return null;
       }
       
-      // Try parseISO first for ISO strings
-      if (cleanDate.includes('T') || cleanDate.includes('-')) {
+      // Handle YYYY-MM-DD format (database dates) - preserve local timezone
+      if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+        try {
+          const [year, month, day] = cleanDate.split('-').map(Number);
+          // Create date in local timezone to avoid timezone conversion
+          const localDate = new Date(year, month - 1, day);
+          if (isValid(localDate) && !isNaN(localDate.getTime())) {
+            return localDate;
+          }
+        } catch (localDateError) {
+          // Continue to other parsing methods
+        }
+      }
+      
+      // Try parseISO for full ISO strings
+      if (cleanDate.includes('T')) {
         try {
           const parsed = parseISO(cleanDate);
           if (isValid(parsed) && !isNaN(parsed.getTime()) && parsed.getTime() > 0) {
@@ -74,7 +89,7 @@ export const safeParseDate = (date: any): Date | null => {
         }
       }
       
-      // Fallback to new Date()
+      // Fallback to new Date() for other formats
       try {
         const parsed = new Date(cleanDate);
         if (isValid(parsed) && !isNaN(parsed.getTime()) && parsed.getTime() > 0) {

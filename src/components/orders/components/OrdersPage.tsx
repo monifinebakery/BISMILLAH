@@ -114,6 +114,11 @@ const OrdersPage: React.FC = () => {
 
   // ✅ AUTH: Get current user
   const { user } = useAuth();
+  
+  // ✅ DEV BYPASS: Bypass autentikasi untuk pengembangan
+  const isDev = import.meta.env.DEV;
+  const devBypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+  const effectiveUser = devBypassAuth ? { id: 'dev-user' } : user;
 
   // ✅ CONTEXTS: Direct usage with destructuring
   const contextValue = useOrder();

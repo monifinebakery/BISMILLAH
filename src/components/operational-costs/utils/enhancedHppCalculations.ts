@@ -70,7 +70,8 @@ export const getIngredientsWAC = async (
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      throw new Error('User not authenticated');
+      console.error('❌ [WAC] User not authenticated');
+      return new Map();
     }
 
     // Get WAC prices from bahan_baku table
@@ -78,8 +79,10 @@ export const getIngredientsWAC = async (
       .map(ing => ing.warehouseId)
       .filter(Boolean) as string[];
     
+    console.log('🔍 [WAC] Fetching WAC for warehouse IDs:', warehouseIds);
+    
     if (warehouseIds.length === 0) {
-      // No warehouse links, use current harga_satuan as fallback
+      console.log('ℹ️ [WAC] No warehouse IDs provided, returning empty WAC map');
       return new Map();
     }
 
@@ -90,21 +93,55 @@ export const getIngredientsWAC = async (
       .in('id', warehouseIds);
 
     if (error) {
-      console.warn('Error fetching WAC prices:', error);
+      console.warn('⚠️ [WAC] Error fetching WAC prices from database:', error);
+      return new Map();
+    }
+    
+    if (!bahanBaku || bahanBaku.length === 0) {
+      console.warn('⚠️ [WAC] No materials found in database for provided warehouse IDs');
       return new Map();
     }
 
+    console.log('📊 [WAC] Raw data from database:', bahanBaku.map(b => ({
+      id: b.id,
+      nama: b.nama,
+      harga_rata_rata: b.harga_rata_rata,
+      harga_satuan: b.harga_satuan
+    })));
+
     const wacMap = new Map<string, number>();
-    bahanBaku?.forEach(bahan => {
-      // Use WAC (harga_rata_rata) if available, fallback to current price
-      const wacPrice = bahan.harga_rata_rata || bahan.harga_satuan;
-      wacMap.set(bahan.id, wacPrice);
+    bahanBaku.forEach(bahan => {
+      // ✅ IMPROVED: Better WAC selection logic
+      let effectivePrice = 0;
+      
+      // Priority 1: Use WAC if it exists and is positive
+      if (bahan.harga_rata_rata && Number(bahan.harga_rata_rata) > 0) {
+        effectivePrice = Number(bahan.harga_rata_rata);
+        console.log(`✅ [WAC] Using WAC for ${bahan.nama}: Rp ${effectivePrice}`);
+      } 
+      // Priority 2: Fallback to current price if WAC is not available
+      else if (bahan.harga_satuan && Number(bahan.harga_satuan) > 0) {
+        effectivePrice = Number(bahan.harga_satuan);
+        console.log(`🔄 [WAC] Using current price for ${bahan.nama}: Rp ${effectivePrice} (WAC not available)`);
+      } 
+      // Priority 3: Skip if no valid price
+      else {
+        console.warn(`⚠️ [WAC] No valid price found for ${bahan.nama}, skipping`);
+        return;
+      }
+      
+      wacMap.set(bahan.id, effectivePrice);
+    });
+    
+    console.log('📋 [WAC] Final WAC map created:', {
+      totalItems: wacMap.size,
+      items: Object.fromEntries(wacMap)
     });
 
     return wacMap;
 
   } catch (error) {
-    console.error('Error getting ingredients WAC:', error);
+    console.error('❌ [WAC] Critical error getting ingredients WAC:', error);
     return new Map();
   }
 };
@@ -117,7 +154,7 @@ export const updateIngredientsWithWAC = async (
 ): Promise<BahanResepWithWAC[]> => {
   console.log('🔥 [WAC DEBUG] Input ingredients:', ingredients);
   const wacMap = await getIngredientsWAC(ingredients);
-  console.log('🔥 [WAC DEBUG] WAC map:', wacMap);
+  console.log('🔥 [WAC DEBUG] WAC map from database:', Object.fromEntries(wacMap));
   
   return ingredients.map(ingredient => {
     console.log(`🔥 [WAC DEBUG] Processing ingredient: ${ingredient.nama}`, {
@@ -125,35 +162,54 @@ export const updateIngredientsWithWAC = async (
       currentHargaSatuan: ingredient.hargaSatuan,
       currentTotalHarga: ingredient.totalHarga,
       jumlah: ingredient.jumlah,
-      hasWAC: ingredient.warehouseId && wacMap.has(ingredient.warehouseId)
+      hasWAC: ingredient.warehouseId && wacMap.has(ingredient.warehouseId),
+      wacFromDb: ingredient.warehouseId ? wacMap.get(ingredient.warehouseId) : 'N/A'
     });
     
     if (ingredient.warehouseId && wacMap.has(ingredient.warehouseId)) {
       let wacPrice = wacMap.get(ingredient.warehouseId)!;
       
-      // 🚨 TEMPORARY FIX: Detect and correct inflated WAC prices
-      // If WAC price is more than 100x the original price, it's likely inflated by 1000x
+      // ✅ IMPROVED: Better WAC validation without aggressive correction
       const originalPrice = ingredient.hargaSatuan;
-      if (originalPrice > 0 && wacPrice > originalPrice * 100) {
-        console.warn(`🚨 [WAC CORRECTION] Detected inflated WAC price for ${ingredient.nama}:`, {
-          originalWac: wacPrice,
-          originalPrice,
-          ratio: wacPrice / originalPrice
-        });
-        wacPrice = Math.round(wacPrice / 1000); // Correct the inflation
-        console.warn(`🚨 [WAC CORRECTION] Corrected WAC price: ${wacPrice}`);
+      
+      // Only use WAC if it's a positive number and reasonable
+      if (wacPrice <= 0) {
+        console.warn(`⚠️ [WAC] WAC price is zero or negative for ${ingredient.nama}, using original price`);
+        console.log(`🔄 [WAC DEBUG] Fallback: using original price ${originalPrice} for ${ingredient.nama}`);
+        return ingredient; // Keep original data
+      }
+      
+      // Sanity check: WAC shouldn't be ridiculously different from original price
+      if (originalPrice > 0) {
+        const ratio = wacPrice / originalPrice;
+        // More reasonable ratio check - WAC shouldn't be more than 10x or less than 0.1x the original price
+        if (ratio > 10 || ratio < 0.1) {
+          console.warn(`⚠️ [WAC] WAC price seems unrealistic for ${ingredient.nama}:`, {
+            wacPrice,
+            originalPrice,
+            ratio,
+            message: 'Using original price as fallback for safety'
+          });
+          return ingredient; // Keep original data
+        }
+      }
+      
+      // Additional sanity check: WAC price shouldn't be more than 1 million per unit
+      if (wacPrice > 1000000) {
+        console.warn(`⚠️ [WAC] WAC price too high for ${ingredient.nama}: Rp ${wacPrice.toLocaleString()}, using original price`);
+        return ingredient;
       }
       
       const newTotalHarga = ingredient.jumlah * wacPrice;
       
-      console.log(`🔥 [WAC DEBUG] Using WAC for ${ingredient.nama}:`, {
+      console.log(`✅ [WAC DEBUG] Using validated WAC for ${ingredient.nama}:`, {
         originalPrice: ingredient.hargaSatuan,
-        rawWacPrice: wacMap.get(ingredient.warehouseId)!,
-        correctedWacPrice: wacPrice,
+        validatedWacPrice: wacPrice,
         jumlah: ingredient.jumlah,
         originalTotalHarga: ingredient.totalHarga,
         newTotalHarga,
-        calculation: `${ingredient.jumlah} * ${wacPrice} = ${newTotalHarga}`
+        calculation: `${ingredient.jumlah} * ${wacPrice} = ${newTotalHarga}`,
+        improvement: newTotalHarga !== ingredient.totalHarga ? 'WAC applied' : 'No change'
       });
       
       return {
@@ -164,9 +220,10 @@ export const updateIngredientsWithWAC = async (
       };
     }
     
-    console.log(`🔥 [WAC DEBUG] No WAC for ${ingredient.nama}, keeping original:`, {
+    console.log(`ℹ️ [WAC DEBUG] No WAC available for ${ingredient.nama}, using original:`, {
       hargaSatuan: ingredient.hargaSatuan,
-      totalHarga: ingredient.totalHarga
+      totalHarga: ingredient.totalHarga,
+      reason: !ingredient.warehouseId ? 'No warehouse ID' : 'WAC not found in database'
     });
     
     return ingredient;
@@ -310,6 +367,61 @@ export const calculateEnhancedHPP = async (
       totalHPP: (bahanPerPcs + tklPerPcs + overheadPerPcs) * jumlahPcsPerPorsi * jumlahPorsi
     });
     
+    // Additional validation check before creating result
+    if (bahanPerPcs > 100000) { // If bahan cost per pcs is more than Rp 100k, something is wrong
+      console.error('🚨 [VALIDATION ERROR] BahanPerPcs is too high:', {
+        bahanPerPcs,
+        totalBahanCost,
+        totalPcs,
+        ingredientsBreakdown: ingredientsWithWAC.map(ing => ({
+          nama: ing.nama,
+          jumlah: ing.jumlah,
+          hargaSatuan: ing.hargaSatuan,
+          totalHarga: ing.totalHarga,
+          wacPrice: ing.wacPrice
+        }))
+      });
+      
+      // Fall back to safer calculation without extreme WAC prices
+      const saferIngredients = bahanResep.map(ingredient => ({
+        ...ingredient,
+        // Ensure reasonable price limits
+        hargaSatuan: Math.min(ingredient.hargaSatuan, 50000), // Max 50k per unit
+        totalHarga: Math.min(ingredient.totalHarga, ingredient.jumlah * 50000)
+      }));
+      
+      const saferTotalBahanCost = saferIngredients.reduce((sum, bahan) => sum + bahan.totalHarga, 0);
+      const saferBahanPerPcs = totalPcs > 0 ? saferTotalBahanCost / totalPcs : 0;
+      
+      console.log('🔧 [FALLBACK] Using safer calculation:', {
+        originalBahanPerPcs: bahanPerPcs,
+        saferBahanPerPcs,
+        saferTotalBahanCost
+      });
+      
+      const saferHppPerPcs = Math.round(saferBahanPerPcs + tklPerPcs + overheadPerPcs);
+      const saferHppPerPorsi = saferHppPerPcs * jumlahPcsPerPorsi;
+      const saferTotalHPP = saferHppPerPorsi * jumlahPorsi;
+      
+      return {
+        bahanPerPcs: Math.round(saferBahanPerPcs),
+        tklPerPcs: Math.round(tklPerPcs),
+        overheadPerPcs: Math.round(overheadPerPcs),
+        hppPerPcs: saferHppPerPcs,
+        hppPerPorsi: saferHppPerPorsi,
+        totalHPP: saferTotalHPP,
+        hargaJualPerPcs: Math.round(saferHppPerPcs * (1 + (pricingMode.percentage || 25) / 100)),
+        hargaJualPerPorsi: Math.round(saferHppPerPcs * (1 + (pricingMode.percentage || 25) / 100)) * jumlahPcsPerPorsi,
+        calculationMethod: 'enhanced_dual_mode',
+        timestamp: new Date().toISOString(),
+        breakdown: {
+          ingredients: saferIngredients as BahanResepWithWAC[],
+          laborDetails,
+          overheadSource
+        }
+      };
+    }
+
     const result: EnhancedHPPCalculationResult = {
       bahanPerPcs: Math.round(bahanPerPcs),
       tklPerPcs: Math.round(tklPerPcs),
@@ -349,7 +461,15 @@ export const getCurrentAppSettings = async (): Promise<AppSettings | null> => {
 
     const { data: settings, error } = await supabase
       .from('app_settings')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        target_output_monthly,
+        overhead_per_pcs,
+        operasional_per_pcs,
+        created_at,
+        updated_at
+      `)
       .eq('user_id', user.id)
       .maybeSingle(); // Use maybeSingle() to avoid PGRST116 error
 

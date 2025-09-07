@@ -153,7 +153,15 @@ const OrderUpdateMonitor: React.FC = () => {
       // Get a test order
       const { data: orders } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          id,
+          nomor_pesanan,
+          tanggal,
+          nama_pelanggan,
+          status,
+          total_pesanan,
+          created_at
+        `)
         .eq('user_id', user.id)
         .neq('status', 'completed')
         .limit(1);

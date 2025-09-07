@@ -120,7 +120,7 @@ const createPurchaseColumns = (
   onEdit: (purchase: Purchase) => void,
   onDelete: (id: string) => void,
   onStatusChange: (id: string, status: PurchaseStatus) => void,
-  getSupplierName: (supplierId: string) => string
+  getSupplierName?: (supplierName: string) => string // Optional since supplier field now stores name directly
 ) => [
   {
     key: 'tanggal',
@@ -140,7 +140,7 @@ const createPurchaseColumns = (
     sortable: true,
     render: (purchase: Purchase) => (
       <span className="text-sm text-gray-900">
-        {getSupplierName(purchase.supplier)}
+        {purchase.supplier || 'Supplier Tidak Diketahui'}
       </span>
     )
   },

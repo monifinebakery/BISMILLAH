@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
+import { logger } from '@/utils/logger';
 
 // Define the props interface for the component
 interface WhatsappFollowUpModalProps {
@@ -13,27 +15,61 @@ interface WhatsappFollowUpModalProps {
     nomorPesanan: string;
     namaPelanggan: string;
     status: string;
-    teleponPelanggan: string | null;
+    telefonPelanggan: string | null;
     [key: string]: any;
   } | null;
-  getWhatsappTemplateByStatus: (status: string, orderData: any) => string;
+  // ✅ FIXED: Remove dependency on legacy getWhatsappTemplateByStatus
+  // getWhatsappTemplateByStatus: (status: string, orderData: any) => string;
 }
 
 const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
   isOpen,
   onClose,
-  order,
-  getWhatsappTemplateByStatus
+  order
+  // ✅ FIXED: Remove getWhatsappTemplateByStatus parameter
 }) => {
   const [message, setMessage] = useState('');
+  
+  // ✅ FIXED: Use FollowUpTemplateContext instead of legacy function
+  const { getTemplate } = useFollowUpTemplate();
+  const { processTemplate } = useProcessTemplate();
 
-  // Effect to set the initial message template when the modal is opened or the order changes
+  // ✅ FIXED: Generate template using the same system as FollowUpTemplateManager
+  const generateWhatsAppTemplate = useMemo(() => {
+    return (status: string, orderData: any): string => {
+      try {
+        logger.debug('WhatsappFollowUpModal: Generating template for status:', status);
+        
+        const rawTemplate = getTemplate(status);
+        if (!rawTemplate) {
+          logger.warn('WhatsappFollowUpModal: No template found for status:', status);
+          return `Halo ${orderData?.namaPelanggan || 'Pelanggan'}, saya ingin menanyakan status pesanan #${orderData?.nomorPesanan || 'N/A'}.`;
+        }
+        
+        const processedTemplate = processTemplate(rawTemplate, orderData);
+        logger.debug('WhatsappFollowUpModal: Template processed successfully');
+        
+        return processedTemplate;
+      } catch (error) {
+        logger.error('WhatsappFollowUpModal: Error generating template:', error);
+        return `Halo ${orderData?.namaPelanggan || 'Pelanggan'}, saya ingin menanyakan status pesanan #${orderData?.nomorPesanan || 'N/A'}.`;
+      }
+    };
+  }, [getTemplate, processTemplate]);
+
+  // ✅ FIXED: Effect to set the initial message template using FollowUpTemplateContext
   useEffect(() => {
     if (order && isOpen) {
-      const template = getWhatsappTemplateByStatus(order.status, order);
+      logger.debug('WhatsappFollowUpModal: Setting message for order:', {
+        orderId: order.id,
+        status: order.status,
+        nomorPesanan: order.nomorPesanan
+      });
+      
+      const template = generateWhatsAppTemplate(order.status, order);
       setMessage(template);
     }
-  }, [order, isOpen, getWhatsappTemplateByStatus]);
+  }, [order, isOpen, generateWhatsAppTemplate]);
 
   // --- STEP 1 & 2: Process and memoize the phone number ---
   // useMemo ensures this logic only runs when `order.teleponPelanggan` changes.

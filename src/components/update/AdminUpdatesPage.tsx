@@ -68,7 +68,18 @@ export const AdminUpdatesPage: React.FC = () => {
       
       const { data, error } = await supabase
         .from('app_updates')
-        .select('*')
+        .select(`
+          id,
+          title,
+          description,
+          version,
+          release_date,
+          is_active,
+          priority,
+          changelog,
+          created_at,
+          updated_at
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {

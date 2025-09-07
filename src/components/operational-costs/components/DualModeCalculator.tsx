@@ -1,5 +1,5 @@
 // src/components/operational-costs/components/DualModeCalculator.tsx
-// 🧮 Dual-Mode Calculator Component (Revision 7)
+// Dual-Mode Calculator Component (Revision 7)
 // Separate calculator for HPP vs Operasional cost groups
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -96,7 +96,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
     costs.filter(c => c.group === 'operasional' && c.status === 'aktif'), [costs]
   );
 
-  // Handle calculation trigger
+  // Handle calculation trigger dengan auto-save
   const handleCalculate = async () => {
     setIsCalculating(true);
     
@@ -117,14 +117,44 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
           operasional: calculations.operasional
         });
 
+        // ✅ AUTO-SAVE: Otomatis simpan hasil kalkulasi ke app_settings
+        if (calculations.hpp.isValid && calculations.operasional.isValid) {
+          try {
+            console.log('🔄 Auto-saving calculation results to app_settings...');
+            
+            const response = await appSettingsApi.calculateAndUpdateCosts(
+              calculations.hpp.totalCosts,
+              calculations.operasional.totalCosts,
+              targetOutput
+            );
+
+            if (response.error) {
+              console.warn('Auto-save failed:', response.error);
+              toast.warning('Kalkulasi berhasil, tapi gagal menyimpan otomatis', {
+                description: 'Anda bisa menyimpan manual jika diperlukan'
+              });
+            } else {
+              console.log('✅ Auto-save successful!');
+              toast.success('Kalkulasi berhasil dan tersimpan otomatis!', {
+                description: `HPP: ${formatCurrency(calculations.hpp.costPerUnit)}/pcs • Overhead disimpan untuk perhitungan resep`
+              });
+            }
+          } catch (autoSaveError) {
+            console.error('Auto-save error:', autoSaveError);
+            toast.warning('Kalkulasi berhasil, tapi auto-save gagal', {
+              description: 'Hasil tetap bisa digunakan untuk sementara'
+            });
+          }
+        } else {
+          toast.success('Kalkulasi berhasil!', {
+            description: `HPP: ${formatCurrency(calculations.hpp.costPerUnit)}/pcs, Operasional: ${formatCurrency(calculations.operasional.costPerUnit)}/pcs`
+          });
+        }
+
         // Notify parent component
         if (onCalculationComplete) {
           onCalculationComplete(calculations.hpp, calculations.operasional);
         }
-
-        toast.success('Kalkulasi berhasil!', {
-          description: `HPP: ${formatCurrency(calculations.hpp.costPerUnit)}/pcs, Operasional: ${formatCurrency(calculations.operasional.costPerUnit)}/pcs`
-        });
       }
     } catch (error) {
       toast.error('Gagal melakukan kalkulasi');
@@ -177,38 +207,8 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
     }
   };
 
-  // Save calculation results to app settings
-  const handleSaveResults = async () => {
-    if (!results.hpp || !results.operasional) {
-      toast.error('Tidak ada hasil kalkulasi untuk disimpan');
-      return;
-    }
-
-    setIsSaving(true);
-    
-    try {
-      const response = await appSettingsApi.calculateAndUpdateCosts(
-        results.hpp.totalCosts,
-        results.operasional.totalCosts,
-        targetOutput
-      );
-
-      if (response.error) {
-        toast.error('Gagal menyimpan hasil kalkulasi', {
-          description: response.error
-        });
-      } else {
-        toast.success('Hasil kalkulasi berhasil disimpan!', {
-          description: 'HPP akan menggunakan nilai overhead yang baru'
-        });
-      }
-    } catch (error) {
-      toast.error('Gagal menyimpan hasil kalkulasi');
-      console.error('Save error:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // DEPRECATED: Manual save function (replaced with auto-save)
+  // Keeping for backward compatibility, but not used in UI anymore
 
   // Get current group result
   const currentResult = selectedGroup === 'hpp' ? results.hpp : results.operasional;
@@ -282,7 +282,7 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
               </p>
               {productionData && (
                 <div className="text-xs text-green-600 bg-green-50 p-2 rounded border border-green-200">
-                  📊 Data produksi: {productionData.totalPcs.toLocaleString()} pcs dari {productionData.dataSource === 'orders' ? 'pesanan' : productionData.dataSource === 'recipes' ? 'resep' : 'estimasi'} 
+                  Data produksi: {productionData.totalPcs.toLocaleString()} pcs dari {productionData.dataSource === 'orders' ? 'pesanan' : productionData.dataSource === 'recipes' ? 'resep' : 'estimasi'} 
                   ({productionData.startDate} - {productionData.endDate})
                   <br />
                   Tingkat keyakinan: {productionData.confidence === 'high' ? 'Tinggi' : productionData.confidence === 'medium' ? 'Sedang' : 'Rendah'}
@@ -480,43 +480,25 @@ const DualModeCalculator: React.FC<DualModeCalculatorProps> = ({
               </div>
             </div>
 
-            {/* Usage Information */}
-            <Alert>
-              <Info className="h-4 w-4" />
+            {/* Auto-Save Status Information */}
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-sm">
-                <strong>Cara Penggunaan:</strong><br />
-                • <strong>Overhead Pabrik</strong> ({formatCurrency(results.hpp.costPerUnit)}/pcs) → 
-                Ditambahkan ke HPP resep<br />
-                • <strong>Biaya Operasional</strong> ({formatCurrency(results.operasional.costPerUnit)}/pcs) → 
-                Untuk analisis BEP dan pricing, tidak masuk HPP
+                <div className="space-y-2">
+                  <div className="font-medium text-green-800">Hasil Tersimpan Otomatis</div>
+                  <div className="text-green-700">
+                    <strong>Cara Penggunaan:</strong><br />
+                    • <strong>Overhead Pabrik</strong> ({formatCurrency(results.hpp.costPerUnit)}/pcs) → 
+                    Ditambahkan ke HPP resep<br />
+                    • <strong>Biaya Operasional</strong> ({formatCurrency(results.operasional.costPerUnit)}/pcs) → 
+                    Untuk analisis BEP dan pricing, tidak masuk HPP
+                  </div>
+                  <div className="text-xs text-green-600 bg-white p-2 rounded border border-green-200 mt-2">
+                    Nilai overhead sudah disimpan ke pengaturan global dan akan digunakan secara otomatis dalam perhitungan HPP resep
+                  </div>
+                </div>
               </AlertDescription>
             </Alert>
-
-            {/* Save Button */}
-            {results.hpp.isValid && results.operasional.isValid && (
-              <div className="pt-2">
-                <Button
-                  onClick={handleSaveResults}
-                  disabled={isSaving}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isSaving ? (
-                    <>
-                      <Zap className="h-4 w-4 mr-2 animate-pulse" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Gunakan Angka Ini
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-gray-600 mt-2">
-                  Akan disimpan ke pengaturan global untuk digunakan dalam perhitungan HPP
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}

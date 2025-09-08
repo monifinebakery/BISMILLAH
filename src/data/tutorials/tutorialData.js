@@ -1575,6 +1575,569 @@ export const tutorialData = [
   },
   {
     id: 11,
+    title: "Fitur Otomatis yang Membantu Anda",
+    subtitle: "Sistem Kerja Otomatis untuk Efisiensi Maksimal",
+    duration: "20 menit",
+    icon: "⚙️",
+    sections: [
+      {
+        id: "otomatis-keuangan",
+        title: "Otomatis Keuangan dan Pemasukan",
+        content: `
+          <div class="tutorial-content">
+            <h3>⚙️ Sistem Otomatis Keuangan</h3>
+            <p>Aplikasi ini punya <strong>sistem otomatis yang cerdas</strong> untuk mengelola keuangan tanpa perlu input manual berulang-ulang.</p>
+            
+            <div class="auto-financial">
+              <h4>💰 Yang Terjadi Secara Otomatis di Keuangan:</h4>
+              
+              <div class="auto-feature">
+                <h5>1️⃣ Pesanan Selesai → Otomatis Jadi Pemasukan</h5>
+                <div class="process bg-green-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-green-800">🔄 Alur Otomatis:</h6>
+                  <ol class="text-green-700 space-y-2">
+                    <li><strong>Customer pesan:</strong> Bakso 3 porsi = Rp 45.000</li>
+                    <li><strong>Anda ubah status:</strong> "Baru" → "Proses" → "Siap" → "Kirim" → <strong>"Selesai"</strong></li>
+                    <li><strong>Sistem otomatis:</strong> Catat Rp 45.000 di laporan pemasukan</li>
+                    <li><strong>Dashboard terupdate:</strong> Total penjualan hari ini bertambah</li>
+                    <li><strong>Laporan keuangan:</strong> Otomatis masuk ke kategori "Penjualan Produk"</li>
+                  </ol>
+                </div>
+                <div class="benefit bg-blue-50 p-3 rounded mt-2">
+                  <p class="text-blue-700"><strong>✨ Manfaat:</strong> Tidak perlu input manual di menu Keuangan lagi!</p>
+                </div>
+              </div>
+              
+              <div class="auto-feature">
+                <h5>2️⃣ Pembelian Bahan → Otomatis Jadi Pengeluaran</h5>
+                <div class="process bg-orange-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-orange-800">🔄 Alur Otomatis:</h6>
+                  <ol class="text-orange-700 space-y-2">
+                    <li><strong>Input pembelian:</strong> Daging sapi 5 kg = Rp 400.000</li>
+                    <li><strong>Sistem otomatis:</strong> Catat Rp 400.000 di laporan pengeluaran</li>
+                    <li><strong>Kategori otomatis:</strong> "Pembelian Bahan Baku"</li>
+                    <li><strong>Tanggal otomatis:</strong> Sesuai tanggal pembelian yang Anda input</li>
+                    <li><strong>Supplier tercatat:</strong> Untuk tracking pembelian</li>
+                  </ol>
+                </div>
+                <div class="benefit bg-blue-50 p-3 rounded mt-2">
+                  <p class="text-blue-700"><strong>✨ Manfaat:</strong> Sekali input di Pembelian, otomatis masuk Laporan Keuangan!</p>
+                </div>
+              </div>
+              
+              <div class="auto-feature">
+                <h5>3️⃣ Biaya Operasional → Otomatis Terdistribusi</h5>
+                <div class="process bg-purple-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-purple-800">🔄 Alur Otomatis:</h6>
+                  <ol class="text-purple-700 space-y-2">
+                    <li><strong>Set biaya bulanan:</strong> Listrik Rp 300.000/bulan</li>
+                    <li><strong>Sistem otomatis:</strong> Hitung Rp 10.000/hari</li>
+                    <li><strong>Bagi per produk:</strong> Jika produksi 100 porsi = Rp 100/porsi</li>
+                    <li><strong>Masuk HPP otomatis:</strong> Setiap produk dapat overhead Rp 100</li>
+                    <li><strong>Laporan harian:</strong> Otomatis masuk pengeluaran operasional</li>
+                  </ol>
+                </div>
+                <div class="benefit bg-blue-50 p-3 rounded mt-2">
+                  <p class="text-blue-700"><strong>✨ Manfaat:</strong> Tidak perlu hitung manual biaya per produk!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "otomatis-stok",
+        title: "Otomatis Stok dan Inventory",
+        content: `
+          <div class="tutorial-content">
+            <h3>📦 Sistem Otomatis Stok</h3>
+            <p>Stok gudang <strong>terupdate otomatis</strong> tanpa perlu input manual setiap kali ada perubahan.</p>
+            
+            <div class="auto-inventory">
+              <h4>📈 Yang Terjadi Otomatis di Stok:</h4>
+              
+              <div class="auto-stock">
+                <h5>1️⃣ Pembelian Bahan → Stok Bertambah Otomatis</h5>
+                <div class="example bg-green-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-green-800">📝 Contoh:</h6>
+                  <div class="text-green-700 space-y-2">
+                    <p><strong>Stok awal:</strong> Daging sapi 2 kg</p>
+                    <p><strong>Beli lagi:</strong> 5 kg di menu Pembelian</p>
+                    <p><strong>Sistem otomatis:</strong> Stok jadi 2 + 5 = <strong>7 kg</strong></p>
+                    <p><strong>Harga terupdate:</strong> Pakai sistem WAC (rata-rata tertimbang)</p>
+                    <p><strong>Alert hilang:</strong> Jika sebelumnya stok menipis, alert otomatis hilang</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="auto-stock">
+                <h5>2️⃣ Produksi Pakai Resep → Stok Berkurang Otomatis</h5>
+                <div class="example bg-orange-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-orange-800">🍲 Contoh:</h6>
+                  <div class="text-orange-700 space-y-2">
+                    <p><strong>Resep bakso:</strong> 1 kg daging untuk 10 porsi</p>
+                    <p><strong>Produksi:</strong> 50 porsi bakso</p>
+                    <p><strong>Sistem otomatis hitung:</strong> Butuh 50 ÷ 10 × 1 kg = 5 kg daging</p>
+                    <p><strong>Stok otomatis kurang:</strong> 7 kg - 5 kg = <strong>2 kg tersisa</strong></p>
+                    <p><strong>Alert muncul:</strong> Jika di bawah minimum, kasih peringatan</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="auto-stock">
+                <h5>3️⃣ Alert Stok Menipis → Notifikasi Otomatis</h5>
+                <div class="example bg-red-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-red-800">⚠️ Sistem Alert:</h6>
+                  <div class="text-red-700 space-y-2">
+                    <p><strong>Set minimum:</strong> Daging minimum 3 kg</p>
+                    <p><strong>Stok saat ini:</strong> 2 kg (di bawah minimum)</p>
+                    <p><strong>Alert otomatis:</strong> Dashboard kasih tanda merah</p>
+                    <p><strong>List otomatis:</strong> Masuk daftar "Perlu Restok"</p>
+                    <p><strong>Planning otomatis:</strong> Sistem sarankan beli berapa kg</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="auto-stock">
+                <h5>4️⃣ WAC (Weighted Average Cost) → Hitung Otomatis</h5>
+                <div class="example bg-blue-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-blue-800">🧮 Cara Kerja WAC:</h6>
+                  <div class="text-blue-700 space-y-2">
+                    <p><strong>Stok lama:</strong> 2 kg @ Rp 75.000/kg = Rp 150.000</p>
+                    <p><strong>Beli baru:</strong> 5 kg @ Rp 80.000/kg = Rp 400.000</p>
+                    <p><strong>Total:</strong> 7 kg dengan total nilai Rp 550.000</p>
+                    <p><strong>WAC otomatis:</strong> Rp 550.000 ÷ 7 kg = <strong>Rp 78.571/kg</strong></p>
+                    <p><strong>HPP terupdate:</strong> Semua resep pakai harga baru ini</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "otomatis-laporan",
+        title: "Otomatis Laporan dan Dashboard",
+        content: `
+          <div class="tutorial-content">
+            <h3>📈 Sistem Otomatis Laporan</h3>
+            <p>Semua laporan dan dashboard <strong>terupdate real-time</strong> tanpa perlu refresh atau hitung ulang manual.</p>
+            
+            <div class="auto-reports">
+              <h4>📊 Yang Update Otomatis di Dashboard:</h4>
+              
+              <div class="dashboard-auto">
+                <h5>🏠 Dashboard Utama - Update Real-time:</h5>
+                <div class="updates bg-gray-50 p-4 rounded-lg">
+                  <h6 class="font-bold mb-2">🔄 Update Otomatis Setiap:</h6>
+                  <ul class="space-y-2 text-gray-700">
+                    <li>• <strong>Ada pesanan selesai:</strong> Total penjualan hari ini naik</li>
+                    <li>• <strong>Input pembelian:</strong> Total pengeluaran bertambah</li>
+                    <li>• <strong>Stok berubah:</strong> Jumlah item dan nilai inventory update</li>
+                    <li>• <strong>Biaya operasional:</strong> Perhitungan keuntungan bersih berubah</li>
+                    <li>• <strong>Target tercapai:</strong> Progress bar dan status achievement</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="dashboard-auto">
+                <h5>💰 Panel Keuangan - Hitung Otomatis:</h5>
+                <div class="calculations bg-green-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-green-800 mb-2">🧮 Perhitungan Otomatis:</h6>
+                  <div class="text-green-700 space-y-2">
+                    <p><strong>Keuntungan Kotor:</strong> Total Penjualan - Total HPP</p>
+                    <p><strong>Keuntungan Bersih:</strong> Keuntungan Kotor - Biaya Operasional</p>
+                    <p><strong>Margin %:</strong> (Keuntungan ÷ Penjualan) × 100%</p>
+                    <p><strong>Cashflow:</strong> Pemasukan - Pengeluaran hari ini</p>
+                    <p><strong>ROI:</strong> Return on Investment bulanan</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="dashboard-auto">
+                <h5>📈 Grafik dan Chart - Generate Otomatis:</h5>
+                <div class="charts bg-blue-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-blue-800 mb-2">📊 Chart Otomatis:</h6>
+                  <div class="text-blue-700 space-y-2">
+                    <p><strong>Trend Penjualan:</strong> Grafik 7 hari, 30 hari, 90 hari</p>
+                    <p><strong>Pie Chart Produk:</strong> Proporsi penjualan per produk</p>
+                    <p><strong>Bar Chart HPP:</strong> Perbandingan biaya vs revenue</p>
+                    <p><strong>Line Chart Profit:</strong> Trend keuntungan per periode</p>
+                    <p><strong>Donut Chart Expenses:</strong> Breakdown pengeluaran per kategori</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="auto-analysis">
+              <h4>🔍 Analisis Otomatis:</h4>
+              
+              <div class="analysis-auto">
+                <h5>1️⃣ Best/Worst Selling Products:</h5>
+                <div class="analysis bg-yellow-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-yellow-800">🏆 Sistem Otomatis Ranking:</h6>
+                  <ul class="text-yellow-700 space-y-1">
+                    <li>• <strong>Best Seller:</strong> Produk paling banyak terjual + margin tertinggi</li>
+                    <li>• <strong>Most Profitable:</strong> Produk dengan total keuntungan terbesar</li>
+                    <li>• <strong>Worst Performer:</strong> Produk jarang laku atau margin rendah</li>
+                    <li>• <strong>Seasonal Trends:</strong> Produk yang laris di waktu tertentu</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="analysis-auto">
+                <h5>2️⃣ Cost Analysis dan Rekomendasi:</h5>
+                <div class="analysis bg-purple-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-purple-800">💡 Rekomendasi Otomatis:</h6>
+                  <ul class="text-purple-700 space-y-1">
+                    <li>• <strong>Harga Jual Optimal:</strong> Berdasarkan HPP + target margin</li>
+                    <li>• <strong>Cost Reduction:</strong> Bahan mana yang bisa dicari alternatif</li>
+                    <li>• <strong>Production Planning:</strong> Berapa banyak produksi untuk profit max</li>
+                    <li>• <strong>Inventory Alert:</strong> Kapan harus restok untuk avoid stockout</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div class="sync-info bg-indigo-50 p-4 rounded-lg">
+              <h4 class="font-bold text-indigo-800">🔄 Sinkronisasi Real-time:</h4>
+              <div class="text-indigo-700 space-y-2">
+                <p><strong>Multi-device sync:</strong> Update di HP, langsung keliatan di laptop</p>
+                <p><strong>Cloud backup:</strong> Data otomatis tersimpan di cloud</p>
+                <p><strong>Offline support:</strong> Bisa input walau internet lemot, sync nanti</p>
+                <p><strong>Auto-save:</strong> Setiap perubahan langsung tersimpan</p>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "workflow-otomatis",
+        title: "Workflow Otomatis End-to-End",
+        content: `
+          <div class="tutorial-content">
+            <h3>🔄 Workflow Otomatis Lengkap</h3>
+            <p>Lihat bagaimana <strong>satu aksi bisa trigger banyak update otomatis</strong> di seluruh sistem.</p>
+            
+            <div class="complete-workflow">
+              <h4>🍜 Contoh: Workflow Lengkap "Terima Pesanan Bakso"</h4>
+              
+              <div class="workflow-steps">
+                <div class="step bg-blue-50 p-4 rounded-lg mb-4">
+                  <h5 class="font-bold text-blue-800">Step 1: Customer Pesan Bakso (Input Manual)</h5>
+                  <p class="text-blue-700">Anda input: "Bu Sari pesan 3 porsi bakso @ Rp 15.000 = Rp 45.000"</p>
+                </div>
+                
+                <div class="step bg-green-50 p-4 rounded-lg mb-4">
+                  <h5 class="font-bold text-green-800">Step 2: Sistem Otomatis Cek Stok</h5>
+                  <div class="text-green-700 space-y-1">
+                    <p>• Resep bakso: 1 kg daging untuk 10 porsi</p>
+                    <p>• Butuh: 3 porsi = 0.3 kg daging</p>
+                    <p>• Stok saat ini: 2 kg (cukup)</p>
+                    <p>• <strong>Status:</strong> ✅ Bisa diproduksi</p>
+                  </div>
+                </div>
+                
+                <div class="step bg-yellow-50 p-4 rounded-lg mb-4">
+                  <h5 class="font-bold text-yellow-800">Step 3: Produksi Dimulai (Update Status)</h5>
+                  <div class="text-yellow-700 space-y-1">
+                    <p>Anda ubah status: "Baru" → "Proses"</p>
+                    <p><strong>Otomatis terjadi:</strong></p>
+                    <p>• Stok daging: 2 kg → 1.7 kg</p>
+                    <p>• Stok tepung, bumbu ikut berkurang sesuai resep</p>
+                    <p>• Dashboard: Pesanan dalam proses +1</p>
+                  </div>
+                </div>
+                
+                <div class="step bg-purple-50 p-4 rounded-lg mb-4">
+                  <h5 class="font-bold text-purple-800">Step 4: Pesanan Selesai (Final Status)</h5>
+                  <div class="text-purple-700 space-y-1">
+                    <p>Anda ubah status: "Proses" → "Selesai"</p>
+                    <p><strong>Otomatis terjadi:</strong></p>
+                    <p>• Pemasukan: +Rp 45.000</p>
+                    <p>• HPP tercatat: Rp 29.325 (sesuai resep)</p>
+                    <p>• Keuntungan kotor: Rp 15.675</p>
+                    <p>• Overhead terdistribusi: Rp 450</p>
+                    <p>• Keuntungan bersih: Rp 15.225</p>
+                  </div>
+                </div>
+                
+                <div class="step bg-red-50 p-4 rounded-lg mb-4">
+                  <h5 class="font-bold text-red-800">Step 5: Dashboard Terupdate Real-time</h5>
+                  <div class="text-red-700 space-y-1">
+                    <p><strong>Panel Keuangan:</strong></p>
+                    <p>• Total penjualan hari ini: +Rp 45.000</p>
+                    <p>• Keuntungan hari ini: +Rp 15.225</p>
+                    <p>• Margin: 33.8% (healthy)</p>
+                    <p><strong>Panel Pesanan:</strong></p>
+                    <p>• Pesanan selesai: +1</p>
+                    <p>• Revenue dari pesanan: +Rp 45.000</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="automation-benefits">
+              <h4>✨ Manfaat Sistem Otomatis:</h4>
+              
+              <div class="benefits grid grid-cols-2 gap-4">
+                <div class="benefit bg-green-100 p-4 rounded-lg">
+                  <h5 class="font-bold text-green-800">🚀 Hemat Waktu</h5>
+                  <p class="text-green-700 text-sm">1 input pesanan = 15+ update otomatis di berbagai bagian</p>
+                </div>
+                <div class="benefit bg-blue-100 p-4 rounded-lg">
+                  <h5 class="font-bold text-blue-800">🎯 Akurasi Tinggi</h5>
+                  <p class="text-blue-700 text-sm">Tidak ada human error dalam perhitungan</p>
+                </div>
+                <div class="benefit bg-purple-100 p-4 rounded-lg">
+                  <h5 class="font-bold text-purple-800">📈 Real-time Insight</h5>
+                  <p class="text-purple-700 text-sm">Laporan dan analisis selalu up-to-date</p>
+                </div>
+                <div class="benefit bg-orange-100 p-4 rounded-lg">
+                  <h5 class="font-bold text-orange-800">📊 Konsistensi Data</h5>
+                  <p class="text-orange-700 text-sm">Semua angka selalu sinkron di seluruh sistem</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="monitoring-tips bg-gray-50 p-4 rounded-lg">
+              <h4 class="font-bold text-gray-800">👁️ Tips Monitoring Otomatis:</h4>
+              <div class="text-gray-700 space-y-2">
+                <p><strong>Cek harian:</strong> Pastikan semua angka masuk akal</p>
+                <p><strong>Review mingguan:</strong> Bandingkan dengan catatan manual</p>
+                <p><strong>Audit bulanan:</strong> Cocokkan dengan stok fisik dan kas</p>
+                <p><strong>Backup data:</strong> Export laporan setiap bulan</p>
+              </div>
+            </div>
+          </div>
+        `
+      }
+    ]
+  },
+  {
+    id: 12,
+    title: "Fitur Otomatis Lanjutan",
+    subtitle: "Backup, Sync, dan Notifikasi Otomatis",
+    duration: "12 menit",
+    icon: "🤖",
+    sections: [
+      {
+        id: "backup-otomatis",
+        title: "Backup dan Sinkronisasi Otomatis",
+        content: `
+          <div class="tutorial-content">
+            <h3>🤖 Sistem Backup Otomatis</h3>
+            <p>Data Anda <strong>aman dan ter-backup otomatis</strong> tanpa perlu khawatir kehilangan informasi bisnis.</p>
+            
+            <div class="auto-backup">
+              <h4>💾 Yang Ter-backup Otomatis:</h4>
+              
+              <div class="backup-feature">
+                <h5>1️⃣ Cloud Backup Real-time</h5>
+                <div class="process bg-blue-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-blue-800">☁️ Otomatis ke Cloud:</h6>
+                  <ul class="text-blue-700 space-y-2">
+                    <li>• <strong>Setiap perubahan data:</strong> Langsung tersimpan di cloud</li>
+                    <li>• <strong>Multiple backup:</strong> Data disimpan di beberapa server</li>
+                    <li>• <strong>Versioning:</strong> Bisa restore ke versi sebelumnya jika ada masalah</li>
+                    <li>• <strong>Enkripsi:</strong> Data dienkripsi untuk keamanan</li>
+                    <li>• <strong>Access anywhere:</strong> Login dari perangkat manapun, data sama</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="backup-feature">
+                <h5>2️⃣ Multi-device Synchronization</h5>
+                <div class="process bg-green-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-green-800">🔄 Sync Antar Device:</h6>
+                  <div class="text-green-700 space-y-2">
+                    <p><strong>Scenario:</strong> Anda punya HP dan laptop</p>
+                    <ul class="space-y-1">
+                      <li>• Input pesanan di HP → Langsung muncul di laptop</li>
+                      <li>• Update stok di laptop → Dashboard HP terupdate</li>
+                      <li>• Lihat laporan di tablet → Data sama persis</li>
+                      <li>• Offline di HP → Sync otomatis saat online lagi</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="backup-feature">
+                <h5>3️⃣ Offline Mode dengan Auto-sync</h5>
+                <div class="process bg-yellow-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-yellow-800">📵 Offline Support:</h6>
+                  <ul class="text-yellow-700 space-y-2">
+                    <li>• <strong>Internet lemot:</strong> Aplikasi tetap bisa digunakan</li>
+                    <li>• <strong>Data tersimpan lokal:</strong> Di browser/device Anda</li>
+                    <li>• <strong>Auto-sync:</strong> Begitu internet normal, data langsung sync</li>
+                    <li>• <strong>Conflict resolution:</strong> Sistem pintar gabungkan data</li>
+                    <li>• <strong>No data loss:</strong> Tidak ada data yang hilang</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "notifikasi-otomatis",
+        title: "System Notifikasi dan Alert Otomatis",
+        content: `
+          <div class="tutorial-content">
+            <h3>🔔 Sistem Notifikasi Cerdas</h3>
+            <p>Sistem akan <strong>kasih tahu Anda otomatis</strong> untuk hal-hal penting yang perlu perhatian.</p>
+            
+            <div class="auto-notifications">
+              <h4>🎆 Jenis Notifikasi Otomatis:</h4>
+              
+              <div class="notification-type">
+                <h5>1️⃣ Alert Stok Kritis</h5>
+                <div class="alert bg-red-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-red-800">⚠️ Alert Otomatis:</h6>
+                  <div class="text-red-700 space-y-2">
+                    <p><strong>Kapan muncul:</strong> Stok di bawah minimum yang Anda set</p>
+                    <p><strong>Dimana muncul:</strong></p>
+                    <ul class="space-y-1">
+                      <li>• Badge merah di menu Gudang</li>
+                      <li>• Pop-up notification di dashboard</li>
+                      <li>• List "Perlu Restok" di dashboard</li>
+                      <li>• Email reminder (jika diaktifkan)</li>
+                    </ul>
+                    <p><strong>Aksi otomatis:</strong> Sistem kasih rekomendasi jumlah pembelian</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="notification-type">
+                <h5>2️⃣ Pesanan Pending Alert</h5>
+                <div class="alert bg-orange-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-orange-800">🕓 Reminder Otomatis:</h6>
+                  <div class="text-orange-700 space-y-2">
+                    <p><strong>Pesanan > 2 jam belum diproses:</strong> Alert kuning</p>
+                    <p><strong>Pesanan > 4 jam:</strong> Alert merah + sound notification</p>
+                    <p><strong>Delivery terlambat:</strong> Kasih tahu customer otomatis</p>
+                    <p><strong>Customer menunggu:</strong> Reminder follow-up</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="notification-type">
+                <h5>3️⃣ Target Achievement Notification</h5>
+                <div class="alert bg-green-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-green-800">🎯 Achievement Unlock:</h6>
+                  <div class="text-green-700 space-y-2">
+                    <p><strong>Target harian tercapai:</strong> 🎉 Congratulations popup</p>
+                    <p><strong>Record penjualan:</strong> 🏆 New record celebration</p>
+                    <p><strong>Milestone bulanan:</strong> 💪 Summary achievement</p>
+                    <p><strong>Profit margin naik:</strong> 📈 Progress notification</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="notification-type">
+                <h5>4️⃣ Business Health Alert</h5>
+                <div class="alert bg-purple-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-purple-800">🎨 Health Check:</h6>
+                  <div class="text-purple-700 space-y-2">
+                    <p><strong>Margin tipis < 20%:</strong> Warning dan tips optimasi</p>
+                    <p><strong>Cashflow negatif:</strong> Alert urgensi + saran</p>
+                    <p><strong>HPP naik drastis:</strong> Investigation reminder</p>
+                    <p><strong>Produk tidak laku:</strong> Review recommendation</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "automasi-lanjutan",
+        title: "Fitur Automasi Lanjutan",
+        content: `
+          <div class="tutorial-content">
+            <h3>🤯 Automasi Tingkat Lanjut</h3>
+            <p>Fitur-fitur pintar yang <strong>belajar dari pola bisnis Anda</strong> dan memberikan rekomendasi otomatis.</p>
+            
+            <div class="advanced-automation">
+              <h4>🧠 AI-powered Features:</h4>
+              
+              <div class="ai-feature">
+                <h5>1️⃣ Smart Reorder Suggestions</h5>
+                <div class="feature bg-blue-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-blue-800">🧑‍💼 Sistem Belajar:</h6>
+                  <div class="text-blue-700 space-y-2">
+                    <p><strong>Analisis pola pembelian:</strong> Berapa sering beli setiap bahan</p>
+                    <p><strong>Seasonal adjustment:</strong> Lebaran butuh lebih banyak, normal hari biasa</p>
+                    <p><strong>Auto-calculate:</strong> Berapa kg optimal untuk beli</p>
+                    <p><strong>Price prediction:</strong> Waktu terbaik untuk beli (harga murah)</p>
+                    <p><strong>Supplier recommendation:</strong> Mana yang paling ekonomis</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="ai-feature">
+                <h5>2️⃣ Dynamic Pricing Recommendations</h5>
+                <div class="feature bg-green-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-green-800">💰 Smart Pricing:</h6>
+                  <div class="text-green-700 space-y-2">
+                    <p><strong>Market analysis:</strong> Bandingkan harga dengan kompetitor</p>
+                    <p><strong>Demand forecasting:</strong> Kapan bisa naik harga, kapan harus turun</p>
+                    <p><strong>Margin optimization:</strong> Harga optimal untuk max profit</p>
+                    <p><strong>Bundle suggestions:</strong> Produk mana yang cocok dijual paket</p>
+                    <p><strong>Promo timing:</strong> Kapan waktu terbaik kasih diskon</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="ai-feature">
+                <h5>3️⃣ Predictive Analytics</h5>
+                <div class="feature bg-purple-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-purple-800">🔮 Future Prediction:</h6>
+                  <div class="text-purple-700 space-y-2">
+                    <p><strong>Sales forecasting:</strong> Prediksi penjualan minggu/bulan depan</p>
+                    <p><strong>Cash flow projection:</strong> Kapan butuh modal tambahan</p>
+                    <p><strong>Inventory planning:</strong> Bahan apa yang akan habis kapan</p>
+                    <p><strong>Seasonal planning:</strong> Prepare untuk musim ramai/sepi</p>
+                    <p><strong>Growth opportunities:</strong> Area mana yang bisa dikembangkan</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="ai-feature">
+                <h5>4️⃣ Business Intelligence Dashboard</h5>
+                <div class="feature bg-orange-50 p-4 rounded-lg">
+                  <h6 class="font-bold text-orange-800">📊 Smart Insights:</h6>
+                  <div class="text-orange-700 space-y-2">
+                    <p><strong>Performance anomalies:</strong> Deteksi pola tidak normal otomatis</p>
+                    <p><strong>Opportunity alerts:</strong> "Hari ini laris, tambah produksi!"</p>
+                    <p><strong>Cost optimization:</strong> "Ganti supplier ini bisa hemat 15%"</p>
+                    <p><strong>Market trends:</strong> "Produk vegan lagi trend, coba buat menu"</p>
+                    <p><strong>Action recommendations:</strong> Step konkret untuk improve bisnis</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="automation-control">
+              <h4>⚙️ Kontrol Automation:</h4>
+              <div class="control bg-gray-50 p-4 rounded-lg">
+                <h5 class="font-bold text-gray-800">Anda Tetap Punya Kontrol Penuh:</h5>
+                <div class="text-gray-700 space-y-2">
+                  <p><strong>On/Off switches:</strong> Bisa matikan fitur tertentu jika tidak perlu</p>
+                  <p><strong>Sensitivity settings:</strong> Atur seberapa sering dapat notifikasi</p>
+                  <p><strong>Custom thresholds:</strong> Set sendiri batas-batas alert</p>
+                  <p><strong>Manual override:</strong> Selalu bisa input manual jika sistem salah</p>
+                  <p><strong>Privacy settings:</strong> Data sensitif tidak akan dishare</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      }
+    ]
+  },
+  {
+    id: 13,
     title: "Gabung Channel WhatsApp",
     subtitle: "Bergabung dengan Komunitas UMKM",
     duration: "3 menit",

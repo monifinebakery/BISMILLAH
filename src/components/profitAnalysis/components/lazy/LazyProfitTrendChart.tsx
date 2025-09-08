@@ -1,7 +1,10 @@
 import React from 'react';
-import type { ProfitTrendChartProps } from '../ProfitTrendChart';
 
-const LazyProfitTrendChart = React.lazy(() => import('../ProfitTrendChart'));
+const profitTrendChartImport = () => import('../ProfitTrendChart');
+const LazyProfitTrendChart = React.lazy(profitTrendChartImport);
+
+// Import types separately to avoid bundling
+type ProfitTrendChartProps = React.ComponentProps<React.ComponentType<any>>;
 
 export default LazyProfitTrendChart as React.ComponentType<ProfitTrendChartProps>;
 

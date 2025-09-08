@@ -6,8 +6,7 @@
  * Dependencies reduced from 13 to 6
  */
 
-import { lazy } from 'react';
-import React from 'react';
+import React, { lazy } from 'react';
 
 // ✅ ESSENTIAL TYPES ONLY
 export type {

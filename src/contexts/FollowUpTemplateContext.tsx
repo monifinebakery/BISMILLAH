@@ -22,6 +22,8 @@ interface FollowUpTemplateContextType {
   saveTemplate: (status: string, template: string) => Promise<boolean>;
   saveAllTemplates: (templates: Record<string, string>) => Promise<boolean>;
   getTemplate: (status: string) => string;
+  getTemplateForCurrentStatus: (orderStatus?: string) => { status: string; template: string } | null;
+  getAvailableStatuses: () => string[];
   resetToDefaults: () => void;
 }
 
@@ -345,6 +347,22 @@ export const FollowUpTemplateProvider: React.FC<{ children: React.ReactNode }> =
     return templates[status] || DEFAULT_TEMPLATES[status] || '';
   }, [templates]);
 
+  const getTemplateForCurrentStatus = useCallback((orderStatus?: string) => {
+    if (!orderStatus) return null;
+    
+    const template = getTemplate(orderStatus);
+    if (!template) return null;
+    
+    return {
+      status: orderStatus,
+      template
+    };
+  }, [getTemplate]);
+
+  const getAvailableStatuses = useCallback((): string[] => {
+    return Object.keys(DEFAULT_TEMPLATES);
+  }, []);
+
   const resetToDefaults = useCallback(() => {
     // Reset to defaults by updating local query cache
     queryClient.setQueryData(
@@ -371,6 +389,8 @@ export const FollowUpTemplateProvider: React.FC<{ children: React.ReactNode }> =
     saveTemplate: saveTemplateAction,
     saveAllTemplates: saveAllTemplatesAction,
     getTemplate,
+    getTemplateForCurrentStatus,
+    getAvailableStatuses,
     resetToDefaults,
   };
 

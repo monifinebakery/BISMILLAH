@@ -222,12 +222,15 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
 
   // Auto-calculate HPP when relevant fields change (only if enhanced mode is NOT active)
   useEffect(() => {
-    // Skip legacy calculation if enhanced HPP is active
+    // ✅ FIXED: Skip legacy calculation if enhanced HPP is active
     if (isEnhancedHppActive) {
+      console.log('🔥 Legacy HPP calculation skipped - Enhanced mode is active');
       return;
     }
 
+    // Only run legacy calculation if conditions are met AND enhanced mode is off
     if (formData.bahanResep.length > 0 && formData.jumlahPorsi > 0) {
+      console.log('📊 Running legacy HPP calculation...');
       setIsCalculating(true);
       const timer = setTimeout(() => {
         try {

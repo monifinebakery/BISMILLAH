@@ -36,6 +36,12 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     hargaJualPorsi: data.hargaJualPorsi || 0,
     hargaJualPerPcs: data.hargaJualPerPcs || 0,
   });
+  
+  // ✅ NEW: Track user manual input to prevent auto-override
+  const [userHasEditedPricing, setUserHasEditedPricing] = React.useState({
+    porsi: false,
+    pcs: false,
+  });
 
   // Sync state with form data ONLY on initial load or when switching between recipes
   // Prevent overriding user manual input during edit
@@ -44,8 +50,9 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     // Don't sync if user is actively editing (prevents override of manual input)
     const isInitialLoad = sellingPrices.hargaJualPorsi === 0 && sellingPrices.hargaJualPerPcs === 0;
     const hasValidFormData = (data.hargaJualPorsi || 0) > 0 || (data.hargaJualPerPcs || 0) > 0;
+    const userHasNotEditedPricing = !userHasEditedPricing.porsi && !userHasEditedPricing.pcs;
     
-    if (isInitialLoad && hasValidFormData) {
+    if (isInitialLoad && hasValidFormData && userHasNotEditedPricing) {
       console.log('📥 Initial sync with form data (edit mode):', {
         incoming: { 
           hargaJualPorsi: data.hargaJualPorsi || 0, 
@@ -56,8 +63,10 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         hargaJualPorsi: data.hargaJualPorsi || 0,
         hargaJualPerPcs: data.hargaJualPerPcs || 0,
       });
+    } else if (userHasEditedPricing.porsi || userHasEditedPricing.pcs) {
+      console.log('🔒 Protecting manual pricing from auto-override:', userHasEditedPricing);
     }
-  }, [data.hargaJualPorsi, data.hargaJualPerPcs]); // Removed local state from deps to prevent loops
+  }, [data.hargaJualPorsi, data.hargaJualPerPcs, userHasEditedPricing]); // Added userHasEditedPricing to deps
 
   // Handle enhanced HPP result updates
   const handleEnhancedHppChange = React.useCallback((result: EnhancedHPPCalculationResult | null) => {
@@ -135,13 +144,30 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         </p>
       </div>
 
-      {/* Enhanced HPP Information */}
-      <Alert className="border-green-200 bg-green-50">
-        <Zap className="h-4 w-4" />
-        <AlertDescription className="text-green-800">
-          <strong>🎯 HPP Otomatis Aktif:</strong> Sistem menggunakan overhead yang sudah dihitung dari{' '}
-          <strong>Biaya Operasional → Dual-Mode Calculator</strong>. HPP akan dihitung berdasarkan:{' '}
-          <strong>Bahan + TKL + Overhead Otomatis</strong>.
+      {/* Enhanced HPP Information with Status */}
+      <Alert className={`border-2 transition-all duration-500 ${
+        enhancedHppResult 
+          ? 'border-green-200 bg-green-50 shadow-md' 
+          : 'border-amber-200 bg-amber-50'
+      }`}>
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4" />
+          <div className={`w-2 h-2 rounded-full ${
+            enhancedHppResult ? 'bg-green-500' : 'bg-amber-500 animate-pulse'
+          }`}></div>
+        </div>
+        <AlertDescription className={enhancedHppResult ? 'text-green-800' : 'text-amber-800'}>
+          <strong>🎯 Status Koneksi:</strong>{' '}
+          {enhancedHppResult ? (
+            <span className="inline-flex items-center gap-1">
+              <span>✅ Terhubung</span> - HPP terhitung otomatis dari overhead Biaya Operasional
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1">
+              <span>⏳ Menunggu</span> - Setup overhead di Biaya Operasional → Dual-Mode Calculator
+            </span>
+          )}<br/>
+          <strong>Formula:</strong> Bahan + TKL + Overhead Otomatis = HPP Akurat
         </AlertDescription>
       </Alert>
 
@@ -278,6 +304,18 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
               </div>
             </div>
 
+            {/* Protection Status Indicator */}
+            {(userHasEditedPricing.porsi || userHasEditedPricing.pcs) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-sm text-blue-800">
+                  <span className="text-blue-600 font-medium">🔒</span>
+                  <span className="font-medium">Harga Terlindungi</span>
+                  <span className="text-blue-600">-</span>
+                  <span>Input manual Anda telah disimpan dan tidak akan ditimpa otomatis</span>
+                </div>
+              </div>
+            )}
+
             {/* Manual Input Section */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -295,7 +333,14 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                       value={sellingPrices.hargaJualPorsi || ''}
                       onChange={(e) => {
                         const value = parseFloat(e.target.value) || 0;
-                        console.log('💰 Updating hargaJualPorsi:', value);
+                        console.log('💰 Manual price edit - hargaJualPorsi:', value);
+                        
+                        // ✅ Mark as manually edited to prevent auto-override
+                        setUserHasEditedPricing(prev => ({
+                          ...prev,
+                          porsi: true,
+                        }));
+                        
                         setSellingPrices(prev => ({ ...prev, hargaJualPorsi: value }));
                         onUpdate('hargaJualPorsi', value);
                       }}
@@ -361,7 +406,14 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                       value={sellingPrices.hargaJualPerPcs || ''}
                       onChange={(e) => {
                         const value = parseFloat(e.target.value) || 0;
-                        console.log('💰 Updating hargaJualPerPcs:', value);
+                        console.log('💰 Manual price edit - hargaJualPerPcs:', value);
+                        
+                        // ✅ Mark as manually edited to prevent auto-override
+                        setUserHasEditedPricing(prev => ({
+                          ...prev,
+                          pcs: true,
+                        }));
+                        
                         setSellingPrices(prev => ({ ...prev, hargaJualPerPcs: value }));
                         onUpdate('hargaJualPerPcs', value);
                       }}

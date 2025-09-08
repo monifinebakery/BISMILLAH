@@ -303,35 +303,55 @@ export const usePaymentStatus = () => {
     };
   }, []); // ✅ Empty dependency array - only run once
 
-  // ✅ Simplified payment status logic
+  // ✅ Enhanced payment status logic with unlinked payment support
   const isLinkedToCurrentUser = paymentStatus?.user_id !== null && paymentStatus?.user_id !== undefined;
   
-  const hasValidPayment = paymentStatus?.is_paid === true && 
-                         paymentStatus?.payment_status === 'settled' &&
-                         isLinkedToCurrentUser;
+  // Check for valid linked payment
+  const hasValidLinkedPayment = paymentStatus?.is_paid === true && 
+                               paymentStatus?.payment_status === 'settled' &&
+                               isLinkedToCurrentUser;
 
+  // Check for unlinked but valid payment (same email)
   const hasUnlinkedPayment = paymentStatus && 
                             (!paymentStatus.user_id) && 
                             paymentStatus.is_paid === true &&
                             paymentStatus.payment_status === 'settled';
   
+  // 🔧 FIXED: Accept both linked and unlinked payments as valid
+  // This fixes the issue where paid users see upgrade popup
+  const hasValidPayment = hasValidLinkedPayment || hasUnlinkedPayment;
+  
   const needsPayment = !hasValidPayment;
   const needsOrderLinking = !isLoading && hasUnlinkedPayment;
 
-  // ✅ Simplified debug logging
+  // ✅ Enhanced debug logging with fix information
   useEffect(() => {
     if (!isLoading && process.env.NODE_ENV === 'development') {
       logger.debug('Payment status computed:', {
         hasValidPayment,
+        hasValidLinkedPayment,
         hasUnlinkedPayment,
         needsOrderLinking,
         isLinkedToCurrentUser,
         paymentRecord: paymentStatus?.order_id || 'none',
         userEmail: paymentStatus?.email || 'none',
-        userId: paymentStatus?.user_id || 'none'
+        userId: paymentStatus?.user_id || 'none',
+        paymentStatus: paymentStatus?.payment_status || 'none',
+        isPaid: paymentStatus?.is_paid || false,
+        needsPayment
       });
+      
+      // 🚨 Alert if user has unlinked payment
+      if (hasUnlinkedPayment) {
+        logger.warn('UNLINKED PAYMENT DETECTED:', {
+          message: 'User has paid but payment is not linked to account',
+          orderId: paymentStatus?.order_id,
+          email: paymentStatus?.email,
+          fix: 'Run payment linking script or manual linking'
+        });
+      }
     }
-  }, [hasValidPayment, hasUnlinkedPayment, needsOrderLinking, isLinkedToCurrentUser, isLoading, paymentStatus]);
+  }, [hasValidPayment, hasValidLinkedPayment, hasUnlinkedPayment, needsOrderLinking, isLinkedToCurrentUser, isLoading, paymentStatus, needsPayment]);
 
   // ✅ Development bypass logic
   const isDev = import.meta.env.MODE === 'development';
@@ -364,6 +384,7 @@ export const usePaymentStatus = () => {
     setShowOrderPopup,
     userName: paymentStatus?.customer_name || null,
     hasValidPayment: finalIsPaid,
+    hasValidLinkedPayment: bypassAuth ? true : hasValidLinkedPayment,
     isLinkedToCurrentUser: bypassAuth ? true : isLinkedToCurrentUser
   };
 };

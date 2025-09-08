@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, X, Trash2, Square, CheckSquare } from 'lucide-react';
 import { getStatusText } from '../../constants';
-import { ORDER_STATUSES, TABLE_PAGE_SIZES } from '../../constants';
 
 interface OrderTableFiltersProps {
   searchQuery: string;

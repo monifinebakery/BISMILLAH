@@ -11,12 +11,18 @@
 // Gunakan React.lazy di komponen induk:
 // const OrderForm = React.lazy(() => import('./dialogs/OrderForm'));
 
+// ✅ DIALOG IMPORTS: Reusable import functions
+const importOrderForm = () => import('./OrderForm');
+const importFollowUpTemplate = () => import('./FollowUpTemplateManager');
+const importBulkDeleteDialog = () => import('./BulkDeleteDialog');
+const importBulkEditDialog = () => import('./BulkEditDialog');
+
 // ✅ DIALOG GROUPS: For batch loading when needed
 export const ORDERS_DIALOG_GROUPS = {
   // Form dialogs - order management
   forms: () => Promise.all([
-    import('./OrderForm'),
-    import('./FollowUpTemplateManager')
+    importOrderForm(),
+    importFollowUpTemplate()
   ]).then(([form, template]) => ({
     OrderForm: form.default,
     FollowUpTemplateManager: template.default
@@ -24,8 +30,8 @@ export const ORDERS_DIALOG_GROUPS = {
   
   // Bulk operation dialogs
   bulk: () => Promise.all([
-    import('./BulkDeleteDialog'),
-    import('./BulkEditDialog')
+    importBulkDeleteDialog(),
+    importBulkEditDialog()
   ]).then(([deleteDialog, editDialog]) => ({
     BulkDeleteDialog: deleteDialog.default,
     BulkEditDialog: editDialog.default
@@ -33,10 +39,10 @@ export const ORDERS_DIALOG_GROUPS = {
   
   // All dialogs
   all: () => Promise.all([
-    import('./OrderForm'),
-    import('./BulkDeleteDialog'),
-    import('./BulkEditDialog'),
-    import('./FollowUpTemplateManager')
+    importOrderForm(),
+    importBulkDeleteDialog(),
+    importBulkEditDialog(),
+    importFollowUpTemplate()
   ]).then(([form, bulkDelete, bulkEdit, template]) => ({
     OrderForm: form.default,
     BulkDeleteDialog: bulkDelete.default,
@@ -68,8 +74,8 @@ export const ORDERS_DIALOG_UTILS = {
   preloadCriticalDialogs: async () => {
     // Preload most commonly used dialogs
     return await Promise.all([
-      import('./OrderForm'),
-      import('./FollowUpTemplateManager')
+      importOrderForm(),
+      importFollowUpTemplate()
     ]);
   }
 } as const;

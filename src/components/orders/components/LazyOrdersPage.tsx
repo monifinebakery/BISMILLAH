@@ -14,15 +14,15 @@ const OrdersPageLoader = () => (
 );
 
 // PERFORMANCE: Lazy load OrdersPage dengan preload strategy
+const ordersPageImport = () => import('./OrdersPage');
+
 const LazyOrdersPage = withLazyLoading(
-  () => import('./OrdersPage'),
+  ordersPageImport,
   <OrdersPageLoader />
 );
 
 // PERFORMANCE: Preload function untuk digunakan di routing
-export const preloadOrdersPage = () => {
-  return import('./OrdersPage');
-};
+export const preloadOrdersPage = ordersPageImport;
 
 // PERFORMANCE: Hook untuk conditional preload
 export const usePreloadOrdersPage = (shouldPreload: boolean = false) => {

@@ -9,18 +9,17 @@ export function useIsPad() {
   useEffect(() => {
     const checkIsIPad = () => {
       const width = window.innerWidth;
-      const height = window.innerHeight;
       
-      // iPad breakpoints: 641px - 1024px
-      const isTabletSize = width >= 641 && width <= 1024;
+      // iPad breakpoints: 768px - 1023px (matches Tailwind md breakpoint)
+      const isTabletSize = width >= 768 && width <= 1023;
       
       // Additional iPad detection using user agent and touch
       const userAgent = navigator.userAgent.toLowerCase();
       const isIPadUserAgent = userAgent.includes('ipad') || 
                              (userAgent.includes('macintosh') && 'ontouchend' in document);
       
-      // Combine size and touch detection
-      const isIPad = isTabletSize || isIPadUserAgent;
+      // Combine size and touch detection - prioritize size for consistency
+      const isIPad = isTabletSize || (isIPadUserAgent && width >= 768 && width <= 1200);
       
       setIsIPad(isIPad);
     };
@@ -46,6 +45,7 @@ export function useIPadSidebar() {
     if (isIPad) {
       // Set overlay mode for iPad
       setIsOverlayMode(true);
+      console.log('🔄 iPad detected, enabling sidebar overlay mode');
     } else {
       setIsOverlayMode(false);
     }
@@ -54,7 +54,8 @@ export function useIPadSidebar() {
   return {
     isIPad,
     isOverlayMode,
-    shouldDefaultCollapse: isIPad,
-    shouldUseOverlay: isIPad,
+    shouldDefaultCollapse: isIPad, // Sidebar should start collapsed on iPad
+    shouldUseOverlay: isIPad,     // Use overlay behavior on iPad
+    isTabletBreakpoint: isIPad,   // Helper for responsive design
   };
 }

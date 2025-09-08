@@ -4,10 +4,9 @@
 import React, { useState } from 'react';
 import { Users, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSupplier } from '@/contexts/SupplierContext';
+import { useSupplier, supplierQueryKeys } from '@/contexts/SupplierContext';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { supplierQueryKeys } from '@/contexts/SupplierContext';
 import { toast } from 'sonner';
 
 import SupplierTable from './SupplierTable';
@@ -29,9 +28,8 @@ const fetchSuppliersPaginated = async (
   limit: number;
   totalPages: number;
 }> => {
-  // This will be imported from SupplierContext later
+  // Import supabase client
   const { supabase } = await import('@/integrations/supabase/client');
-  const { transformSupplierFromDB } = await import('@/contexts/SupplierContext');
   
   // Get total count
   const { count, error: countError } = await supabase

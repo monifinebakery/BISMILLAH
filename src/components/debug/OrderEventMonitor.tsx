@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { orderEvents } from '../orders/utils/orderEvents';
-import type { OrderEventData } from '../orders/utils/orderEvents';
+import { orderEvents, type OrderEventData } from '../orders/utils/orderEvents';
 
 interface EventLog {
   id: string;

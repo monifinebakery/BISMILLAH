@@ -19,6 +19,8 @@
     "clean:all": "rm -rf node_modules .vite dist pnpm-lock.yaml",
     "check-deps": "pnpm ls react react-dom",
     "check-react": "pnpm ls | grep react",
+    "debug:payment": "node debug-payment-issue.js",
+    "fix:payment": "node fix-payment-linking.js",
     "push": "./auto-push.sh",
     "push:quick": "git add -A && git commit -m '🚀 Quick update' && git push",
     "push:msg": "./auto-push.sh"

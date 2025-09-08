@@ -24,29 +24,34 @@ const IPadOverlayWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
   const { open, setOpen } = useSidebar();
 
   // Close sidebar when clicking backdrop on iPad
-  const handleBackdropClick = () => {
+  const handleBackdropClick = React.useCallback(() => {
     if (isIPad && open) {
       setOpen(false);
     }
-  };
+  }, [isIPad, open, setOpen]);
 
-  if (!isIPad || !shouldUseOverlay) {
-    return <>{children}</>;
-  }
+  // Close sidebar on Escape key for iPad
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isIPad && open) {
+        setOpen(false);
+      }
+    };
 
-  return (
-    <>
-      {/* Backdrop for iPad overlay mode */}
-      {open && (
-        <div 
-          className="sidebar-overlay-backdrop" 
-          onClick={handleBackdropClick}
-          aria-hidden="true"
-        />
-      )}
-      {children}
-    </>
-  );
+    if (isIPad && open) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isIPad, open, setOpen]);
+
+  // Debug log
+  React.useEffect(() => {
+    if (isIPad && shouldUseOverlay) {
+      console.log('🔄 iPad overlay mode active, sidebar open:', open);
+    }
+  }, [isIPad, shouldUseOverlay, open]);
+
+  return <>{children}</>;
 };
 
 export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
@@ -55,8 +60,10 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
   renderAutoLinkIndicator,
   children
 }) => {
+  const { shouldDefaultCollapse } = useIPadSidebar();
+  
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={!shouldDefaultCollapse}>
       <IPadOverlayWrapper>
         <div className="min-h-screen flex w-full bg-background">
           {/* ✅ Sidebar */}

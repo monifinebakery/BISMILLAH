@@ -259,7 +259,6 @@ const { data } = await supabase
   .eq('user_id', userId);
 
 // 2. Use query builder
-import { OptimizedQueryBuilder } from '@/utils/queryOptimization';
 
 const listFields = OptimizedQueryBuilder.getListFields('purchases');
 const { data } = await supabase
@@ -268,7 +267,6 @@ const { data } = await supabase
   .eq('user_id', userId);
 
 // 3. Track query performance
-import { QueryPerformanceTracker } from '@/utils/queryOptimization';
 import { safePerformance } from '@/utils/browserApiSafeWrappers';
 
 

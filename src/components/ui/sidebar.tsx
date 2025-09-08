@@ -54,11 +54,22 @@ const SidebarProvider = React.forwardRef<
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
-  // Default collapsed pada iPad (md), expanded di desktop
-  const isIpadRange = React.useMemo(() => {
-    if (typeof window === "undefined") return false
-    return window.matchMedia("(min-width: 768px) and (max-width: 1023.98px)").matches
+  // Use consistent iPad detection from hook if available
+  const [isIpadRange, setIsIpadRange] = React.useState(false)
+  
+  React.useEffect(() => {
+    const checkIpadRange = () => {
+      if (typeof window === "undefined") return false
+      const width = window.innerWidth
+      const isIPadSize = width >= 768 && width <= 1023
+      setIsIpadRange(isIPadSize)
+    }
+    
+    checkIpadRange()
+    window.addEventListener('resize', checkIpadRange)
+    return () => window.removeEventListener('resize', checkIpadRange)
   }, [])
+  
   const initialDefaultOpen = isIpadRange ? false : defaultOpen
 
   const [_open, _setOpen] = React.useState(initialDefaultOpen)
@@ -166,11 +177,11 @@ const Sidebar = React.forwardRef<
         <div
           aria-hidden
           onClick={() => setOpen(false)}
-          className="dialog-overlay-center bg-opacity-20 z-[50] hidden md:block lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-[55] hidden md:block lg:hidden transition-opacity duration-200"
         />
       )}
 
-      {/* Sidebar container (fixed). md = overlay (z-50), lg = normal (z-10) */}
+      {/* Sidebar container (fixed). md = overlay (z-60), lg = normal (z-10) */}
       <div
         className={cn(
           "duration-200 fixed inset-y-0 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
@@ -181,7 +192,8 @@ const Sidebar = React.forwardRef<
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
             : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
-          state === "expanded" && "md:shadow-lg"
+          // Enhanced shadow for iPad overlay mode
+          state === "expanded" && "md:shadow-2xl md:shadow-black/20 lg:shadow-none"
         )}
         {...props}
       >

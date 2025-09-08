@@ -54,6 +54,10 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
       if (order && order.status) {
         setActiveTab(order.status);
       }
+      // Default to 'pending' if no order or invalid status
+      else if (!order || !order.status) {
+        setActiveTab('pending');
+      }
     }
   }, [isOpen, templates, order]);
 
@@ -184,14 +188,17 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
             <div className="space-y-4 sm:space-y-6">
               {/* Quick Actions for Current Order - Desktop */}
               {order && !isMobile && (
-                <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                <Card className="bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center justify-between text-lg text-green-800">
+                    <CardTitle className="flex items-center justify-between text-lg text-orange-800">
                       <span className="flex items-center gap-2">
                         <MessageSquare className="h-5 w-5" />
                         Quick Send untuk Pesanan Ini
+                        <Badge variant="outline" className="bg-white text-orange-800 border-orange-300">
+                          Status Aktif
+                        </Badge>
                       </span>
-                      <Badge className="bg-green-600 text-white">
+                      <Badge className="bg-orange-600 text-white">
                         {orderStatusList.find(s => s.key === order.status)?.label || order.status}
                       </Badge>
                     </CardTitle>
@@ -199,20 +206,23 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
                   <CardContent className="pt-0">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-green-700 mb-1">
-                          Kirim template untuk status: <strong>{orderStatusList.find(s => s.key === order.status)?.label || order.status}</strong>
+                        <p className="text-sm text-orange-700 mb-1">
+                          Kirim template untuk status: <strong className="text-orange-800">{orderStatusList.find(s => s.key === order.status)?.label || order.status}</strong>
                         </p>
-                        <p className="text-xs text-green-600">
-                          #{order.nomorPesanan} - {order.namaPelanggan} ({order.teleponPelanggan})
+                        <p className="text-xs text-orange-600">
+                          #{order.nomorPesanan} - {order.namaPelanggan} ({order.telefonPelanggan})
+                        </p>
+                        <p className="text-xs text-orange-500 mt-1">
+                          💡 Template akan otomatis disesuaikan dengan status pesanan saat ini
                         </p>
                       </div>
                       <Button
                         onClick={handleQuickSend}
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-orange-600 hover:bg-orange-700 text-white ring-2 ring-orange-200 ring-offset-1"
                         size="sm"
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Kirim Sekarang
+                        Kirim Template Aktif
                       </Button>
                     </div>
                   </CardContent>
@@ -266,6 +276,11 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
                           <li>• Template akan otomatis diisi dengan data pesanan saat dikirim</li>
                           <li>• Anda dapat menggabungkan teks bebas dengan variabel</li>
                           <li>• Gunakan mode preview untuk melihat hasil akhir template</li>
+                          {order && (
+                            <li className="text-orange-700 font-medium">
+                              • 🎯 Template untuk status "{orderStatusList.find(s => s.key === order.status)?.label}" akan digunakan untuk pesanan ini
+                            </li>
+                          )}
                         </ul>
                       </div>
                     </CardContent>
@@ -300,61 +315,113 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
                       <div className="mb-4">
                         <Label className="text-sm text-gray-600 mb-2 block">Pilih Status:</Label>
                         <div className="grid grid-cols-2 gap-2">
-                          {orderStatusList.map((status) => (
-                            <Button
-                              key={status.key}
-                              variant={activeTab === status.key ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setActiveTab(status.key)}
-                              className={cn(
-                                "text-xs justify-center",
-                                order && order.status === status.key && "ring-2 ring-green-400",
-                                activeTab === status.key && "bg-blue-600 hover:bg-blue-700"
-                              )}
-                            >
-                              {status.label}
-                            </Button>
-                          ))}
+                          {orderStatusList
+                            .filter(status => {
+                              // Filter relevant statuses for mobile view
+                              const isCurrentStatus = order?.status === status.key;
+                              const isRelevantStatus = !order || isCurrentStatus || ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'completed'].includes(status.key);
+                              return isRelevantStatus;
+                            })
+                            .map((status) => {
+                              const isCurrentStatus = order?.status === status.key;
+                              return (
+                                <Button
+                                  key={status.key}
+                                  variant={activeTab === status.key ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => setActiveTab(status.key)}
+                                  className={cn(
+                                    "text-xs justify-center relative",
+                                    isCurrentStatus && "ring-2 ring-orange-400",
+                                    activeTab === status.key && isCurrentStatus && "bg-orange-600 hover:bg-orange-700",
+                                    activeTab === status.key && !isCurrentStatus && "bg-blue-600 hover:bg-blue-700"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    {status.label}
+                                    {isCurrentStatus && (
+                                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                                    )}
+                                  </div>
+                                </Button>
+                              );
+                            })}
                         </div>
                       </div>
                     ) : (
                       <TabsList className="grid grid-cols-4 lg:grid-cols-5 mb-4 w-full">
-                        {orderStatusList.map((status) => (
-                          <TabsTrigger 
-                            key={status.key} 
-                            value={status.key}
-                            className={cn(
-                              "text-xs",
-                              order && order.status === status.key && "ring-2 ring-green-400 bg-green-50"
-                            )}
-                          >
-                            <Badge variant="outline" className="text-xs">
-                              {status.label}
-                            </Badge>
-                          </TabsTrigger>
-                        ))}
+                        {orderStatusList
+                          .filter(status => {
+                            // Filter relevant statuses for better UX
+                            const isCurrentStatus = order?.status === status.key;
+                            const isRelevantStatus = !order || isCurrentStatus || ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'completed'].includes(status.key);
+                            return isRelevantStatus;
+                          })
+                          .map((status) => {
+                            const isCurrentStatus = order?.status === status.key;
+                            return (
+                              <TabsTrigger 
+                                key={status.key} 
+                                value={status.key}
+                                className={cn(
+                                  "text-xs relative",
+                                  isCurrentStatus && "ring-2 ring-orange-400 bg-orange-50"
+                                )}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <Badge variant={isCurrentStatus ? "default" : "outline"} className={cn(
+                                    "text-xs",
+                                    isCurrentStatus && "bg-orange-600 text-white"
+                                  )}>
+                                    {status.label}
+                                  </Badge>
+                                  {isCurrentStatus && (
+                                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />
+                                  )}
+                                </div>
+                              </TabsTrigger>
+                            );
+                          })}
                       </TabsList>
                     )}
 
-                    {orderStatusList.map((status) => (
-                      <TabsContent key={status.key} value={status.key} className="space-y-4 mt-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <Label className="text-base sm:text-lg font-medium">
-                            Template: {status.label}
-                          </Label>
-                          <div className="flex gap-2">
-                            {order && !isMobile && (
-                              <Button
-                                onClick={() => handleSendWhatsApp(status.key)}
-                                className="bg-green-600 hover:bg-green-700"
-                                size="sm"
-                              >
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Kirim WhatsApp
-                              </Button>
-                            )}
+                    {orderStatusList.map((status) => {
+                      // Only show relevant statuses for template editing
+                      // If there's an order, prioritize its status but show all for flexibility
+                      const isCurrentStatus = order?.status === status.key;
+                      const isRelevantStatus = !order || isCurrentStatus || ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'completed'].includes(status.key);
+                      
+                      if (!isRelevantStatus) return null;
+                      
+                      return (
+                        <TabsContent key={status.key} value={status.key} className="space-y-4 mt-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <Label className="text-base sm:text-lg font-medium">
+                                Template: {status.label}
+                              </Label>
+                              {isCurrentStatus && (
+                                <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                                  Status Saat Ini
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              {order && !isMobile && (
+                                <Button
+                                  onClick={() => handleSendWhatsApp(status.key)}
+                                  className={cn(
+                                    "bg-green-600 hover:bg-green-700",
+                                    isCurrentStatus && "ring-2 ring-orange-400 ring-offset-1"
+                                  )}
+                                  size="sm"
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                  {isCurrentStatus ? 'Kirim Template Aktif' : 'Kirim WhatsApp'}
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
                         {previewMode && order ? (
                           <Card className="bg-green-50 border-green-200">
@@ -413,8 +480,9 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
                             )}
                           </div>
                         )}
-                      </TabsContent>
-                    ))}
+                        </TabsContent>
+                      );
+                    }).filter(Boolean)}
                   </Tabs>
                 </CardContent>
               </Card>

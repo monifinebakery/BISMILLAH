@@ -67,11 +67,8 @@ const CostForm: React.FC<CostFormProps> = ({
       [field]: value,
     }));
 
-    // Check if this is a salary-related cost name
-    if (field === 'nama_biaya' && isSalaryRelated(value) && !initialData) {
-      setShowStaffTypeModal(true);
-      setIsProductionStaff(null);
-    }
+    // Store the value for potential staff type detection on blur
+    // Don't interrupt typing with modal popup
 
     // Clear field error when user starts typing
     if (errors[field]) {
@@ -166,7 +163,15 @@ const CostForm: React.FC<CostFormProps> = ({
             value={formData.nama_biaya}
             onChange={(e) => handleInputChange('nama_biaya', e.target.value)}
             onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            onBlur={(e) => {
+              const value = e.target.value;
+              // Handle suggestions
+              setTimeout(() => setShowSuggestions(false), 200);
+              // Check for staff type detection after user finishes typing
+              if (isSalaryRelated(value) && !initialData && isProductionStaff === null) {
+                setTimeout(() => setShowStaffTypeModal(true), 300);
+              }
+            }}
             placeholder="Contoh: Gaji Karyawan, Listrik Pabrik"
             className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
               errors.nama_biaya ? 'border-red-300' : 'border-gray-300'
@@ -404,8 +409,11 @@ const CostForm: React.FC<CostFormProps> = ({
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Jenis Staf untuk "{formData.nama_biaya}"
               </h3>
-              <p className="text-sm text-gray-600">
-                Pilih jenis staf untuk membantu sistem menghitung biaya dengan tepat.
+              <p className="text-sm text-gray-600 mb-2">
+                Pilih jenis staf untuk membantu sistem menghitung HPP yang lebih akurat.
+              </p>
+              <p className="text-xs text-gray-500">
+                💡 Opsional: Anda bisa skip dan atur nanti di pengaturan biaya.
               </p>
             </div>
 
@@ -459,7 +467,18 @@ const CostForm: React.FC<CostFormProps> = ({
               </button>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowStaffTypeModal(false);
+                  // Set a neutral state to indicate user skipped
+                  setIsProductionStaff(false); // Default to non-production
+                }}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
+              >
+                Skip untuk sekarang
+              </button>
               <button
                 type="button"
                 onClick={() => setShowStaffTypeModal(false)}

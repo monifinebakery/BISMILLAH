@@ -120,22 +120,22 @@ export const FINANCIAL_ADVANCED = {
 // ✅ RECOMMENDED USAGE:
 
 // For pages (consolidated hook):
-import { useFinancialCore } from '@/components/financial';
+// import { useFinancialCore } from '@/components/financial';
 
 // For specific functionality:
-import { useFinancialData, useTransactionOperations } from '@/components/financial';
+// import { useFinancialData, useTransactionOperations } from '@/components/financial';
 
 // For context:
-import { useFinancial, FinancialProvider } from '@/components/financial';
+// import { useFinancial, FinancialProvider } from '@/components/financial';
 
 // For utilities:
-import { calculateFinancialSummary, validateTransaction } from '@/components/financial';
+// import { calculateFinancialSummary, validateTransaction } from '@/components/financial';
 
 // For types:
-import type { FinancialTransaction, DateRange } from '@/components/financial';
+// import type { FinancialTransaction, DateRange } from '@/components/financial';
 
 // For advanced usage:
-import { FINANCIAL_ADVANCED } from '@/components/financial';
+// import { FINANCIAL_ADVANCED } from '@/components/financial';
 const contextHooks = await FINANCIAL_ADVANCED.hooks.context();
 */
 

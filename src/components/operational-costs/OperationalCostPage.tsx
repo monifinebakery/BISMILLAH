@@ -77,8 +77,11 @@ const OperationalCostContent: React.FC = () => {
   useEffect(() => {
     if (state.isAuthenticated && !state.loading.costs && state.costs.length === 0) {
       const hasSeenOnboarding = localStorage.getItem('operational-costs-onboarding-seen');
-      if (!hasSeenOnboarding) {
-        setShowOnboarding(true);
+      const hasSkippedOnboarding = localStorage.getItem('operational-costs-onboarding-skipped');
+      // Only show if user hasn't seen or explicitly skipped
+      if (!hasSeenOnboarding && !hasSkippedOnboarding) {
+        // Add small delay to let user settle in
+        setTimeout(() => setShowOnboarding(true), 1500);
       }
     }
   }, [state.isAuthenticated, state.loading.costs, state.costs.length]);
@@ -171,7 +174,7 @@ const OperationalCostContent: React.FC = () => {
 
   const handleSkipOnboarding = () => {
     setShowOnboarding(false);
-    localStorage.setItem('operational-costs-onboarding-seen', 'true');
+    localStorage.setItem('operational-costs-onboarding-skipped', 'true');
   };
 
   // Quick setup for common cost types

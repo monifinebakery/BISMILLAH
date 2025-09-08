@@ -5,6 +5,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization'; // Keep for transition
+import { useIsMobile } from '@/hooks/useIsMobile';
+
+// ✅ Import new UX components
+import LoadingOverlay from './LoadingOverlay';
+import ErrorDisplay from './ErrorDisplay';
+import ModeIndicator from './ModeIndicator';
+import WACStatusIndicator from './WACStatusIndicator';
+import DataSyncStatus from './DataSyncStatus';
+import MobileProfitSummary from './MobileProfitSummary';
+import { useLoadingStateManager, LOADING_MESSAGES } from '../utils/loadingStateManager';
 
 // Import hooks dan utilities
 import { useProfitAnalysis, useProfitData } from '../hooks';
@@ -71,8 +81,17 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const [selectedChartType, setSelectedChartType] = useState('bar');
 
   const [showOnboarding, setShowOnboarding] = useState(false);
-
   const [range, setRange] = useState<{ from: Date; to: Date } | undefined>(undefined);
+  
+  // ✅ NEW: Mobile detection and loading state management
+  const isMobile = useIsMobile();
+  const {
+    loadingStates,
+    setLoading,
+    isAnyLoading,
+    getLoadingMessage,
+    getLoadingDescription,
+  } = useLoadingStateManager();
 
   // Determine analysis mode based on date range selection
   const analysisMode = range ? 'daily' : 'monthly';
@@ -130,7 +149,10 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
     !hasOpex && 'biaya operasional',
   ].filter(Boolean) as string[];
 
+  // ✅ ENHANCED: Refresh with loading state management
   const handleRefresh = async () => {
+    setLoading('refresh', true, LOADING_MESSAGES.refresh);
+    
     try {
       await Promise.all([
         refreshAnalysis(),
@@ -139,18 +161,77 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
       setLastCalculated(new Date());
     } catch (error) {
       console.error('Error refreshing:', error);
+    } finally {
+      setLoading('refresh', false);
+    }
+  };
+  
+  // ✅ NEW: Individual data source refresh handlers
+  const handleRefreshSource = async (sourceName: string) => {
+    switch (sourceName) {
+      case 'analysis':
+        setLoading('analysis', true, LOADING_MESSAGES.analysis);
+        try {
+          await refreshAnalysis();
+        } finally {
+          setLoading('analysis', false);
+        }
+        break;
+      case 'wac':
+        setLoading('wac', true, LOADING_MESSAGES.wac);
+        try {
+          await refreshWACData();
+        } finally {
+          setLoading('wac', false);
+        }
+        break;
+      default:
+        break;
     }
   };
 
-  // Wire date range changes
+  // Wire date range changes with loading state
   const handleDateRangeChange = (r: { from: Date; to: Date } | undefined) => {
+    setLoading('dateRange', true, LOADING_MESSAGES.dateRange);
+    
     setRange(r);
     
     // If date range is cleared, reset to current month period for monthly mode
     if (!r) {
       setCurrentPeriod(getCurrentPeriod());
     }
+    
+    // Clear loading after a short delay to show user feedback
+    setTimeout(() => setLoading('dateRange', false), 1000);
   };
+  
+  // ✅ NEW: Prepare data sources for sync status
+  const dataSources = [
+    {
+      name: 'analysis',
+      label: 'Analisis Profit',
+      lastUpdated: lastCalculated,
+      isStale: isDataStale,
+      isLoading: loadingStates.analysis,
+      status: (loading ? 'loading' : error ? 'error' : 'connected') as 'connected' | 'stale' | 'error' | 'loading'
+    },
+    {
+      name: 'wac',
+      label: 'Harga Rata-rata (WAC)',
+      lastUpdated: lastCalculated, // Would be better to track WAC-specific timestamp
+      isStale: false, // WAC has its own refresh logic
+      isLoading: loadingStates.wac,
+      status: (loadingStates.wac ? 'loading' : 'connected') as 'connected' | 'stale' | 'error' | 'loading'
+    },
+    {
+      name: 'financial',
+      label: 'Data Keuangan',
+      lastUpdated: lastCalculated,
+      isStale: isDataStale,
+      isLoading: loadingStates.analysis, // Financial data is part of analysis
+      status: (loading ? 'loading' : error ? 'error' : 'connected') as 'connected' | 'stale' | 'error' | 'loading'
+    }
+  ];
 
 
   const safeRevenue = profitMetrics?.revenue ?? currentAnalysis?.revenue_data?.total ?? 0;
@@ -161,51 +242,106 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
   return (
     <div className={`p-4 sm:p-6 lg:p-8 space-y-6 ${className}`}>
-          <DashboardHeaderSection
-            hasValidData={hasAnyData}
-            isLoading={loading}
-            quickStatus={{
-              netProfit: footerCalc.netProfit,
-              cogsPercentage: (safeCogs / Math.max(safeRevenue, 1)) * 100,
-              revenue: safeRevenue
-            }}
-            statusIndicators={[
-              ...(isDataStale ? [{ type: 'stale' as const, label: 'Data usang' }] : []),
-              ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
-              ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
-            ]}
-            onRefresh={handleRefresh}
-            dateRange={range}
-            onDateRangeChange={handleDateRangeChange}
-            onStartOnboarding={() => setShowOnboarding(true)}
-          />
+      {/* ✅ NEW: Unified loading overlay */}
+      <LoadingOverlay
+        isVisible={isAnyLoading}
+        message={getLoadingMessage()}
+        description={getLoadingDescription()}
+        type={loadingStates.wac ? 'wac' : loadingStates.calculations ? 'calculation' : loadingStates.refresh ? 'refresh' : 'analysis'}
+      />
       
+      <DashboardHeaderSection
+        hasValidData={hasAnyData}
+        isLoading={loading}
+        quickStatus={{
+          netProfit: footerCalc.netProfit,
+          cogsPercentage: (safeCogs / Math.max(safeRevenue, 1)) * 100,
+          revenue: safeRevenue
+        }}
+        statusIndicators={[
+          ...(isDataStale ? [{ type: 'stale' as const, label: 'Data usang' }] : []),
+          ...(lastCalculated ? [{ type: 'updated' as const, label: 'Diperbarui', timestamp: lastCalculated }] : []),
+          ...(benchmark?.competitive?.position ? [{ type: 'benchmark' as const, label: benchmark.competitive.position, position: benchmark.competitive.position }] : [])
+        ]}
+        onRefresh={handleRefresh}
+        dateRange={range}
+        onDateRangeChange={handleDateRangeChange}
+        onStartOnboarding={() => setShowOnboarding(true)}
+      />
+      
+      {/* ✅ NEW: Enhanced error display */}
       {error && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <ErrorDisplay
+          error={error}
+          onRetry={handleRefresh}
+          onDismiss={() => {/* Clear error if needed */}}
+          variant="card"
+          className="mb-6"
+        />
       )}
 
 
+      {/* ✅ NEW: Mode indicator for clarity */}
+      <ModeIndicator
+        mode={analysisMode as 'daily' | 'monthly' | 'yearly'}
+        dateRange={range}
+        isAggregated={analysisMode === 'daily' && range !== undefined}
+        dataSource={analysisMode === 'daily' ? 'aggregated' : 'financial_transactions'}
+        periodLabel={currentPeriod}
+      />
+      
+      {/* ✅ NEW: WAC status transparency */}
+      {profitMetrics?.totalHPP > 0 && (
+        <WACStatusIndicator
+          isWACActive={true}
+          effectiveCogs={profitMetrics?.cogs}
+          totalHPP={profitMetrics?.totalHPP}
+          lastWACUpdate={lastCalculated}
+          isCalculating={loadingStates.wac}
+          wacDataQuality={profitMetrics?.hppBreakdown?.length > 5 ? 'high' : profitMetrics?.hppBreakdown?.length > 2 ? 'medium' : 'low'}
+          hppBreakdownCount={profitMetrics?.hppBreakdown?.length || 0}
+          onRefreshWAC={() => handleRefreshSource('wac')}
+        />
+      )}
+      
       <div className="hidden md:block">
         <ExecutiveSummarySection data={executiveSummary} isLoading={loading} showAdvancedMetrics={showAdvancedMetrics} />
       </div>
       
       {hasAnyData && (
         <>
-          <ProfitSummaryCards
-            currentAnalysis={currentAnalysis}
-            previousAnalysis={previousAnalysis}
-            isLoading={loading}
-            effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
-            labels={{
-              hppLabel: labels?.hppLabel || 'Modal Bahan',
-              hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
-            }}
-          />
+          {/* ✅ NEW: Mobile-optimized vs Desktop layout */}
+          {isMobile ? (
+            <MobileProfitSummary
+              currentAnalysis={currentAnalysis}
+              previousAnalysis={previousAnalysis}
+              effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
+              isLoading={loading}
+              onViewDetails={() => setActiveTab('breakdown')}
+            />
+          ) : (
+            <ProfitSummaryCards
+              currentAnalysis={currentAnalysis}
+              previousAnalysis={previousAnalysis}
+              isLoading={loading}
+              effectiveCogs={profitMetrics?.cogs ?? currentAnalysis?.cogs_data?.total ?? 0}
+              labels={{
+                hppLabel: labels?.hppLabel || 'Modal Bahan',
+                hppHint: labels?.hppHint || 'Biaya rata-rata bahan baku'
+              }}
+            />
+          )}
           
-
+          {/* ✅ NEW: Data sync status - Desktop only */}
+          {!isMobile && (
+            <DataSyncStatus
+              dataSources={dataSources}
+              onRefreshAll={handleRefresh}
+              onRefreshSource={handleRefreshSource}
+              isRefreshing={loadingStates.refresh}
+              className="mt-6"
+            />
+          )}
         </>
       )}
 

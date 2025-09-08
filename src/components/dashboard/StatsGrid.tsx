@@ -223,19 +223,19 @@ const StatCard: React.FC<{
 
   const cardContent = (
     <Card 
-      className="bg-white/20 backdrop-blur-xl border border-white/30 shadow-2xl hover:shadow-3xl relative group h-full cursor-pointer transition-all duration-300 hover:bg-white/30 hover:border-white/40"
+      className="bg-white/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 relative group h-full cursor-pointer"
       onClick={handleMobileTooltipToggle}
     >
       <CardContent className="card-stats h-full relative">
-        {/* Enhanced Glassmorphism Inset Border Effect */}
-        <div className="absolute inset-0 rounded-lg border-[1.5px] border-white/40 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none bg-gradient-to-r from-white/10 to-transparent"></div>
+        {/* Inset Border Effect */}
+        <div className="absolute inset-0 rounded-lg border-[1.5px] border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
         
         {/* Content */}
         <div className="relative h-full flex flex-col">
           {/* 🎨 Icon dan Trend - Top row */}
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <div className="bg-white/30 backdrop-blur-lg border border-white/40 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-white/60 group-hover:bg-white/50 transition-all duration-300 flex items-center justify-center shadow-lg">
-              <div className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700">
+            <div className="bg-white/90 backdrop-blur-sm border border-gray-300 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-gray-300 group-hover:bg-gray-50 transition-all duration-300 flex items-center justify-center">
+              <div className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600">
                 {icon}
               </div>
             </div>
@@ -302,11 +302,11 @@ const StatCard: React.FC<{
             <>
               {/* Backdrop */}
               <div 
-                className="fixed inset-0 z-[9998] bg-black/30 backdrop-blur-xl" 
+                className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm" 
                 onClick={() => setShowMobileTooltip(false)}
               />
               {/* Tooltip content */}
-              <div className="modal-tooltip-centered z-[9999] p-4 bg-gray-900/90 backdrop-blur-2xl text-white text-sm rounded-2xl shadow-3xl border border-white/20">
+              <div className="modal-tooltip-centered z-[9999] p-4 bg-gray-900/95 backdrop-blur-md text-white text-sm rounded-xl shadow-2xl">
                 <div className="text-center">
                   <p className="leading-relaxed break-words mb-3">{tooltip}</p>
                   {trend && trend.previousValue && (
@@ -345,7 +345,7 @@ const StatCard: React.FC<{
             <TooltipContent 
               side="top" 
               align="center"
-              className="max-w-xs sm:max-w-sm md:max-w-md z-[9999] px-4 py-3 text-sm bg-gray-900/95 backdrop-blur-xl text-white rounded-xl border border-white/20 shadow-2xl"
+              className="max-w-xs sm:max-w-sm md:max-w-md z-[9999] px-4 py-3 text-sm bg-gray-900 text-white rounded-lg border-2 border-gray-700"
               sideOffset={8}
               avoidCollisions={true}
               collisionPadding={16}

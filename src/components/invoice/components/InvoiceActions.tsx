@@ -56,7 +56,7 @@ export const InvoiceActions: React.FC<InvoiceActionsProps> = ({
               className="bg-white text-orange-600 hover:bg-gray-100 text-sm"
             >
               <Download className="mr-2 h-4 w-4" />
-              Download Gambar
+              Download PDF
             </Button>
           </div>
         </div>

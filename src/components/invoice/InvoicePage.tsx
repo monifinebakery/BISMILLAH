@@ -212,13 +212,15 @@ const InvoicePage: React.FC = () => {
         }
         @page {
           size: A4;
-          margin: 16mm;
+          margin: 10mm;
         }
         
         /* Export specific styles */
         #invoice-content {
           background-color: white !important;
           color: black !important;
+          max-width: 100% !important;
+          overflow: visible !important;
         }
         #invoice-content * {
           background-color: transparent !important;
@@ -243,6 +245,50 @@ const InvoicePage: React.FC = () => {
         }
         .export-text {
           display: none;
+        }
+        
+        /* PDF optimization classes */
+        .pdf-compact {
+          padding: 8px !important;
+          margin: 4px 0 !important;
+          font-size: 12px !important;
+          line-height: 1.2 !important;
+        }
+        
+        .pdf-compact h1 {
+          font-size: 18px !important;
+          margin: 6px 0 !important;
+        }
+        
+        .pdf-compact h2 {
+          font-size: 16px !important;
+          margin: 4px 0 !important;
+        }
+        
+        .pdf-compact h3 {
+          font-size: 14px !important;
+          margin: 4px 0 !important;
+        }
+        
+        .pdf-compact .text-sm {
+          font-size: 11px !important;
+        }
+        
+        .pdf-compact .text-xs {
+          font-size: 10px !important;
+        }
+        
+        .pdf-compact table th,
+        .pdf-compact table td {
+          padding: 4px 6px !important;
+          font-size: 11px !important;
+        }
+        
+        /* Responsive adjustments for PDF */
+        @media (max-width: 768px) {
+          #invoice-content {
+            font-size: 11px !important;
+          }
         }
       `}</style>
 

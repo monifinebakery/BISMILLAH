@@ -3,3 +3,4 @@ export * from './invoiceCalculations';
 export * from './invoiceValidation';
 export * from './invoiceFormatting';
 export * from './invoiceExport';
+export * from './invoicePDF';

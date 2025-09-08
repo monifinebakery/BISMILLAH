@@ -6,3 +6,4 @@ export * from './ItemsTable';
 export * from './TotalsSection';
 export * from './PaymentInstructions';
 export * from './InvoiceActions';
+export * from './AutoGenerateButton';

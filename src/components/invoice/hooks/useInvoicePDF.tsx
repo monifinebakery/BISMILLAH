@@ -1,5 +1,5 @@
-// src/components/invoice/hooks/useInvoiceImage.tsx
-// Updated to use PDF generation instead of image export
+// src/components/invoice/hooks/useInvoicePDF.tsx
+// PDF generation hook for invoices
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { downloadInvoicePDF } from '../utils/invoicePDF';
@@ -15,13 +15,4 @@ export const useInvoicePDF = () => {
   }, []);
 
   return { handleDownloadPDF };
-};
-
-// Legacy export for backward compatibility that maintains the same interface
-export const useInvoiceImage = () => {
-  const { handleDownloadPDF } = useInvoicePDF();
-  
-  return {
-    handleDownloadImage: handleDownloadPDF // Now downloads PDF instead of image
-  };
 };

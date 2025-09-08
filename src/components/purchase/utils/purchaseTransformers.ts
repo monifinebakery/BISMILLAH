@@ -104,10 +104,14 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
   try {
     const baseData = transformFromDB(dbItem, PURCHASE_FIELD_MAPPINGS.fromDB);
 
+    // ✅ FIXED: Use unified transformer for items with debug logging
     const items: PurchaseItem[] = Array.isArray(dbItem.items)
-      ? dbItem.items.map((item: any) => 
-          transformFromDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.fromDB)
-        )
+      ? dbItem.items.map((item: any) => {
+          console.log('🔧 [PURCHASE TRANSFORM] DB Item:', item);
+          const transformedItem = transformFromDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.fromDB);
+          console.log('🔧 [PURCHASE TRANSFORM] Transformed Item:', transformedItem);
+          return transformedItem;
+        })
       : [];
 
     return {
@@ -140,8 +144,13 @@ export const transformPurchaseForDB = (
   
   return {
     ...(baseData as any),
-    // ✅ HARDENED: Gunakan mapper yang robust
-    items: (p.items ?? []).map(mapItemForDB),
+    // ✅ FIXED: Use unified transformer instead of legacy mapItemForDB
+    items: (p.items ?? []).map((item: any) => {
+      console.log('🔧 [PURCHASE TRANSFORM TO DB] Item:', item);
+      const transformedItem = transformToDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.toDB);
+      console.log('🔧 [PURCHASE TRANSFORM TO DB] Transformed Item:', transformedItem);
+      return transformedItem;
+    }),
   };
 };
 
@@ -156,8 +165,8 @@ export const transformPurchaseUpdateForDB = (p: Partial<Purchase>) => {
   if (p.metodePerhitungan !== undefined) out.metode_perhitungan = p.metodePerhitungan;
 
   if (p.items !== undefined) {
-    // ✅ HARDENED: Gunakan mapper yang robust untuk update juga
-    out.items = (p.items ?? []).map(mapItemForDB);
+    // ✅ FIXED: Use unified transformer untuk update
+    out.items = (p.items ?? []).map((item: any) => transformToDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.toDB));
   }
   return out;
 };

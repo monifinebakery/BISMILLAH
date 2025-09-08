@@ -18,21 +18,42 @@ import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profi
 const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
   if (!item) return 0;
   
+  // ✅ ENHANCED: Better validation and fallback logic
   const wac = Number(item.hargaRataRata ?? 0);
   const base = Number(item.harga ?? 0);
-  const price = wac > 0 ? wac : base;
   
-  if (wac > 0 && Math.abs(wac - base) > base * 0.2) {
+  // Priority 1: Use WAC if it exists and is positive
+  if (wac > 0) {
     // Log significant price difference for debugging (> 20% difference)
-    logger.debug(`WAC price differs significantly from base price for item ${item.nama}:`, {
-      wac,
-      base,
-      difference: Math.abs(wac - base),
-      percentDiff: Math.abs(wac - base) / base * 100
-    });
+    if (base > 0 && Math.abs(wac - base) > base * 0.2) {
+      logger.debug(`📊 WAC differs significantly from base price for ${item.nama}:`, {
+        wac: wac.toFixed(2),
+        base: base.toFixed(2),
+        difference: Math.abs(wac - base).toFixed(2),
+        percentDiff: ((Math.abs(wac - base) / base) * 100).toFixed(1) + '%',
+        using: 'WAC'
+      });
+    }
+    return wac;
   }
   
-  return price;
+  // Priority 2: Use base price if WAC not available
+  if (base > 0) {
+    logger.debug(`📊 Using base price for ${item.nama} (no WAC available):`, {
+      base: base.toFixed(2),
+      using: 'BASE'
+    });
+    return base;
+  }
+  
+  // Warning: No valid price found
+  logger.warn(`⚠️ No valid price found for item ${item.nama}:`, {
+    wac,
+    base,
+    item: item.id
+  });
+  
+  return 0;
 };
 
 /**

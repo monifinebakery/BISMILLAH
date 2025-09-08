@@ -346,6 +346,50 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
 
 // Delete an order
 export async function deleteOrder(userId: string, id: string): Promise<void> {
+  // ✅ STEP 1: Get order data before deletion for financial cleanup
+  const { data: orderData, error: fetchError } = await supabase
+    .from('orders')
+    .select('id, nomor_pesanan, total_pesanan, status')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single();
+
+  if (fetchError) {
+    logger.error('Error fetching order for deletion:', fetchError);
+    throw fetchError;
+  }
+
+  if (!orderData) {
+    logger.warn('Order not found for deletion:', id);
+    return;
+  }
+
+  logger.info('🗑️ Deleting order and cleaning up financial transactions:', {
+    orderId: id,
+    orderNumber: orderData.nomor_pesanan,
+    status: orderData.status
+  });
+
+  // ✅ STEP 2: Delete related financial transactions first
+  try {
+    const { error: financialError } = await supabase
+      .from('financial_transactions')
+      .delete()
+      .eq('user_id', userId)
+      .eq('type', 'income')
+      .eq('description', `Pesanan ${orderData.nomor_pesanan}`);
+
+    if (financialError) {
+      logger.warn('Error deleting related financial transaction:', financialError);
+      // Don't throw - continue with order deletion even if financial cleanup fails
+    } else {
+      logger.success('✅ Deleted related financial transaction for order:', orderData.nomor_pesanan);
+    }
+  } catch (cleanupError) {
+    logger.warn('Financial cleanup failed (non-critical):', cleanupError);
+  }
+
+  // ✅ STEP 3: Delete the order itself
   const { error } = await supabase
     .from('orders')
     .delete()
@@ -356,6 +400,8 @@ export async function deleteOrder(userId: string, id: string): Promise<void> {
     logger.error('Error deleting order:', error);
     throw error;
   }
+
+  logger.success('✅ Successfully deleted order and cleaned up financial data:', orderData.nomor_pesanan);
 }
 
 // ULTRA OPTIMIZED: Bulk update dengan batching untuk performa maksimal
@@ -396,8 +442,48 @@ export async function bulkUpdateStatus(userId: string, ids: string[], newStatus:
   await Promise.all(promises);
 }
 
-// ULTRA OPTIMIZED: Bulk delete dengan batching
+// ULTRA OPTIMIZED: Bulk delete dengan batching and financial cleanup
 export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<void> {
+  logger.info('🗑️ Starting bulk delete with financial cleanup for orders:', ids.length);
+  
+  // ✅ STEP 1: Get order data for financial cleanup
+  const { data: ordersData, error: fetchError } = await supabase
+    .from('orders')
+    .select('id, nomor_pesanan, total_pesanan, status')
+    .in('id', ids)
+    .eq('user_id', userId);
+
+  if (fetchError) {
+    logger.error('Error fetching orders for bulk deletion:', fetchError);
+    throw fetchError;
+  }
+
+  const orderNumbers = ordersData?.map(order => order.nomor_pesanan) || [];
+  
+  // ✅ STEP 2: Clean up financial transactions for all orders
+  if (orderNumbers.length > 0) {
+    try {
+      const descriptions = orderNumbers.map(num => `Pesanan ${num}`);
+      
+      const { error: financialError } = await supabase
+        .from('financial_transactions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('type', 'income')
+        .in('description', descriptions);
+
+      if (financialError) {
+        logger.warn('Error deleting related financial transactions:', financialError);
+        // Don't throw - continue with order deletion even if financial cleanup fails
+      } else {
+        logger.success(`✅ Deleted ${descriptions.length} related financial transactions`);
+      }
+    } catch (cleanupError) {
+      logger.warn('Financial cleanup failed (non-critical):', cleanupError);
+    }
+  }
+
+  // ✅ STEP 3: Delete orders with batching
   // PERFORMANCE: Batch processing
   const BATCH_SIZE = 25;
   const batches = [];
@@ -426,4 +512,6 @@ export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<v
   });
   
   await Promise.all(promises);
+  
+  logger.success(`✅ Successfully bulk deleted ${ids.length} orders and cleaned up financial data`);
 }

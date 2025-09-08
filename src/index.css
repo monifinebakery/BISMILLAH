@@ -420,6 +420,72 @@ This ensures they appear above ALL other UI elements.
     z-index: 10000 !important;
     max-width: 95vw !important;
   }
+
+  /* Fix tooltip positioning issues */
+  [data-radix-tooltip-portal] {
+    z-index: 9999 !important;
+  }
+  
+  [data-radix-tooltip-content] {
+    z-index: 9999 !important;
+    max-width: 300px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* Mobile tooltip enhancements - for modal-style tooltips */
+  @media (max-width: 768px) {
+    /* Better touch interaction for card stats */
+    .card-stats, .cursor-pointer {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+      tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Smooth modal backdrop animation */
+    .fixed.inset-0.z-\[9998\] {
+      animation: fadeIn 0.2s ease-out;
+    }
+    
+    /* Modal tooltip animation */
+    .fixed.top-1\/2.left-1\/2.z-\[9999\] {
+      animation: slideInScale 0.3s ease-out;
+    }
+  }
+  
+  /* Keyframes for mobile tooltip animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideInScale {
+    from { 
+      opacity: 0; 
+      transform: translate(-50%, -50%) scale(0.9);
+    }
+    to { 
+      opacity: 1; 
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+  
+  /* Perfect centering for modal tooltips */
+  .modal-tooltip-centered {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-height: 80vh;
+    max-width: calc(100vw - 2rem);
+    width: 20rem; /* 320px - consistent width */
+  }
+  
+  @media (max-width: 640px) {
+    .modal-tooltip-centered {
+      width: calc(100vw - 3rem); /* More margin on very small screens */
+      max-width: 24rem; /* 384px max */
+    }
+  }
   
   /* Ensure popover portal has proper z-index */
   [data-radix-popover-portal] {

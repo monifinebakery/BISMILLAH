@@ -122,6 +122,7 @@ const OrderStatItem: React.FC<{
   trend
 }) => {
   const [isMobile, setIsMobile] = React.useState(false);
+  const [showMobileTooltip, setShowMobileTooltip] = React.useState(false);
 
   React.useEffect(() => {
     const checkMobile = () => {
@@ -129,12 +130,25 @@ const OrderStatItem: React.FC<{
     };
     
     checkMobile();
-    safeDom.addEventListener(safeDom, window, 'resize', checkMobile);
-    return () => safeDom.removeEventListener(safeDom, window, 'resize', checkMobile);
+    safeDom.addEventListener(window, 'resize', checkMobile);
+    return () => safeDom.removeEventListener(window, 'resize', checkMobile);
   }, []);
 
+  const handleMobileTooltipToggle = () => {
+    if (isMobile && tooltip) {
+      setShowMobileTooltip(!showMobileTooltip);
+      // Auto hide after 3 seconds
+      if (!showMobileTooltip) {
+        setTimeout(() => setShowMobileTooltip(false), 3000);
+      }
+    }
+  };
+
   const statContent = (
-    <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 hover:bg-opacity-20 transition-all duration-200 h-full">
+    <div 
+      className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-4 hover:bg-opacity-20 transition-all duration-200 h-full cursor-pointer"
+      onClick={handleMobileTooltipToggle}
+    >
       <div className="h-full flex flex-col">
         {/* 🎨 Icon dan Trend */}
         <div className="flex items-center justify-between mb-3">
@@ -183,39 +197,85 @@ const OrderStatItem: React.FC<{
     </div>
   );
 
+  // Show different tooltip behavior for mobile vs desktop
   if (tooltip) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {statContent}
-          </TooltipTrigger>
-          <TooltipContent 
-            side="bottom" 
-            align="center"
-            className="max-w-xs sm:max-w-sm md:max-w-md z-50 px-4 py-3 text-sm bg-gray-900 text-white rounded-lg border-2 border-gray-700"
-            sideOffset={8}
-            avoidCollisions={true}
-            collisionPadding={16}
-          >
-            <div className="space-y-2">
-              <p className="text-sm leading-relaxed">{tooltip}</p>
-              {trend && trend.previousValue && (
-                <div className="border-t border-gray-600 pt-2">
-                  <p className="text-xs text-gray-300">
-                    Periode sebelumnya: {
-                      typeof trend.previousValue === 'number' && trend.previousValue > 1000 
-                        ? formatCurrency(trend.previousValue)
-                        : trend.previousValue.toLocaleString('id-ID')
-                    }
-                  </p>
+    if (isMobile) {
+      // Mobile: Return content with modal-style tooltip
+      return (
+        <>
+          {statContent}
+          {/* Mobile Tooltip - Modal style */}
+          {showMobileTooltip && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm" 
+                onClick={() => setShowMobileTooltip(false)}
+              />
+              {/* Tooltip content */}
+              <div className="modal-tooltip-centered z-[9999] p-4 bg-gray-900/95 backdrop-blur-md text-white text-sm rounded-xl shadow-2xl">
+                <div className="text-center">
+                  <p className="leading-relaxed break-words mb-3">{tooltip}</p>
+                  {trend && trend.previousValue && (
+                    <div className="border-t border-gray-600 pt-3 mt-3">
+                      <p className="text-xs text-gray-300">
+                        Periode sebelumnya: {
+                          typeof trend.previousValue === 'number' && trend.previousValue > 1000 
+                            ? formatCurrency(trend.previousValue)
+                            : trend.previousValue.toLocaleString('id-ID')
+                        }
+                      </p>
+                    </div>
+                  )}
+                  <div className="mt-3 pt-3 border-t border-gray-600">
+                    <button 
+                      onClick={() => setShowMobileTooltip(false)}
+                      className="text-xs text-gray-400 hover:text-white transition-colors"
+                    >
+                      ✕ Tutup
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+              </div>
+            </>
+          )}
+        </>
+      );
+    } else {
+      // Desktop: Use Radix UI tooltip
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {statContent}
+            </TooltipTrigger>
+            <TooltipContent 
+              side="bottom" 
+              align="center"
+              className="max-w-xs sm:max-w-sm md:max-w-md z-[9999] px-4 py-3 text-sm bg-gray-900 text-white rounded-lg border-2 border-gray-700"
+              sideOffset={8}
+              avoidCollisions={true}
+              collisionPadding={16}
+            >
+              <div className="space-y-2">
+                <p className="text-sm leading-relaxed">{tooltip}</p>
+                {trend && trend.previousValue && (
+                  <div className="border-t border-gray-600 pt-2">
+                    <p className="text-xs text-gray-300">
+                      Periode sebelumnya: {
+                        typeof trend.previousValue === 'number' && trend.previousValue > 1000 
+                          ? formatCurrency(trend.previousValue)
+                          : trend.previousValue.toLocaleString('id-ID')
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
   }
 
   return statContent;

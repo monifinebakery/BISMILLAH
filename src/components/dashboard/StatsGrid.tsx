@@ -199,6 +199,7 @@ const StatCard: React.FC<{
   syncStatus
 }) => {
   const [isMobile, setIsMobile] = React.useState(false);
+  const [showMobileTooltip, setShowMobileTooltip] = React.useState(false);
 
   React.useEffect(() => {
     const checkMobile = () => {
@@ -210,8 +211,21 @@ const StatCard: React.FC<{
     return () => safeDom.removeEventListener(window, 'resize', checkMobile);
   }, []);
 
+  const handleMobileTooltipToggle = () => {
+    if (isMobile && tooltip) {
+      setShowMobileTooltip(!showMobileTooltip);
+      // Auto hide after 3 seconds
+      if (!showMobileTooltip) {
+        setTimeout(() => setShowMobileTooltip(false), 3000);
+      }
+    }
+  };
+
   const cardContent = (
-    <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 relative group h-full">
+    <Card 
+      className="bg-white/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 relative group h-full cursor-pointer"
+      onClick={handleMobileTooltipToggle}
+    >
       <CardContent className="card-stats h-full relative">
         {/* Inset Border Effect */}
         <div className="absolute inset-0 rounded-lg border-[1.5px] border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
@@ -272,50 +286,89 @@ const StatCard: React.FC<{
           )}
         </div>
 
-        {/* Mobile Tooltip */}
-        {tooltip && isMobile && (
-          <div className="absolute inset-x-0 top-full mt-2 mx-4 p-3 bg-gray-900 text-white text-sm rounded-lg border-2 border-gray-700 z-50 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none">
-            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-900 border-l-2 border-t-2 border-gray-700 rotate-45"></div>
-            <p className="leading-relaxed">{tooltip}</p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
 
+  // Show different tooltip behavior for mobile vs desktop
   if (tooltip) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {cardContent}
-          </TooltipTrigger>
-          <TooltipContent 
-            side="top" 
-            align="center"
-            className="max-w-xs sm:max-w-sm md:max-w-md z-50 px-4 py-3 text-sm bg-gray-900 text-white rounded-lg border-2 border-gray-700"
-            sideOffset={8}
-            avoidCollisions={true}
-            collisionPadding={16}
-          >
-            <div className="space-y-2">
-              <p className="text-sm leading-relaxed">{tooltip}</p>
-              {trend && trend.previousValue && (
-                <div className="border-t border-gray-600 pt-2">
-                  <p className="text-xs text-gray-300">
-                    Periode sebelumnya: {
-                      typeof trend.previousValue === 'number' && trend.previousValue > 1000 
-                        ? formatCurrency(trend.previousValue)
-                        : trend.previousValue.toLocaleString('id-ID')
-                    }
-                  </p>
+    if (isMobile) {
+      // Mobile: Return card content with modal tooltip
+      return (
+        <>
+          {cardContent}
+          {/* Mobile Tooltip - Modal style */}
+          {showMobileTooltip && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm" 
+                onClick={() => setShowMobileTooltip(false)}
+              />
+              {/* Tooltip content */}
+              <div className="modal-tooltip-centered z-[9999] p-4 bg-gray-900/95 backdrop-blur-md text-white text-sm rounded-xl shadow-2xl">
+                <div className="text-center">
+                  <p className="leading-relaxed break-words mb-3">{tooltip}</p>
+                  {trend && trend.previousValue && (
+                    <div className="border-t border-gray-600 pt-3 mt-3">
+                      <p className="text-xs text-gray-300">
+                        Periode sebelumnya: {
+                          typeof trend.previousValue === 'number' && trend.previousValue > 1000 
+                            ? formatCurrency(trend.previousValue)
+                            : trend.previousValue.toLocaleString('id-ID')
+                        }
+                      </p>
+                    </div>
+                  )}
+                  <div className="mt-3 pt-3 border-t border-gray-600">
+                    <button 
+                      onClick={() => setShowMobileTooltip(false)}
+                      className="text-xs text-gray-400 hover:text-white transition-colors"
+                    >
+                      ✕ Tutup
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+              </div>
+            </>
+          )}
+        </>
+      );
+    } else {
+      // Desktop: Use Radix UI tooltip
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {cardContent}
+            </TooltipTrigger>
+            <TooltipContent 
+              side="top" 
+              align="center"
+              className="max-w-xs sm:max-w-sm md:max-w-md z-[9999] px-4 py-3 text-sm bg-gray-900 text-white rounded-lg border-2 border-gray-700"
+              sideOffset={8}
+              avoidCollisions={true}
+              collisionPadding={16}
+            >
+              <div className="space-y-2">
+                <p className="text-sm leading-relaxed">{tooltip}</p>
+                {trend && trend.previousValue && (
+                  <div className="border-t border-gray-600 pt-2">
+                    <p className="text-xs text-gray-300">
+                      Periode sebelumnya: {
+                        typeof trend.previousValue === 'number' && trend.previousValue > 1000 
+                          ? formatCurrency(trend.previousValue)
+                          : trend.previousValue.toLocaleString('id-ID')
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
   }
 
   return cardContent;

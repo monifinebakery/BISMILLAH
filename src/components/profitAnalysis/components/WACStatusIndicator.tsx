@@ -10,7 +10,7 @@ import {
   CheckCircle, 
   AlertTriangle, 
   Clock, 
-  Refresh,
+  RefreshCw,
   TrendingUp,
   Package,
   Info
@@ -170,7 +170,7 @@ const WACStatusIndicator: React.FC<WACStatusIndicatorProps> = ({
                   disabled={isCalculating}
                   className="text-xs h-7"
                 >
-                  <Refresh className={`w-3 h-3 mr-1 ${isCalculating ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`w-3 h-3 mr-1 ${isCalculating ? 'animate-spin' : ''}`} />
                   {isCalculating ? 'Update...' : 'Refresh'}
                 </Button>
               )}

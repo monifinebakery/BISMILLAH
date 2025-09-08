@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, BarChart3, TrendingUp, FileText } from 'lucide-react';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization'; // Keep for transition
-import { useIsMobile } from '@/hooks/useIsMobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // ✅ Import new UX components
 import LoadingOverlay from './LoadingOverlay';

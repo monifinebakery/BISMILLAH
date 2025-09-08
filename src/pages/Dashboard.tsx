@@ -19,12 +19,12 @@ const CriticalStock = lazy(() => import('@/components/dashboard/CriticalStock'))
 const RecentActivities = lazy(() => import('@/components/dashboard/RecentActivities'));
 const WorstSellingProducts = lazy(() => import('@/components/dashboard/WorstSellingProducts'));
 
-// 📦 Enhanced Loading Component
+// 📦 Enhanced Loading Component with Glassmorphism
 const SectionLoader = ({ height = "h-32", className = "" }) => (
-  <div className={`${height} ${className} bg-white rounded-lg border border-gray-100 flex items-center justify-center`}>
+  <div className={`${height} ${className} bg-white/20 backdrop-blur-xl border border-white/30 shadow-xl rounded-2xl flex items-center justify-center`}>
     <div className="flex items-center space-x-2">
-      <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-      <span className="text-gray-400 text-sm">Memuat...</span>
+      <div className="w-5 h-5 border-2 border-orange-500/80 border-t-transparent rounded-full animate-spin shadow-lg"></div>
+      <span className="text-gray-600 text-sm font-medium">Memuat...</span>
     </div>
   </div>
 );
@@ -135,14 +135,15 @@ const Dashboard = () => {
   // ⚠️ Error State
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md w-full text-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-hidden flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-blue-100/30 to-purple-100/40 backdrop-blur-3xl"></div>
+        <div className="relative z-10 bg-red-50/80 backdrop-blur-xl border border-red-200/50 shadow-2xl rounded-2xl p-8 max-w-md w-full text-center">
           <div className="text-red-500 text-4xl mb-4">⚠️</div>
           <h2 className="text-red-800 text-xl font-semibold mb-3">Terjadi Kesalahan</h2>
           <p className="text-red-600 mb-6 leading-relaxed">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
+            className="bg-red-600/90 backdrop-blur-sm text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl"
           >
             Muat Ulang Dashboard
           </button>
@@ -154,11 +155,12 @@ const Dashboard = () => {
   // 🔄 Loading state
   if (settingsLoading || !dateRange || !dateRange.from || !dateRange.to) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Dashboard</h2>
-          <p className="text-gray-500">Sedang menyiapkan data untuk Anda...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-hidden flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-blue-100/30 to-purple-100/40 backdrop-blur-3xl"></div>
+        <div className="relative z-10 text-center bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl p-8 shadow-2xl">
+          <div className="w-16 h-16 border-4 border-orange-500/80 border-t-transparent rounded-full animate-spin mx-auto mb-6 shadow-lg"></div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Memuat Dashboard</h2>
+          <p className="text-gray-600">Sedang menyiapkan data untuk Anda...</p>
         </div>
       </div>
     );
@@ -166,8 +168,10 @@ const Dashboard = () => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-        <div className="container-safe max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-hidden">
+        {/* Background glassmorphism layer */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-blue-100/30 to-purple-100/40 backdrop-blur-3xl"></div>
+        <div className="relative z-10 container-safe max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           
           {/* 🏠 Header Section */}
           <div className="mb-8">
@@ -181,7 +185,7 @@ const Dashboard = () => {
               
               {/* 👤 Owner Name Quick Setting */}
               {(!ownerName || ownerName === 'Nama Anda') && (
-                <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm">
+                <div className="flex items-center space-x-2 bg-amber-50/80 backdrop-blur-lg border border-amber-200/50 rounded-xl px-4 py-2.5 text-sm shadow-lg">
                   <span className="text-amber-700 font-medium">💡</span>
                   <input
                     type="text"

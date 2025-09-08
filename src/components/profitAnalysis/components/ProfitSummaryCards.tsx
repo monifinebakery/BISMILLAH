@@ -271,15 +271,15 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
     return (
       <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 ${className}`}>
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="animate-pulse">
+          <Card key={i} className="animate-pulse bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-8 w-8 rounded" />
+              <Skeleton className="h-4 w-20 bg-white/20" />
+              <Skeleton className="h-8 w-8 rounded bg-white/20" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-8 w-32 mb-2" />
-              <Skeleton className="h-4 w-24 mb-1" />
-              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-8 w-32 mb-2 bg-white/20" />
+              <Skeleton className="h-4 w-24 mb-1 bg-white/20" />
+              <Skeleton className="h-4 w-20 bg-white/20" />
             </CardContent>
           </Card>
         ))}
@@ -294,13 +294,13 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
         {cards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <Card key={index} className="opacity-50">
+            <Card key={index} className="opacity-50 bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
+                <CardTitle className="text-sm font-medium text-gray-500">
                   {card.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg bg-gray-50`}>
-                  <Icon className="w-4 h-4 text-gray-400" />
+                <div className="p-2 rounded-lg bg-white/20 backdrop-blur-lg border border-white/30">
+                  <Icon className="w-4 h-4 text-gray-500" />
                 </div>
               </CardHeader>
               <CardContent>
@@ -324,9 +324,9 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
         const hasChange = card.change !== undefined && previousAnalysis;
         
         return (
-          <Card key={index} className="hover:border-gray-300 transition-colors duration-200">
+          <Card key={index} className="bg-white/20 backdrop-blur-xl border border-white/30 shadow-2xl hover:shadow-3xl hover:bg-white/30 hover:border-white/40 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CardTitle className="text-sm font-medium text-gray-700 flex items-center">
                 {card.title}
                 {/* ✅ Mobile-friendly tooltip for all cards with helpText */}
                 {(card as any).helpText && (
@@ -341,7 +341,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                           <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-sm bg-orange-50 border-orange-200 text-orange-900">
+                      <TooltipContent side="top" className="max-w-xs text-sm bg-orange-900/95 backdrop-blur-xl text-white rounded-xl border border-white/20 shadow-2xl">
                         <p>{(card as any).helpText}</p>
                       </TooltipContent>
                     </Tooltip>
@@ -360,7 +360,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                           <Info className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-sm bg-orange-50 border-orange-200 text-orange-900">
+                      <TooltipContent side="top" className="max-w-xs text-sm bg-orange-900/95 backdrop-blur-xl text-white rounded-xl border border-white/20 shadow-2xl">
                         <p>
                           Nilai stok dihitung dari stok × harga beli rata-rata (Weighted Average Cost),
                           yaitu rata-rata harga pembelian terakhir yang sudah termasuk semua pembelian sebelumnya.
@@ -370,7 +370,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                   </TooltipProvider>
                 )}
               </CardTitle>
-              <div className={`p-2 rounded-lg ${card.bgColor}`}>
+              <div className="p-2 rounded-lg bg-white/30 backdrop-blur-lg border border-white/40 shadow-lg">
                 <Icon className={`w-4 h-4 ${card.color}`} />
               </div>
             </CardHeader>

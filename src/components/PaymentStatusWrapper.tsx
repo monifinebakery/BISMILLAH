@@ -2,6 +2,7 @@
 import { useEffect, ReactNode } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { AutoLinkingPopup } from '@/components/popups';
+import PaymentVerificationLoader from '@/components/PaymentVerificationLoader';
 import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentStatusWrapperProps {
@@ -39,15 +40,17 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
     setShowAutoLinkPopup(false);
   };
   
-  // ✅ Show loading state
+  // ✅ Show modern loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Memeriksa status pembayaran...</p>
-        </div>
-      </div>
+      <PaymentVerificationLoader 
+        stage="verifying"
+        message="Memeriksa Status Pembayaran"
+        timeout={20000}
+        onTimeout={() => {
+          console.warn('Payment verification timeout in wrapper');
+        }}
+      />
     );
   }
   
@@ -123,12 +126,15 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
   
   // ✅ Fallback loading state
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p>Memuat...</p>
-      </div>
-    </div>
+    <PaymentVerificationLoader 
+      stage="linking"
+      message="Memuat Aplikasi"
+      showProgress={false}
+      timeout={10000}
+      onTimeout={() => {
+        console.warn('Final fallback timeout');
+      }}
+    />
   );
 };
 

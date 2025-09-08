@@ -6,10 +6,12 @@ import { CheckCircle, ExternalLink, Crown, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePaymentContext } from '@/contexts/PaymentContext';
+import PaymentVerificationLoader from '@/components/PaymentVerificationLoader';
 
 const MandatoryUpgradeModal = () => {
   const { showMandatoryUpgrade, previewTimeLeft, isPaid } = usePaymentContext();
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [processingStage, setProcessingStage] = React.useState<'verifying' | 'linking'>('verifying');
 
   // Don't show timer or modal for paid users
   if (isPaid) {
@@ -18,6 +20,7 @@ const MandatoryUpgradeModal = () => {
 
   const handleUpgrade = async () => {
     setIsProcessing(true);
+    setProcessingStage('verifying');
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -82,6 +85,10 @@ const MandatoryUpgradeModal = () => {
         // Continue with payment flow even if DB operation fails
       }
 
+      // Change to linking stage
+      setProcessingStage('linking');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay for UX
+      
       // Open payment URL in new tab
       const scalevPaymentUrl = `https://monifine.my.id/checkout-page-growth-kit?discount_code=HPP2025`;
       window.open(scalevPaymentUrl, '_blank');
@@ -95,6 +102,21 @@ const MandatoryUpgradeModal = () => {
       setIsProcessing(false);
     }
   };
+
+  // Show processing loader when upgrading
+  if (isProcessing) {
+    return (
+      <PaymentVerificationLoader
+        stage={processingStage}
+        message={processingStage === 'verifying' ? 'Mempersiapkan Pembayaran' : 'Membuka Halaman Pembayaran'}
+        timeout={10000}
+        onTimeout={() => {
+          setIsProcessing(false);
+          toast.error('Proses terlalu lama. Silakan coba lagi.');
+        }}
+      />
+    );
+  }
 
   if (!showMandatoryUpgrade) {
     return (

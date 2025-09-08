@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import MandatoryUpgradeModal from '@/components/MandatoryUpgradeModal';
+import PaymentVerificationLoader from '@/components/PaymentVerificationLoader';
 import { logger } from '@/utils/logger';
 
 interface PaymentGuardProps {
@@ -46,17 +47,18 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
     );
   }
 
-  // Loading state
+  // Loading state - use unified modern loader
   if (isLoading) {
     logger.debug('PaymentGuard: Loading payment status...');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Mengecek Status Pembayaran</h2>
-          <p className="text-gray-500">Sedang memverifikasi akses Anda...</p>
-        </div>
-      </div>
+      <PaymentVerificationLoader 
+        stage="checking"
+        timeout={15000}
+        onTimeout={() => {
+          logger.warn('Payment verification timeout');
+          // Could show timeout fallback or retry
+        }}
+      />
     );
   }
 

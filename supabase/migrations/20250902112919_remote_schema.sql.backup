@@ -451,6 +451,17 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.pemakaian_bahan_daily_get()
+ RETURNS SETOF pemakaian_bahan_daily
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT *
+  FROM public.pemakaian_bahan_daily
+  WHERE user_id = (SELECT auth.uid());
+$function$
+;
 
 CREATE OR REPLACE FUNCTION public.recalculate_all_existing_wac(p_user_id uuid DEFAULT NULL::uuid)
  RETURNS TABLE(processed_purchases integer, processed_items integer, updated_materials integer, errors_count integer, processing_log text[])
@@ -711,8 +722,6 @@ AS $function$
 $function$
 ;
 
-DROP FUNCTION IF EXISTS public.month_bucket_utc(timestamp with time zone);
-
 CREATE OR REPLACE FUNCTION public.month_bucket_utc(ts timestamp with time zone)
  RETURNS timestamp with time zone
  LANGUAGE sql
@@ -780,18 +789,6 @@ create or replace view "public"."pemakaian_bahan_daily" as  SELECT user_id,
    FROM pemakaian_bahan_daily_mv
   WHERE (user_id = auth.uid());
 
-
-CREATE OR REPLACE FUNCTION public.pemakaian_bahan_daily_get()
- RETURNS SETOF pemakaian_bahan_daily
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  SELECT *
-  FROM public.pemakaian_bahan_daily
-  WHERE user_id = (SELECT auth.uid());
-$function$
-;
 
 CREATE INDEX idx_pemakaian_daily_mv_date ON public.pemakaian_bahan_daily_mv USING btree (date);
 

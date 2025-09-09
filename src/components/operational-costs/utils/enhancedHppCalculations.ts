@@ -381,8 +381,8 @@ export const calculateEnhancedHPP = async (
       overheadBreakdown: {
         overheadPerPcs,
         operasionalPerPcs,
-        totalOverheadPerPcs,
-        calculation: `${overheadPerPcs} + ${operasionalPerPcs} = ${totalOverheadPerPcs}`
+        totalOverheadForHPP,
+        calculation: `overhead_per_pcs: ${overheadPerPcs} (includes HPP+TKL), operasional: ${operasionalPerPcs}`
       },
       overheadSource,
       tklInputDetails: {
@@ -398,12 +398,12 @@ export const calculateEnhancedHPP = async (
       overhead: {
         overheadPerPcs,
         operasionalPerPcs,
-        totalOverheadPerPcs
+        totalOverheadForHPP
       },
-      hppPerPcs: bahanPerPcs + tklPerPcs + totalOverheadPerPcs,
-      hppPerPorsi: (bahanPerPcs + tklPerPcs + totalOverheadPerPcs) * jumlahPcsPerPorsi,
-      totalHPP: (bahanPerPcs + tklPerPcs + totalOverheadPerPcs) * jumlahPcsPerPorsi * jumlahPorsi,
-      note: 'Using combined overhead + operasional for complete recipe cost'
+      hppPerPcs: bahanPerPcs + tklPerPcs + totalOverheadForHPP,
+      hppPerPorsi: (bahanPerPcs + tklPerPcs + totalOverheadForHPP) * jumlahPcsPerPorsi,
+      totalHPP: (bahanPerPcs + tklPerPcs + totalOverheadForHPP) * jumlahPcsPerPorsi * jumlahPorsi,
+      note: 'UMKM mode: overhead already includes HPP + TKL costs'
     });
     
     // Additional validation check before creating result

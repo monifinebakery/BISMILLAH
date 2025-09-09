@@ -1,11 +1,11 @@
 // Service Worker for HPP Calculator PWA
 // Provides offline functionality and intelligent caching
 
-const CACHE_NAME = 'hpp-calculator-v2';
-const STATIC_CACHE = 'hpp-static-v2';
-const DYNAMIC_CACHE = 'hpp-dynamic-v2';
-const API_CACHE = 'hpp-api-v2';
-const ASSETS_CACHE = 'hpp-assets-v2';
+const CACHE_NAME = 'hpp-calculator-v3';
+const STATIC_CACHE = 'hpp-static-v3';
+const DYNAMIC_CACHE = 'hpp-dynamic-v3';
+const API_CACHE = 'hpp-api-v3';
+const ASSETS_CACHE = 'hpp-assets-v3';
 
 // Files to cache immediately
 const STATIC_ASSETS = [

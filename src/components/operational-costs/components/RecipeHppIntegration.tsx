@@ -177,7 +177,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
               <div className="bg-white p-4 rounded-lg border border-orange-200 shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <DollarSign className="h-4 w-4 text-orange-600" />
-                  <span className="text-sm font-medium text-orange-800">TKL</span>
+                  <span className="text-sm font-medium text-orange-800">TKL (Tenaga Kerja)</span>
                 </div>
                 <p className="text-xl font-bold text-orange-900">
                   Rp {result.tklPerPcs.toLocaleString('id-ID')}
@@ -198,7 +198,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                 </p>
                 {result.breakdown.overheadBreakdown && (
                   <div className="text-xs text-purple-600 mt-1">
-                    <div>• HPP + TKL: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
+                    <div>• Overhead + TKL: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
                     <div>• Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
                   </div>
                 )}
@@ -252,7 +252,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                     {result.calculationMethod === 'enhanced_dual_mode' ? 'Enhanced Dual-Mode' : 'Standard'}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {result.breakdown.overheadSource === 'app_settings' ? 'Overhead otomatis dari biaya operasional' : 'Overhead input manual'}
+                    {result.breakdown.overheadSource === 'app_settings' ? 'Biaya produksi otomatis dari biaya operasional' : 'Biaya produksi input manual'}
                   </p>
                 </div>
               </div>
@@ -266,10 +266,10 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
         <Alert className="border-orange-200 bg-orange-50">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="text-orange-800">
-            <strong>🚀 Setup Diperlukan:</strong> Untuk kalkulasi HPP otomatis, silakan setup overhead pabrik terlebih dahulu:{' '}
+            <strong>🚀 Setup Diperlukan:</strong> Untuk kalkulasi HPP otomatis, silakan setup biaya produksi (overhead) terlebih dahulu:{' '}
             <strong>Menu Biaya Operasional → Kalkulator Dual-Mode</strong>.
             <div className="mt-2 text-sm">
-              💡 Setelah setup selesai, sistem akan otomatis menghitung overhead berdasarkan biaya operasional aktual.
+              💡 Setelah setup selesai, sistem akan otomatis menghitung biaya produksi berdasarkan biaya operasional aktual.
             </div>
           </AlertDescription>
         </Alert>

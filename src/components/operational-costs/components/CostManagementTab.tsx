@@ -70,7 +70,7 @@ const CostManagementTab: React.FC<CostManagementTabProps> = ({
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="bg-blue-50 border-blue-200 text-blue-900 max-w-xs">
-                    <p>Biaya yang masuk ke dalam resep produk (bahan baku tidak langsung, overhead produksi)</p>
+                    <p>Biaya yang masuk ke dalam resep produk (bahan baku tidak langsung, biaya produksi)</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

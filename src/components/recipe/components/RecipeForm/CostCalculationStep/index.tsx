@@ -140,7 +140,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           Kalkulasi HPP Otomatis
         </h2>
         <p className="text-sm sm:text-base text-gray-600 text-overflow-safe">
-          Sistem akan menghitung HPP dan harga jual secara otomatis menggunakan overhead dari biaya operasional
+          Sistem akan menghitung HPP dan harga jual secara otomatis menggunakan biaya produksi dari biaya operasional
         </p>
       </div>
 
@@ -160,14 +160,14 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           <strong>🎯 Status Koneksi:</strong>{' '}
           {enhancedHppResult ? (
             <span className="inline-flex items-center gap-1">
-              <span>✅ Terhubung</span> - HPP terhitung otomatis dari overhead Biaya Operasional
+              <span>✓ Terhubung</span> - HPP terhitung otomatis dari biaya produksi Biaya Operasional
             </span>
           ) : (
             <span className="inline-flex items-center gap-1">
-              <span>⏳ Menunggu</span> - Setup overhead di Biaya Operasional → Dual-Mode Calculator
+              <span>⏳ Menunggu</span> - Setup biaya produksi di Biaya Operasional → Dual-Mode Calculator
             </span>
           )}<br/>
-          <strong>Formula:</strong> Bahan + TKL + Overhead Otomatis = HPP Akurat
+          <strong>Formula:</strong> Bahan + TKL + Biaya Produksi Otomatis = HPP Akurat
         </AlertDescription>
       </Alert>
 
@@ -235,7 +235,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 </div>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">TKL:</span>
+                <span className="text-gray-600">TKL (Tenaga Kerja):</span>
                 <span className="font-medium">Rp {enhancedHppResult.tklPerPcs.toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between">
@@ -258,7 +258,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-600">
               💡 <strong>Metode:</strong> {enhancedHppResult.calculationMethod === 'enhanced_dual_mode' ? 'Enhanced Dual-Mode' : 'Legacy'} •{' '}
-              <strong>Overhead:</strong> {enhancedHppResult.breakdown.overheadSource === 'app_settings' ? 'Otomatis dari Biaya Operasional' : 'Input Manual'}
+              <strong>Biaya Produksi:</strong> {enhancedHppResult.breakdown.overheadSource === 'app_settings' ? 'Otomatis dari Biaya Operasional' : 'Input Manual'}
             </p>
           </div>
         </div>

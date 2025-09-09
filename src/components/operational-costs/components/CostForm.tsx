@@ -94,7 +94,7 @@ const CostForm: React.FC<CostFormProps> = ({
     } else {
       setWarnings(prev => [
         ...prev.filter(w => !w.includes('staf produksi')),
-        'Gaji staf non-produksi ini hanya akan masuk ke overhead costs, tidak langsung ke HPP resep.'
+        'Gaji staf non-produksi ini hanya akan masuk ke biaya produksi (overhead), tidak langsung ke HPP resep.'
       ]);
     }
   };
@@ -231,7 +231,7 @@ const CostForm: React.FC<CostFormProps> = ({
             <p className="text-xs text-gray-600 mt-1">
               {isProductionStaff 
                 ? 'Akan digunakan dalam kalkulasi HPP resep sebagai biaya tenaga kerja langsung'
-                : 'Hanya masuk ke overhead costs, tidak langsung ke HPP resep'
+                : 'Hanya masuk ke biaya produksi (overhead), tidak langsung ke HPP resep'
               }
             </p>
           </div>
@@ -460,7 +460,7 @@ const CostForm: React.FC<CostFormProps> = ({
                       Admin, kasir, marketing, cleaning service, atau staf yang tidak ikut proses produksi.
                     </p>
                     <p className="text-xs text-blue-600 mt-2 font-medium">
-                      Hanya masuk ke overhead costs
+                      Hanya masuk ke biaya produksi (overhead)
                     </p>
                   </div>
                 </div>

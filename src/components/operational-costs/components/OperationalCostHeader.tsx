@@ -49,7 +49,7 @@ const OperationalCostHeader: React.FC<OperationalCostHeaderProps> = ({
               </h1>
             </div>
             <p className="text-white text-opacity-90">
-              Kelola biaya operasional dan hitung overhead per produk dengan akurat
+              Kelola biaya operasional dan hitung biaya produksi per produk dengan akurat
             </p>
 
             {/* ✅ Quick stats */}

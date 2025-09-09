@@ -71,7 +71,7 @@ const CalculatorTab: React.FC<CalculatorTabProps> = ({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="bg-green-50 border-green-200 text-green-900 max-w-xs">
-                  <p>Sistem sekarang otomatis menghitung biaya produksi (overhead) dan operasional tanpa perlu setup manual yang rumit.</p>
+                  <p>Sistem sekarang otomatis menghitung biaya produksi dan operasional tanpa perlu setup manual yang rumit.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -82,7 +82,7 @@ const CalculatorTab: React.FC<CalculatorTabProps> = ({
             <p>✅ <strong>Sistem telah disederhanakan untuk UMKM:</strong></p>
             <ul className="ml-4 space-y-1">
               <li>• Kalkulasi biaya produksi dilakukan otomatis di background</li>
-              <li>• Overhead langsung terintegrasi dengan perhitungan HPP resep</li>
+              <li>• Biaya produksi langsung terintegrasi dengan perhitungan HPP resep</li>
               <li>• Tidak perlu setup manual yang rumit</li>
               <li>• Fokus pada input biaya, sistem mengurus sisanya</li>
             </ul>

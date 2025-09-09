@@ -46,6 +46,46 @@ export async function fetchOrders(userId: string): Promise<Order[]> {
   return (data || []).map(transformOrderFromDB);
 }
 
+// Get single order by ID
+export async function getOrderById(userId: string, orderId: string): Promise<Order | null> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        nomor_pesanan,
+        tanggal,
+        nama_pelanggan,
+        telepon_pelanggan,
+        email_pelanggan,
+        alamat_pengiriman,
+        status,
+        total_pesanan,
+        catatan,
+        items,
+        created_at,
+        updated_at
+      `)
+      .eq('id', orderId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned - order not found
+        return null;
+      }
+      logger.error('Error fetching order by ID:', error);
+      throw error;
+    }
+
+    return transformOrderFromDB(data);
+  } catch (error) {
+    logger.error('Error in getOrderById:', error);
+    throw error;
+  }
+}
+
 // Fetch orders with pagination for lazy loading
 export async function fetchOrdersPaginated(
   userId: string,

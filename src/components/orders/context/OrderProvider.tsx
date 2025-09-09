@@ -191,10 +191,60 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     });
     
     try {
-      const updated = await orderService.updateOrderStatus(userId, orderIdStr, statusStr);
-      
-      // ✅ IMMEDIATE UI UPDATE: Update state optimistically
-      setOrders(prev => prev.map(o => (o.id === orderIdStr ? updated : o)));
+      // ✅ SPECIAL HANDLING: If status is changing to 'completed', use completeOrder with stock deduction
+      if (statusStr === 'completed') {
+        logger.debug('OrderProvider: Status is changing to completed - using completeOrder with stock deduction');
+        
+        // Import orderApi dynamically to avoid circular dependencies
+        const { orderApi } = await import('../api/orderApi');
+        
+        // Use the proper completeOrder function that handles stock deduction
+        const completionResult = await orderApi.completeOrder(orderIdStr);
+        
+        if (!completionResult.success) {
+          // If completion failed (e.g., insufficient stock), show specific error
+          const errorMsg = completionResult.error || 'Gagal menyelesaikan pesanan';
+          logger.error('OrderProvider: Order completion failed:', completionResult);
+          toast.error(errorMsg);
+          
+          // If there are insufficient stock details, show them
+          if (completionResult.details && completionResult.details.length > 0) {
+            toast.error(`Detail masalah: ${completionResult.details.join(', ')}`);
+          }
+          
+          return false;
+        }
+        
+        // Success! Stock was deducted and order completed
+        logger.success('OrderProvider: Order completed successfully with stock deduction:', {
+          orderId: orderIdStr,
+          orderNumber: completionResult.orderNumber,
+          totalAmount: completionResult.totalAmount,
+          stockItemsUpdated: completionResult.stockItemsUpdated
+        });
+        
+        toast.success(`Pesanan ${completionResult.orderNumber} berhasil diselesaikan! Stok telah dikurangi.`);
+        
+        // Get the updated order from database
+        const updatedOrder = await orderService.getOrderById(userId, orderIdStr);
+        if (updatedOrder) {
+          setOrders(prev => prev.map(o => (o.id === orderIdStr ? updatedOrder : o)));
+        }
+        
+      } else {
+        // ✅ NORMAL STATUS UPDATE: For other status changes (not completion)
+        logger.debug('OrderProvider: Normal status update (not completion)');
+        const updated = await orderService.updateOrderStatus(userId, orderIdStr, statusStr);
+        
+        // ✅ IMMEDIATE UI UPDATE: Update state optimistically
+        setOrders(prev => prev.map(o => (o.id === orderIdStr ? updated : o)));
+        
+        logger.success('OrderProvider: Status updated successfully:', {
+          orderId: orderIdStr,
+          newStatus: statusStr,
+          orderNumber: updated.nomorPesanan
+        });
+      }
       
       // ✅ EMIT EVENT: Trigger cross-component refresh
       emitOrderStatusChanged(orderIdStr, statusStr);
@@ -211,16 +261,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
         }, 100); // Reduced from 500ms to 100ms
       }
       
-      logger.success('OrderProvider: Status updated successfully:', {
-        orderId: orderIdStr,
-        newStatus: statusStr,
-        orderNumber: updated.nomorPesanan
-      });
-      
       return true;
     } catch (error: any) {
       logger.error('OrderProvider: updateOrderStatus error:', error, { orderIdStr, statusStr, userId });
-      toast.error(`Gagal memperbarui pesanan: ${error.message}`);
+      toast.error(`Gagal memperbarui pesanan: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }, [userId, throttledFetch, refreshData]);

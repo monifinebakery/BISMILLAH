@@ -212,6 +212,23 @@ const OperationalCostContent: React.FC = () => {
 
   const productionSuggestions = [1000, 2000, 3000, 5000, 8000, 10000];
 
+  // Update target monthly handler
+  const handleUpdateTargetMonthly = async (target: number) => {
+    try {
+      const overhead = appSettings?.overhead_per_pcs || 0;
+      const operasional = appSettings?.operasional_per_pcs || 0;
+      await appSettingsApi.updateCostPerUnit(overhead, operasional, target);
+      await loadAppSettings();
+      setProductionTarget(target);
+      toast.success('Target bulanan diperbarui', {
+        description: `${target.toLocaleString('id-ID')} pcs/bulan`
+      });
+    } catch (e) {
+      console.error('Gagal memperbarui target bulanan:', e);
+      toast.error('Gagal memperbarui target bulanan');
+    }
+  };
+
   // Onboarding handlers
   const handleStartOnboarding = () => {
     setShowOnboarding(true);
@@ -348,8 +365,9 @@ const OperationalCostContent: React.FC = () => {
         onStartOnboarding={() => setShowQuickSetup(true)}
         onOpenAddDialog={shouldShowQuickSetupHint ? () => setShowQuickSetup(true) : handleOpenAddDialog}
         appSettings={appSettings}
-        syncStatus={syncStatus}
-        lastSyncedAt={lastSyncedAt}
+        onUpdateTarget={async (target) => {
+          await handleUpdateTargetMonthly(target);
+        }}
       />
 
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">

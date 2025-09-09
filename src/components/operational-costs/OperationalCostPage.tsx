@@ -139,10 +139,11 @@ const OperationalCostContent: React.FC = () => {
     const t = setTimeout(async () => {
       try {
         setSyncStatus('syncing');
+        // Only update computed per-unit costs here. Do NOT pass target to avoid overwriting
+        // a freshly-updated target_output_monthly with a stale value.
         await appSettingsApi.updateCostPerUnit(
           computedOverhead,
-          computedOperasional,
-          target
+          computedOperasional
         );
         await loadAppSettings();
         setSyncStatus('updated');

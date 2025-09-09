@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useOperationalCost } from '../context';
 import { type AppSettings } from '../types/operationalCost.types';
 import { formatCurrency, formatNumber } from '../utils/costHelpers';
+import { parseQuantity } from '@/utils/robustNumberParser';
 
 interface OperationalCostHeaderProps {
   onStartOnboarding: () => void;
@@ -88,10 +89,21 @@ const OperationalCostHeader: React.FC<OperationalCostHeaderProps> = ({
               {editing ? (
                 <div className="flex items-center gap-2">
                   <Input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     min={1}
-                    value={targetValue}
-                    onChange={(e) => setTargetValue(Number(e.target.value) || 0)}
+                    value={String(targetValue || '')}
+                    onChange={(e) => {
+                      const next = parseQuantity(e.target.value);
+                      setTargetValue(next);
+                    }}
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter') {
+                        const next = Math.max(1, Number(targetValue) || 0);
+                        await onUpdateTarget?.(next);
+                        setEditing(false);
+                      }
+                    }}
                     className="w-40 bg-white text-gray-900"
                   />
                   <Button

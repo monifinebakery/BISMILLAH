@@ -38,6 +38,24 @@ export const userSettingsQueryKeys = {
   settings: (userId?: string) => [...userSettingsQueryKeys.all, 'settings', userId] as const,
 } as const;
 
+// ===== HELPER FUNCTIONS =====
+
+/**
+ * Helper function to safely extract object data from JSONB fields
+ * Handles cases where JSONB might contain boolean false, null, or non-object values
+ */
+const safeGetJsonbObject = (jsonbData: any, fallback: any) => {
+  // Handle null, undefined, or boolean false values
+  if (!jsonbData || typeof jsonbData === 'boolean') {
+    return fallback;
+  }
+  // Handle non-object types
+  if (typeof jsonbData !== 'object') {
+    return fallback;
+  }
+  return jsonbData;
+};
+
 // ===== DEFAULT SETTINGS =====
 const defaultSettings: UserSettings = {
   businessName: 'Bisnis Anda',
@@ -95,6 +113,8 @@ const userSettingsApi = {
       };
     }
 
+    const notifications = safeGetJsonbObject(data.notifications, defaultSettings.notifications);
+
     const loadedSettings: UserSettings = {
       businessName: data.business_name || defaultSettings.businessName,
       ownerName: data.owner_name || defaultSettings.ownerName,
@@ -102,8 +122,8 @@ const userSettingsApi = {
       phone: data.phone || defaultSettings.phone,
       address: data.address || defaultSettings.address,
       notifications: {
-        lowStock: (data.notifications as any)?.lowStock ?? defaultSettings.notifications.lowStock,
-        newOrder: (data.notifications as any)?.newOrder ?? defaultSettings.notifications.newOrder,
+        lowStock: notifications?.lowStock ?? defaultSettings.notifications.lowStock,
+        newOrder: notifications?.newOrder ?? defaultSettings.notifications.newOrder,
       },
       updatedAt: data.updated_at || new Date().toISOString()
     };
@@ -147,13 +167,19 @@ const userSettingsApi = {
       }
     }
 
+    // Use the same defensive approach for saved settings
+    const savedNotifications = safeGetJsonbObject(data.notifications, defaultSettings.notifications);
+
     const savedSettings: UserSettings = {
       businessName: data.business_name,
       ownerName: data.owner_name,
       email: data.email || '',
       phone: data.phone || '',
       address: data.address || '',
-      notifications: (data.notifications as any) || defaultSettings.notifications,
+      notifications: {
+        lowStock: savedNotifications?.lowStock ?? defaultSettings.notifications.lowStock,
+        newOrder: savedNotifications?.newOrder ?? defaultSettings.notifications.newOrder,
+      },
       updatedAt: data.updated_at
     };
 

@@ -48,7 +48,7 @@ export function AppSidebar() {
   const { isPaid } = usePaymentContext();
 
   // Dynamic warehouse data loading
-  const [bahanBaku, setBahanBaku] = React.useState<Array<{ id: string; nama: string; jumlah: number; satuan: string; hargaSatuan: number }>([]);
+  const [bahanBaku, setBahanBaku] = React.useState<Array<{ id: string; nama: string; jumlah: number; satuan: string; hargaSatuan: number }>>([]);
   
   React.useEffect(() => {
     import('@/components/warehouse/context/WarehouseContext')

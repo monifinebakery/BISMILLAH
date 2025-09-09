@@ -84,6 +84,7 @@ const OperationalCostContent: React.FC = () => {
     !localStorage.getItem('operational-costs-onboarding-seen') &&
     !localStorage.getItem('operational-costs-onboarding-skipped');
 
+
   // Load app settings
   const loadAppSettings = async () => {
     try {
@@ -406,7 +407,7 @@ const OperationalCostContent: React.FC = () => {
       
       {/* ✅ NEW: Quick Setup Templates Dialog */}
       <Dialog open={showQuickSetup} onOpenChange={(open) => !open && setShowQuickSetup(false)}>
-        <DialogContent className="sm:max-w-[700px] max-w-[95vw] w-full max-h-[90vh] p-0">
+        <DialogContent className="sm:max-w-[700px] max-w-[95vw] w-full max-h-[90vh] p-0 z-50">
           <div className="p-6">
             <QuickSetupTemplates
               onAddCosts={handleQuickSetupFromTemplates}

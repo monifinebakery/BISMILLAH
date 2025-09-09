@@ -240,8 +240,8 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                   Otomatis dari Biaya Operasional
                 </span>
               </div>
-              <p className="text-xs text-blue-600 mt-1">
-                💡 Nilai ini sudah termasuk dalam "Overhead" di hasil HPP
+            <p className="text-xs text-blue-600 mt-1">
+                💡 Nilai ini sudah termasuk dalam "Biaya Produksi (Overhead)" di hasil HPP
               </p>
             </div>
             

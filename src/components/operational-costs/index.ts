@@ -25,8 +25,7 @@ export {
   EmptyState 
 } from './components';
 
-// ✅ NEW: Dual-Mode Components
-export { default as DualModeCalculator } from './components/DualModeCalculator';
+// ✅ NEW: Recipe Integration Component
 export { default as RecipeHppIntegration } from './components/RecipeHppIntegration';
 
 // ✅ NEW: Essential Hooks for Recipe Integration

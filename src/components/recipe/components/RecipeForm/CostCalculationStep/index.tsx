@@ -240,7 +240,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">
-                  Overhead (termasuk TKL):
+                  Biaya Produksi (Overhead):
                 </span>
                 <div className="text-right">
                   <span className="font-medium">Rp {enhancedHppResult.overheadPerPcs.toLocaleString('id-ID')}</span>

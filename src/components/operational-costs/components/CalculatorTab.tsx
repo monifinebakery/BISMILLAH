@@ -1,10 +1,9 @@
 import React from 'react';
-import { Calculator, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Calculator, AlertTriangle, HelpCircle, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { OperationalCost, AppSettings } from '../types/operationalCost.types';
-import DualModeCalculator from './DualModeCalculator';
 
 interface CalculatorTabProps {
   costs: OperationalCost[];
@@ -54,70 +53,52 @@ const CalculatorTab: React.FC<CalculatorTabProps> = ({
         </Card>
       )}
       
-      {/* Calculator Guide Card */}
-      <Card className="border-orange-200 bg-orange-50">
+      {/* Seamless Calculation Info Card */}
+      <Card className="border-green-200 bg-green-50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-800">
-            <Calculator className="h-5 w-5" />
-            Kalkulator Dual-Mode
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <CheckCircle className="h-5 w-5" />
+            Kalkulasi Otomatis Seamless
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button 
                     type="button"
                     className="p-1 -m-1 touch-manipulation"
-                    aria-label="Info kalkulator dual-mode"
+                    aria-label="Info kalkulasi otomatis"
                   >
-                    <HelpCircle className="h-4 w-4 text-orange-500 hover:text-orange-700 transition-colors" />
+                    <HelpCircle className="h-4 w-4 text-green-500 hover:text-green-700 transition-colors" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="bg-orange-50 border-orange-200 text-orange-900 max-w-xs">
-                  <p>Kalkulator ini menghitung biaya per produk dari dua grup terpisah: HPP (masuk resep) dan Operasional (untuk markup harga jual).</p>
+                <TooltipContent className="bg-green-50 border-green-200 text-green-900 max-w-xs">
+                  <p>Sistem sekarang otomatis menghitung biaya produksi (overhead) dan operasional tanpa perlu setup manual yang rumit.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="text-sm text-orange-700 space-y-2">
-            <p>🧮 <strong>Hitung biaya per produk dari daftar biaya yang sudah Anda kelola:</strong></p>
+          <div className="text-sm text-green-700 space-y-2">
+            <p>✅ <strong>Sistem telah disederhanakan untuk UMKM:</strong></p>
             <ul className="ml-4 space-y-1">
-              <li>• Set target produksi bulanan</li>
-              <li>• Hitung overhead HPP per produk (masuk ke resep)</li>
-              <li>• Hitung biaya operasional per produk (untuk markup)</li>
-              <li>• Simpan hasil untuk digunakan otomatis di resep</li>
+              <li>• Kalkulasi biaya produksi dilakukan otomatis di background</li>
+              <li>• Overhead langsung terintegrasi dengan perhitungan HPP resep</li>
+              <li>• Tidak perlu setup manual yang rumit</li>
+              <li>• Fokus pada input biaya, sistem mengurus sisanya</li>
             </ul>
             
-            <div className="mt-4 p-3 bg-white rounded border border-orange-200">
-              <TooltipProvider delayDuration={100}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button 
-                      type="button"
-                      className="p-1 -m-1 touch-manipulation w-full text-left"
-                      aria-label="Info data biaya"
-                    >
-                      <p className="text-sm">
-                        💡 <strong>Data biaya:</strong> {costs.length} item biaya siap dihitung
-                        ({costs.filter(c => c.group === 'hpp').length} HPP + {costs.filter(c => c.group === 'operasional').length} Operasional)
-                      </p>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-orange-50 border-orange-200 text-orange-900 max-w-xs">
-                    <p>Menampilkan total biaya yang siap untuk dikalkulasi berdasarkan klasifikasi grup</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="mt-4 p-3 bg-white rounded border border-green-200">
+              <p className="text-sm">
+                💡 <strong>Data biaya tersedia:</strong> {costs.length} item biaya aktif
+                ({costs.filter(c => c.group === 'hpp').length} Biaya Produksi + {costs.filter(c => c.group === 'operasional').length} Operasional)
+              </p>
+              <p className="text-xs text-green-600 mt-2">
+                Lihat hasil perhitungan real-time di header orange di atas ↑
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
-      
-      <DualModeCalculator
-        costs={costs}
-        currentSettings={appSettings}
-        onCalculationComplete={onCalculationComplete}
-      />
     </div>
   );
 };

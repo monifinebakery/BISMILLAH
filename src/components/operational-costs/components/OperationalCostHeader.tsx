@@ -63,22 +63,22 @@ const OperationalCostHeader: React.FC<OperationalCostHeaderProps> = ({
               const operasionalPcs = settings?.operasional_per_pcs || (target > 0 ? opsMonthly / target : 0);
               
               return (
-                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-white/75">Biaya Aktif</div>
-                    <div className="text-sm font-semibold text-white">{activeCosts.length} biaya</div>
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3">
+                    <div className="text-xs uppercase tracking-wide text-white/75 mb-1">Biaya Aktif</div>
+                    <div className="text-base font-bold text-white">{activeCosts.length} biaya</div>
                   </div>
-                  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-white/75">Total/bulan</div>
-                    <div className="text-sm font-semibold text-white">{formatCurrency(totalMonthly)}</div>
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3">
+                    <div className="text-xs uppercase tracking-wide text-white/75 mb-1">Total/bulan</div>
+                    <div className="text-base font-bold text-white">{formatCurrency(totalMonthly)}</div>
                   </div>
-                  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-white/75">Overhead/pcs</div>
-                    <div className="text-sm font-semibold text-white">{formatCurrency(overheadPcs)}</div>
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3">
+                    <div className="text-xs uppercase tracking-wide text-white/75 mb-1">Biaya Produksi/pcs</div>
+                    <div className="text-base font-bold text-white">{formatCurrency(overheadPcs)}</div>
                   </div>
-                  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-white/75">Operasional/pcs</div>
-                    <div className="text-sm font-semibold text-white">{formatCurrency(operasionalPcs)}</div>
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3">
+                    <div className="text-xs uppercase tracking-wide text-white/75 mb-1">Operasional/pcs</div>
+                    <div className="text-base font-bold text-white">{formatCurrency(operasionalPcs)}</div>
                   </div>
                 </div>
               );

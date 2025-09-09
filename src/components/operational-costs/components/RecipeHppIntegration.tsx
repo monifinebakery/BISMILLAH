@@ -189,7 +189,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                 <div className="flex items-center gap-2 mb-2">
                   <Settings className="h-4 w-4 text-purple-600" />
                   <span className="text-sm font-medium text-purple-800">
-                    Overhead (termasuk TKL)
+                    Biaya Produksi (Overhead)
                   </span>
                 </div>
                 <p className="text-xl font-bold text-purple-900">

@@ -191,8 +191,8 @@ export const classifyCostByKeywords = (costName: string): {
  */
 export const getCostGroupLabel = (group: 'hpp' | 'operasional' | 'tkl'): string => {
   const labels = {
-    'hpp': 'Overhead Pabrik (masuk HPP)',
-    'tkl': 'Tenaga Kerja Langsung (masuk HPP)',
+    'hpp': 'Biaya Produksi - Overhead (masuk HPP)',
+    'tkl': 'Biaya Produksi - TKL (masuk HPP)',
     'operasional': 'Biaya Operasional (di luar HPP)'
   };
   return labels[group];
@@ -203,8 +203,8 @@ export const getCostGroupLabel = (group: 'hpp' | 'operasional' | 'tkl'): string 
  */
 export const getCostGroupDescription = (group: 'hpp' | 'operasional' | 'tkl'): string => {
   const descriptions = {
-    'hpp': 'Biaya tidak langsung yang terkait dengan proses produksi, seperti gas oven, sewa dapur, dan supervisi produksi. Biaya ini akan ditambahkan ke HPP produk.',
-    'tkl': 'Biaya tenaga kerja langsung untuk produksi, seperti gaji koki, helper produksi, dan lembur. Biaya ini langsung masuk ke HPP produk.',
+    'hpp': 'Biaya produksi tidak langsung (overhead), seperti gas oven, sewa dapur, listrik produksi, dan peralatan. Biaya ini masuk ke HPP produk.',
+    'tkl': 'Biaya produksi langsung untuk tenaga kerja, seperti gaji koki, helper produksi, dan lembur. Biaya ini masuk ke HPP produk.',
     'operasional': 'Biaya untuk menjalankan operasional bisnis yang tidak terkait langsung dengan produksi, seperti marketing, administrasi, dan marketplace. Biaya ini tidak menambah HPP, tetapi digunakan untuk analisis BEP dan pricing.'
   };
   return descriptions[group];

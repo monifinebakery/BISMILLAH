@@ -23,7 +23,8 @@
     "fix:payment": "node fix-payment-linking.js",
     "push": "./auto-push.sh",
     "push:quick": "git add -A && git commit -m '🚀 Quick update' && git push",
-    "push:msg": "./auto-push.sh"
+    "push:msg": "./auto-push.sh",
+    "export:tutorials": "node scripts/export-tutorials-to-md.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

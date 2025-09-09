@@ -117,14 +117,18 @@ const OperationalCostContent: React.FC = () => {
     if (!state.isAuthenticated) return;
     if (state.loading.costs) return;
 
-    const target = appSettings?.target_output_monthly || productionTarget || 0;
+    // IMPORTANT: Ensure app settings are loaded before computing.
+    // Otherwise we might accidentally overwrite target_output_monthly with a default value.
+    if (!appSettings) return;
+
+    const target = appSettings.target_output_monthly;
     if (target <= 0) return;
 
     const computedOverhead = hppCosts / target;
     const computedOperasional = operasionalCosts / target;
 
-    const currentOverhead = appSettings?.overhead_per_pcs ?? 0;
-    const currentOperasional = appSettings?.operasional_per_pcs ?? 0;
+    const currentOverhead = appSettings.overhead_per_pcs ?? 0;
+    const currentOperasional = appSettings.operasional_per_pcs ?? 0;
 
     // Avoid unnecessary updates (epsilon compare)
     const EPS = 0.0001;
@@ -161,7 +165,7 @@ const OperationalCostContent: React.FC = () => {
     }, 400);
 
     return () => clearTimeout(t);
-  }, [state.isAuthenticated, state.loading.costs, hppCosts, operasionalCosts, appSettings?.target_output_monthly, productionTarget]);
+  }, [state.isAuthenticated, state.loading.costs, hppCosts, operasionalCosts, appSettings]);
 
   // Handlers
   const handleOpenAddDialog = () => {

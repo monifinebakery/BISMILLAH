@@ -23,7 +23,7 @@ BEGIN
     RETURN QUERY
     WITH order_items AS (
         SELECT 
-            json_array_elements(o.items) as item_data
+            jsonb_array_elements(o.items) as item_data
         FROM orders o 
         WHERE o.id = order_id
     ),
@@ -40,7 +40,7 @@ BEGIN
         SELECT 
             ri.recipe_id,
             ri.order_quantity,
-            json_array_elements(hr.bahan_resep) as ingredient_data
+            jsonb_array_elements(hr.bahan_resep) as ingredient_data
         FROM recipe_items ri
         JOIN hpp_recipes hr ON hr.id = ri.recipe_id
     ),

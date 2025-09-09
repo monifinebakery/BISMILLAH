@@ -33,7 +33,7 @@ BEGIN
 
   RETURN QUERY
   WITH order_items AS (
-    SELECT json_array_elements(o.items) AS item_data FROM public.orders o WHERE o.id = order_id
+    SELECT jsonb_array_elements(o.items) AS item_data FROM public.orders o WHERE o.id = order_id
   ),
   recipe_items AS (
     SELECT (item_data->>'recipeId')::UUID AS recipe_id,
@@ -43,7 +43,7 @@ BEGIN
     WHERE (item_data->>'isFromRecipe')::BOOLEAN = true AND item_data->>'recipeId' IS NOT NULL
   ),
   recipe_ingredients AS (
-    SELECT ri.recipe_id, ri.order_quantity, json_array_elements(hr.bahan_resep) AS ingredient_data
+    SELECT ri.recipe_id, ri.order_quantity, jsonb_array_elements(hr.bahan_resep) AS ingredient_data
     FROM recipe_items ri JOIN public.hpp_recipes hr ON hr.id = ri.recipe_id
   ),
   ingredient_requirements AS (

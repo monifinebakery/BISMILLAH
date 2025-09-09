@@ -289,7 +289,7 @@ const OperationalCostContent: React.FC = () => {
       <div className="min-h-screen bg-gray-50">
       {/* ❌ REMOVED: Heavy modal onboarding */}
       <OperationalCostHeader
-        onStartOnboarding={handleStartOnboarding}
+        onStartOnboarding={() => setShowQuickSetup(true)}
         onOpenAddDialog={shouldShowQuickSetupHint ? () => setShowQuickSetup(true) : handleOpenAddDialog}
       />
 
@@ -407,7 +407,7 @@ const OperationalCostContent: React.FC = () => {
       
       {/* ✅ NEW: Quick Setup Templates Dialog */}
       <Dialog open={showQuickSetup} onOpenChange={(open) => !open && setShowQuickSetup(false)}>
-        <DialogContent className="sm:max-w-[700px] max-w-[95vw] w-full max-h-[90vh] p-0 z-50">
+        <DialogContent className="sm:max-w-[700px] max-w-[95vw] w-full max-h-[90vh] p-0">
           <div className="p-6">
             <QuickSetupTemplates
               onAddCosts={handleQuickSetupFromTemplates}

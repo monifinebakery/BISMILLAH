@@ -195,7 +195,12 @@ export const downloadInvoiceImage = async (
     link.download = `invoice-${new Date().toISOString().split('T')[0]}.${format}`;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    // Safe cleanup
+    if ((link as any).isConnected && typeof (link as any).remove === 'function') {
+      (link as any).remove();
+    } else {
+      link.parentElement?.removeChild(link as any);
+    }
     
   } catch (error) {
     console.error('Error downloading invoice image:', error);

@@ -271,6 +271,14 @@ export const useRecipeHppIntegration = (recipeData: {
   // Auto-calculate when recipe data changes and enhanced mode is active
   useEffect(() => {
     if (isEnhancedMode && recipeData.bahanResep.length > 0) {
+      console.log('🔥 [useRecipeHppIntegration] Input recipe data:', {
+        biayaTenagaKerja: recipeData.biayaTenagaKerja,
+        biayaTenagaKerjaType: typeof recipeData.biayaTenagaKerja,
+        jumlahPorsi: recipeData.jumlahPorsi,
+        jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi,
+        bahanCount: recipeData.bahanResep.length
+      });
+      
       const params: CalculateHPPParams = {
         bahanResep: recipeData.bahanResep.map(bahan => ({
           nama: bahan.nama,
@@ -291,6 +299,11 @@ export const useRecipeHppIntegration = (recipeData: {
         },
         useAppSettingsOverhead: true
       };
+      
+      console.log('🔥 [useRecipeHppIntegration] Prepared params for calculation:', {
+        tklDetails: params.tklDetails,
+        pricingMode: params.pricingMode
+      });
       
       // Debounce calculation for better performance
       const timer = setTimeout(() => {

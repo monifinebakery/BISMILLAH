@@ -50,7 +50,12 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       a.download = `${filename}-${UnifiedDateHandler.toDatabaseString(new Date())}.txt`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      // Safe cleanup to avoid removeChild errors across browsers
+      if ((a as any).isConnected && typeof (a as any).remove === 'function') {
+        (a as any).remove();
+      } else {
+        a.parentElement?.removeChild(a);
+      }
       URL.revokeObjectURL(url);
       
       toast.success('Data berhasil diekspor sebagai PDF/Text');
@@ -121,7 +126,12 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       a.download = `${filename}-${UnifiedDateHandler.toDatabaseString(new Date())}.csv`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      // Safe cleanup to avoid removeChild errors across browsers
+      if ((a as any).isConnected && typeof (a as any).remove === 'function') {
+        (a as any).remove();
+      } else {
+        a.parentElement?.removeChild(a);
+      }
       URL.revokeObjectURL(url);
       
       toast.success('Data berhasil diekspor sebagai Excel/CSV');

@@ -22,6 +22,12 @@ import { useCostClassification } from '../hooks/useCostClassification';
 import { getCostGroupLabel, getCostGroupDescription } from '../constants/costClassification';
 import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
+import { 
+  generateSmartSuggestion, 
+  formatAmount,
+  getConfidenceColor,
+  type SmartSuggestion 
+} from '../utils/smartDefaults';
 
 interface CostFormDialogProps {
   isOpen: boolean;
@@ -50,6 +56,12 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showClassificationSuggestion, setShowClassificationSuggestion] = useState(false);
+  
+  // ✅ NEW: Smart suggestions state
+  const [smartSuggestion, setSmartSuggestion] = useState<SmartSuggestion | null>(null);
+  const [showSmartSuggestion, setShowSmartSuggestion] = useState(false);
+  const [currentStep, setCurrentStep] = useState<'basic' | 'classification' | 'optional'>('basic');
+  const [hasUserEditedAmount, setHasUserEditedAmount] = useState(false);
 
   // Classification hook
   const {
@@ -91,6 +103,51 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
       setShowClassificationSuggestion(false);
     }
   }, [cost, isOpen, clearSuggestion]);
+  
+  // ✅ NEW: Smart suggestion logic when cost name changes
+  const handleCostNameChange = (value: string) => {
+    setFormData(prev => ({ ...prev, nama_biaya: value }));
+    
+    // Generate smart suggestion when user types
+    if (value.length >= 3 && !cost) { // Only for new costs
+      const suggestion = generateSmartSuggestion(value);
+      if (suggestion) {
+        setSmartSuggestion(suggestion);
+        setShowSmartSuggestion(true);
+        
+        // Auto-suggest amount if user hasn't manually edited it
+        if (!hasUserEditedAmount && suggestion.estimatedAmount) {
+          setFormData(prev => ({ ...prev, jumlah_per_bulan: suggestion.estimatedAmount || 0 }));
+        }
+      } else {
+        setShowSmartSuggestion(false);
+      }
+    } else if (value.length < 3) {
+      setShowSmartSuggestion(false);
+      setSmartSuggestion(null);
+    }
+  };
+  
+  // Handle applying smart suggestion
+  const applySmartSuggestion = () => {
+    if (smartSuggestion) {
+      setFormData(prev => ({
+        ...prev,
+        jenis: smartSuggestion.jenis,
+        group: smartSuggestion.group,
+        ...(smartSuggestion.estimatedAmount && !hasUserEditedAmount ? {
+          jumlah_per_bulan: smartSuggestion.estimatedAmount
+        } : {})
+      }));
+      
+      setShowSmartSuggestion(false);
+      setCurrentStep('optional'); // Skip classification step if auto-applied
+      
+      toast.success('Saran diterapkan!', {
+        description: `Kategori dan estimasi biaya telah diisi otomatis`
+      });
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -122,11 +179,22 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    console.log('🔥 [DEBUG] CostFormDialog handleSubmit called with formData:', {
+      formData,
+      isValid: validateForm(),
+      errors
+    });
+    
+    if (!validateForm()) {
+      console.error('🚨 [DEBUG] Form validation failed:', errors);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
+      console.log('🔥 [DEBUG] Calling onSave with formData:', formData);
       const success = await onSave(formData); // Send complete formData including group
+      console.log('🔥 [DEBUG] onSave result:', success);
 
       if (success) {
         onClose();
@@ -136,9 +204,12 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             description: `${getGroupLabel(formData.group)} - ${formatCurrency(formData.jumlah_per_bulan)}/bulan`
           }
         );
+      } else {
+        console.error('🚨 [DEBUG] onSave returned false');
+        toast.error('Gagal menyimpan biaya - operasi tidak berhasil');
       }
     } catch (error) {
-      console.error('Error saving cost:', error);
+      console.error('🚨 [DEBUG] handleSubmit catch error:', error);
       toast.error('Gagal menyimpan biaya');
     } finally {
       setIsSubmitting(false);
@@ -199,15 +270,65 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             <Input
               id="nama_biaya"
               type="text"
-              placeholder="Contoh: Sewa, Listrik, Marketing..."
+              placeholder="Contoh: Sewa Tempat, Listrik Toko, Marketing Digital..."
               value={formData.nama_biaya}
-              onChange={(e) => setFormData(prev => ({ ...prev, nama_biaya: e.target.value }))}
+              onChange={(e) => handleCostNameChange(e.target.value)}
               className={errors.nama_biaya ? 'border-red-500' : ''}
               disabled={isSubmitting}
               autoFocus
             />
             {errors.nama_biaya && (
               <p className="text-sm text-red-600">{errors.nama_biaya}</p>
+            )}
+            
+            {/* ✅ NEW: Smart Suggestion Display */}
+            {showSmartSuggestion && smartSuggestion && (
+              <div className={`mt-3 p-3 rounded-lg border ${getConfidenceColor(smartSuggestion.confidence)}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-4 w-4" />
+                      <span className="font-medium text-sm">
+                        Saran Otomatis {smartSuggestion.confidence === 'high' ? '✅' : smartSuggestion.confidence === 'medium' ? '🟡' : '🟠'}
+                      </span>
+                    </div>
+                    <p className="text-sm mb-2">{smartSuggestion.explanation}</p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <Badge variant="outline">
+                        {smartSuggestion.jenis === 'tetap' ? '📍 Tetap' : '📈 Variabel'}
+                      </Badge>
+                      <Badge variant="outline">
+                        {smartSuggestion.group === 'hpp' ? '🏢 Overhead Pabrik' : '📈 Operasional'}
+                      </Badge>
+                      {smartSuggestion.estimatedAmount && (
+                        <Badge variant="outline">
+                          💰 {formatAmount(smartSuggestion.estimatedAmount)}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={applySmartSuggestion}
+                      className="text-xs h-7 bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Gunakan
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowSmartSuggestion(false)}
+                      className="text-xs h-7"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -226,10 +347,11 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                 min="0"
                 placeholder="0"
                 value={formData.jumlah_per_bulan || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  jumlah_per_bulan: parseFloat(e.target.value) || 0 
-                }))}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  setFormData(prev => ({ ...prev, jumlah_per_bulan: value }));
+                  setHasUserEditedAmount(true); // Mark as manually edited
+                }}
                 className={`pl-8 ${errors.jumlah_per_bulan ? 'border-red-500' : ''}`}
                 disabled={isSubmitting}
               />

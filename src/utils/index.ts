@@ -181,7 +181,12 @@ export const downloadBlob = (blob: Blob, filename: string): void => {
   link.download = filename;
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
+  // Safe cleanup
+  if ((link as any).isConnected && typeof (link as any).remove === 'function') {
+    (link as any).remove();
+  } else {
+    link.parentElement?.removeChild(link as any);
+  }
   URL.revokeObjectURL(url);
 };
 
@@ -196,7 +201,12 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     document.body.appendChild(textArea);
     textArea.select();
     const successful = document.execCommand('copy');
-    document.body.removeChild(textArea);
+    // Safe cleanup
+    if ((textArea as any).isConnected && typeof (textArea as any).remove === 'function') {
+      (textArea as any).remove();
+    } else {
+      textArea.parentElement?.removeChild(textArea as any);
+    }
     return successful;
   }
 };

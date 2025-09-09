@@ -283,9 +283,27 @@ export const calculateEnhancedHPP = async (
       totalJamForPorsi: 0
     };
     
-    if (tklDetails.totalTklAmount !== undefined) {
-      // Use direct TKL amount
+    console.log('🔥 [TKL DEBUG] TKL calculation input:', {
+      tklDetails,
+      totalTklAmount: tklDetails.totalTklAmount,
+      totalTklAmountType: typeof tklDetails.totalTklAmount,
+      totalTklAmountIsUndefined: tklDetails.totalTklAmount === undefined,
+      totalTklAmountIsZero: tklDetails.totalTklAmount === 0,
+      jamKerjaPerBatch: tklDetails.jamKerjaPerBatch,
+      tarifPerJam: tklDetails.tarifPerJam,
+      totalPcs
+    });
+    
+    // ✅ FIXED: Check for both undefined AND positive values
+    if (tklDetails.totalTklAmount !== undefined && tklDetails.totalTklAmount > 0) {
+      // Use direct TKL amount (only if positive)
       tklPerPcs = totalPcs > 0 ? tklDetails.totalTklAmount / totalPcs : 0;
+      console.log('🔥 [TKL DEBUG] Using direct TKL amount:', {
+        totalTklAmount: tklDetails.totalTklAmount,
+        totalPcs,
+        tklPerPcs,
+        calculation: `${tklDetails.totalTklAmount} / ${totalPcs} = ${tklPerPcs}`
+      });
     } else if (tklDetails.jamKerjaPerBatch && tklDetails.tarifPerJam) {
       // Calculate from hourly rates
       const totalJamForPorsi = (tklDetails.jamKerjaPerBatch * jumlahPorsi);
@@ -297,6 +315,22 @@ export const calculateEnhancedHPP = async (
         tarifPerJam: tklDetails.tarifPerJam,
         totalJamForPorsi
       };
+      console.log('🔥 [TKL DEBUG] Using hourly calculation:', {
+        jamKerjaPerBatch: tklDetails.jamKerjaPerBatch,
+        tarifPerJam: tklDetails.tarifPerJam,
+        totalJamForPorsi,
+        totalTklCost,
+        tklPerPcs
+      });
+    } else {
+      console.log('🔥 [TKL DEBUG] TKL is zero or not provided:', {
+        totalTklAmount: tklDetails.totalTklAmount,
+        reason: tklDetails.totalTklAmount === undefined 
+          ? 'totalTklAmount is undefined' 
+          : tklDetails.totalTklAmount === 0 
+            ? 'totalTklAmount is zero' 
+            : 'hourly rates not provided'
+      });
     }
     
     // 4. Get overhead per pcs from app settings (dual-mode)
@@ -355,7 +389,12 @@ export const calculateEnhancedHPP = async (
     console.log('🔥 [ENHANCED DEBUG] TKL and Overhead calculation:', {
       tklPerPcs,
       overheadPerPcs,
-      overheadSource
+      overheadSource,
+      tklInputDetails: {
+        originalTklAmount: tklDetails.totalTklAmount,
+        totalPcs,
+        calculatedTklPerPcs: tklPerPcs
+      }
     });
     
     console.log('🔥 [ENHANCED DEBUG] Final HPP calculation:', {

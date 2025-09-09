@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Calculator, Edit2, Trash2, DollarSign, Settings, Info, Package, TrendingUp, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,8 @@ import {
   BulkActionsNew
 } from './components';
 import { BulkEditDialog, BulkDeleteDialog } from './dialogs';
+import { QuickSetupTemplates } from './components/QuickSetupTemplates';
+import { type CostTemplate } from './utils/smartDefaults';
 import { toast } from 'sonner';
 
 const OperationalCostContent: React.FC = () => {
@@ -36,6 +39,7 @@ const OperationalCostContent: React.FC = () => {
   const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentOnboardingStep, setCurrentOnboardingStep] = useState(0);
+  const [showQuickSetup, setShowQuickSetup] = useState(false);
 
   // Bulk operations
   const {
@@ -73,18 +77,12 @@ const OperationalCostContent: React.FC = () => {
     }
   }, [state.isAuthenticated]);
 
-  // Check if user needs onboarding (first time with no costs)
-  useEffect(() => {
-    if (state.isAuthenticated && !state.loading.costs && state.costs.length === 0) {
-      const hasSeenOnboarding = localStorage.getItem('operational-costs-onboarding-seen');
-      const hasSkippedOnboarding = localStorage.getItem('operational-costs-onboarding-skipped');
-      // Only show if user hasn't seen or explicitly skipped
-      if (!hasSeenOnboarding && !hasSkippedOnboarding) {
-        // Add small delay to let user settle in
-        setTimeout(() => setShowOnboarding(true), 1500);
-      }
-    }
-  }, [state.isAuthenticated, state.loading.costs, state.costs.length]);
+  // ✅ NEW: Contextual onboarding - show quick setup for empty state
+  const shouldShowQuickSetupHint = state.isAuthenticated && 
+    !state.loading.costs && 
+    state.costs.length === 0 && 
+    !localStorage.getItem('operational-costs-onboarding-seen') &&
+    !localStorage.getItem('operational-costs-onboarding-skipped');
 
   // Load app settings
   const loadAppSettings = async () => {
@@ -176,6 +174,35 @@ const OperationalCostContent: React.FC = () => {
     setShowOnboarding(false);
     localStorage.setItem('operational-costs-onboarding-skipped', 'true');
   };
+  
+  // ✅ NEW: Handle quick setup from templates
+  const handleQuickSetupFromTemplates = async (templates: CostTemplate[]) => {
+    let successCount = 0;
+    
+    for (const template of templates) {
+      try {
+        const success = await actions.createCost({
+          nama_biaya: template.name,
+          jumlah_per_bulan: template.estimatedAmount,
+          jenis: template.jenis,
+          group: template.group,
+          status: 'aktif',
+          deskripsi: template.description
+        });
+        if (success) successCount++;
+      } catch (error) {
+        console.error('Error creating template cost:', error);
+      }
+    }
+    
+    if (successCount > 0) {
+      toast.success(`Setup berhasil!`, {
+        description: `${successCount} biaya operasional telah ditambahkan`
+      });
+      // Mark onboarding as completed
+      localStorage.setItem('operational-costs-onboarding-seen', 'true');
+    }
+  };
 
   // Quick setup for common cost types
   const handleQuickSetup = async (type: 'bakery' | 'restaurant' | 'cafe') => {
@@ -259,20 +286,55 @@ const OperationalCostContent: React.FC = () => {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gray-50">
-      <OnboardingModal
-        isOpen={showOnboarding}
-        onClose={() => setShowOnboarding(false)}
-        onSkip={handleSkipOnboarding}
-      />
+      {/* ❌ REMOVED: Heavy modal onboarding */}
       <OperationalCostHeader
         onStartOnboarding={handleStartOnboarding}
-        onOpenAddDialog={handleOpenAddDialog}
+        onOpenAddDialog={shouldShowQuickSetupHint ? () => setShowQuickSetup(true) : handleOpenAddDialog}
       />
 
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Progress Setup - Moved to Header */}
-        <ProgressSetup costs={state.costs} appSettings={appSettings} />
+        {/* ✅ NEW: Contextual empty state with hints */}
+        {shouldShowQuickSetupHint ? (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl p-6 text-center">
+              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                🚀
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Selamat datang di Biaya Operasional!
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Mulai dengan menambahkan biaya operasional pertama Anda. Kami punya template siap pakai untuk berbagai jenis usaha.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={() => setShowQuickSetup(true)}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  🎆 Setup Cepat dengan Template
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleOpenAddDialog}
+                >
+                  + Tambah Manual
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSkipOnboarding}
+                  className="text-gray-500"
+                >
+                  Skip untuk sekarang
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <ProgressSetup costs={state.costs} appSettings={appSettings} />
+        )}
         
         {/* Tabs for Cost Management and Calculator */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -341,6 +403,19 @@ const OperationalCostContent: React.FC = () => {
         cost={editingCost}
         isLoading={state.loading.costs}
       />
+      
+      {/* ✅ NEW: Quick Setup Templates Dialog */}
+      <Dialog open={showQuickSetup} onOpenChange={(open) => !open && setShowQuickSetup(false)}>
+        <DialogContent className="sm:max-w-[700px] max-w-[95vw] w-full max-h-[90vh] p-0">
+          <div className="p-6">
+            <QuickSetupTemplates
+              onAddCosts={handleQuickSetupFromTemplates}
+              onClose={() => setShowQuickSetup(false)}
+              isLoading={state.loading.costs}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Bulk Edit Dialog */}
       <BulkEditDialog

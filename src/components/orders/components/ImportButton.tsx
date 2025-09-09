@@ -87,7 +87,12 @@ const ImportButton: React.FC = () => {
     link.download = 'template-import-pesanan.csv';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    // Safe cleanup
+    if ((link as any).isConnected && typeof (link as any).remove === 'function') {
+      (link as any).remove();
+    } else {
+      link.parentElement?.removeChild(link as any);
+    }
     toast.success('Template CSV berhasil didownload!');
   };
 

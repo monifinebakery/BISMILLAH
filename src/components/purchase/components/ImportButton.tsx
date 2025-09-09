@@ -43,7 +43,12 @@ const ImportButton: React.FC = () => {
     link.download = 'purchase-import-template.csv';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    // Safe cleanup
+    if ((link as any).isConnected && typeof (link as any).remove === 'function') {
+      (link as any).remove();
+    } else {
+      link.parentElement?.removeChild(link as any);
+    }
   };
 
   const showFormatInfo = () => {

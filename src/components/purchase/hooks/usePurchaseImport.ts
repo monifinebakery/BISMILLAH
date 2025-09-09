@@ -132,7 +132,12 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    // Safe cleanup
+    if ((link as any).isConnected && typeof (link as any).remove === 'function') {
+      (link as any).remove();
+    } else {
+      link.parentElement?.removeChild(link as any);
+    }
   };
 
   const processFile = async (file: File) => {

@@ -217,26 +217,73 @@ export const operationalCostApi = {
   // Create new cost
   async createCost(costData: CostFormData): Promise<ApiResponse<OperationalCost>> {
     try {
+      console.log('🔥 [DEBUG] createCost called with data:', {
+        nama_biaya: costData.nama_biaya,
+        jumlah_per_bulan: costData.jumlah_per_bulan,
+        jenis: costData.jenis,
+        group: costData.group,
+        status: costData.status,
+        deskripsi: costData.deskripsi
+      });
+      
+      // ✅ VALIDATION: Check required fields
+      if (!costData.nama_biaya || costData.nama_biaya.trim().length === 0) {
+        console.error('🚨 [DEBUG] nama_biaya is required');
+        return { data: {} as OperationalCost, error: 'Nama biaya wajib diisi' };
+      }
+      
+      if (!costData.jumlah_per_bulan || costData.jumlah_per_bulan <= 0) {
+        console.error('🚨 [DEBUG] jumlah_per_bulan must be greater than 0');
+        return { data: {} as OperationalCost, error: 'Jumlah per bulan harus lebih dari 0' };
+      }
+      
+      if (!costData.jenis || !['tetap', 'variabel'].includes(costData.jenis)) {
+        console.error('🚨 [DEBUG] jenis must be tetap or variabel');
+        return { data: {} as OperationalCost, error: 'Jenis biaya harus tetap atau variabel' };
+      }
+      
+      if (!costData.group || !['hpp', 'operasional'].includes(costData.group)) {
+        console.error('🚨 [DEBUG] group must be hpp or operasional');
+        return { data: {} as OperationalCost, error: 'Kelompok biaya harus dipilih' };
+      }
+      
       const userId = await getCurrentUserId();
+      console.log('🔥 [DEBUG] Current user ID:', userId);
+      
       if (!userId) {
+        console.error('🚨 [DEBUG] No user ID found');
         return { data: {} as OperationalCost, error: 'User tidak ditemukan. Silakan login kembali.' };
       }
 
       // Remove cost_category as it's a generated column in the database
       const { cost_category, ...insertData } = costData as any;
       
+      const insertPayload = {
+        ...insertData,
+        user_id: userId, // ✅ Add user_id
+        created_at: UnifiedDateHandler.toDatabaseTimestamp(new Date()) || new Date().toISOString(),
+        updated_at: UnifiedDateHandler.toDatabaseTimestamp(new Date()) || new Date().toISOString(),
+      };
+      
+      console.log('🔥 [DEBUG] Insert payload prepared:', insertPayload);
+      
       const { data, error } = await supabase
         .from('operational_costs')
-        .insert({
-          ...insertData,
-          user_id: userId, // ✅ Add user_id
-          created_at: UnifiedDateHandler.toDatabaseTimestamp(new Date()),
-          updated_at: UnifiedDateHandler.toDatabaseTimestamp(new Date()),
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('🔥 [DEBUG] Supabase insert result:', { data, error });
+      
+      if (error) {
+        console.error('🚨 [DEBUG] Supabase insert error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
 
       // Cast the database response to our typed interface
       const typedData: OperationalCost = {
@@ -258,8 +305,35 @@ export const operationalCostApi = {
 
       return { data: typedData, message: 'Biaya operasional berhasil ditambahkan' };
     } catch (error) {
+      console.error('🚨 [DEBUG] createCost catch block error:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorType: typeof error,
+        errorCode: (error as any)?.code,
+        errorDetails: (error as any)?.details,
+        errorHint: (error as any)?.hint
+      });
       logger.error('Error creating cost:', error);
-      return { data: {} as OperationalCost, error: 'Gagal menambahkan biaya operasional' };
+      
+      // Return more specific error message based on error type
+      let errorMessage = 'Gagal menambahkan biaya operasional';
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+          errorMessage = '📝 Nama biaya sudah digunakan. Silakan gunakan nama yang berbeda.';
+        } else if (error.message.includes('permission') || error.message.includes('policy')) {
+          errorMessage = '🔐 Sesi login bermasalah. Silakan refresh halaman dan coba lagi.';
+        } else if (error.message.includes('violates') || error.message.includes('constraint')) {
+          errorMessage = '⚠️ Data tidak valid. Pastikan semua field diisi dengan benar.';
+        } else if (error.message.includes('network') || error.message.includes('connection')) {
+          errorMessage = '🌐 Koneksi bermasalah. Periksa internet dan coba lagi.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = '⏰ Koneksi timeout. Coba lagi dalam beberapa saat.';
+        } else {
+          errorMessage = `❌ ${error.message.substring(0, 100)}${error.message.length > 100 ? '...' : ''}`;
+        }
+      }
+      
+      return { data: {} as OperationalCost, error: errorMessage };
     }
   },
 

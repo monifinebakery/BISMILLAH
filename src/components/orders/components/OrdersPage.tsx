@@ -1,6 +1,7 @@
 // src/components/orders/components/OrdersPage.tsx - FIXED STATUS UPDATE INTEGRATION
 
-import React, { useState, useCallback, Suspense, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
+import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -659,20 +660,28 @@ const OrdersPage: React.FC = () => {
       </header>
 
       {/* ✅ OPTIMIZED: Main content with better error handling */}
-      <Suspense fallback={
-        <div className="space-y-4">
-          <div className="h-12 bg-gray-100 rounded animate-pulse" />
-          <div className="h-16 bg-gray-100 rounded animate-pulse" />
-          <div className="h-64 bg-gray-100 rounded animate-pulse" />
-        </div>
-      }>
+      <SafeSuspense 
+        loadingMessage="Memuat konten utama..." 
+        size="lg"
+        fallback={
+          <div className="space-y-4">
+            <div className="h-12 bg-gray-100 rounded animate-pulse" />
+            <div className="h-16 bg-gray-100 rounded animate-pulse" />
+            <div className="h-64 bg-gray-100 rounded animate-pulse" />
+          </div>
+        }
+      >
         {/* ✅ STATISTICS: Order statistics section */}
-         <Suspense fallback={<div className="h-32 bg-gray-100 rounded animate-pulse" />}>
+         <SafeSuspense 
+           loadingMessage="Memuat statistik pesanan..." 
+           size="md"
+           fallback={<div className="h-32 bg-gray-100 rounded animate-pulse" />}
+         >
            <OrderStatistics 
              orders={finalOrders} 
              loading={finalIsLoading}
            />
-         </Suspense>
+         </SafeSuspense>
         
         <OrderControls 
           uiState={uiState} 
@@ -685,7 +694,11 @@ const OrdersPage: React.FC = () => {
         
         {/* ✅ BULK ACTIONS: Komponen untuk operasi massal */}
          {isSelectionMode && (
-           <Suspense fallback={<div className="h-16 bg-gray-100 rounded animate-pulse" />}>
+           <SafeSuspense 
+             loadingMessage="Memuat aksi massal..." 
+             size="sm"
+             fallback={<div className="h-16 bg-gray-100 rounded animate-pulse" />}
+           >
              <BulkActions
                 selectedOrders={selectedOrders}
                 selectedIds={selectedIds}
@@ -694,7 +707,7 @@ const OrdersPage: React.FC = () => {
                 isAllSelected={isAllSelected}
                 totalCount={finalOrders.length}
               />
-           </Suspense>
+           </SafeSuspense>
          )}
         
         <OrderTable
@@ -756,7 +769,7 @@ const OrdersPage: React.FC = () => {
           onCloseTemplateManager={dialogHandlers.closeTemplateManager}
           onCloseDetail={dialogHandlers.closeDetail}
         />
-      </Suspense>
+      </SafeSuspense>
       
       {/* ✅ DEBUG: Real-time monitoring component - only in development */}
       {import.meta.env.DEV && <OrderUpdateMonitor />}

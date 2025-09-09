@@ -1,6 +1,7 @@
 // src/components/purchase/PurchasePage.tsx - Fixed Delete with Proper Refresh
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
+import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -317,7 +318,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Purchase dialog removed - using full page navigation */}
       
       {/* Import dialog */}
-      <Suspense fallback={null}>
+      <SafeSuspense loadingMessage="Memuat dialog import...">
         {appState.dialogs.import.isOpen && (
           <PurchaseImportDialog
             isOpen={appState.dialogs.import.isOpen}
@@ -328,7 +329,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
             }}
           />
         )}
-      </Suspense>
+      </SafeSuspense>
       {/* ✅ ENHANCED: Processing overlay with delete state */}
       {(purchaseContext.isProcessing || appState.ui.isDeleting) && (
         <div className="dialog-overlay-center bg-opacity-10 pointer-events-none">

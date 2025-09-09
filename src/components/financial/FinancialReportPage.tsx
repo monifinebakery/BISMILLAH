@@ -2,6 +2,7 @@
 // ✅ SIMPLIFIED VERSION - Only Financial Reports and Charts
 
 import React, { useState, Suspense } from 'react';
+import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -621,7 +622,7 @@ const FinancialReportPage: React.FC = () => {
           {/* ✅ TRANSACTIONS TAB */}
           <TabsContent value="transactions" className="space-y-6">
             {transactionTable.isSelectionMode && (
-              <Suspense fallback={null}>
+              <SafeSuspense loadingMessage="Memuat bulk actions...">
                 <BulkActions
                   selectedTransactions={transactionTable.selectedTransactions}
                   selectedIds={transactionTable.selectedIds}
@@ -630,7 +631,7 @@ const FinancialReportPage: React.FC = () => {
                   isAllSelected={transactionTable.isAllSelected}
                   totalCount={filteredTransactions.length}
                 />
-              </Suspense>
+              </SafeSuspense>
             )}
             <Suspense fallback={<ChartSkeleton />}>
               {filteredTransactions.length > 100 ? (
@@ -728,7 +729,7 @@ const FinancialReportPage: React.FC = () => {
         </div>
 
         {/* ✅ DIALOGS - Only transaction and category dialogs */}
-        <Suspense fallback={null}>
+        <SafeSuspense loadingMessage="Memuat dialog transaksi...">
           <FinancialTransactionDialog
             isOpen={dialogs.transaction.isOpen}
             onClose={closeTransactionDialog}
@@ -737,9 +738,9 @@ const FinancialReportPage: React.FC = () => {
             categories={DEFAULT_FINANCIAL_CATEGORIES}
             transaction={dialogs.transaction.editing}
           />
-        </Suspense>
+        </SafeSuspense>
 
-        <Suspense fallback={null}>
+        <SafeSuspense loadingMessage="Memuat dialog kategori...">
           <CategoryManagementDialog
             isOpen={dialogs.category.isOpen}
             onClose={closeCategoryDialog}
@@ -767,7 +768,7 @@ const FinancialReportPage: React.FC = () => {
               return true;
             }}
           />
-        </Suspense>
+        </SafeSuspense>
       </div>
     </AuthGuard>
   );

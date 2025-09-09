@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { TabsContent } from '@/components/ui/tabs';
+import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 
 // Use new components
 import ProfitBreakdownChart from '../lazy/LazyProfitBreakdownChart';
@@ -35,7 +36,7 @@ const IkhtisarTabContent: React.FC<IkhtisarTabContentProps> = ({
   return (
     <TabsContent value="ikhtisar" className="space-y-4 sm:space-y-6 mt-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <React.Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
+        <SafeSuspense loadingMessage="Memuat chart profit...">
           <ProfitBreakdownChart 
             currentAnalysis={currentAnalysis} 
             isLoading={isLoading} 
@@ -44,7 +45,7 @@ const IkhtisarTabContent: React.FC<IkhtisarTabContentProps> = ({
             effectiveCogs={effectiveCogs ?? currentAnalysis?.cogs_data?.total ?? 0}
             labels={labels}
           />
-        </React.Suspense>
+        </SafeSuspense>
 
         <MarginAnalysis
           currentAnalysis={currentAnalysis}

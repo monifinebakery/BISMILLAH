@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 
 // Services and types
 import { recipeApi } from '../services/recipeApi';
@@ -36,52 +37,100 @@ export const RECIPE_QUERY_KEYS = {
   categories: () => [...RECIPE_QUERY_KEYS.all, 'categories'] as const,
 } as const;
 
-// Lazy loaded components with better error handling
+// Safe lazy component wrapper using universal SafeSuspense
+const LazyComponentWrapper: React.FC<{ children: React.ReactNode; loadingMessage?: string }> = ({ children, loadingMessage }) => {
+  return (
+    <SafeSuspense loadingMessage={loadingMessage || "Memuat komponen..."}>
+      {children}
+    </SafeSuspense>
+  );
+};
+
+// Lazy loaded components with better error handling and consistent fallbacks
 const DeleteRecipeDialog = React.lazy(() => 
   import('../dialogs/DeleteRecipeDialog')
+    .then(module => ({ default: module.default }))
     .catch(error => {
       logger.error('Failed to load DeleteRecipeDialog:', error);
-      return { default: () => <div>Error loading dialog</div> };
+      return { default: () => (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <p className="text-red-600">Error loading dialog</p>
+          </div>
+        </div>
+      )};
     })
 );
 
 const DuplicateRecipeDialog = React.lazy(() => 
   import('../dialogs/DuplicateRecipeDialog')
+    .then(module => ({ default: module.default }))
     .catch(error => {
       logger.error('Failed to load DuplicateRecipeDialog:', error);
-      return { default: () => <div>Error loading dialog</div> };
+      return { default: () => (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <p className="text-red-600">Error loading dialog</p>
+          </div>
+        </div>
+      )};
     })
 );
 
 const CategoryManagerDialog = React.lazy(() =>
   import('../dialogs/CategoryManagerDialog')
+    .then(module => ({ default: module.default }))
     .catch(error => {
       logger.error('Failed to load CategoryManagerDialog:', error);
-      return { default: () => <div>Error loading dialog</div> };
+      return { default: () => (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <p className="text-red-600">Error loading dialog</p>
+          </div>
+        </div>
+      )};
     })
 );
 
 const RecipeTable = React.lazy(() =>
   import('./RecipeList/RecipeTable')
+    .then(module => ({ default: module.default }))
     .catch(error => {
       logger.error('Failed to load RecipeTable:', error);
-      return { default: () => <div>Error loading table</div> };
+      return { default: () => (
+        <div className="p-6 text-center">
+          <p className="text-red-600">Error loading table</p>
+          <button onClick={() => window.location.reload()} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
+            Reload Page
+          </button>
+        </div>
+      )};
     })
 );
 
 const RecipeFilters = React.lazy(() =>
   import('./RecipeList/RecipeFilters')
+    .then(module => ({ default: module.default }))
     .catch(error => {
       logger.error('Failed to load RecipeFilters:', error);
-      return { default: () => <div>Error loading filters</div> };
+      return { default: () => (
+        <div className="p-4 bg-gray-100 rounded">
+          <p className="text-red-600">Error loading filters</p>
+        </div>
+      )};
     })
 );
 
 const RecipeStats = React.lazy(() =>
   import('./RecipeList/RecipeStats')
+    .then(module => ({ default: module.default }))
     .catch(error => {
       logger.error('Failed to load RecipeStats:', error);
-      return { default: () => <div>Error loading stats</div> };
+      return { default: () => (
+        <div className="p-4 bg-gray-100 rounded">
+          <p className="text-red-600">Error loading stats</p>
+        </div>
+      )};
     })
 );
 
@@ -159,24 +208,30 @@ const RecipeNavigationContainer: React.FC = () => {
       return { id, result };
     },
     onSuccess: ({ id }) => {
+      // Update query data optimistically
       queryClient.setQueryData(
         RECIPE_QUERY_KEYS.lists(),
         (oldData: Recipe[] | undefined) => {
-          if (!oldData) return oldData;
+          if (!oldData) return [];
           return oldData.filter(recipe => recipe.id !== id);
         }
       );
 
+      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
       
       const deletedRecipe = recipesQuery.data?.find(recipe => recipe.id === id);
       toast.success(`Resep "${deletedRecipe?.namaResep || 'Unknown'}" berhasil dihapus`);
       
+      // Reset dialog state
       setNavigationState(prev => ({ ...prev, dialogType: 'none', selectedRecipe: null }));
     },
     onError: (error: Error) => {
       logger.error('Error deleting recipe:', error);
       toast.error(error.message || 'Gagal menghapus resep');
+      // Reset dialog state on error too
+      setNavigationState(prev => ({ ...prev, dialogType: 'none', selectedRecipe: null }));
     },
   });
 
@@ -193,6 +248,7 @@ const RecipeNavigationContainer: React.FC = () => {
       return result;
     },
     onSuccess: (newRecipe) => {
+      // Update query data optimistically
       queryClient.setQueryData(
         RECIPE_QUERY_KEYS.lists(),
         (oldData: Recipe[] | undefined) => {
@@ -201,15 +257,20 @@ const RecipeNavigationContainer: React.FC = () => {
         }
       );
 
+      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
+      queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
       
       toast.success(`Resep "${newRecipe.namaResep}" berhasil diduplikasi`);
       
+      // Reset dialog state
       setNavigationState(prev => ({ ...prev, dialogType: 'none', selectedRecipe: null }));
     },
     onError: (error: Error) => {
       logger.error('Error duplicating recipe:', error);
       toast.error(error.message || 'Gagal menduplikasi resep');
+      // Reset dialog state on error too
+      setNavigationState(prev => ({ ...prev, dialogType: 'none', selectedRecipe: null }));
     },
   });
 
@@ -414,9 +475,9 @@ const RecipeNavigationContainer: React.FC = () => {
         </div>
 
         {/* Statistics Cards */}
-        <Suspense fallback={<div />}>
+        <LazyComponentWrapper loadingMessage="Memuat statistik resep...">
           <RecipeStats stats={stats} />
-        </Suspense>
+        </LazyComponentWrapper>
 
         {/* Main Content Card */}
         <Card className="border border-gray-200 bg-white/90 backdrop-blur-sm">
@@ -424,7 +485,7 @@ const RecipeNavigationContainer: React.FC = () => {
 
             {/* Filters */}
             <div className="p-6 pb-0">
-              <Suspense fallback={<div />}>
+              <LazyComponentWrapper loadingMessage="Memuat filter...">
                 <RecipeFilters
                   searchTerm={filtering.searchTerm}
                   onSearchChange={filtering.setSearchTerm}
@@ -440,7 +501,7 @@ const RecipeNavigationContainer: React.FC = () => {
                   totalResults={filtering.filteredAndSortedRecipes.length}
                   onSort={filtering.handleSort}
                 />
-              </Suspense>
+              </LazyComponentWrapper>
             </div>
 
             {/* Bulk Actions */}
@@ -471,7 +532,7 @@ const RecipeNavigationContainer: React.FC = () => {
                 />
               </div>
             ) : (
-              <Suspense fallback={<div />}>
+              <LazyComponentWrapper loadingMessage="Memuat tabel resep...">
                 <RecipeTable
                   recipes={filtering.filteredAndSortedRecipes}
                   onSort={filtering.handleSort}
@@ -488,7 +549,7 @@ const RecipeNavigationContainer: React.FC = () => {
                   onSelectAll={recipeTable.selectAll}
                   isAllSelected={recipeTable.isAllSelected}
                 />
-              </Suspense>
+              </LazyComponentWrapper>
             )}
           </CardContent>
         </Card>
@@ -518,9 +579,9 @@ const RecipeNavigationContainer: React.FC = () => {
         )}
       </div>
 
-      {/* Dialogs with improved Suspense and error handling */}
-      <Suspense fallback={<div />}>
-        {navigationState.dialogType === 'delete' && (
+      {/* Dialogs with safe error handling */}
+      {navigationState.dialogType === 'delete' && (
+        <LazyComponentWrapper loadingMessage="Memuat dialog hapus...">
           <DeleteRecipeDialog
             isOpen={true}
             onOpenChange={closeDialog}
@@ -528,9 +589,11 @@ const RecipeNavigationContainer: React.FC = () => {
             onConfirm={handleConfirmDelete}
             isLoading={deleteRecipeMutation.isPending}
           />
-        )}
+        </LazyComponentWrapper>
+      )}
 
-        {navigationState.dialogType === 'duplicate' && (
+      {navigationState.dialogType === 'duplicate' && (
+        <LazyComponentWrapper loadingMessage="Memuat dialog duplikasi...">
           <DuplicateRecipeDialog
             isOpen={true}
             onOpenChange={closeDialog}
@@ -538,9 +601,11 @@ const RecipeNavigationContainer: React.FC = () => {
             onConfirm={handleConfirmDuplicate}
             isLoading={duplicateRecipeMutation.isPending}
           />
-        )}
+        </LazyComponentWrapper>
+      )}
 
-        {navigationState.dialogType === 'category' && (
+      {navigationState.dialogType === 'category' && (
+        <LazyComponentWrapper loadingMessage="Memuat dialog kategori...">
           <CategoryManagerDialog
             isOpen={true}
             onOpenChange={closeDialog}
@@ -551,8 +616,8 @@ const RecipeNavigationContainer: React.FC = () => {
             }}
             refreshRecipes={handleRefresh}
           />
-        )}
-      </Suspense>
+        </LazyComponentWrapper>
+      )}
     </div>
   );
 };

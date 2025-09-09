@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { TabsContent } from '@/components/ui/tabs';
+import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 
 // Use lazy wrapper to keep code-splitting without mixing imports
 import DetailedBreakdownTable from '../lazy/LazyDetailedBreakdownTable';
@@ -31,7 +32,7 @@ const BreakdownTabContent: React.FC<BreakdownTabContentProps> = ({
 }) => {
   return (
     <TabsContent value="breakdown" className="space-y-4 sm:space-y-6 mt-6">
-      <React.Suspense fallback={<div className="animate-pulse bg-gray-200 h-96 rounded-lg" />}>
+      <SafeSuspense loadingMessage="Memuat tabel breakdown...">
         <DetailedBreakdownTable
           currentAnalysis={currentAnalysis}
           isLoading={isLoading}
@@ -40,7 +41,7 @@ const BreakdownTabContent: React.FC<BreakdownTabContentProps> = ({
           hppBreakdown={hppBreakdown}
           labels={labels}
         />
-      </React.Suspense>
+      </SafeSuspense>
     </TabsContent>
   );
 };

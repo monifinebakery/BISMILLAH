@@ -1,5 +1,6 @@
 import React from 'react';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
+import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import { AppLoader, AppError } from '@/components/loaders';
 
 interface RouteWrapperProps {
@@ -12,11 +13,15 @@ export const RouteWrapper: React.FC<RouteWrapperProps> = ({ children, title, spe
   const ErrorBoundaryComponent = SpecialErrorBoundary || ErrorBoundary;
 
   return (
-    <React.Suspense fallback={null}>
-      <ErrorBoundaryComponent fallback={() => <AppError title={`Gagal Memuat ${title || 'Halaman'}`} />}>
+    <SafeSuspense 
+      loadingMessage={`Memuat ${title || 'halaman'}...`} 
+      size="lg"
+      errorFallback={<AppError title={`Gagal Memuat ${title || 'Halaman'}`} />}
+    >
+      <ErrorBoundaryComponent>
         {children}
       </ErrorBoundaryComponent>
-    </React.Suspense>
+    </SafeSuspense>
   );
 };
 

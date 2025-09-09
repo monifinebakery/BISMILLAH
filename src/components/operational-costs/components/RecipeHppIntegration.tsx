@@ -188,12 +188,20 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
               <div className="bg-white p-4 rounded-lg border border-purple-200 shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Settings className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-800">Overhead</span>
+                  <span className="text-sm font-medium text-purple-800">
+                    Overhead (termasuk TKL)
+                  </span>
                 </div>
                 <p className="text-xl font-bold text-purple-900">
                   Rp {result.overheadPerPcs.toLocaleString('id-ID')}
                   <span className="text-sm font-normal text-purple-600">/pcs</span>
                 </p>
+                {result.breakdown.overheadBreakdown && (
+                  <div className="text-xs text-purple-600 mt-1">
+                    <div>• HPP + TKL: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
+                    <div>• Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -26,11 +26,11 @@ export interface BahanResepWithWAC {
 export interface EnhancedHPPCalculationResult {
   // Cost breakdown per pcs
   bahanPerPcs: number;      // Total bahan cost per pcs (WAC × quantity)
-  tklPerPcs: number;        // Tenaga kerja langsung per pcs
-  overheadPerPcs: number;   // Overhead pabrik per pcs (from app settings)
+  tklPerPcs: number;        // Tenaga kerja langsung per pcs (included in overheadPerPcs for UMKM mode)
+  overheadPerPcs: number;   // COMBINED overhead cost per pcs (HPP + TKL from app settings, UMKM-friendly)
   
   // Total HPP
-  hppPerPcs: number;        // bahanPerPcs + tklPerPcs + overheadPerPcs
+  hppPerPcs: number;        // bahanPerPcs + tklPerPcs + overheadPerPcs (where overheadPerPcs includes all operational costs)
   hppPerPorsi: number;      // hppPerPcs × jumlahPcsPerPorsi
   totalHPP: number;         // hppPerPorsi × jumlahPorsi
   
@@ -49,6 +49,13 @@ export interface EnhancedHPPCalculationResult {
       totalJamForPorsi: number;
     };
     overheadSource: 'app_settings' | 'manual_input';
+    // ✅ NEW: Detailed overhead breakdown for transparency
+    overheadBreakdown?: {
+      overheadOnly: number;     // Just overhead_per_pcs from app settings
+      operasionalOnly: number;  // Just operasional_per_pcs from app settings  
+      combined: number;         // Total: overheadOnly + operasionalOnly
+      note: string;             // Explanation of calculation method
+    };
   };
 }
 
@@ -275,7 +282,7 @@ export const calculateEnhancedHPP = async (
       calculation: `${totalBahanCost} / ${totalPcs} = ${bahanPerPcs}`
     });
     
-    // 3. Calculate TKL per pcs
+    // ✅ UMKM MODE: TKL calculation simplified (will be included in overhead from app settings)
     let tklPerPcs = 0;
     let laborDetails = {
       jamKerjaPerBatch: 0,
@@ -283,84 +290,67 @@ export const calculateEnhancedHPP = async (
       totalJamForPorsi: 0
     };
     
-    console.log('🔥 [TKL DEBUG] TKL calculation input:', {
-      tklDetails,
-      totalTklAmount: tklDetails.totalTklAmount,
-      totalTklAmountType: typeof tklDetails.totalTklAmount,
-      totalTklAmountIsUndefined: tklDetails.totalTklAmount === undefined,
-      totalTklAmountIsZero: tklDetails.totalTklAmount === 0,
-      jamKerjaPerBatch: tklDetails.jamKerjaPerBatch,
-      tarifPerJam: tklDetails.tarifPerJam,
-      totalPcs
-    });
-    
-    // ✅ FIXED: Check for both undefined AND positive values
+    // For UMKM mode, TKL is handled via operational costs system, not manual input
+    // This maintains backward compatibility for advanced users who still use manual TKL input
     if (tklDetails.totalTklAmount !== undefined && tklDetails.totalTklAmount > 0) {
-      // Use direct TKL amount (only if positive)
       tklPerPcs = totalPcs > 0 ? tklDetails.totalTklAmount / totalPcs : 0;
-      console.log('🔥 [TKL DEBUG] Using direct TKL amount:', {
+      console.log('🔥 [TKL MANUAL] Using manual TKL input (advanced mode):', {
         totalTklAmount: tklDetails.totalTklAmount,
         totalPcs,
-        tklPerPcs,
-        calculation: `${tklDetails.totalTklAmount} / ${totalPcs} = ${tklPerPcs}`
-      });
-    } else if (tklDetails.jamKerjaPerBatch && tklDetails.tarifPerJam) {
-      // Calculate from hourly rates
-      const totalJamForPorsi = (tklDetails.jamKerjaPerBatch * jumlahPorsi);
-      const totalTklCost = totalJamForPorsi * tklDetails.tarifPerJam;
-      tklPerPcs = totalPcs > 0 ? totalTklCost / totalPcs : 0;
-      
-      laborDetails = {
-        jamKerjaPerBatch: tklDetails.jamKerjaPerBatch,
-        tarifPerJam: tklDetails.tarifPerJam,
-        totalJamForPorsi
-      };
-      console.log('🔥 [TKL DEBUG] Using hourly calculation:', {
-        jamKerjaPerBatch: tklDetails.jamKerjaPerBatch,
-        tarifPerJam: tklDetails.tarifPerJam,
-        totalJamForPorsi,
-        totalTklCost,
         tklPerPcs
       });
     } else {
-      console.log('🔥 [TKL DEBUG] TKL is zero or not provided:', {
-        totalTklAmount: tklDetails.totalTklAmount,
-        reason: tklDetails.totalTklAmount === undefined 
-          ? 'totalTklAmount is undefined' 
-          : tklDetails.totalTklAmount === 0 
-            ? 'totalTklAmount is zero' 
-            : 'hourly rates not provided'
-      });
+      console.log('🔥 [TKL UMKM] TKL will come from overhead via operational costs (UMKM mode)');
     }
     
-    // 4. Get overhead per pcs from app settings (dual-mode)
+    // 4. ✅ UMKM MODE: Get combined overhead per pcs from app settings (includes HPP + TKL)
     let overheadPerPcs = 0;
+    let operasionalPerPcs = 0;
+    let totalOverheadForHPP = 0;
     let overheadSource: 'app_settings' | 'manual_input' = 'manual_input';
     
     if (useAppSettingsOverhead) {
       try {
         const settings = await getCurrentAppSettings();
-        if (settings?.overhead_per_pcs && settings.overhead_per_pcs > 0) {
-          overheadPerPcs = settings.overhead_per_pcs;
+        const hasOverheadData = (settings?.overhead_per_pcs && settings.overhead_per_pcs > 0);
+        const hasOperasionalData = (settings?.operasional_per_pcs && settings.operasional_per_pcs > 0);
+        
+        if (hasOverheadData || hasOperasionalData) {
+          overheadPerPcs = settings?.overhead_per_pcs || 0; // Already includes HPP + TKL from triple-mode calc
+          operasionalPerPcs = settings?.operasional_per_pcs || 0;
+          
+          // ✅ UMKM MODE: overhead_per_pcs already includes HPP + TKL, just use it for HPP calculation
+          // operasional_per_pcs stays separate for BEP analysis, not included in recipe HPP
+          totalOverheadForHPP = overheadPerPcs;
           overheadSource = 'app_settings';
-          console.log('💡 Using overhead from app settings:', overheadPerPcs);
+          
+          console.log('💡 Using UMKM-mode costs from app settings:', {
+            overheadPerPcs: overheadPerPcs, // Already includes HPP + TKL
+            operasionalPerPcs: operasionalPerPcs, // Separate for analysis
+            totalOverheadForHPP: totalOverheadForHPP,
+            note: 'overhead_per_pcs already combines HPP + TKL costs for UMKM simplicity'
+          });
         } else {
-          console.log('⚠️ App settings found but no overhead calculated yet. Please configure operational costs.');
+          console.log('⚠️ App settings found but no overhead/operasional costs calculated yet. Please configure operational costs.');
         }
       } catch (error) {
         console.warn('Could not load overhead from app settings:', error);
       }
     }
     
-    // 5. Calculate total HPP per pcs (Revision 4 formula)
-    console.log('🔥 [BEFORE ROUNDING] Values before final calculation:', {
+    // 5. ✅ UMKM MODE: Calculate HPP per pcs (Bahan + TKL + Overhead)
+    // Note: TKL is either manual input OR already included in totalOverheadForHPP from app settings
+    console.log('🔥 [BEFORE ROUNDING] UMKM-mode values before final calculation:', {
       bahanPerPcs,
-      tklPerPcs,
-      overheadPerPcs,
-      sum: bahanPerPcs + tklPerPcs + overheadPerPcs
+      tklPerPcsManual: tklPerPcs, // Manual TKL input (if any)
+      overheadPerPcsFromSettings: overheadPerPcs, // Already includes HPP + TKL from operational costs
+      totalOverheadForHPP: totalOverheadForHPP,
+      operasionalPerPcs: operasionalPerPcs, // Not included in HPP, for separate analysis
+      finalHppSum: bahanPerPcs + tklPerPcs + totalOverheadForHPP,
+      note: 'UMKM mode: overhead already includes TKL from operational costs'
     });
     
-    const hppPerPcs = Math.round(bahanPerPcs + tklPerPcs + overheadPerPcs);
+    const hppPerPcs = Math.round(bahanPerPcs + tklPerPcs + totalOverheadForHPP);
     const hppPerPorsi = hppPerPcs * jumlahPcsPerPorsi;
     const totalHPP = hppPerPorsi * jumlahPorsi;
     
@@ -388,7 +378,12 @@ export const calculateEnhancedHPP = async (
     
     console.log('🔥 [ENHANCED DEBUG] TKL and Overhead calculation:', {
       tklPerPcs,
-      overheadPerPcs,
+      overheadBreakdown: {
+        overheadPerPcs,
+        operasionalPerPcs,
+        totalOverheadPerPcs,
+        calculation: `${overheadPerPcs} + ${operasionalPerPcs} = ${totalOverheadPerPcs}`
+      },
       overheadSource,
       tklInputDetails: {
         originalTklAmount: tklDetails.totalTklAmount,
@@ -400,10 +395,15 @@ export const calculateEnhancedHPP = async (
     console.log('🔥 [ENHANCED DEBUG] Final HPP calculation:', {
       bahanPerPcs,
       tklPerPcs,
-      overheadPerPcs,
-      hppPerPcs: bahanPerPcs + tklPerPcs + overheadPerPcs,
-      hppPerPorsi: (bahanPerPcs + tklPerPcs + overheadPerPcs) * jumlahPcsPerPorsi,
-      totalHPP: (bahanPerPcs + tklPerPcs + overheadPerPcs) * jumlahPcsPerPorsi * jumlahPorsi
+      overhead: {
+        overheadPerPcs,
+        operasionalPerPcs,
+        totalOverheadPerPcs
+      },
+      hppPerPcs: bahanPerPcs + tklPerPcs + totalOverheadPerPcs,
+      hppPerPorsi: (bahanPerPcs + tklPerPcs + totalOverheadPerPcs) * jumlahPcsPerPorsi,
+      totalHPP: (bahanPerPcs + tklPerPcs + totalOverheadPerPcs) * jumlahPcsPerPorsi * jumlahPorsi,
+      note: 'Using combined overhead + operasional for complete recipe cost'
     });
     
     // Additional validation check before creating result
@@ -438,14 +438,14 @@ export const calculateEnhancedHPP = async (
         saferTotalBahanCost
       });
       
-      const saferHppPerPcs = Math.round(saferBahanPerPcs + tklPerPcs + overheadPerPcs);
+      const saferHppPerPcs = Math.round(saferBahanPerPcs + tklPerPcs + totalOverheadForHPP);
       const saferHppPerPorsi = saferHppPerPcs * jumlahPcsPerPorsi;
       const saferTotalHPP = saferHppPerPorsi * jumlahPorsi;
       
       return {
         bahanPerPcs: Math.round(saferBahanPerPcs),
         tklPerPcs: Math.round(tklPerPcs),
-        overheadPerPcs: Math.round(overheadPerPcs),
+        overheadPerPcs: Math.round(totalOverheadForHPP), // Using UMKM-mode overhead (includes HPP + TKL)
         hppPerPcs: saferHppPerPcs,
         hppPerPorsi: saferHppPerPorsi,
         totalHPP: saferTotalHPP,
@@ -456,7 +456,13 @@ export const calculateEnhancedHPP = async (
         breakdown: {
           ingredients: saferIngredients as BahanResepWithWAC[],
           laborDetails,
-          overheadSource
+          overheadSource,
+          overheadBreakdown: overheadSource === 'app_settings' ? {
+            overheadOnly: overheadPerPcs, // Already includes HPP + TKL
+            operasionalOnly: operasionalPerPcs,
+            combined: totalOverheadForHPP,
+            note: 'UMKM mode: Overhead includes HPP + TKL costs for simplicity (fallback calculation)'
+          } : undefined
         }
       };
     }
@@ -464,7 +470,7 @@ export const calculateEnhancedHPP = async (
     const result: EnhancedHPPCalculationResult = {
       bahanPerPcs: Math.round(bahanPerPcs),
       tklPerPcs: Math.round(tklPerPcs),
-      overheadPerPcs: Math.round(overheadPerPcs),
+      overheadPerPcs: Math.round(totalOverheadForHPP), // ✅ UMKM MODE: Using overhead that includes HPP + TKL
       hppPerPcs,
       hppPerPorsi,
       totalHPP,
@@ -475,7 +481,14 @@ export const calculateEnhancedHPP = async (
       breakdown: {
         ingredients: ingredientsWithWAC,
         laborDetails,
-        overheadSource
+        overheadSource,
+        // ✅ UMKM MODE: Simplified breakdown for easier understanding
+        overheadBreakdown: overheadSource === 'app_settings' ? {
+          overheadOnly: overheadPerPcs, // Already includes HPP + TKL from triple-mode
+          operasionalOnly: operasionalPerPcs, // Separate, not included in HPP
+          combined: totalOverheadForHPP, // What's actually used in HPP calculation
+          note: 'UMKM mode: Overhead includes HPP + TKL costs for simplicity. Operasional separate for analysis.'
+        } : undefined
       }
     };
     

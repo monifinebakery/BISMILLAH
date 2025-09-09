@@ -28,6 +28,30 @@ export const HPP_KEYWORDS = [
 ];
 
 // ====================================
+// TKL (TENAGA KERJA LANGSUNG) KEYWORDS  
+// ====================================
+
+export const TKL_KEYWORDS = [
+  // Direct Production Labor
+  'koki', 'chef', 'tukang masak', 'baker', 'pastry chef',
+  'operator produksi', 'staff produksi', 'pekerja produksi',
+  'asisten koki', 'helper produksi', 'tukang potong', 'tukang adon',
+  
+  // Wages & Labor Costs
+  'gaji harian', 'upah harian', 'borongan', 'piece rate',
+  'lembur produksi', 'overtime produksi', 'shift produksi',
+  'bonus produksi', 'insentif produksi',
+  
+  // Direct Labor Benefits
+  'uang makan produksi', 'transport produksi', 'seragam produksi',
+  'thr produksi', 'bpjs produksi', 'jamsostek produksi',
+  
+  // Production Team
+  'tim produksi', 'crew produksi', 'team kitchen', 'staff kitchen',
+  'pekerja langsung', 'tenaga kerja langsung', 'direct labor'
+];
+
+// ====================================
 // OPERASIONAL (NON-HPP) KEYWORDS  
 // ====================================
 
@@ -72,6 +96,11 @@ export const COST_CLASSIFICATION_RULES: CostClassificationRule[] = [
     description: 'Overhead Pabrik (masuk HPP): Biaya produksi tidak langsung yang terkait dengan proses pembuatan produk'
   },
   {
+    keywords: TKL_KEYWORDS,
+    group: 'tkl',
+    description: 'Tenaga Kerja Langsung (masuk HPP): Gaji dan biaya staf yang terlibat langsung dalam proses produksi'
+  },
+  {
     keywords: OPERASIONAL_KEYWORDS,
     group: 'operasional',
     description: 'Biaya Operasional (di luar HPP): Biaya untuk menjalankan bisnis yang tidak terkait langsung dengan produksi'
@@ -86,7 +115,7 @@ export const COST_CLASSIFICATION_RULES: CostClassificationRule[] = [
  * Classify cost based on name using keyword matching
  */
 export const classifyCostByKeywords = (costName: string): {
-  suggested_group: 'hpp' | 'operasional' | null;
+  suggested_group: 'hpp' | 'operasional' | 'tkl' | null;
   confidence: 'high' | 'medium' | 'low';
   reason: string;
   matched_keywords: string[];
@@ -98,35 +127,53 @@ export const classifyCostByKeywords = (costName: string): {
     lowercaseName.includes(keyword.toLowerCase())
   );
   
+  // ✅ NEW: Check TKL keywords
+  const tklMatches = TKL_KEYWORDS.filter(keyword => 
+    lowercaseName.includes(keyword.toLowerCase())
+  );
+  
   // Check OPERASIONAL keywords  
   const operasionalMatches = OPERASIONAL_KEYWORDS.filter(keyword => 
     lowercaseName.includes(keyword.toLowerCase())
   );
   
-  // Determine classification
-  if (hppMatches.length > operasionalMatches.length) {
-    const confidence = hppMatches.length >= 2 ? 'high' : 'medium';
+  // ✅ NEW: Determine classification with TKL priority
+  const allMatches = [
+    { group: 'tkl', matches: tklMatches, label: 'Tenaga Kerja Langsung' },
+    { group: 'hpp', matches: hppMatches, label: 'Overhead Pabrik' },
+    { group: 'operasional', matches: operasionalMatches, label: 'Biaya Operasional' }
+  ];
+  
+  // Find the group with the most matches
+  const bestMatch = allMatches.reduce((best, current) => 
+    current.matches.length > best.matches.length ? current : best
+  );
+  
+  // TKL gets priority if there are matches (labor costs are specific)
+  if (tklMatches.length > 0) {
+    const confidence = tklMatches.length >= 2 ? 'high' : 'medium';
     return {
-      suggested_group: 'hpp',
+      suggested_group: 'tkl' as const,
       confidence,
-      reason: `Cocok dengan kata kunci Overhead Pabrik: ${hppMatches.join(', ')}`,
-      matched_keywords: hppMatches
+      reason: `Cocok dengan kata kunci ${bestMatch.label}: ${tklMatches.join(', ')}`,
+      matched_keywords: tklMatches
     };
-  } else if (operasionalMatches.length > hppMatches.length) {
-    const confidence = operasionalMatches.length >= 2 ? 'high' : 'medium';
+  } else if (bestMatch.matches.length > 0) {
+    const confidence = bestMatch.matches.length >= 2 ? 'high' : 'medium';
     return {
-      suggested_group: 'operasional',
+      suggested_group: bestMatch.group as 'hpp' | 'operasional',
       confidence,
-      reason: `Cocok dengan kata kunci Biaya Operasional: ${operasionalMatches.join(', ')}`,
-      matched_keywords: operasionalMatches
+      reason: `Cocok dengan kata kunci ${bestMatch.label}: ${bestMatch.matches.join(', ')}`,
+      matched_keywords: bestMatch.matches
     };
-  } else if (hppMatches.length > 0 && operasionalMatches.length > 0) {
+  } else if (allMatches.some(m => m.matches.length > 0)) {
     // Ambiguous case
+    const ambiguousMatches = allMatches.filter(m => m.matches.length > 0);
     return {
       suggested_group: null,
       confidence: 'low',
-      reason: `Ambiguous: cocok dengan kedua kategori (HPP: ${hppMatches.join(', ')}, Operasional: ${operasionalMatches.join(', ')})`,
-      matched_keywords: [...hppMatches, ...operasionalMatches]
+      reason: `Ambiguous: cocok dengan beberapa kategori (${ambiguousMatches.map(m => `${m.label}: ${m.matches.join(', ')}`).join(', ')})`,
+      matched_keywords: ambiguousMatches.flatMap(m => m.matches)
     };
   }
   
@@ -142,9 +189,10 @@ export const classifyCostByKeywords = (costName: string): {
 /**
  * Get user-friendly group labels in Indonesian
  */
-export const getCostGroupLabel = (group: 'hpp' | 'operasional'): string => {
+export const getCostGroupLabel = (group: 'hpp' | 'operasional' | 'tkl'): string => {
   const labels = {
     'hpp': 'Overhead Pabrik (masuk HPP)',
+    'tkl': 'Tenaga Kerja Langsung (masuk HPP)',
     'operasional': 'Biaya Operasional (di luar HPP)'
   };
   return labels[group];
@@ -153,9 +201,10 @@ export const getCostGroupLabel = (group: 'hpp' | 'operasional'): string => {
 /**
  * Get group descriptions for UI tooltips
  */
-export const getCostGroupDescription = (group: 'hpp' | 'operasional'): string => {
+export const getCostGroupDescription = (group: 'hpp' | 'operasional' | 'tkl'): string => {
   const descriptions = {
     'hpp': 'Biaya tidak langsung yang terkait dengan proses produksi, seperti gas oven, sewa dapur, dan supervisi produksi. Biaya ini akan ditambahkan ke HPP produk.',
+    'tkl': 'Biaya tenaga kerja langsung untuk produksi, seperti gaji koki, helper produksi, dan lembur. Biaya ini langsung masuk ke HPP produk.',
     'operasional': 'Biaya untuk menjalankan operasional bisnis yang tidak terkait langsung dengan produksi, seperti marketing, administrasi, dan marketplace. Biaya ini tidak menambah HPP, tetapi digunakan untuk analisis BEP dan pricing.'
   };
   return descriptions[group];

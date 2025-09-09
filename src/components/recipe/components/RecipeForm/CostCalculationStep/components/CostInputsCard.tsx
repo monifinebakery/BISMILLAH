@@ -198,77 +198,62 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
         </CardHeader>
         <CardContent className="space-y-6">
           
-          {/* Labor Cost */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-500" />
-              Biaya Tenaga Kerja
+          {/* ✅ UMKM MODE: Hide manual TKL input - TKL comes from Biaya Operasional */}
+          <div className="space-y-2 bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-600" />
+              <Label className="text-sm font-medium text-blue-800">
+                Tenaga Kerja Langsung (TKL)
+              </Label>
               <ResponsiveTooltip 
                 content={
                   <div className="space-y-2">
-                    <p className="font-semibold text-yellow-300">💼 Biaya Tenaga Kerja:</p>
-                    <p className="leading-relaxed">Gaji staf produksi (koki, staf dapur) yang terlibat langsung dalam membuat produk makanan/minuman.</p>
+                    <p className="font-semibold text-blue-300">🎯 UMKM Mode - TKL Otomatis:</p>
+                    <p className="leading-relaxed">Biaya tenaga kerja langsung (gaji koki, helper produksi) diambil otomatis dari Biaya Operasional.</p>
                     
                     <div className="border-t border-gray-700 pt-2">
-                      <p className="text-red-300">❌ Bukan termasuk:</p>
-                      <p className="text-gray-300 text-xs ml-4">• Gaji admin, kasir, marketing</p>
-                      <p className="text-gray-300 text-xs ml-4">• Staff non-produksi lainnya</p>
+                      <p className="text-green-300">✅ Cara setup:</p>
+                      <p className="text-gray-300 text-xs ml-4">• Masuk menu Biaya Operasional</p>
+                      <p className="text-gray-300 text-xs ml-4">• Tambah biaya dengan nama "Gaji Koki", "Upah Harian", dll</p>
+                      <p className="text-gray-300 text-xs ml-4">• Pilih kategori "Tenaga Kerja Langsung"</p>
+                      <p className="text-gray-300 text-xs ml-4">• Sistem otomatis hitung per pcs</p>
                     </div>
                     
                     <div className="border-t border-gray-700 pt-2">
-                      <p className="text-green-300">✅ Yang dihitung:</p>
-                      <p className="text-gray-300 text-xs ml-4">• Staf yang ikut proses produksi</p>
-                      <p className="text-gray-300 text-xs ml-4">• Untuk periode batch ini saja</p>
-                    </div>
-                    
-                    <div className="border-t border-gray-700 pt-2">
-                      <p className="font-medium text-blue-300">📊 Formula:</p>
+                      <p className="font-medium text-orange-300">📊 Formula Auto:</p>
                       <p className="text-xs bg-gray-800 p-2 rounded mt-1 font-mono">
-                        (Total Gaji Bulanan Staf Produksi) ÷<br/>
-                        (Total Porsi Diproduksi per Bulan)
+                        (Total Gaji TKL per Bulan) ÷<br/>
+                        (Target Produksi per Bulan) = TKL per pcs
                       </p>
                     </div>
                   </div>
                 }
               >
-                <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                <Info className="h-4 w-4 text-blue-500 hover:text-blue-700 cursor-help" />
               </ResponsiveTooltip>
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                Rp
-              </span>
-              <Input
-                type="number"
-                min="0"
-                value={data.biayaTenagaKerja?.toString() || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // Allow empty string for better UX during typing
-                  if (value === '') {
-                    onUpdate('biayaTenagaKerja', 0);
-                  } else {
-                    const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                      onUpdate('biayaTenagaKerja', numValue);
-                    }
-                  }
-                }}
-                placeholder="0"
-                className={`pl-8 ${errors.biayaTenagaKerja ? 'border-red-300 focus:border-red-500' : ''}`}
-                disabled={isLoading}
-              />
             </div>
-            {errors.biayaTenagaKerja && (
-              <p className="text-sm text-red-600">{errors.biayaTenagaKerja}</p>
-            )}
-            <p className="text-xs text-gray-500">
-              Upah pekerja untuk membuat {data.jumlahPorsi} porsi
-              {/* ✅ Show per-piece context */}
-              {(data.jumlahPcsPerPorsi || 1) > 1 && (
-                <span className="text-blue-600"> ({totalPieces} pcs total)</span>
-              )}
-            </p>
+            
+            <div className="bg-white p-3 rounded border border-blue-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-700">TKL per pcs:</span>
+                <span className="text-sm font-semibold text-blue-900">
+                  Otomatis dari Biaya Operasional
+                </span>
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                💡 Nilai ini sudah termasuk dalam "Overhead" di hasil HPP
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <button
+                type="button"
+                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                onClick={() => window.open('/operational-costs', '_blank')}
+              >
+                Setup TKL di Biaya Operasional →
+              </button>
+            </div>
           </div>
 
           {/* Overhead Cost - keeping existing implementation */}

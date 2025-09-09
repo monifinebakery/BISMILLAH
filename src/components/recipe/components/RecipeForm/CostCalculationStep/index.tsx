@@ -239,8 +239,18 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 <span className="font-medium">Rp {enhancedHppResult.tklPerPcs.toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Overhead:</span>
-                <span className="font-medium">Rp {enhancedHppResult.overheadPerPcs.toLocaleString('id-ID')}</span>
+                <span className="text-gray-600">
+                  Overhead (termasuk TKL):
+                </span>
+                <div className="text-right">
+                  <span className="font-medium">Rp {enhancedHppResult.overheadPerPcs.toLocaleString('id-ID')}</span>
+                  {enhancedHppResult.breakdown.overheadBreakdown && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      💡 Sudah termasuk HPP + TKL dari Biaya Operasional<br/>
+                      📋 Operasional: Rp {enhancedHppResult.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (analisis terpisah)
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

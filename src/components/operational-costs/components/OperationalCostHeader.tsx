@@ -50,19 +50,41 @@ const OperationalCostHeader: React.FC<OperationalCostHeaderProps> = ({
             <p className="text-white text-opacity-90">
               Kelola biaya operasional dan hitung overhead per produk dengan akurat
             </p>
-            {/* ✅ Info */}
-            <div className="mt-2 text-xs text-white text-opacity-85">
-              {hasOperationalData ? (
-                <>
-                  {state.costs.length} biaya • Overhead: {formatCurrency(settings?.overhead_per_pcs || 0)}/pcs · Operasional: {formatCurrency(settings?.operasional_per_pcs || 0)}/pcs
-                </>
-              ) : (
-                'Belum ada biaya operasional. Tambahkan untuk mulai perhitungan.'
-              )}
-            </div>
+
+            {/* ✅ Quick stats */}
+            {(() => {
+              const activeCosts = state.costs.filter(c => c.status === 'aktif');
+              const totalMonthly = activeCosts.reduce((s, c) => s + (Number(c.jumlah_per_bulan) || 0), 0);
+              const hppMonthly = activeCosts.filter(c => c.group === 'hpp').reduce((s, c) => s + (Number(c.jumlah_per_bulan) || 0), 0);
+              const opsMonthly = activeCosts.filter(c => c.group === 'operasional').reduce((s, c) => s + (Number(c.jumlah_per_bulan) || 0), 0);
+              const target = settings?.target_output_monthly || 0;
+              const overheadPcs = settings?.overhead_per_pcs || (target > 0 ? hppMonthly / target : 0);
+              const operasionalPcs = settings?.operasional_per_pcs || (target > 0 ? opsMonthly / target : 0);
+              
+              return (
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2">
+                    <div className="text-[11px] uppercase tracking-wide text-white/75">Biaya Aktif</div>
+                    <div className="text-sm font-semibold text-white">{activeCosts.length} biaya</div>
+                  </div>
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2">
+                    <div className="text-[11px] uppercase tracking-wide text-white/75">Total/bulan</div>
+                    <div className="text-sm font-semibold text-white">{formatCurrency(totalMonthly)}</div>
+                  </div>
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2">
+                    <div className="text-[11px] uppercase tracking-wide text-white/75">Overhead/pcs</div>
+                    <div className="text-sm font-semibold text-white">{formatCurrency(overheadPcs)}</div>
+                  </div>
+                  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2">
+                    <div className="text-[11px] uppercase tracking-wide text-white/75">Operasional/pcs</div>
+                    <div className="text-sm font-semibold text-white">{formatCurrency(operasionalPcs)}</div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ✅ Target bulanan */}
-            <div className="mt-3">
+            <div className="mt-4">
               {editing ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -96,12 +118,12 @@ const OperationalCostHeader: React.FC<OperationalCostHeaderProps> = ({
                   </Button>
                 </div>
               ) : (
-                <div className="text-xs text-white text-opacity-90">
-                  Target bulanan: <strong>{formatNumber(settings?.target_output_monthly || 0)} pcs</strong>
+                <div className="text-xs text-white text-opacity-90 flex items-center">
+                  Target bulanan: <strong className="ml-1 mr-2">{formatNumber(settings?.target_output_monthly || 0)} pcs</strong>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="ml-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                    className="ml-1 bg-white/20 border-white/30 text-white hover:bg-white/30"
                     onClick={() => setEditing(true)}
                   >
                     Ubah

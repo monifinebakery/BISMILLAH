@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { usePaymentContext } from "@/contexts/PaymentContext";
-// useBahanBaku will be loaded dynamically
+import { useBahanBaku } from "@/components/warehouse/context/WarehouseContext";
 import { useSupplier } from "@/contexts/SupplierContext";
 import { usePurchase } from "@/components/purchase/hooks/usePurchase";
 import { useRecipe } from "@/contexts/RecipeContext";
@@ -47,22 +47,16 @@ export function AppSidebar() {
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
 
-  // Dynamic warehouse data loading
-  const [bahanBaku, setBahanBaku] = React.useState<Array<{ id: string; nama: string; jumlah: number; satuan: string; hargaSatuan: number }>>([]);
+  // Use warehouse hook directly with defensive check
+  let bahanBaku: Array<{ id: string; nama: string; jumlah: number; satuan: string; hargaSatuan: number }> = [];
+  try {
+    const warehouseContext = useBahanBaku();
+    bahanBaku = warehouseContext?.bahanBaku || [];
+  } catch (error) {
+    console.warn('Failed to get warehouse data in AppSidebar:', error);
+    bahanBaku = [];
+  }
   
-  React.useEffect(() => {
-    import('@/components/warehouse/context/WarehouseContext')
-      .then(({ useBahanBaku }) => {
-        try {
-          const warehouseContext = useBahanBaku();
-          setBahanBaku(warehouseContext?.bahanBaku || []);
-        } catch (error) {
-          console.error('Error loading warehouse data:', error);
-          setBahanBaku([]);
-        }
-      })
-      .catch(() => setBahanBaku([]));
-  }, []);
   const { suppliers } = useSupplier();
   const { purchases } = usePurchase();
   const { recipes } = useRecipe();

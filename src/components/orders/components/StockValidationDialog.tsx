@@ -75,17 +75,24 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
       
       const result = await orderApi.canCompleteOrder(order.id);
       
-      // Parse insufficient stock if it's string array
-      const insufficientStock = result.insufficientStock.map(item => {
-        if (typeof item === 'string') {
-          try {
-            return JSON.parse(item);
-          } catch {
-            return null;
+      // Parse insufficient stock - handle different return types
+      let insufficientStock = [];
+      if (Array.isArray(result.insufficientStock)) {
+        insufficientStock = result.insufficientStock.map(item => {
+          if (typeof item === 'string') {
+            try {
+              return JSON.parse(item);
+            } catch {
+              return null;
+            }
           }
-        }
-        return item;
-      }).filter(Boolean);
+          return item;
+        }).filter(Boolean);
+      } else if (result.insufficientStock && typeof result.insufficientStock === 'object') {
+        // If it's already an object, wrap it in array
+        insufficientStock = [result.insufficientStock];
+      }
+      // If result.insufficientStock is false, null, or other non-array, leave as empty array
 
       setValidationResult({
         canComplete: result.canComplete,

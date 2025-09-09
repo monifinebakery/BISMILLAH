@@ -210,47 +210,47 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
             </div>
           </div>
           
-          {/* Breakdown Details */}
+          {/* Breakdown Details - Simplified for UMKM */}
           <div className="mt-6 pt-4 border-t border-gray-200">
             <h4 className="text-md font-medium text-gray-700 mb-3">Rincian Biaya per Pcs:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Bahan:</span>
-                <div className="text-right">
-                  {/* Show accurate ingredient cost with validation */}
-                  {Math.abs(enhancedHppResult.bahanPerPcs - accurateIngredientCostPerPcs) > accurateIngredientCostPerPcs * 0.5 ? (
-                    <div className="space-y-1">
-                      <span className="font-medium text-red-600">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-blue-800 font-medium">Bahan (WAC):</span>
+                  <div className="text-right">
+                    {/* Show accurate ingredient cost with validation */}
+                    {Math.abs(enhancedHppResult.bahanPerPcs - accurateIngredientCostPerPcs) > accurateIngredientCostPerPcs * 0.5 ? (
+                      <div className="space-y-1">
+                        <span className="font-bold text-red-600">
+                          Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}
+                        </span>
+                        <div className="text-xs text-red-500">
+                          ⚠️ Validasi: Rp {accurateIngredientCostPerPcs.toLocaleString('id-ID')}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="font-bold text-blue-900">
                         Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}
                       </span>
-                      <div className="text-xs text-red-500">
-                        ⚠️ Validasi: Rp {accurateIngredientCostPerPcs.toLocaleString('id-ID')}
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="font-medium">
-                      Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}
-                    </span>
-                  )}
+                    )}
+                  </div>
+                </div>
+                <div className="text-xs text-blue-600">
+                  💡 Biaya bahan baku dengan harga rata-rata
                 </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">TKL (Tenaga Kerja):</span>
-                <span className="font-medium">Rp {enhancedHppResult.tklPerPcs.toLocaleString('id-ID')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">
-                  Biaya Produksi (Overhead):
-                </span>
-                <div className="text-right">
-                  <span className="font-medium">Rp {enhancedHppResult.overheadPerPcs.toLocaleString('id-ID')}</span>
-                  {enhancedHppResult.breakdown.overheadBreakdown && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      💡 Sudah termasuk HPP + TKL dari Biaya Operasional<br/>
-                      📋 Operasional: Rp {enhancedHppResult.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (analisis terpisah)
-                    </div>
-                  )}
+              
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-purple-800 font-medium">Biaya Produksi:</span>
+                  <span className="font-bold text-purple-900">Rp {enhancedHppResult.overheadPerPcs.toLocaleString('id-ID')}</span>
                 </div>
+                {enhancedHppResult.breakdown.overheadBreakdown && (
+                  <div className="text-xs text-purple-600 space-y-1">
+                    <div>💡 Termasuk TKL + Overhead: Rp {enhancedHppResult.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
+                    <div>📋 Operasional: Rp {enhancedHppResult.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

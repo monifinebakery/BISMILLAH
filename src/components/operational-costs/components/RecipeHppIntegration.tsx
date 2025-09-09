@@ -161,45 +161,37 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
           </CardHeader>
           <CardContent className="space-y-4">
             
-            {/* Cost Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
+            {/* Cost Breakdown - Simplified for UMKM */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-6 rounded-lg border border-blue-200 shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium text-blue-800">Bahan (WAC)</span>
                 </div>
-                <p className="text-xl font-bold text-blue-900">
+                <p className="text-2xl font-bold text-blue-900">
                   Rp {result.bahanPerPcs.toLocaleString('id-ID')}
                   <span className="text-sm font-normal text-blue-600">/pcs</span>
                 </p>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg border border-orange-200 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="h-4 w-4 text-orange-600" />
-                  <span className="text-sm font-medium text-orange-800">TKL (Tenaga Kerja)</span>
+                <div className="text-xs text-blue-600 mt-2">
+                  💡 Biaya bahan baku dengan harga rata-rata (WAC)
                 </div>
-                <p className="text-xl font-bold text-orange-900">
-                  Rp {result.tklPerPcs.toLocaleString('id-ID')}
-                  <span className="text-sm font-normal text-orange-600">/pcs</span>
-                </p>
               </div>
               
-              <div className="bg-white p-4 rounded-lg border border-purple-200 shadow-sm">
+              <div className="bg-white p-6 rounded-lg border border-purple-200 shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Settings className="h-4 w-4 text-purple-600" />
                   <span className="text-sm font-medium text-purple-800">
                     Biaya Produksi (Overhead)
                   </span>
                 </div>
-                <p className="text-xl font-bold text-purple-900">
+                <p className="text-2xl font-bold text-purple-900">
                   Rp {result.overheadPerPcs.toLocaleString('id-ID')}
                   <span className="text-sm font-normal text-purple-600">/pcs</span>
                 </p>
                 {result.breakdown.overheadBreakdown && (
-                  <div className="text-xs text-purple-600 mt-1">
-                    <div>• Overhead + TKL: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
-                    <div>• Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
+                  <div className="text-xs text-purple-600 mt-2">
+                    <div>💡 Termasuk TKL + Overhead: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
+                    <div>📋 Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
                   </div>
                 )}
               </div>

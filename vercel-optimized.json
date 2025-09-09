@@ -1,0 +1,53 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://*.cloudflare.com; style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; connect-src 'self' https: wss: https://*.supabase.co https://challenges.cloudflare.com https://*.cloudflare.com; img-src 'self' data: https:; font-src 'self' data:; frame-src 'self' https://challenges.cloudflare.com https://*.cloudflare.com; object-src 'none'; base-uri 'self'; worker-src 'self' blob: data:; child-src 'self' https://challenges.cloudflare.com https://*.cloudflare.com; manifest-src 'self'"
+        },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(.*\\.(js|css|woff|woff2|png|jpg|jpeg|gif|svg|ico))",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
+  "routes": [
+    { 
+      "src": "/api/(.*)", 
+      "dest": "/api/$1",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "functions": {
+    "src/pages/api/**/*.{js,ts}": {
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  }
+}

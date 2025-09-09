@@ -238,8 +238,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     },
     onSuccess: (newCost) => {
       logger.info('🎉 Cost mutation success, invalidating queries');
-      // Invalidate and refetch costs
-      queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
+      // Invalidate and refetch costs (partial key to match all filter variants)
+      queryClient.invalidateQueries({ queryKey: ['operational-costs', 'costs'] });
     },
     onError: (error: Error) => {
       logger.error('❌ Create cost mutation error:', error instanceof Error ? error.message : String(error));
@@ -260,8 +260,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     },
     onSuccess: (updatedCost) => {
       logger.info('🎉 Update cost mutation success, invalidating queries');
-      // Invalidate and refetch costs
-      queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
+      // Invalidate and refetch costs (partial key)
+      queryClient.invalidateQueries({ queryKey: ['operational-costs', 'costs'] });
     },
     onError: (error: Error) => {
       logger.error('❌ Update cost mutation error:', error instanceof Error ? error.message : String(error));
@@ -282,8 +282,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     },
     onSuccess: (deletedId) => {
       logger.info('🎉 Delete cost mutation success, invalidating queries');
-      // Invalidate and refetch costs
-      queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.costs() });
+      // Invalidate and refetch costs (partial key)
+      queryClient.invalidateQueries({ queryKey: ['operational-costs', 'costs'] });
     },
     onError: (error: Error) => {
       logger.error('❌ Delete cost mutation error:', error instanceof Error ? error.message : String(error));

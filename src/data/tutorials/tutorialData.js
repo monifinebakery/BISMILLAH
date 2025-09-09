@@ -251,17 +251,20 @@ export const tutorialData = [
               </div>
             </div>
             
-            <h3>🔄 Langkah Selanjutnya - Gunakan Kalkulator Dual Mode:</h3>
-            <div class="tip-box bg-blue-50 p-4 rounded-lg border border-blue-200 my-4">
-              <h4 class="font-bold text-blue-800 mb-2">💡 Langkah Penting Setelah Input Biaya!</h4>
-              <ol class="list-decimal pl-5 text-blue-700 space-y-2">
-                <li>Setelah selesai menambahkan semua biaya operasional, klik tab <strong>"Kalkulator Dual Mode"</strong></li>
-                <li>Di halaman kalkulator, klik tombol <strong>"Hitung Biaya per PCS"</strong></li>
-                <li>Review hasil perhitungan overhead per pcs</li>
-                <li>Klik tombol <strong>"Gunakan Angka Ini"</strong> untuk menyimpan hasil perhitungan</li>
-                <li>Sekarang nilai overhead sudah tersimpan dan akan digunakan dalam perhitungan HPP produk Anda</li>
+            <h3>🔄 Sinkron Otomatis Overhead & Operasional per PCS</h3>
+            <div class="tip-box bg-green-50 p-4 rounded-lg border border-green-200 my-4">
+              <h4 class="font-bold text-green-800 mb-2">✅ Setelah input biaya, sistem akan auto-sync</h4>
+              <ol class="list-decimal pl-5 text-green-700 space-y-2">
+                <li>Pastikan <strong>Target Produksi Bulanan</strong> sudah diisi di Pengaturan Aplikasi.</li>
+                <li>Setiap kali Anda menambah/mengubah/menghapus biaya, sistem otomatis menghitung:
+                  <ul class="list-disc pl-5 mt-1">
+                    <li><strong>Overhead per pcs</strong> = Total biaya kelompok HPP ÷ Target</li>
+                    <li><strong>Operasional per pcs</strong> = Total biaya kelompok Operasional ÷ Target</li>
+                  </ul>
+                </li>
+                <li>Hasil langsung <strong>disimpan</strong> ke pengaturan aplikasi dan dipakai untuk HPP.</li>
               </ol>
-              <p class="mt-3 text-blue-600"><strong>Catatan:</strong> Langkah ini sangat penting agar perhitungan HPP lebih akurat dengan memperhitungkan biaya operasional!</p>
+              <p class="mt-3 text-green-700"><strong>Cara cek cepat:</strong> Lihat badge "Auto-sync" di header Biaya Operasional atau nilai Overhead/Operasional per pcs yang tampil di header.</p>
             </div>
           </div>
         `

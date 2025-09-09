@@ -1,7 +1,7 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Calculator, Edit2, Trash2, DollarSign, Settings, Info, Package, TrendingUp, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, DollarSign, Settings, Info, Package, TrendingUp, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ import {
   OnboardingModal, 
   OperationalCostHeader, 
   CostManagementTab, 
-  CalculatorTab,
   BulkActionsNew
 } from './components';
 import { BulkEditDialog, BulkDeleteDialog } from './dialogs';
@@ -40,6 +39,8 @@ const OperationalCostContent: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentOnboardingStep, setCurrentOnboardingStep] = useState(0);
   const [showQuickSetup, setShowQuickSetup] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'updated' | 'error'>('idle');
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   // Bulk operations
   const {
@@ -110,6 +111,57 @@ const OperationalCostContent: React.FC = () => {
   const hppCosts = state.summary?.total_hpp_group || 0;
   const operasionalCosts = state.summary?.total_operasional_group || 0;
   const costPerProduct = productionTarget > 0 ? totalMonthlyCosts / productionTarget : 0;
+
+  // Auto-calculate overhead and operasional per pcs when costs or target change
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+    if (state.loading.costs) return;
+
+    const target = appSettings?.target_output_monthly || productionTarget || 0;
+    if (target <= 0) return;
+
+    const computedOverhead = hppCosts / target;
+    const computedOperasional = operasionalCosts / target;
+
+    const currentOverhead = appSettings?.overhead_per_pcs ?? 0;
+    const currentOperasional = appSettings?.operasional_per_pcs ?? 0;
+
+    // Avoid unnecessary updates (epsilon compare)
+    const EPS = 0.0001;
+    const isSameOverhead = Math.abs(computedOverhead - currentOverhead) < EPS;
+    const isSameOperasional = Math.abs(computedOperasional - currentOperasional) < EPS;
+    if (isSameOverhead && isSameOperasional) return;
+
+    const t = setTimeout(async () => {
+      try {
+        setSyncStatus('syncing');
+        await appSettingsApi.updateCostPerUnit(
+          computedOverhead,
+          computedOperasional,
+          target
+        );
+        await loadAppSettings();
+        setSyncStatus('updated');
+        setLastSyncedAt(new Date().toISOString());
+        // Show toast on significant change
+        const overheadDeltaAbs = Math.abs(computedOverhead - currentOverhead);
+        const operasionalDeltaAbs = Math.abs(computedOperasional - currentOperasional);
+        const overheadDeltaPct = currentOverhead > 0 ? overheadDeltaAbs / currentOverhead : 1;
+        const operasionalDeltaPct = currentOperasional > 0 ? operasionalDeltaAbs / currentOperasional : 1;
+        const significant = (overheadDeltaAbs >= 50 || overheadDeltaPct >= 0.005) || (operasionalDeltaAbs >= 50 || operasionalDeltaPct >= 0.005);
+        if (significant) {
+          toast.success('Biaya per pcs diperbarui', {
+            description: `Overhead: ${formatCurrency(computedOverhead)}/pcs · Operasional: ${formatCurrency(computedOperasional)}/pcs`
+          });
+        }
+      } catch (e) {
+        console.error('Auto-update overhead failed:', e);
+        setSyncStatus('error');
+      }
+    }, 400);
+
+    return () => clearTimeout(t);
+  }, [state.isAuthenticated, state.loading.costs, hppCosts, operasionalCosts, appSettings?.target_output_monthly, productionTarget]);
 
   // Handlers
   const handleOpenAddDialog = () => {
@@ -197,6 +249,8 @@ const OperationalCostContent: React.FC = () => {
     }
     
     if (successCount > 0) {
+      // Immediately refresh data so UI updates without manual reload
+      await actions.refreshData();
       toast.success(`Setup berhasil!`, {
         description: `${successCount} biaya operasional telah ditambahkan`
       });
@@ -244,6 +298,8 @@ const OperationalCostContent: React.FC = () => {
     }
 
     if (successCount > 0) {
+      // Refresh to ensure UI reflects new costs immediately
+      await actions.refreshData();
       toast.success(`Setup ${type} berhasil!`, {
         description: `${successCount} biaya contoh telah ditambahkan. Silakan edit sesuai kebutuhan.`
       });
@@ -291,6 +347,9 @@ const OperationalCostContent: React.FC = () => {
       <OperationalCostHeader
         onStartOnboarding={() => setShowQuickSetup(true)}
         onOpenAddDialog={shouldShowQuickSetupHint ? () => setShowQuickSetup(true) : handleOpenAddDialog}
+        appSettings={appSettings}
+        syncStatus={syncStatus}
+        lastSyncedAt={lastSyncedAt}
       />
 
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -337,18 +396,14 @@ const OperationalCostContent: React.FC = () => {
           <ProgressSetup costs={state.costs} appSettings={appSettings} />
         )}
         
-        {/* Tabs for Cost Management and Calculator */}
+        {/* Tabs for Cost Management */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           
           {/* Tab Navigation */}
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-1">
             <TabsTrigger value="costs" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
               Kelola Biaya
-            </TabsTrigger>
-            <TabsTrigger value="calculator" className="flex items-center gap-2">
-              <Calculator className="h-4 w-4" />
-              Kalkulator Dual-Mode
             </TabsTrigger>
           </TabsList>
 
@@ -379,16 +434,6 @@ const OperationalCostContent: React.FC = () => {
               onSelectAll={selectAllCosts}
               isAllSelected={isAllSelected}
               onToggleSelectionMode={toggleSelectionMode}
-            />
-          </TabsContent>
-
-          {/* Tab Content: Calculator */}
-          <TabsContent value="calculator" className="space-y-6">
-            <CalculatorTab
-              costs={state.costs}
-              appSettings={appSettings}
-              onCalculationComplete={loadAppSettings}
-              onSwitchToManagementTab={() => setActiveTab('costs')}
             />
           </TabsContent>
 

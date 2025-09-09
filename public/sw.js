@@ -1,11 +1,13 @@
 // Service Worker for HPP Calculator PWA
 // Provides offline functionality and intelligent caching
 
-const CACHE_NAME = 'hpp-calculator-v3';
-const STATIC_CACHE = 'hpp-static-v3';
-const DYNAMIC_CACHE = 'hpp-dynamic-v3';
-const API_CACHE = 'hpp-api-v3';
-const ASSETS_CACHE = 'hpp-assets-v3';
+// Update version number when you want to force cache refresh
+const CACHE_VERSION = 'v4-' + new Date().toISOString().split('T')[0]; // v4-2025-01-10
+const CACHE_NAME = 'hpp-calculator-' + CACHE_VERSION;
+const STATIC_CACHE = 'hpp-static-' + CACHE_VERSION;
+const DYNAMIC_CACHE = 'hpp-dynamic-' + CACHE_VERSION;
+const API_CACHE = 'hpp-api-' + CACHE_VERSION;
+const ASSETS_CACHE = 'hpp-assets-' + CACHE_VERSION;
 
 // Files to cache immediately
 const STATIC_ASSETS = [
@@ -117,7 +119,7 @@ function isNavigationRequest(request) {
   return request.mode === 'navigate';
 }
 
-// Handle static assets with cache-first strategy
+// Handle static assets with smart caching strategy
 async function handleStaticAsset(request) {
   const url = new URL(request.url);
   
@@ -127,18 +129,25 @@ async function handleStaticAsset(request) {
       pattern.test(url.pathname)
     );
     
-    const cacheName = isCriticalAsset ? ASSETS_CACHE : STATIC_CACHE;
+    // For JavaScript and CSS files with hash in name, use cache-first
+    // For other assets, use network-first to ensure freshness
+    const isHashedAsset = /\-[a-zA-Z0-9]{8,}\.(js|css)$/.test(url.pathname);
     
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      console.log('[SW] Serving from cache:', url.pathname);
-      return cachedResponse;
+    if (isHashedAsset) {
+      // Hashed assets can be cached forever (cache-first)
+      const cachedResponse = await caches.match(request);
+      if (cachedResponse) {
+        console.log('[SW] Serving hashed asset from cache:', url.pathname);
+        return cachedResponse;
+      }
     }
     
+    // Try network first for non-hashed assets
     console.log('[SW] Fetching from network:', url.pathname);
     const networkResponse = await fetch(request);
     
     if (networkResponse.ok) {
+      const cacheName = isCriticalAsset ? ASSETS_CACHE : STATIC_CACHE;
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
       console.log('[SW] Cached asset:', url.pathname);

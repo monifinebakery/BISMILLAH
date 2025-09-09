@@ -217,21 +217,24 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 
 // ------------------------------
-// PWA initialization - TEMPORARILY DISABLED TO FIX CACHE ISSUE
+// PWA initialization - ENABLED WITH SAFE CACHING
 // ------------------------------
-// DISABLED: Service Worker causing cache issues with boolean iteration error
-// pwaManager.registerServiceWorker().then((registration) => {
-//   if (registration) {
-//     logger.info('PWA: Service worker registered successfully', {
-//       scope: registration.scope,
-//       mode: import.meta.env.MODE
-//     });
-//   }
-// }).catch((error) => {
-//   logger.error('PWA: Service worker registration failed:', error);
-// });
+pwaManager.registerServiceWorker().then((registration) => {
+  if (registration) {
+    logger.info('PWA: Service worker registered successfully', {
+      scope: registration.scope,
+      mode: import.meta.env.MODE,
+      cacheVersion: 'v4-safe'
+    });
+    
+    // Check for updates every page load
+    registration.update();
+  }
+}).catch((error) => {
+  logger.error('PWA: Service worker registration failed:', error);
+});
 
-console.log('⚠️ [PWA] Service worker DISABLED temporarily to fix cache issues');
+console.log('✅ [PWA] Service worker enabled with safe caching strategy');
 
 // ------------------------------
 // Initialize toast swipe handlers

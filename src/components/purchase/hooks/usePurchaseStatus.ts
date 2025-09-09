@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { PurchaseStatus, Purchase } from '../types/purchase.types';
-import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
 
@@ -51,8 +50,30 @@ export const usePurchaseStatus = ({
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
-  const warehouseContext = useWarehouseContext();
+  // Dynamic warehouse context
+  const [warehouseContext, setWarehouseContext] = useState<any>({ 
+    bahanBaku: [], 
+    refreshData: async () => {} 
+  });
   const { user } = useAuth();
+
+  // Load warehouse context dynamically
+  useEffect(() => {
+    if (enableWarehouseValidationOnly) {
+      import('@/components/warehouse/context/WarehouseContext')
+        .then(({ useWarehouseContext }) => {
+          try {
+            const context = useWarehouseContext();
+            setWarehouseContext(context);
+          } catch (error) {
+            logger.error('Error using warehouse context:', error);
+          }
+        })
+        .catch(error => {
+          logger.error('Failed to load warehouse context:', error);
+        });
+    }
+  }, [enableWarehouseValidationOnly]);
 
   useEffect(() => {
     isMountedRef.current = true;

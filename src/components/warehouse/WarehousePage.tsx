@@ -19,7 +19,7 @@ import VirtualWarehouseTable from './components/VirtualWarehouseTable';
 
 // CONSOLIDATED HOOK IMPORTS
 import { useWarehouseCore } from './hooks/useWarehouseCore';
-import { useWarehouseContext } from './context/WarehouseContext';
+// WarehouseContext will be imported dynamically
 
 // ✅ TAMBAH: Import types
 import type { BahanBakuFrontend } from './types';

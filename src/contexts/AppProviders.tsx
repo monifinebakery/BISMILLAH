@@ -10,7 +10,7 @@ import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 import { PaymentProvider } from './PaymentContext';
 import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
-import { BahanBakuProvider } from '@/components/warehouse/context/WarehouseContext';
+// BahanBakuProvider will be loaded dynamically
 import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
@@ -31,6 +31,29 @@ interface AppProvidersProps {
   children: ReactNode;
 }
 
+// Dynamic BahanBakuProvider wrapper
+const DynamicBahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [BahanBakuProvider, setBahanBakuProvider] = React.useState<React.ComponentType<{ children: ReactNode }> | null>(null);
+
+  React.useEffect(() => {
+    import('@/components/warehouse/context/WarehouseContext')
+      .then(({ BahanBakuProvider }) => {
+        setBahanBakuProvider(() => BahanBakuProvider);
+      })
+      .catch(error => {
+        console.error('Failed to load BahanBakuProvider:', error);
+        // Provide fallback
+        setBahanBakuProvider(() => ({ children }: { children: ReactNode }) => <>{children}</>);
+      });
+  }, []);
+
+  if (!BahanBakuProvider) {
+    return <div className="loading-warehouse">Loading warehouse...</div>;
+  }
+
+  return <BahanBakuProvider>{children}</BahanBakuProvider>;
+};
+
 /**
  * ✅ UPDATED - Add ProfitAnalysisProvider to Original Working Structure
  * Keeping the exact same structure as before but adding ProfitAnalysisProvider
@@ -47,7 +70,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
             <UserSettingsProvider>
               <ActivityProvider>
                 <FinancialProvider>
-                  <BahanBakuProvider>
+                  <DynamicBahanBakuProvider>
                     <SupplierProvider>
                       <RecipeProvider>
                         <PurchaseProvider>
@@ -75,7 +98,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                         </PurchaseProvider>
                       </RecipeProvider>
                     </SupplierProvider>
-                  </BahanBakuProvider>
+                  </DynamicBahanBakuProvider>
                 </FinancialProvider>
               </ActivityProvider>
             </UserSettingsProvider>

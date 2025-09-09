@@ -49,7 +49,6 @@ import {
 } from '@/utils/unitConversion';
 
 // Import warehouse related hooks/services
-import { useWarehouseContext } from '@/components/warehouse/context/WarehouseContext';
 import type { BahanBakuFrontend } from '@/components/warehouse/types'; // Use BahanBakuFrontend type
 
 interface IngredientsStepProps extends Omit<RecipeFormStepProps, 'onNext' | 'onPrevious'> {}
@@ -60,8 +59,36 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
   onUpdate,
   isLoading = false,
 }) => {
-  // Get warehouse items using existing warehouse context
-  const { bahanBaku: warehouseItems, loading: loadingWarehouse } = useWarehouseContext();
+  // Dynamic import warehouse context
+  const [warehouseContext, setWarehouseContext] = useState<any>(null);
+  const [warehouseItems, setWarehouseItems] = useState<any[]>([]);
+  const [loadingWarehouse, setLoadingWarehouse] = useState(true);
+
+  // Load warehouse context dynamically
+  useEffect(() => {
+    import('@/components/warehouse/context/WarehouseContext')
+      .then(({ useWarehouseContext }) => {
+        setWarehouseContext(() => useWarehouseContext);
+      })
+      .catch(error => {
+        logger.error('Failed to load warehouse context:', error);
+        setLoadingWarehouse(false);
+      });
+  }, []);
+
+  // Use warehouse context hook when available
+  useEffect(() => {
+    if (warehouseContext) {
+      try {
+        const { bahanBaku, loading } = warehouseContext();
+        setWarehouseItems(bahanBaku || []);
+        setLoadingWarehouse(loading);
+      } catch (error) {
+        logger.error('Error using warehouse context:', error);
+        setLoadingWarehouse(false);
+      }
+    }
+  }, [warehouseContext]);
 
   // DEBUG: Log raw warehouse data
   useEffect(() => {

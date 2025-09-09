@@ -2,7 +2,7 @@
 
 // Main exports
 export { AssetManagement } from './AssetManagement';
-export { AssetPage } from './AssetPage';
+// AssetPage removed to allow dynamic imports only
 
 // Re-export types for external use
 export type {

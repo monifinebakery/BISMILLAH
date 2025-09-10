@@ -1,6 +1,6 @@
 // src/components/operational-costs/utils/enhancedHppCalculations.ts
 // 🔗 Enhanced HPP Calculations with Dual-Mode Integration (Revision 4)
-// WAC per item bahan + TKL per pcs + Overhead per pcs
+// WAC per item bahan + Overhead per pcs
 
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -26,11 +26,11 @@ export interface BahanResepWithWAC {
 export interface EnhancedHPPCalculationResult {
   // Cost breakdown per pcs
   bahanPerPcs: number;      // Total bahan cost per pcs (WAC × quantity)
-  tklPerPcs: number;        // Tenaga kerja langsung per pcs (included in overheadPerPcs for UMKM mode)
-  overheadPerPcs: number;   // COMBINED overhead cost per pcs (HPP + TKL from app settings, UMKM-friendly)
+  tklPerPcs: number;        // Legacy field, always 0 (TKL included in overhead)
+  overheadPerPcs: number;   // Overhead cost per pcs from operational costs
   
   // Total HPP
-  hppPerPcs: number;        // bahanPerPcs + tklPerPcs + overheadPerPcs (where overheadPerPcs includes all operational costs)
+  hppPerPcs: number;        // bahanPerPcs + overheadPerPcs (TKL included in overhead)
   hppPerPorsi: number;      // hppPerPcs × jumlahPcsPerPorsi
   totalHPP: number;         // hppPerPorsi × jumlahPorsi
   
@@ -43,11 +43,6 @@ export interface EnhancedHPPCalculationResult {
   timestamp: string;
   breakdown: {
     ingredients: BahanResepWithWAC[];
-    laborDetails: {
-      jamKerjaPerBatch: number;
-      tarifPerJam: number;
-      totalJamForPorsi: number;
-    };
     overheadSource: 'app_settings' | 'manual_input';
     // ✅ NEW: Detailed overhead breakdown for transparency
     overheadBreakdown?: {
@@ -248,11 +243,6 @@ export const calculateEnhancedHPP = async (
   bahanResep: BahanResepWithWAC[],
   jumlahPorsi: number,
   jumlahPcsPerPorsi: number,
-  tklDetails: {
-    jamKerjaPerBatch?: number;
-    tarifPerJam?: number;
-    totalTklAmount?: number; // Alternative: direct TKL amount
-  },
   pricingMode: PricingMode,
   useAppSettingsOverhead: boolean = true
 ): Promise<EnhancedHPPCalculationResult> => {
@@ -282,26 +272,10 @@ export const calculateEnhancedHPP = async (
       calculation: `${totalBahanCost} / ${totalPcs} = ${bahanPerPcs}`
     });
     
-    // ✅ UMKM MODE: TKL calculation simplified (will be included in overhead from app settings)
+    // TKL is now handled entirely through overhead from operational costs
     let tklPerPcs = 0;
-    let laborDetails = {
-      jamKerjaPerBatch: 0,
-      tarifPerJam: 0,
-      totalJamForPorsi: 0
-    };
     
-    // For UMKM mode, TKL is handled via operational costs system, not manual input
-    // This maintains backward compatibility for advanced users who still use manual TKL input
-    if (tklDetails.totalTklAmount !== undefined && tklDetails.totalTklAmount > 0) {
-      tklPerPcs = totalPcs > 0 ? tklDetails.totalTklAmount / totalPcs : 0;
-      console.log('🔥 [TKL MANUAL] Using manual TKL input (advanced mode):', {
-        totalTklAmount: tklDetails.totalTklAmount,
-        totalPcs,
-        tklPerPcs
-      });
-    } else {
-      console.log('🔥 [TKL UMKM] TKL will come from overhead via operational costs (UMKM mode)');
-    }
+    // TKL costs are included in overhead from operational costs
     
     // 4. ✅ UMKM MODE: Get combined overhead per pcs from app settings (includes HPP + TKL)
     let overheadPerPcs = 0;
@@ -376,35 +350,9 @@ export const calculateEnhancedHPP = async (
     
     const hargaJualPerPorsi = hargaJualPerPcs * jumlahPcsPerPorsi;
     
-    console.log('🔥 [ENHANCED DEBUG] TKL and Overhead calculation:', {
-      tklPerPcs,
-      overheadBreakdown: {
-        overheadPerPcs,
-        operasionalPerPcs,
-        totalOverheadForHPP,
-        calculation: `overhead_per_pcs: ${overheadPerPcs} (includes HPP+TKL), operasional: ${operasionalPerPcs}`
-      },
-      overheadSource,
-      tklInputDetails: {
-        originalTklAmount: tklDetails.totalTklAmount,
-        totalPcs,
-        calculatedTklPerPcs: tklPerPcs
-      }
-    });
+    // TKL and Overhead calculation completed
     
-    console.log('🔥 [ENHANCED DEBUG] Final HPP calculation:', {
-      bahanPerPcs,
-      tklPerPcs,
-      overhead: {
-        overheadPerPcs,
-        operasionalPerPcs,
-        totalOverheadForHPP
-      },
-      hppPerPcs: bahanPerPcs + tklPerPcs + totalOverheadForHPP,
-      hppPerPorsi: (bahanPerPcs + tklPerPcs + totalOverheadForHPP) * jumlahPcsPerPorsi,
-      totalHPP: (bahanPerPcs + tklPerPcs + totalOverheadForHPP) * jumlahPcsPerPorsi * jumlahPorsi,
-      note: 'UMKM mode: overhead already includes HPP + TKL costs'
-    });
+    // Final HPP calculation completed
     
     // Additional validation check before creating result
     if (bahanPerPcs > 100000) { // If bahan cost per pcs is more than Rp 100k, something is wrong
@@ -455,7 +403,6 @@ export const calculateEnhancedHPP = async (
         timestamp: new Date().toISOString(),
         breakdown: {
           ingredients: saferIngredients as BahanResepWithWAC[],
-          laborDetails,
           overheadSource,
           overheadBreakdown: overheadSource === 'app_settings' ? {
             overheadOnly: overheadPerPcs, // Already includes HPP + TKL
@@ -480,7 +427,6 @@ export const calculateEnhancedHPP = async (
       timestamp: new Date().toISOString(),
       breakdown: {
         ingredients: ingredientsWithWAC,
-        laborDetails,
         overheadSource,
         // ✅ UMKM MODE: Simplified breakdown for easier understanding
         overheadBreakdown: overheadSource === 'app_settings' ? {
@@ -621,7 +567,6 @@ export const formatCalculationSummary = (result: EnhancedHPPCalculationResult): 
   return `
 HPP Calculation Summary:
 - Bahan: ${formatCurrency(result.bahanPerPcs)}/pcs
-- TKL: ${formatCurrency(result.tklPerPcs)}/pcs  
 - Overhead: ${formatCurrency(result.overheadPerPcs)}/pcs (${result.breakdown.overheadSource})
 - Total HPP: ${formatCurrency(result.hppPerPcs)}/pcs
 - Harga Jual: ${formatCurrency(result.hargaJualPerPcs)}/pcs
@@ -635,8 +580,7 @@ Method: ${result.calculationMethod}
 export const validateEnhancedCalculationInputs = (
   bahanResep: BahanResepWithWAC[],
   jumlahPorsi: number,
-  jumlahPcsPerPorsi: number,
-  tklDetails: any
+  jumlahPcsPerPorsi: number
 ): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   

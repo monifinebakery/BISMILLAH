@@ -28,10 +28,10 @@ export const HPP_KEYWORDS = [
 ];
 
 // ====================================
-// TKL (TENAGA KERJA LANGSUNG) KEYWORDS  
+// PRODUCTION STAFF KEYWORDS  
 // ====================================
 
-export const TKL_KEYWORDS = [
+export const PRODUCTION_KEYWORDS = [
   // Direct Production Labor
   'koki', 'chef', 'tukang masak', 'baker', 'pastry chef',
   'operator produksi', 'staff produksi', 'pekerja produksi',
@@ -48,7 +48,7 @@ export const TKL_KEYWORDS = [
   
   // Production Team
   'tim produksi', 'crew produksi', 'team kitchen', 'staff kitchen',
-  'pekerja langsung', 'tenaga kerja langsung', 'direct labor'
+  'pekerja langsung', 'tenaga kerja', 'direct labor'
 ];
 
 // ====================================
@@ -96,9 +96,9 @@ export const COST_CLASSIFICATION_RULES: CostClassificationRule[] = [
     description: 'Overhead Pabrik (masuk HPP): Biaya produksi tidak langsung yang terkait dengan proses pembuatan produk'
   },
   {
-    keywords: TKL_KEYWORDS,
-    group: 'tkl',
-    description: 'Tenaga Kerja Langsung (masuk HPP): Gaji dan biaya staf yang terlibat langsung dalam proses produksi'
+    keywords: PRODUCTION_KEYWORDS,
+    group: 'hpp',
+    description: 'Biaya Produksi (masuk HPP): Gaji dan biaya staf yang terlibat langsung dalam proses produksi'
   },
   {
     keywords: OPERASIONAL_KEYWORDS,
@@ -115,7 +115,7 @@ export const COST_CLASSIFICATION_RULES: CostClassificationRule[] = [
  * Classify cost based on name using keyword matching
  */
 export const classifyCostByKeywords = (costName: string): {
-  suggested_group: 'hpp' | 'operasional' | 'tkl' | null;
+  suggested_group: 'hpp' | 'operasional' | null;
   confidence: 'high' | 'medium' | 'low';
   reason: string;
   matched_keywords: string[];
@@ -127,8 +127,8 @@ export const classifyCostByKeywords = (costName: string): {
     lowercaseName.includes(keyword.toLowerCase())
   );
   
-  // ✅ NEW: Check TKL keywords
-  const tklMatches = TKL_KEYWORDS.filter(keyword => 
+  // ✅ Check production keywords
+  const productionMatches = PRODUCTION_KEYWORDS.filter(keyword => 
     lowercaseName.includes(keyword.toLowerCase())
   );
   
@@ -137,10 +137,9 @@ export const classifyCostByKeywords = (costName: string): {
     lowercaseName.includes(keyword.toLowerCase())
   );
   
-  // ✅ NEW: Determine classification with TKL priority
+  // ✅ Determine classification
   const allMatches = [
-    { group: 'tkl', matches: tklMatches, label: 'Tenaga Kerja Langsung' },
-    { group: 'hpp', matches: hppMatches, label: 'Overhead Pabrik' },
+    { group: 'hpp', matches: [...hppMatches, ...productionMatches], label: 'Biaya Produksi' },
     { group: 'operasional', matches: operasionalMatches, label: 'Biaya Operasional' }
   ];
   
@@ -149,16 +148,7 @@ export const classifyCostByKeywords = (costName: string): {
     current.matches.length > best.matches.length ? current : best
   );
   
-  // TKL gets priority if there are matches (labor costs are specific)
-  if (tklMatches.length > 0) {
-    const confidence = tklMatches.length >= 2 ? 'high' : 'medium';
-    return {
-      suggested_group: 'tkl' as const,
-      confidence,
-      reason: `Cocok dengan kata kunci ${bestMatch.label}: ${tklMatches.join(', ')}`,
-      matched_keywords: tklMatches
-    };
-  } else if (bestMatch.matches.length > 0) {
+  if (bestMatch.matches.length > 0) {
     const confidence = bestMatch.matches.length >= 2 ? 'high' : 'medium';
     return {
       suggested_group: bestMatch.group as 'hpp' | 'operasional',
@@ -189,10 +179,9 @@ export const classifyCostByKeywords = (costName: string): {
 /**
  * Get user-friendly group labels in Indonesian
  */
-export const getCostGroupLabel = (group: 'hpp' | 'operasional' | 'tkl'): string => {
+export const getCostGroupLabel = (group: 'hpp' | 'operasional'): string => {
   const labels = {
-    'hpp': 'Biaya Produksi - Overhead (masuk HPP)',
-    'tkl': 'Biaya Produksi - TKL (masuk HPP)',
+    'hpp': 'Biaya Produksi (masuk HPP)',
     'operasional': 'Biaya Operasional (di luar HPP)'
   };
   return labels[group];
@@ -201,10 +190,9 @@ export const getCostGroupLabel = (group: 'hpp' | 'operasional' | 'tkl'): string 
 /**
  * Get group descriptions for UI tooltips
  */
-export const getCostGroupDescription = (group: 'hpp' | 'operasional' | 'tkl'): string => {
+export const getCostGroupDescription = (group: 'hpp' | 'operasional'): string => {
   const descriptions = {
-    'hpp': 'Biaya produksi tidak langsung (overhead), seperti gas oven, sewa dapur, listrik produksi, dan peralatan. Biaya ini masuk ke HPP produk.',
-    'tkl': 'Biaya produksi langsung untuk tenaga kerja, seperti gaji koki, helper produksi, dan lembur. Biaya ini masuk ke HPP produk.',
+    'hpp': 'Biaya produksi langsung dan tidak langsung, seperti bahan baku, gaji staf produksi, gas oven, sewa dapur, listrik produksi, dan peralatan. Biaya ini masuk ke HPP produk.',
     'operasional': 'Biaya untuk menjalankan operasional bisnis yang tidak terkait langsung dengan produksi, seperti marketing, administrasi, dan marketplace. Biaya ini tidak menambah HPP, tetapi digunakan untuk analisis BEP dan pricing.'
   };
   return descriptions[group];

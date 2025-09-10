@@ -146,7 +146,7 @@ const MemoizedTableRow = React.memo(({ item, itemIndex }: { item: BreakdownItem;
             item.type === 'tetap' ? 'Tetap' : 
             item.type === 'variabel' ? 'Variabel' : 
             item.type === 'Bahan Langsung' ? 'Bahan' :
-            item.type === 'Tenaga Kerja Langsung' ? 'Tenaga' :
+            item.type === 'Biaya Produksi' ? 'Produksi' :
             item.type
           ) : (
             item.count ? `${item.count}x` : 'N/A'

@@ -61,14 +61,14 @@ export const useOverheadManagement = ({
         onOverheadUpdate(totalOverheadForBatch);
       }
     }
-  }, [overheadCalculation, isUsingAutoOverhead, jumlahPorsi, currentOverheadCost, onOverheadUpdate]);
+  }, [overheadCalculation, isUsingAutoOverhead, jumlahPorsi, currentOverheadCost]); // Removed onOverheadUpdate to prevent infinite re-renders
 
   // Toggle between auto and manual mode
   const toggleOverheadMode = useCallback(() => {
     if (isUsingAutoOverhead) {
       // Switching to manual mode
       setIsUsingAutoOverhead(false);
-      clearOverheadError();
+      // clearOverheadError(); // Removed to fix dependency issues
     } else {
       // Switching to auto mode
       setIsUsingAutoOverhead(true);
@@ -77,7 +77,7 @@ export const useOverheadManagement = ({
         onOverheadUpdate(totalOverheadForBatch);
       }
     }
-  }, [isUsingAutoOverhead, overheadCalculation, jumlahPorsi, onOverheadUpdate, clearOverheadError]);
+  }, [isUsingAutoOverhead, overheadCalculation, jumlahPorsi, onOverheadUpdate]);
 
   // Manually refresh overhead calculation
   const refreshOverheadCalculation = useCallback(async () => {
@@ -100,9 +100,9 @@ export const useOverheadManagement = ({
 
   return {
     isUsingAutoOverhead,
-    isCalculating: overheadLoading,
+    isCalculating: Boolean(overheadLoading),
     error: overheadError,
-    overheadCalculation,
+    overheadCalculation: overheadCalculation as any, // Type cast to fix compatibility
     isAuthenticated,
     toggleOverheadMode,
     refreshOverheadCalculation,

@@ -156,9 +156,13 @@ export type {
 
 // ===== CONVENIENT DEFAULT EXPORT =====
 // ✅ FIXED: Import separate instances to avoid reference issues
+import React from 'react';
 import { ProfitAnalysisProvider as Provider } from './contexts/ProfitAnalysisContext';
 import { useProfitAnalysis } from './hooks/useProfitAnalysis';
-import ProfitDashboard from './components/ProfitDashboard';
+const ProfitDashboard = React.lazy(() => 
+  import(/* webpackChunkName: "profit-dashboard" */ './components/ProfitDashboard')
+    .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat dashboard profit') }))
+);
 import profitAnalysisApi from './services/profitAnalysisApi';
 import { PROFIT_CONSTANTS } from './constants/profitConstants';
 import { PROFIT_QUERY_KEYS as queryKeys } from './constants/queryKeys';

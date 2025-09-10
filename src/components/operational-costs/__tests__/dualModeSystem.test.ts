@@ -2,6 +2,25 @@
 // 🧪 Comprehensive Dual-Mode System Tests (Revision 9)
 // Tests using example data to verify all calculations work correctly
 
+// Type definitions for test runner
+declare global {
+  function describe(name: string, fn: () => void): void;
+  function it(name: string, fn: () => void): void;
+  namespace jest {
+    interface Matchers<R> {
+      toBe(expected: any): R;
+      toBeCloseTo(expected: number, precision?: number): R;
+      toBeDefined(): R;
+      toHaveProperty(property: string): R;
+      toBeGreaterThan(expected: number): R;
+      toHaveLength(expected: number): R;
+      toContain(expected: any): R;
+      toThrow(expected?: string | RegExp): R;
+    }
+  }
+  function expect<T>(actual: T): jest.Matchers<T>;
+}
+
 // Testing functions are available globally
 import {
   calculateDualModeCosts,
@@ -82,7 +101,7 @@ const EXAMPLE_DATA = {
   // Recipe example data
   recipeExample: {
     bahan: 4200, // per pcs
-    tkl: 3000,   // per pcs
+    // tkl: 3000,   // TKL now included in overhead
     expectedOverhead: 730, // from calculation
     expectedHPP: 7930, // 4200 + 3000 + 730
     markup35: 10706,   // 7930 × 1.35
@@ -177,7 +196,7 @@ describe('HPP Integration with Dual-Mode', () => {
     it('should calculate HPP correctly using Revision 4 formula', () => {
       const result = calculateHPPWithDualMode(
         EXAMPLE_DATA.recipeExample.bahan,
-        EXAMPLE_DATA.recipeExample.tkl,
+        0, // TKL now included in overhead
         EXAMPLE_DATA.recipeExample.expectedOverhead
       );
       

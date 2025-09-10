@@ -52,44 +52,7 @@ export const calculateCostPerUnit = (
   };
 };
 
-/**
- * Calculate costs per unit for UMKM-friendly mode
- * ✅ NEW: Combines HPP + TKL into overhead_per_pcs for simplicity
- */
-export const calculateTripleModeCosts = (
-  costs: OperationalCost[],
-  targetOutputMonthly: number
-): {
-  overhead: DualModeCalculationResult;  // HPP + TKL combined
-  operasional: DualModeCalculationResult;
-  breakdown: {
-    hppOnly: DualModeCalculationResult;
-    tklOnly: DualModeCalculationResult;
-  };
-} => {
-  const hpp = calculateCostPerUnit(costs, 'hpp', targetOutputMonthly);
-  const tkl = calculateCostPerUnit(costs, 'tkl', targetOutputMonthly);
-  const operasional = calculateCostPerUnit(costs, 'operasional', targetOutputMonthly);
-  
-  // ✅ UMKM SIMPLE MODE: Combine HPP + TKL for easier understanding
-  const combinedOverhead: DualModeCalculationResult = {
-    group: 'hpp',
-    totalCosts: hpp.totalCosts + tkl.totalCosts,
-    targetOutput: targetOutputMonthly,
-    costPerUnit: Math.round((hpp.totalCosts + tkl.totalCosts) / targetOutputMonthly),
-    isValid: hpp.isValid && tkl.isValid && targetOutputMonthly > 0,
-    validationErrors: [...hpp.validationErrors, ...tkl.validationErrors]
-  };
-  
-  return {
-    overhead: combinedOverhead,
-    operasional,
-    breakdown: {
-      hppOnly: hpp,
-      tklOnly: tkl
-    }
-  };
-};
+
 
 /**
  * Calculate both HPP and Operasional costs per unit (legacy function)
@@ -164,18 +127,17 @@ export const updateAppSettingsWithCalculation = (
 
 /**
  * Get HPP calculation with new overhead structure (Revision 4)
- * WAC per item bahan + TKL per pcs + Overhead per pcs + Operasional per pcs
+ * WAC per item bahan + Overhead per pcs (includes TKL) + Operasional per pcs
  * 
  * ✅ UPDATED: Now includes BOTH overhead and operasional costs for complete HPP calculation
  */
 export const calculateHPPWithDualMode = (
   bahanPerPcs: number,         // Bahan per pcs (from BOM × WAC)
-  tklPerPcs: number,           // TKL per pcs (from recipe)
   overheadPerPcs: number,      // From app settings (HPP group calculation)
   operasionalPerPcs?: number   // From app settings (Operasional group calculation) - NEW PARAMETER
 ): number => {
   const totalOverheadPerPcs = overheadPerPcs + (operasionalPerPcs || 0);
-  return Math.round(bahanPerPcs + tklPerPcs + totalOverheadPerPcs);
+  return Math.round(bahanPerPcs + totalOverheadPerPcs);
 };
 
 /**
@@ -322,9 +284,9 @@ export const verifyExampleCalculations = (): {
       operasionalPerPcs: 1333, // 4.000.000 / 3.000
       hppExample: {
         bahan: 4200,
-        tkl: 3000,
+        // tkl: 3000, // TKL now included in overhead
         overhead: 730,
-        totalHPP: 7930, // 4200 + 3000 + 730
+        totalHPP: 4930, // 4200 + 730
         markup35: 10706, // 7930 × 1.35
         margin35: 12200  // 7930 ÷ 0.65
       }

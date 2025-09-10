@@ -62,16 +62,10 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-purple-700">Biaya Tenaga Kerja:</span>
-              <span className="font-medium text-purple-900">
-                {formatCurrency(costBreakdown.laborCost)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
               <span className="text-sm text-purple-700 flex items-center gap-1">
-                Biaya Overhead:
+                Biaya Produksi:
                 {isUsingAutoOverhead && (
-                  <Zap className="h-3 w-3 text-green-600" title="Auto-calculated" />
+                  <Zap className="h-3 w-3 text-green-600" />
                 )}
               </span>
               <span className="font-medium text-purple-900">

@@ -1,7 +1,7 @@
 // src/components/recipe/components/RecipeFormPage.tsx
 // Full page recipe form without dialog wrapper
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,15 @@ import { logger } from '@/utils/logger';
 // Form components
 import BasicInfoStep from './RecipeForm/BasicInfoStep';
 import IngredientsStep from './RecipeForm/IngredientsStep';
-import CostCalculationStep from './RecipeForm/CostCalculationStep/index';
+
+// Lazy load CostCalculationStep
+const CostCalculationStep = React.lazy(() => 
+  import('./RecipeForm/CostCalculationStep/index')
+    .catch(error => {
+      console.error('Failed to load CostCalculationStep:', error);
+      return { default: () => <div>Error loading cost calculation</div> };
+    })
+);
 
 // Utils and types
 import { validateRecipeData, calculateHPP } from '@/components/recipe/services/recipeUtils';
@@ -229,18 +237,22 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
     }
 
     // Only run legacy calculation if conditions are met AND enhanced mode is off
-    if (formData.bahanResep.length > 0 && formData.jumlahPorsi > 0) {
+    const jumlahPorsiNum = typeof formData.jumlahPorsi === 'string' ? parseInt(formData.jumlahPorsi) || 1 : formData.jumlahPorsi;
+    if (formData.bahanResep.length > 0 && jumlahPorsiNum > 0) {
       console.log('📊 Running legacy HPP calculation...');
       setIsCalculating(true);
       const timer = setTimeout(() => {
         try {
+          const totalBahanBaku = formData.bahanResep.reduce((sum, item) => sum + item.totalHarga, 0);
+          const jumlahPcsPerPorsiNum = typeof formData.jumlahPcsPerPorsi === 'string' ? parseInt(formData.jumlahPcsPerPorsi) || 1 : formData.jumlahPcsPerPorsi;
+          
           const calculation = calculateHPP(
             formData.bahanResep,
-            formData.jumlahPorsi,
+            jumlahPorsiNum,
             formData.biayaTenagaKerja || 0,
             formData.biayaOverhead || 0,
             formData.marginKeuntunganPersen || 0,
-            formData.jumlahPcsPerPorsi || 1
+            jumlahPcsPerPorsiNum
           );
           
           // ✅ PERBAIKAN: Jangan override harga jual manual user KECUALI user belum input
@@ -302,10 +314,13 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
         if (!formData.namaResep.trim()) {
           stepErrors.namaResep = 'Nama resep wajib diisi';
         }
-        if (formData.jumlahPorsi <= 0) {
+        const jumlahPorsiNum = typeof formData.jumlahPorsi === 'string' ? parseInt(formData.jumlahPorsi) || 0 : formData.jumlahPorsi;
+        const jumlahPcsPerPorsiNum = typeof formData.jumlahPcsPerPorsi === 'string' ? parseInt(formData.jumlahPcsPerPorsi) || 0 : (formData.jumlahPcsPerPorsi || 0);
+        
+        if (jumlahPorsiNum <= 0) {
           stepErrors.jumlahPorsi = 'Jumlah porsi harus lebih dari 0';
         }
-        if ((formData.jumlahPcsPerPorsi || 0) <= 0) {
+        if (jumlahPcsPerPorsiNum <= 0) {
           stepErrors.jumlahPcsPerPorsi = 'Jumlah pcs per porsi harus lebih dari 0';
         }
         break;
@@ -414,10 +429,12 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
         return <IngredientsStep {...commonProps} />;
       case 'costs':
         return (
-          <CostCalculationStep 
-            {...commonProps} 
-            onEnhancedHppModeChange={handleEnhancedHppModeChange}
-          />
+          <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}>
+            <CostCalculationStep 
+              {...commonProps} 
+              onEnhancedHppModeChange={handleEnhancedHppModeChange}
+            />
+          </Suspense>
         );
       default:
         return null;

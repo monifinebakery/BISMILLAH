@@ -51,11 +51,6 @@ interface CalculateHPPParams {
   bahanResep: BahanResepWithWAC[];
   jumlahPorsi: number;
   jumlahPcsPerPorsi: number;
-  tklDetails: {
-    jamKerjaPerBatch?: number;
-    tarifPerJam?: number;
-    totalTklAmount?: number;
-  };
   pricingMode: PricingMode;
   useAppSettingsOverhead?: boolean;
 }
@@ -88,13 +83,7 @@ export const useEnhancedHppCalculation = ({
       const settings = await getCurrentAppSettings();
       setAppSettings(settings);
       
-      if (settings?.overhead_per_pcs) {
-        console.log('💡 Enhanced HPP: Using overhead from app settings:', settings.overhead_per_pcs);
-      } else if (settings) {
-        console.log('⚠️ Enhanced HPP: App settings found but no overhead calculated yet');
-      } else {
-        console.log('⚠️ Enhanced HPP: No app settings found, default settings will be created');
-      }
+      // App settings loaded successfully
     } catch (err) {
       const errorMessage = 'Gagal memuat pengaturan overhead. Sistem akan menggunakan nilai default.';
       setError(errorMessage);
@@ -120,7 +109,7 @@ export const useEnhancedHppCalculation = ({
         params.bahanResep,
         params.jumlahPorsi,
         params.jumlahPcsPerPorsi,
-        params.tklDetails
+        // params.tklDetails // TKL now included in overhead
       );
       
       if (!validation.isValid) {
@@ -135,7 +124,6 @@ export const useEnhancedHppCalculation = ({
         params.bahanResep,
         params.jumlahPorsi,
         params.jumlahPcsPerPorsi,
-        params.tklDetails,
         params.pricingMode,
         params.useAppSettingsOverhead ?? true
       );
@@ -171,8 +159,7 @@ export const useEnhancedHppCalculation = ({
     return validateEnhancedCalculationInputs(
       params.bahanResep,
       params.jumlahPorsi,
-      params.jumlahPcsPerPorsi,
-      params.tklDetails
+      params.jumlahPcsPerPorsi
     );
   }, []);
 
@@ -260,7 +247,6 @@ export const useRecipeHppIntegration = (recipeData: {
   bahanResep: any[];
   jumlahPorsi: number;
   jumlahPcsPerPorsi: number;
-  biayaTenagaKerja: number;
   marginKeuntunganPersen: number;
 }) => {
   const hppHook = useEnhancedHppCalculation({ autoCalculate: true });
@@ -271,13 +257,7 @@ export const useRecipeHppIntegration = (recipeData: {
   // Auto-calculate when recipe data changes and enhanced mode is active
   useEffect(() => {
     if (isEnhancedMode && recipeData.bahanResep.length > 0) {
-      console.log('🔥 [useRecipeHppIntegration] Input recipe data:', {
-        biayaTenagaKerja: recipeData.biayaTenagaKerja,
-        biayaTenagaKerjaType: typeof recipeData.biayaTenagaKerja,
-        jumlahPorsi: recipeData.jumlahPorsi,
-        jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi,
-        bahanCount: recipeData.bahanResep.length
-      });
+      // Input recipe data for calculation
       
       const params: CalculateHPPParams = {
         bahanResep: recipeData.bahanResep.map(bahan => ({
@@ -290,9 +270,6 @@ export const useRecipeHppIntegration = (recipeData: {
         })),
         jumlahPorsi: recipeData.jumlahPorsi,
         jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi,
-        tklDetails: {
-          totalTklAmount: recipeData.biayaTenagaKerja
-        },
         pricingMode: {
           mode: 'markup',
           percentage: recipeData.marginKeuntunganPersen
@@ -300,10 +277,7 @@ export const useRecipeHppIntegration = (recipeData: {
         useAppSettingsOverhead: true
       };
       
-      console.log('🔥 [useRecipeHppIntegration] Prepared params for calculation:', {
-        tklDetails: params.tklDetails,
-        pricingMode: params.pricingMode
-      });
+      // Prepared params for calculation
       
       // Debounce calculation for better performance
       const timer = setTimeout(() => {
@@ -317,10 +291,9 @@ export const useRecipeHppIntegration = (recipeData: {
     recipeData.bahanResep,
     recipeData.jumlahPorsi,
     recipeData.jumlahPcsPerPorsi,
-    recipeData.biayaTenagaKerja,
     recipeData.marginKeuntunganPersen,
-    hppHook
-  ]);
+    hppHook.calculateHPP
+  ]); // Fixed dependency to prevent infinite re-renders
   
   return {
     ...hppHook,

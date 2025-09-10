@@ -121,11 +121,11 @@ export const getProductionOutputFromOrders = async (
     return { data: summary };
 
   } catch (error) {
-    return { 
-      data: null, 
-      error: `Error fetching production output: ${error.message}` 
-    };
-  }
+      return { 
+        data: null, 
+        error: `Error fetching production output: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
 };
 
 /**
@@ -182,11 +182,11 @@ export const getProductionOutputFromRecipes = async (
     return { data: summary };
 
   } catch (error) {
-    return { 
-      data: null, 
-      error: `Error calculating recipe-based production: ${error.message}` 
-    };
-  }
+      return { 
+        data: null, 
+        error: `Error calculating recipe-based production: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
 };
 
 /**
@@ -212,10 +212,14 @@ export const getSmartProductionOutput = async (
     }
 
     // Ultimate fallback - return default
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    const endDate = new Date();
+    
     const summary: ProductionSummary = {
-      period: '30_days',
-      startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
+      period: days === 30 ? '30_days' : days === 7 ? '7_days' : 'monthly',
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
       totalPcs: 3000, // Default from example
       dailyAverage: 100,
       weeklyAverage: 700,
@@ -227,11 +231,11 @@ export const getSmartProductionOutput = async (
     return { data: summary };
 
   } catch (error) {
-    return { 
-      data: null, 
-      error: `Error in smart production calculation: ${error.message}` 
-    };
-  }
+      return { 
+        data: null, 
+        error: `Error in smart production calculation: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
 };
 
 // ====================================
@@ -269,11 +273,11 @@ export const saveProductionTarget = async (
     return { data: true };
 
   } catch (error) {
-    return { 
-      data: false, 
-      error: `Error saving production target: ${error.message}` 
-    };
-  }
+      return { 
+        data: false, 
+        error: `Error saving production target: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
 };
 
 /**
@@ -299,21 +303,74 @@ export const getCurrentProductionTarget = async (): Promise<ApiResponse<number>>
     return { data: settings?.target_output_monthly || 3000 }; // Default fallback
 
   } catch (error) {
-    return { 
-      data: 0, 
-      error: `Error fetching production target: ${error.message}` 
-    };
-  }
+      return { 
+        data: 0, 
+        error: `Error fetching production target: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
 };
 
 // ====================================
 // EXPORTS
 // ====================================
 
+/**
+ * Get production summary with fallback logic
+ */
+export const getProductionSummary = async (
+  days: number = 30
+): Promise<ProductionSummary> => {
+  try {
+    // Get production data from orders
+    const ordersData = await getProductionOutputFromOrders(days)
+    
+    if (ordersData.data) {
+      return ordersData.data
+    }
+    
+    // Fallback to recipe-based calculation
+    const recipeData = await getProductionOutputFromRecipes(days)
+    
+    if (recipeData.data) {
+      return recipeData.data
+    }
+    
+    // Return default summary if no data available
+    return {
+      period: days === 30 ? '30_days' : days === 7 ? '7_days' : 'monthly',
+      startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      totalPcs: 0,
+      dailyAverage: 0,
+      weeklyAverage: 0,
+      monthlyEstimate: 0,
+      dataSource: 'orders',
+      confidence: 'low'
+    }
+    
+  } catch (error) {
+      console.error('Error getting production summary:', error)
+      return {
+        period: days === 30 ? '30_days' : days === 7 ? '7_days' : 'monthly',
+        startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0],
+        totalPcs: 0,
+        dailyAverage: 0,
+        weeklyAverage: 0,
+        monthlyEstimate: 0,
+        dataSource: 'orders' as const,
+        confidence: 'low' as const
+      }
+    }
+}
+
 export const productionOutputApi = {
   getProductionOutputFromOrders,
   getProductionOutputFromRecipes,
   getSmartProductionOutput,
   saveProductionTarget,
-  getCurrentProductionTarget
+  getCurrentProductionTarget,
+  getProductionSummary
 };
+
+export default productionOutputApi;

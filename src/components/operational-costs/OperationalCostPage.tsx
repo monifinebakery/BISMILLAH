@@ -15,7 +15,7 @@ import { OperationalCost, AppSettings, CostFormData } from './types/operationalC
 import { CostFormDialog } from './components/CostFormDialog';
 import { useOperationalCostTable } from './hooks/useOperationalCostTable';
 import { useOperationalCostBulkNew } from './hooks/useOperationalCostBulkNew';
-import { appSettingsApi } from './services';
+import { appSettingsApi } from './services/appSettingsApi';
 import { 
   ProgressSetup, 
   OnboardingModal, 
@@ -490,7 +490,7 @@ const OperationalCostContent: React.FC = () => {
       <BulkEditDialog
         isOpen={isBulkEditDialogOpen}
         onClose={closeBulkEditDialog}
-        onConfirm={(editData) => executeBulkEdit(selectedIds, editData)}
+        onConfirm={(editData: any) => executeBulkEdit(selectedIds, editData)}
         selectedCosts={selectedCosts}
         isProcessing={isProcessing}
       />

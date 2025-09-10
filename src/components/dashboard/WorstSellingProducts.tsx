@@ -68,7 +68,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     icon: <Hash className="h-4 w-4" />,
     description: 'Produk dengan unit terjual paling sedikit',
     getValue: (product) => safeNumber(product.quantity),
-    formatValue: (value) => `${value.toLocaleString('id-ID')} unit`,
+    formatValue: (value) => `${safeNumber(value).toLocaleString('id-ID')} unit`,
     getSecondaryInfo: (product) => formatCurrency(safeNumber(product.revenue)),
     getWarningLevel: (value) => value < 5 ? 'high' : value < 20 ? 'medium' : 'low'
   },

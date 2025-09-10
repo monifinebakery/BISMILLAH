@@ -31,7 +31,7 @@ interface EnhancedRecipeFormProps {
 
 const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFormProps) => {
   // Add defensive check for useBahanBaku
-  let bahanBaku: Array<{ id: string; nama: string; satuan: string; hargaSatuan: number }> = [];
+  let bahanBaku: any[] = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -191,9 +191,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         totalBahanBaku: result.bahanPerPcs * 
           (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
           (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1),
-        biayaTenagaKerja: result.tklPerPcs * 
-          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
-          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1),
+        biayaTenagaKerja: 0, // TKL now included in overhead
         biayaOverhead: result.overheadPerPcs * 
           (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
           (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1)
@@ -205,6 +203,16 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   const handleEnhancedHppModeChange = React.useCallback((isActive: boolean) => {
     setIsEnhancedHppActive(isActive);
   }, []);
+
+  // Memoize recipe data for enhanced HPP integration to prevent infinite re-renders
+  const recipeDataForHpp = React.useMemo(() => ({
+    bahanResep: formData.bahanResep,
+    jumlahPorsi: typeof formData.jumlahPorsi === 'string' ? parseInt(formData.jumlahPorsi) || 1 : formData.jumlahPorsi,
+    jumlahPcsPerPorsi: typeof formData.jumlahPcsPerPorsi === 'string' ? parseInt(formData.jumlahPcsPerPorsi) || 1 : (formData.jumlahPcsPerPorsi || 1),
+    biayaTenagaKerja: formData.biayaTenagaKerja || 0,
+    biayaOverhead: formData.biayaOverhead || 0,
+    marginKeuntunganPersen: formData.marginKeuntunganPersen || 0,
+  }), [formData.bahanResep, formData.jumlahPorsi, formData.jumlahPcsPerPorsi, formData.biayaTenagaKerja, formData.biayaOverhead, formData.marginKeuntunganPersen]);
 
   const handleInputChange = (field: keyof NewRecipe, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -630,7 +638,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="biayaTenagaKerja">Biaya Tenaga Kerja (Rp)</Label>
+                <Label htmlFor="biayaTenagaKerja">Biaya Tenaga Kerja (Rp) - Sudah termasuk dalam overhead</Label>
                 <Input
                   id="biayaTenagaKerja"
                   type="number"
@@ -796,25 +804,11 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         </Alert>
 
         {/* Enhanced HPP Integration */}
-        {(() => {
-          // Prepare recipe data for enhanced HPP integration
-          const recipeDataForHpp = {
-            bahanResep: formData.bahanResep,
-            jumlahPorsi: formData.jumlahPorsi,
-            jumlahPcsPerPorsi: formData.jumlahPcsPerPorsi || 1,
-            biayaTenagaKerja: formData.biayaTenagaKerja || 0,
-            biayaOverhead: formData.biayaOverhead || 0,
-            marginKeuntunganPersen: formData.marginKeuntunganPersen || 0,
-          };
-
-          return (
-            <RecipeHppIntegration
-              recipeData={recipeDataForHpp}
-              onEnhancedResultChange={handleEnhancedHppChange}
-              onEnhancedModeChange={handleEnhancedHppModeChange}
-            />
-          );
-        })()}
+        <RecipeHppIntegration
+          recipeData={recipeDataForHpp}
+          onEnhancedResultChange={handleEnhancedHppChange}
+          onEnhancedModeChange={handleEnhancedHppModeChange}
+        />
 
         {/* Form Actions */}
         <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">

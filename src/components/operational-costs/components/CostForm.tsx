@@ -89,7 +89,7 @@ const CostForm: React.FC<CostFormProps> = ({
     if (isProduction) {
       setWarnings(prev => [
         ...prev.filter(w => !w.includes('staf produksi')),
-        'Gaji staf produksi ini akan digunakan dalam kalkulasi HPP resep sebagai biaya tenaga kerja langsung.'
+        'Gaji staf produksi ini akan digunakan dalam kalkulasi HPP resep sebagai biaya produksi.'
       ]);
     } else {
       setWarnings(prev => [
@@ -230,7 +230,7 @@ const CostForm: React.FC<CostFormProps> = ({
             </div>
             <p className="text-xs text-gray-600 mt-1">
               {isProductionStaff 
-                ? 'Akan digunakan dalam kalkulasi HPP resep sebagai biaya tenaga kerja langsung'
+                ? 'Akan digunakan dalam kalkulasi HPP resep sebagai biaya produksi'
                 : 'Hanya masuk ke biaya produksi (overhead), tidak langsung ke HPP resep'
               }
             </p>

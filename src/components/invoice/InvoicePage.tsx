@@ -10,7 +10,13 @@ import {
   useInvoiceImage
 } from './hooks';
 import { InvoiceActions } from './components';
-import { InvoiceTemplate } from './templates';
+
+// ✅ LAZY LOADING: InvoiceTemplate dengan code splitting
+const InvoiceTemplate = React.lazy(() => 
+  import(/* webpackChunkName: "invoice-template" */ './templates/InvoiceTemplate')
+    .then(module => ({ default: module.InvoiceTemplate }))
+    .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat template invoice') }))
+);
 
 // Loading Component
 const InvoiceLoading: React.FC<{ orderId?: string }> = ({ orderId }) => (

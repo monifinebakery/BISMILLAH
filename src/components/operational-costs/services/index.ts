@@ -2,14 +2,15 @@
 
 // Export all API functions and types
 export * from './operationalCostApi';
-export * from './appSettingsApi';
 export * from './productionOutputApi';
 
 // Re-export specific APIs for direct import
 export { operationalCostApi } from './operationalCostApi';
-export { appSettingsApi } from './appSettingsApi';  
 export { productionOutputApi } from './productionOutputApi';
 
+// Export appSettingsApi separately to avoid conflicts
+export { appSettingsApi } from './appSettingsApi';
+
 // Legacy aliases for backward compatibility
-export { appSettingsApi as allocationApi };
-export { appSettingsApi as calculationApi };
+export { appSettingsApi as allocationApi } from './appSettingsApi';
+export { appSettingsApi as calculationApi } from './appSettingsApi';

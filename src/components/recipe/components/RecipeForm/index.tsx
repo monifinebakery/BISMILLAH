@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,15 @@ import { logger } from '@/utils/logger';
 // Form components
 import BasicInfoStep from './BasicInfoStep';
 import IngredientsStep from './IngredientsStep';
-import CostCalculationStep from './CostCalculationStep/index';
+
+// Lazy load CostCalculationStep
+const CostCalculationStep = React.lazy(() => 
+  import('./CostCalculationStep/index')
+    .catch(error => {
+      console.error('Failed to load CostCalculationStep:', error);
+      return { default: () => <div>Error loading cost calculation</div> };
+    })
+);
 // Utils and types
 import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
 import { recipeApi } from '../../services/recipeApi';
@@ -421,10 +429,12 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         return <IngredientsStep {...commonProps} />;
       case 'costs':
         return (
-          <CostCalculationStep 
-            {...commonProps} 
-            onEnhancedHppModeChange={handleEnhancedHppModeChange}
-          />
+          <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}>
+            <CostCalculationStep 
+              {...commonProps} 
+              onEnhancedHppModeChange={handleEnhancedHppModeChange}
+            />
+          </Suspense>
         );
       default:
         return null;

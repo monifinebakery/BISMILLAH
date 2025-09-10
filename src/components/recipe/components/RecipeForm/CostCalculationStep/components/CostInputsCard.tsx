@@ -198,63 +198,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
         </CardHeader>
         <CardContent className="space-y-6">
           
-          {/* ✅ UMKM MODE: Hide manual TKL input - TKL comes from Biaya Operasional */}
-          <div className="space-y-2 bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-blue-600" />
-              <Label className="text-sm font-medium text-blue-800">
-                Tenaga Kerja Langsung (TKL)
-              </Label>
-              <ResponsiveTooltip 
-                content={
-                  <div className="space-y-2">
-                    <p className="font-semibold text-blue-300">🎯 UMKM Mode - TKL Otomatis:</p>
-                    <p className="leading-relaxed">Biaya tenaga kerja langsung (gaji koki, helper produksi) diambil otomatis dari Biaya Operasional.</p>
-                    
-                    <div className="border-t border-gray-700 pt-2">
-                      <p className="text-green-300">✅ Cara setup:</p>
-                      <p className="text-gray-300 text-xs ml-4">• Masuk menu Biaya Operasional</p>
-                      <p className="text-gray-300 text-xs ml-4">• Tambah biaya dengan nama "Gaji Koki", "Upah Harian", dll</p>
-                      <p className="text-gray-300 text-xs ml-4">• Pilih kategori "Tenaga Kerja Langsung"</p>
-                      <p className="text-gray-300 text-xs ml-4">• Sistem otomatis hitung per pcs</p>
-                    </div>
-                    
-                    <div className="border-t border-gray-700 pt-2">
-                      <p className="font-medium text-orange-300">📊 Formula Auto:</p>
-                      <p className="text-xs bg-gray-800 p-2 rounded mt-1 font-mono">
-                        (Total Gaji TKL per Bulan) ÷<br/>
-                        (Target Produksi per Bulan) = TKL per pcs
-                      </p>
-                    </div>
-                  </div>
-                }
-              >
-                <Info className="h-4 w-4 text-blue-500 hover:text-blue-700 cursor-help" />
-              </ResponsiveTooltip>
-            </div>
-            
-            <div className="bg-white p-3 rounded border border-blue-200">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-700">TKL per pcs:</span>
-                <span className="text-sm font-semibold text-blue-900">
-                  Otomatis dari Biaya Operasional
-                </span>
-              </div>
-            <p className="text-xs text-blue-600 mt-1">
-                💡 Nilai ini sudah termasuk dalam "Biaya Produksi (Overhead)" di hasil HPP
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <button
-                type="button"
-                className="text-xs text-blue-600 hover:text-blue-800 underline"
-                onClick={() => window.open('/operational-costs', '_blank')}
-              >
-                Setup TKL di Biaya Operasional →
-              </button>
-            </div>
-          </div>
+
 
           {/* Overhead Cost - keeping existing implementation */}
           <div className="space-y-2">

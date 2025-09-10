@@ -525,6 +525,8 @@ export const operationalCostApi = {
   },
 };
 
+export default operationalCostApi;
+
 // ================================
 // ALLOCATION SETTINGS API
 // ================================

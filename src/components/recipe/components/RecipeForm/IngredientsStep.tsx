@@ -63,6 +63,25 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
   // Use warehouse context directly
   const { bahanBaku: warehouseItems, loading: loadingWarehouse } = useWarehouseContext();
 
+  // Helper function to get ingredient display name
+  const getIngredientDisplayName = (ingredient: BahanResep): string => {
+    // If ingredient has warehouseId, try to get name from warehouse
+    if (ingredient.warehouseId) {
+      const warehouseItem = warehouseItems.find(item => item.id === ingredient.warehouseId);
+      if (warehouseItem?.nama) {
+        return warehouseItem.nama;
+      }
+    }
+    
+    // Fallback to ingredient's own name
+    if (ingredient.nama && ingredient.nama.trim()) {
+      return ingredient.nama;
+    }
+    
+    // Last resort fallback
+    return 'Bahan tidak dikenal';
+  };
+
   // DEBUG: Log raw warehouse data
   useEffect(() => {
     logger.debug('=== WAREHOUSE DEBUG ===');
@@ -84,6 +103,40 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
       });
     }
   }, [warehouseItems, loadingWarehouse]);
+
+  // Auto-fix ingredients with missing names but valid warehouseId
+  useEffect(() => {
+    if (!loadingWarehouse && warehouseItems.length > 0 && data.bahanResep.length > 0) {
+      const updatedIngredients = data.bahanResep.map(ingredient => {
+        // If ingredient has warehouseId but missing/empty name, try to fix it
+        if (ingredient.warehouseId && (!ingredient.nama || !ingredient.nama.trim())) {
+          const warehouseItem = warehouseItems.find(item => item.id === ingredient.warehouseId);
+          if (warehouseItem?.nama) {
+            console.log('🔧 Auto-fixing ingredient name:', {
+              warehouseId: ingredient.warehouseId,
+              oldName: ingredient.nama,
+              newName: warehouseItem.nama
+            });
+            return {
+              ...ingredient,
+              nama: warehouseItem.nama
+            };
+          }
+        }
+        return ingredient;
+      });
+      
+      // Only update if there were changes
+      const hasChanges = updatedIngredients.some((updated, index) => 
+        updated.nama !== data.bahanResep[index].nama
+      );
+      
+      if (hasChanges) {
+        onUpdate('bahanResep', updatedIngredients);
+        toast.success('Nama bahan yang kosong berhasil diperbaiki');
+      }
+    }
+  }, [warehouseItems, loadingWarehouse, data.bahanResep, onUpdate]);
   
   // New ingredient form
   const [newIngredient, setNewIngredient] = useState<Partial<BahanResep>>({
@@ -575,12 +628,10 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                           >
                             <SelectTrigger className="border-none focus:border-orange-300 bg-transparent">
                               <SelectValue 
-                                placeholder={
-                                  ingredient.warehouseId 
-                                    ? (availableWarehouseItems.find(item => item.id === ingredient.warehouseId)?.nama || ingredient.nama || 'Bahan tidak ditemukan')
-                                    : (ingredient.nama || 'Pilih dari warehouse')
-                                }
-                              />
+                                placeholder={getIngredientDisplayName(ingredient)}
+                              >
+                                {getIngredientDisplayName(ingredient)}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent className="max-w-[300px]">
                               {availableWarehouseItems.map((item) => {

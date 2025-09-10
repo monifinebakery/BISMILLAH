@@ -180,9 +180,9 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
 
     if (!error && data) {
       // ✅ FIXED: Handle new return format from updated stored procedure
-      if (typeof data === 'object' && data.id) {
+      if (typeof data === 'object' && data && data !== null && 'id' in (data as Record<string, any>)) {
         // New format: function returns complete order object
-        return transformOrderFromDB(data);
+        return transformOrderFromDB(data as any);
       } else {
         // Fallback: if it's still UUID, fetch the order
         const { data: orderData, error: fetchError } = await supabase
@@ -366,11 +366,7 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
         logger.warn('⚠️ Financial sync failed (non-critical):', transformedOrder.nomorPesanan);
       }
     } catch (syncError) {
-      logger.error('Error in auto financial sync:', syncError, {
-        orderId: transformedOrder.id,
-        orderNumber: transformedOrder.nomorPesanan,
-        amount: transformedOrder.totalPesanan
-      });
+      logger.error(`Error in auto financial sync for order ${transformedOrder.nomorPesanan}:`, syncError);
       // Don't throw - order status update should still succeed
     }
   } else {

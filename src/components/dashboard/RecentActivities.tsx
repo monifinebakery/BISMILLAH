@@ -54,9 +54,9 @@ const ActivityRow: React.FC<{
     const supplierIdMatch = description.match(/Supplier\s+(\w+)/i);
     if (supplierIdMatch && supplierIdMatch[1]) {
       const supplierId = supplierIdMatch[1];
-      const supplier = suppliers.find(s => s.id === supplierId || s.name.toLowerCase().includes(supplierId.toLowerCase()));
+      const supplier = suppliers.find(s => s.id === supplierId || s.nama.toLowerCase().includes(supplierId.toLowerCase()));
       if (supplier) {
-        return description.replace(`Supplier ${supplierId}`, supplier.name);
+        return description.replace(`Supplier ${supplierId}`, supplier.nama);
       }
     }
     

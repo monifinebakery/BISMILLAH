@@ -63,14 +63,14 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
     if (onEnhancedResultChange) {
       onEnhancedResultChange(result);
     }
-  }, [result, onEnhancedResultChange]);
+  }, [result]); // Removed onEnhancedResultChange to prevent infinite re-renders
 
   // Notify parent about mode changes
   React.useEffect(() => {
     if (onEnhancedModeChange) {
       onEnhancedModeChange(isEnhancedMode);
     }
-  }, [isEnhancedMode, onEnhancedModeChange]);
+  }, [isEnhancedMode]); // Removed onEnhancedModeChange to prevent infinite re-renders
 
   return (
     <div className={`space-y-4 ${className}`}>

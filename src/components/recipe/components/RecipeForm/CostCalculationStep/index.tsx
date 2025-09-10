@@ -58,7 +58,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         hargaJualPerPcs: data.hargaJualPerPcs || 0,
       });
     }
-  }, [data.hargaJualPorsi, data.hargaJualPerPcs, userHasEditedPricing]); // Added userHasEditedPricing to deps
+  }, [data.hargaJualPorsi, data.hargaJualPerPcs, userHasEditedPricing.porsi, userHasEditedPricing.pcs]); // Use primitive values to prevent infinite re-renders
 
   // Handle enhanced HPP result updates
   const handleEnhancedHppChange = React.useCallback((result: EnhancedHPPCalculationResult | null) => {

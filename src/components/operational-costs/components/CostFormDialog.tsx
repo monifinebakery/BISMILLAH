@@ -179,37 +179,33 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🔥 [DEBUG] CostFormDialog handleSubmit called with formData:', {
-      formData,
-      isValid: validateForm(),
-      errors
-    });
+    // Debug: CostFormDialog handleSubmit called
     
     if (!validateForm()) {
-      console.error('🚨 [DEBUG] Form validation failed:', errors);
+      // Form validation failed
       return;
     }
 
     setIsSubmitting(true);
     try {
-      console.log('🔥 [DEBUG] Calling onSave with formData:', formData);
+      // Calling onSave with formData
       const success = await onSave(formData); // Send complete formData including group
-      console.log('🔥 [DEBUG] onSave result:', success);
+      // onSave completed
 
       if (success) {
         onClose();
         toast.success(
           cost ? 'Biaya berhasil diperbarui!' : 'Biaya berhasil ditambahkan!',
           {
-            description: `${getGroupLabel(formData.group)} - ${formatCurrency(formData.jumlah_per_bulan)}/bulan`
+            description: `${getGroupLabel(formData.group || 'operasional')} - ${formatCurrency(formData.jumlah_per_bulan)}/bulan`
           }
         );
       } else {
-        console.error('🚨 [DEBUG] onSave returned false');
+        // onSave returned false
         toast.error('Gagal menyimpan biaya - operasi tidak berhasil');
       }
     } catch (error) {
-      console.error('🚨 [DEBUG] handleSubmit catch error:', error);
+      // handleSubmit catch error
       toast.error('Gagal menyimpan biaya');
     } finally {
       setIsSubmitting(false);

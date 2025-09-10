@@ -204,7 +204,8 @@ const MemoizedTransactionRow = React.memo(({
   onToggleSelect,
   onEdit,
   onDelete,
-  isDeleting
+  isDeleting,
+  getDisplayDescription
 }: {
   transaction: FinancialTransaction;
   isSelected: boolean;
@@ -212,6 +213,7 @@ const MemoizedTransactionRow = React.memo(({
   onEdit?: (transaction: FinancialTransaction) => void;
   onDelete: (transaction: FinancialTransaction) => void;
   isDeleting: boolean;
+  getDisplayDescription: (description: string | null) => string;
 }) => {
   const handleToggleSelect = useCallback(() => onToggleSelect?.(transaction.id, !isSelected), [transaction.id, isSelected, onToggleSelect]);
   const handleEdit = useCallback(() => onEdit?.(transaction), [transaction, onEdit]);
@@ -596,6 +598,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
                       onEdit={onEditTransaction}
                       onDelete={handleDelete}
                       isDeleting={queryData.isDeleting}
+                      getDisplayDescription={getDisplayDescription}
                     />
                   ))
                 ) : (

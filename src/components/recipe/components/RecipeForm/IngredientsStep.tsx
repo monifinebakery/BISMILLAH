@@ -601,7 +601,13 @@ const IngredientsStep: React.FC<IngredientsStepProps> = ({
                             onValueChange={(value) => handleUpdateIngredientFromWarehouse(index, value)}
                           >
                             <SelectTrigger className="border-none focus:border-orange-300 bg-transparent">
-                              <SelectValue placeholder="Pilih dari warehouse" />
+                              <SelectValue placeholder="Pilih dari warehouse">
+                                {ingredient.warehouseId ? (
+                                  availableWarehouseItems.find(item => item.id === ingredient.warehouseId)?.nama || 'Bahan tidak ditemukan'
+                                ) : (
+                                  'Pilih dari warehouse'
+                                )}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent className="max-w-[300px]">
                               {availableWarehouseItems.map((item) => {

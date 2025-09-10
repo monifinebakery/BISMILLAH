@@ -51,11 +51,6 @@ interface CalculateHPPParams {
   bahanResep: BahanResepWithWAC[];
   jumlahPorsi: number;
   jumlahPcsPerPorsi: number;
-  tklDetails: {
-    jamKerjaPerBatch?: number;
-    tarifPerJam?: number;
-    totalTklAmount?: number;
-  };
   pricingMode: PricingMode;
   useAppSettingsOverhead?: boolean;
 }
@@ -120,7 +115,7 @@ export const useEnhancedHppCalculation = ({
         params.bahanResep,
         params.jumlahPorsi,
         params.jumlahPcsPerPorsi,
-        params.tklDetails
+        // params.tklDetails // TKL now included in overhead
       );
       
       if (!validation.isValid) {
@@ -135,7 +130,6 @@ export const useEnhancedHppCalculation = ({
         params.bahanResep,
         params.jumlahPorsi,
         params.jumlahPcsPerPorsi,
-        params.tklDetails,
         params.pricingMode,
         params.useAppSettingsOverhead ?? true
       );
@@ -171,8 +165,7 @@ export const useEnhancedHppCalculation = ({
     return validateEnhancedCalculationInputs(
       params.bahanResep,
       params.jumlahPorsi,
-      params.jumlahPcsPerPorsi,
-      params.tklDetails
+      params.jumlahPcsPerPorsi
     );
   }, []);
 
@@ -260,7 +253,6 @@ export const useRecipeHppIntegration = (recipeData: {
   bahanResep: any[];
   jumlahPorsi: number;
   jumlahPcsPerPorsi: number;
-  biayaTenagaKerja: number;
   marginKeuntunganPersen: number;
 }) => {
   const hppHook = useEnhancedHppCalculation({ autoCalculate: true });
@@ -272,8 +264,6 @@ export const useRecipeHppIntegration = (recipeData: {
   useEffect(() => {
     if (isEnhancedMode && recipeData.bahanResep.length > 0) {
       console.log('🔥 [useRecipeHppIntegration] Input recipe data:', {
-        biayaTenagaKerja: recipeData.biayaTenagaKerja,
-        biayaTenagaKerjaType: typeof recipeData.biayaTenagaKerja,
         jumlahPorsi: recipeData.jumlahPorsi,
         jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi,
         bahanCount: recipeData.bahanResep.length
@@ -290,9 +280,6 @@ export const useRecipeHppIntegration = (recipeData: {
         })),
         jumlahPorsi: recipeData.jumlahPorsi,
         jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi,
-        tklDetails: {
-          totalTklAmount: recipeData.biayaTenagaKerja
-        },
         pricingMode: {
           mode: 'markup',
           percentage: recipeData.marginKeuntunganPersen
@@ -301,7 +288,6 @@ export const useRecipeHppIntegration = (recipeData: {
       };
       
       console.log('🔥 [useRecipeHppIntegration] Prepared params for calculation:', {
-        tklDetails: params.tklDetails,
         pricingMode: params.pricingMode
       });
       
@@ -317,7 +303,6 @@ export const useRecipeHppIntegration = (recipeData: {
     recipeData.bahanResep,
     recipeData.jumlahPorsi,
     recipeData.jumlahPcsPerPorsi,
-    recipeData.biayaTenagaKerja,
     recipeData.marginKeuntunganPersen,
     hppHook
   ]);

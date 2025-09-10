@@ -191,9 +191,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         totalBahanBaku: result.bahanPerPcs * 
           (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
           (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1),
-        biayaTenagaKerja: result.tklPerPcs * 
-          (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
-          (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1),
+        biayaTenagaKerja: 0, // TKL now included in overhead
         biayaOverhead: result.overheadPerPcs * 
           (typeof formData.jumlahPorsi === 'number' ? formData.jumlahPorsi : parseInt(formData.jumlahPorsi) || 1) *
           (typeof formData.jumlahPcsPerPorsi === 'number' ? formData.jumlahPcsPerPorsi : parseInt(formData.jumlahPcsPerPorsi as string) || 1)
@@ -630,7 +628,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="biayaTenagaKerja">Biaya Tenaga Kerja (Rp)</Label>
+                <Label htmlFor="biayaTenagaKerja">Biaya Tenaga Kerja (Rp) - Sudah termasuk dalam overhead</Label>
                 <Input
                   id="biayaTenagaKerja"
                   type="number"

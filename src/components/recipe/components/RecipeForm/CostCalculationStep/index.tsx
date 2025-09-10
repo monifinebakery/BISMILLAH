@@ -85,7 +85,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
       const jumlahPcsPerPorsi = typeof data.jumlahPcsPerPorsi === 'string'
         ? (data.jumlahPcsPerPorsi === '' ? 1 : parseInt(data.jumlahPcsPerPorsi)) || 1  
         : (data.jumlahPcsPerPorsi || 1);
-      onUpdate('biayaTenagaKerja', result.tklPerPcs * jumlahPorsi * jumlahPcsPerPorsi);
+      onUpdate('biayaTenagaKerja', 0); // TKL now included in overhead
       onUpdate('biayaOverhead', result.overheadPerPcs * jumlahPorsi * jumlahPcsPerPorsi);
     }
   }, [onUpdate, data.jumlahPorsi, data.jumlahPcsPerPorsi]);
@@ -167,7 +167,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
               <span>⏳ Menunggu</span> - Setup biaya produksi di Biaya Operasional → Dual-Mode Calculator
             </span>
           )}<br/>
-          <strong>Formula:</strong> Bahan + TKL + Biaya Produksi Otomatis = HPP Akurat
+          <strong>Formula:</strong> Bahan + Biaya Produksi Otomatis (sudah termasuk TKL) = HPP Akurat
         </AlertDescription>
       </Alert>
 
@@ -247,7 +247,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 </div>
                 {enhancedHppResult.breakdown.overheadBreakdown && (
                   <div className="text-xs text-purple-600 space-y-1">
-                    <div>💡 Termasuk TKL + Overhead: Rp {enhancedHppResult.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
+                    <div>💡 Overhead Produksi: Rp {enhancedHppResult.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
                     <div>📋 Operasional: Rp {enhancedHppResult.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
                   </div>
                 )}
@@ -491,19 +491,19 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Revenue:</span>
-                            <span className="font-medium text-gray-900">Rp {(sellingPrices.hargaJualPorsi * data.jumlahPorsi).toLocaleString('id-ID')}</span>
+                            <span className="font-medium text-gray-900">Rp {(Number(sellingPrices.hargaJualPorsi) * Number(data.jumlahPorsi)).toLocaleString('id-ID')}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total HPP:</span>
-                            <span className="font-medium text-gray-900">Rp {(enhancedHppResult.hppPerPorsi * data.jumlahPorsi).toLocaleString('id-ID')}</span>
+                            <span className="font-medium text-gray-900">Rp {(Number(enhancedHppResult?.hppPerPorsi || 0) * Number(data.jumlahPorsi)).toLocaleString('id-ID')}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Profit:</span>
                             <span className={`font-medium ${
-                              (sellingPrices.hargaJualPorsi - enhancedHppResult.hppPerPorsi) * data.jumlahPorsi > 0 
+                              (Number(sellingPrices.hargaJualPorsi) - Number(enhancedHppResult?.hppPerPorsi || 0)) * Number(data.jumlahPorsi) > 0 
                                 ? 'text-green-600' : 'text-red-600'
                             }`}>
-                              Rp {((sellingPrices.hargaJualPorsi - enhancedHppResult.hppPerPorsi) * data.jumlahPorsi).toLocaleString('id-ID')}
+                              Rp {((Number(sellingPrices.hargaJualPorsi) - Number(enhancedHppResult?.hppPerPorsi || 0)) * Number(data.jumlahPorsi)).toLocaleString('id-ID')}
                             </span>
                           </div>
                         </div>
@@ -515,19 +515,19 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Revenue:</span>
-                            <span className="font-medium text-gray-900">Rp {(sellingPrices.hargaJualPerPcs * data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}</span>
+                            <span className="font-medium text-gray-900">Rp {(Number(sellingPrices.hargaJualPerPcs) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total HPP:</span>
-                            <span className="font-medium text-gray-900">Rp {(enhancedHppResult.hppPerPcs * data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}</span>
+                            <span className="font-medium text-gray-900">Rp {(Number(enhancedHppResult?.hppPerPcs || 0) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Profit:</span>
                             <span className={`font-medium ${
-                              (sellingPrices.hargaJualPerPcs - enhancedHppResult.hppPerPcs) * data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1) > 0 
+                              (Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1) > 0 
                                 ? 'text-green-600' : 'text-red-600'
                             }`}>
-                              Rp {((sellingPrices.hargaJualPerPcs - enhancedHppResult.hppPerPcs) * data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}
+                              Rp {((Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}
                             </span>
                           </div>
                         </div>

@@ -50,17 +50,36 @@ const ActivityRow: React.FC<{
   const getDisplayDescription = (description: string | null | undefined): string => {
     if (!description) return '-';
     
-    // Cek jika deskripsi mengandung pola ID supplier
-    const supplierIdMatch = description.match(/Supplier\s+(\w+)/i);
-    if (supplierIdMatch && supplierIdMatch[1]) {
-      const supplierId = supplierIdMatch[1];
-      const supplier = suppliers.find(s => s.id === supplierId || s.nama.toLowerCase().includes(supplierId.toLowerCase()));
-      if (supplier) {
-        return description.replace(`Supplier ${supplierId}`, supplier.nama);
-      }
-    }
+    // Pattern untuk mendeteksi UUID supplier (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    const uuidPattern = /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/gi;
     
-    return description;
+    // Pattern untuk mendeteksi ID supplier pendek (format: cb8d8ef-a1be-4202-b527-f1f5939e6)
+    const shortIdPattern = /[a-f0-9]{7,8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{9,12}/gi;
+    
+    // Pattern untuk "Supplier [ID]"
+    const supplierIdPattern = /Supplier\s+([a-f0-9-]+)/gi;
+    
+    let result = description;
+    
+    // Ganti semua UUID yang ditemukan
+    result = result.replace(uuidPattern, (match) => {
+      const supplier = suppliers.find(s => s.id === match);
+      return supplier ? supplier.nama : match;
+    });
+    
+    // Ganti semua short ID yang ditemukan
+    result = result.replace(shortIdPattern, (match) => {
+      const supplier = suppliers.find(s => s.id === match);
+      return supplier ? supplier.nama : match;
+    });
+    
+    // Ganti pattern "Supplier [ID]"
+    result = result.replace(supplierIdPattern, (match, supplierId) => {
+      const supplier = suppliers.find(s => s.id === supplierId);
+      return supplier ? supplier.nama : match;
+    });
+    
+    return result;
   };
 
   if (isLoading) {

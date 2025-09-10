@@ -58,7 +58,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         hargaJualPerPcs: data.hargaJualPerPcs || 0,
       });
     }
-  }, [data.hargaJualPorsi, data.hargaJualPerPcs, userHasEditedPricing.porsi, userHasEditedPricing.pcs]); // Use primitive values to prevent infinite re-renders
+  }, [data.hargaJualPorsi, data.hargaJualPerPcs, userHasEditedPricing.porsi, userHasEditedPricing.pcs, sellingPrices.hargaJualPorsi, sellingPrices.hargaJualPerPcs]); // Fixed dependency array
 
   // Handle enhanced HPP result updates
   const handleEnhancedHppChange = React.useCallback((result: EnhancedHPPCalculationResult | null) => {
@@ -107,7 +107,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
       biayaOverhead: data.biayaOverhead || 0,
       marginKeuntunganPersen: data.marginKeuntunganPersen || 0,
     };
-  }, [data]);
+  }, [data.bahanResep, data.jumlahPorsi, data.jumlahPcsPerPorsi, data.biayaTenagaKerja, data.biayaOverhead, data.marginKeuntunganPersen]); // Fixed dependency array to prevent infinite re-renders
 
   // Calculate accurate ingredient cost for display - handle string values
   const totalIngredientCost = data.bahanResep.reduce((sum, bahan) => sum + bahan.totalHarga, 0);

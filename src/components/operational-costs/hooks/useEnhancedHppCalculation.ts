@@ -83,13 +83,7 @@ export const useEnhancedHppCalculation = ({
       const settings = await getCurrentAppSettings();
       setAppSettings(settings);
       
-      if (settings?.overhead_per_pcs) {
-        console.log('💡 Enhanced HPP: Using overhead from app settings:', settings.overhead_per_pcs);
-      } else if (settings) {
-        console.log('⚠️ Enhanced HPP: App settings found but no overhead calculated yet');
-      } else {
-        console.log('⚠️ Enhanced HPP: No app settings found, default settings will be created');
-      }
+      // App settings loaded successfully
     } catch (err) {
       const errorMessage = 'Gagal memuat pengaturan overhead. Sistem akan menggunakan nilai default.';
       setError(errorMessage);
@@ -263,11 +257,7 @@ export const useRecipeHppIntegration = (recipeData: {
   // Auto-calculate when recipe data changes and enhanced mode is active
   useEffect(() => {
     if (isEnhancedMode && recipeData.bahanResep.length > 0) {
-      console.log('🔥 [useRecipeHppIntegration] Input recipe data:', {
-        jumlahPorsi: recipeData.jumlahPorsi,
-        jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi,
-        bahanCount: recipeData.bahanResep.length
-      });
+      // Input recipe data for calculation
       
       const params: CalculateHPPParams = {
         bahanResep: recipeData.bahanResep.map(bahan => ({
@@ -287,9 +277,7 @@ export const useRecipeHppIntegration = (recipeData: {
         useAppSettingsOverhead: true
       };
       
-      console.log('🔥 [useRecipeHppIntegration] Prepared params for calculation:', {
-        pricingMode: params.pricingMode
-      });
+      // Prepared params for calculation
       
       // Debounce calculation for better performance
       const timer = setTimeout(() => {
@@ -304,8 +292,8 @@ export const useRecipeHppIntegration = (recipeData: {
     recipeData.jumlahPorsi,
     recipeData.jumlahPcsPerPorsi,
     recipeData.marginKeuntunganPersen,
-    hppHook
-  ]);
+    hppHook.calculateHPP
+  ]); // Fixed dependency to prevent infinite re-renders
   
   return {
     ...hppHook,

@@ -1,5 +1,5 @@
 // src/contexts/PaymentContext.tsx - FIXED Hook Order Issues
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { useUnlinkedPayments } from '@/hooks/useUnlinkedPayments';
@@ -88,7 +88,10 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     unlinkedCount: autoLinkCount
   } = useUnlinkedPayments(supabase, user); // ✅ Always pass user, not conditional
 
-  // 5. ALL useCallback hooks - ALWAYS called in same order
+  // 5. useRef for stable function reference
+  const refreshAccessStatusRef = useRef<(() => Promise<void>) | null>(null);
+
+  // 6. ALL useCallback hooks - ALWAYS called in same order
   
   // ✅ Access status refresh callback
   const refreshAccessStatus = useCallback(async () => {
@@ -148,7 +151,10 @@ const accessPromise = getUserAccessStatus();
     } finally {
       setAccessLoading(false);
     }
-  }, [authReady, authLoading, isUserValid, user?.email, showOrderPopup, setShowOrderPopup, paymentLoading]);
+  }, [authReady, authLoading, isUserValid, user?.email, showOrderPopup, paymentLoading]);
+
+  // Update ref with current function
+  refreshAccessStatusRef.current = refreshAccessStatus;
 
   // ✅ Enhanced refetch function
   const enhancedRefetch = useCallback(async () => {
@@ -162,13 +168,13 @@ const accessPromise = getUserAccessStatus();
     try {
       await refetchPaymentStatus();
       await refetchUnlinkedPayments();
-      await refreshAccessStatus();
+      await refreshAccessStatusRef.current?.();
     } catch (error) {
       logger.error('PaymentContext: Enhanced refetch failed:', error);
     }
-  }, [isUserValid, refetchPaymentStatus, refetchUnlinkedPayments, refreshAccessStatus]);
+  }, [isUserValid, refetchPaymentStatus, refetchUnlinkedPayments]);
 
-  // 6. ALL useEffect hooks - ALWAYS called in same order
+  // 7. ALL useEffect hooks - ALWAYS called in same order
 
   // ✅ EFFECT 1: Validate user
   useEffect(() => {
@@ -232,7 +238,7 @@ const accessPromise = getUserAccessStatus();
   useEffect(() => {
     if (authReady && !authLoading && isUserValid && !paymentLoading) {
       logger.debug('PaymentContext: Triggering access refresh for valid user');
-      refreshAccessStatus();
+      refreshAccessStatusRef.current?.();
     } else {
       logger.debug('PaymentContext: Skipping access refresh', {
         authReady,
@@ -241,7 +247,7 @@ const accessPromise = getUserAccessStatus();
         paymentLoading
       });
     }
-  }, [authReady, authLoading, isUserValid, paymentLoading, isPaid, paymentStatus?.user_id, refreshAccessStatus]);
+  }, [authReady, authLoading, isUserValid, paymentLoading, isPaid]);
 
   // ✅ EFFECT 3: Close popup when access granted
   useEffect(() => {

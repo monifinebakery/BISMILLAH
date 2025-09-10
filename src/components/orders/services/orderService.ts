@@ -442,6 +442,15 @@ export async function deleteOrder(userId: string, id: string): Promise<void> {
   }
 
   logger.success('✅ Successfully deleted order and cleaned up financial data:', orderData.nomor_pesanan);
+  
+  // ✅ STEP 4: Emit event for immediate UI updates and financial report synchronization
+  try {
+    const { emitOrderDeleted } = await import('../utils/orderEvents');
+    emitOrderDeleted(id);
+    logger.debug('✅ Order deletion event emitted for real-time updates');
+  } catch (eventError) {
+    logger.warn('Could not emit order deletion event (non-critical):', eventError);
+  }
 }
 
 // ULTRA OPTIMIZED: Bulk update dengan batching untuk performa maksimal
@@ -554,4 +563,13 @@ export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<v
   await Promise.all(promises);
   
   logger.success(`✅ Successfully bulk deleted ${ids.length} orders and cleaned up financial data`);
+  
+  // ✅ STEP 4: Emit events for immediate UI updates and financial report synchronization
+  try {
+    const { emitOrderDeleted } = await import('../utils/orderEvents');
+    ids.forEach(id => emitOrderDeleted(id));
+    logger.debug(`✅ Bulk order deletion events emitted for ${ids.length} orders`);
+  } catch (eventError) {
+    logger.warn('Could not emit bulk order deletion events (non-critical):', eventError);
+  }
 }

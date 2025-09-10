@@ -435,14 +435,13 @@ const OrdersPage: React.FC = () => {
         
         toast.success(`Status pesanan #${data.nomor_pesanan} berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
         
-        // ✅ STEP 4: Trigger manual refresh
+        // ✅ STEP 4: Trigger refresh through event system (no more manual refresh)
         if (typeof contextValue.refreshData === 'function') {
-          logger.debug('Triggering manual refresh');
+          logger.debug('Triggering refresh via context');
           await contextValue.refreshData();
         } else {
-          logger.warn('refreshData not available, page might need manual refresh');
-          // Fallback: reload page
-          setTimeout(() => window.location.reload(), 1000);
+          logger.debug('Refresh will be handled automatically via event system');
+          // Event system will handle the refresh automatically
         }
 
       } catch (error) {

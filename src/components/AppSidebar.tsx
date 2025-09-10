@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { DashboardIcon } from "@radix-ui/react-icons";
 import {
   Calculator, ChefHat, Package, Users, ShoppingCart, FileText,
-  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign, Bell,
+  TrendingUp, Settings, Building2, LogOut, Download, Receipt, DollarSign,
   BarChart3, BookOpen
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -34,7 +34,7 @@ import { useOperationalCost } from "@/components/operational-costs/context/Opera
 import { useAssetQuery } from "@/components/assets";
 import { useAuth } from "@/contexts/AuthContext";
 
-import { UpdateBadge } from "@/components/update";
+
 import { useProfitAnalysis } from "@/components/profitAnalysis";
 import { exportAllDataToExcel } from "@/utils/exportUtils";
 
@@ -48,7 +48,7 @@ export function AppSidebar() {
   const { isPaid } = usePaymentContext();
 
   // Use warehouse hook directly with defensive check
-  let bahanBaku: Array<{ id: string; nama: string; jumlah: number; satuan: string; hargaSatuan: number }> = [];
+  let bahanBaku: Array<any> = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -96,7 +96,6 @@ export function AppSidebar() {
 
   const settingsItems = [
     { title: "Pengaturan", url: "/pengaturan", icon: Settings },
-    { title: "Pembaruan", url: "/updates", icon: Bell },
   ];
 
   const confirmLogout = async () => {
@@ -134,7 +133,6 @@ export function AppSidebar() {
   };
 
   const renderMenuItem = (item: { title: string; url: string; icon: React.ElementType }, isActive: boolean) => {
-    const isUpdatesMenu = item.url === "/updates";
     return (
       <SidebarMenuButton
         tooltip={item.title}
@@ -143,7 +141,7 @@ export function AppSidebar() {
         style={baseMenuButtonStyle}
         className={cn(baseMenuButtonClass, "flex items-center", isActive && "!bg-orange-100 !text-orange-600 !border-orange-200")}
       >
-        {isUpdatesMenu ? <UpdateBadge className="flex-shrink-0" /> : <item.icon className="h-5 w-5 flex-shrink-0" />}
+        <item.icon className="h-5 w-5 flex-shrink-0" />
         <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
       </SidebarMenuButton>
     );

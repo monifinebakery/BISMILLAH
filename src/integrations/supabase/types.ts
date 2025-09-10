@@ -98,33 +98,7 @@ export type Database = {
         }
         Relationships: []
       }
-      app_updates: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          is_pinned: boolean
-          release_date: string
-          title: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          is_pinned?: boolean
-          release_date?: string
-          title: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          is_pinned?: boolean
-          release_date?: string
-          title?: string
-        }
-        Relationships: []
-      }
+
       assets: {
         Row: {
           created_at: string
@@ -847,35 +821,7 @@ export type Database = {
         }
         Relationships: []
       }
-      user_seen_updates: {
-        Row: {
-          id: string
-          seen_at: string
-          update_id: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          seen_at?: string
-          update_id: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          seen_at?: string
-          update_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_seen_updates_update_id_fkey"
-            columns: ["update_id"]
-            isOneToOne: false
-            referencedRelation: "app_updates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+
       user_settings: {
         Row: {
           address: string | null

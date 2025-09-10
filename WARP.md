@@ -118,7 +118,7 @@ The application uses a hierarchical Context Provider structure in `AppProviders.
 14. **FollowUpTemplateProvider** - Communication templates
 15. **DeviceProvider** - Device-specific optimizations
 16. **ProfitAnalysisProvider** - Comprehensive profit analysis
-17. **UpdateProvider** - Application update management
+
 
 ### Key Business Logic Modules
 

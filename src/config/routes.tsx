@@ -19,7 +19,7 @@ import invoiceRoutes from '@/routes/invoice';
 import financialRoutes from '@/routes/financial';
 import profitAnalysisRoutes from '@/routes/profit-analysis';
 import assetRoutes from '@/routes/assets';
-import updateRoutes from '@/routes/updates';
+
 import settingsRoutes from '@/routes/settings';
 import deviceRoutes from '@/routes/devices';
 import menuRoutes from '@/routes/menu';
@@ -59,7 +59,7 @@ export const AppRouter: React.FC = () => (
       {financialRoutes}
       {profitAnalysisRoutes}
       {assetRoutes}
-      {updateRoutes}
+
       {settingsRoutes}
       {deviceRoutes}
       {menuRoutes}

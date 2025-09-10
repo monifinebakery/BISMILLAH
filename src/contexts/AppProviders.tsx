@@ -18,8 +18,7 @@ import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
 
-// ✅ NEW: Import UpdateProvider
-import { UpdateProvider } from '@/components/update';
+
 
 // ✅ NEW: Import ProfitAnalysisProvider
 import { ProfitAnalysisProvider } from '@/components/profitAnalysis';
@@ -82,13 +81,8 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                                   <DeviceProvider>
                                     {/* ✅ NEW: Add ProfitAnalysisProvider */}
                                     <ProfitAnalysisProvider>
-                                      {/* ✅ NEW: Add UpdateProvider at the end */}
-                                      <UpdateProvider>
-                                        
                                         {/* ✅ APP CONTENT */}
                                         {children}
-                                        
-                                      </UpdateProvider>
                                     </ProfitAnalysisProvider>
                                   </DeviceProvider>
                                 </FollowUpTemplateProvider>

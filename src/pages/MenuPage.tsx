@@ -14,7 +14,7 @@ import {
   Package, 
   Receipt, 
   DollarSign, 
-  Bell,
+
   TrendingUp, // ✅ NEW: Icon for Profit Analysis
   BookOpen // ✅ NEW: Icon for Tutorial
 } from 'lucide-react';
@@ -33,8 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// ✅ Import Update Badge untuk indicator
-import { UpdateBadge } from '@/components/update';
+
 
 const MenuPage = () => {
   const navigate = useNavigate();
@@ -154,14 +153,7 @@ const MenuPage = () => {
       icon: Receipt,
       path: '/invoice',
     },
-    // ✅ Menu pembaruan dengan penanda
-    {
-      title: 'Pembaruan',
-      description: 'Info versi terbaru',
-      icon: Bell,
-      path: '/updates',
-      isUpdates: true,
-    },
+
     {
       title: 'Pengaturan',
       description: 'Sesuaikan preferensi',
@@ -197,13 +189,9 @@ const MenuPage = () => {
               onClick={() => navigate(item.path)}
             >
               <CardContent className="p-4 flex items-start gap-4">
-                {/* Icon with Update Badge Support */}
+                {/* Icon */}
                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center relative">
-                  {item.isUpdates ? (
-                    <UpdateBadge className="text-orange-600" showCount={false} />
-                  ) : (
-                    <item.icon className="h-5 w-5 text-orange-600" />
-                  )}
+                  <item.icon className="h-5 w-5 text-orange-600" />
                 </div>
 
                 {/* Title and Description */}

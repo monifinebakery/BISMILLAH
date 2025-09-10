@@ -7,6 +7,8 @@ import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 
 // Main navigation container
 import RecipeNavigationContainer from '@/components/recipe/components/RecipeNavigationContainer';
+// Warehouse provider for recipe ingredients
+import { WarehouseProvider } from '@/components/warehouse/context/WarehouseContext';
 
 // Loading fallback component
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
@@ -96,7 +98,9 @@ const Recipes: React.FC = () => {
         {/* Main Navigation Container */}
         <RecipeErrorBoundary>
           <SafeSuspense loadingMessage="Memuat manajemen resep...">
-            <RecipeNavigationContainer />
+            <WarehouseProvider>
+              <RecipeNavigationContainer />
+            </WarehouseProvider>
           </SafeSuspense>
         </RecipeErrorBoundary>
 
@@ -111,7 +115,7 @@ const Recipes: React.FC = () => {
                 // Implementation would go here if needed
                 return true;
               }}
-              refreshRecipes={() => {
+              refreshRecipes={async () => {
                 // Refresh will be handled by the navigation container
                 window.location.reload();
               }}

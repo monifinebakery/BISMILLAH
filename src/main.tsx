@@ -12,6 +12,7 @@ import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'
 import { initToastSwipeHandlers } from '@/utils/toastSwipeHandler'
 import { safePerformance } from '@/utils/browserApiSafeWrappers';
+import { initializeNetworkErrorHandler } from '@/utils/networkErrorHandler';
 // import '@/utils/preload-optimizer'; // Temporarily disabled to prevent unused preload warnings
 
 // Vite inject via define() (lihat vite.config.ts)
@@ -35,6 +36,11 @@ const effectiveDev = import.meta.env.DEV || VERCEL_ENV === "preview";
 // App start timer
 // ------------------------------
 const appStartTime = safePerformance.now();
+
+// ------------------------------
+// Initialize network error handler
+// ------------------------------
+initializeNetworkErrorHandler();
 
 // ------------------------------
 // Scheduler polyfill (fallback)
@@ -197,24 +203,7 @@ if (effectiveDev && "performance" in window) {
     }
   }
 
-// ------------------------------
-// Global error handling
-// ------------------------------
-window.addEventListener("error", (event: ErrorEvent) => {
-  logger.criticalError("Unhandled JavaScript error", {
-    message: event.message,
-    filename: event.filename,
-    lineno: event.lineno,
-    colno: event.colno,
-    error: event.error,
-  });
-});
-
-window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-  logger.criticalError("Unhandled Promise rejection", {
-    reason: event.reason,
-  });
-});
+// Global error handlers now handled by networkErrorHandler
 
 // ------------------------------
 // PWA initialization - ENABLED WITH SAFE CACHING

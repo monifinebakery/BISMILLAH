@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Error Handler Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.production {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.development {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Network Error Handler Test</h1>
+    
+    <div class="status" id="environmentStatus">
+        <strong>Environment:</strong> <span id="envText">Detecting...</span>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔧 Configuration</h2>
+        <button onclick="showConfig()">Show Config</button>
+        <button onclick="enableNetworkLogs()">Enable Network Logs</button>
+        <button onclick="disableNetworkLogs()">Disable Network Logs</button>
+        <div class="log-output" id="configOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🚨 Test Network Errors</h2>
+        <p>These errors should be suppressed in production:</p>
+        <button onclick="testFetchFailedLoading()">Test: Fetch failed loading</button>
+        <button onclick="testNetworkError()">Test: Network error</button>
+        <button onclick="testLoadingChunkFailed()">Test: Loading chunk failed</button>
+        <button onclick="testFailedToFetch()">Test: Failed to fetch</button>
+        <button onclick="testScriptError()">Test: Script error</button>
+        <div class="log-output" id="errorOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>✅ Test Normal Errors</h2>
+        <p>These errors should still be visible:</p>
+        <button onclick="testNormalError()">Test: Normal Error</button>
+        <button onclick="testApplicationError()">Test: Application Error</button>
+        <div class="log-output" id="normalOutput"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🌐 Test Real Network Requests</h2>
+        <button onclick="testRealFetchError()">Test: Real Fetch Error</button>
+        <button onclick="testImageLoadError()">Test: Image Load Error</button>
+        <button onclick="testScriptLoadError()">Test: Script Load Error</button>
+        <div class="log-output" id="networkOutput"></div>
+    </div>
+
+    <script>
+        // Simulate network error handler (simplified version)
+        const IS_PRODUCTION = window.location.hostname === 'kalkulator.monifine.my.id' || 
+                             window.location.hostname === 'www.kalkulator.monifine.my.id';
+        
+        const NETWORK_ERROR_PATTERNS = [
+            'fetch failed loading',
+            'failed to fetch',
+            'network error',
+            'net::err_',
+            'loading chunk failed',
+            'loading css chunk failed',
+            'loading js chunk failed',
+            'script error',
+            'network request failed',
+            'connection refused',
+            'timeout',
+            'cors error'
+        ];
+        
+        function isNetworkError(error) {
+            const errorMessage = typeof error === 'string' ? error.toLowerCase() : error.message?.toLowerCase() || '';
+            return NETWORK_ERROR_PATTERNS.some(pattern => errorMessage.includes(pattern));
+        }
+        
+        function shouldSuppressError(error) {
+            if (!IS_PRODUCTION) return false;
+            return isNetworkError(error);
+        }
+        
+        // Update environment status
+        function updateEnvironmentStatus() {
+            const envElement = document.getElementById('envText');
+            const statusElement = document.getElementById('environmentStatus');
+            
+            if (IS_PRODUCTION) {
+                envElement.textContent = 'Production (errors will be suppressed)';
+                statusElement.className = 'status production';
+            } else {
+                envElement.textContent = 'Development (errors will be visible)';
+                statusElement.className = 'status development';
+            }
+        }
+        
+        // Configuration functions
+        function showConfig() {
+            const config = {
+                isProduction: IS_PRODUCTION,
+                hostname: window.location.hostname,
+                forceNetworkLogs: localStorage.getItem('FORCE_NETWORK_LOGS') === 'true',
+                suppressedPatterns: NETWORK_ERROR_PATTERNS
+            };
+            
+            document.getElementById('configOutput').textContent = JSON.stringify(config, null, 2);
+        }
+        
+        function enableNetworkLogs() {
+            localStorage.setItem('FORCE_NETWORK_LOGS', 'true');
+            document.getElementById('configOutput').textContent = 'Network error logging enabled';
+        }
+        
+        function disableNetworkLogs() {
+            localStorage.removeItem('FORCE_NETWORK_LOGS');
+            document.getElementById('configOutput').textContent = 'Network error logging disabled';
+        }
+        
+        // Test network errors
+        function testFetchFailedLoading() {
+            console.error('Fetch failed loading: GET "https://example.com/nonexistent"');
+            document.getElementById('errorOutput').textContent += 'Triggered: Fetch failed loading\n';
+        }
+        
+        function testNetworkError() {
+            console.error('Network error: Connection refused');
+            document.getElementById('errorOutput').textContent += 'Triggered: Network error\n';
+        }
+        
+        function testLoadingChunkFailed() {
+            console.error('Loading chunk 5 failed. (missing: https://example.com/chunk.js)');
+            document.getElementById('errorOutput').textContent += 'Triggered: Loading chunk failed\n';
+        }
+        
+        function testFailedToFetch() {
+            console.error('Failed to fetch: TypeError: Failed to fetch');
+            document.getElementById('errorOutput').textContent += 'Triggered: Failed to fetch\n';
+        }
+        
+        function testScriptError() {
+            console.error('Script error: Uncaught ReferenceError');
+            document.getElementById('errorOutput').textContent += 'Triggered: Script error\n';
+        }
+        
+        // Test normal errors
+        function testNormalError() {
+            console.error('This is a normal application error');
+            document.getElementById('normalOutput').textContent += 'Triggered: Normal error\n';
+        }
+        
+        function testApplicationError() {
+            console.error('Application error: Invalid user input');
+            document.getElementById('normalOutput').textContent += 'Triggered: Application error\n';
+        }
+        
+        // Test real network requests
+        function testRealFetchError() {
+            fetch('https://httpstat.us/500')
+                .catch(error => {
+                    console.error('Real fetch error:', error);
+                    document.getElementById('networkOutput').textContent += 'Real fetch error triggered\n';
+                });
+        }
+        
+        function testImageLoadError() {
+            const img = document.createElement('img');
+            img.src = 'https://example.com/nonexistent.jpg';
+            img.onerror = () => {
+                console.error('Image load error');
+                document.getElementById('networkOutput').textContent += 'Image load error triggered\n';
+            };
+            document.body.appendChild(img);
+        }
+        
+        function testScriptLoadError() {
+            const script = document.createElement('script');
+            script.src = 'https://example.com/nonexistent.js';
+            script.onerror = () => {
+                console.error('Script load error');
+                document.getElementById('networkOutput').textContent += 'Script load error triggered\n';
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Initialize
+        updateEnvironmentStatus();
+        showConfig();
+        
+        // Instructions
+        console.log('🧪 Network Error Handler Test Page Loaded');
+        console.log('📋 Instructions:');
+        console.log('1. Open DevTools Console');
+        console.log('2. Click test buttons to trigger errors');
+        console.log('3. In production, network errors should be suppressed');
+        console.log('4. In development, all errors should be visible');
+        console.log('5. Use "Enable Network Logs" to force show suppressed errors');
+    </script>
+</body>
+</html>

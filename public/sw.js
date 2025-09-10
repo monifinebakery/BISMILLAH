@@ -1,6 +1,24 @@
 // Service Worker for HPP Calculator PWA
 // Provides offline functionality and intelligent caching
 
+// Environment detection for logging
+const IS_PRODUCTION = self.location.hostname === 'kalkulator.monifine.my.id' || 
+                     self.location.hostname === 'www.kalkulator.monifine.my.id';
+const ENABLE_SW_LOGS = !IS_PRODUCTION;
+
+// Conditional logging function
+function swLog(...args) {
+  if (ENABLE_SW_LOGS) {
+    console.log(...args);
+  }
+}
+
+function swError(...args) {
+  if (ENABLE_SW_LOGS) {
+    console.error(...args);
+  }
+}
+
 // Update version number when you want to force cache refresh
 const CACHE_VERSION = 'v4-' + new Date().toISOString().split('T')[0]; // v4-2025-01-10
 const CACHE_NAME = 'hpp-calculator-' + CACHE_VERSION;
@@ -36,27 +54,27 @@ const API_ENDPOINTS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  swLog('[SW] Installing service worker...');
   
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('[SW] Caching static assets');
+        swLog('[SW] Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => {
-        console.log('[SW] Static assets cached successfully');
+        swLog('[SW] Static assets cached successfully');
         return self.skipWaiting();
       })
       .catch((error) => {
-        console.error('[SW] Failed to cache static assets:', error);
+        swError('[SW] Failed to cache static assets:', error);
       })
   );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
+  swLog('[SW] Activating service worker...');
   
   event.waitUntil(
     caches.keys()
@@ -137,25 +155,25 @@ async function handleStaticAsset(request) {
       // Hashed assets can be cached forever (cache-first)
       const cachedResponse = await caches.match(request);
       if (cachedResponse) {
-        console.log('[SW] Serving hashed asset from cache:', url.pathname);
+        swLog('[SW] Serving hashed asset from cache:', url.pathname);
         return cachedResponse;
       }
     }
     
     // Try network first for non-hashed assets
-    console.log('[SW] Fetching from network:', url.pathname);
+    swLog('[SW] Fetching from network:', url.pathname);
     const networkResponse = await fetch(request);
     
     if (networkResponse.ok) {
       const cacheName = isCriticalAsset ? ASSETS_CACHE : STATIC_CACHE;
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
-      console.log('[SW] Cached asset:', url.pathname);
+      swLog('[SW] Cached asset:', url.pathname);
     }
     
     return networkResponse;
   } catch (error) {
-    console.error('[SW] Static asset fetch failed:', url.pathname, error);
+    swError('[SW] Static asset fetch failed:', url.pathname, error);
     
     // Try to find in any cache as fallback
     const cacheNames = [ASSETS_CACHE, STATIC_CACHE, DYNAMIC_CACHE];
@@ -163,7 +181,7 @@ async function handleStaticAsset(request) {
       const cache = await caches.open(cacheName);
       const cachedResponse = await cache.match(request);
       if (cachedResponse) {
-        console.log('[SW] Fallback cache hit:', url.pathname);
+        swLog('[SW] Fallback cache hit:', url.pathname);
         return cachedResponse;
       }
     }
@@ -187,7 +205,7 @@ async function handleAPIRequest(request) {
     
     throw new Error('Network response not ok');
   } catch (error) {
-    console.log('[SW] Network failed, trying cache for API request');
+    swLog('[SW] Network failed, trying cache for API request');
     
     // Fallback to cache
     const cachedResponse = await caches.match(request);
@@ -331,4 +349,4 @@ self.addEventListener('message', (event) => {
   }
 });
 
-console.log('[SW] Service worker script loaded');
+swLog('[SW] Service worker script loaded');

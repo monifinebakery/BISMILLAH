@@ -53,18 +53,10 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     const userHasNotEditedPricing = !userHasEditedPricing.porsi && !userHasEditedPricing.pcs;
     
     if (isInitialLoad && hasValidFormData && userHasNotEditedPricing) {
-      console.log('📥 Initial sync with form data (edit mode):', {
-        incoming: { 
-          hargaJualPorsi: data.hargaJualPorsi || 0, 
-          hargaJualPerPcs: data.hargaJualPerPcs || 0 
-        }
-      });
       setSellingPrices({
         hargaJualPorsi: data.hargaJualPorsi || 0,
         hargaJualPerPcs: data.hargaJualPerPcs || 0,
       });
-    } else if (userHasEditedPricing.porsi || userHasEditedPricing.pcs) {
-      console.log('🔒 Protecting manual pricing from auto-override:', userHasEditedPricing);
     }
   }, [data.hargaJualPorsi, data.hargaJualPerPcs, userHasEditedPricing]); // Added userHasEditedPricing to deps
 
@@ -343,7 +335,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                       value={sellingPrices.hargaJualPorsi || ''}
                       onChange={(e) => {
                         const value = parseFloat(e.target.value) || 0;
-                        console.log('💰 Manual price edit - hargaJualPorsi:', value);
+                        // Manual price edit - hargaJualPorsi
                         
                         // ✅ Mark as manually edited to prevent auto-override
                         setUserHasEditedPricing(prev => ({
@@ -367,7 +359,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                           key={multiplier}
                           type="button"
                           onClick={() => {
-                            console.log('🎯 Applying suggested price for porsi:', suggestedPrice);
+                            // Applying suggested price for porsi
                             setSellingPrices(prev => ({ ...prev, hargaJualPorsi: suggestedPrice }));
                             onUpdate('hargaJualPorsi', suggestedPrice);
                           }}
@@ -416,7 +408,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                       value={sellingPrices.hargaJualPerPcs || ''}
                       onChange={(e) => {
                         const value = parseFloat(e.target.value) || 0;
-                        console.log('💰 Manual price edit - hargaJualPerPcs:', value);
+                        // Manual price edit - hargaJualPerPcs
                         
                         // ✅ Mark as manually edited to prevent auto-override
                         setUserHasEditedPricing(prev => ({
@@ -440,7 +432,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                           key={multiplier}
                           type="button"
                           onClick={() => {
-                            console.log('🎯 Applying suggested price for pcs:', suggestedPrice);
+                            // Applying suggested price for pcs
                             setSellingPrices(prev => ({ ...prev, hargaJualPerPcs: suggestedPrice }));
                             onUpdate('hargaJualPerPcs', suggestedPrice);
                           }}
@@ -511,7 +503,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                     )}
                     {sellingPrices.hargaJualPerPcs > 0 && (
                       <div className="space-y-2">
-                        <div className="font-medium text-orange-800">Per Pcs ({data.jumlahPorsi * (data.jumlahPcsPerPorsi || 1)} pcs):</div>
+                        <div className="font-medium text-orange-800">Per Pcs ({Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)} pcs):</div>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Revenue:</span>
@@ -524,10 +516,10 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Profit:</span>
                             <span className={`font-medium ${
-                              (Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1) > 0 
+                              (Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi || 1) * Number(data.jumlahPcsPerPorsi || 1) > 0 
                                 ? 'text-green-600' : 'text-red-600'
                             }`}>
-                              Rp {((Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}
+                              Rp {((Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi || 1) * Number(data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}
                             </span>
                           </div>
                         </div>

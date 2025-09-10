@@ -253,19 +253,12 @@ export const validateCostData = (data: CostCalculationData) => {
  * Debug helper function to test calculations
  */
 export const debugCalculations = (data: CostCalculationData) => {
-  console.log('=== DEBUG CALCULATIONS ===');
-  console.log('Input data:', data);
-  
+  // Calculate cost breakdown and profit analysis
   const costBreakdown = calculateCostBreakdown(data);
-  console.log('Cost breakdown:', costBreakdown);
-  
   const profitAnalysis = calculateProfitAnalysis(costBreakdown, data);
-  console.log('Profit analysis:', profitAnalysis);
   
   // Manual verification
   const expectedMarginPerPortion = costBreakdown.costPerPortion * (data.marginKeuntunganPersen || 0) / 100;
-  console.log('Expected margin per portion:', expectedMarginPerPortion);
-  console.log('Actual margin amount:', profitAnalysis.marginAmount);
   
   return { costBreakdown, profitAnalysis };
 };

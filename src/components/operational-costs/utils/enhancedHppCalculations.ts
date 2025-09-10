@@ -275,7 +275,7 @@ export const calculateEnhancedHPP = async (
     // TKL is now handled entirely through overhead from operational costs
     let tklPerPcs = 0;
     
-    console.log('🔥 [TKL] TKL costs are included in overhead from operational costs');
+    // TKL costs are included in overhead from operational costs
     
     // 4. ✅ UMKM MODE: Get combined overhead per pcs from app settings (includes HPP + TKL)
     let overheadPerPcs = 0;
@@ -350,30 +350,9 @@ export const calculateEnhancedHPP = async (
     
     const hargaJualPerPorsi = hargaJualPerPcs * jumlahPcsPerPorsi;
     
-    console.log('🔥 [ENHANCED DEBUG] TKL and Overhead calculation:', {
-      tklPerPcs,
-      overheadBreakdown: {
-        overheadPerPcs,
-        operasionalPerPcs,
-        totalOverheadForHPP,
-        calculation: `overhead_per_pcs: ${overheadPerPcs} (includes HPP+TKL), operasional: ${operasionalPerPcs}`
-      },
-      overheadSource
-    });
+    // TKL and Overhead calculation completed
     
-    console.log('🔥 [ENHANCED DEBUG] Final HPP calculation:', {
-      bahanPerPcs,
-      tklPerPcs,
-      overhead: {
-        overheadPerPcs,
-        operasionalPerPcs,
-        totalOverheadForHPP
-      },
-      hppPerPcs: bahanPerPcs + tklPerPcs + totalOverheadForHPP,
-      hppPerPorsi: (bahanPerPcs + tklPerPcs + totalOverheadForHPP) * jumlahPcsPerPorsi,
-      totalHPP: (bahanPerPcs + tklPerPcs + totalOverheadForHPP) * jumlahPcsPerPorsi * jumlahPorsi,
-      note: 'UMKM mode: overhead already includes HPP + TKL costs'
-    });
+    // Final HPP calculation completed
     
     // Additional validation check before creating result
     if (bahanPerPcs > 100000) { // If bahan cost per pcs is more than Rp 100k, something is wrong

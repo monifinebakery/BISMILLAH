@@ -190,7 +190,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                 </p>
                 {result.breakdown.overheadBreakdown && (
                   <div className="text-xs text-purple-600 mt-2">
-                    <div>💡 Overhead (sudah termasuk TKL): Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
+                    <div>💡 Overhead: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
                     <div>📋 Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
                   </div>
                 )}

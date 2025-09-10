@@ -8,6 +8,7 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { generateListKey } from '@/utils/keyUtils';
 import { formatDateTime } from '@/utils/unifiedDateUtils';
 import type { Activity } from '@/types/activity';
+import { useSupplier } from '@/contexts/SupplierContext';
 
 interface Props {
   activities: Activity[];
@@ -43,6 +44,25 @@ const ActivityRow: React.FC<{
   activity: Activity;
   isLoading?: boolean;
 }> = ({ activity, isLoading = false }) => {
+  const { suppliers } = useSupplier();
+  
+  // Fungsi untuk mengubah ID supplier menjadi nama
+  const getDisplayDescription = (description: string | null | undefined): string => {
+    if (!description) return '-';
+    
+    // Cek jika deskripsi mengandung pola ID supplier
+    const supplierIdMatch = description.match(/Supplier\s+(\w+)/i);
+    if (supplierIdMatch && supplierIdMatch[1]) {
+      const supplierId = supplierIdMatch[1];
+      const supplier = suppliers.find(s => s.id === supplierId || s.name.toLowerCase().includes(supplierId.toLowerCase()));
+      if (supplier) {
+        return description.replace(`Supplier ${supplierId}`, supplier.name);
+      }
+    }
+    
+    return description;
+  };
+
   if (isLoading) {
     return (
       <TableRow>
@@ -84,7 +104,7 @@ const ActivityRow: React.FC<{
           </p>
           {activity.description && (
             <p className="text-sm text-gray-500 truncate mt-1" title={activity.description}>
-              {activity.description}
+              {getDisplayDescription(activity.description)}
             </p>
           )}
         </div>

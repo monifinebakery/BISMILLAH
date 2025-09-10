@@ -108,9 +108,9 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
       
       {/* ✅ GLOBAL UI */}
       <Toaster 
-        position={isMobile ? 'top-center' : 'top-right'}
+        position="top-center"
         closeButton
-        offset={isMobile ? 24 : 16}
+        offset={24}
         toastOptions={{
           classNames: {
             toast: 'bg-white text-gray-900 border border-gray-200',

@@ -63,6 +63,8 @@ import TransactionFiltersComponent from './TransactionFilters';
 import TransactionBulkActions from './TransactionBulkActions';
 
 // ✅ Types - Sebaiknya diimpor dari file types terpisah jika memungkinkan
+import { useSupplier } from '@/contexts/SupplierContext';
+import { getSupplierName } from '@/utils/purchaseHelpers';
 interface FinancialTransaction {
   id: string;
   date: Date | string | null;
@@ -271,7 +273,7 @@ const MemoizedTransactionRow = React.memo(({
         )}
       </TableCell>
       <TableCell className="max-w-[200px] truncate">
-        {transaction.description || '-'}
+        {getDisplayDescription(transaction.description)}
       </TableCell>
       <TableCell>
         <Badge variant="outline">
@@ -369,6 +371,24 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
 
   // ✅ Definisikan user TERLEBIH DAHULU sebelum digunakan
   const { user } = useAuth(); // ✅ Harus di sini
+  const { suppliers } = useSupplier();
+  
+  // Fungsi untuk mendapatkan nama supplier dari deskripsi
+  const getDisplayDescription = useCallback((description: string | null): string => {
+    if (!description) return '-';
+    
+    // Cek apakah deskripsi mengandung ID supplier (format: "Pembelian dari {supplierId}")
+    const purchasePattern = /Pembelian dari\s+(.+)/;
+    const match = description.match(purchasePattern);
+    
+    if (match && match[1]) {
+      const supplierId = match[1];
+      const supplierName = getSupplierName(supplierId, suppliers);
+      return `Pembelian dari ${supplierName}`;
+    }
+    
+    return description;
+  }, [suppliers]);
 
   // Gunakan data dari useQuery (Supabase) atau dari props
   const queryData = useTransactionData(

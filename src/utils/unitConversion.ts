@@ -20,9 +20,13 @@ export interface ConvertedIngredient {
 export const UNIT_CONVERSIONS: UnitConversion[] = [
   // Weight conversions
   { from: 'kg', to: 'gram', multiplier: 1000, category: 'weight' },
+  { from: 'kilogram', to: 'gram', multiplier: 1000, category: 'weight' },
+  { from: 'gr', to: 'gram', multiplier: 1, category: 'weight' },
   
   // Volume conversions  
   { from: 'liter', to: 'ml', multiplier: 1000, category: 'volume' },
+  { from: 'litre', to: 'ml', multiplier: 1000, category: 'volume' },
+  { from: 'l', to: 'ml', multiplier: 1000, category: 'volume' },
   
   // No conversion needed for piece units
   { from: 'pcs', to: 'pcs', multiplier: 1, category: 'piece' },

@@ -186,7 +186,7 @@ export const RECIPE_CATEGORIES: readonly string[] = [] as const;
 
 // Units remain the same as they're more universal
 export const RECIPE_UNITS = [
-  'kg', 'gram', 'liter', 'ml', 'pcs', 'buah', 
+  'kg', 'kilogram', 'gram', 'gr', 'liter', 'litre', 'l', 'ml', 'pcs', 'buah', 
   'bungkus', 'sachet', 'sendok', 'gelas', 'cup'
 ] as const;
 

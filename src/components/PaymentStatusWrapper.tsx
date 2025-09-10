@@ -1,6 +1,6 @@
 // src/components/PaymentStatusWrapper.tsx - SIMPLIFIED: AutoLinkingPopup Only
-import { useEffect, ReactNode } from 'react';
-import { usePaymentStatus } from '@/hooks/usePaymentStatus';
+import { useEffect, ReactNode, useRef } from 'react';
+import { usePaymentContext } from '@/contexts/PaymentContext';
 import { AutoLinkingPopup } from '@/components/popups';
 import PaymentVerificationLoader from '@/components/PaymentVerificationLoader';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,24 +19,33 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
     currentUser,
     showAutoLinkPopup,
     setShowAutoLinkPopup,
-    refetch 
-  } = usePaymentStatus();
+    refetchPayment 
+  } = usePaymentContext();
+  
+  const prevUnlinkedCountRef = useRef(0);
   
   // ✅ Auto-show AutoLinkingPopup if user needs to link order OR has unlinked payments
   useEffect(() => {
-    if ((needsOrderLinking || unlinkedPayments.length > 0) && !showAutoLinkPopup && currentUser) {
-      // Small delay to let page load first
-      const timer = setTimeout(() => {
-        setShowAutoLinkPopup(true);
-      }, 1000);
+    const currentUnlinkedCount = unlinkedPayments?.length || 0;
+    
+    // Only trigger if count actually changed
+    if (currentUnlinkedCount !== prevUnlinkedCountRef.current) {
+      prevUnlinkedCountRef.current = currentUnlinkedCount;
       
-      return () => clearTimeout(timer);
+      if ((needsOrderLinking || currentUnlinkedCount > 0) && !showAutoLinkPopup && currentUser) {
+        // Small delay to let page load first
+        const timer = setTimeout(() => {
+          setShowAutoLinkPopup(true);
+        }, 1000);
+        
+        return () => clearTimeout(timer);
+      }
     }
-  }, [needsOrderLinking, unlinkedPayments.length, showAutoLinkPopup, currentUser, setShowAutoLinkPopup]);
+  }, [needsOrderLinking, unlinkedPayments?.length, showAutoLinkPopup, currentUser, setShowAutoLinkPopup]);
   
   const handleAutoLinked = (linkedPayments: any[]) => {
     console.log('✅ Payments linked successfully:', linkedPayments);
-    refetch(); // Refresh payment status
+    refetchPayment(); // Refresh payment status
     setShowAutoLinkPopup(false);
   };
   

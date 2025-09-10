@@ -1,6 +1,6 @@
 // src/components/operational-costs/OperationalCostPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Edit2, Trash2, DollarSign, Settings, Info, Package, TrendingUp, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -41,6 +41,10 @@ const OperationalCostContent: React.FC = () => {
   const [showQuickSetup, setShowQuickSetup] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'updated' | 'error'>('idle');
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  // ✅ Use ref to prevent infinite loops
+  const appSettingsRef = useRef<AppSettings | null>(null);
+  const loadAppSettingsRef = useRef<(() => Promise<void>) | null>(null);
 
   // Bulk operations
   const {
@@ -92,12 +96,16 @@ const OperationalCostContent: React.FC = () => {
       const response = await appSettingsApi.getSettings();
       if (response.data) {
         setAppSettings(response.data);
+        appSettingsRef.current = response.data;
         setProductionTarget(response.data.target_output_monthly);
       }
     } catch (error) {
       console.error('Error loading app settings:', error);
     }
   };
+  
+  // ✅ Store loadAppSettings in ref to prevent dependency issues
+  loadAppSettingsRef.current = loadAppSettings;
 
   // Auto-refresh after CRUD operations
   useEffect(() => {
@@ -119,16 +127,17 @@ const OperationalCostContent: React.FC = () => {
 
     // IMPORTANT: Ensure app settings are loaded before computing.
     // Otherwise we might accidentally overwrite target_output_monthly with a default value.
-    if (!appSettings) return;
+    const currentAppSettings = appSettingsRef.current;
+    if (!currentAppSettings) return;
 
-    const target = appSettings.target_output_monthly;
+    const target = currentAppSettings.target_output_monthly;
     if (target <= 0) return;
 
     const computedOverhead = hppCosts / target;
     const computedOperasional = operasionalCosts / target;
 
-    const currentOverhead = appSettings.overhead_per_pcs ?? 0;
-    const currentOperasional = appSettings.operasional_per_pcs ?? 0;
+    const currentOverhead = currentAppSettings.overhead_per_pcs ?? 0;
+    const currentOperasional = currentAppSettings.operasional_per_pcs ?? 0;
 
     // Avoid unnecessary updates (epsilon compare)
     const EPS = 0.0001;
@@ -145,7 +154,7 @@ const OperationalCostContent: React.FC = () => {
           computedOverhead,
           computedOperasional
         );
-        await loadAppSettings();
+        await loadAppSettingsRef.current?.();
         setSyncStatus('updated');
         setLastSyncedAt(new Date().toISOString());
         // Show toast on significant change
@@ -166,7 +175,7 @@ const OperationalCostContent: React.FC = () => {
     }, 400);
 
     return () => clearTimeout(t);
-  }, [state.isAuthenticated, state.loading.costs, hppCosts, operasionalCosts, appSettings]);
+  }, [state.isAuthenticated, state.loading.costs, hppCosts, operasionalCosts]);
 
   // Handlers
   const handleOpenAddDialog = () => {
@@ -220,10 +229,11 @@ const OperationalCostContent: React.FC = () => {
   // Update target monthly handler
   const handleUpdateTargetMonthly = async (target: number) => {
     try {
-      const overhead = appSettings?.overhead_per_pcs || 0;
-      const operasional = appSettings?.operasional_per_pcs || 0;
+      const currentSettings = appSettingsRef.current;
+      const overhead = currentSettings?.overhead_per_pcs || 0;
+      const operasional = currentSettings?.operasional_per_pcs || 0;
       await appSettingsApi.updateCostPerUnit(overhead, operasional, target);
-      await loadAppSettings();
+      await loadAppSettingsRef.current?.();
       setProductionTarget(target);
       toast.success('Target bulanan diperbarui', {
         description: `${target.toLocaleString('id-ID')} pcs/bulan`

@@ -8,7 +8,6 @@
 
 // ✅ CORE COMPONENT: Main layout component
 export { default as PromoCalculatorLayout } from './PromoCalculatorLayout';
-export { default } from './PromoCalculatorLayout';
 
 // ✅ ESSENTIAL CONTEXT: For external integration
 export * from './context';
@@ -16,13 +15,13 @@ export * from './context';
 // ✅ ESSENTIAL HOOKS: Most commonly used hooks only
 export { usePromoCalculation, usePromoForm } from './hooks';
 
-// ✅ ESSENTIAL TYPES: Core types for external usage
-export type {
-  PromoType,
-  PromoCalculation,
-  PromoFormData,
-  PromoResult
-} from './types';
+// ✅ ESSENTIAL TYPES: Core types for external usage - commented out due to missing types file
+// export type {
+//   PromoType,
+//   PromoCalculation,
+//   PromoFormData,
+//   PromoResult
+// } from './types';
 
 // ❌ REMOVED - Reduce dependencies (6+ exports removed):
 // - ./components (use direct imports for better code splitting)
@@ -53,10 +52,7 @@ export type {
 // import { usePromoCalculation, usePromoForm } from './hooks';
 
 // ✅ CONVENIENCE: Named exports for better DX
-export { 
-  PromoCalculatorLayout as Layout,
-  PromoCalculatorLayout as Calculator
-};
+// Removed duplicate exports to fix linter errors
 
 // ✅ MIGRATION HELPER: Clean imports only
 export const PROMO_CALCULATOR_MIGRATION = {
@@ -65,11 +61,8 @@ export const PROMO_CALCULATOR_MIGRATION = {
     import PromoCalculatorLayout from '@/components/promoCalculator/PromoCalculatorLayout';
     import { usePromoCalculation, usePromoForm } from '@/components/promoCalculator/hooks';
     
-    // For specific components:
-    import PromoCalculator from '@/components/promoCalculator/calculator/PromoCalculator';
-    import PromoList from '@/components/promoCalculator/promoList/PromoList';
-    
-    // For lazy loading:
+    // For lazy loading (recommended):
     const PromoCalculator = React.lazy(() => import('@/components/promoCalculator/calculator/PromoCalculator'));
+    const PromoList = React.lazy(() => import('@/components/promoCalculator/promoList/PromoList'));
   `
 } as const;

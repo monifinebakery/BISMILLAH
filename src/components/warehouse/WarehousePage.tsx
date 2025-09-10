@@ -9,10 +9,15 @@ import { toast } from 'sonner';
 // SINGLE IMPORT - Reduced from multiple imports
 import { 
   WarehouseHeader, 
-  WarehouseTable, 
   WarehouseFilters, 
   BulkActions 
 } from './components';
+
+// ✅ LAZY LOADING: WarehouseTable dengan code splitting
+const WarehouseTable = React.lazy(() => 
+  import(/* webpackChunkName: "warehouse-table" */ './components/WarehouseTable')
+    .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat tabel gudang') }))
+);
 
 // ✅ TAMBAH: Import VirtualWarehouseTable untuk data besar
 import VirtualWarehouseTable from './components/VirtualWarehouseTable';
@@ -634,28 +639,30 @@ const WarehousePageContent: React.FC = () => {
               enableVirtualScrolling={true}
             />
           ) : (
-            <WarehouseTable
-              items={core.pagination?.currentItems || []}
-              isLoading={context.loading}
-              isSelectionMode={core.selection?.isSelectionMode || false}
-              searchTerm={core.filters?.searchTerm || ''}
-              sortConfig={core.filters?.sortConfig}
-              onSort={core.handlers?.sort}
-              onEdit={core.handlers?.edit}
-              onDelete={enhancedHandlers.delete}
-              emptyStateAction={() => navigate('/pembelian')}
-              onRefresh={async () => {
-                await warehouseData.refetch();
-              }}
-              lastUpdated={warehouseData.lastUpdated}
-              // Selection props
-              selectedItems={core.selection?.selectedItems || []}
-              onToggleSelection={core.selection?.toggle}
-              onSelectPage={core.selection?.selectPage}
-              isSelected={core.selection?.isSelected}
-              isPageSelected={core.selection?.isPageSelected}
-              isPagePartiallySelected={core.selection?.isPagePartiallySelected}
-            />
+            <Suspense fallback={<TableSkeleton />}>
+              <WarehouseTable
+                items={core.pagination?.currentItems || []}
+                isLoading={context.loading}
+                isSelectionMode={core.selection?.isSelectionMode || false}
+                searchTerm={core.filters?.searchTerm || ''}
+                sortConfig={core.filters?.sortConfig}
+                onSort={core.handlers?.sort}
+                onEdit={core.handlers?.edit}
+                onDelete={enhancedHandlers.delete}
+                emptyStateAction={() => navigate('/pembelian')}
+                onRefresh={async () => {
+                  await warehouseData.refetch();
+                }}
+                lastUpdated={warehouseData.lastUpdated}
+                // Selection props
+                selectedItems={core.selection?.selectedItems || []}
+                onToggleSelection={core.selection?.toggle}
+                onSelectPage={core.selection?.selectPage}
+                isSelected={core.selection?.isSelected}
+                isPageSelected={core.selection?.isPageSelected}
+                isPagePartiallySelected={core.selection?.isPagePartiallySelected}
+              />
+            </Suspense>
           )}
 
           {/* Info Update */}

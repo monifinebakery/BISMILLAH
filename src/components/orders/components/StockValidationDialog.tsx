@@ -151,7 +151,12 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
     }
     
     if (!hasValidated) {
-      return 'Memuat validasi stok...';
+      return (
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
+        </div>
+      );
     }
     
     if (validationResult?.canComplete) {

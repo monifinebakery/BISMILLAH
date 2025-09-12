@@ -21,8 +21,11 @@ const DialogLoader = () => (
       </DialogHeader>
       <div className="dialog-panel">
         <div className="dialog-body flex flex-col items-center justify-center py-8">
-          <div className="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full mb-4"></div>
-          <p className="text-gray-600">Memuat dialog...</p>
+          <div className="space-y-4 w-full max-w-sm">
+            <div className="h-6 bg-gray-200 rounded animate-pulse w-3/4 mx-auto" />
+            <div className="h-4 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3" />
+          </div>
         </div>
       </div>
     </DialogContent>

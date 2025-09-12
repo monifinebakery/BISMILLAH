@@ -441,7 +441,12 @@ const OrderForm: React.FC<OrderFormProps> = ({
                       disabled={recipesLoading}
                     >
                       <ChefHat className="h-4 w-4" />
-                      {recipesLoading ? 'Memuat...' : 'Dari Resep'}
+                      {recipesLoading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                      ) : 'Dari Resep'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-0" align="end">

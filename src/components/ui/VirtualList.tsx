@@ -132,8 +132,8 @@ const VirtualList = <T,>({
                 style={{ height: itemHeight }}
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-                  Memuat lebih banyak...
+                  <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
                 </div>
               </div>
             )}
@@ -217,9 +217,10 @@ export const VirtualGrid = <T,>({
         style={{ height: containerHeight }}
       >
         <div className="flex items-center justify-center h-full text-gray-500">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-            Memuat...
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
           </div>
         </div>
       </div>

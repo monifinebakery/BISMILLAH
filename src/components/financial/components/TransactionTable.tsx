@@ -518,7 +518,12 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
               disabled={isRefetching}
             >
               <RefreshCw className={cn("mr-2 h-4 w-4", isRefetching && "animate-spin")} />
-              {isRefetching ? 'Memuat...' : 'Refresh'}
+              {isRefetching ? (
+                <div className="flex items-center gap-1">
+                  <div className="h-3 w-3 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-3 w-12 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ) : 'Refresh'}
             </Button>
             {onAddTransaction && (
               <Button size="sm" onClick={onAddTransaction}>

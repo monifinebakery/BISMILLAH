@@ -4,9 +4,9 @@ import { cn } from '@/lib/utils';
 import { safePerformance } from '@/utils/browserApiSafeWrappers';
 
 
-interface VirtualTableColumn<T> {
+export interface VirtualTableColumn<T> {
   key: string;
-  header: string;
+  header: string | React.ReactNode;
   width?: number;
   minWidth?: number;
   maxWidth?: number;

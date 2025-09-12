@@ -149,7 +149,7 @@ const NotificationBell = () => {
       </PopoverTrigger>
       
       <PopoverContent 
-        className="w-96 p-0 border-gray-200 rounded-lg" 
+        className="w-[480px] p-0 border-gray-200 rounded-lg" 
         align="end" 
         sideOffset={8}
       >
@@ -187,9 +187,11 @@ const NotificationBell = () => {
 
           {/* ✅ CONTENT */}
           {isLoading ? (
-            <div className="flex items-center justify-center p-8 text-gray-500">
-              <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-              <span>Memuat...</span>
+            <div className="flex items-center justify-center p-8">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+              </div>
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500">
@@ -234,7 +236,7 @@ const NotificationBell = () => {
                             {notification.title}
                           </h4>
                           {notification.message && (
-                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-3 break-words">
                               {notification.message}
                             </p>
                           )}

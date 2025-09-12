@@ -9,6 +9,7 @@
 // ✅ STATIC COMPONENTS ONLY
 export { default as WarehouseHeader } from './WarehouseHeader';
 export { default as WarehouseTable } from './WarehouseTable';
+export { default as VirtualWarehouseTable } from './VirtualWarehouseTable';
 export { default as WarehouseFilters } from './WarehouseFilters';
 export { default as BulkActions } from './BulkActions';
 
@@ -17,9 +18,4 @@ export { default as BulkActions } from './BulkActions';
 // Usage: import DialogManager dari './DialogManager' langsung
 
 // ✅ TYPE-ONLY EXPORTS (zero runtime cost)
-export type {
-  WarehouseHeaderProps,
-  WarehouseTableProps,
-  WarehouseFiltersProps,
-  BulkActionsProps
-} from '../types';
+// Note: Types akan diekspor langsung dari komponen masing-masing jika diperlukan

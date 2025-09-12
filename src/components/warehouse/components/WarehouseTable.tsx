@@ -123,7 +123,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
               className="flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
-              {selectionState.isRefreshing ? 'Memuat...' : 'Refresh Data'}
+              {selectionState.isRefreshing ? (
+                <div className="flex items-center gap-1">
+                  <div className="h-3 w-3 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ) : 'Refresh Data'}
             </Button>
           )}
         </div>
@@ -241,7 +246,12 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             className="flex items-center gap-2"
           >
             <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
-            {selectionState.isRefreshing ? 'Memuat...' : 'Refresh'}
+            {selectionState.isRefreshing ? (
+              <div className="flex items-center gap-1">
+                <div className="h-3 w-3 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-12 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            ) : 'Refresh'}
           </Button>
         )}
       </div>

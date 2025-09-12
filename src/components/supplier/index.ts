@@ -2,6 +2,7 @@
 // Export barrel for clean imports
 export { default as SupplierManagement } from './SupplierManagement';
 export { default as SupplierTable } from './SupplierTable';
+export { default as VirtualSupplierTable } from './VirtualSupplierTable';
 export { default as SupplierForm } from './SupplierForm';
 export { default as SupplierDialog } from './SupplierDialog';
 export { default as SupplierFilters } from './SupplierFilters';
@@ -21,21 +22,5 @@ export interface SupplierFormData {
   catatan: string;
 }
 
-export interface SupplierTableProps {
-  suppliers: Supplier[];
-  isLoading: boolean;
-  onEdit: (supplier: Supplier) => void;
-  onDelete: (id: string) => void;
-  selectedIds: string[];
-  onSelectionChange: (ids: string[]) => void;
-  isSelectionMode: boolean;
-}
-
-export interface SupplierFiltersProps {
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-  itemsPerPage: number;
-  onItemsPerPageChange: (count: number) => void;
-  isSelectionMode: boolean;
-  onSelectionModeChange: (enabled: boolean) => void;
-}
+// Note: Props interfaces akan didefinisikan di komponen yang membutuhkannya
+// untuk menghindari dependency circular dan error tipe

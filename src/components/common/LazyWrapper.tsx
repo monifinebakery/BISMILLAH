@@ -7,11 +7,13 @@ interface LazyWrapperProps {
   className?: string;
 }
 
-// Loading component yang ringan
+// Loading component yang ringan dengan skeleton
 const DefaultLoader = ({ className }: { className?: string }) => (
   <div className={`flex items-center justify-center p-8 ${className || ''}`}>
-    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    <span className="ml-2 text-sm text-muted-foreground">Memuat...</span>
+    <div className="flex items-center gap-3">
+      <div className="h-6 w-6 bg-gray-200 rounded-full animate-pulse"></div>
+      <div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div>
+    </div>
   </div>
 );
 

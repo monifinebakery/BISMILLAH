@@ -83,6 +83,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     pajak: 0,
     totalPesanan: 0,
     isTaxEnabled: false,
+    usePromo: false,
     promoId: '',
     promoCode: '',
     promoType: '',
@@ -113,6 +114,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
         pajak: initialData.pajak || 0,
         totalPesanan: initialData.totalPesanan || 0,
         isTaxEnabled: !!initialData.pajak,
+        usePromo: !!(initialData.promoCode || initialData.diskonPromo),
         promoId: initialData.promoId || '',
         promoCode: initialData.promoCode || '',
         promoType: initialData.promoType || '',
@@ -136,6 +138,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
         pajak: 0,
         totalPesanan: 0,
         isTaxEnabled: false,
+        usePromo: false,
         promoId: '',
         promoCode: '',
         promoType: '',
@@ -274,7 +277,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
   // Calculate totals dengan pajak opsional dan promo
   useEffect(() => {
     const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-    const totalSetelahDiskon = subtotal - (formData.diskonPromo || 0);
+    // Hanya terapkan diskon jika usePromo aktif
+    const diskonAktif = formData.usePromo ? (formData.diskonPromo || 0) : 0;
+    const totalSetelahDiskon = subtotal - diskonAktif;
     const pajak = formData.isTaxEnabled ? totalSetelahDiskon * 0.1 : 0;
     const totalPesanan = totalSetelahDiskon + pajak;
 
@@ -285,7 +290,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
       pajak,
       totalPesanan
     }));
-  }, [formData.items, formData.isTaxEnabled, formData.diskonPromo]);
+  }, [formData.items, formData.isTaxEnabled, formData.diskonPromo, formData.usePromo]);
 
   // Handle submit dengan validation
   const handleSubmit = async (e: React.FormEvent) => {
@@ -701,59 +706,129 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 </div>
               </div>
               
-              {/* Promo Section */}
-               <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              {/* Promo Section - Enhanced UI */}
+               <div className="mb-4 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg">
                  <div className="flex items-center justify-between mb-3">
-                   <h4 className="font-medium text-yellow-800">Promo & Diskon</h4>
-                   <Button
-                     type="button"
-                     variant="outline"
-                     size="sm"
-                     onClick={() => {
-                       // TODO: Open promo calculator modal
-                       toast.info('Kalkulator promo akan segera tersedia');
-                     }}
-                     className="text-xs"
-                   >
-                     <Calculator className="w-3 h-3 mr-1" />
-                     Hitung Promo
-                   </Button>
-                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                   <div>
-                     <Label htmlFor="promo-code">Kode Promo</Label>
-                     <Input
-                       id="promo-code"
-                       value={formData.promoCode}
-                       onChange={(e) => setFormData(prev => ({ ...prev, promoCode: e.target.value }))}
-                       placeholder="Masukkan kode promo"
-                     />
+                   <div className="flex items-center gap-3">
+                     <div className="flex items-center gap-2">
+                       <Zap className="w-5 h-5 text-orange-500" />
+                       <h4 className="font-semibold text-orange-800">Promo & Diskon</h4>
+                     </div>
+                     <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-orange-200">
+                       <Label htmlFor="usePromo" className="text-sm font-medium text-orange-700 cursor-pointer">Aktifkan Promo</Label>
+                       <Switch
+                         id="usePromo"
+                         checked={formData.usePromo || false}
+                         onCheckedChange={(checked) => {
+                           updateField('usePromo', checked);
+                           if (!checked) {
+                             // Reset promo fields when disabled
+                             updateField('promoCode', '');
+                             updateField('diskonPromo', 0);
+                             updateField('promoId', '');
+                             updateField('promoType', '');
+                           }
+                         }}
+                       />
+                     </div>
                    </div>
-                   <div>
-                     <Label htmlFor="diskon-promo">Diskon Promo (Rp)</Label>
-                     <Input
-                       id="diskon-promo"
-                       type="number"
-                       value={formData.diskonPromo || ''}
-                       onChange={(e) => setFormData(prev => ({ ...prev, diskonPromo: parseFloat(e.target.value) || 0 }))}
-                       placeholder="0"
-                       min="0"
-                     />
-                   </div>
+                   {formData.usePromo && (
+                     <Button
+                       type="button"
+                       variant="outline"
+                       size="sm"
+                       onClick={() => {
+                         // TODO: Open promo calculator modal
+                         toast.info('Kalkulator promo akan segera tersedia');
+                       }}
+                       className="text-xs bg-white hover:bg-orange-50 border-orange-300"
+                     >
+                       <Calculator className="w-3 h-3 mr-1" />
+                       Hitung Promo
+                     </Button>
+                   )}
                  </div>
+                 
+                 {!formData.usePromo && (
+                   <div className="text-center py-2">
+                     <p className="text-sm text-orange-600 flex items-center justify-center gap-2">
+                       <Info className="w-4 h-4" />
+                       Aktifkan promo untuk mendapatkan diskon khusus
+                     </p>
+                   </div>
+                 )}
+                 
+                 {formData.usePromo && (
+                   <div className="space-y-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                         <Label htmlFor="promo-code" className="text-sm font-medium text-orange-800">Kode Promo</Label>
+                         <div className="relative">
+                           <Input
+                             id="promo-code"
+                             value={formData.promoCode}
+                             onChange={(e) => updateField('promoCode', e.target.value)}
+                             placeholder="Contoh: DISKON20, HEMAT50K"
+                             className="border-orange-200 focus:border-orange-400 focus:ring-orange-200"
+                           />
+                           {formData.promoCode && (
+                             <div className="absolute right-2 top-2">
+                               <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                 Aktif
+                               </Badge>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                       <div className="space-y-2">
+                         <Label htmlFor="diskon-promo" className="text-sm font-medium text-orange-800">Nilai Diskon (Rp)</Label>
+                         <div className="relative">
+                           <Input
+                             id="diskon-promo"
+                             type="number"
+                             value={formData.diskonPromo || ''}
+                             onChange={(e) => updateField('diskonPromo', parseFloat(e.target.value) || 0)}
+                             placeholder="Masukkan nominal diskon"
+                             min="0"
+                             className="border-orange-200 focus:border-orange-400 focus:ring-orange-200"
+                           />
+                           {formData.diskonPromo > 0 && (
+                             <div className="absolute right-2 top-2">
+                               <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                 Rp {formData.diskonPromo.toLocaleString('id-ID')}
+                               </Badge>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                     
+                     {formData.diskonPromo > 0 && (
+                       <div className="bg-white p-3 rounded-lg border border-orange-200">
+                         <div className="flex items-center gap-2 mb-2">
+                           <AlertCircle className="w-4 h-4 text-green-600" />
+                           <span className="text-sm font-medium text-green-700">Promo Berhasil Diterapkan</span>
+                         </div>
+                         <div className="text-xs text-gray-600">
+                           Pelanggan akan mendapat diskon sebesar <span className="font-semibold text-green-600">Rp {formData.diskonPromo.toLocaleString('id-ID')}</span>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 )}
                </div>
               <div className="space-y-3">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({formData.items.length} item):</span>
                   <span>Rp {formData.subtotal.toLocaleString('id-ID')}</span>
                 </div>
-                {formData.diskonPromo > 0 && (
+                {formData.usePromo && formData.diskonPromo > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Diskon Promo:</span>
                     <span>- Rp {formData.diskonPromo.toLocaleString('id-ID')}</span>
                   </div>
                 )}
-                {formData.diskonPromo > 0 && (
+                {formData.usePromo && formData.diskonPromo > 0 && (
                   <div className="flex justify-between text-gray-600">
                     <span>Setelah Diskon:</span>
                     <span>Rp {(formData.totalSetelahDiskon || 0).toLocaleString('id-ID')}</span>

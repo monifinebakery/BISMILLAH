@@ -684,7 +684,45 @@ const OrdersPage: React.FC = () => {
         
         <OrderControls 
           uiState={uiState} 
-          loading={finalIsLoading} 
+          loading={finalIsLoading}
+          onBulkEditStatus={() => {
+            // TODO: Implement bulk edit status
+            toast.info('Fitur edit status massal akan segera tersedia');
+          }}
+          onBulkDelete={async () => {
+            if (selectedIds.length === 0) {
+              toast.error('Tidak ada pesanan yang dipilih');
+              return;
+            }
+
+            const confirmed = window.confirm(
+              `Apakah Anda yakin ingin menghapus ${selectedIds.length} pesanan yang dipilih? Tindakan ini tidak dapat dibatalkan.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+              logger.component('OrdersPage', 'Bulk delete requested:', selectedIds.length);
+              const success = await contextValue.bulkDeleteOrders?.(selectedIds);
+              
+              if (success) {
+                toast.success(`${selectedIds.length} pesanan berhasil dihapus`);
+                clearSelection();
+                exitSelectionMode();
+              } else {
+                toast.error('Gagal menghapus pesanan');
+              }
+            } catch (error) {
+              logger.error('Error during bulk delete:', error);
+              toast.error('Terjadi kesalahan saat menghapus pesanan');
+            }
+          }}
+          isSelectionMode={isSelectionMode}
+          selectedCount={selectedIds.length}
+          totalCount={finalOrders.length}
+          onEnterSelectionMode={enterSelectionMode}
+          onExitSelectionMode={exitSelectionMode}
+          onClearSelection={clearSelection}
         />
         <OrderFilters 
           uiState={uiState} 

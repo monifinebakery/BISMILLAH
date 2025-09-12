@@ -414,9 +414,9 @@ const OrderTable: React.FC<OrderTableProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden max-w-full">
       {/* Desktop Table View */}
-      <div className="hidden lg:block overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div className="hidden lg:block overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 max-w-full">
         <table className="min-w-full">
           {/* ✅ UPDATED: Table Header with Completion Date */}
           <thead className="bg-gray-50">
@@ -574,7 +574,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       <div className="lg:hidden overflow-hidden">
         <div className="divide-y divide-gray-200">
           {uiState.currentOrders.map((order) => (
-            <div key={order.id} className="p-4 hover:bg-gray-50">
+            <div key={order.id} className="p-3 hover:bg-gray-50">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center gap-2 mb-1">
@@ -632,7 +632,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       
       {/* ✅ RESPONSIVE PAGINATION CONTROLS */}
       {uiState.totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-3 py-3 border-t">
           <div className="text-sm text-gray-700 text-center sm:text-left">
             <span className="sm:hidden">
               {((uiState.currentPage - 1) * uiState.itemsPerPage) + 1}-{Math.min(uiState.currentPage * uiState.itemsPerPage, uiState.totalItems)} / {uiState.totalItems}

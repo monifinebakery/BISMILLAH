@@ -598,12 +598,12 @@ const OrdersPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-full p-4 sm:p-8 overflow-hidden">
+    <div className="w-full max-w-full px-2 sm:px-4 py-4 overflow-hidden">
       {/* ✅ DEBUG: Context debugger - only in development */}
       {import.meta.env.DEV && <ContextDebugger />}
       
       {/* ✅ ENHANCED: Header with template integration info and debug button */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 border">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 border">
         <div className="flex items-center gap-3 sm:gap-4 mb-4 lg:mb-0">
           <div className="flex-shrink-0 bg-white bg-opacity-20 p-2 sm:p-3 rounded-xl backdrop-blur-sm">
             <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-white" />

@@ -12,7 +12,7 @@ import LoadingOverlay from './LoadingOverlay';
 import ErrorDisplay from './ErrorDisplay';
 import ModeIndicator from './ModeIndicator';
 import WACStatusIndicator from './WACStatusIndicator';
-import DataSyncStatus from './DataSyncStatus';
+
 import MobileProfitSummary from './MobileProfitSummary';
 import { useLoadingStateManager, LOADING_MESSAGES } from '../utils/loadingStateManager';
 
@@ -347,16 +347,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
             />
           )}
           
-          {/* ✅ NEW: Data sync status - Desktop only */}
-          {!isMobile && (
-            <DataSyncStatus
-              dataSources={dataSources}
-              onRefreshAll={handleRefresh}
-              onRefreshSource={handleRefreshSource}
-              isRefreshing={loadingStates.refresh}
-              className="mt-6"
-            />
-          )}
+
         </>
       )}
 

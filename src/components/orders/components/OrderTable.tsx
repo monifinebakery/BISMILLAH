@@ -415,14 +415,14 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   return (
     <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden max-w-full">
-      {/* Desktop Table View */}
-      <div className="hidden lg:block overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 max-w-full">
-        <table className="min-w-full">
+      {/* Table View - Responsive with horizontal scroll */}
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 max-w-full">
+        <table className="min-w-[1000px] w-full">
           {/* ✅ UPDATED: Table Header with Completion Date */}
           <thead className="bg-gray-50">
             <tr>
               {isSelectionMode && (
-                <th className="w-12 px-6 py-3 text-left">
+                <th className="w-12 px-3 py-3 text-left">
                   <Checkbox
                     checked={isAllSelected}
                     onCheckedChange={() => onSelectAll && onSelectAll()}
@@ -430,28 +430,28 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   />
                 </th>
               )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                 No. Pesanan
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">
                 Pelanggan
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                 Tanggal Order
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                 Tanggal Selesai
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                 Total
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                 Terakhir Diperbarui
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">
                 Aksi
               </th>
             </tr>
@@ -471,7 +471,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
               >
                 {/* Selection Checkbox */}
                 {isSelectionMode && (
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-4 whitespace-nowrap">
                     <Checkbox
                       checked={selectedIds.includes(order.id)}
                       onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
@@ -481,7 +481,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 )}
 
                 {/* Order Number */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">#{order.nomorPesanan}</div>
                     <div className="text-xs text-gray-500">{order.id.slice(0, 8)}...</div>
@@ -489,7 +489,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Customer Info */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[180px]">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
                     {order.teleponPelanggan && (
@@ -502,7 +502,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Order Date */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
                   <div className="flex flex-col">
                     <div className="text-sm text-gray-900">{formatDateForDisplay(order.tanggal)}</div>
                     <div className="text-xs text-gray-500">
@@ -515,12 +515,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* ✅ NEW: Completion Date using proper types/utils */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
                   <CompletionDateCell order={order} />
                 </td>
 
                 {/* Total Amount */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[100px]">
                   <div className="flex flex-col">
                     <div className="text-sm font-semibold text-gray-900">{formatCurrency(order.totalPesanan)}</div>
                     {order.items.length > 0 && (
@@ -532,7 +532,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Last Updated */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
                   <div className="flex flex-col">
                     <div className="text-sm text-gray-900">{formatDateForDisplay(order.updatedAt)}</div>
                     <div className="text-xs text-gray-500">
@@ -545,7 +545,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Status */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[100px]">
                   <StatusBadge
                     status={order.status}
                     onChange={(newStatus) => onStatusChange(order.id, newStatus)}
@@ -554,7 +554,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Actions */}
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium min-w-[80px]">
                   <OrderRowActions
                     order={order}
                     onEdit={() => onEditOrder(order)}
@@ -570,65 +570,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
         </table>
       </div>
       
-      {/* Mobile Card View */}
-      <div className="lg:hidden overflow-hidden">
-        <div className="divide-y divide-gray-200">
-          {uiState.currentOrders.map((order) => (
-            <div key={order.id} className="p-3 hover:bg-gray-50">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0 pr-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    {isSelectionMode && (
-                      <Checkbox
-                        checked={selectedIds.includes(order.id)}
-                        onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
-                        className="h-4 w-4 flex-shrink-0"
-                      />
-                    )}
-                    <h3 className="text-sm font-medium text-gray-900 truncate">#{order.nomorPesanan}</h3>
-                  </div>
-                  <p className="text-sm text-gray-600 truncate">{order.namaPelanggan}</p>
-                  {order.teleponPelanggan && (
-                     <p className="text-xs text-gray-500 truncate">{order.teleponPelanggan}</p>
-                   )}
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-semibold text-gray-900 mb-1">
-                    {formatCurrency(order.totalPesanan)}
-                  </div>
-                  <StatusBadge
-                    status={order.status}
-                    onChange={(newStatus) => onStatusChange(order.id, newStatus)}
-                    disabled={order.status === 'completed' || order.status === 'cancelled'}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 mb-3 overflow-hidden">
-                <div className="min-w-0">
-                  <span className="block font-medium">Tanggal Order:</span>
-                  <span className="truncate block">{formatDateForDisplay(order.tanggal)}</span>
-                </div>
-                <div className="min-w-0">
-                  <span className="block font-medium">Diperbarui:</span>
-                  <span className="truncate block">{formatDateForDisplay(order.updatedAt)}</span>
-                </div>
-              </div>
-              
-              <div className="flex justify-end">
-                <OrderRowActions
-                  order={order}
-                  onEdit={() => onEditOrder(order)}
-                  onDelete={() => onDeleteOrder(order.id)}
-                  onFollowUp={() => handleFollowUp(order)}
-                  onViewDetail={() => handleViewDetail(order)}
-                  disabled={uiState.isSelectionMode}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+
       
       {/* ✅ RESPONSIVE PAGINATION CONTROLS */}
       {uiState.totalPages > 1 && (

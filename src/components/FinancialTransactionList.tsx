@@ -4,8 +4,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Calendar, DollarSign } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { FinancialTransaction, FinancialTransactionType } from '@/components/financial/types/financial';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -94,7 +95,14 @@ const FinancialTransactionList = ({
   };
 
   if (loading) {
-    return <Card className="text-center p-8"><p>Memuat transaksi...</p></Card>;
+    return (
+      <Card className="text-center p-8">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-32 mx-auto" />
+          <Skeleton className="h-4 w-24 mx-auto" />
+        </div>
+      </Card>
+    );
   }
 
   if (transactions.length === 0) {

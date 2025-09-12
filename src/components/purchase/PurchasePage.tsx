@@ -22,6 +22,7 @@ import {
   EmptyState,
   PurchaseHeader,
 } from './components';
+import { LoadingSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 
 // Lazy loaded components
 const PurchaseTable = React.lazy(() => 
@@ -94,13 +95,8 @@ const initialAppState: AppState = {
 };
 
 // ✅ OPTIMIZED: Loading components
-const AppLoader = ({ message = "Memuat..." }: { message?: string }) => (
-  <div className="flex items-center justify-center py-12">
-    <div className="flex flex-col items-center gap-3">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-      <p className="text-sm text-gray-600">{message}</p>
-    </div>
-  </div>
+const AppLoader = () => (
+  <LoadingSkeleton type="table" className="py-12" />
 );
 
 // QuickLoader removed - unused
@@ -300,7 +296,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       ) : (
         <>
           <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
-            <Suspense fallback={<AppLoader message="Memuat tabel pembelian..." />}>
+            <Suspense fallback={<TableSkeleton rows={8} columns={6} />}>
               <PurchaseTable
                 onEdit={navigationActions.purchase.openEdit}
                 onStatusChange={setStatus}
@@ -318,7 +314,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Purchase dialog removed - using full page navigation */}
       
       {/* Import dialog */}
-      <SafeSuspense loadingMessage="Memuat dialog import...">
+      <SafeSuspense loadingMessage="" fallback={<LoadingSkeleton type="form" className="h-32" />}>
         {appState.dialogs.import.isOpen && (
           <PurchaseImportDialog
             isOpen={appState.dialogs.import.isOpen}

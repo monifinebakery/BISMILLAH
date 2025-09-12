@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TableSkeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -392,11 +393,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
-        <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat pesanan...</p>
-        </div>
+      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden p-6">
+        <TableSkeleton rows={8} columns={6} />
       </div>
     );
   }

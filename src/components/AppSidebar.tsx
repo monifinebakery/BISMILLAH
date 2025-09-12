@@ -197,7 +197,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-2 border-t mt-auto">
         <SidebarMenu className="space-y-1 flex flex-col w-full">
           <SidebarMenuItem className="w-full">
-            {renderActionButton(() => handleExportAllData('xlsx'), Download, (assetsLoading || profitLoading) ? "Memuat Data..." : "Export Semua Data")}
+            {renderActionButton(() => handleExportAllData('xlsx'), Download, (assetsLoading || profitLoading) ? "Memuat..." : "Export Semua Data")}
           </SidebarMenuItem>
           {settingsItems.map((item) => (
             <SidebarMenuItem key={item.title} className="w-full">

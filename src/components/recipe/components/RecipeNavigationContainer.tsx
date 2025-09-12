@@ -23,6 +23,7 @@ import { EmptyState } from './shared/EmptyState';
 import { LoadingState } from './shared/LoadingState';
 import BulkActions from './BulkActions';
 import RecipeFormPage from './RecipeFormPage';
+import { LoadingSkeleton, Skeleton } from '@/components/ui/skeleton';
 
 // Breadcrumb and view mode types
 import type { RecipeViewMode } from './RecipeBreadcrumb';
@@ -37,12 +38,18 @@ export const RECIPE_QUERY_KEYS = {
   categories: () => [...RECIPE_QUERY_KEYS.all, 'categories'] as const,
 } as const;
 
-// Safe lazy component wrapper using universal SafeSuspense
+// Safe lazy component wrapper using skeleton
 const LazyComponentWrapper: React.FC<{ children: React.ReactNode; loadingMessage?: string }> = ({ children, loadingMessage }) => {
   return (
-    <SafeSuspense loadingMessage={loadingMessage || "Memuat komponen..."}>
+    <Suspense fallback={
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-6 w-32" />
+      </div>
+    }>
       {children}
-    </SafeSuspense>
+    </Suspense>
   );
 };
 
@@ -475,7 +482,7 @@ const RecipeNavigationContainer: React.FC = () => {
         </div>
 
         {/* Statistics Cards */}
-        <LazyComponentWrapper loadingMessage="Memuat statistik resep...">
+        <LazyComponentWrapper>
           <RecipeStats stats={stats} />
         </LazyComponentWrapper>
 
@@ -485,7 +492,7 @@ const RecipeNavigationContainer: React.FC = () => {
 
             {/* Filters */}
             <div className="p-6 pb-0">
-              <LazyComponentWrapper loadingMessage="Memuat filter...">
+              <LazyComponentWrapper>
                 <RecipeFilters
                   searchTerm={filtering.searchTerm}
                   onSearchChange={filtering.setSearchTerm}
@@ -532,7 +539,7 @@ const RecipeNavigationContainer: React.FC = () => {
                 />
               </div>
             ) : (
-              <LazyComponentWrapper loadingMessage="Memuat tabel resep...">
+              <LazyComponentWrapper>
                 <RecipeTable
                   recipes={filtering.filteredAndSortedRecipes}
                   onSort={filtering.handleSort}
@@ -581,7 +588,7 @@ const RecipeNavigationContainer: React.FC = () => {
 
       {/* Dialogs with safe error handling */}
       {navigationState.dialogType === 'delete' && (
-        <LazyComponentWrapper loadingMessage="Memuat dialog hapus...">
+        <LazyComponentWrapper>
           <DeleteRecipeDialog
             isOpen={true}
             onOpenChange={closeDialog}
@@ -593,7 +600,7 @@ const RecipeNavigationContainer: React.FC = () => {
       )}
 
       {navigationState.dialogType === 'duplicate' && (
-        <LazyComponentWrapper loadingMessage="Memuat dialog duplikasi...">
+        <LazyComponentWrapper>
           <DuplicateRecipeDialog
             isOpen={true}
             onOpenChange={closeDialog}
@@ -605,7 +612,7 @@ const RecipeNavigationContainer: React.FC = () => {
       )}
 
       {navigationState.dialogType === 'category' && (
-        <LazyComponentWrapper loadingMessage="Memuat dialog kategori...">
+        <LazyComponentWrapper>
           <CategoryManagerDialog
             isOpen={true}
             onOpenChange={closeDialog}

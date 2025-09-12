@@ -137,7 +137,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
   return (
     <PaymentVerificationLoader 
       stage="linking"
-      message="Memuat Aplikasi"
+      message=""
       showProgress={false}
       timeout={10000}
       onTimeout={() => {

@@ -91,9 +91,10 @@ export const LoadingState: React.FC = () => {
 
         {/* Loading indicator */}
         <div className="flex items-center justify-center py-8">
-          <div className="flex items-center gap-3 text-orange-600">
-            <div className="animate-spin h-6 w-6 border-2 border-orange-500 border-t-transparent rounded-full"></div>
-            <span className="text-sm font-medium">Memuat data resep...</span>
+          <div className="space-y-3 w-full max-w-md">
+            <Skeleton className="h-4 w-3/4 mx-auto" />
+            <Skeleton className="h-4 w-1/2 mx-auto" />
+            <Skeleton className="h-4 w-2/3 mx-auto" />
           </div>
         </div>
       </div>

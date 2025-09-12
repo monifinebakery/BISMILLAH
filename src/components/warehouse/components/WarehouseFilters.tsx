@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 import { 
   Search, 
@@ -89,7 +90,7 @@ const fetchSuppliers = async (): Promise<string[]> => {
           enableDebugLogs: import.meta.env.DEV
         });
         
-        const items = await service.fetchBahanBaku();
+        const items = await (service as any).fetchBahanBaku();
         const supplierNames = new Set<string>();
         
         items.forEach((item: any) => {
@@ -115,7 +116,7 @@ const fetchSuppliers = async (): Promise<string[]> => {
       enableDebugLogs: import.meta.env.DEV
     });
     
-    const items = await service.fetchBahanBaku();
+    const items = await (service as any).fetchBahanBaku();
     const suppliers = [...new Set(items.map((item: any) => item.supplier).filter(Boolean))] as string[];
     return suppliers.sort();
   } catch (error) {
@@ -315,7 +316,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Kategori
               {categoriesLoading && (
-                <span className="ml-2 text-xs text-gray-500">(memuat...)</span>
+                <Skeleton className="ml-2 h-3 w-16 inline-block" />
               )}
             </label>
             <select
@@ -332,7 +333,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               ))}
             </select>
             {categoriesLoading && (
-              <p className="text-xs text-gray-500 mt-1">Memuat kategori...</p>
+              <Skeleton className="h-3 w-24 mt-1" />
             )}
           </div>
 
@@ -341,7 +342,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Supplier
               {suppliersLoading && (
-                <span className="ml-2 text-xs text-gray-500">(memuat...)</span>
+                <Skeleton className="ml-2 h-3 w-16 inline-block" />
               )}
             </label>
             <select
@@ -358,7 +359,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               ))}
             </select>
             {suppliersLoading && (
-              <p className="text-xs text-gray-500 mt-1">Memuat supplier...</p>
+              <Skeleton className="h-3 w-24 mt-1" />
             )}
           </div>
 

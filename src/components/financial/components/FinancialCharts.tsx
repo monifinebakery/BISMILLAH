@@ -4,6 +4,7 @@ import { format, subDays, startOfMonth, endOfDay, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw } from 'lucide-react';
 import { 
   ComposedChart, 
@@ -50,14 +51,27 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 // ✅ TAMBAH: Loading skeleton untuk chart
-const ChartLoadingSkeleton = () => (
-  <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
-    <div className="text-center">
-      <div className="animate-spin h-8 w-8 border-3 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-      <p className="text-gray-500 text-sm">Memuat data chart...</p>
+const ChartLoadingSkeleton = () => {
+  const heights = [60, 80, 45, 90, 70, 55, 85, 65];
+  
+  return (
+    <div className="h-80 space-y-4 p-4">
+      <div className="flex justify-between items-center">
+        <Skeleton variant="text" className="w-32 h-6" />
+        <Skeleton variant="text" className="w-24 h-6" />
+      </div>
+      <div className="space-y-3">
+        {heights.map((height, i) => (
+          <div key={i} className="flex items-end space-x-2">
+            <Skeleton variant="rectangular" className="flex-1" height={height} />
+            <Skeleton variant="rectangular" className="flex-1" height={height + 20} />
+            <Skeleton variant="rectangular" className="flex-1" height={height + 10} />
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
 /**
  * ✅ ENHANCED: Financial Charts Component dengan useQuery support
@@ -224,7 +238,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
               <RefreshCw className={`h-4 w-4 ${
                 (isLoading || isRefreshing) ? 'animate-spin' : ''
               }`} />
-              {isLoading ? 'Memuat...' : isRefreshing ? 'Refresh...' : 'Refresh'}
+              {isLoading ? '' : isRefreshing ? 'Refresh...' : 'Refresh'}
             </Button>
           )}
         </div>

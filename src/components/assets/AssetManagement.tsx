@@ -159,10 +159,16 @@ export const AssetManagement: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="w-full min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-orange-500 mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Memuat data aset...</p>
+      <div className="w-full min-h-screen bg-white p-4">
+        <div className="space-y-6">
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="h-24 bg-gray-200 rounded animate-pulse" />
+            <div className="h-24 bg-gray-200 rounded animate-pulse" />
+            <div className="h-24 bg-gray-200 rounded animate-pulse" />
+            <div className="h-24 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="h-64 bg-gray-200 rounded animate-pulse" />
         </div>
       </div>
     );

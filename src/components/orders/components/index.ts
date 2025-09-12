@@ -9,6 +9,7 @@
 // ✅ STATIC COMPONENTS: Always loaded (core components)
 export { default as OrdersPage } from './OrdersPage';
 export { default as OrderTable } from './OrderTable';
+export { default as VirtualOrderTable } from './VirtualOrderTable';
 
 // ✅ CONTROL COMPONENTS: Commonly used together
 export { default as OrderFilters } from './OrderFilters';

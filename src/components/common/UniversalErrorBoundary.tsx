@@ -5,22 +5,21 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
 import { logger } from '@/utils/logger';
 
-// Loading fallback component
-const UniversalLoader: React.FC<{ message?: string; size?: 'sm' | 'md' | 'lg' }> = ({ 
-  message = 'Memuat...', 
+// Loading fallback component dengan skeleton
+const UniversalLoader: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ 
   size = 'md' 
 }) => {
   const sizeClasses = {
-    sm: 'h-8 bg-gray-200',
-    md: 'h-32 bg-gray-200', 
-    lg: 'h-64 bg-gray-200'
+    sm: 'h-8',
+    md: 'h-32', 
+    lg: 'h-64'
   };
 
   return (
-    <div className={`animate-pulse ${sizeClasses[size]} rounded-lg flex items-center justify-center`}>
-      <div className="text-center">
-        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-        <p className="text-sm text-gray-600">{message}</p>
+    <div className={`${sizeClasses[size]} rounded-lg flex items-center justify-center p-4`}>
+      <div className="text-center space-y-3">
+        <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse mx-auto"></div>
+        <div className="h-3 w-16 bg-gray-200 rounded animate-pulse mx-auto"></div>
       </div>
     </div>
   );
@@ -210,11 +209,11 @@ export const SafeSuspense: React.FC<SafeSuspenseProps> = ({
   children,
   fallback,
   errorFallback,
-  loadingMessage = 'Memuat...',
+  loadingMessage,
   size = 'md',
   minimal = false
 }) => {
-  const defaultFallback = fallback || <UniversalLoader message={loadingMessage} size={size} />;
+  const defaultFallback = fallback || <UniversalLoader size={size} />;
 
   return (
     <UniversalErrorBoundary fallback={errorFallback} minimal={minimal}>

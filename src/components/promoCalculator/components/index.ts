@@ -61,28 +61,28 @@ export const COMPONENT_INFO = {
     size: 'large',
     priority: 'critical',
     dependencies: ['StatusBadge', 'PromoTypeBadge'],
-    loadingMessage: 'Memuat kartu promo...'
+    loadingMessage: ''
   },
   PromoMetrics: {
     category: 'analysis',
     size: 'large', 
     priority: 'high',
     dependencies: ['LoadingSpinner'],
-    loadingMessage: 'Memuat metrik promo...'
+    loadingMessage: ''
   },
   PromoTypeBadge: {
     category: 'display',
     size: 'small',
     priority: 'high',
     dependencies: [],
-    loadingMessage: 'Memuat badge...'
+    loadingMessage: ''
   },
   StatusBadge: {
     category: 'display',
     size: 'small',
     priority: 'critical',
     dependencies: [],
-    loadingMessage: 'Memuat status...'
+    loadingMessage: ''
   },
   BreakevenAnalysis: {
     category: 'analysis',
@@ -96,35 +96,35 @@ export const COMPONENT_INFO = {
     size: 'medium',
     priority: 'critical',
     dependencies: [],
-    loadingMessage: 'Memuat...'
+    loadingMessage: ''
   },
   EmptyState: {
     category: 'utility',
     size: 'large',
     priority: 'high',
     dependencies: [],
-    loadingMessage: 'Memuat state...'
+    loadingMessage: ''
   },
   ConfirmDialog: {
     category: 'utility',
     size: 'medium',
     priority: 'medium',
     dependencies: [],
-    loadingMessage: 'Memuat dialog...'
+    loadingMessage: ''
   },
   PromoWarnings: {
     category: 'form',
     size: 'medium',
     priority: 'low',
     dependencies: ['ConfirmDialog'],
-    loadingMessage: 'Memuat peringatan...'
+    loadingMessage: ''
   },
   SearchInput: {
     category: 'form',
     size: 'medium',
     priority: 'medium',
     dependencies: ['LoadingSpinner'],
-    loadingMessage: 'Memuat pencarian...'
+    loadingMessage: ''
   }
 } as const;
 

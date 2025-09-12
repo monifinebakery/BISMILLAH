@@ -1,5 +1,5 @@
-// PromoCalculatorLayout.jsx - Updated with useQuery for promos data
-import React, { useState, Suspense } from 'react';
+// PromoCalculatorLayout.tsx - Updated with useQuery for promos data
+import React, { useState, Suspense, Component, ErrorInfo, ReactNode } from 'react';
 import { Calculator, List, ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +9,33 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 // Import services
+// @ts-ignore - promoService is a JS file
 import { promoService } from './services/promoService';
+
+// Types
+interface PromoData {
+  id: string;
+  namaPromo: string;
+  tipePromo: string;
+  status: string;
+  deskripsi: string;
+  tanggalMulai: string | null;
+  tanggalSelesai: string | null;
+  dataPromo: any;
+  calculationResult: any;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+  retryCount: number;
+}
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  onRetry?: () => void;
+}
 
 // Lazy load komponen dengan path yang benar sesuai struktur folder
 const PromoCalculator = React.lazy(() => 
@@ -53,8 +79,8 @@ const PromoList = React.lazy(() =>
 );
 
 // Enhanced Error Boundary
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { 
       hasError: false, 
@@ -64,11 +90,11 @@ class ErrorBoundary extends React.Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error('Lazy loading error details:', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
@@ -145,48 +171,46 @@ const PromoCalculatorLayout = () => {
     isLoading,
     error: promosError,
     refetch: refetchPromos
-  } = useQuery({
+  } = useQuery<PromoData[]>({
     queryKey: ['promos'],
     queryFn: promoService.getAll,
     staleTime: 5 * 60 * 1000, // 5 minutes - promos can change frequently
-    cacheTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes (renamed from cacheTime)
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-    onError: (error) => {
-      logger.error('Failed to fetch promos:', error);
-    }
+    throwOnError: false
   });
 
   // ✅ Mutations for promo operations
   const deletePromoMutation = useMutation({
-    mutationFn: promoService.delete,
+    mutationFn: (id: string) => promoService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['promos']);
+      queryClient.invalidateQueries({ queryKey: ['promos'] });
       toast.success('Promo berhasil dihapus');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Gagal menghapus promo: ${error.message}`);
     }
   });
 
   const updatePromoMutation = useMutation({
-    mutationFn: ({ id, data }) => promoService.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<PromoData> }) => promoService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['promos']);
+      queryClient.invalidateQueries({ queryKey: ['promos'] });
       toast.success('Promo berhasil diperbarui');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Gagal memperbarui promo: ${error.message}`);
     }
   });
 
   const createPromoMutation = useMutation({
-    mutationFn: (data) => promoService.create(data),
+    mutationFn: (data: Partial<PromoData>) => promoService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['promos']);
+      queryClient.invalidateQueries({ queryKey: ['promos'] });
       toast.success('Promo berhasil diduplikat');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Gagal menduplikat promo: ${error.message}`);
     }
   });
@@ -194,8 +218,8 @@ const PromoCalculatorLayout = () => {
   // Utility functions
 
 
-  const getPromoTypeIcon = (type) => {
-    const icons = { 
+  const getPromoTypeIcon = (type: string) => {
+    const icons: Record<string, string> = { 
       bogo: '🎁', 
       discount: '💰', 
       bundle: '📦' 
@@ -203,8 +227,8 @@ const PromoCalculatorLayout = () => {
     return icons[type] || '🎯';
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
       aktif: 'bg-green-100 text-green-800',
       nonaktif: 'bg-gray-100 text-gray-800',
       draft: 'bg-yellow-100 text-yellow-800',
@@ -234,24 +258,24 @@ const PromoCalculatorLayout = () => {
   };
 
   // ✅ Promo action handlers with mutations
-  const handleEditPromo = (promo) => {
+  const handleEditPromo = (promo: PromoData) => {
     logger.context('PromoCalculatorLayout', 'Edit promo:', promo);
     navigate(`/promo/edit/${promo.id}`);
   };
 
-  const handleDeletePromo = async (promo) => {
+  const handleDeletePromo = async (promo: PromoData) => {
     if (window.confirm(`Hapus promo "${promo.namaPromo}"?`)) {
       deletePromoMutation.mutate(promo.id);
     }
   };
 
-  const handleViewPromo = (promo) => {
+  const handleViewPromo = (promo: PromoData) => {
     logger.context('PromoCalculatorLayout', 'View promo:', promo);
     navigate(`/promo/edit/${promo.id}`);
   };
 
-  const handleDuplicatePromo = (promo) => {
-    const duplicatedData = {
+  const handleDuplicatePromo = (promo: PromoData) => {
+    const duplicatedData: Partial<PromoData> = {
       namaPromo: `${promo.namaPromo} (Copy)`,
       tipePromo: promo.tipePromo,
       status: 'draft',
@@ -266,9 +290,9 @@ const PromoCalculatorLayout = () => {
     createPromoMutation.mutate(duplicatedData);
   };
 
-  // Enhanced Loading Component
-  const LoadingFallback = ({ message = "Memuat...", size = "medium" }) => {
-    const sizeClasses = {
+  // Enhanced Loading Component dengan skeleton
+  const LoadingFallback = ({ size = "medium" }: { size?: "small" | "medium" | "large" }) => {
+    const sizeClasses: Record<string, string> = {
       small: "h-4 w-4",
       medium: "h-8 w-8",
       large: "h-12 w-12"
@@ -276,21 +300,26 @@ const PromoCalculatorLayout = () => {
 
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="text-center">
-          <div className={`inline-block ${styles.loadingSpinner} ${sizeClasses[size]} mb-4`}></div>
-          <p className="text-gray-600 text-sm">{message}</p>
+        <div className="text-center space-y-3">
+          <div className={`${sizeClasses[size]} bg-gray-200 rounded-full animate-pulse mx-auto`}></div>
+          <div className="h-3 w-20 bg-gray-200 rounded animate-pulse mx-auto"></div>
         </div>
       </div>
     );
   };
 
   // Enhanced Lazy Component Wrapper
-  const LazyComponent = ({ children, fallback, onRetry, componentName }) => {
+  const LazyComponent = ({ children, fallback, onRetry, componentName }: {
+    children: ReactNode;
+    fallback?: ReactNode;
+    onRetry?: () => void;
+    componentName?: string;
+  }) => {
     return (
       <ErrorBoundary onRetry={onRetry}>
         <Suspense 
           fallback={
-            fallback || <LoadingFallback message={`Memuat ${componentName}...`} />
+            fallback || <LoadingFallback />
           }
         >
           {children}
@@ -300,7 +329,11 @@ const PromoCalculatorLayout = () => {
   };
 
   // Error Display Component
-  const ErrorDisplay = ({ title = "Error", message, onRetry }) => (
+  const ErrorDisplay = ({ title = "Error", message, onRetry }: {
+    title?: string;
+    message: string;
+    onRetry?: () => void;
+  }) => (
     <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg bg-red-50">
       <div className="text-red-500 text-lg mb-2">⚠️ {title}</div>
       <p className="text-gray-600 text-sm mb-4">{message}</p>
@@ -324,7 +357,10 @@ const PromoCalculatorLayout = () => {
   );
 
   // Enhanced Promo Grid Component
-  const PromoGrid = ({ promos, onCreateNew }) => (
+  const PromoGrid = ({ promos, onCreateNew }: {
+    promos: PromoData[];
+    onCreateNew: () => void;
+  }) => (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {promos.map((promo) => (
@@ -362,7 +398,7 @@ const PromoCalculatorLayout = () => {
   );
 
   // List Header Component
-  const ListHeader = ({ onCreateNew }) => (
+  const ListHeader = ({ onCreateNew }: { onCreateNew: () => void }) => (
     <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 bg-white sticky top-0 z-10">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Daftar Promo</h1>
@@ -436,12 +472,12 @@ const PromoCalculatorLayout = () => {
         <div className={styles.mainContent}>
           {/* Content */}
           {isLoading ? (
-            <LoadingFallback message="Memuat promo..." size="large" />
+            <LoadingFallback size="large" />
           ) : promosError ? (
             <ErrorDisplay
               title="Gagal Memuat Data Promo"
               message="Terjadi kesalahan saat memuat data promo. Silakan coba lagi."
-              onRetry={refetchPromos}
+              onRetry={() => refetchPromos()}
             />
           ) : recentPromos.length === 0 ? (
             <div className="text-center py-12">
@@ -452,7 +488,7 @@ const PromoCalculatorLayout = () => {
               </p>
               <div className="space-y-3">
                 <button
-                  onClick={refetchPromos}
+                  onClick={() => refetchPromos()}
                   className="block mx-auto text-orange-600 hover:text-orange-800 text-sm transition-colors"
                 >
                   Refresh Data
@@ -488,7 +524,7 @@ const PromoCalculatorLayout = () => {
         <div className={styles.mainContent}>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <LazyComponent
-              fallback={<LoadingFallback message="Memuat kalkulator promo..." />}
+              fallback={<LoadingFallback />}
               onRetry={handleRetry}
               componentName="Kalkulator Promo"
             >
@@ -508,7 +544,7 @@ const PromoCalculatorLayout = () => {
           <ListHeader onCreateNew={() => navigate('/promo/create')} />
           <div className="bg-white rounded-t-xl border border-gray-200">
             <LazyComponent 
-              fallback={<LoadingFallback message="Memuat daftar promo..." />}
+              fallback={<LoadingFallback />}
               onRetry={handleRetry}
               componentName="Daftar Promo"
             >

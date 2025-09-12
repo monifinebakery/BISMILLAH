@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/formatUtils';
 import { useOrderBulk } from '../hooks/useOrderBulk';
 import { getStatusText, getStatusColor } from '../constants';
+import BulkOperationsDialog from './dialogs/BulkOperationsDialog';
 import type { Order, OrderStatus } from '../types';
 
 interface BulkActionsProps {
@@ -15,6 +16,7 @@ interface BulkActionsProps {
   onSelectAll: () => void;
   isAllSelected: boolean;
   totalCount: number;
+  onRefresh: () => void;
 }
 
 const BulkActions: React.FC<BulkActionsProps> = ({
@@ -24,8 +26,17 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   onSelectAll,
   isAllSelected,
   totalCount,
+  onRefresh,
 }) => {
-  const { openDialog } = useOrderBulk();
+  const { 
+    isDialogOpen, 
+    operationType, 
+    openDialog, 
+    closeDialog, 
+    executeBulkDelete, 
+    executeBulkEdit,
+    isProcessing 
+  } = useOrderBulk();
 
   const selectedCount = selectedIds.length;
   const totalSelectedAmount = selectedOrders.reduce((sum, order) => sum + order.totalPesanan, 0);
@@ -117,6 +128,24 @@ const BulkActions: React.FC<BulkActionsProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Bulk Operations Dialog */}
+      <BulkOperationsDialog
+        isOpen={isDialogOpen}
+        onClose={closeDialog}
+        operation={operationType}
+        selectedOrders={selectedOrders}
+        onConfirm={async (data) => {
+          if (operationType === 'delete') {
+            await executeBulkDelete(selectedIds);
+          } else if (operationType === 'edit') {
+            await executeBulkEdit(selectedIds, data);
+          }
+          onRefresh();
+          onClearSelection();
+        }}
+        isProcessing={isProcessing}
+      />
     </div>
   );
 };

@@ -39,15 +39,15 @@ interface ColorPickerProps {
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onColorChange }) => (
-  <div className="flex flex-wrap gap-1 mt-2 dialog-no-overflow">
+  <div className="flex flex-wrap gap-2 mt-2 dialog-no-overflow">
     {CATEGORY_COLORS.map((color) => (
       <button
         key={color}
         type="button"
-        className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border ${
-          selectedColor === color ? 'border-gray-600 scale-110' : 'border-gray-300'
-        } transition-transform input-mobile-safe flex-shrink-0`}
-        style={{ backgroundColor: color, minHeight: '44px', minWidth: '44px' }}
+        className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 ${
+          selectedColor === color ? 'border-gray-700 ring-2 ring-gray-300' : 'border-gray-200 hover:border-gray-400'
+        } transition-all duration-200 input-mobile-safe flex-shrink-0 shadow-sm hover:shadow-md`}
+        style={{ backgroundColor: color }}
         onClick={() => onColorChange(color)}
       />
     ))}
@@ -108,9 +108,9 @@ const CategorySection: React.FC<CategorySectionProps> = React.memo(({
               key={typeof cat === 'string' ? cat : cat.id}
               className="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-100 dialog-no-overflow"
             >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div
-                  className="w-3 h-3 rounded-full border flex-shrink-0"
+                  className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0 shadow-sm"
                   style={{ backgroundColor: categoryColor }}
                 ></div>
                 <span className="text-overflow-safe truncate">{categoryName}</span>

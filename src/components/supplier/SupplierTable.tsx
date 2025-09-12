@@ -100,14 +100,28 @@ const SupplierTable: React.FC<SupplierTableProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-12">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-                  <span className="text-gray-500 font-medium">Memuat data supplier...</span>
-                </div>
-              </TableCell>
-            </TableRow>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell className="w-12">
+                  <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                </TableCell>
+                <TableCell className="w-20">
+                  <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>

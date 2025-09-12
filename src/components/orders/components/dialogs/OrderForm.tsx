@@ -78,9 +78,15 @@ const OrderForm: React.FC<OrderFormProps> = ({
     catatan: '',
     items: [] as OrderItem[],
     subtotal: 0,
+    diskonPromo: 0,
+    totalSetelahDiskon: 0,
     pajak: 0,
     totalPesanan: 0,
     isTaxEnabled: false,
+    usePromo: false,
+    promoId: '',
+    promoCode: '',
+    promoType: '',
     tanggal: new Date().toISOString().split('T')[0], // Changed from tanggalPesanan to tanggal
   });
 
@@ -103,9 +109,15 @@ const OrderForm: React.FC<OrderFormProps> = ({
         catatan: initialData.catatan || '',
         items: initialData.items || [],
         subtotal: initialData.subtotal || 0,
+        diskonPromo: initialData.diskonPromo || 0,
+        totalSetelahDiskon: initialData.totalSetelahDiskon || 0,
         pajak: initialData.pajak || 0,
         totalPesanan: initialData.totalPesanan || 0,
         isTaxEnabled: !!initialData.pajak,
+        usePromo: !!(initialData.promoCode || initialData.diskonPromo),
+        promoId: initialData.promoId || '',
+        promoCode: initialData.promoCode || '',
+        promoType: initialData.promoType || '',
         tanggal: initialData.tanggal 
           ? new Date(initialData.tanggal).toISOString().split('T')[0] 
           : new Date().toISOString().split('T')[0], // Changed from tanggalPesanan to tanggal
@@ -121,9 +133,15 @@ const OrderForm: React.FC<OrderFormProps> = ({
         catatan: '',
         items: [],
         subtotal: 0,
+        diskonPromo: 0,
+        totalSetelahDiskon: 0,
         pajak: 0,
         totalPesanan: 0,
         isTaxEnabled: false,
+        usePromo: false,
+        promoId: '',
+        promoCode: '',
+        promoType: '',
         tanggal: new Date().toISOString().split('T')[0],
       });
     }
@@ -256,19 +274,23 @@ const OrderForm: React.FC<OrderFormProps> = ({
     }));
   };
 
-  // Calculate totals dengan pajak opsional
+  // Calculate totals dengan pajak opsional dan promo
   useEffect(() => {
     const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-    const pajak = formData.isTaxEnabled ? subtotal * 0.1 : 0;
-    const totalPesanan = subtotal + pajak;
+    // Hanya terapkan diskon jika usePromo aktif
+    const diskonAktif = formData.usePromo ? (formData.diskonPromo || 0) : 0;
+    const totalSetelahDiskon = subtotal - diskonAktif;
+    const pajak = formData.isTaxEnabled ? totalSetelahDiskon * 0.1 : 0;
+    const totalPesanan = totalSetelahDiskon + pajak;
 
     setFormData(prev => ({
       ...prev,
       subtotal,
+      totalSetelahDiskon,
       pajak,
       totalPesanan
     }));
-  }, [formData.items, formData.isTaxEnabled]);
+  }, [formData.items, formData.isTaxEnabled, formData.diskonPromo, formData.usePromo]);
 
   // Handle submit dengan validation
   const handleSubmit = async (e: React.FormEvent) => {
@@ -321,8 +343,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
               Informasi Pelanggan
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2 md:col-span-1">
                 <Label htmlFor="namaPelanggan">Nama Pelanggan *</Label>
                 <Input
                   id="namaPelanggan"
@@ -368,7 +390,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 </div>
               </div>
               
-              <div>
+              <div className="sm:col-span-2 md:col-span-1">
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
@@ -608,7 +630,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                       )}
                       
                       {/* Bottom Row: Quantity, Price, and Total */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
                           <Label className="text-xs text-gray-500 font-medium">Jumlah</Label>
                           <Input
@@ -641,7 +663,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                           )}
                         </div>
                         
-                        <div className="col-span-2 md:col-span-2">
+                        <div className="sm:col-span-2 lg:col-span-2">
                           <Label className="text-xs text-gray-500 font-medium">Total Harga</Label>
                           <div className="mt-1 p-2 bg-white border rounded-md">
                             <div className="font-semibold text-lg text-green-700">
@@ -683,11 +705,149 @@ const OrderForm: React.FC<OrderFormProps> = ({
                   />
                 </div>
               </div>
+              
+              {/* Promo Section - Enhanced UI */}
+               <div className="mb-4 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-lg">
+                 <div className="flex items-center justify-between mb-3">
+                   <div className="flex items-center gap-3">
+                     <div className="flex items-center gap-2">
+                       <Zap className="w-5 h-5 text-orange-500" />
+                       <h4 className="font-semibold text-orange-800">Promo & Diskon</h4>
+                     </div>
+                     <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-orange-200">
+                       <Label htmlFor="usePromo" className="text-sm font-medium text-orange-700 cursor-pointer">Aktifkan Promo</Label>
+                       <Switch
+                         id="usePromo"
+                         checked={formData.usePromo || false}
+                         onCheckedChange={(checked) => {
+                           updateField('usePromo', checked);
+                           if (!checked) {
+                             // Reset promo fields when disabled
+                             updateField('promoCode', '');
+                             updateField('diskonPromo', 0);
+                             updateField('promoId', '');
+                             updateField('promoType', '');
+                           }
+                         }}
+                       />
+                     </div>
+                   </div>
+                   {formData.usePromo && (
+                     <div className="flex gap-2">
+                       <Button
+                         type="button"
+                         variant="outline"
+                         size="sm"
+                         onClick={() => {
+                           // Open promo calculator in new tab/window
+                           window.open('/promo-calculator', '_blank');
+                           toast.success('Kalkulator promo dibuka di tab baru');
+                         }}
+                         className="text-xs bg-white hover:bg-orange-50 border-orange-300"
+                       >
+                         <Calculator className="w-3 h-3 mr-1" />
+                         Hitung Promo
+                       </Button>
+                       <Button
+                         type="button"
+                         variant="outline"
+                         size="sm"
+                         onClick={() => {
+                           // Import promo data from calculator
+                           const savedPromo = localStorage.getItem('calculatedPromo');
+                           if (savedPromo) {
+                             try {
+                               const promoData = JSON.parse(savedPromo);
+                               updateField('kodePromo', promoData.kodePromo || '');
+                               updateField('diskonPromo', promoData.totalDiskon || 0);
+                               toast.success('Data promo berhasil diimpor dari kalkulator');
+                               // Clear the saved data after import
+                               localStorage.removeItem('calculatedPromo');
+                             } catch (error) {
+                               toast.error('Gagal mengimpor data promo');
+                             }
+                           } else {
+                             toast.info('Tidak ada data promo yang tersimpan dari kalkulator');
+                           }
+                         }}
+                         className="text-xs bg-white hover:bg-green-50 border-green-300"
+                       >
+                         <Zap className="w-3 h-3 mr-1" />
+                         Impor Promo
+                       </Button>
+                     </div>
+                   )}
+                 </div>
+                 
+                 {!formData.usePromo && (
+                   <div className="text-center py-2">
+                     <p className="text-sm text-orange-600 flex items-center justify-center gap-2">
+                       <Info className="w-4 h-4" />
+                       Aktifkan promo untuk mendapatkan diskon khusus
+                     </p>
+                   </div>
+                 )}
+                 
+                 {formData.usePromo && (
+                   <div className="space-y-4">
+                     {/* Display imported promo data (read-only) */}
+                     {(formData.promoCode || formData.diskonPromo > 0) ? (
+                       <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                         <div className="flex items-center gap-2 mb-3">
+                           <AlertCircle className="w-4 h-4 text-green-600" />
+                           <span className="text-sm font-medium text-green-700">Promo Berhasil Diimpor</span>
+                         </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                           <div className="space-y-1">
+                             <Label className="text-xs font-medium text-green-800">Kode Promo</Label>
+                             <div className="bg-white p-2 rounded border border-green-200">
+                               <span className="text-sm font-medium">{formData.promoCode || 'Tidak ada kode'}</span>
+                             </div>
+                           </div>
+                           <div className="space-y-1">
+                             <Label className="text-xs font-medium text-green-800">Nilai Diskon</Label>
+                             <div className="bg-white p-2 rounded border border-green-200">
+                               <span className="text-sm font-medium text-green-600">
+                                 Rp {(formData.diskonPromo || 0).toLocaleString('id-ID')}
+                               </span>
+                             </div>
+                           </div>
+                         </div>
+                         <div className="mt-3 text-xs text-green-600">
+                           Data promo diimpor dari kalkulator. Untuk mengubah, gunakan kalkulator promo.
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                         <div className="flex items-center gap-2 mb-2">
+                           <Info className="w-4 h-4 text-orange-600" />
+                           <span className="text-sm font-medium text-orange-700">Belum Ada Promo</span>
+                         </div>
+                         <div className="text-xs text-orange-600">
+                           Gunakan kalkulator promo untuk menghitung dan mengimpor data promo.
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 )}
+               </div>
               <div className="space-y-3">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({formData.items.length} item):</span>
                   <span>Rp {formData.subtotal.toLocaleString('id-ID')}</span>
                 </div>
+                {formData.usePromo && formData.diskonPromo > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Diskon Promo:</span>
+                    <span>- Rp {formData.diskonPromo.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
+                {formData.usePromo && formData.diskonPromo > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Setelah Diskon:</span>
+                    <span>Rp {(formData.totalSetelahDiskon || 0).toLocaleString('id-ID')}</span>
+                  </div>
+                )}
                 {formData.isTaxEnabled && (
                   <div className="flex justify-between text-gray-600">
                     <span>Pajak (10%):</span>

@@ -598,25 +598,25 @@ const OrdersPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full p-4 sm:p-8">
+    <div className="w-full max-w-full px-2 sm:px-4 py-4 overflow-hidden">
       {/* ✅ DEBUG: Context debugger - only in development */}
       {import.meta.env.DEV && <ContextDebugger />}
       
       {/* ✅ ENHANCED: Header with template integration info and debug button */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-6 mb-8 border">
-        <div className="flex items-center gap-4 mb-4 lg:mb-0">
-          <div className="flex-shrink-0 bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-            <FileText className="h-8 w-8 text-white" />
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 border">
+        <div className="flex items-center gap-3 sm:gap-4 mb-4 lg:mb-0">
+          <div className="flex-shrink-0 bg-white bg-opacity-20 p-2 sm:p-3 rounded-xl backdrop-blur-sm">
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Manajemen Pesanan</h1>
-            <p className="text-sm opacity-90 mt-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Manajemen Pesanan</h1>
+            <p className="text-xs sm:text-sm opacity-90 mt-1">
               Kelola semua pesanan dari pelanggan Anda dengan template WhatsApp otomatis.
             </p>
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
 
           {/* ✅ DEBUG: Debug button for development */}
           {import.meta.env.DEV && (
@@ -638,9 +638,9 @@ const OrdersPage: React.FC = () => {
               dialogHandlers.openTemplateManager();
             }}
             variant="outline"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300"
+            className="flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300 text-sm"
           >
-            <MessageSquare className="h-5 w-5" />
+            <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
             <span className="hidden sm:inline">Kelola Template WhatsApp</span>
             <span className="sm:hidden">Template</span>
           </Button>
@@ -650,10 +650,11 @@ const OrdersPage: React.FC = () => {
               logger.component('OrdersPage', 'New order button clicked from header');
               businessHandlers.newOrder();
             }}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200"
+            className="flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200 text-sm"
           >
-            <Plus className="h-5 w-5" />
-            Pesanan Baru
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="hidden sm:inline">Pesanan Baru</span>
+            <span className="sm:hidden">Baru</span>
           </Button>
         </div>
       </header>
@@ -684,7 +685,45 @@ const OrdersPage: React.FC = () => {
         
         <OrderControls 
           uiState={uiState} 
-          loading={finalIsLoading} 
+          loading={finalIsLoading}
+          onBulkEditStatus={() => {
+            // TODO: Implement bulk edit status
+            toast.info('Fitur edit status massal akan segera tersedia');
+          }}
+          onBulkDelete={async () => {
+            if (selectedIds.length === 0) {
+              toast.error('Tidak ada pesanan yang dipilih');
+              return;
+            }
+
+            const confirmed = window.confirm(
+              `Apakah Anda yakin ingin menghapus ${selectedIds.length} pesanan yang dipilih? Tindakan ini tidak dapat dibatalkan.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+              logger.component('OrdersPage', 'Bulk delete requested:', selectedIds.length);
+              const success = await contextValue.bulkDeleteOrders?.(selectedIds);
+              
+              if (success) {
+                toast.success(`${selectedIds.length} pesanan berhasil dihapus`);
+                clearSelection();
+                exitSelectionMode();
+              } else {
+                toast.error('Gagal menghapus pesanan');
+              }
+            } catch (error) {
+              logger.error('Error during bulk delete:', error);
+              toast.error('Terjadi kesalahan saat menghapus pesanan');
+            }
+          }}
+          isSelectionMode={isSelectionMode}
+          selectedCount={selectedIds.length}
+          totalCount={finalOrders.length}
+          onEnterSelectionMode={enterSelectionMode}
+          onExitSelectionMode={exitSelectionMode}
+          onClearSelection={clearSelection}
         />
         <OrderFilters 
           uiState={uiState} 

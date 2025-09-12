@@ -55,6 +55,8 @@ import { NewItemForm } from './dialogs/NewItemForm';
 import { SafeNumericInput } from './dialogs/SafeNumericInput';
 import { EditItemDialog } from './dialogs/EditItemDialog';
 import SupplierComboBox from './SupplierComboBox';
+import WACImpactWarning from './WACImpactWarning';
+import PurchaseImpactPreview from '../PurchaseImpactPreview';
 
 // ---- Internal state (semua string biar aman untuk input) ----
 interface FormData {
@@ -331,6 +333,22 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* WAC Impact Warning */}
+               {formData.items.length > 0 && (
+                 <WACImpactWarning items={formData.items} />
+               )}
+               
+              {/* Purchase Impact Preview */}
+              {formData.items.length > 0 && (
+                <PurchaseImpactPreview 
+                  items={formData.items}
+                  onImpactCalculated={(impact) => {
+                    // Handle impact calculation result
+                    console.log('Purchase impact:', impact);
+                  }}
+                />
+              )}
+              
               {/* Add New Item Form */}
               <NewItemForm
                 onAddItem={handleAddNewItem}

@@ -100,7 +100,7 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
         {Array.from({ length: 6 }).map((_, index) => (
           <Card key={index} className="animate-pulse">
             <CardHeader className="pb-2">
@@ -119,21 +119,23 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
       {statisticCards.map((stat, index) => (
         <Card key={index} className={`border transition-all duration-200 hover:shadow-md ${stat.color}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 leading-tight">
               {stat.title}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-1">
             <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
                 {stat.value}
               </div>
-              <div className={`p-2 rounded-lg ${stat.color}`}>
-                {stat.icon}
+              <div className={`p-1.5 sm:p-2 rounded-lg ${stat.color}`}>
+                <div className="h-4 w-4 sm:h-5 sm:w-5">
+                  {stat.icon}
+                </div>
               </div>
             </div>
             {stat.trend && (

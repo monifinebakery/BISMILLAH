@@ -39,8 +39,15 @@ export interface Order {
   
   // Financial Info
   subtotal: number;
+  diskonPromo?: number;
+  totalSetelahDiskon?: number;
   pajak: number;
   totalPesanan: number;
+  
+  // Promo Info
+  promoId?: string;
+  promoCode?: string;
+  promoType?: string;
   
   // Recipe Analytics (optional)
   recipeCount?: number;
@@ -57,10 +64,17 @@ export interface NewOrder {
   status?: OrderStatus;
   catatan?: string;
   subtotal?: number;
+  diskonPromo?: number;
+  totalSetelahDiskon?: number;
   pajak?: number;
   totalPesanan?: number;
   tanggal?: Date;
   tanggalSelesai?: Date;
+  
+  // Promo Info
+  promoId?: string;
+  promoCode?: string;
+  promoType?: string;
 }
 
 export type OrderStatus = 

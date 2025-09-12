@@ -35,6 +35,13 @@ interface OrderControlsProps {
   loading: boolean;
   onBulkEditStatus?: () => void;
   onBulkDelete?: () => void;
+  // Selection state props
+  isSelectionMode?: boolean;
+  selectedCount?: number;
+  totalCount?: number;
+  onEnterSelectionMode?: () => void;
+  onExitSelectionMode?: () => void;
+  onClearSelection?: () => void;
 }
 
 // Selection Toolbar Component - Mobile Responsive
@@ -43,20 +50,26 @@ const SelectionToolbar: React.FC<{
   loading: boolean;
   onBulkEditStatus?: () => void;
   onBulkDelete?: () => void;
-}> = ({ uiState, loading, onBulkEditStatus, onBulkDelete }) => {
-  if (!uiState.isSelectionMode && uiState.selectedOrderIds.length === 0) {
-    return null;
-  }
+  isSelectionMode?: boolean;
+  selectedCount?: number;
+  totalCount?: number;
+  onEnterSelectionMode?: () => void;
+  onExitSelectionMode?: () => void;
+  onClearSelection?: () => void;
+}> = ({ uiState, loading, onBulkEditStatus, onBulkDelete, isSelectionMode = false, selectedCount = 0, totalCount = 0, onEnterSelectionMode, onExitSelectionMode, onClearSelection }) => {
+  // Always show the selection toolbar
+  const showSelectionButton = !isSelectionMode && totalCount > 0;
+  const showSelectionInfo = isSelectionMode;
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
-      {!uiState.isSelectionMode ? (
+      {showSelectionButton ? (
         // Show selection toggle button - Desktop
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Button
             variant="outline"
-            onClick={uiState.toggleSelectionMode}
-            disabled={loading || uiState.totalItems === 0}
+            onClick={onEnterSelectionMode}
+            disabled={loading || totalCount === 0}
             className="flex items-center gap-2 w-full sm:w-auto"
           >
             <Square className="h-4 w-4" />
@@ -64,10 +77,10 @@ const SelectionToolbar: React.FC<{
           </Button>
           
           <span className="text-sm text-gray-600 text-center sm:text-left">
-            {uiState.totalItems} pesanan tersedia
+            {totalCount} pesanan tersedia
           </span>
         </div>
-      ) : (
+      ) : showSelectionInfo ? (
         // Show selection info and actions - Mobile Responsive
         <div className="space-y-3 sm:space-y-0">
           {/* Header Row */}
@@ -76,7 +89,7 @@ const SelectionToolbar: React.FC<{
               <Button
                 variant="outline"
                 size="sm"
-                onClick={uiState.toggleSelectionMode}
+                onClick={onExitSelectionMode}
                 disabled={loading}
                 className="flex items-center gap-2"
               >
@@ -87,18 +100,18 @@ const SelectionToolbar: React.FC<{
               <div className="flex items-center gap-2">
                 <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
                 <span className="text-sm font-medium">
-                  <span className="sm:hidden">{uiState.selectedOrderIds.length}/{uiState.totalItems}</span>
+                  <span className="sm:hidden">{selectedCount}/{totalCount}</span>
                   <span className="hidden sm:inline">
-                    {uiState.selectedOrderIds.length} dari {uiState.totalItems} dipilih
+                    {selectedCount} dari {totalCount} dipilih
                   </span>
                 </span>
               </div>
               
-              {uiState.selectedOrderIds.length > 0 && (
+              {selectedCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={uiState.clearSelection}
+                  onClick={onClearSelection}
                   disabled={loading}
                   className="text-gray-500 hover:text-gray-700 hidden sm:flex"
                 >
@@ -108,11 +121,11 @@ const SelectionToolbar: React.FC<{
             </div>
 
             {/* Mobile: Clear Selection Button */}
-            {uiState.selectedOrderIds.length > 0 && (
+            {selectedCount > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={uiState.clearSelection}
+                onClick={onClearSelection}
                 disabled={loading}
                 className="text-gray-500 hover:text-gray-700 sm:hidden w-full"
               >
@@ -122,7 +135,7 @@ const SelectionToolbar: React.FC<{
           </div>
 
           {/* Action Buttons Row */}
-          {uiState.selectedOrderIds.length > 0 && (
+          {selectedCount > 0 && (
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               {/* Desktop: Show all buttons */}
               <div className="hidden sm:flex sm:items-center sm:gap-2">
@@ -177,7 +190,7 @@ const SelectionToolbar: React.FC<{
             </div>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
@@ -192,20 +205,7 @@ const TableControls: React.FC<{
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         {/* Left Side Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          {/* Selection Mode Toggle - Always Visible */}
-          {!uiState.isSelectionMode && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={uiState.toggleSelectionMode}
-              disabled={loading || uiState.totalItems === 0}
-              className="flex items-center gap-2"
-            >
-              <Square className="h-4 w-4" />
-              <span className="hidden sm:inline">Mode Pilih</span>
-              <span className="sm:hidden">Pilih</span>
-            </Button>
-          )}
+          {/* Selection mode toggle removed - handled by SelectionToolbar */}
         </div>
 
         {/* Right Side Info */}
@@ -338,7 +338,13 @@ const OrderControls: React.FC<OrderControlsProps> = ({
   uiState, 
   loading, 
   onBulkEditStatus,
-  onBulkDelete 
+  onBulkDelete,
+  isSelectionMode,
+  selectedCount,
+  totalCount,
+  onEnterSelectionMode,
+  onExitSelectionMode,
+  onClearSelection
 }) => {
   return (
     <>
@@ -347,6 +353,12 @@ const OrderControls: React.FC<OrderControlsProps> = ({
         loading={loading} 
         onBulkEditStatus={onBulkEditStatus}
         onBulkDelete={onBulkDelete}
+        isSelectionMode={isSelectionMode}
+        selectedCount={selectedCount}
+        totalCount={totalCount}
+        onEnterSelectionMode={onEnterSelectionMode}
+        onExitSelectionMode={onExitSelectionMode}
+        onClearSelection={onClearSelection}
       />
       <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden mb-4 sm:mb-6">
         <TableControls uiState={uiState} loading={loading} />

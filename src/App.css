@@ -1,14 +1,16 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  width: 100vw;
+  overflow-x: hidden;
 }
 
 /* Safe mobile responsive adjustments */
 @media (max-width: 768px) {
   #root {
-    padding: 1rem;
+    padding: 0;
   }
 }
 

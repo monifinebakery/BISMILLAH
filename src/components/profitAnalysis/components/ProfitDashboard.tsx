@@ -12,7 +12,7 @@ import LoadingOverlay from './LoadingOverlay';
 import ErrorDisplay from './ErrorDisplay';
 import ModeIndicator from './ModeIndicator';
 import WACStatusIndicator from './WACStatusIndicator';
-import DataSyncStatus from './DataSyncStatus';
+
 import MobileProfitSummary from './MobileProfitSummary';
 import { useLoadingStateManager, LOADING_MESSAGES } from '../utils/loadingStateManager';
 
@@ -96,6 +96,20 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   // Determine analysis mode based on date range selection
   const analysisMode = range ? 'daily' : 'monthly';
 
+  // Handle mode change
+  const handleModeChange = (newMode: 'daily' | 'monthly' | 'yearly') => {
+    if (newMode === 'daily') {
+      // Set default date range for daily mode (last 7 days)
+      const today = new Date();
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 6);
+      setRange({ from: weekAgo, to: today });
+    } else {
+      // Clear date range for monthly/yearly mode
+      setRange(undefined);
+    }
+  };
+
   const {
     currentAnalysis,
     profitHistory,
@@ -151,7 +165,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
   // ✅ ENHANCED: Refresh with loading state management
   const handleRefresh = async () => {
-    setLoading('refresh', true, LOADING_MESSAGES.refresh);
+    setLoading('refresh', true, { type: 'refresh', ...LOADING_MESSAGES.refresh });
     
     try {
       await Promise.all([
@@ -170,7 +184,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
   const handleRefreshSource = async (sourceName: string) => {
     switch (sourceName) {
       case 'analysis':
-        setLoading('analysis', true, LOADING_MESSAGES.analysis);
+          setLoading('calculations', true, { type: 'calculations', ...LOADING_MESSAGES.analysis });
         try {
           await refreshAnalysis();
         } finally {
@@ -178,7 +192,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         }
         break;
       case 'wac':
-        setLoading('wac', true, LOADING_MESSAGES.wac);
+        setLoading('wac', true, { type: 'wac', ...LOADING_MESSAGES.wac });
         try {
           await refreshWACData();
         } finally {
@@ -192,7 +206,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
 
   // Wire date range changes with loading state
   const handleDateRangeChange = (r: { from: Date; to: Date } | undefined) => {
-    setLoading('dateRange', true, LOADING_MESSAGES.dateRange);
+    setLoading('dateRange', true, { type: 'dateRange', ...LOADING_MESSAGES.dateRange });
     
     setRange(r);
     
@@ -288,6 +302,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
         isAggregated={analysisMode === 'daily' && range !== undefined}
         dataSource={analysisMode === 'daily' ? 'aggregated' : 'financial_transactions'}
         periodLabel={currentPeriod}
+        onModeChange={handleModeChange}
       />
       
       {/* ✅ NEW: WAC status transparency */}
@@ -332,16 +347,7 @@ const ProfitDashboard: React.FC<ProfitDashboardProps> = ({
             />
           )}
           
-          {/* ✅ NEW: Data sync status - Desktop only */}
-          {!isMobile && (
-            <DataSyncStatus
-              dataSources={dataSources}
-              onRefreshAll={handleRefresh}
-              onRefreshSource={handleRefreshSource}
-              isRefreshing={loadingStates.refresh}
-              className="mt-6"
-            />
-          )}
+
         </>
       )}
 

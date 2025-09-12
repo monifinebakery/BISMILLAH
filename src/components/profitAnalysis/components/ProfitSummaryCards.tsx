@@ -197,7 +197,9 @@ const generateCards = (
       subtitle: `${formatPercentage(cogsPercentage)} dari penjualan`,
       change: changes.cogsChange,
       changeType: getGrowthStatus(changes.cogsChange * -1).status,
-      helpText: 'Uang yang keluar untuk beli bahan makanan & minuman',
+      helpText: labels?.hppHint ? 
+        `${labels.hppHint}. Nilai ini dihitung berdasarkan harga rata-rata pembelian (WAC) untuk akurasi yang lebih baik.` :
+        'Uang yang keluar untuk beli bahan makanan & minuman. Dihitung dengan metode WAC (Weighted Average Cost) untuk hasil yang lebih akurat.',
       alert: cogsPercentage > 60 ? 'Modal bahan terlalu tinggi! Cari supplier lebih murah atau naikin harga jual' : 
              cogsPercentage > 40 ? 'Modal bahan agak tinggi, perlu diperhatikan' : 'Modal bahan sehat'
     }
@@ -214,7 +216,7 @@ const generateCards = (
       subtitle: labels?.hppLabel ? `${labels.hppLabel} aktif` : 'Harga rata-rata',
       change: 0,
       changeType: 'neutral' as const,
-      helpText: 'Total nilai persediaan bahan baku berdasarkan harga rata-rata pembelian (WAC)'
+      helpText: 'Total nilai persediaan bahan baku berdasarkan harga rata-rata pembelian (WAC). Metode ini memberikan gambaran nilai stok yang lebih akurat karena memperhitungkan semua pembelian dengan harga berbeda.'
     });
   }
 
@@ -341,8 +343,16 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                           <HelpCircle className="w-3 h-3 text-orange-500 hover:text-orange-700 transition-colors" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-sm bg-orange-50 border-orange-200 text-orange-900">
-                        <p>{(card as any).helpText}</p>
+                      <TooltipContent side="top" className="max-w-sm p-3 bg-orange-50 border-orange-200 text-orange-900">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">{card.title}</p>
+                          <p className="text-sm">{(card as any).helpText}</p>
+                          {card.title.includes('Modal Bahan Baku') && (
+                            <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border-l-2 border-blue-200">
+                              <strong>💡 Tentang WAC:</strong> Weighted Average Cost menghitung harga rata-rata dari semua pembelian bahan. Ini membuat perhitungan profit lebih akurat dibanding menggunakan harga pembelian terakhir saja.
+                            </div>
+                          )}
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

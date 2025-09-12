@@ -2,7 +2,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router } from "react-router-dom";
-import { ThemeProvider } from "@/lib/theme";
+
 import App from "./App";
 import "./index.css";
 import "@/styles/toast-swipe.css";
@@ -109,15 +109,11 @@ const root = createRoot(rootElement);
 logger.debug("Starting React render process");
 
 root.render(
-  <React.StrictMode>
-    <EnhancedErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="light">
-        <Router>
-          <App />
-        </Router>
-      </ThemeProvider>
-    </EnhancedErrorBoundary>
-  </React.StrictMode>
+  <EnhancedErrorBoundary>
+    <Router>
+      <App />
+    </Router>
+  </EnhancedErrorBoundary>
 );
 
 // ------------------------------

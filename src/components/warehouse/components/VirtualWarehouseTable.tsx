@@ -256,7 +256,7 @@ const VirtualWarehouseTable: React.FC<VirtualWarehouseTableProps> = ({
               className="flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
-              {selectionState.isRefreshing ? 'Memuat...' : 'Refresh Data'}
+              {selectionState.isRefreshing ? '' : 'Refresh Data'}
             </Button>
           )}
         </div>
@@ -449,7 +449,7 @@ const VirtualWarehouseTable: React.FC<VirtualWarehouseTableProps> = ({
                 className="flex items-center gap-2"
               >
                 <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
-                {selectionState.isRefreshing ? 'Memuat...' : 'Refresh'}
+                {selectionState.isRefreshing ? '' : 'Refresh'}
               </Button>
             )}
           </div>

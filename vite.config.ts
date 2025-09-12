@@ -146,7 +146,7 @@ export default defineConfig(({ mode }) => {
         //   propertyReadSideEffects: false,
         //   tryCatchDeoptimization: false
         // },
-        external: ["next-themes"],
+        // external: ["next-themes"], // Removed - not installed
         output: {
           // Ultra-conservative chunk splitting - NO app code splitting to avoid React issues
           manualChunks: (id) => {
@@ -210,7 +210,7 @@ export default defineConfig(({ mode }) => {
         "@supabase/postgrest-js"
       ],
       exclude: [
-        "next-themes"
+        // "next-themes" // Removed - not used
       ],
       // Force include React ecosystem to avoid context issues
       force: true

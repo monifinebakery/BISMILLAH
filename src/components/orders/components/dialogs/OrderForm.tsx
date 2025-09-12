@@ -343,8 +343,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
               Informasi Pelanggan
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2 md:col-span-1">
                 <Label htmlFor="namaPelanggan">Nama Pelanggan *</Label>
                 <Input
                   id="namaPelanggan"
@@ -390,7 +390,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 </div>
               </div>
               
-              <div>
+              <div className="sm:col-span-2 md:col-span-1">
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
@@ -630,7 +630,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                       )}
                       
                       {/* Bottom Row: Quantity, Price, and Total */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
                           <Label className="text-xs text-gray-500 font-medium">Jumlah</Label>
                           <Input
@@ -663,7 +663,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                           )}
                         </div>
                         
-                        <div className="col-span-2 md:col-span-2">
+                        <div className="sm:col-span-2 lg:col-span-2">
                           <Label className="text-xs text-gray-500 font-medium">Total Harga</Label>
                           <div className="mt-1 p-2 bg-white border rounded-md">
                             <div className="font-semibold text-lg text-green-700">
@@ -790,57 +790,41 @@ const OrderForm: React.FC<OrderFormProps> = ({
                  
                  {formData.usePromo && (
                    <div className="space-y-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div className="space-y-2">
-                         <Label htmlFor="promo-code" className="text-sm font-medium text-orange-800">Kode Promo</Label>
-                         <div className="relative">
-                           <Input
-                             id="promo-code"
-                             value={formData.promoCode}
-                             onChange={(e) => updateField('promoCode', e.target.value)}
-                             placeholder="Contoh: DISKON20, HEMAT50K"
-                             className="border-orange-200 focus:border-orange-400 focus:ring-orange-200"
-                           />
-                           {formData.promoCode && (
-                             <div className="absolute right-2 top-2">
-                               <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                                 Aktif
-                               </Badge>
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                       <div className="space-y-2">
-                         <Label htmlFor="diskon-promo" className="text-sm font-medium text-orange-800">Nilai Diskon (Rp)</Label>
-                         <div className="relative">
-                           <Input
-                             id="diskon-promo"
-                             type="number"
-                             value={formData.diskonPromo || ''}
-                             onChange={(e) => updateField('diskonPromo', parseFloat(e.target.value) || 0)}
-                             placeholder="Masukkan nominal diskon"
-                             min="0"
-                             className="border-orange-200 focus:border-orange-400 focus:ring-orange-200"
-                           />
-                           {formData.diskonPromo > 0 && (
-                             <div className="absolute right-2 top-2">
-                               <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                                 Rp {formData.diskonPromo.toLocaleString('id-ID')}
-                               </Badge>
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                     </div>
-                     
-                     {formData.diskonPromo > 0 && (
-                       <div className="bg-white p-3 rounded-lg border border-orange-200">
-                         <div className="flex items-center gap-2 mb-2">
+                     {/* Display imported promo data (read-only) */}
+                     {(formData.promoCode || formData.diskonPromo > 0) ? (
+                       <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                         <div className="flex items-center gap-2 mb-3">
                            <AlertCircle className="w-4 h-4 text-green-600" />
-                           <span className="text-sm font-medium text-green-700">Promo Berhasil Diterapkan</span>
+                           <span className="text-sm font-medium text-green-700">Promo Berhasil Diimpor</span>
                          </div>
-                         <div className="text-xs text-gray-600">
-                           Pelanggan akan mendapat diskon sebesar <span className="font-semibold text-green-600">Rp {formData.diskonPromo.toLocaleString('id-ID')}</span>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                           <div className="space-y-1">
+                             <Label className="text-xs font-medium text-green-800">Kode Promo</Label>
+                             <div className="bg-white p-2 rounded border border-green-200">
+                               <span className="text-sm font-medium">{formData.promoCode || 'Tidak ada kode'}</span>
+                             </div>
+                           </div>
+                           <div className="space-y-1">
+                             <Label className="text-xs font-medium text-green-800">Nilai Diskon</Label>
+                             <div className="bg-white p-2 rounded border border-green-200">
+                               <span className="text-sm font-medium text-green-600">
+                                 Rp {(formData.diskonPromo || 0).toLocaleString('id-ID')}
+                               </span>
+                             </div>
+                           </div>
+                         </div>
+                         <div className="mt-3 text-xs text-green-600">
+                           Data promo diimpor dari kalkulator. Untuk mengubah, gunakan kalkulator promo.
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                         <div className="flex items-center gap-2 mb-2">
+                           <Info className="w-4 h-4 text-orange-600" />
+                           <span className="text-sm font-medium text-orange-700">Belum Ada Promo</span>
+                         </div>
+                         <div className="text-xs text-orange-600">
+                           Gunakan kalkulator promo untuk menghitung dan mengimpor data promo.
                          </div>
                        </div>
                      )}

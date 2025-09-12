@@ -415,7 +415,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   return (
     <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="min-w-full">
           {/* ✅ UPDATED: Table Header with Completion Date */}
           <thead className="bg-gray-50">
@@ -569,14 +570,79 @@ const OrderTable: React.FC<OrderTableProps> = ({
         </table>
       </div>
       
-      {/* ✅ PAGINATION CONTROLS: Like Purchase */}
+      {/* Mobile Card View */}
+      <div className="lg:hidden">
+        <div className="divide-y divide-gray-200">
+          {uiState.currentOrders.map((order) => (
+            <div key={order.id} className="p-4 hover:bg-gray-50">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    {isSelectionMode && (
+                      <Checkbox
+                        checked={selectedIds.includes(order.id)}
+                        onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
+                        className="h-4 w-4"
+                      />
+                    )}
+                    <h3 className="text-sm font-medium text-gray-900">#{order.nomorPesanan}</h3>
+                  </div>
+                  <p className="text-sm text-gray-600">{order.namaPelanggan}</p>
+                  {order.teleponPelanggan && (
+                     <p className="text-xs text-gray-500">{order.teleponPelanggan}</p>
+                   )}
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold text-gray-900 mb-1">
+                    {formatCurrency(order.totalPesanan)}
+                  </div>
+                  <StatusBadge
+                    status={order.status}
+                    onChange={(newStatus) => onStatusChange(order.id, newStatus)}
+                    disabled={order.status === 'completed' || order.status === 'cancelled'}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 mb-3">
+                <div>
+                  <span className="block font-medium">Tanggal Order:</span>
+                  {formatDateForDisplay(order.tanggal)}
+                </div>
+                <div>
+                  <span className="block font-medium">Diperbarui:</span>
+                  {formatDateForDisplay(order.updatedAt)}
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <OrderRowActions
+                  order={order}
+                  onEdit={() => onEditOrder(order)}
+                  onDelete={() => onDeleteOrder(order.id)}
+                  onFollowUp={() => handleFollowUp(order)}
+                  onViewDetail={() => handleViewDetail(order)}
+                  disabled={uiState.isSelectionMode}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* ✅ RESPONSIVE PAGINATION CONTROLS */}
       {uiState.totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t">
-          <div className="text-sm text-gray-700">
-            Menampilkan {((uiState.currentPage - 1) * uiState.itemsPerPage) + 1} - {Math.min(uiState.currentPage * uiState.itemsPerPage, uiState.totalItems)} dari {uiState.totalItems} pesanan
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t">
+          <div className="text-sm text-gray-700 text-center sm:text-left">
+            <span className="sm:hidden">
+              {((uiState.currentPage - 1) * uiState.itemsPerPage) + 1}-{Math.min(uiState.currentPage * uiState.itemsPerPage, uiState.totalItems)} / {uiState.totalItems}
+            </span>
+            <span className="hidden sm:inline">
+              Menampilkan {((uiState.currentPage - 1) * uiState.itemsPerPage) + 1} - {Math.min(uiState.currentPage * uiState.itemsPerPage, uiState.totalItems)} dari {uiState.totalItems} pesanan
+            </span>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <button
               className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => uiState.setCurrentPage(Math.max(1, uiState.currentPage - 1))}
@@ -584,6 +650,10 @@ const OrderTable: React.FC<OrderTableProps> = ({
             >
               Sebelumnya
             </button>
+            
+            <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded text-sm font-medium">
+              {uiState.currentPage}
+            </span>
             
             <button
               className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"

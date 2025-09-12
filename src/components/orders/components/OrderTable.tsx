@@ -152,7 +152,7 @@ const OrderRowActions: React.FC<{
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-48">        
+      <DropdownMenuContent align="end" className="w-48 z-50" side="bottom" sideOffset={4}>        
         <DropdownMenuItem 
           onClick={() => { setIsOpen(false); onEdit(); }}
           className="cursor-pointer"
@@ -416,7 +416,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
   return (
     <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
       {/* Desktop Table View */}
-      <div className="hidden lg:block overflow-x-auto">
+      <div className="hidden lg:block overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         <table className="min-w-full">
           {/* ✅ UPDATED: Table Header with Completion Date */}
           <thead className="bg-gray-50">
@@ -571,28 +571,28 @@ const OrderTable: React.FC<OrderTableProps> = ({
       </div>
       
       {/* Mobile Card View */}
-      <div className="lg:hidden">
+      <div className="lg:hidden overflow-hidden">
         <div className="divide-y divide-gray-200">
           {uiState.currentOrders.map((order) => (
             <div key={order.id} className="p-4 hover:bg-gray-50">
               <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center gap-2 mb-1">
                     {isSelectionMode && (
                       <Checkbox
                         checked={selectedIds.includes(order.id)}
                         onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 flex-shrink-0"
                       />
                     )}
-                    <h3 className="text-sm font-medium text-gray-900">#{order.nomorPesanan}</h3>
+                    <h3 className="text-sm font-medium text-gray-900 truncate">#{order.nomorPesanan}</h3>
                   </div>
-                  <p className="text-sm text-gray-600">{order.namaPelanggan}</p>
+                  <p className="text-sm text-gray-600 truncate">{order.namaPelanggan}</p>
                   {order.teleponPelanggan && (
-                     <p className="text-xs text-gray-500">{order.teleponPelanggan}</p>
+                     <p className="text-xs text-gray-500 truncate">{order.teleponPelanggan}</p>
                    )}
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <div className="text-sm font-semibold text-gray-900 mb-1">
                     {formatCurrency(order.totalPesanan)}
                   </div>
@@ -604,14 +604,14 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 mb-3">
-                <div>
+              <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 mb-3 overflow-hidden">
+                <div className="min-w-0">
                   <span className="block font-medium">Tanggal Order:</span>
-                  {formatDateForDisplay(order.tanggal)}
+                  <span className="truncate block">{formatDateForDisplay(order.tanggal)}</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="block font-medium">Diperbarui:</span>
-                  {formatDateForDisplay(order.updatedAt)}
+                  <span className="truncate block">{formatDateForDisplay(order.updatedAt)}</span>
                 </div>
               </div>
               

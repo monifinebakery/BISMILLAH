@@ -282,14 +282,23 @@ const DetailedBreakdownTable = ({
       // mapping WAC breakdown → rows
       const items = hppBreakdown
         .map(b => ({
-          name: b.nama || 'Komponen HPP',
+          name: `${b.nama || 'Komponen HPP'} (WAC: ${formatCurrency(b.price || 0)})`,
           amount: b.hpp || 0,                  // nilai HPP per komponen
           percentage: finalCogs > 0 ? ((b.hpp || 0) / finalCogs) * 100 : 0,
-          type: 'Bahan Langsung'
+          type: `Qty: ${b.qty || 0} × ${formatCurrency(b.price || 0)}`
         }))
         .filter(i => i.amount > 0);
 
-      // kalau misal total rounding berbeda, tetap jalan
+      // Tambahkan info WAC di akhir jika ada data
+      if (items.length > 0) {
+        items.push({
+          name: '💡 Info WAC (Weighted Average Cost)',
+          amount: 0,
+          percentage: 0,
+          type: 'Harga rata-rata dari semua pembelian bahan untuk akurasi maksimal'
+        });
+      }
+
       return items;
     }
 
@@ -325,13 +334,15 @@ const DetailedBreakdownTable = ({
         helpText: 'Semua uang yang masuk ke warung dari penjualan makanan, minuman, dan layanan lainnya'
       },
       {
-        title: '🛒 Modal Bahan Baku (Belanja Dapur)',
+        title: `🛒 Modal Bahan Baku (Belanja Dapur)${labels?.hppLabel ? ` - ${labels.hppLabel}` : ''}`,
         icon: ShoppingCart,
         color: 'text-amber-700',
         bgColor: 'bg-amber-50',
         total: finalCogs,
         items: cogsItems,
-        helpText: 'Uang yang keluar untuk beli bahan-bahan makanan dan minuman'
+        helpText: labels?.hppHint ? 
+          `${labels.hppHint}. Perhitungan menggunakan metode WAC (Weighted Average Cost) yang menghitung harga rata-rata dari semua pembelian bahan untuk hasil yang lebih akurat.` :
+          'Uang yang keluar untuk beli bahan-bahan makanan dan minuman. Dihitung dengan metode WAC (Weighted Average Cost) untuk akurasi yang lebih baik dibanding harga pembelian terakhir.'
       },
       {
         title: '🏪 Biaya Bulanan Tetap (Operasional)',

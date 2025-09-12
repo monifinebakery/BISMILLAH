@@ -29,69 +29,125 @@ interface PromoCalculationResult {
   profit: number;
 }
 
-const calculatePromo = (data: any): PromoCalculationResult | null => {
+interface PromoFormData {
+  namaPromo: string;
+  tipePromo: string;
+  status: string;
+  deskripsi: string;
+  tanggalMulai: string;
+  tanggalSelesai: string;
+  hargaProduk: string;
+  hpp: string;
+  nilaiDiskon: string;
+  resepUtama: string;
+  resepGratis: string;
+  beli: string;
+  gratis: string;
+  hargaNormal: string;
+  hargaBundle: string;
+}
+
+const calculatePromo = (data: PromoFormData): PromoCalculationResult | null => {
   try {
-    switch (data.tipePromo) {
-      case 'discount': {
-        const base = parseFloat(data.hargaProduk ?? data.hargaAsli ?? '');
-        const cost = parseFloat(data.hpp ?? '0');
-        const disc = parseFloat(data.nilaiDiskon ?? '');
-        if (!Number.isFinite(base) || base <= 0) {
-          throw new Error('Harga produk tidak valid');
+    const { tipePromo, hargaProduk, hpp } = data;
+    
+    // Validasi input dasar
+    if (!hargaProduk || !hpp) {
+      throw new Error('Harga produk dan HPP harus diisi');
+    }
+
+    const harga = parseFloat(hargaProduk);
+    const hppValue = parseFloat(hpp);
+    
+    if (isNaN(harga) || isNaN(hppValue) || harga <= 0 || hppValue <= 0) {
+      throw new Error('Harga produk dan HPP harus berupa angka positif');
+    }
+
+    let finalPrice = harga;
+    let savings = 0;
+    let promoMargin = 0;
+    let profit = 0;
+
+    switch (tipePromo) {
+      case 'discount':
+        const { nilaiDiskon } = data;
+        if (!nilaiDiskon) {
+          throw new Error('Nilai diskon harus diisi untuk tipe discount');
         }
-        if (!Number.isFinite(disc)) {
-          throw new Error('Nilai diskon tidak valid');
+        const diskon = parseFloat(nilaiDiskon);
+        if (isNaN(diskon) || diskon < 0 || diskon > 100) {
+          throw new Error('Nilai diskon harus antara 0-100%');
         }
-        const finalPrice = base * (1 - disc / 100);
-        const profit = finalPrice - (Number.isFinite(cost) ? cost : 0);
-        const promoMargin = finalPrice !== 0 ? (profit / finalPrice) * 100 : 0;
-        const savings = base - finalPrice;
-        if ([finalPrice, promoMargin, savings, profit].some(n => !Number.isFinite(n))) {
-          throw new Error('Perhitungan tidak valid');
+        
+        finalPrice = harga * (1 - diskon / 100);
+        savings = harga - finalPrice;
+        promoMargin = (savings / harga) * 100;
+        profit = finalPrice - hppValue;
+        break;
+
+      case 'bogo':
+        const { beli, gratis } = data;
+        if (!beli || !gratis) {
+          throw new Error('Jumlah beli dan gratis harus diisi untuk tipe BOGO');
         }
-        return { finalPrice, promoMargin, savings, profit };
-      }
-      case 'bogo': {
-        const price = parseFloat(data.hargaProduk ?? '');
-        const cost = parseFloat(data.hpp ?? '0');
-        const buy = parseFloat(data.beli ?? '1');
-        const get = parseFloat(data.gratis ?? '1');
-        if (!Number.isFinite(price) || price <= 0) {
-          throw new Error('Harga produk tidak valid');
+        
+        const jumlahBeli = parseInt(beli);
+        const jumlahGratis = parseInt(gratis);
+        
+        if (isNaN(jumlahBeli) || isNaN(jumlahGratis) || jumlahBeli <= 0 || jumlahGratis <= 0) {
+          throw new Error('Jumlah beli dan gratis harus berupa angka positif');
         }
-        const finalPrice = price * buy / (buy + get);
-        const profit = finalPrice - (Number.isFinite(cost) ? cost : 0);
-        const promoMargin = finalPrice !== 0 ? (profit / finalPrice) * 100 : 0;
-        const savings = price - finalPrice;
-        if ([finalPrice, promoMargin, savings, profit].some(n => !Number.isFinite(n))) {
-          throw new Error('Perhitungan tidak valid');
+        
+        // Hitung harga per unit dengan BOGO
+        const totalUnit = jumlahBeli + jumlahGratis;
+        finalPrice = (harga * jumlahBeli) / totalUnit;
+        savings = harga - finalPrice;
+        promoMargin = (savings / harga) * 100;
+        profit = finalPrice - hppValue;
+        break;
+
+      case 'bundle':
+        const { hargaNormal, hargaBundle } = data;
+        if (!hargaNormal || !hargaBundle) {
+          throw new Error('Harga normal dan harga bundle harus diisi untuk tipe bundle');
         }
-        return { finalPrice, promoMargin, savings, profit };
-      }
-      case 'bundle': {
-        const normal = parseFloat(data.hargaNormal ?? '');
-        const bundle = parseFloat(data.hargaBundle ?? '');
-        const cost = parseFloat(data.hpp ?? '0');
-        if (!Number.isFinite(normal) || normal <= 0) {
-          throw new Error('Harga normal tidak valid');
+        
+        const normalPrice = parseFloat(hargaNormal);
+        const bundlePrice = parseFloat(hargaBundle);
+        
+        if (isNaN(normalPrice) || isNaN(bundlePrice) || normalPrice <= 0 || bundlePrice <= 0) {
+          throw new Error('Harga normal dan bundle harus berupa angka positif');
         }
-        if (!Number.isFinite(bundle) || bundle <= 0) {
-          throw new Error('Harga bundle tidak valid');
+        
+        if (bundlePrice >= normalPrice) {
+          throw new Error('Harga bundle harus lebih kecil dari harga normal');
         }
-        const profit = bundle - (Number.isFinite(cost) ? cost : 0);
-        const promoMargin = bundle !== 0 ? (profit / bundle) * 100 : 0;
-        const savings = normal - bundle;
-        if ([bundle, promoMargin, savings, profit].some(n => !Number.isFinite(n))) {
-          throw new Error('Perhitungan tidak valid');
-        }
-        return { finalPrice: bundle, promoMargin, savings, profit };
-      }
+        
+        finalPrice = bundlePrice;
+        savings = normalPrice - bundlePrice;
+        promoMargin = (savings / normalPrice) * 100;
+        profit = bundlePrice - hppValue;
+        break;
+
       default:
         throw new Error('Tipe promo tidak valid');
     }
+
+    // Validasi profit tidak boleh negatif (opsional warning)
+    if (profit < 0) {
+      console.warn('Peringatan: Profit negatif, promo mungkin merugikan');
+    }
+
+    return {
+      finalPrice: Math.round(finalPrice * 100) / 100,
+      promoMargin: Math.round(promoMargin * 100) / 100,
+      savings: Math.round(savings * 100) / 100,
+      profit: Math.round(profit * 100) / 100
+    };
+
   } catch (error) {
-    console.error('calculatePromo error:', error);
-    return null;
+    console.error('Error calculating promo:', error);
+    throw error; // Re-throw untuk ditangani di UI
   }
 };
 
@@ -104,22 +160,27 @@ const PromoFullCalculator = () => {
   const isEditMode = !!id;
 
   // State untuk form
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PromoFormData>({
     namaPromo: '',
     tipePromo: 'discount', // Default
     status: 'draft',
     deskripsi: '',
     tanggalMulai: '',
     tanggalSelesai: '',
-    // Tambahkan field lain yang diperlukan untuk kalkulasi
-    nilaiDiskon: '', // Contoh untuk tipe 'discount'
-    resepUtama: '',  // Contoh untuk tipe 'bogo'
-    resepGratis: '', // Contoh untuk tipe 'bogo'
-    // ... field lainnya
+    // Field untuk kalkulasi
+    hargaProduk: '', // Harga asli produk
+    hpp: '', // Harga Pokok Penjualan
+    nilaiDiskon: '', // Untuk tipe 'discount'
+    resepUtama: '',  // Untuk tipe 'bogo'
+    resepGratis: '', // Untuk tipe 'bogo'
+    beli: '1', // Untuk tipe 'bogo' - jumlah beli
+    gratis: '1', // Untuk tipe 'bogo' - jumlah gratis
+    hargaNormal: '', // Untuk tipe 'bundle'
+    hargaBundle: '', // Untuk tipe 'bundle'
   });
 
   // State untuk hasil kalkulasi
-  const [calculationResult, setCalculationResult] = useState(null);
+  const [calculationResult, setCalculationResult] = useState<PromoCalculationResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
   // ✅ Fetch promo detail jika dalam mode edit
@@ -130,35 +191,40 @@ const PromoFullCalculator = () => {
       const promo = await promoService.getById(id);
       return promo;
     },
-    enabled: isEditMode,
-    onSuccess: (data) => {
-      if (data) {
-        // Transform data dari DB ke format form
-        setFormData({
-          namaPromo: data.namaPromo || '',
-          tipePromo: data.tipePromo || 'discount',
-          status: data.status || 'draft',
-          deskripsi: data.deskripsi || '',
-          tanggalMulai: data.tanggalMulai || '',
-          tanggalSelesai: data.tanggalSelesai || '',
-          // Map field lainnya dari dataPromo jika ada
-          ...(data.dataPromo || {})
-        });
-        // Jika ada hasil kalkulasi sebelumnya
-        if (data.calculationResult) {
-          setCalculationResult(data.calculationResult);
-        }
-      }
-    },
-    onError: (error) => {
-      console.error("Failed to fetch promo detail:", error);
-      toast.error("Gagal memuat data promo untuk diedit.");
-    }
+    enabled: !!id
   });
+
+  // ✅ Effect untuk mengisi form ketika data promo berhasil di-fetch
+  useEffect(() => {
+    if (promoQuery.data) {
+      const data = promoQuery.data;
+      setFormData({
+        namaPromo: data.nama_promo || '',
+        tipePromo: data.tipe_promo || 'discount',
+        status: data.status || 'draft',
+        deskripsi: data.deskripsi || '',
+        tanggalMulai: data.tanggal_mulai || '',
+        tanggalSelesai: data.tanggal_selesai || '',
+        hargaProduk: data.harga_produk?.toString() || '',
+        hpp: data.hpp?.toString() || '',
+        nilaiDiskon: data.nilai_diskon?.toString() || '',
+        resepUtama: data.resep_utama || '',
+        resepGratis: data.resep_gratis || '',
+        beli: data.beli?.toString() || '1',
+        gratis: data.gratis?.toString() || '1',
+        hargaNormal: data.harga_normal?.toString() || '',
+        hargaBundle: data.harga_bundle?.toString() || ''
+      });
+      // Jika ada hasil kalkulasi sebelumnya
+      if (data.calculationResult) {
+        setCalculationResult(data.calculationResult);
+      }
+    }
+  }, [promoQuery.data]);
 
   // ✅ Mutation untuk menyimpan (create/update) promo
   const savePromoMutation = useMutation({
-    mutationFn: async (promoData) => {
+    mutationFn: async (promoData: PromoFormData) => {
       // Gabungkan formData dengan calculationResult
       const fullPromoData = {
         ...promoData,
@@ -191,12 +257,12 @@ const PromoFullCalculator = () => {
   }, [isEditMode, promoQuery.data]);
 
   // ✅ Handler perubahan input
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSelectChange = (name, value) => {
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -236,15 +302,18 @@ const PromoFullCalculator = () => {
   // ✅ Handler untuk tombol kalkulasi
   const handleCalculate = () => {
     setIsCalculating(true);
-    const result = calculatePromo(formData);
-    if (!result) {
+    
+    try {
+      const result = calculatePromo(formData);
+      setCalculationResult(result);
+      toast.success("Promo berhasil dihitung!");
+    } catch (error: any) {
+      console.error("Error calculating promo:", error);
+      toast.error(error.message || "Terjadi kesalahan saat menghitung promo.");
+      setCalculationResult(null);
+    } finally {
       setIsCalculating(false);
-      toast.error("Perhitungan promo gagal. Silakan periksa input.");
-      return;
     }
-    setCalculationResult(result);
-    setIsCalculating(false);
-    toast.success("Perhitungan promo selesai!");
   };
 
   const isLoading = promoQuery.isLoading || savePromoMutation.isPending;
@@ -382,6 +451,30 @@ const PromoFullCalculator = () => {
                   </div>
                 </div>
 
+                {/* Field untuk kalkulasi harga */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="hargaProduk">Harga Produk (Rp)</Label>
+                    <Input
+                      id="hargaProduk"
+                      type="number"
+                      value={formData.hargaProduk}
+                      onChange={handleInputChange}
+                      placeholder="Masukkan harga produk"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="hpp">HPP - Harga Pokok Penjualan (Rp)</Label>
+                    <Input
+                      id="hpp"
+                      type="number"
+                      value={formData.hpp}
+                      onChange={handleInputChange}
+                      placeholder="Masukkan HPP"
+                    />
+                  </div>
+                </div>
+
                 {/* Field spesifik berdasarkan tipe promo - contoh untuk 'discount' */}
                 {formData.tipePromo === 'discount' && (
                   <div>
@@ -396,25 +489,77 @@ const PromoFullCalculator = () => {
                   </div>
                 )}
 
-                {/* Field spesifik berdasarkan tipe promo - contoh untuk 'bogo' */}
+                {/* Field spesifik berdasarkan tipe promo - untuk 'bogo' */}
                 {formData.tipePromo === 'bogo' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="resepUtama">Resep Utama</Label>
+                        <Input
+                          id="resepUtama"
+                          value={formData.resepUtama}
+                          onChange={handleInputChange}
+                          placeholder="ID atau nama resep utama"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="resepGratis">Resep Gratis</Label>
+                        <Input
+                          id="resepGratis"
+                          value={formData.resepGratis}
+                          onChange={handleInputChange}
+                          placeholder="ID atau nama resep gratis"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="beli">Jumlah Beli</Label>
+                        <Input
+                          id="beli"
+                          type="number"
+                          value={formData.beli}
+                          onChange={handleInputChange}
+                          placeholder="Jumlah yang harus dibeli"
+                          min="1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="gratis">Jumlah Gratis</Label>
+                        <Input
+                          id="gratis"
+                          type="number"
+                          value={formData.gratis}
+                          onChange={handleInputChange}
+                          placeholder="Jumlah yang didapat gratis"
+                          min="1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Field spesifik berdasarkan tipe promo - untuk 'bundle' */}
+                {formData.tipePromo === 'bundle' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="resepUtama">Resep Utama</Label>
+                      <Label htmlFor="hargaNormal">Harga Normal (Rp)</Label>
                       <Input
-                        id="resepUtama"
-                        value={formData.resepUtama}
+                        id="hargaNormal"
+                        type="number"
+                        value={formData.hargaNormal}
                         onChange={handleInputChange}
-                        placeholder="ID atau nama resep utama"
+                        placeholder="Harga normal tanpa bundle"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="resepGratis">Resep Gratis</Label>
+                      <Label htmlFor="hargaBundle">Harga Bundle (Rp)</Label>
                       <Input
-                        id="resepGratis"
-                        value={formData.resepGratis}
+                        id="hargaBundle"
+                        type="number"
+                        value={formData.hargaBundle}
                         onChange={handleInputChange}
-                        placeholder="ID atau nama resep gratis"
+                        placeholder="Harga setelah bundle"
                       />
                     </div>
                   </div>

@@ -78,9 +78,14 @@ const OrderForm: React.FC<OrderFormProps> = ({
     catatan: '',
     items: [] as OrderItem[],
     subtotal: 0,
+    diskonPromo: 0,
+    totalSetelahDiskon: 0,
     pajak: 0,
     totalPesanan: 0,
     isTaxEnabled: false,
+    promoId: '',
+    promoCode: '',
+    promoType: '',
     tanggal: new Date().toISOString().split('T')[0], // Changed from tanggalPesanan to tanggal
   });
 
@@ -103,9 +108,14 @@ const OrderForm: React.FC<OrderFormProps> = ({
         catatan: initialData.catatan || '',
         items: initialData.items || [],
         subtotal: initialData.subtotal || 0,
+        diskonPromo: initialData.diskonPromo || 0,
+        totalSetelahDiskon: initialData.totalSetelahDiskon || 0,
         pajak: initialData.pajak || 0,
         totalPesanan: initialData.totalPesanan || 0,
         isTaxEnabled: !!initialData.pajak,
+        promoId: initialData.promoId || '',
+        promoCode: initialData.promoCode || '',
+        promoType: initialData.promoType || '',
         tanggal: initialData.tanggal 
           ? new Date(initialData.tanggal).toISOString().split('T')[0] 
           : new Date().toISOString().split('T')[0], // Changed from tanggalPesanan to tanggal
@@ -121,9 +131,14 @@ const OrderForm: React.FC<OrderFormProps> = ({
         catatan: '',
         items: [],
         subtotal: 0,
+        diskonPromo: 0,
+        totalSetelahDiskon: 0,
         pajak: 0,
         totalPesanan: 0,
         isTaxEnabled: false,
+        promoId: '',
+        promoCode: '',
+        promoType: '',
         tanggal: new Date().toISOString().split('T')[0],
       });
     }
@@ -256,19 +271,21 @@ const OrderForm: React.FC<OrderFormProps> = ({
     }));
   };
 
-  // Calculate totals dengan pajak opsional
+  // Calculate totals dengan pajak opsional dan promo
   useEffect(() => {
     const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0);
-    const pajak = formData.isTaxEnabled ? subtotal * 0.1 : 0;
-    const totalPesanan = subtotal + pajak;
+    const totalSetelahDiskon = subtotal - (formData.diskonPromo || 0);
+    const pajak = formData.isTaxEnabled ? totalSetelahDiskon * 0.1 : 0;
+    const totalPesanan = totalSetelahDiskon + pajak;
 
     setFormData(prev => ({
       ...prev,
       subtotal,
+      totalSetelahDiskon,
       pajak,
       totalPesanan
     }));
-  }, [formData.items, formData.isTaxEnabled]);
+  }, [formData.items, formData.isTaxEnabled, formData.diskonPromo]);
 
   // Handle submit dengan validation
   const handleSubmit = async (e: React.FormEvent) => {
@@ -683,11 +700,65 @@ const OrderForm: React.FC<OrderFormProps> = ({
                   />
                 </div>
               </div>
+              
+              {/* Promo Section */}
+               <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                 <div className="flex items-center justify-between mb-3">
+                   <h4 className="font-medium text-yellow-800">Promo & Diskon</h4>
+                   <Button
+                     type="button"
+                     variant="outline"
+                     size="sm"
+                     onClick={() => {
+                       // TODO: Open promo calculator modal
+                       toast.info('Kalkulator promo akan segera tersedia');
+                     }}
+                     className="text-xs"
+                   >
+                     <Calculator className="w-3 h-3 mr-1" />
+                     Hitung Promo
+                   </Button>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <Label htmlFor="promo-code">Kode Promo</Label>
+                     <Input
+                       id="promo-code"
+                       value={formData.promoCode}
+                       onChange={(e) => setFormData(prev => ({ ...prev, promoCode: e.target.value }))}
+                       placeholder="Masukkan kode promo"
+                     />
+                   </div>
+                   <div>
+                     <Label htmlFor="diskon-promo">Diskon Promo (Rp)</Label>
+                     <Input
+                       id="diskon-promo"
+                       type="number"
+                       value={formData.diskonPromo || ''}
+                       onChange={(e) => setFormData(prev => ({ ...prev, diskonPromo: parseFloat(e.target.value) || 0 }))}
+                       placeholder="0"
+                       min="0"
+                     />
+                   </div>
+                 </div>
+               </div>
               <div className="space-y-3">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({formData.items.length} item):</span>
                   <span>Rp {formData.subtotal.toLocaleString('id-ID')}</span>
                 </div>
+                {formData.diskonPromo > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Diskon Promo:</span>
+                    <span>- Rp {formData.diskonPromo.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
+                {formData.diskonPromo > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Setelah Diskon:</span>
+                    <span>Rp {(formData.totalSetelahDiskon || 0).toLocaleString('id-ID')}</span>
+                  </div>
+                )}
                 {formData.isTaxEnabled && (
                   <div className="flex justify-between text-gray-600">
                     <span>Pajak (10%):</span>

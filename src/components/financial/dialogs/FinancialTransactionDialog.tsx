@@ -271,9 +271,9 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                           
                           return (
                             <SelectItem key={id} value={id}>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
                                 <div 
-                                  className="w-3 h-3 rounded-full border flex-shrink-0"
+                                  className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0 shadow-sm"
                                   style={{ backgroundColor: color }}
                                 ></div>
                                 <span className="text-overflow-safe truncate">{name}</span>

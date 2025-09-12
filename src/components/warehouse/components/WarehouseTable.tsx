@@ -96,6 +96,31 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       : <ArrowDown className="w-4 h-4 text-orange-500" />;
   };
 
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-8 w-24" />
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoading && items.length === 0) {
     logger.component('WarehouseTable', 'Displaying empty state', { hasSearchTerm: !!searchTerm });
     return (
@@ -125,11 +150,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             >
               <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
               {selectionState.isRefreshing ? (
-                <div className="flex items-center gap-1">
-                  <div className="h-3 w-3 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              ) : 'Refresh Data'}
+              <Skeleton className="h-4 w-20" />
+            ) : 'Refresh Data'}
             </Button>
           )}
         </div>
@@ -262,10 +284,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           >
             <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
             {selectionState.isRefreshing ? (
-              <div className="flex items-center gap-1">
-                <div className="h-3 w-3 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-3 w-12 bg-gray-200 rounded animate-pulse"></div>
-              </div>
+              <Skeleton className="h-4 w-16" />
             ) : 'Refresh'}
           </Button>
         )}

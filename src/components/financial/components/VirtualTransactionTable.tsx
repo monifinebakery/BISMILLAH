@@ -17,6 +17,7 @@ import {
   TrendingDown,
   Package
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { cn } from '@/lib/utils';
@@ -343,8 +344,8 @@ const VirtualTransactionTable: React.FC<VirtualTransactionTableProps> = ({
       setIsMobile(window.innerWidth < 768);
     };
 
-    safeDom.addEventListener(safeDom, window, 'resize', handleResize);
-    return () => safeDom.removeEventListener(safeDom, window, 'resize', handleResize);
+    safeDom.addEventListener(window, 'resize', handleResize);
+    return () => safeDom.removeEventListener(window, 'resize', handleResize);
   }, []);
 
   // Loading state
@@ -356,9 +357,10 @@ const VirtualTransactionTable: React.FC<VirtualTransactionTableProps> = ({
         </CardHeader>
         <CardContent className="p-6">
           <div className="flex items-center justify-center py-12">
-            <div className="flex flex-col items-center gap-3">
-              <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-              <p className="text-sm text-gray-500">Memuat data transaksi...</p>
+            <div className="space-y-3 w-full max-w-md">
+              <Skeleton className="h-8 w-8 rounded-full mx-auto" />
+              <Skeleton className="h-4 w-48 mx-auto" />
+              <Skeleton className="h-4 w-32 mx-auto" />
             </div>
           </div>
         </CardContent>

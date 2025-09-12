@@ -4,6 +4,7 @@ import React, { useState, useCallback, useMemo, useEffect, Suspense } from 'reac
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import { FileText, Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { LoadingSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -661,21 +662,15 @@ const OrdersPage: React.FC = () => {
 
       {/* ✅ OPTIMIZED: Main content with better error handling */}
       <SafeSuspense 
-        loadingMessage="Memuat konten utama..." 
+        loadingMessage="" 
         size="lg"
-        fallback={
-          <div className="space-y-4">
-            <div className="h-12 bg-gray-100 rounded animate-pulse" />
-            <div className="h-16 bg-gray-100 rounded animate-pulse" />
-            <div className="h-64 bg-gray-100 rounded animate-pulse" />
-          </div>
-        }
+        fallback={<LoadingSkeleton type="page" />}
       >
         {/* ✅ STATISTICS: Order statistics section */}
          <SafeSuspense 
-           loadingMessage="Memuat statistik pesanan..." 
+           loadingMessage="" 
            size="md"
-           fallback={<div className="h-32 bg-gray-100 rounded animate-pulse" />}
+           fallback={<LoadingSkeleton type="card" className="h-32" />}
          >
            <OrderStatistics 
              orders={finalOrders} 
@@ -733,9 +728,9 @@ const OrdersPage: React.FC = () => {
         {/* ✅ BULK ACTIONS: Komponen untuk operasi massal */}
          {isSelectionMode && (
            <SafeSuspense 
-             loadingMessage="Memuat aksi massal..." 
+             loadingMessage="" 
              size="sm"
-             fallback={<div className="h-16 bg-gray-100 rounded animate-pulse" />}
+             fallback={<LoadingSkeleton type="form" className="h-16" />}
            >
              <BulkActions
                 selectedOrders={selectedOrders}
@@ -744,6 +739,13 @@ const OrdersPage: React.FC = () => {
                 onSelectAll={() => selectAllOrders(finalOrders)}
                 isAllSelected={isAllSelected}
                 totalCount={finalOrders.length}
+                onRefresh={() => {
+                  if (useLazyLoading) {
+                    refetchPaginated();
+                  } else {
+                    refreshData();
+                  }
+                }}
               />
            </SafeSuspense>
          )}

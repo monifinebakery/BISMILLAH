@@ -733,19 +733,49 @@ const OrderForm: React.FC<OrderFormProps> = ({
                      </div>
                    </div>
                    {formData.usePromo && (
-                     <Button
-                       type="button"
-                       variant="outline"
-                       size="sm"
-                       onClick={() => {
-                         // TODO: Open promo calculator modal
-                         toast.info('Kalkulator promo akan segera tersedia');
-                       }}
-                       className="text-xs bg-white hover:bg-orange-50 border-orange-300"
-                     >
-                       <Calculator className="w-3 h-3 mr-1" />
-                       Hitung Promo
-                     </Button>
+                     <div className="flex gap-2">
+                       <Button
+                         type="button"
+                         variant="outline"
+                         size="sm"
+                         onClick={() => {
+                           // Open promo calculator in new tab/window
+                           window.open('/promo-calculator', '_blank');
+                           toast.success('Kalkulator promo dibuka di tab baru');
+                         }}
+                         className="text-xs bg-white hover:bg-orange-50 border-orange-300"
+                       >
+                         <Calculator className="w-3 h-3 mr-1" />
+                         Hitung Promo
+                       </Button>
+                       <Button
+                         type="button"
+                         variant="outline"
+                         size="sm"
+                         onClick={() => {
+                           // Import promo data from calculator
+                           const savedPromo = localStorage.getItem('calculatedPromo');
+                           if (savedPromo) {
+                             try {
+                               const promoData = JSON.parse(savedPromo);
+                               updateField('kodePromo', promoData.kodePromo || '');
+                               updateField('diskonPromo', promoData.totalDiskon || 0);
+                               toast.success('Data promo berhasil diimpor dari kalkulator');
+                               // Clear the saved data after import
+                               localStorage.removeItem('calculatedPromo');
+                             } catch (error) {
+                               toast.error('Gagal mengimpor data promo');
+                             }
+                           } else {
+                             toast.info('Tidak ada data promo yang tersimpan dari kalkulator');
+                           }
+                         }}
+                         className="text-xs bg-white hover:bg-green-50 border-green-300"
+                       >
+                         <Zap className="w-3 h-3 mr-1" />
+                         Impor Promo
+                       </Button>
+                     </div>
                    )}
                  </div>
                  

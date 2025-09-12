@@ -205,20 +205,7 @@ const TableControls: React.FC<{
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         {/* Left Side Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          {/* Selection Mode Toggle - Always Visible */}
-          {!uiState.isSelectionMode && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={uiState.toggleSelectionMode}
-              disabled={loading || uiState.totalItems === 0}
-              className="flex items-center gap-2"
-            >
-              <Square className="h-4 w-4" />
-              <span className="hidden sm:inline">Mode Pilih</span>
-              <span className="sm:hidden">Pilih</span>
-            </Button>
-          )}
+          {/* Selection mode toggle removed - handled by SelectionToolbar */}
         </div>
 
         {/* Right Side Info */}

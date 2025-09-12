@@ -458,6 +458,20 @@ const PromoFullCalculator = () => {
       }
 
       await savePromoMutation.mutateAsync(formData);
+      
+      // Update data promo di localStorage setelah berhasil disimpan
+      if (result) {
+        const promoDataForOrder = {
+          kodePromo: formData.namaPromo,
+          tipePromo: formData.tipePromo,
+          totalDiskon: result.savings || 0,
+          hargaSetelahDiskon: result.finalPrice || 0,
+          calculatedAt: new Date().toISOString(),
+          saved: true
+        };
+        localStorage.setItem('calculatedPromo', JSON.stringify(promoDataForOrder));
+      }
+      
     } catch (error) {
       console.error('Error saving promo:', error);
       toast.error('Gagal menyimpan promo');
@@ -473,7 +487,18 @@ const PromoFullCalculator = () => {
     try {
       const result = calculatePromo(formData);
       setCalculationResult(result);
-      toast.success("Promo berhasil dihitung!");
+      
+      // Simpan data promo ke localStorage untuk sinkronisasi dengan order form
+      const promoDataForOrder = {
+        kodePromo: formData.namaPromo,
+        tipePromo: formData.tipePromo,
+        totalDiskon: result?.savings || 0,
+        hargaSetelahDiskon: result?.finalPrice || 0,
+        calculatedAt: new Date().toISOString()
+      };
+      localStorage.setItem('calculatedPromo', JSON.stringify(promoDataForOrder));
+      
+      toast.success("Promo berhasil dihitung dan siap untuk diimpor!");
     } catch (error: any) {
       console.error("Error calculating promo:", error);
       toast.error(error.message || "Terjadi kesalahan saat menghitung promo.");

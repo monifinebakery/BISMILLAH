@@ -93,7 +93,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
               {isEditMode ? (
                 <Settings2 className="w-5 h-5 text-blue-600" />
               ) : (
-                <Trash2 className="w-5 h-5 text-red-600" />
+                <AlertTriangle className="w-5 h-5 text-red-600" />
               )}
             </div>
             <div>
@@ -119,7 +119,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
               {isEditMode ? (
                 <Edit className="h-4 w-4 text-blue-600" />
               ) : (
-                <Trash2 className="h-4 w-4 text-red-600" />
+                <AlertTriangle className="h-4 w-4 text-red-600" />
               )}
               <span className={`font-semibold ${
                 isEditMode ? 'text-blue-800' : 'text-red-800'

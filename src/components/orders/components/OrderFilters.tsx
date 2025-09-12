@@ -12,14 +12,14 @@ import {
 } from '@/components/ui/select';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 import type { UseOrderUIReturn } from '../types';
-import { ORDER_STATUSES, getStatusText } from '../constants';
+import { ORDER_STATUSES, getStatusText, TABLE_PAGE_SIZES } from '../constants';
 
 interface OrderFiltersProps {
   uiState: UseOrderUIReturn;
   loading: boolean;
 }
 
-// Search Filter Component (consolidated)
+// Search Filter Component
 const SearchFilter: React.FC<{
   value: string;
   onChange: (value: string) => void;
@@ -62,7 +62,7 @@ const SearchFilter: React.FC<{
   );
 };
 
-// Status Filter Component (consolidated)
+// Status Filter Component
 const StatusFilter: React.FC<{
   value: string;
   onChange: (value: string) => void;
@@ -70,32 +70,14 @@ const StatusFilter: React.FC<{
 }> = ({ value, onChange, disabled = false }) => {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger>
-        <SelectValue placeholder="Pilih status..." />
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Semua Status" />
       </SelectTrigger>
-      
       <SelectContent>
-        <SelectItem value="all">
-          <span className="font-medium">Semua Status</span>
-        </SelectItem>
-        
-        <div className="border-t border-gray-100 my-1" />
-        
+        <SelectItem value="all">Semua Status</SelectItem>
         {ORDER_STATUSES.map((status) => (
           <SelectItem key={status} value={status}>
-            <div className="flex items-center gap-2">
-              <div className={`
-                w-2 h-2 rounded-full
-                ${status === 'pending' ? 'bg-yellow-400' : ''}
-                ${status === 'confirmed' ? 'bg-blue-400' : ''}
-                ${status === 'preparing' ? 'bg-purple-400' : ''}
-                 ${status === 'ready' ? 'bg-indigo-400' : ''}
-                 ${status === 'delivered' ? 'bg-green-400' : ''}
-                ${status === 'cancelled' ? 'bg-red-400' : ''}
-                ${status === 'completed' ? 'bg-emerald-400' : ''}
-              `} />
-              <span>{getStatusText(status)}</span>
-            </div>
+            {getStatusText(status)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -103,14 +85,13 @@ const StatusFilter: React.FC<{
   );
 };
 
-// Date Range Filter Component using unified DateRangePicker
+// Date Range Filter Component
 const DateRangeFilter: React.FC<{
   dateFrom: Date | null;
   dateTo: Date | null;
   onChange: (dateFrom: Date | null, dateTo: Date | null) => void;
   disabled?: boolean;
 }> = ({ dateFrom, dateTo, onChange, disabled = false }) => {
-  // Convert separate dateFrom/dateTo to DateRange format
   const dateRange = React.useMemo(() => {
     if (dateFrom && dateTo) {
       return { from: dateFrom, to: dateTo };
@@ -134,6 +115,37 @@ const DateRangeFilter: React.FC<{
       disabled={disabled}
       className="w-full"
     />
+  );
+};
+
+// Items Per Page Filter Component
+const ItemsPerPageFilter: React.FC<{
+  value: number;
+  onChange: (value: number) => void;
+  disabled?: boolean;
+}> = ({ value, onChange, disabled = false }) => {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium text-gray-700">
+        Item per Halaman
+      </label>
+      <Select
+        value={value.toString()}
+        onValueChange={(val) => onChange(parseInt(val))}
+        disabled={disabled}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Pilih jumlah item" />
+        </SelectTrigger>
+        <SelectContent>
+          {TABLE_PAGE_SIZES.map((size) => (
+            <SelectItem key={size} value={size.toString()}>
+              {size} item per halaman
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 };
 
@@ -173,14 +185,23 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({ uiState, loading }) => {
           />
         </div>
 
-        {/* Row 2: Date Range Filter (Full Width) */}
-        <div className="w-full">
-          <DateRangeFilter
-            dateFrom={uiState.filters.dateFrom}
-            dateTo={uiState.filters.dateTo}
-            onChange={(dateFrom, dateTo) => uiState.updateFilters({ dateFrom, dateTo })}
-            disabled={loading}
-          />
+        {/* Row 2: Date Range and Items Per Page */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <DateRangeFilter
+              dateFrom={uiState.filters.dateFrom}
+              dateTo={uiState.filters.dateTo}
+              onChange={(dateFrom, dateTo) => uiState.updateFilters({ dateFrom, dateTo })}
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <ItemsPerPageFilter
+              value={uiState.itemsPerPage}
+              onChange={uiState.handleItemsPerPageChange}
+              disabled={loading}
+            />
+          </div>
         </div>
 
         {/* Row 3: Clear All Filters */}

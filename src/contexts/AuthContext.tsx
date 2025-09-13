@@ -11,6 +11,14 @@ import {
   debugAuthState,
   cleanupAuthState 
 } from '@/lib/authUtils';
+import { 
+  detectSafariIOS, 
+  getSafariTimeout, 
+  safariAuthFallback,
+  initSafariUtils,
+  needsSafariWorkaround,
+  logSafariInfo 
+} from '@/utils/safariUtils';
 
 // ✅ Menggunakan fungsi yang sama dari authUtils
 const detectDeviceCapabilities = () => {
@@ -54,6 +62,13 @@ const detectDeviceCapabilities = () => {
 // ✅ Adaptive timeout - sama dengan authUtils
 const getAdaptiveTimeout = (baseTimeout = 15000) => {
   const capabilities = detectDeviceCapabilities();
+  const safariDetection = detectSafariIOS();
+  
+  // Use Safari-specific timeout if on Safari iOS
+  if (safariDetection.isSafariIOS) {
+    return getSafariTimeout(baseTimeout);
+  }
+  
   let timeout = baseTimeout;
 
   if (capabilities.isSlowDevice) {
@@ -68,8 +83,8 @@ const getAdaptiveTimeout = (baseTimeout = 15000) => {
     timeout *= 1.5;
     logger.debug('AuthContext: 3G network detected, increasing timeout:', timeout);
   }
-
-  return Math.min(timeout, 60000); // Max 60 seconds - sama dengan authUtils
+  
+  return Math.min(timeout, 45000); // Max 45 seconds for non-Safari
 };
 
 // ✅ User sanitization dengan validasi yang lebih ketat
@@ -341,6 +356,79 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       try {
         logger.context('AuthContext', 'Initializing auth...');
+        
+        const safariDetection = detectSafariIOS();
+         
+         // Use Safari-specific auth fallback if on Safari iOS
+         if (safariDetection.isSafariIOS) {
+           logger.warn('AuthContext: Safari iOS detected - using auth fallback strategy', {
+             version: safariDetection.version,
+             userAgent: safariDetection.userAgent,
+             needsWorkaround: needsSafariWorkaround(),
+             timestamp: new Date().toISOString()
+           });
+          
+          const primaryAuth = async () => {
+            const timeout = getSafariTimeout(15000);
+            const { data: sessionResult, error } = await safeWithTimeout(
+              supabase.auth.getSession(),
+              timeout,
+              'Safari iOS primary auth timeout'
+            );
+            
+            if (error) throw error;
+            return sessionResult;
+          };
+          
+          const fallbackAuth = async () => {
+             logger.warn('AuthContext: Using Safari iOS direct auth fallback');
+             const result = await supabase.auth.getSession();
+             if (result.error) throw result.error;
+             return result;
+           };
+          
+          try {
+            const sessionResult = await safariAuthFallback(
+              primaryAuth,
+              fallbackAuth,
+              getSafariTimeout(20000)
+            );
+            
+            const { data: { session } } = sessionResult as any;
+            const { session: validSession, user: validUser } = validateSession(session);
+            
+            if (mounted) {
+              setSession(validSession);
+              setUser(validUser);
+              setIsLoading(false);
+              setIsReady(true);
+            }
+            
+            logger.success('AuthContext: Safari iOS auth fallback successful', {
+               sessionExists: !!validSession,
+               userExists: !!validUser,
+               timestamp: new Date().toISOString()
+             });
+            return;
+          } catch (safariError) {
+             logger.error('AuthContext: Safari iOS auth fallback failed:', {
+               error: safariError,
+               errorMessage: safariError instanceof Error ? safariError.message : 'Unknown error',
+               safariInfo: safariDetection,
+               timestamp: new Date().toISOString()
+             });
+             
+             // Log additional Safari info for debugging
+             logSafariInfo();
+             
+             if (mounted) {
+               setIsLoading(false);
+               setIsReady(true);
+             }
+             return;
+           }
+        }
+        
         const adaptiveTimeout = getAdaptiveTimeout(15000);
         
         // ✅ Get session first
@@ -352,6 +440,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         if (sessionError) {
           logger.error('AuthContext: Session fetch failed:', sessionError);
+          
+          // Safari iOS fallback is now handled above in the main flow
+          
+          // Set ready state even on error to prevent infinite loading
+          if (mounted) {
+            setIsLoading(false);
+            setIsReady(true);
+          }
           return;
         }
         

@@ -64,9 +64,16 @@ const getAdaptiveTimeout = (baseTimeout = 15000) => {
   const capabilities = detectDeviceCapabilities();
   const safariDetection = detectSafariIOS();
   
-  // Use Safari-specific timeout if on Safari iOS
+  // Use Safari-specific timeout if on Safari iOS dengan optimasi tambahan
   if (safariDetection.isSafariIOS) {
-    return getSafariTimeout(baseTimeout);
+    // Optimasi khusus untuk Safari iOS agar sama dengan browser lain
+    const safariTimeout = getSafariTimeout(baseTimeout);
+    const optimizedTimeout = Math.min(safariTimeout * 0.8, baseTimeout * 1.2);
+    logger.debug('Safari iOS: Using optimized timeout', { 
+      original: safariTimeout, 
+      optimized: optimizedTimeout 
+    });
+    return optimizedTimeout;
   }
   
   let timeout = baseTimeout;
@@ -391,7 +398,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const sessionResult = await safariAuthFallback(
               primaryAuth,
               fallbackAuth,
-              getSafariTimeout(20000)
+              getSafariTimeout(30000) // Increased timeout for Safari iOS
             );
             
             const { data: { session } } = sessionResult as any;

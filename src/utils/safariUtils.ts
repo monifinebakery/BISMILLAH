@@ -52,16 +52,16 @@ export const getSafariTimeout = (baseTimeout: number = 15000): number => {
   
   if (!detection.isSafariIOS) return baseTimeout;
   
-  // Safari iOS butuh timeout lebih lama
-  let multiplier = 2;
+  // Safari iOS butuh timeout lebih lama - tingkatkan multiplier
+  let multiplier = 3; // Increased from 2
   
   if (detection.version) {
     const majorVersion = parseInt(detection.version.split('.')[0]);
-    if (majorVersion < 14) multiplier = 3; // Versi lama lebih lambat
-    else if (majorVersion < 16) multiplier = 2.5;
+    if (majorVersion < 14) multiplier = 4; // Increased from 3
+    else if (majorVersion < 16) multiplier = 3.5; // Increased from 2.5
   }
   
-  const safariTimeout = Math.min(baseTimeout * multiplier, 60000);
+  const safariTimeout = Math.min(baseTimeout * multiplier, 90000); // Increased max from 60000
   
   logger.debug('Safari iOS timeout calculated:', {
     baseTimeout,
@@ -93,7 +93,7 @@ export const shouldBypassServiceWorker = (): boolean => {
 /**
  * Mendapatkan delay yang direkomendasikan untuk Safari iOS
  */
-export const getSafariDelay = (baseDelay: number = 3000): number => {
+export const getSafariDelay = (baseDelay: number = 5000): number => { // Increased default from 3000
   const detection = detectSafariIOS();
   
   if (!detection.isSafariIOS) {
@@ -103,8 +103,8 @@ export const getSafariDelay = (baseDelay: number = 3000): number => {
   // Safari iOS versi lama memerlukan delay lebih lama
   if (detection.version) {
     const majorVersion = parseInt(detection.version.split('.')[0]);
-    if (majorVersion < 14) return baseDelay * 2; // Versi lama
-    if (majorVersion < 16) return baseDelay * 1.5; // Versi menengah
+    if (majorVersion < 14) return baseDelay * 2.5; // Increased from 2
+    if (majorVersion < 16) return baseDelay * 2; // Increased from 1.5
   }
   
   return baseDelay; // Versi terbaru atau tidak diketahui
@@ -179,6 +179,108 @@ export const safariAuthFallback = async <T>(
 };
 
 /**
+ * Preload critical resources for Safari iOS
+ */
+const preloadCriticalResources = () => {
+  // Aggressive preloading untuk Safari iOS agar sama dengan browser lain
+  const criticalResources = [
+    '/src/main.tsx',
+    '/src/App.tsx',
+    '/src/contexts/AuthContext.tsx',
+    '/src/styles/safari-optimizations.css'
+  ];
+  
+  criticalResources.forEach(resource => {
+    // Multiple preload strategies untuk Safari iOS
+    const link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = resource;
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+    
+    // DNS prefetch untuk faster loading
+    const dnsLink = document.createElement('link');
+    dnsLink.rel = 'dns-prefetch';
+    dnsLink.href = window.location.origin;
+    document.head.appendChild(dnsLink);
+  });
+  
+  // Preconnect untuk faster network connections
+  const preconnect = document.createElement('link');
+  preconnect.rel = 'preconnect';
+  preconnect.href = window.location.origin;
+  preconnect.crossOrigin = 'anonymous';
+  document.head.appendChild(preconnect);
+  
+  logger.debug('Safari iOS: Aggressive resource preloading completed');
+};
+
+/**
+ * Optimize Safari iOS performance to match other browsers
+ */
+const optimizeSafariPerformance = () => {
+  // Disable heavy animations for Safari iOS
+  document.documentElement.style.setProperty('--safari-reduce-motion', 'true');
+  
+  // Optimize viewport for Safari iOS
+  const viewport = document.querySelector('meta[name="viewport"]');
+  if (viewport) {
+    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+  }
+  
+  // Force hardware acceleration for Safari iOS
+  document.documentElement.style.setProperty('transform', 'translateZ(0)');
+  document.documentElement.style.setProperty('backface-visibility', 'hidden');
+  
+  // Optimize touch events for Safari iOS
+  document.documentElement.style.setProperty('-webkit-touch-callout', 'none');
+  document.documentElement.style.setProperty('-webkit-tap-highlight-color', 'transparent');
+  
+  logger.debug('Safari iOS: Performance optimizations applied');
+};
+
+/**
+ * Apply Safari iOS specific fixes to match other browsers
+ */
+const applySafariFixes = () => {
+  // Fix Safari iOS scrolling issues
+  document.documentElement.style.setProperty('-webkit-overflow-scrolling', 'touch');
+  
+  // Fix Safari iOS input zoom
+  const style = document.createElement('style');
+  style.textContent = `
+    @media screen and (-webkit-min-device-pixel-ratio: 0) {
+      select, textarea, input[type="text"], input[type="password"], 
+      input[type="datetime"], input[type="datetime-local"], 
+      input[type="date"], input[type="month"], input[type="time"], 
+      input[type="week"], input[type="number"], input[type="email"], 
+      input[type="url"], input[type="search"], input[type="tel"], 
+      input[type="color"] {
+        font-size: 16px !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Fix Safari iOS memory management
+  if ('serviceWorker' in navigator) {
+    // Reduce service worker cache size for Safari iOS
+    navigator.serviceWorker.ready.then(registration => {
+      if (registration.active) {
+        registration.active.postMessage({
+          type: 'SAFARI_OPTIMIZE',
+          payload: { reduceCacheSize: true }
+        });
+      }
+    }).catch(() => {
+      // Ignore service worker errors on Safari iOS
+    });
+  }
+  
+  logger.debug('Safari iOS: Browser-specific fixes applied');
+};
+
+/**
  * Inisialisasi Safari iOS utilities
  */
 export const initSafariUtils = () => {
@@ -191,6 +293,37 @@ export const initSafariUtils = () => {
     (window as any).__SAFARI_IOS_DETECTED__ = true;
     (window as any).__SAFARI_IOS_VERSION__ = detection.version;
     
-    logger.warn('Safari iOS compatibility mode enabled');
+    logger.info('Safari iOS utilities initialized - applying performance optimizations', {
+      version: detection.version,
+      needsWorkaround: needsSafariWorkaround()
+    });
+    
+    // Apply comprehensive Safari iOS optimizations
+    optimizeSafariPerformance();
+    applySafariFixes();
+    
+    // Preload critical resources for faster loading
+    preloadCriticalResources();
+    
+    // Additional optimizations for older Safari versions
+    if (needsSafariWorkaround()) {
+      document.documentElement.style.setProperty('--safari-optimization', 'true');
+      document.documentElement.style.setProperty('--safari-legacy-mode', 'true');
+      
+      // Reduce JavaScript execution complexity for older versions
+      window.requestIdleCallback = window.requestIdleCallback || ((cb) => {
+        const start = Date.now();
+        return setTimeout(() => {
+          cb({
+            didTimeout: false,
+            timeRemaining() {
+              return Math.max(0, 50 - (Date.now() - start));
+            }
+          });
+        }, 1);
+      });
+    }
+    
+    logger.info('Safari iOS: All optimizations applied - performance should now match other browsers');
   }
 };

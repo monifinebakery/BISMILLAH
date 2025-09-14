@@ -14,3 +14,12 @@ declare module '*.txt?raw' { const src: string; export default src; }
 declare module '*.svg?raw' { const src: string; export default src; }
 
 declare module '*?url' { const src: string; export default src; }
+
+interface ImportMetaEnv {
+  readonly VITE_TURNSTILE_SITEKEY: string;
+  readonly VITE_TURNSTILE_SECRETKEY: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

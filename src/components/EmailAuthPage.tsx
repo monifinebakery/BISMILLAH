@@ -1,11 +1,10 @@
-// src/components/auth/EmailAuthPage.tsx — Simple OTP Authentication
+// src/components/auth/EmailAuthPage.tsx — OTP Authentication with Turnstile
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { Mail, Lock, Clock, RefreshCw } from "lucide-react";
 import { sendEmailOtp, verifyEmailOtp } from "@/services/auth";
-import RecaptchaWidget from "@/components/auth/RecaptchaWidget";
-import { useRecaptcha } from "@/hooks/useRecaptcha";
-import { supabase } from "@/integrations/supabase/client";
+import { useTurnstile } from "@/hooks/useTurnstile";
+import TurnstileWidget from "@/components/auth/TurnstileWidget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +18,6 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
-// reCAPTCHA enabled for OTP authentication
 
 type AuthState =
   | "idle"
@@ -59,10 +57,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  const { token: captchaToken, setToken: setCaptchaToken, reset: resetCaptcha, widgetRef: recaptchaRef } =
-    useRecaptcha();
-
-  // Enable reCAPTCHA for additional security
+  const {
+    reset: resetCaptcha,
+    widgetRef,
+    handleSuccess,
+    handleError,
+    handleExpired,
+    getResponse,
+  } = useTurnstile();
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -109,10 +111,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   const isCaptchaEnabled = true;
 
-  console.log('🔍 OTP Authentication Mode with reCAPTCHA:', {
+  console.log('🔍 OTP Authentication Mode with Turnstile:', {
     captchaEnabled: isCaptchaEnabled,
     mode: import.meta.env.MODE,
-    message: 'reCAPTCHA aktif untuk pengiriman OTP'
+    message: 'Cloudflare Turnstile aktif untuk pengiriman OTP'
   });
   
   // Simple button validation:
@@ -147,6 +149,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
+    const token = isCaptchaEnabled ? getResponse() : null;
+    if (isCaptchaEnabled && !token) {
+      toast.error("Verifikasi CAPTCHA diperlukan.");
+      return;
+    }
+
     setAuthState("sending");
     setError("");
 
@@ -158,7 +166,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
       const success = await sendEmailOtp(
         email,
-        captchaToken,
+        token,
         true, // Allow signup
         !isCaptchaEnabled
       );
@@ -184,6 +192,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setError("Terjadi kesalahan saat mengirim kode OTP.");
         startCooldown(30);
       }
+    } finally {
+      if (isCaptchaEnabled) {
+        resetCaptcha();
+      }
     }
   };
 
@@ -192,6 +204,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
     if (cooldownTime > 0) {
       toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
+      return;
+    }
+
+    const token = isCaptchaEnabled ? getResponse() : null;
+    if (isCaptchaEnabled && !token) {
+      toast.error("Verifikasi CAPTCHA diperlukan.");
       return;
     }
 
@@ -207,8 +225,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
       const success = await sendEmailOtp(
         email,
-        captchaToken,
-        true,
+        token,
+        true, // Allow signup
         !isCaptchaEnabled
       );
 
@@ -232,6 +250,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setAuthState("error");
         setError("Terjadi kesalahan saat mengirim ulang kode OTP.");
         startCooldown(30);
+      }
+    } finally {
+      if (isCaptchaEnabled) {
+        resetCaptcha();
       }
     }
   };
@@ -369,11 +391,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
               {isCaptchaEnabled && (
                 <div className="flex justify-center">
-                  <RecaptchaWidget
-                    ref={recaptchaRef}
-                    sitekey={import.meta.env.VITE_RECAPTCHA_SITEKEY}
-                    onSuccess={setCaptchaToken}
-                    onExpired={resetCaptcha}
+                  <TurnstileWidget
+                    ref={widgetRef}
+                    sitekey={import.meta.env.VITE_TURNSTILE_SITEKEY}
+                    onSuccess={handleSuccess}
+                    onError={handleError}
+                    onExpired={handleExpired}
                   />
                 </div>
               )}

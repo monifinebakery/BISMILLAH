@@ -146,7 +146,7 @@ const createTestImportedPurchase = async (userId: string) => {
     const testPurchase = {
       supplier: 'Test Supplier',
       tanggal: new Date(),
-      totalNilai: 5000,
+      total_nilai: 5000,
       items: [{
         bahanBakuId: warehouseItem.id,
         nama: warehouseItem.nama,
@@ -157,7 +157,7 @@ const createTestImportedPurchase = async (userId: string) => {
         keterangan: '[IMPORTED] Test imported item'
       }],
       status: 'pending' as const,
-      metodePerhitungan: 'AVERAGE' as const
+      metode_perhitungan: 'AVERAGE' as const
     };
 
     const result = await PurchaseApiService.createPurchase(testPurchase, userId);

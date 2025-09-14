@@ -17,17 +17,17 @@ describe('Purchase bulk action helpers', () => {
     userId: 'u1',
     supplier: 's1',
     tanggal: new Date('2024-01-01'),
-    totalNilai: 1000,
+    total_nilai: 1000,
     items: [],
     status: 'pending',
-    metodePerhitungan: 'AVERAGE',
+    metode_perhitungan: 'AVERAGE',
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   };
 
   const purchases: Purchase[] = [
     { ...basePurchase, id: 'p1' },
-    { ...basePurchase, id: 'p2', totalNilai: 2000 },
+    { ...basePurchase, id: 'p2', total_nilai: 2000 },
   ];
 
   it('dapat mengekspor pembelian ke CSV', () => {

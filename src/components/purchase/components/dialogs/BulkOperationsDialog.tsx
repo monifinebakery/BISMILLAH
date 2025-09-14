@@ -31,7 +31,7 @@ interface BulkOperationsDialogProps {
 interface BulkEditData {
   supplier?: string;
   tanggal?: string; // Date string for input compatibility
-  metodePerhitungan?: 'AVERAGE';
+  metode_perhitungan?: 'AVERAGE';
 }
 
 // Status options for the select dropdown
@@ -61,7 +61,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   
   // Internal state for bulk edit data
   const [internalBulkEditData, setInternalBulkEditData] = useState<BulkEditData>({
-    metodePerhitungan: 'AVERAGE'
+    metode_perhitungan: 'AVERAGE'
   });
 
   // Use external data if provided, otherwise use internal state
@@ -71,7 +71,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   // Reset form when dialog opens
   useEffect(() => {
     if (isOpen && isEditMode) {
-      const resetData = { metodePerhitungan: 'AVERAGE' as const };
+      const resetData = { metode_perhitungan: 'AVERAGE' as const };
       if (onBulkEditDataChange) {
         onBulkEditDataChange(resetData);
       } else {
@@ -104,7 +104,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
     return items.reduce(
       (acc, item) => {
         acc.totalItems += item.items?.length || 0;
-        acc.totalAmount += item.totalNilai || 0;
+        acc.totalAmount += item.total_nilai || 0;
         return acc;
       },
       { totalItems: 0, totalAmount: 0 }
@@ -210,8 +210,8 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                       Metode Perhitungan
                     </label>
                     <Select
-                      value={bulkEditData.metodePerhitungan || 'AVERAGE'}
-                      onValueChange={(value) => handleInputChange('metodePerhitungan', value)}
+                      value={bulkEditData.metode_perhitungan || 'AVERAGE'}
+                      onValueChange={(value) => handleInputChange('metode_perhitungan', value)}
                     >
                       <SelectTrigger>
                         <SelectValue />

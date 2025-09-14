@@ -137,7 +137,7 @@ export const testDateRangeFilteringConsistency = async (userId: string) => {
         count: purchaseResults.data?.length || 0,
         data: purchaseResults.data?.slice(0, 3).map(p => ({
           supplier: p.supplier,
-          total: p.totalNilai,
+          total: p.total_nilai,
           tanggal: p.tanggal,
           created_at: p.createdAt
         })) || []

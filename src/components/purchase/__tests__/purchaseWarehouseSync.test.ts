@@ -150,7 +150,7 @@ describe('Purchase-Warehouse Sync', () => {
       {
         supplier: '',
         tanggal: new Date(),
-        totalNilai: 150000,
+        total_nilai: 150000,
         items: [
           {
             bahanBakuId: 'item1',
@@ -160,7 +160,7 @@ describe('Purchase-Warehouse Sync', () => {
           }
         ],
         status: 'completed',
-        metodePerhitungan: 'AVERAGE'
+        metode_perhitungan: 'AVERAGE'
       },
       userId
     );

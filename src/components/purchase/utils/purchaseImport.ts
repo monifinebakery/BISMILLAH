@@ -62,9 +62,9 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
         supplier: r.supplier,
         tanggal: new Date(r.tanggal),
         items: [],
-        totalNilai: 0,
+        total_nilai: 0,
         status: 'pending',
-        metodePerhitungan: 'AVERAGE',
+        metode_perhitungan: 'AVERAGE',
       };
       grouped.set(key, purchase);
     }
@@ -78,7 +78,7 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
       subtotal: r.kuantitas * r.harga,
     };
     purchase.items.push(item);
-    purchase.totalNilai += item.subtotal;
+    purchase.total_nilai += item.subtotal;
   });
 
   return Array.from(grouped.values());

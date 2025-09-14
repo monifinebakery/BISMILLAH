@@ -19,7 +19,7 @@ interface UseBulkOperationsProps {
 interface BulkEditData {
   supplier?: string;
   tanggal?: Date;
-  metodePerhitungan?: 'AVERAGE';
+  metode_perhitungan?: 'AVERAGE';
 }
 
 interface UseBulkOperationsReturn {
@@ -36,7 +36,7 @@ interface UseBulkOperationsReturn {
 const defaultBulkEditData: BulkEditData = {
   supplier: undefined,
   tanggal: undefined,
-  metodePerhitungan: undefined,
+  metode_perhitungan: undefined,
 };
 
 /**
@@ -121,8 +121,8 @@ export const useBulkOperations = ({
         updates.tanggal = bulkEditData.tanggal;
       }
 
-      if (bulkEditData.metodePerhitungan !== undefined) {
-        updates.metodePerhitungan = bulkEditData.metodePerhitungan;
+      if (bulkEditData.metode_perhitungan !== undefined) {
+        updates.metode_perhitungan = bulkEditData.metode_perhitungan;
       }
 
       logger.debug('📝 Bulk edit updates:', updates);

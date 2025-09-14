@@ -34,7 +34,7 @@ export const validatePurchaseForm = (data: Partial<PurchaseFormData>): Validatio
   warnings.push(...itemsValidation.warnings);
 
   // Calculation method validation
-  const methodValidation = validateCalculationMethod(data.metodePerhitungan);
+  const methodValidation = validateCalculationMethod(data.metode_perhitungan);
   if (!methodValidation.isValid && methodValidation.error) {
     errors.push(methodValidation.error);
   }

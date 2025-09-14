@@ -77,11 +77,11 @@ export const filterPurchases = (
 
     // Amount range filter
     if (filters.amountRangeFilter.min !== null || filters.amountRangeFilter.max !== null) {
-      if (filters.amountRangeFilter.min !== null && purchase.totalNilai < filters.amountRangeFilter.min) {
+      if (filters.amountRangeFilter.min !== null && purchase.total_nilai < filters.amountRangeFilter.min) {
         return false;
       }
-      
-      if (filters.amountRangeFilter.max !== null && purchase.totalNilai > filters.amountRangeFilter.max) {
+
+      if (filters.amountRangeFilter.max !== null && purchase.total_nilai > filters.amountRangeFilter.max) {
         return false;
       }
     }
@@ -169,7 +169,7 @@ export const calculateItemTotal = (jumlah: number, hargaSatuan: number): number 
 
 export const calculateAverageOrderValue = (purchases: Purchase[]): number => {
   if (purchases.length === 0) return 0;
-  const total = purchases.reduce((sum, purchase) => sum + purchase.totalNilai, 0);
+  const total = purchases.reduce((sum, purchase) => sum + purchase.total_nilai, 0);
   return total / purchases.length;
 };
 
@@ -482,7 +482,7 @@ export const preparePurchasesForExport = (
       'ID': purchase.id,
       'Tanggal': formatPurchaseDate(purchase.tanggal),
       'Supplier': supplier?.nama || 'Unknown',
-      'Total Nilai': formatCurrency(purchase.totalNilai),
+      'Total Nilai': formatCurrency(purchase.total_nilai),
       'Status': getStatusDisplay(purchase.status).label,
       'Jumlah Item': purchase.items.length,
       'Dibuat': formatPurchaseDate(purchase.createdAt),

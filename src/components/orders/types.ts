@@ -6,31 +6,31 @@ export interface OrderItem {
   quantity: number;
   price: number; // Current active price based on pricing mode
   total: number;
-  recipeId?: string;
-  recipeCategory?: string;
-  isFromRecipe?: boolean;
+  recipe_id?: string;
+  recipe_category?: string;
+  is_from_recipe?: boolean;
   description?: string;
   unit?: string;
   // New fields for per piece pricing support
-  pricingMode?: 'per_portion' | 'per_piece';
-  pricePerPortion?: number;
-  pricePerPiece?: number;
+  pricing_mode?: 'per_portion' | 'per_piece';
+  price_per_portion?: number;
+  price_per_piece?: number;
 }
 
 export interface Order {
   id: string;
-  userId: string;
-  orderNumber: string;
-  createdAt: Date;
-  updatedAt: Date;
+  user_id: string;
+  order_number: string;
+  created_at: Date;
+  updated_at: Date;
   tanggal: Date;
-  tanggalSelesai?: Date; // ✅ ADD THIS
+  tanggal_selesai?: Date; // ✅ ADD THIS
   
   // Customer Info
-  customerName: string;
-  customerPhone: string;
-  customerEmail?: string;
-  alamatPengiriman?: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  alamat_pengiriman?: string;
   
   // Order Details
   items: OrderItem[];
@@ -39,42 +39,42 @@ export interface Order {
   
   // Financial Info
   subtotal: number;
-  diskonPromo?: number;
-  totalSetelahDiskon?: number;
-  taxAmount: number;
-  totalAmount: number;
-  
+  diskon_promo?: number;
+  total_setelah_diskon?: number;
+  tax_amount: number;
+  total_amount: number;
+
   // Promo Info
-  promoId?: string;
-  promoCode?: string;
-  promoType?: string;
-  
+  promo_id?: string;
+  promo_code?: string;
+  promo_type?: string;
+
   // Recipe Analytics (optional)
-  recipeCount?: number;
-  customItemCount?: number;
-  totalRecipeValue?: number;
+  recipe_count?: number;
+  custom_item_count?: number;
+  total_recipe_value?: number;
 }
 
 export interface NewOrder {
-  customerName: string;
-  customerPhone: string;
-  customerEmail?: string;
-  alamatPengiriman?: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  alamat_pengiriman?: string;
   items: OrderItem[];
   status?: OrderStatus;
   catatan?: string;
   subtotal?: number;
-  diskonPromo?: number;
-  totalSetelahDiskon?: number;
-  taxAmount?: number;
-  totalAmount?: number;
+  diskon_promo?: number;
+  total_setelah_diskon?: number;
+  tax_amount?: number;
+  total_amount?: number;
   tanggal?: Date;
-  tanggalSelesai?: Date;
+  tanggal_selesai?: Date;
   
   // Promo Info
-  promoId?: string;
-  promoCode?: string;
-  promoType?: string;
+  promo_id?: string;
+  promo_code?: string;
+  promo_type?: string;
 }
 
 export type OrderStatus = 
@@ -100,11 +100,11 @@ export interface EnhancedOrderContextType {
   // Core data
   orders: Order[];
   loading: boolean;
-  
+
   // Connection status
-  isConnected: boolean;
-  contextReady: boolean;
-  contextLoadingStates?: ContextLoadingStates; // Made optional since OrderProvider doesn't use it
+  is_connected: boolean;
+  context_ready: boolean;
+  context_loading_states?: ContextLoadingStates; // Made optional since OrderProvider doesn't use it
   
   // ✅ FIXED: CRUD operations with updateOrderStatus
   addOrder: (order: NewOrder) => Promise<boolean>;
@@ -136,7 +136,7 @@ export interface EnhancedOrderContextType {
 export interface UseOrderDataReturn {
   orders: Order[];
   loading: boolean;
-  isConnected: boolean;
+  is_connected: boolean;
   addOrder: (order: NewOrder) => Promise<boolean>;
   updateOrder: (id: string, updatedData: Partial<Order>) => Promise<boolean>;
   updateOrderStatus: (id: string, newStatus: string) => Promise<boolean>; // ✅ MUST HAVE THIS!
@@ -153,24 +153,24 @@ export interface UseOrderDataReturn {
 export interface OrderFilters {
   search: string;
   status: string | 'all';
-  dateFrom: Date | null;
-  dateTo: Date | null;
-  recipeFilter?: string;
-  itemTypeFilter?: 'all' | 'recipe' | 'custom';
-  minAmount?: number | null; // ✅ Added for useOrderUI compatibility
-  maxAmount?: number | null; // ✅ Added for useOrderUI compatibility
+  date_from: Date | null;
+  date_to: Date | null;
+  recipe_filter?: string;
+  item_type_filter?: 'all' | 'recipe' | 'custom';
+  min_amount?: number | null; // ✅ Added for useOrderUI compatibility
+  max_amount?: number | null; // ✅ Added for useOrderUI compatibility
 }
 
 export interface UseOrderUIReturn {
   // Data
-  currentOrders: Order[];
-  totalItems: number;
-  totalPages: number;
-  filteredOrders: Order[]; // ✅ Added for useOrderUI compatibility
-  
+  current_orders: Order[];
+  total_items: number;
+  total_pages: number;
+  filtered_orders: Order[]; // ✅ Added for useOrderUI compatibility
+
   // Pagination
-  currentPage: number;
-  itemsPerPage: number;
+  current_page: number;
+  items_per_page: number;
   setCurrentPage: (page: number) => void;
   setItemsPerPage: (items: number) => void;
   
@@ -178,13 +178,13 @@ export interface UseOrderUIReturn {
   filters: OrderFilters;
   updateFilters: (newFilters: Partial<OrderFilters>) => void;
   clearFilters: () => void;
-  hasActiveFilters: boolean;
+  has_active_filters: boolean;
   
   // Selection
-  selectedOrderIds: string[];
-  isSelectionMode: boolean;
-  allCurrentSelected: boolean;
-  someCurrentSelected: boolean;
+  selected_order_ids: string[];
+  is_selection_mode: boolean;
+  all_current_selected: boolean;
+  some_current_selected: boolean;
   toggleSelectOrder: (orderId: string, forceValue?: boolean) => void;
   toggleSelectAll: (orders: Order[]) => void;
   clearSelection: () => void;
@@ -215,51 +215,51 @@ export interface OrderDB {
 
 // Validation
 export interface OrderValidationResult {
-  isValid: boolean;
+  is_valid: boolean;
   errors: string[];
 }
 
 // Statistics dengan Recipe Analytics
 export interface OrderStats {
-  totalOrders: number;
-  totalRevenue: number;
-  averageOrderValue: number;
-  statusDistribution: {
+  total_orders: number;
+  total_revenue: number;
+  average_order_value: number;
+  status_distribution: {
     [key in OrderStatus]: number;
   };
-  recipeUsage: {
-    totalRecipeItems: number;
-    totalCustomItems: number;
-    recipeRevenue: number;
-    customRevenue: number;
-    popularRecipes: Array<{
-      recipeId: string;
-      recipeName: string;
-      orderCount: number;
-      totalQuantity: number;
-      totalRevenue: number;
+  recipe_usage: {
+    total_recipe_items: number;
+    total_custom_items: number;
+    recipe_revenue: number;
+    custom_revenue: number;
+    popular_recipes: Array<{
+      recipe_id: string;
+      recipe_name: string;
+      order_count: number;
+      total_quantity: number;
+      total_revenue: number;
     }>;
   };
-  todayOrders: number;
-  weekOrders: number;
-  monthOrders: number;
+  today_orders: number;
+  week_orders: number;
+  month_orders: number;
 }
 
-export type OrderSortField = 
-  | 'createdAt' 
-  | 'customerName' 
-  | 'status' 
-  | 'totalAmount'
-  | 'recipeCount'
+export type OrderSortField =
+  | 'created_at'
+  | 'customer_name'
+  | 'status'
+  | 'total_amount'
+  | 'recipe_count'
   | 'tanggal';
 
 // ✅ ENHANCED: Connection Health Status
 export interface ConnectionHealthStatus {
-  isConnected: boolean;
-  lastPing: Date | null;
-  reconnectAttempts: number;
-  maxReconnectAttempts: number;
-  connectionQuality: 'excellent' | 'good' | 'poor' | 'disconnected';
+  is_connected: boolean;
+  last_ping: Date | null;
+  reconnect_attempts: number;
+  max_reconnect_attempts: number;
+  connection_quality: 'excellent' | 'good' | 'poor' | 'disconnected';
 }
 
 // ✅ ERROR HANDLING: Error types for better debugging
@@ -316,56 +316,59 @@ export const getStatusColor = (status: OrderStatus): string => {
 
 // ✅ ENHANCED: Recipe Integration Helpers
 export const calculateRecipeStats = (items: OrderItem[]) => {
-  const recipeItems = items.filter(item => item.isFromRecipe);
-  const customItems = items.filter(item => !item.isFromRecipe);
-  
+  const recipeItems = items.filter(item => item.is_from_recipe);
+  const customItems = items.filter(item => !item.is_from_recipe);
+
   return {
-    recipeCount: recipeItems.length,
-    customItemCount: customItems.length,
-    recipeValue: recipeItems.reduce((sum, item) => sum + item.total, 0),
-    customValue: customItems.reduce((sum, item) => sum + item.total, 0),
-    recipePercentage: items.length > 0 ? (recipeItems.length / items.length) * 100 : 0
+    recipe_count: recipeItems.length,
+    custom_item_count: customItems.length,
+    recipe_value: recipeItems.reduce((sum, item) => sum + item.total, 0),
+    custom_value: customItems.reduce((sum, item) => sum + item.total, 0),
+    recipe_percentage: items.length > 0 ? (recipeItems.length / items.length) * 100 : 0
   };
 };
 
 export const getRecipeUsageByOrder = (orders: Order[]) => {
   const recipeUsage = new Map<string, {
-    recipeId: string;
-    recipeName: string;
-    orderCount: number;
-    totalQuantity: number;
-    totalRevenue: number;
+    recipe_id: string;
+    recipe_name: string;
+    order_count: number;
+    total_quantity: number;
+    total_revenue: number;
   }>();
 
   orders.forEach(order => {
-    const recipeItems = order.items.filter(item => item.isFromRecipe && item.recipeId);
-    
+    const recipeItems = order.items.filter(item => item.is_from_recipe && item.recipe_id);
+
     recipeItems.forEach(item => {
-      const key = item.recipeId!;
+      const key = item.recipe_id!;
       const existing = recipeUsage.get(key);
-      
+
       if (existing) {
-        existing.orderCount += 1;
-        existing.totalQuantity += item.quantity;
-        existing.totalRevenue += item.total;
+        existing.order_count += 1;
+        existing.total_quantity += item.quantity;
+        existing.total_revenue += item.total;
       } else {
         recipeUsage.set(key, {
-          recipeId: item.recipeId!,
-          recipeName: item.name,
-          orderCount: 1,
-          totalQuantity: item.quantity,
-          totalRevenue: item.total
+          recipe_id: item.recipe_id!,
+          recipe_name: item.name,
+          order_count: 1,
+          total_quantity: item.quantity,
+          total_revenue: item.total
         });
       }
     });
   });
 
   return Array.from(recipeUsage.values())
-    .sort((a, b) => b.totalRevenue - a.totalRevenue);
+    .sort((a, b) => b.total_revenue - a.total_revenue);
 };
 
 // ✅ CONNECTION HEALTH: Helper functions
-export const getConnectionQuality = (reconnectAttempts: number, maxAttempts: number): ConnectionHealthStatus['connectionQuality'] => {
+export const getConnectionQuality = (
+  reconnectAttempts: number,
+  maxAttempts: number
+): ConnectionHealthStatus['connection_quality'] => {
   if (reconnectAttempts === 0) return 'excellent';
   if (reconnectAttempts <= maxAttempts * 0.3) return 'good';
   if (reconnectAttempts <= maxAttempts * 0.7) return 'poor';

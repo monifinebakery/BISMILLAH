@@ -18,7 +18,7 @@ const deriveUnitPriceFromPackaging = (row: any): number | null => {
  * Fetch latest completed purchase unit price for a given warehouse item
  * - Filters purchases by user and status 'completed'
  * - Uses text search to find purchases with the given bahan_baku_id in items
- * - Returns first valid price found (harga_per_satuan or derived from packaging)
+ * - Returns first valid price found (unitPrice or derived from packaging)
  */
 export const fetchLatestUnitPriceForItem = async (
   userId: string,
@@ -58,7 +58,7 @@ export const fetchLatestUnitPriceForItem = async (
       });
       if (!found) continue;
 
-      const explicit = Number(found.harga_per_satuan ?? found.unitPrice ?? 0);
+      const explicit = Number(found.unitPrice ?? 0);
       const price = explicit > 0 ? explicit : 0;
       if (price > 0) {
         return { price, tanggal: row.tanggal, purchaseId: row.id };

@@ -332,14 +332,14 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ------------------- Stats (memo) -------------------
   const stats = useMemo(() => {
     const total = (purchases as Purchase[]).length;
-    const totalValue = (purchases as Purchase[]).reduce((sum: number, p: Purchase) => sum + Number(p.totalNilai || 0), 0);
+    const total_nilai = (purchases as Purchase[]).reduce((sum: number, p: Purchase) => sum + Number(p.total_nilai || 0), 0);
     const statusCounts = (purchases as Purchase[]).reduce((acc: Record<string, number>, p: Purchase) => {
       acc[p.status] = (acc[p.status] || 0) + 1;
       return acc;
     }, {});
     return {
       total,
-      totalValue,
+      total_nilai,
       byStatus: {
         pending: statusCounts.pending || 0,
         completed: statusCounts.completed || 0,
@@ -403,7 +403,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       invalidateWarehouseData();
 
       // Info
-      const totalValue = formatCurrency(newRow.totalNilai);
+      const totalValue = formatCurrency(newRow.total_nilai);
       toast.success(`Pembelian dibuat (${getSupplierName(newRow.supplier)} • ${totalValue})`);
       addActivity?.({ title: 'Pembelian Ditambahkan', description: `Pembelian dari ${getSupplierName(newRow.supplier)} senilai ${totalValue}`, type: 'purchase', value: null });
       addNotification?.({
@@ -519,7 +519,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             queryClient.invalidateQueries({ queryKey: ['profit-analysis'] });
             
             window.dispatchEvent(new CustomEvent('purchase:completed', {
-              detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.totalNilai }
+              detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.total_nilai }
             }));
           }
         }
@@ -567,7 +567,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // ✅ DISPATCH PURCHASE COMPLETION EVENT: Trigger WAC refresh in profit analysis
           console.log('🔄 Dispatching purchase completion event for WAC refresh');
           window.dispatchEvent(new CustomEvent('purchase:completed', {
-            detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.totalNilai }
+            detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.total_nilai }
           }));
           
           // ✅ INVALIDATE FINANCIAL REPORTS: Purchase completion creates financial transaction
@@ -673,7 +673,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
         
         const supplierName = getSupplierName(p.supplier);
-        const totalValue = formatCurrency(p.totalNilai);
+        const totalValue = formatCurrency(p.total_nilai);
         toast.success('Pembelian dan transaksi keuangan terkait berhasil dihapus.');
         addActivity?.({ title: 'Pembelian Dihapus', description: `Pembelian dari ${supplierName} telah dihapus.`, type: 'purchase', value: null });
         addNotification?.({

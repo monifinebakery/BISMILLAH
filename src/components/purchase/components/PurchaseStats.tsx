@@ -12,7 +12,7 @@ const PurchaseStats: React.FC<PurchaseStatsProps> = ({ stats, className = '' }) 
       </Card>
       <Card className="p-4">
         <div className="text-sm text-gray-500">Total Nilai</div>
-        <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
+        <div className="text-2xl font-bold">{formatCurrency(stats.total_nilai)}</div>
       </Card>
       <Card className="p-4">
         <div className="text-sm text-gray-500">Pending</div>

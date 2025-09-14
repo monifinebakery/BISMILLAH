@@ -128,7 +128,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       totalAmount: 0,
       items: [],
       status: 'pending',
-      calculationMethod: 'AVERAGE',
+      metode_perhitungan: 'AVERAGE',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -162,7 +162,7 @@ export const transformPurchaseUpdateForDB = (p: Partial<Purchase>) => {
   if (p.tanggal !== undefined) out.tanggal = toYMD(p.tanggal as any);
   if (p.totalAmount !== undefined) out.total_nilai = Math.max(0, Number(p.totalAmount) || 0);
   if (p.status !== undefined) out.status = p.status;
-  if (p.calculationMethod !== undefined) out.metode_perhitungan = p.calculationMethod;
+  if (p.metode_perhitungan !== undefined) out.metode_perhitungan = p.metode_perhitungan;
 
   if (p.items !== undefined) {
     // ✅ FIXED: Use unified transformer untuk update
@@ -252,5 +252,5 @@ export const sanitizePurchaseData = (data: any): any => ({
       })
     : [],
   status: data.status || 'pending',
-  calculationMethod: data.calculationMethod || 'AVERAGE',
+  metode_perhitungan: data.metode_perhitungan || 'AVERAGE',
 });

@@ -20,7 +20,7 @@ export const PURCHASE_VALIDATION_RULES: PurchaseValidationRules = {
   MAX_UNIT_PRICE: 999999999,          // 999 million max
   MIN_TOTAL_VALUE: 0,                 // Allow zero-value purchases
   MAX_ITEMS_PER_PURCHASE: 100,        // Maximum items per purchase
-  REQUIRED_ITEM_FIELDS: ['bahanBakuId', 'namaBarang', 'jumlah', 'satuan', 'hargaSatuan'],
+  REQUIRED_ITEM_FIELDS: ['bahanBakuId', 'nama', 'quantity', 'satuan', 'unitPrice'],
 };
 
 export interface PurchaseValidationResult {
@@ -88,36 +88,37 @@ export function validatePurchaseData(
         }
       });
 
-      // Quantity validation (supports jumlah or kuantitas)
-      const qty = typeof itemAny.jumlah === 'number' ? itemAny.jumlah : itemAny.kuantitas;
+      // Quantity validation
+      const qty = typeof itemAny.quantity === 'number' ? itemAny.quantity : (itemAny.jumlah || itemAny.kuantitas);
       if (typeof qty === 'number') {
         if (qty < validationRules.MIN_ITEM_QUANTITY) {
           itemErrors.push(`Item ${index + 1}: Quantity must be at least ${validationRules.MIN_ITEM_QUANTITY}`);
-          correctedItem.jumlah = validationRules.MIN_ITEM_QUANTITY;
+          correctedItem.quantity = validationRules.MIN_ITEM_QUANTITY;
         }
         if (qty > validationRules.MAX_ITEM_QUANTITY) {
           itemWarnings.push(`Item ${index + 1}: Very large quantity (${qty})`);
-          correctedItem.jumlah = validationRules.MAX_ITEM_QUANTITY;
+          correctedItem.quantity = validationRules.MAX_ITEM_QUANTITY;
         }
       }
 
       // Price validation
-      if (typeof item.hargaSatuan === 'number') {
-        if (item.hargaSatuan < validationRules.MIN_UNIT_PRICE) {
-          if (item.hargaSatuan < 0) {
+      const itemUnitPrice = (item as any).unitPrice || (item as any).hargaSatuan;
+      if (typeof itemUnitPrice === 'number') {
+        if (itemUnitPrice < validationRules.MIN_UNIT_PRICE) {
+          if (itemUnitPrice < 0) {
             itemErrors.push(`Item ${index + 1}: Unit price cannot be negative`);
-            correctedItem.hargaSatuan = 0;
+            correctedItem.unitPrice = 0;
           }
         }
-        if (item.hargaSatuan > validationRules.MAX_UNIT_PRICE) {
-          itemWarnings.push(`Item ${index + 1}: Very high unit price (${item.hargaSatuan})`);
+        if (itemUnitPrice > validationRules.MAX_UNIT_PRICE) {
+          itemWarnings.push(`Item ${index + 1}: Very high unit price (${itemUnitPrice})`);
         }
       }
 
       // Calculate subtotal
-        const quantity = Number((correctedItem as any).jumlah ?? correctedItem.kuantitas) || 0;
-        const unitPrice = Number(correctedItem.hargaSatuan) || 0;
-        correctedItem.subtotal = quantity * unitPrice;
+        const quantity = Number(correctedItem.quantity ?? correctedItem.jumlah ?? correctedItem.kuantitas) || 0;
+        const finalUnitPrice = Number(correctedItem.unitPrice ?? correctedItem.hargaSatuan) || 0;
+        correctedItem.subtotal = quantity * finalUnitPrice;
         correctedTotal += correctedItem.subtotal;
 
       // Add warnings and errors to main arrays
@@ -128,7 +129,7 @@ export function validatePurchaseData(
     });
 
     // Step 3: Total value validation
-    const originalTotal = Number(purchase.totalNilai) || 0;
+    const originalTotal = Number(purchase.total_nilai) || 0;
     const calculatedTotal = correctedTotal;
 
     if (Math.abs(originalTotal - calculatedTotal) > 0.01) {
@@ -244,7 +245,7 @@ export function validateStatusChange(
         errors.push('Cannot complete purchase without items');
       }
       
-      if (!purchase.totalNilai || purchase.totalNilai <= 0) {
+      if (!purchase.total_nilai || purchase.total_nilai <= 0) {
         errors.push('Cannot complete purchase with zero total value');
       }
       
@@ -310,7 +311,7 @@ export function monitorPurchaseDataQuality(
       pendingPurchases: purchases.filter(p => p.status === 'pending').length,
       cancelledPurchases: purchases.filter(p => p.status === 'cancelled').length,
       withItems: purchases.filter(p => p.items && p.items.length > 0).length,
-      totalValue: purchases.reduce((sum, p) => sum + Number(p.totalNilai || 0), 0),
+      total_nilai: purchases.reduce((sum, p) => sum + Number(p.total_nilai || 0), 0),
       avgItemsPerPurchase: purchases.reduce((sum, p) => sum + (p.items?.length || 0), 0) / purchases.length,
     };
 

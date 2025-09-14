@@ -17,10 +17,10 @@ export interface Purchase {
   userId: string;
   supplier: string;           // supplier name (nama supplier)
   tanggal: Date;
-  totalValue: number;         // standardized from totalNilai
+  total_nilai: number;        // sesuai schema database
   items: PurchaseItem[];
   status: PurchaseStatus;
-  calculationMethod: CalculationMethod;  // standardized from metodePerhitungan
+  metode_perhitungan: CalculationMethod; // sesuai schema database
   keterangan?: string;        // Optional description/notes
   createdAt: Date;
   updatedAt: Date;
@@ -41,14 +41,14 @@ export interface PurchaseFormData {
   supplier: string; // supplier name (nama supplier)
   tanggal: Date | string; // Allow both Date object and string for flexibility
   items: PurchaseItem[];
-  calculationMethod: CalculationMethod;  // standardized from metodePerhitungan
+  metode_perhitungan: CalculationMethod; // sesuai schema database
   keterangan?: string; // Add optional keterangan field
 }
 
 // ============ Stats ============
 export interface PurchaseStats {
   total: number;
-  totalValue: number;
+  total_nilai: number;
   byStatus: {
     pending: number;
     completed: number;
@@ -80,20 +80,20 @@ export interface CreatePurchaseRequest {
   user_id: string;
   supplier: string; // supplier name (nama supplier)
   tanggal: string; // 'YYYY-MM-DD'
-  total_value: number;        // standardized from total_nilai
+  total_nilai: number;        // sesuai schema database
   items: PurchaseItemDB[]; // ✅ gunakan shape DB
   status?: PurchaseStatus;
-  calculation_method?: CalculationMethod;  // standardized from metode_perhitungan
+  metode_perhitungan?: CalculationMethod; // sesuai schema database
 }
 
 // ✅ NEW: Payload UPDATE untuk tabel purchases
 export interface UpdatePurchaseRequest {
   supplier?: string;
   tanggal?: string;
-  total_value?: number;       // standardized from total_nilai
+  total_nilai?: number;       // sesuai schema database
   items?: PurchaseItemDB[];
   status?: PurchaseStatus;
-  calculation_method?: CalculationMethod;  // standardized from metode_perhitungan
+  metode_perhitungan?: CalculationMethod; // sesuai schema database
 }
 
 // Response pembelian (opsional kalau perlu)
@@ -124,9 +124,9 @@ export interface PurchaseTableContextType {
   setStatusFilter: (status: PurchaseStatus | 'all') => void;
 
   // Sorting
-  sortField: 'tanggal' | 'totalValue' | 'supplier' | 'status';  // standardized from totalNilai
+  sortField: 'tanggal' | 'total_nilai' | 'supplier' | 'status'; // sesuai schema database
   sortOrder: 'asc' | 'desc';
-  handleSort: (field: 'tanggal' | 'totalValue' | 'supplier' | 'status') => void;
+  handleSort: (field: 'tanggal' | 'total_nilai' | 'supplier' | 'status') => void;
 
   // Utility functions
   getSupplierName: (supplierId: string) => string;
@@ -240,7 +240,7 @@ export interface PurchaseFilters {
     to: Date;
   };
   supplierFilter?: string;
-  sortBy: 'tanggal' | 'totalValue' | 'supplier' | 'status';  // standardized from totalNilai
+  sortBy: 'tanggal' | 'total_nilai' | 'supplier' | 'status';  // sesuai schema database
   sortOrder: 'asc' | 'desc';
 }
 

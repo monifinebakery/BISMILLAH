@@ -195,12 +195,12 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     return;
   }
 
-  // Helper: derive unit price from any available fields
+  // Helper: derive unit price from standardized fields
   const deriveUnitPrice = (it: any, qty: number): number => {
     const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
-    const explicit = toNum(it.unitPrice ?? it.hargaSatuan ?? it.harga_per_satuan ?? it.harga_satuan);
+    const explicit = toNum(it.unitPrice);
     if (explicit > 0) return explicit;
-    // Fallback: subtotal / qty (no packaging fields)
+    // Fallback: subtotal / qty
     const subtotal = toNum(it.subtotal);
     if (qty > 0 && subtotal > 0) return subtotal / qty;
     return 0;
@@ -210,7 +210,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
-    const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
+    const qty = Number((item as any).quantity ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
 
     console.log('🔄 [WAREHOUSE SYNC] Processing item:', {
@@ -256,7 +256,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     }
 
     const oldStock = existing?.stok ?? 0;
-    const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;
+    const oldWac = existing?.harga_rata_rata ?? 0;
     const newStock = oldStock + qty;
     const newWac = calculateNewWac(oldWac, oldStock, qty, unitPrice);
 
@@ -296,7 +296,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
           console.log('📝 [WAREHOUSE SYNC] Adding supplier info:', (purchase as any).supplier);
         } else if (existing.supplier !== (purchase as any).supplier) {
           // Keep a combined supplier list (optional enhancement)
-          const existingSuppliers = existing.supplier.split(',').map(s => s.trim());
+          const existingSuppliers = existing.supplier.split(',').map((s: string) => s.trim());
           const newSupplier = (purchase as any).supplier.trim();
           if (!existingSuppliers.includes(newSupplier)) {
             updateData.supplier = [...existingSuppliers, newSupplier].join(', ');
@@ -377,7 +377,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
   // Helper: derive unit price from any available fields  
   const deriveUnitPrice = (it: any, qty: number): number => {
     const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
-    const explicit = toNum(it.unitPrice ?? it.hargaSatuan ?? it.harga_per_satuan ?? it.harga_satuan);
+    const explicit = toNum(it.unitPrice);
     if (explicit > 0) return explicit;
     const subtotal = toNum(it.subtotal);
     if (qty > 0 && subtotal > 0) return subtotal / qty;
@@ -388,7 +388,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
     const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
-    const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
+    const qty = Number((item as any).quantity ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
 
     if (qty <= 0) {
@@ -434,7 +434,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
       }
 
       const oldStock = existing.stok ?? 0;
-      const oldWac = existing.harga_rata_rata ?? existing.harga_satuan ?? 0;
+      const oldWac = existing.harga_rata_rata ?? 0;
       
       // ✅ IMPROVED: Use enhanced WAC calculation for reversal
       const wacResult = calculateEnhancedWac(oldWac, oldStock, -qty, unitPrice);
@@ -568,15 +568,9 @@ export class WarehouseSyncService {
                 const itemId = purchaseItem.bahanBakuId || purchaseItem.bahan_baku_id || purchaseItem.id;
                 
                 if (itemId === item.id) {
-                  // ✅ FLEXIBLE FIELD MATCHING - handle all possible field names
-                  const qty = Number(purchaseItem.kuantitas || purchaseItem.jumlah || 0);
-                  const price = Number(
-                    purchaseItem.unitPrice ||
-                    purchaseItem.hargaSatuan || 
-                    purchaseItem.harga_per_satuan || 
-                    purchaseItem.harga_satuan || 
-                    0
-                  );
+                  // ✅ STANDARDIZED FIELD MATCHING - use consistent field names
+                const qty = Number(purchaseItem.quantity || 0);
+                const price = Number(purchaseItem.unitPrice || 0);
                   totalQuantity += qty;
                   totalValue += qty * price;
                 }
@@ -603,7 +597,7 @@ export class WarehouseSyncService {
               itemId: item.id,
               itemName: item.nama,
               oldWac,
-              newWac,
+              newWac: newWac ?? undefined,
               status: 'success',
               message: `WAC updated from ${oldWac} to ${newWac}`
             });
@@ -823,15 +817,9 @@ export class WarehouseSyncService {
             const purchaseItemId = item.bahanBakuId || item.bahan_baku_id || item.id;
             
             if (purchaseItemId === itemId) {
-              // ✅ FLEXIBLE FIELD MATCHING - handle all possible field names
-              const qty = Number(item.kuantitas || item.jumlah || 0);
-              const price = Number(
-                item.unitPrice ||
-                item.hargaSatuan || 
-                item.harga_per_satuan || 
-                item.harga_satuan || 
-                0
-              );
+              // ✅ STANDARDIZED FIELD MATCHING - use consistent field names
+            const qty = Number(item.quantity || 0);
+            const price = Number(item.unitPrice || 0);
               totalQuantity += qty;
               totalValue += qty * price;
             }
@@ -858,7 +846,7 @@ export class WarehouseSyncService {
       return {
         itemId,
         itemName: currentItem.nama,
-        oldWac,
+        oldWac: oldWac || undefined,
         newWac,
         status: 'success',
         message: `WAC updated from ${oldWac || 0} to ${newWac}`
@@ -961,7 +949,7 @@ export class WarehouseSyncService {
   async generateSyncReport(): Promise<{
     summary: SyncSummary;
     consistencyIssues: WarehouseConsistencyCheck[];
-    integrityReport: Awaited<ReturnType<typeof this.validateWarehouseIntegrity>>;
+    integrityReport: Awaited<ReturnType<WarehouseSyncService['validateWarehouseIntegrity']>>;
     timestamp: string;
   }> {
     const startTime = Date.now();

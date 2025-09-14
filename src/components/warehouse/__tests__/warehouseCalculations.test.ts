@@ -126,7 +126,7 @@ describe('Warehouse Calculation Fixes', () => {
         userId: 'user1',
         supplier: 'Test Supplier',
         tanggal: new Date(),
-        totalNilai: 15000,
+        totalValue: 15000,
         items: [
           {
             bahanBakuId: 'item1',
@@ -146,7 +146,7 @@ describe('Warehouse Calculation Fixes', () => {
           }
         ],
         status: 'pending',
-        metodePerhitungan: 'AVERAGE',
+        calculationMethod: 'AVERAGE',
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -163,7 +163,7 @@ describe('Warehouse Calculation Fixes', () => {
         userId: 'user1',
         supplier: '', // Invalid - empty supplier
         tanggal: new Date(),
-        totalNilai: 0, // Invalid - zero total
+        totalValue: 0, // Invalid - zero total
         items: [
           {
             bahanBakuId: '', // Invalid - empty ID
@@ -175,7 +175,7 @@ describe('Warehouse Calculation Fixes', () => {
           }
         ],
         status: 'pending',
-        metodePerhitungan: 'AVERAGE',
+        calculationMethod: 'AVERAGE',
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -192,7 +192,7 @@ describe('Warehouse Calculation Fixes', () => {
         userId: 'user1',
         supplier: 'Test Supplier',
         tanggal: new Date(),
-        totalNilai: 20000, // Total doesn't match item calculations
+        totalValue: 20000, // Total doesn't match item calculations
         items: [
           {
             bahanBakuId: 'item1',
@@ -204,7 +204,7 @@ describe('Warehouse Calculation Fixes', () => {
           }
         ],
         status: 'pending',
-        metodePerhitungan: 'AVERAGE',
+        calculationMethod: 'AVERAGE',
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -239,7 +239,7 @@ describe('Warehouse Calculation Fixes', () => {
         userId: 'user1',
         supplier: 'Test Supplier',
         tanggal: new Date(),
-        totalNilai: 15000,
+        totalValue: 15000,
         items: [
           {
             bahanBakuId: 'item1',
@@ -251,7 +251,7 @@ describe('Warehouse Calculation Fixes', () => {
           }
         ],
         status: 'pending',
-        metodePerhitungan: 'AVERAGE',
+        calculationMethod: 'AVERAGE',
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -485,19 +485,19 @@ describe('Integration Tests', () => {
       userId: 'user1',
       supplier: 'New Supplier',
       tanggal: new Date(),
-      totalNilai: 8000,
+      totalValue: 8000,
       items: [
         {
           bahanBakuId: 'item1',
           nama: 'Integration Test Item',
-          kuantitas: 5,
+          quantity: 5,
           satuan: 'kg',
-          hargaSatuan: 1600, // Higher than current WAC
+          unitPrice: 1600, // Higher than current WAC
           subtotal: 8000
         }
       ],
       status: 'pending',
-      metodePerhitungan: 'AVERAGE',
+      calculationMethod: 'AVERAGE',
       createdAt: new Date(),
       updatedAt: new Date()
     };

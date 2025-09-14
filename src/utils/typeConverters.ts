@@ -12,15 +12,15 @@ import type { BahanBaku, BahanBakuFrontend } from '@/components/warehouse/types'
 // Purchase field mappings
 export const PURCHASE_FIELD_MAPPINGS = {
   frontend: {
-    totalValue: 'total_value',
-    calculationMethod: 'calculation_method',
+    total_nilai: 'total_nilai',
+    metode_perhitungan: 'metode_perhitungan',
     userId: 'user_id',
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   },
   database: {
-    total_value: 'totalValue',
-    calculation_method: 'calculationMethod',
+    total_nilai: 'total_nilai',
+    metode_perhitungan: 'metode_perhitungan',
     user_id: 'userId',
     created_at: 'createdAt',
     updated_at: 'updatedAt'
@@ -72,10 +72,10 @@ export const convertPurchaseFromDB = (dbPurchase: any): Purchase => {
     userId: dbPurchase.user_id,
     supplier: dbPurchase.supplier,
     tanggal: new Date(dbPurchase.tanggal),
-    totalValue: dbPurchase.total_value || dbPurchase.total_nilai, // support both old and new
+    total_nilai: dbPurchase.total_nilai,
     items: dbPurchase.items?.map(convertPurchaseItemFromDB) || [],
     status: dbPurchase.status,
-    calculationMethod: dbPurchase.calculation_method || dbPurchase.metode_perhitungan || 'AVERAGE',
+    metode_perhitungan: dbPurchase.metode_perhitungan || 'AVERAGE',
     keterangan: dbPurchase.keterangan,
     createdAt: new Date(dbPurchase.created_at),
     updatedAt: new Date(dbPurchase.updated_at)
@@ -90,10 +90,10 @@ export const convertPurchaseToDB = (purchase: Purchase): CreatePurchaseRequest =
     user_id: purchase.userId,
     supplier: purchase.supplier,
     tanggal: purchase.tanggal instanceof Date ? purchase.tanggal.toISOString().split('T')[0] : String(purchase.tanggal),
-    total_value: purchase.totalValue,
+    total_nilai: purchase.total_nilai,
     items: purchase.items.map(convertPurchaseItemToDB),
     status: purchase.status,
-    calculation_method: purchase.calculationMethod
+    metode_perhitungan: purchase.metode_perhitungan
   };
 };
 
@@ -185,8 +185,8 @@ export const validatePurchaseConsistency = (purchase: Purchase): string[] => {
   }, 0);
   
   const tolerance = 0.01; // Allow small rounding differences
-  if (Math.abs(purchase.totalValue - calculatedTotal) > tolerance) {
-    errors.push(`Total value (${purchase.totalValue}) tidak sesuai dengan sum items (${calculatedTotal})`);
+  if (Math.abs(purchase.total_nilai - calculatedTotal) > tolerance) {
+    errors.push(`Total value (${purchase.total_nilai}) tidak sesuai dengan sum items (${calculatedTotal})`);
   }
   
   // Check for empty items
@@ -246,16 +246,16 @@ export const validateWarehouseConsistency = (bahan: BahanBakuFrontend): string[]
  */
 export const getStandardizedSortField = (field: string): string => {
   const fieldMap: Record<string, string> = {
-    'totalNilai': 'totalValue',
-    'total_nilai': 'totalValue',
+    'totalNilai': 'total_nilai',
+  'total_nilai': 'total_nilai',
     'kuantitas': 'quantity',
     'jumlah': 'quantity',
     'hargaSatuan': 'unitPrice',
     'harga_per_satuan': 'unitPrice',
     'unit_price': 'unitPrice',
-    'metodePerhitungan': 'calculationMethod',
-    'metode_perhitungan': 'calculationMethod',
-    'calculation_method': 'calculationMethod'
+    'metodePerhitungan': 'metode_perhitungan',
+  'metode_perhitungan': 'metode_perhitungan',
+  'calculation_method': 'metode_perhitungan'
   };
   
   return fieldMap[field] || field;

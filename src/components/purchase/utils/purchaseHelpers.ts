@@ -9,7 +9,7 @@ export const calculatePurchaseStats = (purchases: Purchase[]): PurchaseStats => 
   if (!purchases || purchases.length === 0) {
     return {
       total: 0,
-      totalValue: 0,
+      total_nilai: 0,
       byStatus: {
         pending: 0,
         completed: 0,
@@ -22,13 +22,13 @@ export const calculatePurchaseStats = (purchases: Purchase[]): PurchaseStats => 
   const stats = purchases.reduce(
     (acc, purchase) => {
       acc.total += 1;
-      acc.totalValue += purchase.totalValue || 0;
+      acc.total_nilai += purchase.total_nilai || 0;
       acc.byStatus[purchase.status] += 1;
       return acc;
     },
     {
       total: 0,
-      totalValue: 0,
+      total_nilai: 0,
       byStatus: {
         pending: 0,
         completed: 0,
@@ -82,7 +82,7 @@ export const searchPurchases = (purchases: Purchase[], query: string): Purchase[
  */
 export const sortPurchases = (
   purchases: Purchase[],
-  sortBy: 'tanggal' | 'totalValue' | 'supplier' | 'status',
+  sortBy: 'tanggal' | 'total_nilai' | 'supplier' | 'status',
   sortOrder: 'asc' | 'desc' = 'desc'
 ): Purchase[] => {
   const sortedPurchases = [...purchases].sort((a, b) => {
@@ -92,8 +92,8 @@ export const sortPurchases = (
       case 'tanggal':
         comparison = new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime();
         break;
-      case 'totalValue':
-        comparison = (a.totalValue || 0) - (b.totalValue || 0);
+      case 'total_nilai':
+      comparison = (a.total_nilai || 0) - (b.total_nilai || 0);
         break;
       case 'supplier':
         comparison = (a.supplier || '').localeCompare(b.supplier || '');
@@ -263,7 +263,7 @@ export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
     errors.push('Minimal satu item harus ditambahkan');
   }
 
-  if (purchase.totalValue === undefined || purchase.totalValue <= 0) {
+  if (purchase.total_nilai === undefined || purchase.total_nilai <= 0) {
     errors.push('Total nilai harus lebih dari 0');
   }
 
@@ -368,7 +368,7 @@ export const exportPurchasesToCSV = (
   const rows = purchases.map(purchase => [
     new Date(purchase.tanggal).toLocaleDateString('id-ID'),
     getSupplierName(purchase.supplier),                    // ✅ FIXED: Show supplier name instead of ID
-    (purchase.totalValue ?? 0).toString(),                 // ✅ aman null/undefined
+    (purchase.total_nilai ?? 0).toString(),                 // ✅ aman null/undefined
     getStatusDisplayText(purchase.status),
     (purchase.items?.length ?? 0).toString(),              // ✅ aman
     getFormattedTotalQuantities(purchase),

@@ -42,7 +42,7 @@ interface UsePurchaseFormReturn {
   handleReset: () => void;
 
   // Calculations
-  totalValue: number;
+  total_nilai: number;
 }
 
 const defaultFormData: PurchaseFormData = {
@@ -50,7 +50,7 @@ const defaultFormData: PurchaseFormData = {
   tanggal: new Date(),
   items: [],
   // ✅ konsisten dengan transformer
-  metodePerhitungan: 'AVERAGE',
+  metode_perhitungan: 'AVERAGE',
   keterangan: '',
 };
 
@@ -86,7 +86,7 @@ export const usePurchaseForm = ({
         supplier: supplierName,
         tanggal: initialData.tanggal,
         items: initialData.items || [],
-        metodePerhitungan: initialData.metodePerhitungan ?? 'AVERAGE',
+        metode_perhitungan: initialData.metode_perhitungan ?? 'AVERAGE',
         keterangan: initialData.keterangan || '',
       };
       
@@ -119,7 +119,7 @@ export const usePurchaseForm = ({
         supplier: supplierName,
         tanggal: initialData.tanggal,
         items: initialData.items || [],
-        metodePerhitungan: initialData.metodePerhitungan ?? 'AVERAGE',
+        metode_perhitungan: initialData.metode_perhitungan ?? 'AVERAGE',
         keterangan: initialData.keterangan || '',
       };
       
@@ -141,7 +141,7 @@ export const usePurchaseForm = ({
   const validationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Calculate total value
-  const totalValue = calculatePurchaseTotal(formDataState.items);
+  const total_nilai = calculatePurchaseTotal(formDataState.items);
 
   // Expose form data with consistent name
   const formData = formDataState;
@@ -215,12 +215,12 @@ export const usePurchaseForm = ({
 
         // Recalculate subtotal if qty or price changed
         if (
-          itemUpdate.kuantitas !== undefined ||
-          itemUpdate.hargaSatuan !== undefined
+          itemUpdate.quantity !== undefined ||
+          itemUpdate.unitPrice !== undefined
         ) {
           merged.subtotal = calculateItemSubtotal(
-            merged.kuantitas,
-            merged.hargaSatuan
+            merged.quantity,
+            merged.unitPrice
           );
         }
 
@@ -251,9 +251,9 @@ export const usePurchaseForm = ({
     console.log('DEBUG: Form data before validation:', {
       items: formData.items.map(item => ({
         nama: item.nama,
-        kuantitas: item.kuantitas,
-        type: typeof item.kuantitas,
-        hargaSatuan: item.hargaSatuan,
+        quantity: item.quantity,
+        type: typeof item.quantity,
+        unitPrice: item.unitPrice,
         subtotal: item.subtotal
       }))
     });
@@ -291,7 +291,7 @@ export const usePurchaseForm = ({
       const purchaseData = {
         ...formData,
         supplier: supplierIdToUse, // Use the resolved supplier ID or name
-        totalNilai: totalValue,
+        total_nilai: total_nilai,
         status,
       };
       
@@ -300,9 +300,9 @@ export const usePurchaseForm = ({
         totalNilai: purchaseData.totalNilai,
         items: purchaseData.items.map(item => ({
           nama: item.nama,
-          kuantitas: item.kuantitas,
-          type: typeof item.kuantitas,
-          hargaSatuan: item.hargaSatuan,
+          quantity: item.quantity,
+          type: typeof item.quantity,
+          unitPrice: item.unitPrice,
         }))
       });
 
@@ -327,7 +327,7 @@ export const usePurchaseForm = ({
     }
   }, [
     formData, 
-    totalValue, 
+    total_nilai, 
     mode, 
     addPurchase, 
     updatePurchase, 
@@ -355,7 +355,7 @@ export const usePurchaseForm = ({
         supplier: supplierName,
         tanggal: initialData.tanggal,
         items: initialData.items,
-        metodePerhitungan: initialData.metodePerhitungan ?? 'AVERAGE',
+        metode_perhitungan: initialData.metode_perhitungan ?? 'AVERAGE',
         keterangan: initialData.keterangan || '',
       });
     } else {
@@ -405,6 +405,6 @@ export const usePurchaseForm = ({
     handleReset,
 
     // Calculations
-    totalValue,
+    total_nilai,
   };
 };

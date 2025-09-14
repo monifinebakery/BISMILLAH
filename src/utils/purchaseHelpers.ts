@@ -179,8 +179,8 @@ export const calculatePurchaseStatistics = (
   suppliers: Array<{ id: string; nama: string }> = []
 ): PurchaseStatistics => {
   const totalPurchases = purchases.length;
-  const totalValue = purchases.reduce((sum, p) => sum + p.totalNilai, 0);
-  const averageValue = totalPurchases > 0 ? totalValue / totalPurchases : 0;
+  const total_nilai = purchases.reduce((sum, p) => sum + p.total_nilai, 0);
+  const averageValue = totalPurchases > 0 ? total_nilai / totalPurchases : 0;
 
   // Status breakdown
   const statusBreakdown = purchases.reduce(
@@ -199,7 +199,7 @@ export const calculatePurchaseStatistics = (
 
   return {
     totalPurchases,
-    totalValue,
+    total_nilai,
     averageValue,
     statusBreakdown,
     monthlyTrend,
@@ -210,7 +210,7 @@ export const calculatePurchaseStatistics = (
 const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
   const monthlyData = new Map<
     string,
-    { count: number; totalValue: number; monthIndex: number; year: number }
+    { count: number; total_nilai: number; monthIndex: number; year: number }
   >();
 
   purchases.forEach(purchase => {
@@ -220,7 +220,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
     if (!monthlyData.has(key)) {
       monthlyData.set(key, {
         count: 0,
-        totalValue: 0,
+        total_nilai: 0,
         monthIndex: date.getMonth(),
         year: date.getFullYear()
       });
@@ -228,7 +228,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
 
     const data = monthlyData.get(key)!;
     data.count++;
-    data.totalValue += purchase.totalNilai;
+    data.total_nilai += purchase.total_nilai;
   });
 
   return Array.from(monthlyData.values())
@@ -240,7 +240,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
     .slice(-12)
     .map(data => ({
       count: data.count,
-      totalValue: data.totalValue,
+      total_nilai: data.total_nilai,
       month: new Date(data.year, data.monthIndex).toLocaleString('id-ID', {
         month: 'long'
       }),
@@ -254,7 +254,7 @@ const generateTopSuppliers = (
 ): SupplierPurchaseData[] => {
   const supplierData = new Map<string, {
     purchaseCount: number;
-    totalValue: number;
+    total_nilai: number;
     lastPurchaseDate: Date;
   }>();
 
@@ -262,14 +262,14 @@ const generateTopSuppliers = (
     if (!supplierData.has(purchase.supplier)) {
       supplierData.set(purchase.supplier, {
         purchaseCount: 0,
-        totalValue: 0,
+        total_nilai: 0,
         lastPurchaseDate: new Date(purchase.tanggal)
       });
     }
 
     const data = supplierData.get(purchase.supplier)!;
     data.purchaseCount++;
-    data.totalValue += purchase.totalNilai;
+    data.total_nilai += purchase.total_nilai;
     
     const purchaseDate = new Date(purchase.tanggal);
     if (purchaseDate > data.lastPurchaseDate) {
@@ -286,7 +286,7 @@ const generateTopSuppliers = (
         ...data
       };
     })
-    .sort((a, b) => b.totalValue - a.totalValue)
+    .sort((a, b) => b.total_nilai - a.total_nilai)
     .slice(0, 5); // Top 5 suppliers
 };
 
@@ -386,11 +386,11 @@ export const validatePurchaseForm = (formData: {
     errors.items = 'Minimal satu item harus ditambahkan';
   } else {
     // Validate each item
-    const hasInvalidItems = formData.items.some(item => 
-      !item.namaBarang.trim() || 
-      item.jumlah <= 0 || 
-      item.hargaSatuan <= 0
-    );
+     const hasInvalidItems = formData.items.some(item => 
+       !item.nama.trim() || 
+       item.quantity <= 0 || 
+       item.unitPrice <= 0
+     );
     
     if (hasInvalidItems) {
       errors.items = 'Semua item harus memiliki nama, jumlah > 0, dan harga > 0';
@@ -404,27 +404,27 @@ export const validatePurchaseForm = (formData: {
 };
 
 export const validateItemForm = (itemData: {
-  namaBarang: string;
-  jumlah: number;
+  nama: string;
+  quantity: number;
   satuan: string;
-  hargaSatuan: number;
+  unitPrice: number;
 }): { isValid: boolean; errors: Record<string, string> } => {
   const errors: Record<string, string> = {};
 
-  if (!itemData.namaBarang.trim()) {
-    errors.namaBarang = 'Nama barang wajib diisi';
+  if (!itemData.nama.trim()) {
+    errors.nama = 'Nama barang wajib diisi';
   }
 
-  if (!itemData.jumlah || itemData.jumlah <= 0) {
-    errors.jumlah = 'Jumlah harus lebih dari 0';
+  if (!itemData.quantity || itemData.quantity <= 0) {
+    errors.quantity = 'Jumlah harus lebih dari 0';
   }
 
   if (!itemData.satuan.trim()) {
     errors.satuan = 'Satuan wajib diisi';
   }
 
-  if (!itemData.hargaSatuan || itemData.hargaSatuan <= 0) {
-    errors.hargaSatuan = 'Harga satuan harus lebih dari 0';
+  if (!itemData.unitPrice || itemData.unitPrice <= 0) {
+    errors.unitPrice = 'Harga satuan harus lebih dari 0';
   }
 
   return {

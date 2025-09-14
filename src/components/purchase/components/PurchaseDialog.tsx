@@ -64,7 +64,7 @@ interface FormData {
   satuan: string;
 
   // input utama
-  kuantitas: string;            // Total yang dibeli (unit dasar bahan baku)
+  quantity: string;            // Total yang dibeli (unit dasar bahan baku)
   totalBayar: string;           // Total bayar (untuk hitung harga satuan otomatis)
 
   keterangan: string;
@@ -74,8 +74,8 @@ interface FormData {
 interface PurchaseItemPayload {
   nama: string;
   satuan: string;
-  kuantitas: number;
-  hargaSatuan: number;
+  quantity: number;
+  unitPrice: number;
   keterangan: string;
 }
 
@@ -118,7 +118,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     removeItem,
     handleSubmit,
     handleReset,
-    totalValue,
+    total_nilai,
   } = usePurchaseForm({
     mode,
     initialData: purchase,
@@ -395,7 +395,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-gray-500">Kuantitas:</span>
-                            <div className="font-medium text-gray-900">{item.kuantitas} {item.satuan}</div>
+                            <div className="font-medium text-gray-900">{item.quantity} {item.satuan}</div>
                           </div>
                           <div>
                             <span className="text-gray-500">Harga Satuan:</span>
@@ -413,7 +413,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     <div className="p-4 bg-gray-50 border-t">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-gray-900">Total Keseluruhan:</span>
-                        <span className="font-bold text-lg text-green-600">{formatCurrency(totalValue)}</span>
+                        <span className="font-bold text-lg text-green-600">{formatCurrency(total_nilai)}</span>
                       </div>
                     </div>
                   </div>
@@ -441,10 +441,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                               )}
                             </td>
                             <td className="px-4 py-3 text-gray-900">
-                              {item.kuantitas} {item.satuan}
+                              {item.quantity} {item.satuan}
                             </td>
                             <td className="px-4 py-3 text-gray-900">
-                              {formatCurrency(item.hargaSatuan)}
+                              {formatCurrency(item.unitPrice)}
                             </td>
                             <td className="px-4 py-3 font-medium text-gray-900">
                               {formatCurrency(item.subtotal)}
@@ -480,7 +480,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                             Total
                           </td>
                           <td className="px-4 py-3 text-gray-900">
-                            {formatCurrency(totalValue)}
+                            {formatCurrency(total_nilai)}
                           </td>
                           <td></td>
                         </tr>
@@ -507,7 +507,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <div className="flex-1">
                   <p className="text-sm text-gray-600">Total Pembelian</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {formatCurrency(totalValue)}
+                    {formatCurrency(total_nilai)}
                   </p>
                 </div>
                 <div className="text-left sm:text-right">

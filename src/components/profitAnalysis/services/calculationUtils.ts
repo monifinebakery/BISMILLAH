@@ -22,7 +22,7 @@ import {
  * Hitung nilai HPP baris pemakaian (pakai hpp_value/harga_efektif; fallback ke map)
  */
 export function calculatePemakaianValue(p: any, bahanMap: Record<string, any>): number {
-  const qty = Number(p.qty_base || 0);
+  const qty = Number(p.quantity || 0);
   if (typeof p.hpp_value === 'number') return Number(p.hpp_value);
   if (typeof p.harga_efektif === 'number') return qty * Number(p.harga_efektif);
   

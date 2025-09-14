@@ -97,12 +97,12 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
               <Input 
                 type="number" 
                 min="0"
-                value={item.price} 
-                onChange={e => onItemChange(item.id, 'price', e.target.value)} 
+                value={item.unit_price}
+                onChange={e => onItemChange(item.id, 'unit_price', e.target.value)} 
                 className="text-right font-mono border-gray-300 focus:border-blue-500 text-xs sm:text-sm"
               />
               <div className="export-text text-right font-mono text-sm">
-                {formatCurrency(item.price)}
+                {formatCurrency(item.unit_price)}
               </div>
             </div>
             
@@ -112,7 +112,7 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                 Total:
               </Label>
               <span className="font-bold text-base sm:text-lg font-mono">
-                {formatCurrency(item.quantity * item.price)}
+                {formatCurrency(item.quantity * item.unit_price)}
               </span>
             </div>
             

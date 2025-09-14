@@ -121,7 +121,7 @@ export const validateDataQuality = (
   
   // Check material data completeness
   const incompleteMaterials = materials.filter(m => 
-    !m.nama || m.stok === undefined || m.harga_satuan === undefined
+    !m.nama || m.stok === undefined || m.unit_price === undefined
   );
   
   if (incompleteMaterials.length > 0) {
@@ -131,7 +131,7 @@ export const validateDataQuality = (
   
   // Check operational cost data completeness
   const incompleteCosts = operationalCosts.filter(c => 
-    !c.nama_biaya || c.jumlah_per_bulan === undefined
+    !c.nama_biaya || c.monthly_amount === undefined
   );
   
   if (incompleteCosts.length > 0) {

@@ -315,8 +315,8 @@ const DetailedBreakdownTable = ({
   const opexItems = useMemo(() => {
     return opexCosts.map(cost => ({
       name: cost.nama_biaya || cost.name || 'Biaya Tidak Diketahui',
-      amount: cost.jumlah_per_bulan || cost.amount || 0,
-      percentage: finalOpex > 0 ? ((cost.jumlah_per_bulan || cost.amount || 0) / finalOpex) * 100 : 0,
+      amount: cost.monthly_amount || cost.amount || 0,
+        percentage: finalOpex > 0 ? ((cost.monthly_amount || cost.amount || 0) / finalOpex) * 100 : 0,
       type: cost.jenis || cost.type || 'Tidak Diketahui'
     }));
   }, [opexCosts, finalOpex]);

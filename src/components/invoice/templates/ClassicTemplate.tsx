@@ -30,8 +30,8 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
           <div className="text-right">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">INVOICE</h2>
             <div className="text-sm">
-              <p><strong>No:</strong> {order.nomorPesanan}</p>
-              <p><strong>Tanggal:</strong> {formatDateForInvoice(new Date(order.tanggal || new Date()))}</p>
+              <p><strong>No:</strong> {order.order_number}</p>
+              <p><strong>Tanggal:</strong> {formatDateForInvoice(new Date(order.order_date || new Date()))}</p>
             </div>
           </div>
         </div>
@@ -42,12 +42,12 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
         <h3 className="text-lg font-bold text-gray-800 mb-4">DITAGIHKAN KEPADA:</h3>
         <div className="grid grid-cols-2 gap-8">
           <div>
-            <p className="font-bold text-lg">{order.namaPelanggan}</p>
-            <p className="text-gray-600 mt-2">{order.alamatPelanggan}</p>
+            <p className="font-bold text-lg">{order.customer_name}</p>
+            <p className="text-gray-600 mt-2">{order.customer_address}</p>
           </div>
           <div className="text-sm">
-            <p><strong>Tel:</strong> {order.telefonPelanggan}</p>
-            <p><strong>Email:</strong> {order.emailPelanggan}</p>
+            <p><strong>Tel:</strong> {order.customer_phone}</p>
+            <p><strong>Email:</strong> {order.customer_email}</p>
           </div>
         </div>
       </div>
@@ -66,10 +66,10 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
           <tbody>
             {order.items.map((item) => (
               <tr key={item.id}>
-                <td className="border border-gray-800 p-3">{item.namaBarang}</td>
+                <td className="border border-gray-800 p-3">{item.item_name}</td>
                 <td className="border border-gray-800 p-3 text-center font-mono">{item.quantity}</td>
-                <td className="border border-gray-800 p-3 text-right font-mono">{formatCurrency(item.hargaSatuan)}</td>
-                <td className="border border-gray-800 p-3 text-right font-mono font-bold">{formatCurrency(item.totalHarga)}</td>
+                <td className="border border-gray-800 p-3 text-right font-mono">{formatCurrency(item.unit_price)}</td>
+                <td className="border border-gray-800 p-3 text-right font-mono font-bold">{formatCurrency(item.total_price)}</td>
               </tr>
             ))}
           </tbody>
@@ -83,15 +83,15 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, classNa
                 <span>SUBTOTAL:</span>
                 <span className="font-mono">{formatCurrency(order.subtotal)}</span>
               </div>
-              {order.pajak && order.pajak > 0 && (
+              {order.tax_amount && order.tax_amount > 0 && (
                 <div className="flex justify-between p-3 border-b border-gray-300">
                   <span>PAJAK:</span>
-                  <span className="font-mono">{formatCurrency(order.pajak)}</span>
+                  <span className="font-mono">{formatCurrency(order.tax_amount)}</span>
                 </div>
               )}
               <div className="flex justify-between p-4 bg-gray-800 text-white text-xl font-bold">
                 <span>TOTAL:</span>
-                <span className="font-mono">{formatCurrency(order.totalPesanan)}</span>
+                <span className="font-mono">{formatCurrency(order.total_amount)}</span>
               </div>
             </div>
           </div>

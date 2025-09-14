@@ -48,20 +48,20 @@ export interface InvoiceData {
 
 export interface OrderData {
   id: string;
-  nomorPesanan: string;
-  namaPelanggan: string;
-  alamatPelanggan?: string;
-  telefonPelanggan?: string;
-  emailPelanggan?: string;
-  tanggal?: string;
+  order_number: string; // Standardized field name
+  customer_name: string; // Standardized field name
+  customer_address?: string; // Standardized field name
+  customer_phone?: string; // Standardized field name
+  customer_email?: string; // Standardized field name
+  order_date?: string; // Standardized field name
   items: Array<{
     id: number;
-    namaBarang: string;
+    item_name: string; // Standardized field name
     quantity: number;
-    hargaSatuan: number;
-    totalHarga: number;
+    unit_price: number; // Standardized field name
+    total_price: number; // Standardized field name
   }>;
   subtotal: number;
-  pajak?: number;
-  totalPesanan: number;
+  tax_amount?: number; // Standardized field name
+  total_amount: number; // Standardized field name
 }

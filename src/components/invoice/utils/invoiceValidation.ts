@@ -47,9 +47,9 @@ export const validateInvoiceItems = (items: InvoiceItem[]): ValidationError[] =>
       });
     }
     
-    if (item.price < 0) {
+    if (item.unit_price < 0) {
       errors.push({ 
-        field: `items[${index}].price`, 
+        field: `items[${index}].unit_price`, 
         message: `Harga item ${index + 1} tidak boleh negatif` 
       });
     }

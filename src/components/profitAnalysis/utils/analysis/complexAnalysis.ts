@@ -66,7 +66,7 @@ export const calculateRealTimeProfit = (
   } = calcHPP(
     materials.map(m => ({ 
       bahan_baku_id: m.id, 
-      qty_base: (Number(m.stok) || 0) * usageRate // Configurable usage rate
+      quantity: (Number(m.stok) || 0) * usageRate // Configurable usage rate - Standardized field name
     })),
     Object.fromEntries(materials.map(m => [m.id, m]))
   );
@@ -99,7 +99,7 @@ export const calculateRealTimeProfit = (
 
   const enhancedOpExCosts = activeCosts.map(c => ({
     nama_biaya: c.nama_biaya,
-    jumlah_per_bulan: Number(c.jumlah_per_bulan),
+    monthly_amount: Number(c.monthly_amount),
     jenis: c.jenis,
     cost_category: c.cost_category || 'general',
     id: c.id
@@ -141,7 +141,7 @@ export const analyzeCostStructure = (
   // Calculate operational costs
   const opexCosts = operationalCosts
     .filter(c => c.status === 'aktif')
-    .reduce((sum, c) => sum + Number(c.jumlah_per_bulan), 0);
+    .reduce((sum, c) => sum + Number(c.monthly_amount), 0);
 
   // Calculate ratios
   const materialRatio = revenue > 0 ? (materialCosts / revenue) * 100 : 0;

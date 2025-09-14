@@ -242,7 +242,7 @@ export const profitAnalysisApi = {
         id: m.id,
         nama: m.nama,
         stok: m.stok,
-        harga_satuan: m.harga,
+        unit_price: m.harga,
         status: 'aktif' as const,
         user_id: userId
       })) : [];
@@ -375,10 +375,10 @@ export const profitAnalysisApi = {
       const activeCosts = costs.filter(c => c.status === 'aktif');
       const totalOpEx = activeCosts.reduce((sum, cost) => sum + (cost.jumlah_per_bulan || 0), 0);
 
-      const breakdown: OpExBreakdown[] = activeCosts.map(cost => ({
-        cost_name: cost.nama_biaya,
-        amount: cost.jumlah_per_bulan || 0,
-        percentage: totalOpEx > 0 ? ((cost.jumlah_per_bulan || 0) / totalOpEx) * 100 : 0,
+  const breakdown: OpExBreakdown[] = activeCosts.map(cost => ({
+    cost_name: cost.nama_biaya,
+    amount: cost.jumlah_per_bulan || 0,
+    percentage: totalOpEx > 0 ? ((cost.jumlah_per_bulan || 0) / totalOpEx) * 100 : 0,
         type: cost.jenis || 'tetap',
         category: cost.cost_category || 'other'
       }));

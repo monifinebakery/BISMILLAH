@@ -3,14 +3,14 @@ export interface InvoiceItem {
   id: number;
   description: string;
   quantity: number;
-  price: number;
+  unit_price: number; // Standardized field name
   total?: number; // Calculated field
 }
 
 export interface OrderItem {
   id: number;
-  namaBarang: string;
+  item_name: string; // Standardized field name
   quantity: number;
-  hargaSatuan: number;
-  totalHarga: number;
+  unit_price: number; // Standardized field name
+  total_price: number; // Standardized field name
 }

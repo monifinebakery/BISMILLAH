@@ -13,31 +13,31 @@ export interface FinancialTransactionActual {
   user_id: string;
 }
 
-// Material data type for calculations
+// Material data type for calculations - Standardized field names
 export interface BahanBakuActual {
   id: string;
   nama: string;
   stok: number;
-  harga_satuan: number;
+  unit_price: number; // Standardized from harga_satuan
   status: 'aktif' | 'nonaktif';
   user_id: string;
 }
 
-// Operational cost type for calculations
+// Operational cost type for calculations - Standardized field names
 export interface OperationalCostActual {
   id: string;
   nama_biaya: string;
-  jumlah_per_bulan: number;
+  monthly_amount: number; // Standardized from jumlah_per_bulan
   jenis: 'tetap' | 'variabel';
   status: 'aktif' | 'nonaktif';
   cost_category?: string;
   user_id: string;
 }
 
-// Usage tracking for material calculations
+// Usage tracking for material calculations - Standardized field names
 export interface PemakaianBahan {
   bahan_baku_id: string;
-  qty_base: number; // Base quantity used
+  quantity: number; // Standardized from qty_base
 }
 
 export interface ProfitAnalysis {

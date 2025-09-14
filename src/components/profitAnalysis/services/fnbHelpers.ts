@@ -83,7 +83,7 @@ export async function getFNBCOGSBreakdown(
         
         if (!bahan) return null;
 
-        const qty = Number(item.qty_base || 0);
+        const qty = Number(item.quantity || 0);
         const unitPrice = getEffectiveUnitPrice(bahan);
         const totalCost = calculatePemakaianValue(item, bahanMap);
         const category = categorizeFNBItem(bahan.nama || '');

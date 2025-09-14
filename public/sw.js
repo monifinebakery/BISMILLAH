@@ -108,6 +108,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // Skip unsupported schemes (chrome-extension, moz-extension, etc.)
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+  
   // Handle different types of requests
   if (isStaticAsset(url)) {
     event.respondWith(handleStaticAsset(request));
@@ -140,6 +145,12 @@ function isNavigationRequest(request) {
 // Handle static assets with smart caching strategy
 async function handleStaticAsset(request) {
   const url = new URL(request.url);
+  
+  // Additional safety check for unsupported schemes
+  if (!url.protocol.startsWith('http')) {
+    swError('[SW] Unsupported scheme for caching:', url.protocol, url.href);
+    return fetch(request);
+  }
   
   try {
     // Check if it's a critical asset
@@ -194,6 +205,13 @@ async function handleStaticAsset(request) {
 async function handleAPIRequest(request) {
   try {
     const url = new URL(request.url);
+    
+    // Additional safety check for unsupported schemes
+    if (!url.protocol.startsWith('http')) {
+      swError('[SW] Unsupported scheme for API caching:', url.protocol, url.href);
+      return fetch(request);
+    }
+    
     // Always bypass cache for sensitive verification endpoints
     if (url.pathname === '/api/turnstile-verify') {
       return await fetch(request);
@@ -258,6 +276,14 @@ async function handleNavigation(request) {
 
 // Handle dynamic requests with network-first strategy
 async function handleDynamicRequest(request) {
+  const url = new URL(request.url);
+  
+  // Additional safety check for unsupported schemes
+  if (!url.protocol.startsWith('http')) {
+    swError('[SW] Unsupported scheme for dynamic caching:', url.protocol, url.href);
+    return fetch(request);
+  }
+  
   try {
     const networkResponse = await fetch(request);
     

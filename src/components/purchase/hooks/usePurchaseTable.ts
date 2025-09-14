@@ -26,9 +26,9 @@ interface UsePurchaseTableReturn {
   setStatusFilter: (status: PurchaseStatus | 'all') => void;
   
   // Sorting state
-  sortField: 'tanggal' | 'totalNilai' | 'supplier' | 'status';
+  sortField: 'tanggal' | 'totalValue' | 'supplier' | 'status';
   sortOrder: 'asc' | 'desc';
-  handleSort: (field: 'tanggal' | 'totalNilai' | 'supplier' | 'status') => void;
+  handleSort: (field: 'tanggal' | 'totalValue' | 'supplier' | 'status') => void;
   
   // Helper functions
   getSupplierName: (supplierId: string) => string;
@@ -43,7 +43,7 @@ export const usePurchaseTable = ({
   const [statusFilter, setStatusFilter] = useState<PurchaseStatus | 'all'>('all');
   
   // Sorting state
-  const [sortField, setSortField] = useState<'tanggal' | 'totalNilai' | 'supplier' | 'status'>('tanggal');
+  const [sortField, setSortField] = useState<'tanggal' | 'totalValue' | 'supplier' | 'status'>('tanggal');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Filtered and sorted purchases

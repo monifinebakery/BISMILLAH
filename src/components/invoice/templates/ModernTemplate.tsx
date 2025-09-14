@@ -36,8 +36,8 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
                 Invoice
               </h2>
               <div className="space-y-1 text-blue-100">
-                <p className="text-sm"><span className="font-medium">No:</span> {order.nomorPesanan}</p>
-                <p className="text-sm"><span className="font-medium">Tanggal:</span> {formatDateForInvoice(new Date(order.tanggal || new Date()))}</p>
+                <p className="text-sm"><span className="font-medium">No:</span> {order.order_number}</p>
+                <p className="text-sm"><span className="font-medium">Tanggal:</span> {formatDateForInvoice(new Date(order.order_date || new Date()))}</p>
               </div>
             </div>
           </div>
@@ -53,15 +53,15 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="font-bold text-gray-800 text-lg mb-2">{order.namaPelanggan}</p>
-                <p className="text-gray-600 leading-relaxed">{order.alamatPelanggan}</p>
+                <p className="font-bold text-gray-800 text-lg mb-2">{order.customer_name}</p>
+                <p className="text-gray-600 leading-relaxed">{order.customer_address}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-gray-600">
-                  <span className="font-medium">Telepon:</span> {order.telefonPelanggan}
+                  <span className="font-medium">Telepon:</span> {order.customer_phone}
                 </p>
                 <p className="text-gray-600">
-                  <span className="font-medium">Email:</span> {order.emailPelanggan}
+                  <span className="font-medium">Email:</span> {order.customer_email}
                 </p>
               </div>
             </div>
@@ -93,16 +93,16 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
                 {order.items.map((item, index) => (
                   <tr key={item.id} className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
                     <td className="px-6 py-4 text-gray-800 font-medium">
-                      {item.namaBarang}
+                      {item.item_name}
                     </td>
                     <td className="px-6 py-4 text-center text-gray-700 font-mono">
                       {item.quantity}
                     </td>
                     <td className="px-6 py-4 text-right text-gray-700 font-mono">
-                      {formatCurrency(item.hargaSatuan)}
+                      {formatCurrency(item.unit_price)}
                     </td>
                     <td className="px-6 py-4 text-right text-gray-800 font-mono font-semibold">
-                      {formatCurrency(item.totalHarga)}
+                      {formatCurrency(item.total_price)}
                     </td>
                   </tr>
                 ))}
@@ -121,10 +121,10 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
                   <span className="font-mono text-right">{formatCurrency(order.subtotal)}</span>
                 </div>
                 
-                {order.pajak && order.pajak > 0 && (
+                {order.tax_amount && order.tax_amount > 0 && (
                   <div className="flex justify-between items-center text-gray-600">
                     <span className="font-medium">Pajak</span>
-                    <span className="font-mono text-right">{formatCurrency(order.pajak)}</span>
+                    <span className="font-mono text-right">{formatCurrency(order.tax_amount)}</span>
                   </div>
                 )}
                 
@@ -132,7 +132,7 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className
                 
                 <div className="flex justify-between items-center text-xl font-bold text-gray-800 bg-white rounded-lg p-4 border-2 border-blue-200">
                   <span>Total</span>
-                  <span className="font-mono text-blue-600">{formatCurrency(order.totalPesanan)}</span>
+                  <span className="font-mono text-blue-600">{formatCurrency(order.total_amount)}</span>
                 </div>
               </div>
             </div>

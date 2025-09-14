@@ -22,7 +22,7 @@ export const calculatePurchaseStats = (purchases: Purchase[]): PurchaseStats => 
   const stats = purchases.reduce(
     (acc, purchase) => {
       acc.total += 1;
-      acc.totalValue += purchase.totalNilai || 0;
+      acc.totalValue += purchase.totalValue || 0;
       acc.byStatus[purchase.status] += 1;
       return acc;
     },
@@ -82,7 +82,7 @@ export const searchPurchases = (purchases: Purchase[], query: string): Purchase[
  */
 export const sortPurchases = (
   purchases: Purchase[],
-  sortBy: 'tanggal' | 'totalNilai' | 'supplier' | 'status',
+  sortBy: 'tanggal' | 'totalValue' | 'supplier' | 'status',
   sortOrder: 'asc' | 'desc' = 'desc'
 ): Purchase[] => {
   const sortedPurchases = [...purchases].sort((a, b) => {
@@ -92,8 +92,8 @@ export const sortPurchases = (
       case 'tanggal':
         comparison = new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime();
         break;
-      case 'totalNilai':
-        comparison = (a.totalNilai || 0) - (b.totalNilai || 0);
+      case 'totalValue':
+        comparison = (a.totalValue || 0) - (b.totalValue || 0);
         break;
       case 'supplier':
         comparison = (a.supplier || '').localeCompare(b.supplier || '');
@@ -142,7 +142,7 @@ export const getStatusColor = (status: PurchaseStatus): string => {
  */
 export const calculateTotalItems = (purchase: Purchase): number => {
   if (!purchase.items || purchase.items.length === 0) return 0;
-  return purchase.items.reduce((total, item) => total + (item.kuantitas || 0), 0);
+  return purchase.items.reduce((total, item) => total + (item.quantity || 0), 0);
 };
 
 /**
@@ -156,7 +156,7 @@ export const getFormattedTotalQuantities = (purchase: Purchase): string => {
   // Group quantities by satuan (unit type)
   const quantitiesBySatuan = purchase.items.reduce((acc, item) => {
     const satuan = item.satuan || 'unit';
-    acc[satuan] = (acc[satuan] || 0) + (item.kuantitas || 0);
+    acc[satuan] = (acc[satuan] || 0) + (item.quantity || 0);
     return acc;
   }, {} as Record<string, number>);
 
@@ -188,7 +188,7 @@ export const generatePurchaseSummary = (purchase: Purchase): string => {
   // Group quantities by satuan (unit type)
   const quantitiesBySatuan = purchase.items.reduce((acc, item) => {
     const satuan = item.satuan || 'unit'; // fallback to 'unit' if satuan is missing
-    acc[satuan] = (acc[satuan] || 0) + (item.kuantitas || 0);
+    acc[satuan] = (acc[satuan] || 0) + (item.quantity || 0);
     return acc;
   }, {} as Record<string, number>);
 
@@ -263,7 +263,7 @@ export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
     errors.push('Minimal satu item harus ditambahkan');
   }
 
-  if (purchase.totalNilai === undefined || purchase.totalNilai <= 0) {
+  if (purchase.totalValue === undefined || purchase.totalValue <= 0) {
     errors.push('Total nilai harus lebih dari 0');
   }
 
@@ -272,10 +272,10 @@ export const validatePurchaseData = (purchase: Partial<Purchase>): string[] => {
     if (!item.nama?.trim()) {
       errors.push(`Item ${index + 1}: Nama item harus diisi`);
     }
-    if (!item.kuantitas || item.kuantitas <= 0) {
+    if (!item.quantity || item.quantity <= 0) {
       errors.push(`Item ${index + 1}: Kuantitas harus lebih dari 0`);
     }
-    if (!item.hargaSatuan || item.hargaSatuan < 0) {
+    if (!item.unitPrice || item.unitPrice < 0) {
       errors.push(`Item ${index + 1}: Harga satuan tidak valid`);
     }
     if (!item.satuan?.trim()) {
@@ -307,7 +307,7 @@ export const calculateTotalFromItems = (items: Purchase['items']): number => {
   if (!items || items.length === 0) return 0;
   
   return items.reduce((total, item) => {
-    const itemTotal = (item.kuantitas || 0) * (item.hargaSatuan || 0);
+    const itemTotal = (item.quantity || 0) * (item.unitPrice || 0);
     return total + itemTotal;
   }, 0);
 };
@@ -334,7 +334,7 @@ export const getItemsPreview = (items: Purchase['items'], maxItems: number = 2):
 
   const preview = items
     .slice(0, maxItems)
-    .map(item => `${item.nama} (${item.kuantitas} ${item.satuan})`)
+    .map(item => `${item.nama} (${item.quantity} ${item.satuan})`)
     .join(', ');
   
   if (items.length > maxItems) {
@@ -368,7 +368,7 @@ export const exportPurchasesToCSV = (
   const rows = purchases.map(purchase => [
     new Date(purchase.tanggal).toLocaleDateString('id-ID'),
     getSupplierName(purchase.supplier),                    // ✅ FIXED: Show supplier name instead of ID
-    (purchase.totalNilai ?? 0).toString(),                 // ✅ aman null/undefined
+    (purchase.totalValue ?? 0).toString(),                 // ✅ aman null/undefined
     getStatusDisplayText(purchase.status),
     (purchase.items?.length ?? 0).toString(),              // ✅ aman
     getFormattedTotalQuantities(purchase),

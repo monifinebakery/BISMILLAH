@@ -156,7 +156,7 @@ export function calculateDetailedOverhead(
 
   // Kategorikan dan hitung setiap cost
   activeCosts.forEach(cost => {
-    const amount = Number(cost.jumlah_per_bulan) || 0;
+    const amount = Number(cost.monthly_amount) || 0;
     const category = categorizeOperationalCost(cost);
 
     switch (category) {

@@ -207,7 +207,7 @@ export const transformToOpExBreakdown = (
   operationalCosts: any[]
 ): OpExBreakdown[] => {
   const activeCosts = operationalCosts.filter(c => c.status === 'aktif');
-  const totalOpEx = activeCosts.reduce((sum, c) => sum + (c.jumlah_per_bulan || 0), 0);
+  const totalOpEx = activeCosts.reduce((sum, c) => sum + (c.monthly_amount || 0), 0);
 
   return activeCosts.map(cost => {
     // 🏪 Map cost names to F&B friendly terms
@@ -241,9 +241,9 @@ export const transformToOpExBreakdown = (
     
     return {
       cost_name: friendlyName,
-      amount: cost.jumlah_per_bulan || 0,
+      amount: cost.monthly_amount || 0,
       type: cost.jenis,
-      percentage: totalOpEx > 0 ? ((cost.jumlah_per_bulan || 0) / totalOpEx) * 100 : 0
+      percentage: totalOpEx > 0 ? ((cost.monthly_amount || 0) / totalOpEx) * 100 : 0
     };
   });
 };

@@ -1,0 +1,287 @@
+// src/utils/typeConverters.ts
+/**
+ * Unified Type Converters for Purchase and Warehouse Data
+ * Provides consistent field mapping between frontend (camelCase) and database (snake_case)
+ */
+
+import type { Purchase, PurchaseItem, PurchaseItemDB, CreatePurchaseRequest, UpdatePurchaseRequest } from '@/components/purchase/types/purchase.types';
+import type { BahanBaku, BahanBakuFrontend } from '@/components/warehouse/types';
+
+// ============ FIELD MAPPINGS ============
+
+// Purchase field mappings
+export const PURCHASE_FIELD_MAPPINGS = {
+  frontend: {
+    totalValue: 'total_value',
+    calculationMethod: 'calculation_method',
+    userId: 'user_id',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  },
+  database: {
+    total_value: 'totalValue',
+    calculation_method: 'calculationMethod',
+    user_id: 'userId',
+    created_at: 'createdAt',
+    updated_at: 'updatedAt'
+  }
+} as const;
+
+// Purchase item field mappings
+export const PURCHASE_ITEM_FIELD_MAPPINGS = {
+  frontend: {
+    bahanBakuId: 'bahan_baku_id',
+    quantity: 'quantity',
+    unitPrice: 'unit_price'
+  },
+  database: {
+    bahan_baku_id: 'bahanBakuId',
+    quantity: 'quantity',
+    unit_price: 'unitPrice'
+  }
+} as const;
+
+// Warehouse field mappings (already defined in warehouse/types.ts)
+export const WAREHOUSE_FIELD_MAPPINGS = {
+  frontend: {
+    userId: 'user_id',
+    harga: 'harga_satuan',
+    hargaRataRata: 'harga_rata_rata',
+    expiry: 'tanggal_kadaluwarsa',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  },
+  database: {
+    user_id: 'userId',
+    harga_satuan: 'harga',
+    harga_rata_rata: 'hargaRataRata',
+    tanggal_kadaluwarsa: 'expiry',
+    created_at: 'createdAt',
+    updated_at: 'updatedAt'
+  }
+} as const;
+
+// ============ PURCHASE CONVERTERS ============
+
+/**
+ * Convert Purchase from database format to frontend format
+ */
+export const convertPurchaseFromDB = (dbPurchase: any): Purchase => {
+  return {
+    id: dbPurchase.id,
+    userId: dbPurchase.user_id,
+    supplier: dbPurchase.supplier,
+    tanggal: new Date(dbPurchase.tanggal),
+    totalValue: dbPurchase.total_value || dbPurchase.total_nilai, // support both old and new
+    items: dbPurchase.items?.map(convertPurchaseItemFromDB) || [],
+    status: dbPurchase.status,
+    calculationMethod: dbPurchase.calculation_method || dbPurchase.metode_perhitungan || 'AVERAGE',
+    keterangan: dbPurchase.keterangan,
+    createdAt: new Date(dbPurchase.created_at),
+    updatedAt: new Date(dbPurchase.updated_at)
+  };
+};
+
+/**
+ * Convert Purchase from frontend format to database format
+ */
+export const convertPurchaseToDB = (purchase: Purchase): CreatePurchaseRequest => {
+  return {
+    user_id: purchase.userId,
+    supplier: purchase.supplier,
+    tanggal: purchase.tanggal instanceof Date ? purchase.tanggal.toISOString().split('T')[0] : String(purchase.tanggal),
+    total_value: purchase.totalValue,
+    items: purchase.items.map(convertPurchaseItemToDB),
+    status: purchase.status,
+    calculation_method: purchase.calculationMethod
+  };
+};
+
+/**
+ * Convert PurchaseItem from database format to frontend format
+ */
+export const convertPurchaseItemFromDB = (dbItem: any): PurchaseItem => {
+  return {
+    bahanBakuId: dbItem.bahan_baku_id,
+    nama: dbItem.nama,
+    quantity: dbItem.quantity || dbItem.jumlah, // support both old and new
+    satuan: dbItem.satuan,
+    unitPrice: dbItem.unit_price || dbItem.harga_per_satuan, // support both old and new
+    subtotal: dbItem.subtotal,
+    keterangan: dbItem.keterangan
+  };
+};
+
+/**
+ * Convert PurchaseItem from frontend format to database format
+ */
+export const convertPurchaseItemToDB = (item: PurchaseItem): PurchaseItemDB => {
+  return {
+    bahan_baku_id: item.bahanBakuId,
+    quantity: item.quantity,
+    unit_price: item.unitPrice,
+    nama: item.nama,
+    satuan: item.satuan,
+    subtotal: item.subtotal,
+    keterangan: item.keterangan
+  };
+};
+
+// ============ WAREHOUSE CONVERTERS ============
+
+/**
+ * Convert BahanBaku from database format to frontend format
+ */
+export const convertWarehouseFromDB = (dbBahan: BahanBaku): BahanBakuFrontend => {
+  return {
+    id: dbBahan.id,
+    userId: dbBahan.user_id,
+    nama: dbBahan.nama,
+    kategori: dbBahan.kategori,
+    stok: dbBahan.stok,
+    minimum: dbBahan.minimum,
+    satuan: dbBahan.satuan,
+    harga: dbBahan.harga_satuan,
+    hargaRataRata: dbBahan.harga_rata_rata,
+    supplier: dbBahan.supplier,
+    expiry: dbBahan.tanggal_kadaluwarsa,
+    createdAt: dbBahan.created_at,
+    updatedAt: dbBahan.updated_at
+  };
+};
+
+/**
+ * Convert BahanBaku from frontend format to database format
+ */
+export const convertWarehouseToDB = (bahan: BahanBakuFrontend): BahanBaku => {
+  return {
+    id: bahan.id,
+    user_id: bahan.userId,
+    nama: bahan.nama,
+    kategori: bahan.kategori,
+    stok: bahan.stok,
+    minimum: bahan.minimum,
+    satuan: bahan.satuan,
+    harga_satuan: bahan.harga,
+    harga_rata_rata: bahan.hargaRataRata,
+    supplier: bahan.supplier,
+    tanggal_kadaluwarsa: bahan.expiry,
+    created_at: bahan.createdAt,
+    updated_at: bahan.updatedAt
+  };
+};
+
+// ============ VALIDATION HELPERS ============
+
+/**
+ * Validate purchase data consistency
+ */
+export const validatePurchaseConsistency = (purchase: Purchase): string[] => {
+  const errors: string[] = [];
+  
+  // Check if total value matches sum of items
+  const calculatedTotal = purchase.items.reduce((sum, item) => {
+    return sum + (item.quantity * item.unitPrice);
+  }, 0);
+  
+  const tolerance = 0.01; // Allow small rounding differences
+  if (Math.abs(purchase.totalValue - calculatedTotal) > tolerance) {
+    errors.push(`Total value (${purchase.totalValue}) tidak sesuai dengan sum items (${calculatedTotal})`);
+  }
+  
+  // Check for empty items
+  if (!purchase.items || purchase.items.length === 0) {
+    errors.push('Purchase harus memiliki minimal 1 item');
+  }
+  
+  // Check item consistency
+  purchase.items.forEach((item, index) => {
+    if (!item.bahanBakuId) {
+      errors.push(`Item ${index + 1}: bahan_baku_id harus diisi`);
+    }
+    if (!item.quantity || item.quantity <= 0) {
+      errors.push(`Item ${index + 1}: quantity harus lebih dari 0`);
+    }
+    if (!item.unitPrice || item.unitPrice < 0) {
+      errors.push(`Item ${index + 1}: unit_price tidak boleh negatif`);
+    }
+  });
+  
+  return errors;
+};
+
+/**
+ * Validate warehouse data consistency
+ */
+export const validateWarehouseConsistency = (bahan: BahanBakuFrontend): string[] => {
+  const errors: string[] = [];
+  
+  if (!bahan.nama?.trim()) {
+    errors.push('Nama bahan baku harus diisi');
+  }
+  
+  if (bahan.stok < 0) {
+    errors.push('Stok tidak boleh negatif');
+  }
+  
+  if (bahan.minimum < 0) {
+    errors.push('Minimum stok tidak boleh negatif');
+  }
+  
+  if (!bahan.harga || bahan.harga < 0) {
+    errors.push('Harga satuan harus diisi dan tidak boleh negatif');
+  }
+  
+  if (!bahan.satuan?.trim()) {
+    errors.push('Satuan harus diisi');
+  }
+  
+  return errors;
+};
+
+// ============ UTILITY FUNCTIONS ============
+
+/**
+ * Get standardized field name for sorting
+ */
+export const getStandardizedSortField = (field: string): string => {
+  const fieldMap: Record<string, string> = {
+    'totalNilai': 'totalValue',
+    'total_nilai': 'totalValue',
+    'kuantitas': 'quantity',
+    'jumlah': 'quantity',
+    'hargaSatuan': 'unitPrice',
+    'harga_per_satuan': 'unitPrice',
+    'unit_price': 'unitPrice',
+    'metodePerhitungan': 'calculationMethod',
+    'metode_perhitungan': 'calculationMethod',
+    'calculation_method': 'calculationMethod'
+  };
+  
+  return fieldMap[field] || field;
+};
+
+/**
+ * Check if two objects have consistent field values
+ */
+export const areFieldsConsistent = (obj1: any, obj2: any, fieldMappings: Record<string, string>): boolean => {
+  for (const [frontendField, dbField] of Object.entries(fieldMappings)) {
+    if (obj1[frontendField] !== obj2[dbField]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+export default {
+  convertPurchaseFromDB,
+  convertPurchaseToDB,
+  convertPurchaseItemFromDB,
+  convertPurchaseItemToDB,
+  convertWarehouseFromDB,
+  convertWarehouseToDB,
+  validatePurchaseConsistency,
+  validateWarehouseConsistency,
+  getStandardizedSortField,
+  areFieldsConsistent
+};

@@ -32,7 +32,7 @@ interface BahanBakuFrontend {
 
 interface OperationalCost {
   status: string;
-  jumlah_per_bulan?: number;
+  monthly_amount?: number; // Standardized from jumlah_per_bulan
   nama_biaya?: string;
   jenis?: string;
 }
@@ -154,7 +154,7 @@ export const useProfitCalculation = (
       
       // Calculate OpEx
       const activeCosts = (costs || []).filter(c => c?.status === 'aktif');
-      const opex = activeCosts.reduce((sum, c) => sum + (c?.jumlah_per_bulan || 0), 0);
+      const opex = activeCosts.reduce((sum, c) => sum + (c?.monthly_amount || 0), 0);
       
       // Calculate profits and margins
       // ✅ IMPROVED: Use centralized calculation for consistency

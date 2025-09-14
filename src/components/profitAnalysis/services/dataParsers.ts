@@ -76,7 +76,7 @@ export const parseOpExCosts = (costsJson: any): any[] => {
  * Calculate pemakaian value from various data sources
  */
 export function calculatePemakaianValue(p: any, bahanMap: Record<string, any>): number {
-  const qty = Number(p.qty_base || 0);
+  const qty = Number(p.quantity || 0);
   if (typeof p.hpp_value === 'number') return Number(p.hpp_value);
   if (typeof p.harga_efektif === 'number') return qty * Number(p.harga_efektif);
   
@@ -85,7 +85,7 @@ export function calculatePemakaianValue(p: any, bahanMap: Record<string, any>): 
   
   // Get effective unit price (WAC priority, fallback to base price)
   const wac = Number(bahan.harga_rata_rata ?? 0);
-  const base = Number(bahan.harga_satuan ?? 0);
+  const base = Number(bahan.unit_price ?? 0);
   const effectivePrice = wac > 0 ? wac : base;
   
   return qty * effectivePrice;

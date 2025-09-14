@@ -22,7 +22,7 @@ export async function fetchBahanMap(): Promise<Record<string, any>> {
     // Use direct Supabase query instead of warehouse API to avoid type issues
     const { data: items, error } = await supabase
       .from('bahan_baku')
-      .select('id, nama, harga_rata_rata, harga_satuan, stok, satuan')
+      .select('id, nama, harga_rata_rata, unit_price, stok, satuan')
       .eq('user_id', user.id);
       
     if (error) throw error;
@@ -32,7 +32,7 @@ export async function fetchBahanMap(): Promise<Record<string, any>> {
       map[it.id] = {
         ...it,
         harga_rata_rata: Number(it.harga_rata_rata ?? it.hargaRataRata ?? 0),
-        harga_satuan: Number(it.harga_satuan ?? it.harga ?? 0),
+        unit_price: Number(it.unit_price ?? it.harga ?? 0),
       };
     });
     return map;
@@ -47,7 +47,7 @@ export async function fetchBahanMap(): Promise<Record<string, any>> {
  */
 export function getEffectiveUnitPrice(item: any): number {
   const wac = Number(item.harga_rata_rata ?? 0);
-  const base = Number(item.harga_satuan ?? 0);
+  const base = Number(item.unit_price ?? 0);
   return wac > 0 ? wac : base;
 }
 
@@ -62,7 +62,7 @@ export async function fetchPemakaianByPeriode(start: string, end: string): Promi
     // Use type assertion to bypass TypeScript schema validation
     const { data, error } = await (supabase as any)
       .from('pemakaian_bahan')
-      .select('bahan_baku_id, qty_base, tanggal, harga_efektif, hpp_value')
+      .select('bahan_baku_id, quantity, tanggal, harga_efektif, hpp_value')
       .eq('user_id', user.id)
       .gte('tanggal', start)
       .lte('tanggal', end);
@@ -146,7 +146,7 @@ export async function fetchPemakaianDailyAggregates(start: string, end: string):
         dateRange: { start, end },
         sampleData: pemakaian.slice(0, 3).map(p => ({
           tanggal: p.tanggal,
-          qty_base: p.qty_base,
+          quantity: p.quantity,
           harga_efektif: p.harga_efektif,
           hpp_value: p.hpp_value
         }))
@@ -161,7 +161,7 @@ export async function fetchPemakaianDailyAggregates(start: string, end: string):
         if (!row.tanggal) return;
         
         const day = normalizeDateForDatabase(new Date(row.tanggal));
-        const qty = Number(row.qty_base || 0);
+        const qty = Number(row.quantity || 0);
         const val = typeof row.hpp_value === 'number'
           ? Number(row.hpp_value)
           : typeof row.harga_efektif === 'number'

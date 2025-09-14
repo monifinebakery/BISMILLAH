@@ -10,7 +10,7 @@ import { PROFIT_CONSTANTS, FNB_THRESHOLDS, FNB_LABELS } from '../../constants/pr
 export function getEffectiveUnitPrice(item: BahanBakuActual | any): number {
   // Utamakan snake_case, fallback ke camelCase bila ada
   const wac = Number(item?.harga_rata_rata ?? item?.hargaRataRata ?? 0);
-  const base = Number(item?.harga_satuan ?? item?.harga ?? 0);
+  const base = Number(item?.unit_price ?? item?.harga ?? 0);
   return wac > 0 ? wac : base;
 }
 
@@ -31,7 +31,7 @@ export function calcHPP(
     const bb = bahanMap[row.bahan_baku_id];
     if (!bb) continue;
 
-    const qty = Number(row.qty_base || 0);
+    const qty = Number(row.quantity || 0);
 
     // 1) kalau view sudah kirim nilai HPP langsung
     if (typeof row.hpp_value === 'number' && !Number.isNaN(row.hpp_value)) {

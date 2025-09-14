@@ -41,7 +41,7 @@ export const useInvoiceForm = ({ initialData, orderData }: UseInvoiceFormOptions
     initialData?.customer || { name: '', address: '', phone: '', email: '' }
   );
   const [items, setItems] = useState<InvoiceItem[]>(
-    initialData?.items || [{ id: Date.now(), description: '', quantity: 1, price: 0 }]
+    initialData?.items || [{ id: Date.now(), description: '', quantity: 1, unit_price: 0 }]
   );
   const [discount, setDiscount] = useState<Discount>(
     initialData?.discount || { type: 'percent', value: 0 }
@@ -73,23 +73,23 @@ export const useInvoiceForm = ({ initialData, orderData }: UseInvoiceFormOptions
   // Update form when order data is loaded
   useEffect(() => {
     if (orderData) {
-      setInvoiceNumber(`INV-${orderData.nomorPesanan}`);
+      setInvoiceNumber(`INV-${orderData.order_number}`);
       setCustomer({
-        name: orderData.namaPelanggan,
-        address: orderData.alamatPelanggan || '',
-        phone: orderData.telefonPelanggan || '',
-        email: orderData.emailPelanggan || ''
+        name: orderData.customer_name,
+        address: orderData.customer_address || '',
+        phone: orderData.customer_phone || '',
+        email: orderData.customer_email || ''
       });
       
       const invoiceItems = orderData.items.map((item, index) => ({
         id: Date.now() + index,
-        description: item.namaBarang,
+        description: item.item_name,
         quantity: item.quantity,
-        price: item.hargaSatuan
+        unit_price: item.unit_price
       }));
       
       setItems(invoiceItems.length > 0 ? invoiceItems : [
-        { id: Date.now(), description: '', quantity: 1, price: 0 }
+        { id: Date.now(), description: '', quantity: 1, unit_price: 0 }
       ]);
     }
   }, [orderData]);
@@ -111,8 +111,8 @@ export const useInvoiceForm = ({ initialData, orderData }: UseInvoiceFormOptions
     setItems(items => [...items, { 
       id: Date.now(), 
       description: '', 
-      quantity: 1, 
-      price: 0 
+      quantity: 1,
+      unit_price: 0
     }]);
   }, []);
   
@@ -131,7 +131,7 @@ export const useInvoiceForm = ({ initialData, orderData }: UseInvoiceFormOptions
     setIssueDate(new Date());
     setDueDate(new Date(new Date().setDate(new Date().getDate() + 14)));
     setCustomer({ name: '', address: '', phone: '', email: '' });
-    setItems([{ id: Date.now(), description: '', quantity: 1, price: 0 }]);
+    setItems([{ id: Date.now(), description: '', quantity: 1, unit_price: 0 }]);
     setDiscount({ type: 'percent', value: 0 });
     setTax({ type: 'percent', value: 0 });
     setShipping(0);

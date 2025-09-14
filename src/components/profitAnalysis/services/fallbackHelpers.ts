@@ -71,12 +71,12 @@ export const getOpExBreakdownFallback = async (
     const activeCosts = (opexResult.data || []).filter(c => c.status === 'aktif');
     const totalOpEx = activeCosts.reduce((sum, c) => sum + (c.jumlah_per_bulan || 0), 0);
 
-    const breakdown: OpExBreakdown[] = activeCosts.map(cost => ({
-      cost_name: cost.nama_biaya,
-      amount: Number(cost.jumlah_per_bulan) || 0,
-      type: cost.jenis as 'tetap' | 'variabel',
-      percentage: totalOpEx > 0 ? ((cost.jumlah_per_bulan || 0) / totalOpEx) * 100 : 0
-    }));
+  const breakdown: OpExBreakdown[] = activeCosts.map(cost => ({
+    cost_name: cost.nama_biaya,
+    amount: Number(cost.jumlah_per_bulan) || 0,
+    type: cost.jenis as 'tetap' | 'variabel',
+    percentage: totalOpEx > 0 ? ((cost.jumlah_per_bulan || 0) / totalOpEx) * 100 : 0
+  }));
 
     return {
       data: breakdown,

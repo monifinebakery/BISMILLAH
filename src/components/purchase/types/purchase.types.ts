@@ -1,12 +1,13 @@
 // src/components/purchase/types/purchase.types.ts
 
 // ============ App (Frontend) Shapes ============
+// Frontend interface (camelCase for consistency with warehouse types)
 export interface PurchaseItem {
-  bahanBakuId: string;
+  bahanBakuId: string;    // consistent with warehouse: maps to bahan_baku_id
   nama: string;
-  kuantitas: number;
+  quantity: number;       // standardized from kuantitas
   satuan: string;
-  hargaSatuan: number;
+  unitPrice: number;      // standardized from hargaSatuan
   subtotal: number;
   keterangan?: string;
 }
@@ -16,10 +17,10 @@ export interface Purchase {
   userId: string;
   supplier: string;           // supplier name (nama supplier)
   tanggal: Date;
-  totalNilai: number;
+  totalValue: number;         // standardized from totalNilai
   items: PurchaseItem[];
   status: PurchaseStatus;
-  metodePerhitungan: CalculationMethod;
+  calculationMethod: CalculationMethod;  // standardized from metodePerhitungan
   keterangan?: string;        // Optional description/notes
   createdAt: Date;
   updatedAt: Date;
@@ -40,7 +41,7 @@ export interface PurchaseFormData {
   supplier: string; // supplier name (nama supplier)
   tanggal: Date | string; // Allow both Date object and string for flexibility
   items: PurchaseItem[];
-  metodePerhitungan: CalculationMethod;
+  calculationMethod: CalculationMethod;  // standardized from metodePerhitungan
   keterangan?: string; // Add optional keterangan field
 }
 
@@ -62,11 +63,11 @@ export interface PurchaseStatsProps {
 }
 
 // ============ API / DB Shapes ============
-// Baris item untuk disimpan ke DB (snake_case). Ini yang dibaca manual sync.
+// Database interface (snake_case for database consistency)
 export interface PurchaseItemDB {
   bahan_baku_id: string;
-  jumlah: number;
-  harga_per_satuan: number;
+  quantity: number;           // standardized from jumlah
+  unit_price: number;         // standardized from harga_per_satuan
   // metadata tambahan (aman disimpan)
   nama?: string;
   satuan?: string;
@@ -79,20 +80,20 @@ export interface CreatePurchaseRequest {
   user_id: string;
   supplier: string; // supplier name (nama supplier)
   tanggal: string; // 'YYYY-MM-DD'
-  total_nilai: number;
+  total_value: number;        // standardized from total_nilai
   items: PurchaseItemDB[]; // ✅ gunakan shape DB
   status?: PurchaseStatus;
-  metode_perhitungan?: CalculationMethod;
+  calculation_method?: CalculationMethod;  // standardized from metode_perhitungan
 }
 
 // ✅ NEW: Payload UPDATE untuk tabel purchases
 export interface UpdatePurchaseRequest {
   supplier?: string;
   tanggal?: string;
-  total_nilai?: number;
+  total_value?: number;       // standardized from total_nilai
   items?: PurchaseItemDB[];
   status?: PurchaseStatus;
-  metode_perhitungan?: CalculationMethod;
+  calculation_method?: CalculationMethod;  // standardized from metode_perhitungan
 }
 
 // Response pembelian (opsional kalau perlu)
@@ -123,9 +124,9 @@ export interface PurchaseTableContextType {
   setStatusFilter: (status: PurchaseStatus | 'all') => void;
 
   // Sorting
-  sortField: 'tanggal' | 'totalNilai' | 'supplier' | 'status';
+  sortField: 'tanggal' | 'totalValue' | 'supplier' | 'status';  // standardized from totalNilai
   sortOrder: 'asc' | 'desc';
-  handleSort: (field: 'tanggal' | 'totalNilai' | 'supplier' | 'status') => void;
+  handleSort: (field: 'tanggal' | 'totalValue' | 'supplier' | 'status') => void;
 
   // Utility functions
   getSupplierName: (supplierId: string) => string;
@@ -239,7 +240,7 @@ export interface PurchaseFilters {
     to: Date;
   };
   supplierFilter?: string;
-  sortBy: 'tanggal' | 'totalNilai' | 'supplier' | 'status';
+  sortBy: 'tanggal' | 'totalValue' | 'supplier' | 'status';  // standardized from totalNilai
   sortOrder: 'asc' | 'desc';
 }
 

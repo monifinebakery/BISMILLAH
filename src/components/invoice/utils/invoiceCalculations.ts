@@ -8,7 +8,7 @@ export const calculateInvoiceTotals = (
   shipping: number = 0
 ): InvoiceCalculations => {
   // Calculate subtotal
-  const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   
   // Calculate discount amount
   const discountAmount = discount.type === 'percent' 
@@ -30,8 +30,8 @@ export const calculateInvoiceTotals = (
   };
 };
 
-export const calculateItemTotal = (quantity: number, price: number): number => {
-  return quantity * price;
+export const calculateItemTotal = (quantity: number, unit_price: number): number => {
+  return quantity * unit_price;
 };
 
 export const validateCalculations = (calculations: InvoiceCalculations): boolean => {

@@ -38,25 +38,25 @@ export const invoiceApi = {
     // Transform database data to OrderData format
     const orderData: OrderData = {
       id: data.id,
-      nomorPesanan: data.nomor_pesanan,
-      namaPelanggan: data.nama_pelanggan,
-      alamatPelanggan: data.alamat_pengiriman,
-      telefonPelanggan: data.telepon_pelanggan,
-      emailPelanggan: data.email_pelanggan,
-      tanggal: data.tanggal,
+      order_number: data.nomor_pesanan,
+      customer_name: data.nama_pelanggan,
+      customer_address: data.alamat_pengiriman,
+      customer_phone: data.telepon_pelanggan,
+      customer_email: data.email_pelanggan,
+      order_date: data.tanggal,
       items: Array.isArray(data.items) ? data.items.map((item: any, index: number) => ({
         id: index + 1,
-        namaBarang: item.namaBarang || item.nama || item.description || 'Item',
-        quantity: item.quantity || item.jumlah || 1,
-        hargaSatuan: item.hargaSatuan || item.harga || item.price || 0,
-        totalHarga: (item.quantity || item.jumlah || 1) * (item.hargaSatuan || item.harga || item.price || 0)
+        item_name: item.item_name || item.namaBarang || item.nama || item.description || 'Item',
+    quantity: item.quantity || item.jumlah || 1,
+    unit_price: item.unit_price || item.hargaSatuan || item.harga || item.price || 0,
+    total_price: (item.quantity || item.jumlah || 1) * (item.unit_price || item.hargaSatuan || item.harga || item.price || 0)
       })) : [],
       subtotal: data.subtotal || 0,
-      pajak: data.pajak || 0,
-      totalPesanan: data.total_pesanan || 0
+      tax_amount: data.pajak || 0,
+      total_amount: data.total_pesanan || 0
     };
 
-    logger.success('InvoiceAPI: Order data loaded successfully:', orderData.nomorPesanan);
+    logger.success('InvoiceAPI: Order data loaded successfully:', orderData.order_number);
     return orderData;
   },
 
@@ -69,19 +69,19 @@ export const invoiceApi = {
     
     return {
       id: orderId,
-      nomorPesanan: `ORD-${orderId}`,
-      namaPelanggan: 'Customer Name',
-      alamatPelanggan: 'Jl. Customer Address No. 123\nKelurahan ABC, Kecamatan DEF\nKota GHI 12345',
-      telefonPelanggan: '+62 123 456 789',
-      emailPelanggan: 'customer@email.com',
-      tanggal: toSafeISOString(new Date()) || new Date().toISOString(),
+      order_number: `ORD-${orderId}`,
+      customer_name: 'Customer Name',
+      customer_address: 'Jl. Customer Address No. 123\nKelurahan ABC, Kecamatan DEF\nKota GHI 12345',
+      customer_phone: '+62 123 456 789',
+      customer_email: 'customer@email.com',
+      order_date: toSafeISOString(new Date()) || new Date().toISOString(),
       items: [
-        { id: 1, namaBarang: 'Product 1', quantity: 2, hargaSatuan: 50000, totalHarga: 100000 },
-        { id: 2, namaBarang: 'Product 2', quantity: 1, hargaSatuan: 75000, totalHarga: 75000 }
+        { id: 1, item_name: 'Product 1', quantity: 2, unit_price: 50000, total_price: 100000 },
+    { id: 2, item_name: 'Product 2', quantity: 1, unit_price: 75000, total_price: 75000 }
       ],
       subtotal: 175000,
-      pajak: 19250,
-      totalPesanan: 194250
+      tax_amount: 19250,
+      total_amount: 194250
     };
   }
 };

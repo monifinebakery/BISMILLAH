@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { getCurrentUserId as getAuthUserId } from '@/utils/authHelpers';
 import { Recipe, RecipeDB, NewRecipe } from '../types';
+import transformers from './recipeTransformers';
 export interface ApiResponse<T> {
   data: T;
   error?: string;
@@ -126,6 +127,18 @@ class RecipeApiService {
     }
   }
 
+  // ================= SNAKE_CASE VARIANTS =================
+  // Return snake_case recipe objects for consumers opting into new convention
+  async getRecipesSnake(filters?: { category?: string; search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc'; }) {
+    const data = await this.getRecipes(filters);
+    return data.map(transformers.to_snake_recipe);
+  }
+
+  async getRecipeSnake(id: string) {
+    const data = await this.getRecipe(id);
+    return transformers.to_snake_recipe(data as any);
+  }
+
   /**
    * ✅ useQuery-optimized: Get single recipe by ID
    */
@@ -215,6 +228,12 @@ class RecipeApiService {
       throw new Error('Unexpected error creating recipe');
     }
   }
+  
+  async createRecipeSnake(recipeSnake: any) {
+    const camel = transformers.from_snake_new_recipe(recipeSnake);
+    const created = await this.createRecipe(camel);
+    return transformers.to_snake_recipe(created as any);
+  }
   /**
    * ✅ useMutation-optimized: Update existing recipe
    */
@@ -274,6 +293,12 @@ class RecipeApiService {
       }
       throw new Error('Unexpected error updating recipe');
     }
+  }
+
+  async updateRecipeSnake(id: string, updatesSnake: any) {
+    const camel = transformers.from_snake_new_recipe(updatesSnake);
+    const updated = await this.updateRecipe(id, camel);
+    return transformers.to_snake_recipe(updated as any);
   }
   /**
    * ✅ useMutation-optimized: Delete recipe

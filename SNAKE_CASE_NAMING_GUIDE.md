@@ -21,3 +21,14 @@ Dokumen ini menetapkan standar penulisan nama field, kolom, dan kunci data di se
 - **Keterbacaan** yang lebih baik bagi seluruh anggota tim.
 
 Dengan mengikuti panduan ini, seluruh data dalam proyek akan lebih mudah dipelihara, diintegrasikan, dan dihindari dari kesalahan penulisan.
+
+## Implementasi Bertahap (Orders & Recipe)
+
+- Modul yang dimigrasikan terlebih dahulu: `orders` dan `recipe`.
+- Helper konversi tersedia agar transisi tidak mematahkan UI lama:
+  - Orders: `src/components/orders/naming.ts` — fungsi `to_snake_order`, `from_snake_order` untuk mapping camelCase ⇄ snake_case.
+  - Recipe: `src/components/recipe/services/recipeTransformers.ts` — fungsi `to_snake_recipe`, `from_snake_recipe`.
+
+### Aturan ESLint Khusus
+
+ESLint telah dikonfigurasi untuk memaksa snake_case pada properti di folder `orders` dan `recipe`. Perbaiki lint error secara bertahap dengan mengganti nama field ke snake_case.

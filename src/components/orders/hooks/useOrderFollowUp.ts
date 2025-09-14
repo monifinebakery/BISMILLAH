@@ -32,13 +32,16 @@ export const useOrderFollowUp = () => {
   // Get WhatsApp URL with optional specific status
   const getWhatsappUrl = useCallback(
     (order: Order, specificStatus?: string): string | null => {
-      if (!order.telefonPelanggan) return null;
+      const phone = (order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['teleponPelanggan'] || (order as any)['telefonPelanggan'];
+      if (!phone) return null;
       
       const statusToUse = specificStatus || order.status;
+      const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+      const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['namaPelanggan'];
       const message = getMessage(order, statusToUse) ||
-        `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
+        `Halo ${nama}, saya ingin menanyakan status pesanan #${nomor}`;
       
-      const cleanPhone = order.telefonPelanggan.replace(/\D/g, '');
+      const cleanPhone = String(phone).replace(/\D/g, '');
       return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     },
     [getMessage]

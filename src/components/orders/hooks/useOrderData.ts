@@ -8,6 +8,7 @@ import { logger } from '@/utils/logger';
 
 // Services and types
 import * as orderService from '../services/orderService';
+import { to_snake_order } from '../naming';
 import type { Order, NewOrder, OrderStatus } from '../types';
 
 // ✅ STANDARDIZED: Query keys pattern consistent with other modules
@@ -50,6 +51,24 @@ export const useOrderData = () => {
   });
 };
 
+// ============ SNAKE_CASE VARIANTS ============
+// These provide snake_case data for consumers opting into the new convention
+
+export const useOrderDataSnake = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [...orderQueryKeys.list(user?.id), 'snake'],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return orderService.fetchOrdersSnake(user.id);
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
 /**
  * Hook for order operations (add, update, delete)
  */
@@ -79,15 +98,15 @@ export const useOrderOperations = () => {
       // Optimistic update
       const optimisticOrder: Order = {
         id: `temp-${Date.now()}`,
-        userId: user?.id || '',
-        nomorPesanan: `ORD-${Date.now()}`,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        user_id: user?.id || '',
+        nomor_pesanan: `ORD-${Date.now()}`,
+        created_at: new Date(),
+        updated_at: new Date(),
         tanggal: newOrder.tanggal || new Date(),
         status: newOrder.status || 'pending',
         subtotal: newOrder.subtotal || 0,
         pajak: newOrder.pajak || 0,
-        totalPesanan: newOrder.totalPesanan || 0,
+        total_pesanan: (newOrder as any).total_pesanan ?? newOrder.totalPesanan || 0,
         ...newOrder,
       };
 
@@ -114,7 +133,7 @@ export const useOrderOperations = () => {
         orderQueryKeys.list(user?.id),
         (old: Order[] = []) => {
           return old.map(order => 
-            order.id.startsWith('temp-') && order.nomorPesanan?.startsWith('ORD-')
+            order.id.startsWith('temp-') && ((order as any).nomor_pesanan || (order as any).nomorPesanan)?.startsWith('ORD-')
               ? newOrder
               : order
           );
@@ -151,7 +170,7 @@ export const useOrderOperations = () => {
       queryClient.setQueryData(
         orderQueryKeys.list(user?.id),
         (old: Order[] = []) => old.map(order => 
-          order.id === id ? { ...order, ...data, updatedAt: new Date() } : order
+          order.id === id ? { ...order, ...data, updated_at: new Date() } : order
         )
       );
 
@@ -192,7 +211,7 @@ export const useOrderOperations = () => {
       queryClient.setQueryData(
         orderQueryKeys.list(user?.id),
         (old: Order[] = []) => old.map(order => 
-          order.id === id ? { ...order, status, updatedAt: new Date() } : order
+          order.id === id ? { ...order, status, updated_at: new Date() } : order
         )
       );
 
@@ -281,6 +300,59 @@ export const useOrderOperations = () => {
   };
 };
 
+export const useOrderOperationsSnake = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const addOrder = useMutation({
+    mutationFn: (orderSnake: any) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return orderService.addOrderSnake(user.id, orderSnake);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.list(user?.id) });
+    }
+  });
+
+  const updateOrder = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return orderService.updateOrderSnake(user.id, id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.list(user?.id) });
+    }
+  });
+
+  const updateOrderStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return orderService.updateOrderStatusSnake(user.id, id, status);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.list(user?.id) });
+    }
+  });
+
+  const deleteOrder = useMutation({
+    mutationFn: (id: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return orderService.deleteOrderSnake(user.id, id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.list(user?.id) });
+    }
+  });
+
+  return {
+    addOrder: addOrder.mutateAsync,
+    updateOrder: ({ id, data }: { id: string; data: any }) => updateOrder.mutateAsync({ id, data }),
+    updateOrderStatus: ({ id, status }: { id: string; status: string }) => updateOrderStatus.mutateAsync({ id, status }),
+    deleteOrder: deleteOrder.mutateAsync,
+    isLoading: addOrder.isPending || updateOrder.isPending || updateOrderStatus.isPending || deleteOrder.isPending,
+  };
+};
+
 /**
  * Hook for order statistics
  */
@@ -298,7 +370,7 @@ export const useOrderStats = () => {
       
       // Calculate statistics
       const totalOrders = orders.length;
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPesanan || 0), 0);
+      const totalRevenue = orders.reduce((sum, order: any) => sum + (order.total_pesanan ?? order.totalPesanan ?? 0), 0);
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       
       const statusCounts = orders.reduce((acc, order) => {

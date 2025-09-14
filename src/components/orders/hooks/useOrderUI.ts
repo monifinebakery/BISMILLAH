@@ -29,11 +29,15 @@ export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): U
       // Search filter - improved with null handling and trim
       if (filters.search && filters.search.trim()) {
         const searchTerm = filters.search.toLowerCase().trim();
+        const nomor = (order as any).nomor_pesanan || (order as any)['nomorPesanan'] || (order as any).order_number || '';
+        const nama = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || '';
+        const telp = (order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone || '';
+        const email = (order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email || '';
         const matchesSearch = 
-          order.nomorPesanan.toLowerCase().includes(searchTerm) ||
-          order.namaPelanggan.toLowerCase().includes(searchTerm) ||
-          order.teleponPelanggan.toLowerCase().includes(searchTerm) ||
-          (order.emailPelanggan?.toLowerCase().includes(searchTerm));
+          String(nomor).toLowerCase().includes(searchTerm) ||
+          String(nama).toLowerCase().includes(searchTerm) ||
+          String(telp).toLowerCase().includes(searchTerm) ||
+          String(email).toLowerCase().includes(searchTerm);
         
         if (!matchesSearch) return false;
       }
@@ -52,10 +56,11 @@ export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): U
       }
 
       // Amount range filter - improved with null/undefined handling
-      if (filters.minAmount !== null && filters.minAmount !== undefined && order.totalPesanan < filters.minAmount) {
+      const total = (order as any).total_pesanan ?? (order as any)['totalPesanan'] ?? 0;
+      if (filters.minAmount !== null && filters.minAmount !== undefined && total < filters.minAmount) {
         return false;
       }
-      if (filters.maxAmount !== null && filters.maxAmount !== undefined && order.totalPesanan > filters.maxAmount) {
+      if (filters.maxAmount !== null && filters.maxAmount !== undefined && total > filters.maxAmount) {
         return false;
       }
 

@@ -63,8 +63,8 @@ export const useOrderStats = (orders: Order[]): {
       const totalOrders = orders.length;
       
       // Calculate total revenue dari semua orders (regardless of status)
-      const totalRevenue = orders.reduce((sum, order) => {
-        const orderTotal = Number(order.totalPesanan) || 0;
+      const totalRevenue = orders.reduce((sum, order: any) => {
+        const orderTotal = Number(order.total_pesanan ?? order.totalPesanan ?? order.total_amount) || 0;
         return sum + orderTotal;
       }, 0);
 

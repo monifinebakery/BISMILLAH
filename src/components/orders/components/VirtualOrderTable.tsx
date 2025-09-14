@@ -119,7 +119,7 @@ const OrderRowActions: React.FC<{
           Edit Pesanan
         </DropdownMenuItem>
         
-        {onFollowUp && order.teleponPelanggan && (
+        {onFollowUp && ((order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone) && (
           <DropdownMenuItem onClick={onFollowUp} className="cursor-pointer">
             <MessageSquare className="mr-2 h-4 w-4" />
             Follow Up WhatsApp
@@ -142,7 +142,8 @@ const OrderRowActions: React.FC<{
 
 // Completion Date Cell Component
 const CompletionDateCell: React.FC<{ order: Order }> = ({ order }) => {
-  if (order.status !== 'completed' || !order.tanggalSelesai) {
+  const tanggalSelesaiAny: any = (order as any).tanggal_selesai || (order as any)['tanggalSelesai'];
+  if (order.status !== 'completed' || !tanggalSelesaiAny) {
     return (
       <div className="text-sm text-gray-400">
         -
@@ -150,15 +151,15 @@ const CompletionDateCell: React.FC<{ order: Order }> = ({ order }) => {
     );
   }
 
-  const completionDate = new Date(order.tanggalSelesai);
-  const orderDate = new Date(order.tanggal);
+  const completionDate = new Date(tanggalSelesaiAny);
+  const orderDate = new Date((order as any).tanggal);
   const diffTime = completionDate.getTime() - orderDate.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
   return (
     <div className="flex flex-col">
       <div className="text-sm font-medium text-gray-900">
-        {formatDateForDisplay(order.tanggalSelesai)}
+        {formatDateForDisplay(tanggalSelesaiAny)}
       </div>
       <div className="text-xs text-gray-500">
         {diffDays === 0 ? 'Hari ini' : 
@@ -228,7 +229,8 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
       return;
     }
     
-    if (!order.teleponPelanggan) {
+    const phone = (order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone;
+    if (!phone) {
       toast.error('Tidak ada nomor WhatsApp untuk follow up');
       return;
     }
@@ -241,19 +243,22 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         return;
       }
 
-      const processedMessage = processTemplate(template, order);
-      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
+      const processedMessage = processTemplate(template, order as any);
+      const cleanPhoneNumber = String(phone).replace(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
       
       window.open(whatsappUrl, '_blank');
-      toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
+      const nama = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name;
+      toast.success(`Follow up untuk ${nama} berhasil dibuka di WhatsApp`);
       
     } catch (error) {
       logger.error('Error processing follow up template:', error);
       toast.error('Gagal memproses template follow up');
       
-      const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
-      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
+      const nomor = (order as any).nomor_pesanan || (order as any)['nomorPesanan'] || (order as any).order_number;
+      const nama = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name;
+      const fallbackMessage = `Halo ${nama}, saya ingin menanyakan status pesanan #${nomor}`;
+      const cleanPhoneNumber = String(phone).replace(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
       window.open(whatsappUrl, '_blank');
     }
@@ -263,28 +268,36 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
   const columns: VirtualTableColumn<Order>[] = useMemo(() => {
     const baseColumns: VirtualTableColumn<Order>[] = [
       {
-        key: 'nomorPesanan',
+        key: 'nomor_pesanan',
         header: 'No. Pesanan',
         width: 120,
         render: (order: Order) => (
           <div className="flex flex-col">
-            <div className="text-sm font-medium text-gray-900">#{order.nomorPesanan}</div>
+            <div className="text-sm font-medium text-gray-900">#
+              {(order as any).nomor_pesanan || (order as any)['nomorPesanan'] || (order as any).order_number}
+            </div>
             <div className="text-xs text-gray-500">{order.id.slice(0, 8)}...</div>
           </div>
         )
       },
       {
-        key: 'namaPelanggan',
+        key: 'nama_pelanggan',
         header: 'Pelanggan',
         width: 180,
         render: (order: Order) => (
           <div className="flex flex-col">
-            <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
-            {order.teleponPelanggan && (
-              <div className="text-xs text-gray-500">{order.teleponPelanggan}</div>
+            <div className="text-sm font-medium text-gray-900">
+              {(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name}
+            </div>
+            {((order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone) && (
+              <div className="text-xs text-gray-500">
+                {(order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone}
+              </div>
             )}
-            {order.emailPelanggan && (
-              <div className="text-xs text-gray-500">{order.emailPelanggan}</div>
+            {((order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email) && (
+              <div className="text-xs text-gray-500">
+                {(order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email}
+              </div>
             )}
           </div>
         )
@@ -300,29 +313,29 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         )
       },
       {
-        key: 'tanggalSelesai',
+        key: 'tanggal_selesai',
         header: 'Tanggal Selesai',
         width: 120,
         render: (order: Order) => <CompletionDateCell order={order} />
       },
       {
-        key: 'totalPesanan',
+        key: 'total_pesanan',
         header: 'Total',
         width: 100,
         align: 'right' as const,
         render: (order: Order) => (
           <div className="text-sm font-medium text-gray-900">
-            {formatCurrency(order.totalPesanan)}
+            {formatCurrency((order as any).total_pesanan || (order as any)['totalPesanan'])}
           </div>
         )
       },
       {
-        key: 'updatedAt',
+        key: 'updated_at',
         header: 'Terakhir Diperbarui',
         width: 120,
         render: (order: Order) => (
           <div className="text-sm text-gray-500">
-            {formatDateForDisplay(order.updatedAt)}
+            {formatDateForDisplay((order as any).updated_at || (order as any)['updatedAt'])}
           </div>
         )
       },

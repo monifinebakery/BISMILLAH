@@ -35,7 +35,11 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
 
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, order) => {
-      const total = typeof order.totalAmount === 'number' ? order.totalAmount : parseFloat(String(order.totalAmount || 0));
+  const total = typeof (order as any).total_pesanan === 'number'
+    ? (order as any).total_pesanan
+    : typeof (order as any).totalAmount === 'number'
+      ? (order as any).totalAmount
+      : parseFloat(String((order as any).totalAmount || 0));
       return sum + total;
     }, 0);
     

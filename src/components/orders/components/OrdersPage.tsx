@@ -11,6 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ CONSOLIDATED: Order context and hooks
 import { useOrder } from '../context/OrderContext';
+import { useOrderOperationsSnake } from '../hooks/useOrderData';
+import { to_snake_order } from '../naming';
 import { useOrderUI } from '../hooks/useOrderUI';
 import { useOrderTable } from '../hooks/useOrderTable';
 
@@ -143,6 +145,14 @@ const OrdersPage: React.FC = () => {
     refreshData // ✅ TAMBAHKAN: Untuk refresh manual jika diperlukan
   } = contextValue;
 
+  // Snake_case operations for new submissions/updates
+  const {
+    addOrder: addOrderSnake,
+    updateOrder: updateOrderSnake,
+    updateOrderStatus: updateOrderStatusSnake,
+    deleteOrder: deleteOrderSnake
+  } = useOrderOperationsSnake();
+
   // ✅ LAZY LOADING STATE: State untuk kontrol lazy loading
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -178,7 +188,7 @@ const OrdersPage: React.FC = () => {
     const dataToUse = paginatedData?.orders || [];
     return {
       total: paginationInfo.totalCount,
-      totalValue: dataToUse.reduce((sum: number, order: Order) => sum + (order.totalPesanan || 0), 0),
+      totalValue: dataToUse.reduce((sum: number, order: any) => sum + (order.total_pesanan || order.totalPesanan || 0), 0),
       byStatus: dataToUse.reduce((acc: Record<string, number>, order: Order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
@@ -257,7 +267,7 @@ const OrdersPage: React.FC = () => {
     },
 
     openDetail: (order: Order) => {
-      logger.component('OrdersPage', 'Opening order detail dialog', { orderId: order.id, nomorPesanan: order.nomorPesanan });
+      logger.component('OrdersPage', 'Opening order detail dialog', { orderId: order.id, nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan'] });
       setPageState(prev => ({
         ...prev,
         dialogs: { ...prev.dialogs, detail: true },
@@ -294,7 +304,7 @@ const OrdersPage: React.FC = () => {
           toast.error('Data pesanan tidak valid');
           return;
         }
-        logger.component('OrdersPage', 'Edit order requested:', { orderId: order.id, nomorPesanan: order.nomorPesanan });
+        logger.component('OrdersPage', 'Edit order requested:', { orderId: order.id, nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan'] });
         dialogHandlers.openOrderForm(order);
       } catch (error) {
         logger.error('Error opening edit form:', error);
@@ -349,7 +359,7 @@ const OrdersPage: React.FC = () => {
             logger.success('Status updated via updateOrderStatus:', { 
               orderId, 
               newStatus, 
-              orderNumber: order?.nomorPesanan 
+              orderNumber: (order as any)?.nomor_pesanan || (order as any)?.order_number || (order as any)?.nomorPesanan 
             });
             return; // Success toast handled by updateOrderStatus
           } catch (error) {
@@ -369,7 +379,7 @@ const OrdersPage: React.FC = () => {
             logger.success('Status updated via updateOrder fallback:', { 
               orderId, 
               newStatus, 
-              orderNumber: order?.nomorPesanan 
+              orderNumber: (order as any)?.nomor_pesanan || (order as any)?.order_number || (order as any)?.nomorPesanan 
             });
             toast.success(`Status pesanan berhasil diubah ke ${getStatusText(newStatus as Order['status'])}`);
             return;
@@ -466,11 +476,15 @@ const OrdersPage: React.FC = () => {
           orderId: pageState.editingOrder?.id 
         });
 
+        // Prefer snake_case operations. Convert payload to snake before submit.
+        const snakePayload = to_snake_order(data as any);
         let success = false;
         if (isEditingMode && pageState.editingOrder?.id) {
-          success = await updateOrder(pageState.editingOrder.id, data);
+          await updateOrderSnake({ id: pageState.editingOrder.id, data: snakePayload });
+          success = true;
         } else {
-          success = await addOrder(data as NewOrder);
+          await addOrderSnake(snakePayload);
+          success = true;
         }
 
         if (success) {
@@ -507,7 +521,7 @@ const OrdersPage: React.FC = () => {
     (order: Order) => {
       logger.component('OrdersPage', 'Follow up initiated:', {
         orderId: order.id,
-        nomorPesanan: order.nomorPesanan,
+        nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan'],
         hasPhone: !!order.teleponPelanggan,
         status: order.status
       });
@@ -524,7 +538,7 @@ const OrdersPage: React.FC = () => {
 
       logger.success('Follow up WhatsApp opened:', {
         customer: order.namaPelanggan,
-        orderNumber: order.nomorPesanan
+        orderNumber: (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']
       });
 
       toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
@@ -542,7 +556,7 @@ const OrdersPage: React.FC = () => {
   const handleViewDetail = useCallback((order: Order) => {
     logger.component('OrdersPage', 'View detail requested:', {
       orderId: order.id,
-      nomorPesanan: order.nomorPesanan
+      nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan']
     });
     dialogHandlers.openDetail(order);
   }, [dialogHandlers]);

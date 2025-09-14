@@ -80,14 +80,15 @@ const OrderDialogs: React.FC<OrderDialogsProps> = ({
     (message: string, order: Order) => {
       logger.context('OrderDialogs', 'Sending WhatsApp:', { message, order });
       
-      if (!order.teleponPelanggan) {
+      const phone = (order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['teleponPelanggan'];
+      if (!phone) {
         logger.warn('No phone number available for WhatsApp');
         return;
       }
       
       try {
         // Format phone number
-        const cleanPhoneNumber = order.telefonPelanggan.replace(/\D/g, '');
+        const cleanPhoneNumber = String(phone).replace(/\D/g, '');
         
         // Create WhatsApp URL
         const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(message)}`;

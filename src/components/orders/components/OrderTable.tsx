@@ -96,7 +96,8 @@ const OrderRowActions: React.FC<{
 
   const handleDelete = () => {
     setIsOpen(false);
-    if (window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${order.orderNumber}?`)) {
+    const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+    if (window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${nomor}?`)) {
       onDelete();
     }
   };
@@ -107,12 +108,16 @@ const OrderRowActions: React.FC<{
       onFollowUp();
     } else {
       // Fallback behavior
-      const message = `Halo ${order.customerName}, saya ingin menanyakan status pesanan #${order.orderNumber}`;
-      if (order.customerPhone) {
-        const whatsappUrl = `https://wa.me/${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName'];
+      const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+      const phone = (order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['customerPhone'];
+      const email = (order as any).email_pelanggan || (order as any).customer_email || (order as any)['customerEmail'];
+      const message = `Halo ${nama}, saya ingin menanyakan status pesanan #${nomor}`;
+      if (phone) {
+        const whatsappUrl = `https://wa.me/${String(phone).replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
-      } else if (order.customerEmail) {
-        const emailUrl = `mailto:${order.customerEmail}?subject=Follow Up Pesanan #${order.orderNumber}&body=${encodeURIComponent(message)}`;
+      } else if (email) {
+        const emailUrl = `mailto:${email}?subject=Follow Up Pesanan #${nomor}&body=${encodeURIComponent(message)}`;
         window.location.href = emailUrl;
       } else {
         alert('Tidak ada kontak yang tersedia untuk follow up');
@@ -125,8 +130,9 @@ const OrderRowActions: React.FC<{
     if (onViewDetail) {
       onViewDetail();
     } else {
-      logger.info('View detail clicked for order:', order.orderNumber);
-      alert(`Detail pesanan #${order.orderNumber} akan ditampilkan`);
+      const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+      logger.info('View detail clicked for order:', nomor);
+      alert(`Detail pesanan #${nomor} akan ditampilkan`);
     }
   };
 
@@ -249,15 +255,16 @@ const EmptyState: React.FC<{
 // ✅ Completion Date Display Component
 const CompletionDateCell: React.FC<{ order: Order }> = ({ order }) => {
   // ✅ Use tanggalSelesai from transformed order data (no direct DB calls)
-  if (order.tanggalSelesai) {
+  const tanggalSelesaiAny: any = (order as any).tanggal_selesai || (order as any)['tanggalSelesai'];
+  if (tanggalSelesaiAny) {
     // Has completion date - show it
     return (
       <div className="flex flex-col">
         <div className="text-sm text-green-700 font-medium">
-          {formatDateForDisplay(order.tanggalSelesai)}
+          {formatDateForDisplay(tanggalSelesaiAny)}
         </div>
         <div className="text-xs text-green-600">
-          {order.tanggalSelesai.toLocaleTimeString('id-ID', {
+          {new Date(tanggalSelesaiAny).toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit'
           })}
@@ -338,20 +345,23 @@ const OrderTable: React.FC<OrderTableProps> = ({
     if (onViewDetail) {
       onViewDetail(order);
     } else {
-      alert(`Detail pesanan #${order.orderNumber}`);
+      const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+      alert(`Detail pesanan #${nomor}`);
     }
   };
 
   // ✅ FIXED: Follow Up handler dengan proper hooks usage
   const handleFollowUp = (order: Order) => {
-    logger.info('Follow up clicked for order:', order.orderNumber);
+    const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+    logger.info('Follow up clicked for order:', nomor);
     
     if (onFollowUp) {
       onFollowUp(order);
       return;
     }
     
-    if (!order.customerPhone) {
+    const phone = (order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['customerPhone'];
+    if (!phone) {
       toast.error('Tidak ada nomor WhatsApp untuk follow up');
       return;
     }
@@ -366,10 +376,10 @@ const OrderTable: React.FC<OrderTableProps> = ({
       }
 
       // Process template dengan data order
-      const processedMessage = processTemplate(template, order);
+      const processedMessage = processTemplate(template, order as any);
       
       // Format nomor telepon
-      const cleanPhoneNumber = order.customerPhone.replace(/\D/g, '');
+      const cleanPhoneNumber = String(phone).replace(/\D/g, '');
       
       // Buat WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
@@ -377,15 +387,17 @@ const OrderTable: React.FC<OrderTableProps> = ({
       // Buka WhatsApp
       window.open(whatsappUrl, '_blank');
       
-      toast.success(`Follow up untuk ${order.customerName} berhasil dibuka di WhatsApp`);
+      const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName'];
+      toast.success(`Follow up untuk ${nama} berhasil dibuka di WhatsApp`);
       
     } catch (error) {
       logger.error('Error processing follow up template:', error);
       toast.error('Gagal memproses template follow up');
       
       // Fallback ke pesan sederhana
-      const fallbackMessage = `Halo ${order.customerName}, saya ingin menanyakan status pesanan #${order.orderNumber}`;
-      const cleanPhoneNumber = order.customerPhone.replace(/\D/g, '');
+      const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName'];
+      const fallbackMessage = `Halo ${nama}, saya ingin menanyakan status pesanan #${nomor}`;
+      const cleanPhoneNumber = String(phone).replace(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
       window.open(whatsappUrl, '_blank');
     }
@@ -481,7 +493,9 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 {/* Order Number */}
                 <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
                   <div className="flex flex-col">
-                    <div className="text-sm font-medium text-gray-900">#{order.nomorPesanan}</div>
+                    <div className="text-sm font-medium text-gray-900">#
+                      {(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}
+                    </div>
                     <div className="text-xs text-gray-500">{order.id.slice(0, 8)}...</div>
                   </div>
                 </td>
@@ -489,12 +503,18 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 {/* Customer Info */}
                 <td className="px-3 py-4 whitespace-nowrap min-w-[180px]">
                   <div className="flex flex-col">
-                    <div className="text-sm font-medium text-gray-900">{order.customerName}</div>
-                    {order.customerPhone && (
-                      <div className="text-xs text-gray-500">{order.customerPhone}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {(order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName']}
+                    </div>
+                    {((order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['customerPhone']) && (
+                      <div className="text-xs text-gray-500">
+                        {(order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['customerPhone']}
+                      </div>
                     )}
-                    {order.customerEmail && (
-                      <div className="text-xs text-gray-500">{order.customerEmail}</div>
+                    {((order as any).email_pelanggan || (order as any).customer_email || (order as any)['customerEmail']) && (
+                      <div className="text-xs text-gray-500">
+                        {(order as any).email_pelanggan || (order as any).customer_email || (order as any)['customerEmail']}
+                      </div>
                     )}
                   </div>
                 </td>
@@ -504,7 +524,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   <div className="flex flex-col">
                     <div className="text-sm text-gray-900">{formatDateForDisplay(order.tanggal)}</div>
                     <div className="text-xs text-gray-500">
-                      {new Date(order.createdAt).toLocaleTimeString('id-ID', {
+                      {new Date((order as any).created_at || (order as any)['createdAt']).toLocaleTimeString('id-ID', {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
@@ -520,7 +540,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 {/* Total Amount */}
                 <td className="px-3 py-4 whitespace-nowrap min-w-[100px]">
                   <div className="flex flex-col">
-                    <div className="text-sm font-semibold text-gray-900">{formatCurrency(order.totalPesanan)}</div>
+                    <div className="text-sm font-semibold text-gray-900">{formatCurrency((order as any).total_pesanan || (order as any)['totalPesanan'])}</div>
                     {order.items.length > 0 && (
                       <div className="text-xs text-gray-500">
                         {order.items.length} item{order.items.length > 1 ? 's' : ''}
@@ -532,9 +552,9 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 {/* Last Updated */}
                 <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
                   <div className="flex flex-col">
-                    <div className="text-sm text-gray-900">{formatDateForDisplay(order.updatedAt)}</div>
+                    <div className="text-sm text-gray-900">{formatDateForDisplay((order as any).updated_at || (order as any)['updatedAt'])}</div>
                     <div className="text-xs text-gray-500">
-                      {new Date(order.updatedAt).toLocaleTimeString('id-ID', {
+                      {new Date((order as any).updated_at || (order as any)['updatedAt']).toLocaleTimeString('id-ID', {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}

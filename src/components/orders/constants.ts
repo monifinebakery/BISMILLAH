@@ -102,13 +102,13 @@ export const SUCCESS_MESSAGES = {
 
 // ✅ VALIDATION: Validation constants
 export const VALIDATION_LIMITS = {
-  customerName: { min: 2, max: 100 },
+  customer_name: { min: 2, max: 100 },
   phone: { min: 8, max: 20 },
   email: { max: 254 },
   address: { max: 500 },
   notes: { max: 1000 },
-  orderValue: { min: 1, max: 1000000000 },
-  itemsPerOrder: { min: 1, max: 100 }
+  order_value: { min: 1, max: 1000000000 },
+  items_per_order: { min: 1, max: 100 }
 } as const;
 
 // ✅ WHATSAPP: WhatsApp integration constants

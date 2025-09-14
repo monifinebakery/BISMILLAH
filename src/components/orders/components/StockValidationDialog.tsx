@@ -179,7 +179,11 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
                   Validasi Stok Pesanan
                 </DialogTitle>
                 <DialogDescription className="text-sm text-gray-600">
-                  Pesanan #{order?.orderNumber} - {order?.customerName}
+                  {(() => {
+                    const nomor = (order as any)?.nomor_pesanan || (order as any)?.order_number || (order as any)?.orderNumber;
+                    const nama = (order as any)?.nama_pelanggan || (order as any)?.customer_name || (order as any)?.customerName;
+                    return <>Pesanan #{nomor} - {nama}</>;
+                  })()}
                 </DialogDescription>
               </div>
             </div>
@@ -218,7 +222,7 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Nilai:</span>
-                  <span className="font-medium">Rp {order.totalAmount.toLocaleString()}</span>
+                  <span className="font-medium">Rp {Number(((order as any).total_pesanan ?? (order as any).totalAmount ?? 0)).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Item Resep:</span>

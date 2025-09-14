@@ -1,11 +1,13 @@
-# Panduan Setup Google reCAPTCHA
+# Panduan Setup Google reCAPTCHA v3
 
-Dokumen ini menjelaskan cara mengaktifkan Google reCAPTCHA.
+Dokumen ini menjelaskan cara mengaktifkan Google reCAPTCHA v3 pada halaman login.
 
 ## 1. Dapatkan Site Key dan Secret Key
 1. Buka [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin)
-2. Buat situs baru dan pilih tipe reCAPTCHA yang diinginkan (misalnya reCAPTCHA v2)
+2. Buat situs baru dan pilih **reCAPTCHA v3**
 3. Catat **Site Key** dan **Secret Key**
+
+Dokumentasi resmi: [developers.google.com/recaptcha/docs/v3](https://developers.google.com/recaptcha/docs/v3)
 
 ## 2. Konfigurasi Environment Variables
 Tambahkan variabel berikut ke file `.env` atau dashboard hosting:
@@ -18,20 +20,19 @@ RECAPTCHA_SECRET_KEY=6Lcv_MgrAAAAALThVfcTFwED8YnPVvu9lxMtaepF
 - `VITE_RECAPTCHA_SITEKEY` digunakan di frontend (public)
 - `RECAPTCHA_SECRET_KEY` digunakan di backend (private)
 
-## 3. Gunakan Komponen `RecaptchaWidget`
-Contoh penggunaan di React:
+## 3. Penggunaan di Frontend
+Gunakan hook `useRecaptcha` untuk mendapatkan token:
 
 ```tsx
-import RecaptchaWidget from '@/components/auth/RecaptchaWidget';
 import { useRecaptcha } from '@/hooks/useRecaptcha';
 
-const { token, widgetRef } = useRecaptcha();
+const { execute } = useRecaptcha(import.meta.env.VITE_RECAPTCHA_SITEKEY);
 
-<RecaptchaWidget
-  ref={widgetRef}
-  sitekey={import.meta.env.VITE_RECAPTCHA_SITEKEY}
-  onSuccess={(t) => setToken(t)}
-/>
+const handleLogin = async () => {
+  const token = await execute('login');
+  // kirim token ke server untuk verifikasi
+};
 ```
 
-Token `reCAPTCHA` kemudian dapat dikirim ke server untuk diverifikasi menggunakan `verifyRecaptchaToken`.
+## 4. Verifikasi di Backend
+Token yang diterima dapat divalidasi menggunakan fungsi `verifyRecaptchaToken` yang tersedia di `src/services/recaptchaService.ts`.

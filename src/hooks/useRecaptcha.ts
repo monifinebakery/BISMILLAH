@@ -1,25 +1,47 @@
-import { useRef, useState, useCallback } from 'react';
-import { RecaptchaWidgetRef, UseRecaptchaReturn } from '../types/recaptcha';
+import { useCallback, useEffect, useState } from 'react';
 
-interface UseRecaptchaOptions {
-  onTokenChange?: (token: string | null) => void;
+export interface UseRecaptchaReturn {
+  execute: (action: string) => Promise<string | null>;
+  ready: boolean;
 }
 
-export const useRecaptcha = (options: UseRecaptchaOptions = {}): UseRecaptchaReturn => {
-  const widgetRef = useRef<RecaptchaWidgetRef | null>(null);
-  const [token, setTokenState] = useState<string | null>(null);
+export const useRecaptcha = (siteKey: string): UseRecaptchaReturn => {
+  const [ready, setReady] = useState(false);
 
-  const setToken = (t: string | null) => {
-    setTokenState(t);
-    options.onTokenChange?.(t);
-  };
+  useEffect(() => {
+    if (!siteKey) return;
 
-  const reset = useCallback(() => {
-    widgetRef.current?.reset();
-    setToken(null);
-  }, []);
+    const existing = document.querySelector<HTMLScriptElement>('script[data-recaptcha]');
 
-  return { token, setToken, reset, widgetRef };
+    if (existing) {
+      setReady(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+    script.async = true;
+    script.defer = true;
+    script.setAttribute('data-recaptcha', 'true');
+    script.onload = () => setReady(true);
+    script.onerror = () => console.error('Gagal memuat skrip reCAPTCHA');
+    document.head.appendChild(script);
+  }, [siteKey]);
+
+  const execute = useCallback(
+    async (action: string) => {
+      try {
+        if (!ready || !window.grecaptcha) return null;
+        return await window.grecaptcha.execute(siteKey, { action });
+      } catch (err) {
+        console.error('reCAPTCHA execution error:', err);
+        return null;
+      }
+    },
+    [ready, siteKey]
+  );
+
+  return { execute, ready };
 };
 
 export default useRecaptcha;

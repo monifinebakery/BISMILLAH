@@ -1,9 +1,8 @@
 // src/components/auth/EmailAuthPage.tsx — Simple OTP Authentication
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { Mail, Lock, Clock, RefreshCw } from "lucide-react";
 import { sendEmailOtp, verifyEmailOtp } from "@/services/auth";
-import RecaptchaWidget from "@/components/auth/RecaptchaWidget";
 import { useRecaptcha } from "@/hooks/useRecaptcha";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -59,8 +58,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  const { token: captchaToken, setToken: setCaptchaToken, reset: resetCaptcha, widgetRef: recaptchaRef } =
-    useRecaptcha();
+  const { execute: executeRecaptcha } = useRecaptcha(
+    import.meta.env.VITE_RECAPTCHA_SITEKEY
+  );
 
   // Enable reCAPTCHA for additional security
 
@@ -151,8 +151,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError("");
 
     try {
+      const captchaToken = isCaptchaEnabled
+        ? await executeRecaptcha("login")
+        : null;
       if (isCaptchaEnabled && !captchaToken) {
-        toast.error("Silakan verifikasi reCAPTCHA terlebih dahulu.");
+        toast.error("Verifikasi reCAPTCHA gagal.");
         return;
       }
 
@@ -200,8 +203,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
 
     try {
+      const captchaToken = isCaptchaEnabled
+        ? await executeRecaptcha("login")
+        : null;
       if (isCaptchaEnabled && !captchaToken) {
-        toast.error("Silakan verifikasi reCAPTCHA terlebih dahulu.");
+        toast.error("Verifikasi reCAPTCHA gagal.");
         return;
       }
 
@@ -366,17 +372,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   />
                 </div>
               </div>
-
-              {isCaptchaEnabled && (
-                <div className="flex justify-center">
-                  <RecaptchaWidget
-                    ref={recaptchaRef}
-                    sitekey={import.meta.env.VITE_RECAPTCHA_SITEKEY}
-                    onSuccess={setCaptchaToken}
-                    onExpired={resetCaptcha}
-                  />
-                </div>
-              )}
 
               <Button
                 onClick={handleSendOtp}

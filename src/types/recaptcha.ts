@@ -1,13 +1,4 @@
-// Types untuk Google reCAPTCHA
-
-export interface RecaptchaConfig {
-  sitekey: string;
-  theme?: 'light' | 'dark';
-  size?: 'normal' | 'compact' | 'invisible';
-  callback?: (token: string) => void;
-  'expired-callback'?: () => void;
-  'error-callback'?: () => void;
-}
+// Types untuk Google reCAPTCHA v3
 
 export interface RecaptchaResponse {
   success: boolean;
@@ -24,28 +15,16 @@ export interface RecaptchaVerifyRequest {
   remoteip?: string;
 }
 
-export interface RecaptchaWidget {
-  render: (container: string | HTMLElement, config: RecaptchaConfig) => number;
-  reset: (widgetId?: number) => void;
-  getResponse: (widgetId?: number) => string;
-  execute: (widgetId?: number) => void;
-}
-
-export interface RecaptchaWidgetRef {
-  reset: () => void;
-  getResponse: () => string | null;
-}
-
 export interface UseRecaptchaReturn {
-  token: string | null;
-  setToken: (token: string | null) => void;
-  reset: () => void;
-  widgetRef: React.MutableRefObject<RecaptchaWidgetRef | null>;
+  execute: (action: string) => Promise<string | null>;
+  ready: boolean;
 }
 
 declare global {
   interface Window {
-    grecaptcha?: RecaptchaWidget;
+    grecaptcha?: {
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
   }
 }
 

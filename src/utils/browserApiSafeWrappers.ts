@@ -60,12 +60,61 @@ export const safeDom = {
   getElementById: (id: string) => document.getElementById.call(document, id),
   querySelector: (selector: string) => document.querySelector.call(document, selector),
   querySelectorAll: (selector: string) => document.querySelectorAll.call(document, selector),
-  createElement: (tagName: string) => document.createElement.call(document, tagName),
+  createElement: <K extends keyof HTMLElementTagNameMap>(tagName: K) => document.createElement.call(document, tagName) as HTMLElementTagNameMap[K],
   createTextNode: (text: string) => document.createTextNode.call(document, text),
   addEventListener: (element: EventTarget, type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) => 
     element.addEventListener.call(element, type, listener, options),
   removeEventListener: (element: EventTarget, type: string, listener: EventListener, options?: boolean | EventListenerOptions) => 
     element.removeEventListener.call(element, type, listener, options),
+  
+  /**
+   * Safe element removal that prevents removeChild errors
+   * Handles cases where element might not be connected to DOM
+   */
+  safeRemoveElement: (element: Element | HTMLElement | null) => {
+    if (!element) return false;
+    
+    try {
+      // Method 1: Use modern remove() if available
+      if (typeof element.remove === 'function') {
+        element.remove();
+        return true;
+      }
+      
+      // Method 2: Check if element is still connected to DOM
+      if (element.parentNode && element.parentNode.contains(element)) {
+        element.parentNode.removeChild(element);
+        return true;
+      }
+      
+      // Method 3: Fallback for edge cases
+      if (element.parentElement) {
+        element.parentElement.removeChild(element);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.warn('Safe element removal failed:', error);
+      return false;
+    }
+  },
+  
+  /**
+   * Safe appendChild that checks if element exists and is valid
+   */
+  safeAppendChild: (parent: Element | HTMLElement, child: Element | HTMLElement) => {
+    try {
+      if (parent && child && typeof parent.appendChild === 'function') {
+        parent.appendChild(child);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.warn('Safe appendChild failed:', error);
+      return false;
+    }
+  }
 };
 
 /**
@@ -79,7 +128,14 @@ export const safeNavigator = {
     readText: () => navigator.clipboard.readText.call(navigator.clipboard),
   },
   share: (data: ShareData) => navigator.share?.call(navigator, data),
-  vibrate: (pattern: number | number[]) => navigator.vibrate?.call(navigator, pattern),
+  vibrate: (pattern: number | number[]) => {
+    if (navigator.vibrate) {
+      return Array.isArray(pattern) 
+        ? navigator.vibrate.call(navigator, pattern)
+        : navigator.vibrate.call(navigator, [pattern]);
+    }
+    return false;
+  },
 };
 
 /**

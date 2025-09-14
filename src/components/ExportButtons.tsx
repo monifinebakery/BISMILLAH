@@ -45,17 +45,13 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
 
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const a = safeDom.createElement('a');
+      const a = safeDom.createElement('a') as HTMLAnchorElement;
       a.href = url;
       a.download = `${filename}-${UnifiedDateHandler.toDatabaseString(new Date())}.txt`;
-      document.body.appendChild(a);
+      safeDom.safeAppendChild(document.body, a);
       a.click();
-      // Safe cleanup to avoid removeChild errors across browsers
-      if ((a as any).isConnected && typeof (a as any).remove === 'function') {
-        (a as any).remove();
-      } else {
-        a.parentElement?.removeChild(a);
-      }
+      // Safe cleanup menggunakan fungsi yang lebih aman
+      safeDom.safeRemoveElement(a);
       URL.revokeObjectURL(url);
       
       toast.success('Data berhasil diekspor sebagai PDF/Text');
@@ -121,17 +117,12 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       const BOM = '\uFEFF';
       const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const a = safeDom.createElement('a');
+      const a = safeDom.createElement('a') as HTMLAnchorElement;
       a.href = url;
       a.download = `${filename}-${UnifiedDateHandler.toDatabaseString(new Date())}.csv`;
-      document.body.appendChild(a);
+      safeDom.safeAppendChild(document.body, a);
       a.click();
-      // Safe cleanup to avoid removeChild errors across browsers
-      if ((a as any).isConnected && typeof (a as any).remove === 'function') {
-        (a as any).remove();
-      } else {
-        a.parentElement?.removeChild(a);
-      }
+      safeDom.safeRemoveElement(a);
       URL.revokeObjectURL(url);
       
       toast.success('Data berhasil diekspor sebagai Excel/CSV');

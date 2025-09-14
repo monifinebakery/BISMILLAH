@@ -1,0 +1,125 @@
+/* Safari iOS Performance Optimizations */
+/* Memastikan performa Safari iOS sama dengan browser lain */
+
+/* Hardware acceleration untuk Safari iOS */
+.safari-ios {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Optimasi scrolling untuk Safari iOS */
+.safari-ios * {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Disable heavy animations pada Safari iOS */
+.safari-ios[data-safari-reduce-motion="true"] * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Fix input zoom pada Safari iOS */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .safari-ios input[type="text"],
+  .safari-ios input[type="password"],
+  .safari-ios input[type="email"],
+  .safari-ios input[type="search"],
+  .safari-ios input[type="tel"],
+  .safari-ios input[type="url"],
+  .safari-ios input[type="number"],
+  .safari-ios textarea,
+  .safari-ios select {
+    font-size: 16px !important;
+    transform: translateZ(0);
+  }
+}
+
+/* Optimasi touch events untuk Safari iOS */
+.safari-ios {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.safari-ios input,
+.safari-ios textarea,
+.safari-ios [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Memory optimization untuk Safari iOS */
+.safari-ios img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: optimize-contrast;
+}
+
+/* Reduce repaints untuk Safari iOS */
+.safari-ios .loading-spinner,
+.safari-ios .animated-element {
+  will-change: transform;
+  contain: layout style paint;
+}
+
+/* Fix viewport issues pada Safari iOS */
+@supports (-webkit-touch-callout: none) {
+  .safari-ios {
+    min-height: -webkit-fill-available;
+  }
+  
+  .safari-ios .full-height {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Optimasi untuk Safari iOS versi lama */
+.safari-ios[data-safari-legacy-mode="true"] {
+  /* Disable complex CSS features */
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.safari-ios[data-safari-legacy-mode="true"] .gradient {
+  /* Simplify gradients untuk performa */
+  background: var(--fallback-color, #f0f0f0) !important;
+}
+
+/* Loading state optimizations untuk Safari iOS */
+.safari-ios .auth-loading {
+  /* Optimasi loading animation */
+  animation: safari-spin 1s linear infinite;
+}
+
+@keyframes safari-spin {
+  0% { transform: rotate(0deg) translateZ(0); }
+  100% { transform: rotate(360deg) translateZ(0); }
+}
+
+/* Network optimization hints untuk Safari iOS */
+.safari-ios img[data-src] {
+  /* Lazy loading optimization */
+  content-visibility: auto;
+  contain-intrinsic-size: 200px 200px;
+}
+
+/* Fix untuk Safari iOS dark mode */
+@media (prefers-color-scheme: dark) {
+  .safari-ios {
+    color-scheme: dark;
+  }
+}
+
+/* Critical path rendering untuk Safari iOS */
+.safari-ios .above-fold {
+  contain: layout style;
+  content-visibility: visible;
+}
+
+.safari-ios .below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}

@@ -7,6 +7,7 @@ import App from "./App";
 import "./index.css";
 import "@/styles/toast-swipe.css";
 import "@/styles/mobile-input-fixes.css";
+import "@/styles/safari-optimizations.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'
@@ -217,6 +218,10 @@ if (safariDetection.isSafariIOS) {
      timestamp: new Date().toISOString()
    });
    
+   // Add Safari iOS class untuk CSS optimizations
+   document.documentElement.classList.add('safari-ios');
+   document.body.classList.add('safari-ios');
+   
    // Log detailed Safari info for debugging
    logSafariInfo();
    
@@ -248,7 +253,7 @@ if (safariDetection.isSafariIOS) {
            });
            // Don't throw error for Safari iOS - app should work without SW
          });
-    }, getSafariDelay(3000));
+    }, getSafariDelay(5000)); // Increased delay for Safari iOS
   }
 } else {
   // Normal registration for other browsers

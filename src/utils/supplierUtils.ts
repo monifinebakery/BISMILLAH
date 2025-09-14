@@ -2,8 +2,6 @@
 // Utility functions and constants for supplier management
 
 import type { 
-import { safeDom } from '@/utils/browserApiSafeWrappers';
-
   Supplier, 
   SupplierFormData, 
   SupplierValidationError,
@@ -11,6 +9,7 @@ import { safeDom } from '@/utils/browserApiSafeWrappers';
   SupplierDbInsert,
   SupplierDbUpdate
 } from '@/types/supplier';
+import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 // ================================================================
 // VALIDATION UTILITIES
@@ -312,14 +311,10 @@ export const downloadCSV = (csvContent: string, filename: string = 'suppliers.cs
     link.setAttribute('href', url);
     link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    safeDom.safeAppendChild(document.body, link);
     link.click();
     // Safe cleanup
-    if ((link as any).isConnected && typeof (link as any).remove === 'function') {
-      (link as any).remove();
-    } else {
-      link.parentElement?.removeChild(link as any);
-    }
+    safeDom.safeRemoveElement(link as any);
   }
 };
 

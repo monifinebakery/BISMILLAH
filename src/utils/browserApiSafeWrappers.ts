@@ -73,26 +73,42 @@ export const safeDom = {
    */
   safeRemoveElement: (element: Element | HTMLElement | null) => {
     if (!element) return false;
-    
+
     try {
-      // Method 1: Use modern remove() if available
-      if (typeof element.remove === 'function') {
-        element.remove();
+      // Fast path: if it's not connected, nothing to remove
+      // isConnected is widely supported and avoids NotFoundError
+      if ('isConnected' in element && (element as any).isConnected === false) {
+        return false;
+      }
+
+      // Method 1: Use modern remove() if available (no-throw if already detached)
+      if (typeof (element as any).remove === 'function') {
+        (element as any).remove();
         return true;
       }
-      
-      // Method 2: Check if element is still connected to DOM
-      if (element.parentNode && element.parentNode.contains(element)) {
-        element.parentNode.removeChild(element);
+
+      // Method 2: Remove via parentNode if it actually contains the element
+      const parentNode = element.parentNode as (Node | null);
+      if (
+        parentNode &&
+        typeof (parentNode as any).contains === 'function' &&
+        (parentNode as any).contains(element)
+      ) {
+        (parentNode as any).removeChild(element);
         return true;
       }
-      
-      // Method 3: Fallback for edge cases
-      if (element.parentElement) {
-        element.parentElement.removeChild(element);
+
+      // Method 3: Fallback via parentElement (with contains guard)
+      const parentEl = element.parentElement;
+      if (
+        parentEl &&
+        typeof (parentEl as any).contains === 'function' &&
+        parentEl.contains(element)
+      ) {
+        parentEl.removeChild(element);
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.warn('Safe element removal failed:', error);

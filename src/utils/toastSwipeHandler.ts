@@ -201,7 +201,7 @@ const showSwipeIndicator = (element: HTMLElement, distance: number) => {
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
       </svg>
     `;
-    element.appendChild(indicator);
+    safeDom.safeAppendChild(element, indicator);
   }
 
   const opacity = Math.min(1, distance / swipeThreshold);
@@ -211,7 +211,7 @@ const showSwipeIndicator = (element: HTMLElement, distance: number) => {
 const hideSwipeIndicator = (element: HTMLElement) => {
   const indicator = element.querySelector('.toast-swipe-indicator');
   if (indicator) {
-    indicator.remove();
+    safeDom.safeRemoveElement(indicator);
   }
 };
 
@@ -226,7 +226,7 @@ const dismissToast = (element: HTMLElement) => {
     if (closeButton) {
       closeButton.click();
     } else {
-      element.remove();
+      safeDom.safeRemoveElement(element);
     }
   }, 300);
 };

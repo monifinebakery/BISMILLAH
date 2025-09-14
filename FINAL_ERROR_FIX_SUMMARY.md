@@ -12,8 +12,8 @@ Semua error yang dilaporkan sudah berhasil diperbaiki dengan total dan menyeluru
 - **Files**: 44+ files menggunakan safe browser API wrappers
 - **Result**: Zero illegal invocation errors
 
-### 2. ✅ **CORS policy violations** - RESOLVED  
-- **Root Cause**: Invalid Turnstile resource preloading
+### 2. ✅ **CORS policy violations** - RESOLVED
+- **Root Cause**: Invalid resource preloading
 - **Solution**: Removed invalid URLs, added URL validation
 - **Files**: `src/utils/preload-optimizer.ts`
 - **Result**: No CORS errors
@@ -32,17 +32,17 @@ Semua error yang dilaporkan sudah berhasil diperbaiki dengan total dan menyeluru
 - **Files**: `index.html`
 - **Result**: No permissions policy violations
 
-### 5. ✅ **Turnstile preload warnings** - RESOLVED
+### 5. ✅ **Unused preload warnings** - RESOLVED
 - **Root Cause**: Resources preloaded but not used
 - **Solution**: Disabled unnecessary preloading
 - **Files**: `src/utils/preload-optimizer.ts`
 - **Result**: No unused preload warnings
 
-### 6. ✅ **Cloudflare Turnstile Error 600010** - MITIGATED
-- **Root Cause**: Turnstile script trying to access non-existent challenge platform
+### 6. ✅ **Legacy CAPTCHA Error 600010** - MITIGATED
+- **Root Cause**: Script trying to access non-existent challenge platform
 - **Solution**: Prevented problematic resource preloading
 - **Files**: Enhanced URL validation in preload optimizer
-- **Result**: Reduced Turnstile initialization errors
+- **Result**: Reduced initialization errors
 
 ## 🔧 **Technical Solutions Applied:**
 
@@ -102,8 +102,8 @@ private isValidResourceUrl(url: string): boolean {
 // Disabled unnecessary preloading to eliminate warnings
 public optimizeForMobile() {
   // Temporarily disable preloading to eliminate console warnings
-  // Only enable when Turnstile is actually implemented
-  logger.debug('Turnstile preloading disabled to prevent unused preload warnings');
+  // Only enable when CAPTCHA is actually implemented
+  logger.debug('CAPTCHA preloading disabled to prevent unused preload warnings');
 }
 ```
 
@@ -139,7 +139,7 @@ public optimizeForMobile() {
 ❌ 404 Not Found errors  
 ❌ Permissions policy violations  
 ❌ Unused preload warnings  
-❌ Turnstile error 600010  
+❌ Legacy CAPTCHA error 600010
 ❌ Console spam with errors  
 
 ### **AFTER (FIXED):**
@@ -148,7 +148,7 @@ public optimizeForMobile() {
 ✅ Zero 404 resource errors  
 ✅ Zero permissions policy violations  
 ✅ Zero preload warnings  
-✅ Mitigated Turnstile errors  
+✅ Mitigated legacy CAPTCHA errors
 ✅ Clean console output  
 
 ## 🛡️ **Protection Systems in Place:**

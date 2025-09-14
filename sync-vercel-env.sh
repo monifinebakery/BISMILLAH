@@ -13,14 +13,14 @@ fi
 echo "📝 Setting Production Environment Variables..."
 
 vercel env add VITE_CAPTCHA_ENABLED production <<< "true"
-vercel env add VITE_TURNSTILE_SITEKEY production <<< "0x4AAAAAABvpDKhb8eM31rVE"
-vercel env add TURNSTILE_SECRET_KEY production <<< "0x4AAAAAABvpDNsvhD1hRu8mGx1MxxJsgLk"
+vercel env add VITE_RECAPTCHA_SITEKEY production <<< "6Lcv_MgrAAAAAEqyzwMCpPeLos-UZikvWYS98Zm2"
+vercel env add RECAPTCHA_SECRET_KEY production <<< "6Lcv_MgrAAAAALThVfcTFwED8YnPVvu9lxMtaepF"
 
 echo "📝 Setting Preview Environment Variables..."
 
 vercel env add VITE_CAPTCHA_ENABLED preview <<< "true"
-vercel env add VITE_TURNSTILE_SITEKEY preview <<< "0x4AAAAAABvpDKhb8eM31rVE"
-vercel env add TURNSTILE_SECRET_KEY preview <<< "0x4AAAAAABvpDNsvhD1hRu8mGx1MxxJsgLk"
+vercel env add VITE_RECAPTCHA_SITEKEY preview <<< "6Lcv_MgrAAAAAEqyzwMCpPeLos-UZikvWYS98Zm2"
+vercel env add RECAPTCHA_SECRET_KEY preview <<< "6Lcv_MgrAAAAALThVfcTFwED8YnPVvu9lxMtaepF"
 
 echo "✅ Environment variables synced to Vercel!"
 echo ""

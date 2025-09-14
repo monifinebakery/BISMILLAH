@@ -43,6 +43,7 @@ export interface PurchaseFormData {
   items: PurchaseItem[];
   metode_perhitungan: CalculationMethod; // sesuai schema database
   keterangan?: string; // Add optional keterangan field
+  total_nilai?: number; // ✅ FIX: Add total_nilai for consistency with Purchase interface
 }
 
 // ============ Stats ============
@@ -261,7 +262,7 @@ export interface PaginationState {
 export interface PurchaseExportData {
   tanggal: string;
   supplier: string;
-  totalNilai: string;
+  total_nilai: string;
   status: string;
   jumlahItem: string;
   totalKuantitas: string;

@@ -44,7 +44,7 @@ export const transformFromDB = <T>(
         case 'harga':
         case 'hargaSatuan':
         case 'hargaRataRata':
-        case 'totalNilai':
+        case 'total_nilai':
         case 'kuantitas':
         case 'subtotal':
           result[frontendField] = toNumber(value);
@@ -153,7 +153,7 @@ export const PURCHASE_FIELD_MAPPINGS = {
     user_id: 'userId',
     supplier: 'supplier',
     tanggal: 'tanggal',
-    total_nilai: 'totalNilai',
+    total_nilai: 'total_nilai',
     items: 'items',
     status: 'status',
     metode_perhitungan: 'metodePerhitungan',
@@ -167,7 +167,7 @@ export const PURCHASE_FIELD_MAPPINGS = {
     userId: 'user_id',
     supplier: 'supplier',
     tanggal: 'tanggal',
-    totalNilai: 'total_nilai',
+    total_nilai: 'total_nilai',
     items: 'items',
     status: 'status',
     metodePerhitungan: 'metode_perhitungan',
@@ -244,7 +244,7 @@ export const PURCHASE_ITEM_FIELD_MAPPINGS = {
  * Transform purchase item for database
  */
 export const transformPurchaseItemToDB = (item: any): any => {
-  return transformToDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.toDB);
+  return transformToDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.toDB, {});
 };
 
 /**
@@ -252,7 +252,7 @@ export const transformPurchaseItemToDB = (item: any): any => {
  */
 export const transformPurchaseItemFromDB = (item: any): any => {
   console.log('DEBUG transformPurchaseItemFromDB: Input item:', item);
-  const result = transformFromDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.fromDB);
+  const result = transformFromDB(item, PURCHASE_ITEM_FIELD_MAPPINGS.fromDB, {});
   console.log('DEBUG transformPurchaseItemFromDB: Transformed result:', result);
   return result;
 };
@@ -265,7 +265,7 @@ export const transformPurchaseToDB = (
   userId: string,
   options?: TransformationOptions
 ): any => {
-  const baseData = transformToDB(purchase, PURCHASE_FIELD_MAPPINGS.toDB, options);
+  const baseData = transformToDB(purchase, PURCHASE_FIELD_MAPPINGS.toDB, options) as any;
   return {
     ...baseData,
     user_id: userId,
@@ -279,7 +279,7 @@ export const transformPurchaseToDB = (
  * Transform purchase from database
  */
 export const transformPurchaseFromDB = (dbItem: any, options?: TransformationOptions): any => {
-  const baseData = transformFromDB(dbItem, PURCHASE_FIELD_MAPPINGS.fromDB, options);
+  const baseData = transformFromDB(dbItem, PURCHASE_FIELD_MAPPINGS.fromDB, options) as any;
   return {
     ...baseData,
     items: Array.isArray(dbItem.items)
@@ -296,7 +296,7 @@ export const transformWarehouseToDB = (
   userId?: string,
   options?: TransformationOptions
 ): any => {
-  const baseData = transformToDB(item, WAREHOUSE_FIELD_MAPPINGS.toDB, options);
+  const baseData = transformToDB(item, WAREHOUSE_FIELD_MAPPINGS.toDB, options) as any;
   if (userId) {
     baseData.user_id = userId;
   }

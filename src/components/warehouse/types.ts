@@ -19,9 +19,9 @@ export interface BahanBaku {
   minimum: number;
   harga_satuan: number;
   supplier: string;
-  tanggal_kadaluwarsa?: string;
-  created_at: string;
-  updated_at: string;
+  tanggal_kadaluwarsa?: Date;
+  created_at: Date;
+  updated_at: Date;
   harga_rata_rata?: number;            // ✅ TAMBAH: WAC field from DB
 }
 
@@ -38,9 +38,9 @@ export interface BahanBakuFrontend {
   harga: number;                       // maps to harga_satuan
   hargaRataRata?: number;              // ✅ TAMBAH: maps to harga_rata_rata
   supplier: string;
-  expiry?: string;                     // maps to tanggal_kadaluwarsa
-  createdAt: string;                   // maps to created_at
-  updatedAt: string;                   // maps to updated_at
+  expiry?: Date;                       // maps to tanggal_kadaluwarsa
+  createdAt: Date;                     // maps to created_at
+  updatedAt: Date;                     // maps to updated_at
 }
 
 
@@ -161,7 +161,7 @@ export interface PriceHistory {
   bahan_baku_id: string;
   harga_lama: number;
   harga_baru: number;
-  tanggal_perubahan: string;
+  tanggal_perubahan: Date;
   alasan?: string;
   user_id: string;
   // Package context for price changes
@@ -182,7 +182,7 @@ export interface StockMovement {
   harga_satuan?: number;
   total_harga?: number;
   keterangan?: string;
-  tanggal: string;
+  tanggal: Date;
   user_id: string;
   // Package tracking
   jumlah_kemasan?: number;
@@ -225,7 +225,7 @@ export interface BahanBakuFormData {
   minimum: number;
   satuan: string;
   harga: number;
-  expiry: string;
+  expiry: Date;
 }
 
 // ✅ ENHANCED: Database field validation

@@ -291,13 +291,14 @@ export const usePurchaseForm = ({
       const purchaseData = {
         ...formData,
         supplier: supplierIdToUse, // Use the resolved supplier ID or name
-        total_nilai: total_nilai,
+        total_nilai: total_nilai, // ✅ FIX: Use consistent field name with transformer
+        tanggal: formData.tanggal instanceof Date ? formData.tanggal : new Date(formData.tanggal),
         status,
       };
       
       console.log('DEBUG: Purchase data before API call:', {
         supplier: purchaseData.supplier,
-        totalNilai: purchaseData.totalNilai,
+        total_nilai: purchaseData.total_nilai,
         items: purchaseData.items.map(item => ({
           nama: item.nama,
           quantity: item.quantity,

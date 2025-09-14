@@ -21,7 +21,7 @@ const toYMD = (d: Date | string | null | undefined): string => {
     const parsedDate = UserFriendlyDate.safeParseToDate(d);
     return UserFriendlyDate.toYMD(parsedDate);
   } catch (error) {
-    logger.error('Error in toYMD conversion:', error, d);
+    logger.error('Error in toYMD conversion:', error);
     return UserFriendlyDate.toYMD(new Date());
   }
 };
@@ -125,7 +125,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       userId: dbItem?.user_id ?? '',
       supplier: dbItem?.supplier ?? '',
       tanggal: new Date(),
-      totalAmount: 0,
+      total_nilai: 0,
       items: [],
       status: 'pending',
       metode_perhitungan: 'AVERAGE',
@@ -160,7 +160,7 @@ export const transformPurchaseUpdateForDB = (p: Partial<Purchase>) => {
 
   if (p.supplier !== undefined) out.supplier = String(p.supplier || '').trim();
   if (p.tanggal !== undefined) out.tanggal = toYMD(p.tanggal as any);
-  if (p.totalAmount !== undefined) out.total_nilai = Math.max(0, Number(p.totalAmount) || 0);
+  if (p.total_nilai !== undefined) out.total_nilai = Math.max(0, Number(p.total_nilai) || 0); // ✅ FIX: Use consistent field name
   if (p.status !== undefined) out.status = p.status;
   if (p.metode_perhitungan !== undefined) out.metode_perhitungan = p.metode_perhitungan;
 
@@ -193,7 +193,7 @@ export const calculatePurchaseTotal = (items: any[]): number =>
 
 export const normalizePurchaseFormData = (formData: any): any => ({
   ...formData,
-  totalAmount: Number(formData.totalAmount) || 0,
+  total_nilai: Number(formData.total_nilai) || 0, // ✅ FIX: Use consistent field name
   tanggal:
     formData.tanggal instanceof Date ? formData.tanggal : new Date(formData.tanggal),
   items: Array.isArray(formData.items)
@@ -219,7 +219,7 @@ export const normalizePurchaseFormData = (formData: any): any => ({
 export const sanitizePurchaseData = (data: any): any => ({
   supplier: String(data.supplier || '').trim(),
   tanggal: data.tanggal,
-  totalAmount: Math.max(0, Number(data.totalAmount) || 0),
+  total_nilai: Math.max(0, Number(data.total_nilai) || 0), // ✅ FIX: Use consistent field name
   items: Array.isArray(data.items)
     ? data.items.map((item: any) => {
         const kuantitas = Number(

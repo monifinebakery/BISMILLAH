@@ -28,7 +28,6 @@ export const sendEmailOtp = async (
         toast.error('Verifikasi CAPTCHA diperlukan');
         return false;
       }
-
       const secretKey = (import.meta.env.VITE_TURNSTILE_SECRETKEY || '').trim();
       if (!secretKey) {
         logger.error('Turnstile secret key missing');

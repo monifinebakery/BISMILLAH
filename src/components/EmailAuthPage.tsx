@@ -103,8 +103,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // Enable CAPTCHA only outside production
-  const isCaptchaEnabled = !import.meta.env.PROD;
+  // Disable CAPTCHA globally for now
+  const isCaptchaEnabled = false;
   
   console.log('🔍 OTP Authentication Mode with Turnstile:', {
     captchaEnabled: isCaptchaEnabled,
@@ -387,33 +387,34 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
-              {/* Turnstile CAPTCHA */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Verifikasi Keamanan
-                </label>
-                <div className="p-3 border rounded bg-white">
-                  <TurnstileWidget
-                    sitekey={turnstileSitekey}
-                    onSuccess={(token) => {
-                      setTurnstileToken(token);
-                      setTurnstileError(null);
-                    }}
-                    onError={() => {
-                      setTurnstileToken(null);
-                      setTurnstileError('Verifikasi CAPTCHA gagal, coba lagi');
-                    }}
-                    onExpired={() => {
-                      setTurnstileToken(null);
-                      setTurnstileError('CAPTCHA kedaluwarsa, silakan verifikasi ulang');
-                    }}
-                    className="block"
-                  />
-                  {turnstileError && (
-                    <p className="mt-2 text-xs text-red-600">{turnstileError}</p>
-                  )}
+              {isCaptchaEnabled && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Verifikasi Keamanan
+                  </label>
+                  <div className="p-3 border rounded bg-white">
+                    <TurnstileWidget
+                      sitekey={turnstileSitekey}
+                      onSuccess={(token) => {
+                        setTurnstileToken(token);
+                        setTurnstileError(null);
+                      }}
+                      onError={() => {
+                        setTurnstileToken(null);
+                        setTurnstileError('Verifikasi CAPTCHA gagal, coba lagi');
+                      }}
+                      onExpired={() => {
+                        setTurnstileToken(null);
+                        setTurnstileError('CAPTCHA kedaluwarsa, silakan verifikasi ulang');
+                      }}
+                      className="block"
+                    />
+                    {turnstileError && (
+                      <p className="mt-2 text-xs text-red-600">{turnstileError}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <Button
                 onClick={handleSendOtp}

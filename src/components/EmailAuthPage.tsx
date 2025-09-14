@@ -1,9 +1,10 @@
-// src/components/auth/EmailAuthPage.tsx — Simple OTP Authentication
+// src/components/auth/EmailAuthPage.tsx — OTP Authentication with Turnstile
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { Mail, Lock, Clock, RefreshCw } from "lucide-react";
 import { sendEmailOtp, verifyEmailOtp } from "@/services/auth";
-import { supabase } from "@/integrations/supabase/client";
+import { useTurnstile } from "@/hooks/useTurnstile";
+import TurnstileWidget from "@/components/auth/TurnstileWidget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,9 +18,6 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
-// Turnstile disabled - using simple OTP authentication
-
-// Simple OTP authentication without captcha
 
 type AuthState =
   | "idle"
@@ -59,7 +57,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  // Simple OTP authentication without CAPTCHA
+  const {
+    reset: resetCaptcha,
+    widgetRef,
+    handleSuccess,
+    handleError,
+    handleExpired,
+    getResponse,
+  } = useTurnstile();
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -104,13 +109,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // CAPTCHA is disabled - using simple OTP authentication
-  const isCaptchaEnabled = false;
-  
-  console.log('🔍 Simple OTP Authentication Mode:', {
+  const isCaptchaEnabled = true;
+
+  console.log('🔍 OTP Authentication Mode with Turnstile:', {
     captchaEnabled: isCaptchaEnabled,
     mode: import.meta.env.MODE,
-    message: 'CAPTCHA disabled - Supabase handles authentication'
+    message: 'Cloudflare Turnstile aktif untuk pengiriman OTP'
   });
   
   // Simple button validation:
@@ -145,7 +149,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
-    // No CAPTCHA validation needed
+    const token = isCaptchaEnabled ? getResponse() : null;
+    if (isCaptchaEnabled && !token) {
+      toast.error("Verifikasi CAPTCHA diperlukan.");
+      return;
+    }
 
     setAuthState("sending");
     setError("");
@@ -153,9 +161,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        null, // No CAPTCHA token
+        token,
         true, // Allow signup
-        true  // Skip CAPTCHA validation
+        !isCaptchaEnabled
       );
 
       if (!mountedRef.current) return;
@@ -177,6 +185,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setError("Terjadi kesalahan saat mengirim kode OTP.");
         startCooldown(30);
       }
+    } finally {
+      if (isCaptchaEnabled) {
+        resetCaptcha();
+      }
     }
   };
 
@@ -188,6 +200,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
+    const token = isCaptchaEnabled ? getResponse() : null;
+    if (isCaptchaEnabled && !token) {
+      toast.error("Verifikasi CAPTCHA diperlukan.");
+      return;
+    }
+
     setAuthState("sending");
     setError("");
     setOtp(["", "", "", "", "", ""]);
@@ -195,9 +213,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        null, // No CAPTCHA token
+        token,
         true, // Allow signup
-        true  // Skip CAPTCHA validation
+        !isCaptchaEnabled
       );
 
       if (!mountedRef.current) return;
@@ -218,6 +236,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setAuthState("error");
         setError("Terjadi kesalahan saat mengirim ulang kode OTP.");
         startCooldown(30);
+      }
+    } finally {
+      if (isCaptchaEnabled) {
+        resetCaptcha();
       }
     }
   };
@@ -353,12 +375,17 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
-              {/* Simple OTP Authentication - No CAPTCHA required */}
-              <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-700">
-                  📮 Simple OTP Authentication - No CAPTCHA required
-                </p>
-              </div>
+              {isCaptchaEnabled && (
+                <div className="flex justify-center">
+                  <TurnstileWidget
+                    ref={widgetRef}
+                    sitekey={import.meta.env.VITE_TURNSTILE_SITEKEY}
+                    onSuccess={handleSuccess}
+                    onError={handleError}
+                    onExpired={handleExpired}
+                  />
+                </div>
+              )}
 
               <Button
                 onClick={handleSendOtp}

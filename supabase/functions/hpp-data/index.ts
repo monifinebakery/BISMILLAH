@@ -87,9 +87,9 @@ serve(async (req)=>{
             tanggal: new Date(item.tanggal).toISOString(),
             supplier: item.supplier,
             items: item.items,
-            total_nilai: parseFloat(item.totalNilai) || 0,
+            total_nilai: parseFloat(item.total_nilai ?? item.totalNilai) || 0,
             status: item.status,
-            metode_perhitungan: item.metodePerhitungan,
+            metode_perhitungan: item.metode_perhitungan ?? item.metodePerhitungan,
             catatan: item.catatan
           }));
         const { error: purchasesError } = await supabase.from('purchases').upsert(purchasesData, {

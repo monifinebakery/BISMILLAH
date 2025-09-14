@@ -5,6 +5,7 @@ import { Order, NewOrder, OrderItem } from './order';
 import { Asset, AssetCategory, AssetCondition } from './asset';
 import { Activity } from './activity';
 import { FinancialTransaction } from './financial';
+import type { Purchase, PurchaseStatus } from '@/components/purchase/types/purchase.types';
 
 // Ini adalah interface yang sebelumnya ada di AppDataContext
 export interface BahanBaku {
@@ -20,29 +21,6 @@ export interface BahanBaku {
   createdAt: Date | null;
   updatedAt: Date | null;
   userId?: string;
-}
-
-export type PurchaseStatus = 'pending' | 'completed' | 'cancelled';
-
-export interface Purchase {
-  id: string;
-  tanggal: Date;
-  supplier: string;
-  items: {
-    id?: string | number;
-    namaBarang: string;
-    kategori?: string;
-    jumlah: number;
-    satuan?: string;
-    hargaSatuan: number;
-    totalHarga: number;
-  }[];
-  totalNilai: number;
-  status: PurchaseStatus;
-  metodePerhitungan: 'Average';
-  catatan: string | null;
-  createdAt: Date | null;
-  updatedAt: Date | null;
 }
 
 export const PURCHASE_STATUS_CONFIG: Record<
@@ -84,6 +62,17 @@ export interface HPPResult {
 
 // Re-export tipe lain agar bisa diimpor dari satu tempat
 export type {
-    Recipe, RecipeIngredient, Supplier, Order, NewOrder, OrderItem,
-    Asset, AssetCategory, AssetCondition, Activity, FinancialTransaction
+  Recipe,
+  RecipeIngredient,
+  Supplier,
+  Order,
+  NewOrder,
+  OrderItem,
+  Asset,
+  AssetCategory,
+  AssetCondition,
+  Activity,
+  FinancialTransaction,
+  Purchase,
+  PurchaseStatus
 };

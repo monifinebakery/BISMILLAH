@@ -59,7 +59,10 @@ export function checkFinancialPurchaseConsistency(
       purchase: {
         purchaseCount: purchases.length,
         completedPurchases: purchases.filter(p => p.status === 'completed').length,
-        totalValue: purchases.reduce((sum, p) => sum + Number(p.totalNilai || 0), 0),
+        totalValue: purchases.reduce(
+          (sum, p) => sum + Number((p as any).total_nilai ?? (p as any).totalNilai ?? 0),
+          0
+        ),
         validPurchases: purchases.filter(p => 
           p.supplier && p.tanggal && p.items && p.items.length > 0
         ).length,
@@ -97,7 +100,9 @@ export function checkFinancialPurchaseConsistency(
       );
       
       if (relatedTransaction) {
-        const purchaseValue = Number(purchase.totalNilai || 0);
+        const purchaseValue = Number(
+          (purchase as any).total_nilai ?? (purchase as any).totalNilai ?? 0
+        );
         const transactionAmount = Number(relatedTransaction.amount || 0);
         
         if (Math.abs(purchaseValue - transactionAmount) > 0.01) {

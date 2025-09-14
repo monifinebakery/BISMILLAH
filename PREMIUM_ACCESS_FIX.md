@@ -77,12 +77,12 @@ if (shouldShowPaymentRequired) { /* Show payment required screen */ }
 Fix ini juga resolve mobile login issues yang sebelumnya terjadi:
 - Mobile users dengan unlinked payments sekarang bisa akses aplikasi
 - AutoLinkingPopup responsive dan mobile-friendly
-- Turnstile integration tetap berfungsi dengan baik
+- Integrasi reCAPTCHA tetap berfungsi dengan baik
 
 ## 🔗 **Related Commits**
 
 1. **6d8a7f53** - Fix premium user access issue - AutoLinkPopup integration
-2. **327a48ae** - Fix mobile login errors - Cloudflare Turnstile improvements
+2. **327a48ae** - Fix mobile login errors - reCAPTCHA improvements
 
 ## 🎯 **Key Files Modified**
 

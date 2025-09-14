@@ -1,8 +1,9 @@
 // src/components/auth/EmailAuthPage.tsx — Simple OTP Authentication
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { Mail, Lock, Clock, RefreshCw } from "lucide-react";
 import { sendEmailOtp, verifyEmailOtp } from "@/services/auth";
+import { useRecaptcha } from "@/hooks/useRecaptcha";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +18,7 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
-// Turnstile disabled - using simple OTP authentication
-
-// Simple OTP authentication without captcha
+// reCAPTCHA enabled for OTP authentication
 
 type AuthState =
   | "idle"
@@ -59,7 +58,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  // Simple OTP authentication without CAPTCHA
+  const { execute: executeRecaptcha } = useRecaptcha(
+    import.meta.env.VITE_RECAPTCHA_SITEKEY
+  );
+
+  // Enable reCAPTCHA for additional security
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -104,13 +107,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // CAPTCHA is disabled - using simple OTP authentication
-  const isCaptchaEnabled = false;
-  
-  console.log('🔍 Simple OTP Authentication Mode:', {
+  const isCaptchaEnabled = true;
+
+  console.log('🔍 OTP Authentication Mode with reCAPTCHA:', {
     captchaEnabled: isCaptchaEnabled,
     mode: import.meta.env.MODE,
-    message: 'CAPTCHA disabled - Supabase handles authentication'
+    message: 'reCAPTCHA aktif untuk pengiriman OTP'
   });
   
   // Simple button validation:
@@ -145,17 +147,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
-    // No CAPTCHA validation needed
-
     setAuthState("sending");
     setError("");
 
     try {
+      const captchaToken = isCaptchaEnabled
+        ? await executeRecaptcha("login")
+        : null;
+      if (isCaptchaEnabled && !captchaToken) {
+        toast.error("Verifikasi reCAPTCHA gagal.");
+        return;
+      }
+
       const success = await sendEmailOtp(
         email,
-        null, // No CAPTCHA token
+        captchaToken,
         true, // Allow signup
-        true  // Skip CAPTCHA validation
+        !isCaptchaEnabled
       );
 
       if (!mountedRef.current) return;
@@ -193,11 +201,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
 
     try {
+      const captchaToken = isCaptchaEnabled
+        ? await executeRecaptcha("login")
+        : null;
+      if (isCaptchaEnabled && !captchaToken) {
+        toast.error("Verifikasi reCAPTCHA gagal.");
+        return;
+      }
+
       const success = await sendEmailOtp(
         email,
-        null, // No CAPTCHA token
-        true, // Allow signup
-        true  // Skip CAPTCHA validation
+        captchaToken,
+        true,
+        !isCaptchaEnabled
       );
 
       if (!mountedRef.current) return;
@@ -329,7 +345,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
         <CardContent className="space-y-6">
           {!isSent ? (
-            // Email Input + Captcha
+            // Email Input + reCAPTCHA
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">
@@ -351,13 +367,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                     autoFocus
                   />
                 </div>
-              </div>
-
-              {/* Simple OTP Authentication - No CAPTCHA required */}
-              <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-700">
-                  📮 Simple OTP Authentication - No CAPTCHA required
-                </p>
               </div>
 
               <Button

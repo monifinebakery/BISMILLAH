@@ -211,7 +211,7 @@ const showSwipeIndicator = (element: HTMLElement, distance: number) => {
 const hideSwipeIndicator = (element: HTMLElement) => {
   const indicator = element.querySelector('.toast-swipe-indicator');
   if (indicator) {
-    indicator.remove();
+    safeDom.removeElement(indicator);
   }
 };
 
@@ -226,7 +226,7 @@ const dismissToast = (element: HTMLElement) => {
     if (closeButton) {
       closeButton.click();
     } else {
-      element.remove();
+      safeDom.removeElement(element);
     }
   }, 300);
 };

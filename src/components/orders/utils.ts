@@ -65,7 +65,7 @@ export const transformOrderFromDB = (dbItem: any): Order => {
       id: dbItem.id || 'unknown',
       nomorPesanan: dbItem.nomor_pesanan || generateOrderNumber(),
       namaPelanggan: dbItem.nama_pelanggan || 'Unknown Customer',
-      teleponPelanggan: dbItem.telepon_pelanggan || undefined,
+      teleponPelanggan: dbItem.telepon_pelanggan || '',
       emailPelanggan: dbItem.email_pelanggan || undefined,
       alamatPengiriman: dbItem.alamat_pengiriman || '',
       tanggal: safeParseDate(dbItem.tanggal) || new Date(),
@@ -187,13 +187,14 @@ export const validateOrderData = (data: Partial<NewOrder>): { isValid: boolean; 
   }
   
   // Optional field validations with limits and improved regex
-  if (data.teleponPelanggan && data.teleponPelanggan.length > 0) {
+  if (!data.teleponPelanggan || data.teleponPelanggan.length === 0) {
+    errors.push('Nomor telepon harus diisi');
+  } else {
     const phone = data.teleponPelanggan;
     const phoneLength = phone.length;
     if (phoneLength < VALIDATION_LIMITS.phone.min || phoneLength > VALIDATION_LIMITS.phone.max) {
       errors.push(`Nomor telepon harus antara ${VALIDATION_LIMITS.phone.min} dan ${VALIDATION_LIMITS.phone.max} karakter`);
     } else {
-      // ✅ IMPROVED: Stricter regex for Indonesian phone numbers (local/internasional)
       const phoneRegex = /^(?:\+62|0)[1-9]\d{8,13}$/;
       if (!phoneRegex.test(phone)) {
         errors.push('Format nomor telepon tidak valid (contoh: +628123456789 atau 08123456789)');
@@ -349,7 +350,7 @@ const createFallbackOrder = (id?: string): Order => ({
   id: id || 'error-' + Date.now(),
   nomorPesanan: 'ERROR-' + Date.now().toString().slice(-6),
   namaPelanggan: 'Data Error',
-  teleponPelanggan: undefined,
+  teleponPelanggan: '',
   emailPelanggan: undefined,
   alamatPengiriman: '',
   tanggal: new Date(),
@@ -377,7 +378,7 @@ export const searchOrders = (orders: Order[], searchTerm: string): Order[] => {
   return orders.filter(order => 
     order.namaPelanggan.toLowerCase().includes(lowerSearchTerm) ||
     order.nomorPesanan.toLowerCase().includes(lowerSearchTerm) ||
-    (order.teleponPelanggan?.toLowerCase().includes(lowerSearchTerm)) ||
+    order.teleponPelanggan.toLowerCase().includes(lowerSearchTerm) ||
     (order.emailPelanggan?.toLowerCase().includes(lowerSearchTerm))
   );
 };

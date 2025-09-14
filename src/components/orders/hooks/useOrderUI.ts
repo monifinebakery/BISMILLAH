@@ -32,7 +32,7 @@ export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): U
         const matchesSearch = 
           order.nomorPesanan.toLowerCase().includes(searchTerm) ||
           order.namaPelanggan.toLowerCase().includes(searchTerm) ||
-          (order.teleponPelanggan?.toLowerCase().includes(searchTerm)) ||
+          order.teleponPelanggan.toLowerCase().includes(searchTerm) ||
           (order.emailPelanggan?.toLowerCase().includes(searchTerm));
         
         if (!matchesSearch) return false;

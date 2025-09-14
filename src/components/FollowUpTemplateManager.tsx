@@ -98,7 +98,7 @@ const FollowUpTemplateManager = ({ isOpen, onClose, order, onSendWhatsApp }) => 
     }
     
     // Open WhatsApp with the message
-    const phoneNumber = order?.teleponPelanggan?.replace(/\D/g, '') || '';
+    const phoneNumber = order?.teleponPelanggan.replace(/\D/g, '') || '';
     
     if (!phoneNumber) {
       toast.error('Nomor telepon pelanggan tidak tersedia');

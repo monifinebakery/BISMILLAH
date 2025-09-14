@@ -122,7 +122,7 @@ export const useDashboardData = (dateRange: DateRange) => {
 
   // 🔗 Context Hooks
   const { activities = [], loading: activitiesLoading } = useActivity() || {};
-  const { bahanBaku = [] } = useBahanBaku() || {};
+  const { bahanBaku: bahan_baku = [] } = useBahanBaku() || {};
   const { orders = [] } = useOrder() || {};
   const { recipes = [] } = useRecipe() || {};
   const { settings = {} } = useUserSettings() || {};
@@ -427,7 +427,7 @@ export const useDashboardData = (dateRange: DateRange) => {
   // ⚠️ Critical Stock Items
   const criticalStock = useMemo(() => {
     try {
-      return bahanBaku
+      return bahan_baku
         .filter(item => {
           if (!item) return false;
           const currentStock = safeNumber(item.stok);
@@ -445,7 +445,7 @@ export const useDashboardData = (dateRange: DateRange) => {
       logger.error('Dashboard - Critical stock error:', err);
       return [];
     }
-  }, [bahanBaku]);
+  }, [bahan_baku]);
 
   // 📝 Recent Activities (Limited)
   const recentActivities = useMemo(() => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/utils/browserApiSafeWrappers.ts
 // Prevents "Illegal invocation" errors by properly binding browser API methods
 
@@ -68,10 +69,23 @@ export const safeDom = {
     element.removeEventListener.call(element, type, listener, options),
   removeElement: (element?: Element | null) => {
     if (!element) return;
-    if ((element as any).isConnected && typeof (element as any).remove === 'function') {
-      (element as any).remove();
-    } else {
-      element.parentElement?.removeChild(element as any);
+
+    if (typeof (element as any).remove === 'function') {
+      try {
+        (element as any).remove();
+        return;
+      } catch {
+        /* abaikan error */
+      }
+    }
+
+    const parent = (element as any).parentNode as ParentNode | null;
+    if (parent && (parent as any).contains?.(element)) {
+      try {
+        parent.removeChild(element);
+      } catch {
+        /* abaikan error */
+      }
     }
   },
 };

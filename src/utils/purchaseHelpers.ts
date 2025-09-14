@@ -208,29 +208,44 @@ export const calculatePurchaseStatistics = (
 };
 
 const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
-  const monthlyData = new Map<string, { count: number; totalValue: number; month: string; year: number }>();
-  
+  const monthlyData = new Map<
+    string,
+    { count: number; totalValue: number; monthIndex: number; year: number }
+  >();
+
   purchases.forEach(purchase => {
     const date = new Date(purchase.tanggal);
     const key = `${date.getFullYear()}-${date.getMonth()}`;
-    
+
     if (!monthlyData.has(key)) {
       monthlyData.set(key, {
         count: 0,
         totalValue: 0,
-        month: date.toLocaleString('id-ID', { month: 'long' }),
+        monthIndex: date.getMonth(),
         year: date.getFullYear()
       });
     }
-    
+
     const data = monthlyData.get(key)!;
     data.count++;
     data.totalValue += purchase.totalNilai;
   });
 
   return Array.from(monthlyData.values())
-    .sort((a, b) => new Date(a.year, parseInt(a.month)).getTime() - new Date(b.year, parseInt(b.month)).getTime())
-    .slice(-12); // Last 12 months
+    .sort(
+      (a, b) =>
+        new Date(a.year, a.monthIndex).getTime() -
+        new Date(b.year, b.monthIndex).getTime()
+    )
+    .slice(-12)
+    .map(data => ({
+      count: data.count,
+      totalValue: data.totalValue,
+      month: new Date(data.year, data.monthIndex).toLocaleString('id-ID', {
+        month: 'long'
+      }),
+      year: data.year
+    }));
 };
 
 const generateTopSuppliers = (

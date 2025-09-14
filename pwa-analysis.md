@@ -29,7 +29,7 @@ import React from 'react'; // Line 340 - DUPLICATE!
 ### 3. **Content Security Policy Issues**
 **Current CSP** in `index.html`:
 - Very permissive with `'unsafe-inline' 'unsafe-eval'`
-- Multiple Cloudflare domains (good for Turnstile)
+- Multiple Google domains (diperlukan untuk reCAPTCHA)
 - But might block some PWA features
 
 ### 4. **Service Worker Cache References**

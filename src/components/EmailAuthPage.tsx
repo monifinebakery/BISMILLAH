@@ -159,12 +159,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError("");
 
     try {
+      if (isCaptchaEnabled && !captchaToken) {
+        toast.error("Silakan verifikasi reCAPTCHA terlebih dahulu.");
+        return;
+      }
+
       const success = await sendEmailOtp(
         email,
         token,
         true, // Allow signup
         !isCaptchaEnabled
       );
+
+      resetCaptcha();
 
       if (!mountedRef.current) return;
 
@@ -211,12 +218,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
 
     try {
+      if (isCaptchaEnabled && !captchaToken) {
+        toast.error("Silakan verifikasi reCAPTCHA terlebih dahulu.");
+        return;
+      }
+
       const success = await sendEmailOtp(
         email,
         token,
         true, // Allow signup
         !isCaptchaEnabled
       );
+
+      resetCaptcha();
 
       if (!mountedRef.current) return;
 
@@ -351,7 +365,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
         <CardContent className="space-y-6">
           {!isSent ? (
-            // Email Input + Captcha
+            // Email Input + reCAPTCHA
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">

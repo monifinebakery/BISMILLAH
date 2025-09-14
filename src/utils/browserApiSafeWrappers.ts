@@ -61,33 +61,82 @@ export const safeDom = {
   getElementById: (id: string) => document.getElementById.call(document, id),
   querySelector: (selector: string) => document.querySelector.call(document, selector),
   querySelectorAll: (selector: string) => document.querySelectorAll.call(document, selector),
-  createElement: (tagName: string) => document.createElement.call(document, tagName),
+  createElement: <K extends keyof HTMLElementTagNameMap>(tagName: K) => document.createElement.call(document, tagName) as HTMLElementTagNameMap[K],
   createTextNode: (text: string) => document.createTextNode.call(document, text),
   addEventListener: (element: EventTarget, type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) =>
     element.addEventListener.call(element, type, listener, options),
   removeEventListener: (element: EventTarget, type: string, listener: EventListener, options?: boolean | EventListenerOptions) =>
     element.removeEventListener.call(element, type, listener, options),
-  removeElement: (element?: Element | null) => {
-    if (!element) return;
+  
+  
+  /**
+   * Safe element removal that prevents removeChild errors
+   * Handles cases where element might not be connected to DOM
+   */
+  safeRemoveElement: (element: Element | HTMLElement | null) => {
+    if (!element) return false;
 
-    if (typeof (element as any).remove === 'function') {
-      try {
+    try {
+      // Fast path: if it's not connected, nothing to remove
+      // isConnected is widely supported and avoids NotFoundError
+      if ('isConnected' in element && (element as any).isConnected === false) {
+        return false;
+      }
+
+      // Method 1: Use modern remove() if available (no-throw if already detached)
+      if (typeof (element as any).remove === 'function') {
         (element as any).remove();
-        return;
-      } catch {
-        /* abaikan error */
+        return true;
       }
-    }
 
-    const parent = (element as any).parentNode as ParentNode | null;
-    if (parent && (parent as any).contains?.(element)) {
-      try {
-        parent.removeChild(element);
-      } catch {
-        /* abaikan error */
+      // Method 2: Remove via parentNode if it actually contains the element
+      const parentNode = element.parentNode as (Node | null);
+      if (
+        parentNode &&
+        typeof (parentNode as any).contains === 'function' &&
+        (parentNode as any).contains(element)
+      ) {
+        (parentNode as any).removeChild(element);
+        return true;
       }
+
+      // Method 3: Fallback via parentElement (with contains guard)
+      const parentEl = element.parentElement;
+      if (
+        parentEl &&
+        typeof (parentEl as any).contains === 'function' &&
+        parentEl.contains(element)
+      ) {
+        parentEl.removeChild(element);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.warn('Safe element removal failed:', error);
+      return false;
     }
   },
+  
+  /**
+   * Safe appendChild that checks if element exists and is valid
+   */
+  safeAppendChild: (parent: Element | HTMLElement, child: Element | HTMLElement) => {
+    try {
+      if (parent && child && typeof parent.appendChild === 'function') {
+        parent.appendChild(child);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.warn('Safe appendChild failed:', error);
+      return false;
+    }
+  },
+  // Backward-compatible alias used elsewhere in codebase
+  removeElement: (element?: Element | null) => {
+    safeDom.safeRemoveElement((element || null) as any);
+  }
 };
 
 /**
@@ -101,7 +150,14 @@ export const safeNavigator = {
     readText: () => navigator.clipboard.readText.call(navigator.clipboard),
   },
   share: (data: ShareData) => navigator.share?.call(navigator, data),
-  vibrate: (pattern: number | number[]) => navigator.vibrate?.call(navigator, pattern),
+  vibrate: (pattern: number | number[]) => {
+    if (navigator.vibrate) {
+      return Array.isArray(pattern) 
+        ? navigator.vibrate.call(navigator, pattern)
+        : navigator.vibrate.call(navigator, [pattern]);
+    }
+    return false;
+  },
 };
 
 /**

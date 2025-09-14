@@ -85,10 +85,10 @@ const ImportButton: React.FC = () => {
     const link = safeDom.createElement('a');
     link.href = '/templates/order-import-template.csv';
     link.download = 'template-import-pesanan.csv';
-    document.body.appendChild(link);
+    safeDom.safeAppendChild(document.body, link);
     link.click();
     // Safe cleanup
-    safeDom.removeElement(link as any);
+    safeDom.safeRemoveElement(link as any);
     toast.success('Template CSV berhasil didownload!');
   };
 

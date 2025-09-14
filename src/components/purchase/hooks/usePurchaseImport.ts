@@ -130,10 +130,11 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
     link.setAttribute('href', url);
     link.setAttribute('download', 'template_pembelian.csv');
     link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    safeDom.safeAppendChild(document.body, link);
     link.click();
     // Safe cleanup
-    safeDom.removeElement(link as any);
+    safeDom.safeRemoveElement(link);
+    URL.revokeObjectURL(url);
   };
 
   const processFile = async (file: File) => {

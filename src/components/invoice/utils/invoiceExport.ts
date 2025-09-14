@@ -1,11 +1,9 @@
 // src/components/invoice/utils/invoiceExport.ts
 // Utilitas untuk mengunduh invoice sebagai gambar tanpa dialog print
 
-/**
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
- * Alternative modern implementation for better browser compatibility
- */
+// Alternative modern implementation for better browser compatibility
 async function modernDomToImage(element: HTMLElement): Promise<string> {
   const rect = element.getBoundingClientRect();
   const scale = window.devicePixelRatio || 2;
@@ -193,11 +191,10 @@ export const downloadInvoiceImage = async (
     const link = safeDom.createElement('a');
     link.href = dataUrl;
     link.download = `invoice-${new Date().toISOString().split('T')[0]}.${format}`;
-    document.body.appendChild(link);
+    safeDom.safeAppendChild(document.body, link);
     link.click();
-    // Safe cleanup
-    safeDom.removeElement(link as any);
-
+    // Safe cleanup (single, idempotent)
+    safeDom.safeRemoveElement(link);
   } catch (error) {
     console.error('Error downloading invoice image:', error);
     throw new Error('Gagal mengunduh gambar invoice: ' + (error instanceof Error ? error.message : String(error)));
@@ -206,4 +203,3 @@ export const downloadInvoiceImage = async (
     element.classList.remove('export-mode');
   }
 };
-

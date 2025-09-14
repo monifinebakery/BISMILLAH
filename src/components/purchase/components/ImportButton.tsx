@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,36 +15,38 @@ import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 const ImportButton: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { addPurchase, setBulkProcessing } = usePurchase();
+  const { addPurchase } = usePurchase();
+  const [importing, setImporting] = useState(false);
 
   const handleFile = async (file: File) => {
+    setImporting(true);
     try {
       const purchases = await parsePurchaseCSV(file);
       if (!purchases.length) {
         toast.error('Tidak ada data yang dapat diimport');
         return;
       }
-      setBulkProcessing(true);
       let success = 0;
       for (const p of purchases) {
         const ok = await addPurchase(p);
         if (ok) success++;
       }
-      setBulkProcessing(false);
       toast.success(`${success} pembelian berhasil diimport`);
     } catch (err: any) {
       toast.error(err.message || 'Gagal mengimpor file');
+    } finally {
+      setImporting(false);
     }
   };
 
   const downloadTemplate = () => {
-    const link = safeDom.createElement('a');
+    const link = safeDom.createElement('a') as HTMLAnchorElement;
     link.href = '/templates/purchase-import-template.csv';
     link.download = 'purchase-import-template.csv';
-    document.body.appendChild(link);
+    safeDom.safeAppendChild(document.body, link);
     link.click();
-    // Safe cleanup
-    safeDom.removeElement(link as any);
+    // Safe cleanup menggunakan fungsi yang lebih aman
+    safeDom.safeRemoveElement(link);
   };
 
   const showFormatInfo = () => {
@@ -67,13 +69,13 @@ const ImportButton: React.FC = () => {
       />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="secondary" className="flex items-center gap-2">
+          <Button variant="secondary" className="flex items-center gap-2" disabled={importing}>
             <Upload className="h-4 w-4" />
-            Import
+            {importing ? 'Mengimpor…' : 'Import'}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem onClick={() => inputRef.current?.click()} className="cursor-pointer">
+          <DropdownMenuItem onClick={() => inputRef.current?.click()} className="cursor-pointer" disabled={importing}>
             <Upload className="h-4 w-4 mr-2" /> Upload CSV
           </DropdownMenuItem>
           <DropdownMenuItem onClick={downloadTemplate} className="cursor-pointer">

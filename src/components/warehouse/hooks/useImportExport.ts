@@ -295,10 +295,16 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
       ].join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
       const link = safeDom.createElement('a');
-      link.href = URL.createObjectURL(blob);
+      link.href = url;
       link.download = `template_bahan_baku_${new Date().toISOString().split('T')[0]}.csv`;
+      // Ensure consistent behavior across browsers
+      safeDom.safeAppendChild(document.body, link);
       link.click();
+      // Safe cleanup
+      safeDom.safeRemoveElement(link);
+      URL.revokeObjectURL(url);
 
       toast.success('Template CSV berhasil di-download');
       logger.info('CSV template downloaded with semicolon delimiter');

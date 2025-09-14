@@ -166,6 +166,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         !isCaptchaEnabled
       );
 
+      resetCaptcha();
+
       if (!mountedRef.current) return;
 
       if (success) {
@@ -215,6 +217,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         true,
         !isCaptchaEnabled
       );
+
+      resetCaptcha();
 
       if (!mountedRef.current) return;
 

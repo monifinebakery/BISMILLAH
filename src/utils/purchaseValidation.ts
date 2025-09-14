@@ -10,7 +10,7 @@ export interface PurchaseValidationRules {
   MAX_UNIT_PRICE: number;
   MIN_TOTAL_VALUE: number;
   MAX_ITEMS_PER_PURCHASE: number;
-  REQUIRED_ITEM_FIELDS: (keyof PurchaseItem)[];
+  REQUIRED_ITEM_FIELDS: string[];
 }
 
 export const PURCHASE_VALIDATION_RULES: PurchaseValidationRules = {
@@ -20,7 +20,7 @@ export const PURCHASE_VALIDATION_RULES: PurchaseValidationRules = {
   MAX_UNIT_PRICE: 999999999,          // 999 million max
   MIN_TOTAL_VALUE: 0,                 // Allow zero-value purchases
   MAX_ITEMS_PER_PURCHASE: 100,        // Maximum items per purchase
-  REQUIRED_ITEM_FIELDS: ['bahanBakuId', 'nama', 'kuantitas', 'satuan', 'hargaSatuan'],
+  REQUIRED_ITEM_FIELDS: ['bahanBakuId', 'namaBarang', 'jumlah', 'satuan', 'hargaSatuan'],
 };
 
 export interface PurchaseValidationResult {
@@ -77,24 +77,27 @@ export function validatePurchaseData(
     items.forEach((item, index) => {
       const itemErrors: string[] = [];
       const itemWarnings: string[] = [];
-      const correctedItem = { ...item };
+      const correctedItem: any = { ...item };
+      const itemAny = item as any;
 
       // Required fields
       validationRules.REQUIRED_ITEM_FIELDS.forEach(field => {
-        if (!item[field] || (typeof item[field] === 'string' && !item[field].trim())) {
+        const value = itemAny[field];
+        if (!value || (typeof value === 'string' && !value.trim())) {
           itemErrors.push(`Item ${index + 1}: ${field} is required`);
         }
       });
 
-      // Quantity validation
-      if (typeof item.kuantitas === 'number') {
-        if (item.kuantitas < validationRules.MIN_ITEM_QUANTITY) {
+      // Quantity validation (supports jumlah or kuantitas)
+      const qty = typeof itemAny.jumlah === 'number' ? itemAny.jumlah : itemAny.kuantitas;
+      if (typeof qty === 'number') {
+        if (qty < validationRules.MIN_ITEM_QUANTITY) {
           itemErrors.push(`Item ${index + 1}: Quantity must be at least ${validationRules.MIN_ITEM_QUANTITY}`);
-          correctedItem.kuantitas = validationRules.MIN_ITEM_QUANTITY;
+          correctedItem.jumlah = validationRules.MIN_ITEM_QUANTITY;
         }
-        if (item.kuantitas > validationRules.MAX_ITEM_QUANTITY) {
-          itemWarnings.push(`Item ${index + 1}: Very large quantity (${item.kuantitas})`);
-          correctedItem.kuantitas = validationRules.MAX_ITEM_QUANTITY;
+        if (qty > validationRules.MAX_ITEM_QUANTITY) {
+          itemWarnings.push(`Item ${index + 1}: Very large quantity (${qty})`);
+          correctedItem.jumlah = validationRules.MAX_ITEM_QUANTITY;
         }
       }
 
@@ -112,10 +115,10 @@ export function validatePurchaseData(
       }
 
       // Calculate subtotal
-      const quantity = Number(correctedItem.kuantitas) || 0;
-      const unitPrice = Number(correctedItem.hargaSatuan) || 0;
-      correctedItem.subtotal = quantity * unitPrice;
-      correctedTotal += correctedItem.subtotal;
+        const quantity = Number((correctedItem as any).jumlah ?? correctedItem.kuantitas) || 0;
+        const unitPrice = Number(correctedItem.hargaSatuan) || 0;
+        correctedItem.subtotal = quantity * unitPrice;
+        correctedTotal += correctedItem.subtotal;
 
       // Add warnings and errors to main arrays
       itemErrors.forEach(err => errors.push(err));
@@ -189,16 +192,29 @@ function calculatePurchaseQualityScore(
   if (!items || items.length === 0) score -= 25;
 
   // Deduct for incomplete items
-  const incompleteItems = items.filter(item => 
-    !item.bahanBakuId || !item.nama || !item.kuantitas || !item.satuan
-  );
+  const incompleteItems = items.filter(item => {
+    const it: any = item;
+    return (
+      !it.bahanBakuId ||
+      !(it.namaBarang || it.nama) ||
+      !(it.jumlah ?? it.kuantitas) ||
+      !it.satuan
+    );
+  });
   score -= incompleteItems.length * 10;
 
   // Bonus for complete data
   if (purchase.supplier && purchase.tanggal && items.length > 0) {
-    const completeItems = items.filter(item => 
-      item.bahanBakuId && item.nama && item.kuantitas && item.satuan && item.hargaSatuan > 0
-    );
+    const completeItems = items.filter(item => {
+      const it: any = item;
+      return (
+        it.bahanBakuId &&
+        (it.namaBarang || it.nama) &&
+        (it.jumlah ?? it.kuantitas) &&
+        it.satuan &&
+        it.hargaSatuan > 0
+      );
+    });
     score += Math.min(completeItems.length * 2, 10);
   }
 
@@ -237,9 +253,15 @@ export function validateStatusChange(
       }
 
       // Validate all items have required data
-      const invalidItems = purchase.items?.filter(item => 
-        !item.bahanBakuId || !item.nama || !item.kuantitas || !item.satuan
-      ) || [];
+      const invalidItems = purchase.items?.filter(item => {
+        const it: any = item;
+        return (
+          !it.bahanBakuId ||
+          !(it.namaBarang || it.nama) ||
+          !(it.jumlah ?? it.kuantitas) ||
+          !it.satuan
+        );
+      }) || [];
       
       if (invalidItems.length > 0) {
         errors.push(`${invalidItems.length} items are incomplete`);

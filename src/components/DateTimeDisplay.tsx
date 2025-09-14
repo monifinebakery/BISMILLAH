@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 import { isValidDate } from '@/utils/unifiedDateUtils';
 
 interface DateTimeDisplayProps {
@@ -161,16 +162,18 @@ const DateTimeDisplay: React.FC<DateTimeDisplayProps> = ({
     return formatMobileTime(currentDateTime);
   }, [isClient, currentDateTime, formatMobileTime]);
 
-  // 🔧 FIX: Loading state during hydration
+  // 🔧 FIX: Loading state during hydration menggunakan skeleton
   if (!isClient) {
     return (
-      <div className={cn(
-        "flex items-center space-x-2 text-sm text-muted-foreground animate-pulse",
-        className
-      )}>
+      <div
+        className={cn(
+          "flex items-center space-x-2 text-sm text-muted-foreground",
+          className
+        )}
+      >
         <Clock className="h-4 w-4" />
-        <span className="hidden sm:inline">Loading...</span>
-        <span className="sm:hidden">--:--</span>
+        <Skeleton variant="text" className="hidden sm:inline w-24" />
+        <Skeleton variant="text" className="sm:hidden w-12" />
       </div>
     );
   }

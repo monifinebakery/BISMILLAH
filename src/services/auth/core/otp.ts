@@ -19,12 +19,42 @@ export const sendEmailOtp = async (
 
     logger.api('/auth/otp', 'Sending OTP to:', { email, allowSignup, skipCaptcha });
     
-    const otpOptions: any = {
+    const otpOptions: Record<string, unknown> = {
       shouldCreateUser: allowSignup,
     };
     
-    // No captcha validation - simple OTP authentication
-    logger.debug('Proceeding with OTP send (no captcha validation)');
+    if (!skipCaptcha) {
+      if (!captchaToken) {
+        toast.error('Verifikasi CAPTCHA diperlukan');
+        return false;
+      }
+
+      const secretKey = import.meta.env.VITE_TURNSTILE_SECRETKEY;
+      if (!secretKey) {
+        logger.error('Turnstile secret key missing');
+        toast.error('Konfigurasi Turnstile belum lengkap');
+        return false;
+      }
+
+      try {
+        const verifyResp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(captchaToken)}`,
+        });
+        const verifyData = await verifyResp.json();
+        if (!verifyData.success) {
+          logger.error('Turnstile verification failed:', verifyData);
+          toast.error('Verifikasi CAPTCHA gagal');
+          return false;
+        }
+        logger.debug('Turnstile token verified');
+      } catch (e) {
+        logger.error('Turnstile verification error:', e);
+        toast.error('Gagal memverifikasi CAPTCHA');
+        return false;
+      }
+    }
 
     console.log('🔧 [DEBUG] Sending OTP request to Supabase:', {
       email,

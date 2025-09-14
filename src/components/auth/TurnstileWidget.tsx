@@ -57,7 +57,24 @@ const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetProps>(({
       theme,
       size,
     };
+    // Ensure previous widget is removed before rendering a new one
+    if (widgetIdRef.current && window.turnstile) {
+      try { window.turnstile.remove(widgetIdRef.current); } catch {}
+      widgetIdRef.current = null;
+      // Clear container in case any residual nodes remain
+      try { containerRef.current.innerHTML = ''; } catch {}
+    }
     widgetIdRef.current = window.turnstile.render(containerRef.current, config);
+
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        try { window.turnstile.remove(widgetIdRef.current); } catch {}
+        widgetIdRef.current = null;
+      }
+      if (containerRef.current) {
+        try { containerRef.current.innerHTML = ''; } catch {}
+      }
+    };
   }, [scriptLoaded, sitekey, onSuccess, onError, onExpired, theme, size]);
 
   useImperativeHandle(ref, () => ({

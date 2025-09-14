@@ -159,11 +159,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError("");
 
     try {
-      if (isCaptchaEnabled && !captchaToken) {
-        toast.error("Silakan verifikasi reCAPTCHA terlebih dahulu.");
-        return;
-      }
-
       const success = await sendEmailOtp(
         email,
         token,
@@ -218,11 +213,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
 
     try {
-      if (isCaptchaEnabled && !captchaToken) {
-        toast.error("Silakan verifikasi reCAPTCHA terlebih dahulu.");
-        return;
-      }
-
       const success = await sendEmailOtp(
         email,
         token,

@@ -383,7 +383,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 <div className="flex justify-center">
                   <TurnstileWidget
                     ref={widgetRef}
-                    sitekey={import.meta.env.VITE_TURNSTILE_SITEKEY}
+                    sitekey={(import.meta.env.VITE_TURNSTILE_SITEKEY || '').trim()}
                     onSuccess={handleSuccess}
                     onError={handleError}
                     onExpired={handleExpired}

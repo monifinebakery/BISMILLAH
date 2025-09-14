@@ -315,11 +315,7 @@ export const downloadCSV = (csvContent: string, filename: string = 'suppliers.cs
     document.body.appendChild(link);
     link.click();
     // Safe cleanup
-    if ((link as any).isConnected && typeof (link as any).remove === 'function') {
-      (link as any).remove();
-    } else {
-      link.parentElement?.removeChild(link as any);
-    }
+    safeDom.removeElement(link as any);
   }
 };
 

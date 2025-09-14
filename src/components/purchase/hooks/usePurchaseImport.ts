@@ -133,11 +133,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
     document.body.appendChild(link);
     link.click();
     // Safe cleanup
-    if ((link as any).isConnected && typeof (link as any).remove === 'function') {
-      (link as any).remove();
-    } else {
-      link.parentElement?.removeChild(link as any);
-    }
+    safeDom.removeElement(link as any);
   };
 
   const processFile = async (file: File) => {

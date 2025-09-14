@@ -51,11 +51,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       document.body.appendChild(a);
       a.click();
       // Safe cleanup to avoid removeChild errors across browsers
-      if ((a as any).isConnected && typeof (a as any).remove === 'function') {
-        (a as any).remove();
-      } else {
-        a.parentElement?.removeChild(a);
-      }
+      safeDom.removeElement(a as any);
       URL.revokeObjectURL(url);
       
       toast.success('Data berhasil diekspor sebagai PDF/Text');
@@ -127,11 +123,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename, type }) =
       document.body.appendChild(a);
       a.click();
       // Safe cleanup to avoid removeChild errors across browsers
-      if ((a as any).isConnected && typeof (a as any).remove === 'function') {
-        (a as any).remove();
-      } else {
-        a.parentElement?.removeChild(a);
-      }
+      safeDom.removeElement(a as any);
       URL.revokeObjectURL(url);
       
       toast.success('Data berhasil diekspor sebagai Excel/CSV');

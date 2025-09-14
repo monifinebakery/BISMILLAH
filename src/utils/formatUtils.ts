@@ -454,7 +454,7 @@ export const validateOrderItems = (items: any[]): boolean => {
 
 export const validateCustomerInfo = (customer: {
   namaPelanggan?: string;
-  teleponPelanggan?: string;
+  teleponPelanggan: string;
   emailPelanggan?: string;
 }): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
@@ -463,7 +463,7 @@ export const validateCustomerInfo = (customer: {
     errors.push('Nama pelanggan wajib diisi');
   }
   
-  if (!customer.teleponPelanggan?.trim()) {
+  if (!customer.teleponPelanggan.trim()) {
     errors.push('Nomor telepon wajib diisi');
   } else if (!isValidPhoneNumber(customer.teleponPelanggan)) {
     errors.push('Format nomor telepon tidak valid');

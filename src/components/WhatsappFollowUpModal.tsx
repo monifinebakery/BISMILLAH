@@ -15,7 +15,7 @@ interface WhatsappFollowUpModalProps {
     orderNumber: string;
     customerName: string;
     status: string;
-    customerPhone: string | null;
+    customerPhone: string;
     [key: string]: any;
   } | null;
   // ✅ FIXED: Remove dependency on legacy getWhatsappTemplateByStatus
@@ -80,7 +80,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
     }
 
     // Start with a clean string, removing all whitespace
-    let number = (order.customerPhone ?? '').replace(/\s+/g, '');
+    let number = order.customerPhone.replace(/\s+/g, '');
 
     // Remove '+' prefix if present
     if (number.startsWith('+')) {

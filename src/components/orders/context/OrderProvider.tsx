@@ -437,7 +437,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     return ordersRef.current.filter(o =>
       o.customerName.toLowerCase().includes(t) ||
       o.orderNumber.toLowerCase().includes(t) ||
-      o.customerPhone?.toLowerCase().includes(t) ||
+      o.customerPhone.toLowerCase().includes(t) ||
       o.customerEmail?.toLowerCase().includes(t)
     );
   }, []);

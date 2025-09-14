@@ -28,7 +28,7 @@ export interface Order {
   
   // Customer Info
   customerName: string;
-  customerPhone?: string;
+  customerPhone: string;
   customerEmail?: string;
   alamatPengiriman?: string;
   
@@ -57,7 +57,7 @@ export interface Order {
 
 export interface NewOrder {
   customerName: string;
-  customerPhone?: string;
+  customerPhone: string;
   customerEmail?: string;
   alamatPengiriman?: string;
   items: OrderItem[];
@@ -201,7 +201,7 @@ export interface OrderDB {
   updated_at: string;
   tanggal: string;
   nama_pelanggan: string;
-  telepon_pelanggan?: string;
+  telepon_pelanggan: string;
   email_pelanggan?: string;
   alamat_pengiriman?: string;
   items: OrderItem[];

@@ -193,6 +193,15 @@ async function handleStaticAsset(request) {
 // Handle API requests with network-first strategy
 async function handleAPIRequest(request) {
   try {
+    const url = new URL(request.url);
+    // Always bypass cache for sensitive verification endpoints
+    if (url.pathname === '/api/turnstile-verify') {
+      return await fetch(request);
+    }
+  } catch (e) {
+    // ignore URL parse errors
+  }
+  try {
     // Try network first for fresh data
     const networkResponse = await fetch(request);
     

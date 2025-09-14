@@ -58,7 +58,7 @@ export const fetchLatestUnitPriceForItem = async (
       });
       if (!found) continue;
 
-      const explicit = Number(found.harga_per_satuan ?? found.hargaSatuan ?? 0);
+      const explicit = Number(found.harga_per_satuan ?? found.unitPrice ?? 0);
       const price = explicit > 0 ? explicit : 0;
       if (price > 0) {
         return { price, tanggal: row.tanggal, purchaseId: row.id };

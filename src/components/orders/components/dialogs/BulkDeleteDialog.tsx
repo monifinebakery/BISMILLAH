@@ -45,7 +45,7 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
   };
 
   // Calculate total value dari pesanan yang akan dihapus
-  const totalValue = selectedOrders.reduce((sum, order) => sum + order.totalPesanan, 0);
+  const totalValue = selectedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -90,14 +90,14 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
                 {selectedOrders.slice(0, 10).map((order) => (
                   <div key={order.id} className="px-4 py-3 flex items-center justify-between">
                     <div>
-                      <div className="font-medium">#{order.nomorPesanan}</div>
-                      <div className="text-sm text-gray-600">{order.namaPelanggan}</div>
+                      <div className="font-medium">#{order.orderNumber}</div>
+                      <div className="text-sm text-gray-600">{order.customerName}</div>
                       <div className="text-xs text-gray-500">
                         {formatDateForDisplay(order.tanggal)}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">{formatCurrency(order.totalPesanan)}</div>
+                      <div className="font-semibold">{formatCurrency(order.totalAmount)}</div>
                       <div className="text-xs text-gray-500 capitalize">{order.status}</div>
                     </div>
                   </div>

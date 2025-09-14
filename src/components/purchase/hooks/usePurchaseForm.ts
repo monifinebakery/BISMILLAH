@@ -194,7 +194,7 @@ export const usePurchaseForm = ({
     (item: Omit<PurchaseItem, 'subtotal'>) => {
       const newItem: PurchaseItem = {
         ...item,
-        subtotal: calculateItemSubtotal(item.kuantitas, item.hargaSatuan),
+        subtotal: calculateItemSubtotal(item.quantity, item.unitPrice),
       };
 
       setFormDataState(prev => ({

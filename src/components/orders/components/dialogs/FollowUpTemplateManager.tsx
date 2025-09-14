@@ -195,13 +195,13 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   // ✅ UPDATED: Available variables list - sesuai dengan FollowUpTemplateContext
   const availableVariables = [
     { key: '{nama_pelanggan}', desc: 'Nama pelanggan (legacy - gunakan {{namaPelanggan}})' },
-    { key: '{{namaPelanggan}}', desc: 'Nama pelanggan' },
-    { key: '{{nomorPesanan}}', desc: 'Nomor pesanan' },
-    { key: '{{totalPesanan}}', desc: 'Total harga pesanan' },
+    { key: '{{customerName}}', desc: 'Nama pelanggan' },
+    { key: '{{orderNumber}}', desc: 'Nomor pesanan' },
+    { key: '{{totalAmount}}', desc: 'Total harga pesanan' },
     { key: '{{tanggal}}', desc: 'Tanggal pesanan' },
     { key: '{{status}}', desc: 'Status pesanan' },
-    { key: '{{telefonPelanggan}}', desc: 'Nomor telepon pelanggan' },
-    { key: '{{emailPelanggan}}', desc: 'Email pelanggan' },
+    { key: '{{customerPhone}}', desc: 'Nomor telepon pelanggan' },
+    { key: '{{customerEmail}}', desc: 'Email pelanggan' },
     { key: '{{alamatPengiriman}}', desc: 'Alamat pengiriman' },
     { key: '{{catatan}}', desc: 'Catatan pesanan' },
     { key: '{{subtotal}}', desc: 'Subtotal pesanan' },
@@ -227,7 +227,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                 </DialogTitle>
                 {order && (
                   <p className="text-sm text-gray-600">
-                    Pesanan #{order.nomorPesanan} - {order.namaPelanggan}
+                    Pesanan #{order.orderNumber} - {order.customerName}
                   </p>
                 )}
               </div>
@@ -362,9 +362,9 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                 <div className="mt-6 border rounded-lg p-4 bg-blue-50">
                   <h4 className="font-semibold text-blue-800 mb-3">Contoh Data Pesanan Saat Ini:</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div><strong>Nama:</strong> {order.namaPelanggan}</div>
-                    <div><strong>No. Pesanan:</strong> #{order.nomorPesanan}</div>
-                    <div><strong>Total:</strong> {formatCurrency(order.totalPesanan)}</div>
+                    <div><strong>Nama:</strong> {order.customerName}</div>
+                <div><strong>No. Pesanan:</strong> #{order.orderNumber}</div>
+                <div><strong>Total:</strong> {formatCurrency(order.totalAmount)}</div>
                     <div><strong>Status:</strong> {order.status}</div>
                     <div><strong>Jumlah Item:</strong> {order.items?.length || 0} jenis</div>
                     <div><strong>Total Qty:</strong> {order.items?.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0) || 0} unit</div>
@@ -391,8 +391,8 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
                   <h4 className="font-semibold text-blue-800 mb-2">Preview Pesan</h4>
                   <div className="text-sm space-y-1 text-blue-700">
                     <div><strong>Template:</strong> {selectedTemplate.name}</div>
-                    <div><strong>Untuk:</strong> {order.namaPelanggan} ({order.teleponPelanggan})</div>
-                    <div><strong>Pesanan:</strong> #{order.nomorPesanan}</div>
+                    <div><strong>Untuk:</strong> {order.customerName} ({order.customerPhone})</div>
+                <div><strong>Pesanan:</strong> #{order.orderNumber}</div>
                     <div><strong>Items:</strong> {order.items?.length || 0} jenis item</div>
                   </div>
                 </div>

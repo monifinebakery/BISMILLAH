@@ -71,7 +71,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
         const newOrder = transformOrderFromDB(payload.new);
         if (!next.some(o => o.id === newOrder.id)) {
           next = [newOrder, ...next];
-          console.log('✨ Real-time INSERT applied:', newOrder.id, newOrder.nomorPesanan);
+          console.log('✨ Real-time INSERT applied:', newOrder.id, newOrder.orderNumber);
         }
       }
       
@@ -82,7 +82,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
         
         console.log('🔄 Real-time UPDATE applied:', {
           orderId: updated.id,
-          orderNumber: updated.nomorPesanan,
+          orderNumber: updated.orderNumber,
           oldStatus: oldOrder?.status,
           newStatus: updated.status,
           statusChanged: oldOrder?.status !== updated.status
@@ -242,7 +242,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
         logger.success('OrderProvider: Status updated successfully:', {
           orderId: orderIdStr,
           newStatus: statusStr,
-          orderNumber: updated.nomorPesanan
+          orderNumber: updated.orderNumber
         });
       }
       
@@ -406,7 +406,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     const processing = orders.filter(o => o.status === 'preparing').length;
     const completed = orders.filter(o => o.status === 'completed').length;
     const cancelled = orders.filter(o => o.status === 'cancelled').length;
-    const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.totalPesanan || 0), 0);
+    const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
     
     return {
       pending,
@@ -435,10 +435,10 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     const t = term?.toLowerCase?.() || '';
     if (!t) return ordersRef.current;
     return ordersRef.current.filter(o =>
-      o.namaPelanggan.toLowerCase().includes(t) ||
-      o.nomorPesanan.toLowerCase().includes(t) ||
-      o.teleponPelanggan?.toLowerCase().includes(t) ||
-      o.emailPelanggan?.toLowerCase().includes(t)
+      o.customerName.toLowerCase().includes(t) ||
+      o.orderNumber.toLowerCase().includes(t) ||
+      o.customerPhone?.toLowerCase().includes(t) ||
+      o.customerEmail?.toLowerCase().includes(t)
     );
   }, []);
 

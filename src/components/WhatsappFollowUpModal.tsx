@@ -12,10 +12,10 @@ interface WhatsappFollowUpModalProps {
   onClose: () => void;
   order: {
     id: string;
-    nomorPesanan: string;
-    namaPelanggan: string;
+    orderNumber: string;
+    customerName: string;
     status: string;
-    telefonPelanggan: string | null;
+    customerPhone: string | null;
     [key: string]: any;
   } | null;
   // ✅ FIXED: Remove dependency on legacy getWhatsappTemplateByStatus
@@ -43,7 +43,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
         const rawTemplate = getTemplate(status);
         if (!rawTemplate) {
           logger.warn('WhatsappFollowUpModal: No template found for status:', status);
-          return `Halo ${orderData?.namaPelanggan || 'Pelanggan'}, saya ingin menanyakan status pesanan #${orderData?.nomorPesanan || 'N/A'}.`;
+          return `Halo ${orderData?.customerName || 'Pelanggan'}, saya ingin menanyakan status pesanan #${orderData?.orderNumber || 'N/A'}.`;
         }
         
         const processedTemplate = processTemplate(rawTemplate, orderData);
@@ -52,7 +52,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
         return processedTemplate;
       } catch (error) {
         logger.error('WhatsappFollowUpModal: Error generating template:', error);
-        return `Halo ${orderData?.namaPelanggan || 'Pelanggan'}, saya ingin menanyakan status pesanan #${orderData?.nomorPesanan || 'N/A'}.`;
+        return `Halo ${orderData?.customerName || 'Pelanggan'}, saya ingin menanyakan status pesanan #${orderData?.orderNumber || 'N/A'}.`;
       }
     };
   }, [getTemplate, processTemplate]);
@@ -63,7 +63,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
       logger.debug('WhatsappFollowUpModal: Setting message for order:', {
         orderId: order.id,
         status: order.status,
-        nomorPesanan: order.nomorPesanan
+        orderNumber: order.orderNumber
       });
       
       const template = generateWhatsAppTemplate(order.status, order);
@@ -75,12 +75,12 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
   // useMemo ensures this logic only runs when `order.teleponPelanggan` changes.
   const processedPhoneNumber = useMemo(() => {
     // Return empty string if there's no order or phone number
-    if (!order?.teleponPelanggan) {
+    if (!order?.customerPhone) {
       return '';
     }
 
     // Start with a clean string, removing all whitespace
-    let number = (order.teleponPelanggan ?? '').replace(/\s+/g, '');
+    let number = (order.customerPhone ?? '').replace(/\s+/g, '');
 
     // Remove '+' prefix if present
     if (number.startsWith('+')) {
@@ -103,7 +103,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
     }
 
     return number;
-  }, [order?.teleponPelanggan]); // Dependency array ensures this only re-runs when the phone number changes
+  }, [order?.customerPhone]); // Dependency array ensures this only re-runs when the phone number changes
 
   // Function to handle sending the WhatsApp message
   const handleSendWhatsapp = () => {
@@ -152,11 +152,11 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
           <div className="space-y-1 border-b pb-4">
             <div className="flex justify-between text-sm">
               <span className="font-medium text-gray-600">Nomor Pesanan:</span>
-              <span className="text-gray-800 font-mono">{order.nomorPesanan}</span>
+              <span className="text-gray-800 font-mono">{order.orderNumber}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="font-medium text-gray-600">Pelanggan:</span>
-              <span className="text-gray-800">{order.namaPelanggan}</span>
+              <span className="text-gray-800">{order.customerName}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="font-medium text-gray-600">Status Saat Ini:</span>

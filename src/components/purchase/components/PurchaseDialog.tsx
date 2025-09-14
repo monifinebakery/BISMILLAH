@@ -399,7 +399,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                           </div>
                           <div>
                             <span className="text-gray-500">Harga Satuan:</span>
-                            <div className="font-medium text-gray-900">{formatCurrency(item.hargaSatuan)}</div>
+                            <div className="font-medium text-gray-900">{formatCurrency(item.unitPrice)}</div>
                           </div>
                         </div>
                         <div className="mt-2 pt-2 border-t border-gray-100">

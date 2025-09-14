@@ -70,9 +70,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
   // Form state dengan nama kolom 'tanggal' di backend
   const [formData, setFormData] = useState({
-    namaPelanggan: '',
-    teleponPelanggan: '',
-    emailPelanggan: '',
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
     alamatPengiriman: '',
     status: 'pending' as Order['status'],
     catatan: '',
@@ -81,7 +81,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     diskonPromo: 0,
     totalSetelahDiskon: 0,
     pajak: 0,
-    totalPesanan: 0,
+    totalAmount: 0,
     isTaxEnabled: false,
     usePromo: false,
     promoId: '',
@@ -101,9 +101,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
   useEffect(() => {
     if (initialData) {
       setFormData({
-        namaPelanggan: initialData.namaPelanggan || '',
-        teleponPelanggan: initialData.teleponPelanggan || '',
-        emailPelanggan: initialData.emailPelanggan || '',
+        customerName: initialData.customerName || '',
+        customerPhone: initialData.customerPhone || '',
+        customerEmail: initialData.customerEmail || '',
         alamatPengiriman: initialData.alamatPengiriman || '',
         status: initialData.status || 'pending',
         catatan: initialData.catatan || '',
@@ -112,7 +112,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
         diskonPromo: initialData.diskonPromo || 0,
         totalSetelahDiskon: initialData.totalSetelahDiskon || 0,
         pajak: initialData.pajak || 0,
-        totalPesanan: initialData.totalPesanan || 0,
+        totalAmount: initialData.totalAmount || 0,
         isTaxEnabled: !!initialData.pajak,
         usePromo: !!(initialData.promoCode || initialData.diskonPromo),
         promoId: initialData.promoId || '',
@@ -125,9 +125,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
     } else {
       // Reset form untuk mode baru
       setFormData({
-        namaPelanggan: '',
-        teleponPelanggan: '',
-        emailPelanggan: '',
+        customerName: '',
+        customerPhone: '',
+        customerEmail: '',
         alamatPengiriman: '',
         status: 'pending',
         catatan: '',
@@ -136,7 +136,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
         diskonPromo: 0,
         totalSetelahDiskon: 0,
         pajak: 0,
-        totalPesanan: 0,
+        totalAmount: 0,
         isTaxEnabled: false,
         usePromo: false,
         promoId: '',
@@ -281,14 +281,14 @@ const OrderForm: React.FC<OrderFormProps> = ({
     const diskonAktif = formData.usePromo ? (formData.diskonPromo || 0) : 0;
     const totalSetelahDiskon = subtotal - diskonAktif;
     const pajak = formData.isTaxEnabled ? totalSetelahDiskon * 0.1 : 0;
-    const totalPesanan = totalSetelahDiskon + pajak;
+    const totalAmount = totalSetelahDiskon + pajak;
 
     setFormData(prev => ({
       ...prev,
       subtotal,
       totalSetelahDiskon,
       pajak,
-      totalPesanan
+      totalAmount
     }));
   }, [formData.items, formData.isTaxEnabled, formData.diskonPromo, formData.usePromo]);
 
@@ -345,33 +345,33 @@ const OrderForm: React.FC<OrderFormProps> = ({
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2 md:col-span-1">
-                <Label htmlFor="namaPelanggan">Nama Pelanggan *</Label>
+                <Label htmlFor="customerName">Nama Pelanggan *</Label>
                 <Input
-                  id="namaPelanggan"
-                  value={formData.namaPelanggan}
-                  onChange={(e) => updateField('namaPelanggan', e.target.value)}
+                  id="customerName"
+                  value={formData.customerName}
+                  onChange={(e) => updateField('customerName', e.target.value)}
                   placeholder="Masukkan nama pelanggan"
                   required
                 />
               </div>
               
               <div>
-                <Label htmlFor="teleponPelanggan">Telepon</Label>
+                <Label htmlFor="customerPhone">Telepon</Label>
                 <Input
-                  id="teleponPelanggan"
-                  value={formData.teleponPelanggan}
-                  onChange={(e) => updateField('teleponPelanggan', e.target.value)}
+                  id="customerPhone"
+                  value={formData.customerPhone}
+                  onChange={(e) => updateField('customerPhone', e.target.value)}
                   placeholder="Masukkan nomor telepon"
                 />
               </div>
               
               <div>
-                <Label htmlFor="emailPelanggan">Email</Label>
+                <Label htmlFor="customerEmail">Email</Label>
                 <Input
-                  id="emailPelanggan"
+                  id="customerEmail"
                   type="email"
-                  value={formData.emailPelanggan}
-                  onChange={(e) => updateField('emailPelanggan', e.target.value)}
+                  value={formData.customerEmail}
+                  onChange={(e) => updateField('customerEmail', e.target.value)}
                   placeholder="Masukkan email pelanggan"
                 />
               </div>
@@ -862,7 +862,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 <Separator />
                 <div className="flex justify-between font-bold text-xl text-orange-600">
                   <span>Total Pesanan:</span>
-                  <span>Rp {formData.totalPesanan.toLocaleString('id-ID')}</span>
+                  <span>Rp {formData.totalAmount.toLocaleString('id-ID')}</span>
                 </div>
               </div>
             </div>

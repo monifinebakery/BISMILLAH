@@ -131,17 +131,17 @@ describe('Warehouse Calculation Fixes', () => {
           {
             bahanBakuId: 'item1',
             nama: 'Test Item',
-            kuantitas: 10,
+            quantity: 10,
             satuan: 'kg',
-            hargaSatuan: 1000,
+            unitPrice: 1000,
             subtotal: 10000
           },
           {
             bahanBakuId: 'item2',
             nama: 'Test Item 2',
-            kuantitas: 5,
+            quantity: 5,
             satuan: 'pcs',
-            hargaSatuan: 1000,
+            unitPrice: 1000,
             subtotal: 5000
           }
         ],
@@ -168,9 +168,9 @@ describe('Warehouse Calculation Fixes', () => {
           {
             bahanBakuId: '', // Invalid - empty ID
             nama: '',
-            kuantitas: 0, // Invalid - zero quantity
+            quantity: 0, // Invalid - zero quantity
             satuan: '',
-            hargaSatuan: 0, // Invalid - zero price
+            unitPrice: 0, // Invalid - zero price
             subtotal: 0
           }
         ],
@@ -197,9 +197,9 @@ describe('Warehouse Calculation Fixes', () => {
           {
             bahanBakuId: 'item1',
             nama: 'Test Item',
-            kuantitas: 10,
+            quantity: 10,
             satuan: 'kg',
-            hargaSatuan: 1000,
+            unitPrice: 1000,
             subtotal: 8000 // Subtotal doesn't match qty * price
           }
         ],
@@ -244,9 +244,9 @@ describe('Warehouse Calculation Fixes', () => {
           {
             bahanBakuId: 'item1',
             nama: 'Existing Item',
-            kuantitas: 10,
+            quantity: 10,
             satuan: 'pcs', // Different unit
-            hargaSatuan: 5000, // Very different price (> 50% difference)
+            unitPrice: 5000, // Very different price (> 50% difference)
             subtotal: 15000
           }
         ],
@@ -515,9 +515,9 @@ describe('Integration Tests', () => {
     // New: 5 kg @ 1600 = 8000
     // Expected WAC: (12000 + 8000) / (10 + 5) = 20000 / 15 = 1333.33
     const currentValue = warehouseItem.stok * (warehouseItem.hargaRataRata || 0);
-    const newValue = newPurchase.items[0].kuantitas * newPurchase.items[0].hargaSatuan;
+    const newValue = newPurchase.items[0].quantity * newPurchase.items[0].unitPrice;
     const totalValue = currentValue + newValue;
-    const totalQuantity = warehouseItem.stok + newPurchase.items[0].kuantitas;
+    const totalQuantity = warehouseItem.stok + newPurchase.items[0].quantity;
     const expectedNewWac = totalValue / totalQuantity;
 
     expect(Math.abs(expectedNewWac - 1333.33)).toBeLessThan(0.01);

@@ -145,8 +145,8 @@ const PurchaseAddEditPage: React.FC = () => {
   }, []);
 
   const handleSaveEditedItem = useCallback((index: number, updatedItem: Partial<PurchaseItem>) => {
-    const qty = Number(updatedItem.kuantitas) || 0;
-    const price = Number(updatedItem.hargaSatuan) || 0;
+    const qty = Number(updatedItem.quantity) || 0;
+    const price = Number(updatedItem.unitPrice) || 0;
 
     if (qty <= 0 || price <= 0) {
       toast.error('Kuantitas dan harga satuan harus > 0');
@@ -428,11 +428,11 @@ const PurchaseAddEditPage: React.FC = () => {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-500">Kuantitas:</span>
-                          <div className="font-medium text-gray-900">{item.kuantitas} {item.satuan}</div>
+                          <div className="font-medium text-gray-900">{item.quantity} {item.satuan}</div>
                         </div>
                         <div>
                           <span className="text-gray-500">Harga Satuan:</span>
-                          <div className="font-medium text-gray-900">{formatCurrency(item.hargaSatuan)}</div>
+                          <div className="font-medium text-gray-900">{formatCurrency(item.unitPrice)}</div>
                         </div>
                       </div>
                       <div className="mt-2 pt-2 border-t border-gray-100">
@@ -476,10 +476,10 @@ const PurchaseAddEditPage: React.FC = () => {
                             )}
                           </td>
                           <td className="px-4 py-3 text-gray-900">
-                            {item.kuantitas} {item.satuan}
+                            {item.quantity} {item.satuan}
                           </td>
                           <td className="px-4 py-3 text-gray-900">
-                            {formatCurrency(item.hargaSatuan)}
+                            {formatCurrency(item.unitPrice)}
                           </td>
                           <td className="px-4 py-3 font-medium text-gray-900">
                             {formatCurrency(item.subtotal)}

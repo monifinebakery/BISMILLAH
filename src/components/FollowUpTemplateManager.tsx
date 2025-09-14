@@ -17,11 +17,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const TEMPLATE_VARIABLES = [
-  { key: '{{namaPelanggan}}', description: 'Nama pelanggan' },
-  { key: '{{nomorPesanan}}', description: 'Nomor pesanan' },
-  { key: '{{teleponPelanggan}}', description: 'Telepon pelanggan' },
+  { key: '{{customerName}}', description: 'Nama pelanggan' },
+  { key: '{{orderNumber}}', description: 'Nomor pesanan' },
+  { key: '{{customerPhone}}', description: 'Telepon pelanggan' },
   { key: '{{tanggal}}', description: 'Tanggal pesanan' },
-  { key: '{{totalPesanan}}', description: 'Total pesanan (format rupiah)' },
+  { key: '{{totalAmount}}', description: 'Total pesanan (format rupiah)' },
   { key: '{{items}}', description: 'Daftar item pesanan' },
   { key: '{{alamatPengiriman}}', description: 'Alamat pengiriman' },
   { key: '{{catatan}}', description: 'Catatan pesanan' }

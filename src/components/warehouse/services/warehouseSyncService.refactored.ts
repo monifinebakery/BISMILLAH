@@ -16,10 +16,11 @@ export interface PurchaseItem {
   bahanBakuId?: string;
   bahan_baku_id?: string;
   nama?: string;
-  namaBarang?: string;
   kategori?: string;
+  quantity?: number;
   kuantitas?: number;
   jumlah?: number;
+  unitPrice?: number;
   hargaSatuan?: number;
   harga_per_satuan?: number;
   harga_satuan?: number;
@@ -129,6 +130,7 @@ export const extractQuantity = (item: PurchaseItem): number => {
  */
 export const extractUnitPrice = (item: PurchaseItem): number => {
   return Number(
+    item.unitPrice ??
     item.hargaSatuan ?? 
     item.harga_per_satuan ?? 
     item.harga_satuan ?? 
@@ -236,7 +238,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase): Promise<void
         const { error: insertError } = await supabase.from('bahan_baku').insert({
           id: itemId,
           user_id: purchase.userId,
-          nama: (item as PurchaseItem).nama ?? (item as PurchaseItem).namaBarang ?? '',
+          nama: (item as PurchaseItem).nama ?? '',
           kategori: (item as PurchaseItem).kategori ?? '',
           stok: qty,
           satuan: (item as PurchaseItem).satuan ?? '',

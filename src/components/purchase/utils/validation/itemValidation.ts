@@ -27,13 +27,13 @@ export const validatePurchaseItem = (item: PurchaseItem, itemNumber?: number): V
   // Quantity validation with logging
   console.log('DEBUG: Validating quantity:', {
     itemName: item.nama,
-    rawKuantitas: item.kuantitas,
-    typeKuantitas: typeof item.kuantitas,
-    isNumber: typeof item.kuantitas === 'number',
-    isValidNumber: Number.isFinite(Number(item.kuantitas))
+    rawKuantitas: item.quantity,
+    typeKuantitas: typeof item.quantity,
+    isNumber: typeof item.quantity === 'number',
+    isValidNumber: Number.isFinite(Number(item.quantity))
   });
   
-  const qtyValidation = validateQuantity(item.kuantitas);
+  const qtyValidation = validateQuantity(item.quantity);
   if (!qtyValidation.isValid && qtyValidation.error) {
     console.error('DEBUG: Quantity validation failed:', qtyValidation.error, 'for item:', item.nama);
     errors.push(`${prefix}${qtyValidation.error}`);
@@ -46,13 +46,13 @@ export const validatePurchaseItem = (item: PurchaseItem, itemNumber?: number): V
   }
 
   // Unit price validation
-  const priceValidation = validatePrice(item.hargaSatuan, 'Harga satuan');
+  const priceValidation = validatePrice(item.unitPrice, 'Harga satuan');
   if (!priceValidation.isValid && priceValidation.error) {
     errors.push(`${prefix}${priceValidation.error}`);
   }
 
   // Subtotal validation
-  const expectedSubtotal = (item.kuantitas || 0) * (item.hargaSatuan || 0);
+  const expectedSubtotal = (item.quantity || 0) * (item.unitPrice || 0);
   const actualSubtotal = item.subtotal || 0;
   
   if (Math.abs(expectedSubtotal - actualSubtotal) > 0.01) {
@@ -66,8 +66,8 @@ export const validatePurchaseItem = (item: PurchaseItem, itemNumber?: number): V
   }
 
   // Price reasonableness check
-  if (item.hargaSatuan) {
-    const priceWarning = checkPriceReasonableness(item.hargaSatuan);
+  if (item.unitPrice) {
+    const priceWarning = checkPriceReasonableness(item.unitPrice);
     if (priceWarning) {
       warnings.push(`${prefix}${priceWarning}`);
     }

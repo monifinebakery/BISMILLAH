@@ -20,16 +20,16 @@ export interface OrderItem {
 export interface Order {
   id: string;
   userId: string;
-  nomorPesanan: string;
+  orderNumber: string;
   createdAt: Date;
   updatedAt: Date;
   tanggal: Date;
   tanggalSelesai?: Date; // ✅ ADD THIS
   
   // Customer Info
-  namaPelanggan: string;
-  teleponPelanggan?: string;
-  emailPelanggan?: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
   alamatPengiriman?: string;
   
   // Order Details
@@ -41,8 +41,8 @@ export interface Order {
   subtotal: number;
   diskonPromo?: number;
   totalSetelahDiskon?: number;
-  pajak: number;
-  totalPesanan: number;
+  taxAmount: number;
+  totalAmount: number;
   
   // Promo Info
   promoId?: string;
@@ -56,9 +56,9 @@ export interface Order {
 }
 
 export interface NewOrder {
-  namaPelanggan: string;
-  teleponPelanggan?: string;
-  emailPelanggan?: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
   alamatPengiriman?: string;
   items: OrderItem[];
   status?: OrderStatus;
@@ -66,8 +66,8 @@ export interface NewOrder {
   subtotal?: number;
   diskonPromo?: number;
   totalSetelahDiskon?: number;
-  pajak?: number;
-  totalPesanan?: number;
+  taxAmount?: number;
+  totalAmount?: number;
   tanggal?: Date;
   tanggalSelesai?: Date;
   
@@ -247,9 +247,9 @@ export interface OrderStats {
 
 export type OrderSortField = 
   | 'createdAt' 
-  | 'namaPelanggan' 
+  | 'customerName' 
   | 'status' 
-  | 'totalPesanan'
+  | 'totalAmount'
   | 'recipeCount'
   | 'tanggal';
 

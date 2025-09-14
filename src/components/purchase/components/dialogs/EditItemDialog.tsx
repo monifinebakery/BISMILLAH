@@ -34,8 +34,8 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
   onSave,
 }) => {
   const [formData, setFormData] = useState({
-    kuantitas: '',
-    hargaSatuan: '',
+    quantity: '',
+    unitPrice: '',
     keterangan: '',
   });
 
@@ -44,16 +44,16 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
     if (isOpen && item) {
       console.log('🔧 Edit dialog opened for item:', item);
       setFormData({
-        kuantitas: String(item.kuantitas || 0),
-        hargaSatuan: String(item.hargaSatuan || 0),
+        quantity: String(item.quantity || 0),
+        unitPrice: String(item.unitPrice || 0),
         keterangan: item.keterangan || '',
       });
     }
   }, [isOpen, item]);
 
   // Calculate subtotal in real time
-  const kuantitasNum = parseRobustNumber(formData.kuantitas, 0);
-  const hargaSatuanNum = parseRobustNumber(formData.hargaSatuan, 0);
+  const kuantitasNum = parseRobustNumber(formData.quantity, 0);
+  const hargaSatuanNum = parseRobustNumber(formData.unitPrice, 0);
   const subtotal = kuantitasNum * hargaSatuanNum;
 
   const handleSave = () => {
@@ -73,8 +73,8 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
     }
 
     const updatedItem: Partial<PurchaseItem> = {
-      kuantitas: kuantitasNum,
-      hargaSatuan: hargaSatuanNum,
+      quantity: kuantitasNum,
+      unitPrice: hargaSatuanNum,
       subtotal: subtotal,
       keterangan: formData.keterangan.trim(),
     };
@@ -126,8 +126,8 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
                 </Label>
                 <div className="flex gap-2">
                   <SafeNumericInput
-                    value={formData.kuantitas}
-                    onChange={(e) => setFormData(prev => ({ ...prev, kuantitas: e.target.value }))}
+                    value={formData.quantity}
+                    onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
                     placeholder="0"
                     className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                   />
@@ -146,8 +146,8 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
                     Rp
                   </span>
                   <SafeNumericInput
-                    value={formData.hargaSatuan}
-                    onChange={(e) => setFormData(prev => ({ ...prev, hargaSatuan: e.target.value }))}
+                    value={formData.unitPrice}
+                    onChange={(e) => setFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
                     className="h-11 pl-8 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
                     placeholder="0"
                   />

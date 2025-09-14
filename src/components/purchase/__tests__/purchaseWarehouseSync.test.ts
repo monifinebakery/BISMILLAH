@@ -13,8 +13,8 @@ const db: any = {
       items: [
         {
           bahanBakuId: 'item1',
-          kuantitas: 100,
-          hargaSatuan: 2000,
+          quantity: 100,
+          unitPrice: 2000,
           subtotal: 200000
         }
       ]
@@ -120,8 +120,8 @@ describe('Purchase-Warehouse Sync', () => {
         items: [
           {
             bahanBakuId: 'item1',
-            kuantitas: 100,
-            hargaSatuan: 2000,
+            quantity: 100,
+            unitPrice: 2000,
             subtotal: 200000
           }
         ]
@@ -154,8 +154,8 @@ describe('Purchase-Warehouse Sync', () => {
         items: [
           {
             bahanBakuId: 'item1',
-            kuantitas: 50,
-            hargaSatuan: 3000,
+            quantity: 50,
+            unitPrice: 3000,
             subtotal: 150000
           }
         ],

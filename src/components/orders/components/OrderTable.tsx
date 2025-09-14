@@ -96,7 +96,7 @@ const OrderRowActions: React.FC<{
 
   const handleDelete = () => {
     setIsOpen(false);
-    if (window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${order.nomorPesanan}?`)) {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${order.orderNumber}?`)) {
       onDelete();
     }
   };
@@ -107,12 +107,12 @@ const OrderRowActions: React.FC<{
       onFollowUp();
     } else {
       // Fallback behavior
-      const message = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
-      if (order.teleponPelanggan) {
-        const whatsappUrl = `https://wa.me/${order.teleponPelanggan.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      const message = `Halo ${order.customerName}, saya ingin menanyakan status pesanan #${order.orderNumber}`;
+      if (order.customerPhone) {
+        const whatsappUrl = `https://wa.me/${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
-      } else if (order.emailPelanggan) {
-        const emailUrl = `mailto:${order.emailPelanggan}?subject=Follow Up Pesanan #${order.nomorPesanan}&body=${encodeURIComponent(message)}`;
+      } else if (order.customerEmail) {
+        const emailUrl = `mailto:${order.customerEmail}?subject=Follow Up Pesanan #${order.orderNumber}&body=${encodeURIComponent(message)}`;
         window.location.href = emailUrl;
       } else {
         alert('Tidak ada kontak yang tersedia untuk follow up');
@@ -125,8 +125,8 @@ const OrderRowActions: React.FC<{
     if (onViewDetail) {
       onViewDetail();
     } else {
-      logger.info('View detail clicked for order:', order.nomorPesanan);
-      alert(`Detail pesanan #${order.nomorPesanan} akan ditampilkan`);
+      logger.info('View detail clicked for order:', order.orderNumber);
+      alert(`Detail pesanan #${order.orderNumber} akan ditampilkan`);
     }
   };
 
@@ -146,7 +146,7 @@ const OrderRowActions: React.FC<{
           className="h-8 w-8 p-0" 
           onClick={(e) => {
             e.stopPropagation();
-            logger.info('Dropdown menu clicked for order:', order.nomorPesanan);
+            logger.info('Dropdown menu clicked for order:', order.orderNumber);
           }}
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -165,11 +165,11 @@ const OrderRowActions: React.FC<{
         <DropdownMenuItem 
           onClick={handleFollowUp}
           className="cursor-pointer"
-          disabled={!order.teleponPelanggan && !onFollowUp}
+          disabled={!order.customerPhone && !onFollowUp}
         >
           <MessageSquare className="mr-2 h-4 w-4" />
           Follow Up WhatsApp
-          {(!order.teleponPelanggan && !onFollowUp) && (
+          {(!order.customerPhone && !onFollowUp) && (
             <span className="text-xs text-gray-400 ml-2">(No WhatsApp)</span>
           )}
         </DropdownMenuItem>
@@ -338,20 +338,20 @@ const OrderTable: React.FC<OrderTableProps> = ({
     if (onViewDetail) {
       onViewDetail(order);
     } else {
-      alert(`Detail pesanan #${order.nomorPesanan}`);
+      alert(`Detail pesanan #${order.orderNumber}`);
     }
   };
 
   // ✅ FIXED: Follow Up handler dengan proper hooks usage
   const handleFollowUp = (order: Order) => {
-    logger.info('Follow up clicked for order:', order.nomorPesanan);
+    logger.info('Follow up clicked for order:', order.orderNumber);
     
     if (onFollowUp) {
       onFollowUp(order);
       return;
     }
     
-    if (!order.teleponPelanggan) {
+    if (!order.customerPhone) {
       toast.error('Tidak ada nomor WhatsApp untuk follow up');
       return;
     }
@@ -369,7 +369,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       const processedMessage = processTemplate(template, order);
       
       // Format nomor telepon
-      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
+      const cleanPhoneNumber = order.customerPhone.replace(/\D/g, '');
       
       // Buat WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(processedMessage)}`;
@@ -377,15 +377,15 @@ const OrderTable: React.FC<OrderTableProps> = ({
       // Buka WhatsApp
       window.open(whatsappUrl, '_blank');
       
-      toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
+      toast.success(`Follow up untuk ${order.customerName} berhasil dibuka di WhatsApp`);
       
     } catch (error) {
       logger.error('Error processing follow up template:', error);
       toast.error('Gagal memproses template follow up');
       
       // Fallback ke pesan sederhana
-      const fallbackMessage = `Halo ${order.namaPelanggan}, saya ingin menanyakan status pesanan #${order.nomorPesanan}`;
-      const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
+      const fallbackMessage = `Halo ${order.customerName}, saya ingin menanyakan status pesanan #${order.orderNumber}`;
+      const cleanPhoneNumber = order.customerPhone.replace(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
       window.open(whatsappUrl, '_blank');
     }
@@ -489,12 +489,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 {/* Customer Info */}
                 <td className="px-3 py-4 whitespace-nowrap min-w-[180px]">
                   <div className="flex flex-col">
-                    <div className="text-sm font-medium text-gray-900">{order.namaPelanggan}</div>
-                    {order.teleponPelanggan && (
-                      <div className="text-xs text-gray-500">{order.teleponPelanggan}</div>
+                    <div className="text-sm font-medium text-gray-900">{order.customerName}</div>
+                    {order.customerPhone && (
+                      <div className="text-xs text-gray-500">{order.customerPhone}</div>
                     )}
-                    {order.emailPelanggan && (
-                      <div className="text-xs text-gray-500">{order.emailPelanggan}</div>
+                    {order.customerEmail && (
+                      <div className="text-xs text-gray-500">{order.customerEmail}</div>
                     )}
                   </div>
                 </td>

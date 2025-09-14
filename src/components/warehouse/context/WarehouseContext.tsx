@@ -531,10 +531,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     (ingredients: BahanResep[]): BahanResep[] => {
       return ingredients.map(ingredient => {
         const currentPrice = getIngredientPrice(ingredient.nama);
-        if (currentPrice > 0 && currentPrice !== ingredient.hargaSatuan) {
+        if (currentPrice > 0 && currentPrice !== ingredient.unitPrice) {
           return {
             ...ingredient,
-            hargaSatuan: currentPrice,
+            unitPrice: currentPrice,
             totalHarga: ingredient.jumlah * currentPrice,
           };
         }

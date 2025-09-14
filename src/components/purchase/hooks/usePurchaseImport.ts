@@ -372,7 +372,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
               return {
                 ...item,
                 bahanBakuId: bahanBakuId, // ✅ LINK to warehouse item if found
-                hargaSatuan: calculatedUnitPrice, // Use calculated price instead of 0
+                unitPrice: calculatedUnitPrice, // Use calculated price instead of 0
                 subtotal: subtotal,
                 // Mark as imported for tracking, but treated SAMA with manual entry
                 keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.totalNilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`

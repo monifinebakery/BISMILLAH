@@ -17,7 +17,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
 
   logger.component('OrderDetailDialog', 'Rendering detail dialog', {
     orderId: order.id,
-    nomorPesanan: order.nomorPesanan,
+    orderNumber: order.orderNumber,
   });
 
   return (
@@ -25,7 +25,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
       <DialogContent centerMode="overlay" size="md+">
         <div className="dialog-panel">
           <DialogHeader className="dialog-header">
-            <DialogTitle>Detail Pesanan #{order.nomorPesanan}</DialogTitle>
+            <DialogTitle>Detail Pesanan #{order.orderNumber}</DialogTitle>
           </DialogHeader>
           
           <div className="dialog-body">
@@ -37,18 +37,18 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-gray-600">Nama</p>
-                      <p className="text-base font-medium">{order.namaPelanggan}</p>
+                      <p className="text-base font-medium">{order.customerName}</p>
                     </div>
-                    {order.teleponPelanggan && (
+                    {order.customerPhone && (
                       <div>
                         <p className="text-sm text-gray-600">Telepon</p>
-                        <p className="text-base font-medium">{order.teleponPelanggan}</p>
+                        <p className="text-base font-medium">{order.customerPhone}</p>
                       </div>
                     )}
-                    {order.emailPelanggan && (
+                    {order.customerEmail && (
                       <div>
                         <p className="text-sm text-gray-600">Email</p>
-                        <p className="text-base font-medium">{order.emailPelanggan}</p>
+                        <p className="text-base font-medium">{order.customerEmail}</p>
                       </div>
                     )}
                     {order.alamatPengiriman && (
@@ -118,7 +118,7 @@ const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOp
                     )}
                     <div className="flex justify-between text-base font-semibold text-gray-900 border-t border-gray-200 pt-2">
                       <span>Total</span>
-                      <span>{formatCurrency(order.totalPesanan)}</span>
+                      <span>{formatCurrency(order.totalAmount)}</span>
                     </div>
                   </div>
                 </div>

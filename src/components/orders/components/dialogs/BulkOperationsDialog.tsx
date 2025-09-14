@@ -71,7 +71,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   };
 
   // Calculate total value
-  const totalValue = selectedOrders.reduce((sum, order) => sum + order.totalPesanan, 0);
+  const totalValue = selectedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
 
   // Group orders by status
   const statusGroups = selectedOrders.reduce((groups, order) => {
@@ -240,14 +240,14 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     {selectedOrders.slice(0, 10).map((order) => (
                       <div key={order.id} className="px-4 py-3 flex items-center justify-between">
                         <div>
-                          <div className="font-medium">#{order.nomorPesanan}</div>
-                          <div className="text-sm text-gray-600">{order.namaPelanggan}</div>
+                          <div className="font-medium">#{order.orderNumber}</div>
+                          <div className="text-sm text-gray-600">{order.customerName}</div>
                           <div className="text-xs text-gray-500">
                             {formatDate(order.tanggal)}
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold">{formatCurrency(order.totalPesanan)}</div>
+                          <div className="font-semibold">{formatCurrency(order.totalAmount)}</div>
                           <div className="text-xs text-gray-500 capitalize">{order.status}</div>
                         </div>
                       </div>

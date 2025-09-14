@@ -198,7 +198,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
   // Helper: derive unit price from any available fields
   const deriveUnitPrice = (it: any, qty: number): number => {
     const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
-    const explicit = toNum(it.hargaSatuan ?? it.harga_per_satuan ?? it.harga_satuan);
+    const explicit = toNum(it.unitPrice ?? it.hargaSatuan ?? it.harga_per_satuan ?? it.harga_satuan);
     if (explicit > 0) return explicit;
     // Fallback: subtotal / qty (no packaging fields)
     const subtotal = toNum(it.subtotal);
@@ -208,7 +208,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
 
   for (const item of purchase.items) {
     const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
-    const itemName = (item as any).nama ?? (item as any).namaBarang ?? '';
+    const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
     const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
@@ -377,7 +377,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
   // Helper: derive unit price from any available fields  
   const deriveUnitPrice = (it: any, qty: number): number => {
     const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
-    const explicit = toNum(it.hargaSatuan ?? it.harga_per_satuan ?? it.harga_satuan);
+    const explicit = toNum(it.unitPrice ?? it.hargaSatuan ?? it.harga_per_satuan ?? it.harga_satuan);
     if (explicit > 0) return explicit;
     const subtotal = toNum(it.subtotal);
     if (qty > 0 && subtotal > 0) return subtotal / qty;
@@ -386,7 +386,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
 
   for (const item of purchase.items) {
     const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
-    const itemName = (item as any).nama ?? (item as any).namaBarang ?? '';
+    const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
     const qty = Number((item as any).kuantitas ?? (item as any).jumlah ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
@@ -571,6 +571,7 @@ export class WarehouseSyncService {
                   // ✅ FLEXIBLE FIELD MATCHING - handle all possible field names
                   const qty = Number(purchaseItem.kuantitas || purchaseItem.jumlah || 0);
                   const price = Number(
+                    purchaseItem.unitPrice ||
                     purchaseItem.hargaSatuan || 
                     purchaseItem.harga_per_satuan || 
                     purchaseItem.harga_satuan || 
@@ -825,6 +826,7 @@ export class WarehouseSyncService {
               // ✅ FLEXIBLE FIELD MATCHING - handle all possible field names
               const qty = Number(item.kuantitas || item.jumlah || 0);
               const price = Number(
+                item.unitPrice ||
                 item.hargaSatuan || 
                 item.harga_per_satuan || 
                 item.harga_satuan || 

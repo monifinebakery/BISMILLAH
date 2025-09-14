@@ -141,9 +141,9 @@ export const mockPurchaseData = {
     {
       bahanBakuId: 'bb1',
       nama: 'Tepung Terigu',
-      kuantitas: 10,
+      quantity: 10,
       satuan: 'kg',
-      hargaSatuan: 15000,
+      unitPrice: 15000,
       subtotal: 150000
     }
   ],

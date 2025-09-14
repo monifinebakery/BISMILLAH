@@ -63,7 +63,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
   };
 
   // Calculate total value
-  const totalValue = selectedOrders.reduce((sum, order) => sum + order.totalPesanan, 0);
+  const totalValue = selectedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
 
   // Group orders by current status
   const statusGroups = selectedOrders.reduce((groups, order) => {
@@ -178,8 +178,8 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
                 {selectedOrders.slice(0, 5).map((order) => (
                   <div key={order.id} className="px-4 py-2 flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-medium">#{order.nomorPesanan}</div>
-                      <div className="text-xs text-gray-600">{order.namaPelanggan}</div>
+                      <div className="text-sm font-medium">#{order.orderNumber}</div>
+                      <div className="text-xs text-gray-600">{order.customerName}</div>
                     </div>
                     <div className="text-right">
                       <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>

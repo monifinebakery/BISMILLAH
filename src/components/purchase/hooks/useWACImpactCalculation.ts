@@ -67,8 +67,8 @@ export const useWACImpactCalculation = () => {
         // Calculate new WAC using weighted average formula
         const currentStock = material.stok || 0;
         const currentWAC = material.harga_rata_rata || material.harga_satuan || 0;
-        const purchaseQty = item.kuantitas;
-        const purchasePrice = item.hargaSatuan;
+        const purchaseQty = item.quantity;
+        const purchasePrice = item.unitPrice;
 
         let newWAC: number;
         if (currentStock === 0) {

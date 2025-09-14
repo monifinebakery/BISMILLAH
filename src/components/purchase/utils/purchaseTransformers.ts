@@ -47,10 +47,10 @@ const mapItemForDB = (i: any) => {
   });
   
   // Use robust number parsing for better data handling
-  const kuantitasRaw = i.kuantitas ?? i.jumlah ?? i.qty_base;
+  const kuantitasRaw = i.quantity ?? i.kuantitas ?? i.jumlah ?? i.qty_base;
   const jumlah = parseQuantity(kuantitasRaw);
 
-  const hargaRaw = i.hargaSatuan ?? i.harga_per_satuan;
+  const hargaRaw = i.unitPrice ?? i.hargaSatuan ?? i.harga_per_satuan;
   const hargaPerSatuan = parsePrice(hargaRaw);
 
   const satuan = String(
@@ -125,10 +125,10 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       userId: dbItem?.user_id ?? '',
       supplier: dbItem?.supplier ?? '',
       tanggal: new Date(),
-      totalNilai: 0,
+      totalAmount: 0,
       items: [],
       status: 'pending',
-      metodePerhitungan: 'AVERAGE',
+      calculationMethod: 'AVERAGE',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -160,9 +160,9 @@ export const transformPurchaseUpdateForDB = (p: Partial<Purchase>) => {
 
   if (p.supplier !== undefined) out.supplier = String(p.supplier || '').trim();
   if (p.tanggal !== undefined) out.tanggal = toYMD(p.tanggal as any);
-  if (p.totalNilai !== undefined) out.total_nilai = Math.max(0, Number(p.totalNilai) || 0);
+  if (p.totalAmount !== undefined) out.total_nilai = Math.max(0, Number(p.totalAmount) || 0);
   if (p.status !== undefined) out.status = p.status;
-  if (p.metodePerhitungan !== undefined) out.metode_perhitungan = p.metodePerhitungan;
+  if (p.calculationMethod !== undefined) out.metode_perhitungan = p.calculationMethod;
 
   if (p.items !== undefined) {
     // ✅ FIXED: Use unified transformer untuk update
@@ -176,8 +176,8 @@ export const transformPurchasesFromDB = (rows: any[]): Purchase[] =>
   (rows ?? []).map(transformPurchaseFromDB);
 
 /** Utilitas tambahan (tetap dipakai di UI) */
-export const calculateItemSubtotal = (kuantitas: number, hargaSatuan: number): number =>
-  (Number(kuantitas) || 0) * (Number(hargaSatuan) || 0);
+export const calculateItemSubtotal = (kuantitas: number, unitPrice: number): number =>
+  (Number(kuantitas) || 0) * (Number(unitPrice) || 0);
 
 export const calculatePurchaseTotal = (items: any[]): number =>
   Array.isArray(items)
@@ -186,28 +186,28 @@ export const calculatePurchaseTotal = (items: any[]): number =>
         const s =
           it.subtotal !== undefined && it.subtotal !== null
             ? toNumber(it.subtotal)
-            : calculateItemSubtotal(toNumber(it.kuantitas ?? it.qty_base), toNumber(it.hargaSatuan ?? it.harga_per_satuan));
+            : calculateItemSubtotal(toNumber(it.quantity ?? it.kuantitas ?? it.qty_base), toNumber(it.unitPrice ?? it.hargaSatuan ?? it.harga_per_satuan));
         return acc + s;
       }, 0)
     : 0;
 
 export const normalizePurchaseFormData = (formData: any): any => ({
   ...formData,
-  totalNilai: Number(formData.totalNilai) || 0,
+  totalAmount: Number(formData.totalAmount) || 0,
   tanggal:
     formData.tanggal instanceof Date ? formData.tanggal : new Date(formData.tanggal),
   items: Array.isArray(formData.items)
     ? formData.items.map((item: any) => {
         const qty = toNumber(item.kuantitas ?? item.qty_base);
         const price =
-          toNumber(item.hargaSatuan ?? item.harga_per_satuan);
+          toNumber(item.unitPrice ?? item.harga_per_satuan);
         return {
           ...item,
           kuantitas: qty,
           qty_base: qty,
           satuan: item.satuan ?? item.base_unit ?? '',
           base_unit: item.base_unit ?? item.satuan ?? '',
-          hargaSatuan: price,
+          unitPrice: price,
           harga_per_satuan: price,
           subtotal: item.subtotal !== undefined ? toNumber(item.subtotal) : qty * price,
         };
@@ -219,7 +219,7 @@ export const normalizePurchaseFormData = (formData: any): any => ({
 export const sanitizePurchaseData = (data: any): any => ({
   supplier: String(data.supplier || '').trim(),
   tanggal: data.tanggal,
-  totalNilai: Math.max(0, Number(data.totalNilai) || 0),
+  totalAmount: Math.max(0, Number(data.totalAmount) || 0),
   items: Array.isArray(data.items)
     ? data.items.map((item: any) => {
         const kuantitas = Number(
@@ -228,8 +228,8 @@ export const sanitizePurchaseData = (data: any): any => ({
           item.qty_base ?? 
           0
         );
-        const hargaSatuan = Number(
-          item.hargaSatuan ?? 
+        const unitPrice = Number(
+          item.unitPrice ?? 
           item.harga_per_satuan ?? 
           item.price_unit ?? 
           0
@@ -245,12 +245,12 @@ export const sanitizePurchaseData = (data: any): any => ({
           nama: String(item.nama || '').trim(),
           kuantitas: Math.max(0, kuantitas),
           satuan,
-          hargaSatuan: Math.max(0, hargaSatuan),
-          subtotal: Math.max(0, Number(item.subtotal ?? (kuantitas * hargaSatuan)) || 0),
+          unitPrice: Math.max(0, unitPrice),
+          subtotal: Math.max(0, Number(item.subtotal ?? (kuantitas * unitPrice)) || 0),
           keterangan: item.keterangan ? String(item.keterangan).trim() : undefined,
         };
       })
     : [],
   status: data.status || 'pending',
-  metodePerhitungan: data.metodePerhitungan || 'AVERAGE',
+  calculationMethod: data.calculationMethod || 'AVERAGE',
 });

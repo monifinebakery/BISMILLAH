@@ -72,9 +72,9 @@ export async function parsePurchaseCSV(file: File): Promise<ImportedPurchase[]> 
     const item: PurchaseItem = {
       bahanBakuId: '',
       nama: r.nama,
-      kuantitas: r.kuantitas,
+      quantity: r.kuantitas,
       satuan: r.satuan,
-      hargaSatuan: r.harga,
+      unitPrice: r.harga,
       subtotal: r.kuantitas * r.harga,
     };
     purchase.items.push(item);

@@ -179,7 +179,7 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
                   Validasi Stok Pesanan
                 </DialogTitle>
                 <DialogDescription className="text-sm text-gray-600">
-                  Pesanan #{order?.nomorPesanan} - {order?.namaPelanggan}
+                  Pesanan #{order?.orderNumber} - {order?.customerName}
                 </DialogDescription>
               </div>
             </div>
@@ -218,7 +218,7 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Nilai:</span>
-                  <span className="font-medium">Rp {order.totalPesanan.toLocaleString()}</span>
+                  <span className="font-medium">Rp {order.totalAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Item Resep:</span>

@@ -100,8 +100,8 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       bahanBakuId: generateUUID(),
       nama: formData.nama,
       satuan: formData.satuan,
-      kuantitas: effectiveQty,
-      hargaSatuan: computedUnitPrice,
+      quantity: effectiveQty,
+      unitPrice: computedUnitPrice,
       subtotal: effectiveQty * computedUnitPrice,
       keterangan: formData.keterangan,
     };
@@ -154,7 +154,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 onValueChange={(materialName, suggestedSatuan) => {
                   setFormData(prev => ({ ...prev, nama: materialName }));
                   // Auto-fill satuan if suggested and current satuan is empty
-                  if (suggestedSatuan && !prev.satuan) {
+                  if (suggestedSatuan && !formData.satuan) {
                     setFormData(prevState => ({ ...prevState, satuan: suggestedSatuan }));
                   }
                 }}

@@ -248,7 +248,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               stok: 0,
               minimum: 0,
               satuan: item.satuan || '-',
-              harga: item.hargaSatuan || 0,
+              harga: item.unitPrice || 0,
               supplier: supplierId,
             });
             
@@ -390,7 +390,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               stok: 0,
               minimum: 0,
               satuan: item.satuan || '-',
-              harga: item.hargaSatuan || 0,
+              harga: item.unitPrice || 0,
               supplier: newRow.supplier,
             });
           }
@@ -749,7 +749,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!it.kuantitas || it.kuantitas <= 0) issues.push('kuantitas');
         if (!it.satuan || !it.satuan.trim()) issues.push('satuan');
         // Allow zero price for free items or automatic calculation
-        if (it.hargaSatuan === undefined || it.hargaSatuan === null || it.hargaSatuan < 0) {
+        if (it.unitPrice === undefined || it.unitPrice === null || it.unitPrice < 0) {
           issues.push('harga satuan');
         }
         return issues.length > 0;
@@ -761,9 +761,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const missingFields = [];
         if (!firstItem.bahanBakuId) missingFields.push('ID bahan baku');
         if (!firstItem.nama || !firstItem.nama.trim()) missingFields.push('nama');
-        if (!firstItem.kuantitas || firstItem.kuantitas <= 0) missingFields.push('kuantitas');
+        if (!firstItem.quantity || firstItem.quantity <= 0) missingFields.push('kuantitas');
         if (!firstItem.satuan || !firstItem.satuan.trim()) missingFields.push('satuan');
-        if (firstItem.hargaSatuan === undefined || firstItem.hargaSatuan === null || firstItem.hargaSatuan < 0) {
+        if (firstItem.unitPrice === undefined || firstItem.unitPrice === null || firstItem.unitPrice < 0) {
           missingFields.push('harga satuan');
         }
         

@@ -29,9 +29,9 @@ const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
     harga: Number(dbItem.harga_satuan) || 0,
     hargaRataRata: wac,
     supplier: dbItem.supplier || '',
-    expiry: dbItem.tanggal_kadaluwarsa || undefined,
-    createdAt: dbItem.created_at,
-    updatedAt: dbItem.updated_at,
+    expiry: dbItem.tanggal_kadaluwarsa ? new Date(dbItem.tanggal_kadaluwarsa) : undefined,
+    createdAt: new Date(dbItem.created_at),
+    updatedAt: new Date(dbItem.updated_at),
   };
 };
 
@@ -47,7 +47,7 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     harga_satuan: frontendItem.harga,
     harga_rata_rata: frontendItem.hargaRataRata,
     supplier: frontendItem.supplier || '',
-    tanggal_kadaluwarsa: frontendItem.expiry || null,
+    tanggal_kadaluwarsa: frontendItem.expiry ? frontendItem.expiry.toISOString() : null,
   };
   if (userId) dbItem.user_id = userId;
 

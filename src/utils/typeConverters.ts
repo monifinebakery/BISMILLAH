@@ -144,9 +144,9 @@ export const convertWarehouseFromDB = (dbBahan: BahanBaku): BahanBakuFrontend =>
     harga: dbBahan.harga_satuan,
     hargaRataRata: dbBahan.harga_rata_rata,
     supplier: dbBahan.supplier,
-    expiry: dbBahan.tanggal_kadaluwarsa,
-    createdAt: dbBahan.created_at,
-    updatedAt: dbBahan.updated_at
+    expiry: dbBahan.tanggal_kadaluwarsa ? new Date(dbBahan.tanggal_kadaluwarsa) : undefined,
+    createdAt: new Date(dbBahan.created_at),
+    updatedAt: new Date(dbBahan.updated_at)
   };
 };
 
@@ -165,9 +165,9 @@ export const convertWarehouseToDB = (bahan: BahanBakuFrontend): BahanBaku => {
     harga_satuan: bahan.harga,
     harga_rata_rata: bahan.hargaRataRata,
     supplier: bahan.supplier,
-    tanggal_kadaluwarsa: bahan.expiry,
-    created_at: bahan.createdAt,
-    updated_at: bahan.updatedAt
+    tanggal_kadaluwarsa: bahan.expiry ? bahan.expiry.toISOString() : null,
+    created_at: bahan.createdAt.toISOString(),
+    updated_at: bahan.updatedAt.toISOString()
   };
 };
 

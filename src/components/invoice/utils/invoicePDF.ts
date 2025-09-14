@@ -435,13 +435,13 @@ const cleanupElementAfterPDF = async (): Promise<void> => {
     // Remove PDF styles
     const styleElement = document.getElementById('pdf-generation-styles');
     if (styleElement) {
-      styleElement.remove();
+      safeDom.removeElement(styleElement);
     }
     
     // Remove single-page PDF styles
     const singlePageStyleElement = document.getElementById('single-page-pdf-styles');
     if (singlePageStyleElement) {
-      singlePageStyleElement.remove();
+      safeDom.removeElement(singlePageStyleElement);
     }
     
     requestAnimationFrame(resolve);

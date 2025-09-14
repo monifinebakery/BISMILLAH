@@ -182,37 +182,40 @@ export const safariAuthFallback = async <T>(
  * Preload critical resources for Safari iOS
  */
 const preloadCriticalResources = () => {
-  // Aggressive preloading untuk Safari iOS agar sama dengan browser lain
-  const criticalResources = [
-    '/src/main.tsx',
-    '/src/App.tsx',
-    '/src/contexts/AuthContext.tsx',
-    '/src/styles/safari-optimizations.css'
-  ];
-  
-  criticalResources.forEach(resource => {
-    // Multiple preload strategies untuk Safari iOS
-    const link = document.createElement('link');
-    link.rel = 'modulepreload';
-    link.href = resource;
-    link.crossOrigin = 'anonymous';
-    document.head.appendChild(link);
-    
-    // DNS prefetch untuk faster loading
-    const dnsLink = document.createElement('link');
-    dnsLink.rel = 'dns-prefetch';
-    dnsLink.href = window.location.origin;
-    document.head.appendChild(dnsLink);
+  // ✅ Preload modules menggunakan import.meta.glob agar URL di-resolve oleh Vite
+  const modules = import.meta.glob([
+    '../App.tsx',
+    '../contexts/AuthContext.tsx'
+  ]);
+
+  Object.values(modules).forEach(loader => {
+    // Jalankan dynamic import untuk memicu preloading tanpa hardcode path .tsx
+    loader();
   });
-  
-  // Preconnect untuk faster network connections
+
+  // ✅ Preload stylesheet Safari tanpa memicu MIME error
+  const safariCss = new URL('../styles/safari-optimizations.css', import.meta.url).href;
+  const styleLink = document.createElement('link');
+  styleLink.rel = 'preload';
+  styleLink.as = 'style';
+  styleLink.href = safariCss;
+  document.head.appendChild(styleLink);
+
+  // DNS prefetch dan preconnect untuk mempercepat koneksi
+  const origin = window.location.origin;
+
+  const dnsLink = document.createElement('link');
+  dnsLink.rel = 'dns-prefetch';
+  dnsLink.href = origin;
+  document.head.appendChild(dnsLink);
+
   const preconnect = document.createElement('link');
   preconnect.rel = 'preconnect';
-  preconnect.href = window.location.origin;
+  preconnect.href = origin;
   preconnect.crossOrigin = 'anonymous';
   document.head.appendChild(preconnect);
-  
-  logger.debug('Safari iOS: Aggressive resource preloading completed');
+
+  logger.debug('Safari iOS: Critical resources preloaded');
 };
 
 /**

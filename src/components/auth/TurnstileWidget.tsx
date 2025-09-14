@@ -50,7 +50,7 @@ const TurnstileWidget = forwardRef<TurnstileWidgetRef, TurnstileWidgetProps>(({
   useEffect(() => {
     if (!scriptLoaded || !containerRef.current || !window.turnstile) return;
     const config: TurnstileConfig = {
-      sitekey,
+      sitekey: sitekey.trim(),
       callback: (token: string) => onSuccess?.(token),
       'error-callback': onError,
       'expired-callback': onExpired,

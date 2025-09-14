@@ -165,10 +165,10 @@ describe('Date Handling Consistency in Purchase Module', () => {
       const purchaseData = {
         supplier: 'Test Supplier',
         tanggal: new Date('2024-01-15T10:30:00Z'),
-        totalNilai: 100000,
+        total_nilai: 100000,
         items: [],
         status: 'pending' as const,
-        metodePerhitungan: 'AVERAGE' as const
+        metode_perhitungan: 'AVERAGE' as const
       };
 
       const transformed = transformPurchaseForDB(purchaseData, 'user-123');
@@ -190,10 +190,10 @@ describe('Date Handling Consistency in Purchase Module', () => {
         const purchaseData = {
           supplier: 'Test',
           tanggal: input,
-          totalNilai: 100000,
+          total_nilai: 100000,
           items: [],
           status: 'pending' as const,
-          metodePerhitungan: 'AVERAGE' as const
+          metode_perhitungan: 'AVERAGE' as const
         };
 
         const transformed = transformPurchaseForDB(purchaseData, 'user-123');
@@ -221,10 +221,10 @@ describe('Date Handling Consistency in Purchase Module', () => {
         const purchaseData = {
           supplier: 'Test',
           tanggal: invalidDate as any,
-          totalNilai: 100000,
+          total_nilai: 100000,
           items: [],
           status: 'pending' as const,
-          metodePerhitungan: 'AVERAGE' as const
+          metode_perhitungan: 'AVERAGE' as const
         };
 
         const transformed = transformPurchaseForDB(purchaseData, 'user-123');
@@ -363,10 +363,10 @@ describe('Date Handling Consistency in Purchase Module', () => {
         const purchaseData = {
           supplier: 'Test Supplier',
           tanggal: date,
-          totalNilai: 100000,
+          total_nilai: 100000,
           items: [],
           status: 'pending' as const,
-          metodePerhitungan: 'AVERAGE' as const
+          metode_perhitungan: 'AVERAGE' as const
         };
 
         const transformed = transformPurchaseForDB(purchaseData, 'user-123');
@@ -446,10 +446,10 @@ describe('Date Handling Consistency in Purchase Module', () => {
           const purchaseData = {
             supplier: 'Test',
             ...input,
-            totalNilai: 100000,
+            total_nilai: 100000,
             items: [],
             status: 'pending' as const,
-            metodePerhitungan: 'AVERAGE' as const
+            metode_perhitungan: 'AVERAGE' as const
           };
           transformPurchaseForDB(purchaseData, 'user-123');
         }).not.toThrow();
@@ -458,10 +458,10 @@ describe('Date Handling Consistency in Purchase Module', () => {
         const purchaseData = {
           supplier: 'Test',
           ...input,
-          totalNilai: 100000,
+          total_nilai: 100000,
           items: [],
           status: 'pending' as const,
-          metodePerhitungan: 'AVERAGE' as const
+          metode_perhitungan: 'AVERAGE' as const
         };
         
         const result = transformPurchaseForDB(purchaseData, 'user-123');
@@ -550,10 +550,10 @@ describe('Integration Tests', () => {
     const purchaseData = {
       supplier: 'Test Supplier',
       tanggal: parsedDate,
-      totalNilai: 100000,
+      total_nilai: 100000,
       items: [],
       status: 'pending' as const,
-      metodePerhitungan: 'AVERAGE' as const
+      metode_perhitungan: 'AVERAGE' as const
     };
     
     const dbPayload = transformPurchaseForDB(purchaseData, 'user-123');

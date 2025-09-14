@@ -156,7 +156,7 @@ export const PURCHASE_FIELD_MAPPINGS = {
     total_nilai: 'total_nilai',
     items: 'items',
     status: 'status',
-    metode_perhitungan: 'metodePerhitungan',
+    metode_perhitungan: 'metode_perhitungan',
     created_at: 'createdAt',
     updated_at: 'updatedAt'
   },
@@ -170,7 +170,7 @@ export const PURCHASE_FIELD_MAPPINGS = {
     total_nilai: 'total_nilai',
     items: 'items',
     status: 'status',
-    metodePerhitungan: 'metode_perhitungan',
+    metode_perhitungan: 'metode_perhitungan',
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   }

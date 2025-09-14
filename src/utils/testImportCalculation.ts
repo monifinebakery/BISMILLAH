@@ -20,7 +20,7 @@ export const testImportCalculation = async () => {
     const testImportPurchase = {
       supplier: 'TEST_SUPPLIER',
       tanggal: new Date(),
-      totalNilai: 50000, // Total payment: Rp 50,000
+      total_nilai: 50000, // Total payment: Rp 50,000
       items: [
         {
           bahanBakuId: '',
@@ -33,13 +33,13 @@ export const testImportCalculation = async () => {
         }
       ],
       status: 'pending' as const,
-      metodePerhitungan: 'AVERAGE' as const
+      metode_perhitungan: 'AVERAGE' as const
     };
 
     // Calculate what the price should be
-    const expectedUnitPrice = testImportPurchase.totalNilai / testImportPurchase.items[0].kuantitas;
+    const expectedUnitPrice = testImportPurchase.total_nilai / testImportPurchase.items[0].kuantitas;
     console.log('📊 [TEST IMPORT CALC] Expected calculation:', {
-      totalPayment: testImportPurchase.totalNilai,
+      totalPayment: testImportPurchase.total_nilai,
       quantity: testImportPurchase.items[0].kuantitas,
       expectedUnitPrice: expectedUnitPrice
     });
@@ -47,7 +47,7 @@ export const testImportCalculation = async () => {
     // Apply the same calculation logic as import
     const calculatedItems = testImportPurchase.items.map(item => {
       const calculatedUnitPrice = item.kuantitas > 0 
-        ? Math.round((testImportPurchase.totalNilai / item.kuantitas) * 100) / 100
+        ? Math.round((testImportPurchase.total_nilai / item.kuantitas) * 100) / 100
         : 0;
         
       const subtotal = item.kuantitas * calculatedUnitPrice;
@@ -56,7 +56,7 @@ export const testImportCalculation = async () => {
         ...item,
         hargaSatuan: calculatedUnitPrice,
         subtotal: subtotal,
-        keterangan: `[IMPORTED] Harga otomatis: Rp ${testImportPurchase.totalNilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}`
+        keterangan: `[IMPORTED] Harga otomatis: Rp ${testImportPurchase.total_nilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}`
       };
     });
 
@@ -79,7 +79,7 @@ export const testImportCalculation = async () => {
       if (verifyPurchase) {
         console.log('🔍 [TEST IMPORT CALC] Verification - created purchase:', {
           id: verifyPurchase.id,
-          totalNilai: verifyPurchase.totalNilai,
+          total_nilai: verifyPurchase.total_nilai,
           items: verifyPurchase.items.map(item => ({
             nama: item.nama,
             kuantitas: item.kuantitas,
@@ -143,7 +143,7 @@ export const testManualVsImportComparison = async () => {
     const testData = {
       supplier: 'TEST_SUPPLIER',
       tanggal: new Date(),
-      totalNilai: 30000,
+      total_nilai: 30000,
       quantity: 3,
       expectedUnitPrice: 10000
     };
@@ -152,7 +152,7 @@ export const testManualVsImportComparison = async () => {
     const manualPurchase = {
       supplier: testData.supplier,
       tanggal: testData.tanggal,
-      totalNilai: testData.totalNilai,
+      total_nilai: testData.total_nilai,
       items: [{
         bahanBakuId: '',
         nama: 'Manual Entry Test',
@@ -163,25 +163,25 @@ export const testManualVsImportComparison = async () => {
         keterangan: '[MANUAL] Manual entry test'
       }],
       status: 'pending' as const,
-      metodePerhitungan: 'AVERAGE' as const
+      metode_perhitungan: 'AVERAGE' as const
     };
 
     // Imported purchase (with automatic calculation)
     const importedPurchase = {
       supplier: testData.supplier,
       tanggal: testData.tanggal,
-      totalNilai: testData.totalNilai,
+      total_nilai: testData.total_nilai,
       items: [{
         bahanBakuId: '',
         nama: 'Import Entry Test',
         kuantitas: testData.quantity,
         satuan: 'pcs',
-        hargaSatuan: Math.round((testData.totalNilai / testData.quantity) * 100) / 100, // Auto-calculated
-        subtotal: testData.quantity * (testData.totalNilai / testData.quantity),
-        keterangan: `[IMPORTED] Harga otomatis: Rp ${testData.totalNilai.toLocaleString('id-ID')} ÷ ${testData.quantity} = Rp ${testData.expectedUnitPrice.toLocaleString('id-ID')}`
+        hargaSatuan: Math.round((testData.total_nilai / testData.quantity) * 100) / 100, // Auto-calculated
+        subtotal: testData.quantity * (testData.total_nilai / testData.quantity),
+        keterangan: `[IMPORTED] Harga otomatis: Rp ${testData.total_nilai.toLocaleString('id-ID')} ÷ ${testData.quantity} = Rp ${testData.expectedUnitPrice.toLocaleString('id-ID')}`
       }],
       status: 'pending' as const,
-      metodePerhitungan: 'AVERAGE' as const
+      metode_perhitungan: 'AVERAGE' as const
     };
 
     console.log('📋 [TEST COMPARISON] Creating manual purchase...');
@@ -202,13 +202,13 @@ export const testManualVsImportComparison = async () => {
         id: manualData?.id,
         unitPrice: manualData?.items[0]?.hargaSatuan,
         subtotal: manualData?.items[0]?.subtotal,
-        total: manualData?.totalNilai
+        total: manualData?.total_nilai
       });
       console.log('Import Purchase:', {
         id: importData?.id,
         unitPrice: importData?.items[0]?.hargaSatuan,
         subtotal: importData?.items[0]?.subtotal,
-        total: importData?.totalNilai
+        total: importData?.total_nilai
       });
       
       // Check if they're treated the same

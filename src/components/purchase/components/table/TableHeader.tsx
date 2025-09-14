@@ -19,7 +19,7 @@ import {
   Receipt,
 } from 'lucide-react';
 
-type SortField = 'tanggal' | 'supplier' | 'totalNilai' | 'status';
+type SortField = 'tanggal' | 'supplier' | 'total_nilai' | 'status';
 type SortOrder = 'asc' | 'desc';
 
 interface TableHeaderProps {
@@ -94,13 +94,13 @@ export const PurchaseTableHeader: React.FC<TableHeaderProps> = ({
         <TableHead className="text-right">
           <Button
             variant="ghost"
-            onClick={() => onSort('totalNilai')}
+            onClick={() => onSort('total_nilai')}
             className="h-auto p-0 font-medium hover:bg-transparent"
             type="button"
           >
             <Receipt className="h-4 w-4 mr-2" />
             Total Nilai
-            {renderSortIcon('totalNilai')}
+            {renderSortIcon('total_nilai')}
           </Button>
         </TableHead>
 

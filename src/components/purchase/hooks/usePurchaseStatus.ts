@@ -129,7 +129,7 @@ export const usePurchaseStatus = ({
       if (!purchase.items || purchase.items.length === 0) {
         errors.push('Tidak dapat menyelesaikan purchase tanpa item');
       }
-      if (!purchase.totalNilai || purchase.totalNilai <= 0) {
+      if (!purchase.total_nilai || purchase.total_nilai <= 0) {
         errors.push('Total nilai purchase harus lebih dari 0');
       }
       if (!purchase.supplier) {

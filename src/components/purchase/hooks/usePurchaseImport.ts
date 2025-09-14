@@ -378,8 +378,8 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
                 keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.totalNilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`
               };
             }),
-            totalNilai: purchaseData.totalNilai,
-            metodePerhitungan: 'AVERAGE' as const,
+            total_nilai: purchaseData.totalNilai,
+            metode_perhitungan: 'AVERAGE' as const,
             status: 'pending' as const // ✅ SAMA: Import and manual both start as pending
           };
 

@@ -136,7 +136,7 @@ export const mockPurchaseData = {
   userId: 'user-456',
   supplier: 'sup1', // This should resolve to 'PT. Supplier Utama'
   tanggal: new Date('2024-01-15'),
-  totalNilai: 150000,
+  total_nilai: 150000,
   items: [
     {
       bahanBakuId: 'bb1',
@@ -148,7 +148,7 @@ export const mockPurchaseData = {
     }
   ],
   status: 'completed' as const,
-  metodePerhitungan: 'AVERAGE' as const,
+  metode_perhitungan: 'AVERAGE' as const,
   createdAt: new Date('2024-01-15T08:00:00'),
   updatedAt: new Date('2024-01-15T08:00:00')
 };

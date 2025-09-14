@@ -362,10 +362,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         userId: user!.id,
         supplier: payload.supplier,
         tanggal: payload.tanggal,
-        totalNilai: payload.totalNilai,
+        total_nilai: payload.total_nilai,
         items: payload.items,
         status: payload.status ?? 'pending',
-        metodePerhitungan: payload.metodePerhitungan ?? 'AVERAGE',
+        metode_perhitungan: payload.metode_perhitungan ?? 'AVERAGE',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -507,7 +507,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             
             void addFinancialTransaction({
               type: 'expense',
-              amount: fresh.totalNilai,
+              amount: fresh.total_nilai,
               description: `Pembelian dari ${getSupplierName(fresh.supplier)} (auto-sync)`,
               category: 'Pembelian Bahan Baku',
               date: new Date(),
@@ -536,12 +536,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // Tambahkan transaksi ketika status berubah ke completed (expense)
           console.log('💰 Creating financial transaction for completed purchase:', {
             purchaseId: fresh.id,
-            amount: fresh.totalNilai,
+            amount: fresh.total_nilai,
             supplier: getSupplierName(fresh.supplier),
             category: 'Pembelian Bahan Baku',
             transactionData: {
               type: 'expense',
-              amount: fresh.totalNilai,
+              amount: fresh.total_nilai,
               description: `Pembelian dari ${getSupplierName(fresh.supplier)}`,
               category: 'Pembelian Bahan Baku',
               date: new Date(),
@@ -551,7 +551,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           
           void addFinancialTransaction({
             type: 'expense',
-            amount: fresh.totalNilai,
+            amount: fresh.total_nilai,
             description: `Pembelian dari ${getSupplierName(fresh.supplier)}`,
             category: 'Pembelian Bahan Baku',
             date: new Date(),
@@ -738,7 +738,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (p.status === newStatus) warnings.push('Status tidak berubah');
     if (newStatus === 'completed') {
       if (!p.items?.length) errors.push('Tidak dapat selesai tanpa item');
-      if (!p.totalNilai || p.totalNilai <= 0) errors.push('Total nilai harus > 0');
+      if (!p.total_nilai || p.total_nilai <= 0) errors.push('Total nilai harus > 0');
       if (!p.supplier) errors.push('Supplier wajib diisi');
       
       // Enhanced item validation for better error reporting

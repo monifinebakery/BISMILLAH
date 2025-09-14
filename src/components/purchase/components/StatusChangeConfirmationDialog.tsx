@@ -168,7 +168,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
             <div className="text-sm text-gray-600">
               <p><span className="font-medium">Supplier:</span> {purchase.supplier}</p>
               <p><span className="font-medium">Total Items:</span> {purchase.items.length} item</p>
-              <p><span className="font-medium">Total Nilai:</span> Rp {purchase.totalNilai.toLocaleString('id-ID')}</p>
+              <p><span className="font-medium">Total Nilai:</span> Rp {purchase.total_nilai.toLocaleString('id-ID')}</p>
             </div>
 
             {/* Errors */}

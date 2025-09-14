@@ -28,7 +28,7 @@ export interface PurchaseValidationResult {
   errors: string[];
   warnings: string[];
   corrections: {
-    totalNilai: number;
+    total_nilai: number;
     items: PurchaseItem[];
   };
   qualityScore: number; // 0-100
@@ -154,7 +154,7 @@ export function validatePurchaseData(
       errors,
       warnings,
       corrections: {
-        totalNilai: calculatedTotal,
+        total_nilai: calculatedTotal,
         items: correctedItems
       },
       qualityScore
@@ -166,7 +166,7 @@ export function validatePurchaseData(
       isValid: false,
       errors: ['Validation error occurred'],
       warnings: [],
-      corrections: { totalNilai: 0, items: [] },
+      corrections: { total_nilai: 0, items: [] },
       qualityScore: 0
     };
   }

@@ -60,7 +60,7 @@ export const debugPriceCalculation = async () => {
       const items = Array.isArray(purchase.items) ? purchase.items : [];
       console.log(`   ${index + 1}. Purchase ${purchase.id}:`, {
         status: purchase.status,
-        totalNilai: purchase.total_nilai,
+        total_nilai: purchase.total_nilai,
         itemCount: items.length,
         tanggal: purchase.tanggal
       });

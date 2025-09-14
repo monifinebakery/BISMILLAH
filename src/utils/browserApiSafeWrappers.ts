@@ -62,10 +62,18 @@ export const safeDom = {
   querySelectorAll: (selector: string) => document.querySelectorAll.call(document, selector),
   createElement: (tagName: string) => document.createElement.call(document, tagName),
   createTextNode: (text: string) => document.createTextNode.call(document, text),
-  addEventListener: (element: EventTarget, type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) => 
+  addEventListener: (element: EventTarget, type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) =>
     element.addEventListener.call(element, type, listener, options),
-  removeEventListener: (element: EventTarget, type: string, listener: EventListener, options?: boolean | EventListenerOptions) => 
+  removeEventListener: (element: EventTarget, type: string, listener: EventListener, options?: boolean | EventListenerOptions) =>
     element.removeEventListener.call(element, type, listener, options),
+  removeElement: (element?: Element | null) => {
+    if (!element) return;
+    if ((element as any).isConnected && typeof (element as any).remove === 'function') {
+      (element as any).remove();
+    } else {
+      element.parentElement?.removeChild(element as any);
+    }
+  },
 };
 
 /**

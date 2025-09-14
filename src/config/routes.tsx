@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/components/layout';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import EmailAuthPage from '@/components/EmailAuthPage';
+import TurnstileTestPage from '@/components/auth/TurnstileTestPage';
 import { AuthGuard } from '@/components/AuthGuard';
 import PaymentGuard from '@/components/PaymentGuard';
 import { logger } from '@/utils/logger';
@@ -69,6 +70,9 @@ export const AppRouter: React.FC = () => (
       {networkOptimizationRoutes}
       {tutorialRoutes}
       
+      {/* Turnstile test page */}
+      <Route path="/turnstile-test" element={<TurnstileTestPage />} />
+
       {/* Development only - Calendar responsiveness test */}
       {process.env.NODE_ENV === 'development' && (
         <Route path="/test-calendar" element={<TestCalendarPage />} />

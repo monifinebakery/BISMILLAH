@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
-// Turnstile disabled - using simple OTP authentication
+import TurnstileWidget from '@/components/auth/TurnstileWidget';
 
 // Simple OTP authentication without captcha
 
@@ -59,7 +59,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  // Simple OTP authentication without CAPTCHA
+  // Turnstile CAPTCHA integration
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileError, setTurnstileError] = useState<string | null>(null);
+  const turnstileSitekey = (import.meta as any).env?.VITE_TURNSTILE_SITEKEY || '0x4AAAAAABvpDKhb8eM31rVE';
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -104,8 +107,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // CAPTCHA is disabled - using simple OTP authentication
-  const isCaptchaEnabled = false;
+  // Enable CAPTCHA requirement for sending OTP
+  const isCaptchaEnabled = true;
   
   console.log('🔍 Simple OTP Authentication Mode:', {
     captchaEnabled: isCaptchaEnabled,
@@ -119,7 +122,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
-    authState !== "sending";
+    authState !== "sending" &&
+    (!isCaptchaEnabled || !!turnstileToken);
 
   // OTP verification validation
   const canVerify =
@@ -145,7 +149,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
-    // No CAPTCHA validation needed
+    // Server-side Turnstile validation (required)
+    try {
+      const resp = await fetch('/api/turnstile-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        toast.error(data?.message || 'Verifikasi CAPTCHA gagal');
+        return;
+      }
+    } catch (e) {
+      toast.error('Tidak dapat memverifikasi CAPTCHA. Periksa koneksi.');
+      return;
+    }
 
     setAuthState("sending");
     setError("");
@@ -153,9 +172,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     try {
       const success = await sendEmailOtp(
         email,
-        null, // No CAPTCHA token
-        true, // Allow signup
-        true  // Skip CAPTCHA validation
+        turnstileToken,
+        true,
+        false
       );
 
       if (!mountedRef.current) return;
@@ -193,11 +212,29 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
 
     try {
+      // Server-side Turnstile validation sebelum resend
+      try {
+        const resp = await fetch('/api/turnstile-verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: turnstileToken }),
+        });
+        if (!resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          toast.error(data?.message || 'Verifikasi CAPTCHA gagal');
+          setAuthState("error");
+          return;
+        }
+      } catch (e) {
+        toast.error('Tidak dapat memverifikasi CAPTCHA. Periksa koneksi.');
+        setAuthState("error");
+        return;
+      }
       const success = await sendEmailOtp(
         email,
-        null, // No CAPTCHA token
-        true, // Allow signup
-        true  // Skip CAPTCHA validation
+        turnstileToken,
+        true,
+        false
       );
 
       if (!mountedRef.current) return;
@@ -353,11 +390,32 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 </div>
               </div>
 
-              {/* Simple OTP Authentication - No CAPTCHA required */}
-              <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-700">
-                  📮 Simple OTP Authentication - No CAPTCHA required
-                </p>
+              {/* Turnstile CAPTCHA */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Verifikasi Keamanan
+                </label>
+                <div className="p-3 border rounded bg-white">
+                  <TurnstileWidget
+                    sitekey={turnstileSitekey}
+                    onSuccess={(token) => {
+                      setTurnstileToken(token);
+                      setTurnstileError(null);
+                    }}
+                    onError={() => {
+                      setTurnstileToken(null);
+                      setTurnstileError('Verifikasi CAPTCHA gagal, coba lagi');
+                    }}
+                    onExpired={() => {
+                      setTurnstileToken(null);
+                      setTurnstileError('CAPTCHA kedaluwarsa, silakan verifikasi ulang');
+                    }}
+                    className="block"
+                  />
+                  {turnstileError && (
+                    <p className="mt-2 text-xs text-red-600">{turnstileError}</p>
+                  )}
+                </div>
               </div>
 
               <Button

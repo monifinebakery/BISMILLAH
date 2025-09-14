@@ -19,9 +19,9 @@ export interface BahanBaku {
   minimum: number;
   harga_satuan: number;
   supplier: string;
-  tanggal_kadaluwarsa?: Date;
-  created_at: Date;
-  updated_at: Date;
+  tanggal_kadaluwarsa: string | null;
+  created_at: string;
+  updated_at: string;
   harga_rata_rata?: number;            // ✅ TAMBAH: WAC field from DB
 }
 

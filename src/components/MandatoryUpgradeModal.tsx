@@ -9,12 +9,12 @@ import { usePaymentContext } from '@/contexts/PaymentContext';
 import PaymentVerificationLoader from '@/components/PaymentVerificationLoader';
 
 const MandatoryUpgradeModal = () => {
-  const { showMandatoryUpgrade, previewTimeLeft, isPaid } = usePaymentContext();
+  const { showMandatoryUpgrade, previewTimeLeft, isPaid, hasAccess, isLoading } = usePaymentContext() as any;
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [processingStage, setProcessingStage] = React.useState<'verifying' | 'linking'>('verifying');
 
-  // Don't show timer or modal for paid users
-  if (isPaid) {
+  // Don't show timer or modal for paid users or when access is granted or while loading
+  if (isPaid || hasAccess || isLoading) {
     return null;
   }
 
@@ -118,7 +118,7 @@ const MandatoryUpgradeModal = () => {
     );
   }
 
-  if (!showMandatoryUpgrade) {
+  if (!showMandatoryUpgrade && previewTimeLeft > 0) {
     return (
       <div className="fixed top-4 right-4 z-50">
         <div className="bg-orange-100 border border-orange-300 rounded-lg p-3">

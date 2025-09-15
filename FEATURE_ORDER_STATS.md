@@ -7,17 +7,18 @@ Fitur ini menambahkan statistik pesanan yang ditampilkan di header halaman manaj
 
 ### 1. 📊 Komponen OrderStats (`/src/components/orders/components/OrderStats.tsx`)
 - **Total Pesanan**: Jumlah keseluruhan pesanan
-- **Total Pendapatan**: Revenue dari semua pesanan
+- **Total Pendapatan (realized)**: Jumlah total dari pesanan dengan status `completed` saja
 - **Pesanan Pending**: Orders yang masih dalam proses
-- **Pesanan Selesai**: Orders yang sudah completed
+- **Pesanan Selesai**: Orders yang sudah `completed`
 - **Pesanan Hari Ini**: Orders yang dibuat hari ini
-- **AOV (Average Order Value)**: Nilai rata-rata per pesanan
+- **AOV (Average Order Value)**: Nilai rata-rata untuk pesanan `completed` (Total Pendapatan / Jumlah Completed)
 
 ### 2. 🔧 Hook useOrderStats (`/src/components/orders/hooks/useOrderStats.ts`)
 - Real-time calculation dari data pesanan
 - Status breakdown otomatis
 - Error handling yang robust
 - Performance optimization dengan useMemo
+- Konsisten dengan OrderStatistics: revenue & AOV dihitung dari pesanan `completed` saja
 
 ### 3. 🎨 Design Features
 - **Responsif**: Grid yang beradaptasi untuk mobile, tablet, dan desktop
@@ -44,13 +45,15 @@ Fitur ini menambahkan statistik pesanan yang ditampilkan di header halaman manaj
 - Lazy loading untuk komponen yang tidak critical
 - Efficient re-rendering hanya saat data berubah
 
-## 📊 Metrics yang Dihitung
+## 📊 Metrics yang Dihitung (ter-update)
 1. **Total Orders**: `orders.length`
-2. **Total Revenue**: `sum(order.totalPesanan)`
-3. **Pending Orders**: Orders dengan status pending/confirmed/processing/shipped
-4. **Completed Orders**: Orders dengan status completed
+2. **Total Revenue (realized)**: `sum(order.total_pesanan || order.totalPesanan)` untuk status `completed`
+3. **Pending Orders**: Orders dengan status pending/confirmed/preparing (processing)
+4. **Completed Orders**: Orders dengan status `completed`
 5. **Today Orders**: Orders yang dibuat hari ini
-6. **AOV**: `totalRevenue / totalOrders`
+6. **AOV (Completed)**: `totalRevenue(completed) / completedOrders`
+
+Catatan: Perubahan ini menyelaraskan angka di header (OrderStats) dengan kartu statistik (OrderStatistics). Tujuannya agar pendapatan hanya mencerminkan transaksi yang benar-benar selesai.
 
 ## 🔮 Future Enhancements
 - Trend data dengan perbandingan periode sebelumnya

@@ -163,3 +163,31 @@ If you're using any of the renamed hooks:
 ---
 
 This fix follows the same successful pattern used for the profit analysis module consistency improvements, ensuring a unified approach across all data modules in the application.
+
+---
+
+## 📌 Sept 2025 Addendum — Purchase Totals & Validation
+
+### 1) Standardisasi Field Item Purchase
+- FE menggunakan: `quantity`, `unitPrice`, `subtotal`, `nama`, `satuan`
+- DB menggunakan: `jumlah`, `harga_per_satuan`, `subtotal`, `nama`, `satuan`
+- Transformer telah diperbarui untuk memetakan dua arah dengan benar:
+  - `quantity` ↔ `jumlah`
+  - `unitPrice` ↔ `harga_per_satuan`
+
+### 2) Persistensi `total_nilai`
+- Saat membuat atau mengedit, `transformPurchaseForDB` memastikan `total_nilai` dikirim dari `totalNilai`/`total_nilai` sehingga draft tidak pernah tersimpan sebagai 0 secara tidak sengaja.
+
+### 3) Guard Saat Menyelesaikan (Completed)
+- UI mencegah mengubah status ke `completed` jika `total_nilai <= 0` untuk menghindari pelanggaran check constraint di DB.
+- Validasi item saat completion kini memeriksa `quantity` (bukan field lama `kuantitas`) untuk mencegah false error “Item tidak lengkap”.
+
+### 4) Troubleshooting Pesan “Item \"X\" tidak lengkap”
+- Pastikan setiap item memiliki:
+  - `nama` (tidak kosong)
+  - `quantity > 0`
+  - `satuan` (tidak kosong)
+  - `unitPrice >= 0` (boleh 0 untuk kasus gratis)
+- Jika data datang dari DB, field `jumlah` akan otomatis diubah menjadi `quantity` oleh transformer.
+
+Perubahan ini memastikan alur: Simpan Draft → Selesaikan, berjalan mulus tanpa constraint error, dan angka total tampil benar di laporan/summary.

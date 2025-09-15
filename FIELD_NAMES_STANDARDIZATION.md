@@ -156,14 +156,16 @@ npm run dev
 | Field Lama | Field Baru | Tipe | Deskripsi |
 |------------|------------|------|----------|
 | `namaBarang` | `nama` | string | Nama item |
-| `kuantitas` | `quantity` | number | Jumlah item |
-| `hargaSatuan` | `unitPrice` | number | Harga per unit |
+| `kuantitas` | `quantity` | number | Jumlah item (FE), dipetakan ke DB `jumlah` |
+| `hargaSatuan` | `unitPrice` | number | Harga per unit (FE), dipetakan ke DB `harga_per_satuan` |
 
 ### Purchase Data
 | Field Lama | Field Baru | Tipe | Deskripsi |
 |------------|------------|------|----------|
-| `totalNilai` | `totalValue` | number | Total nilai purchase |
-| `metodePerhitungan` | `calculationMethod` | string | Metode perhitungan WAC |
+| `totalNilai` | `totalNilai` | number | Total nilai (FE), dipetakan ke DB `total_nilai` |
+| `metodePerhitungan` | `metodePerhitungan` | string | Metode perhitungan WAC (FE), dipetakan ke DB `metode_perhitungan` |
+
+Catatan: Di frontend, tetap gunakan `totalNilai`. Transformer akan memastikan `total_nilai` terkirim ke DB.
 
 ## Rekomendasi
 

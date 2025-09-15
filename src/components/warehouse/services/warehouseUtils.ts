@@ -1,5 +1,6 @@
 // src/components/warehouse/services/warehouseUtils.ts
 import type { BahanBakuFrontend, FilterState, SortConfig, ValidationResult } from '../types';
+import { toNumber } from '../utils/typeUtils';
 // Note: Avoid importing the barrel (../services/index.ts) here to prevent circular dependencies
 import { logger } from '@/utils/logger';
 // Default kategori untuk sinkron dengan analisis profit

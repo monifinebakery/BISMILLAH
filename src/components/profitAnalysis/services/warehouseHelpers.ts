@@ -22,7 +22,7 @@ export async function fetchBahanMap(): Promise<Record<string, any>> {
     // Use direct Supabase query instead of warehouse API to avoid type issues
     const { data: items, error } = await supabase
       .from('bahan_baku')
-      .select('id, nama, harga_rata_rata, unit_price, stok, satuan')
+      .select('id, nama, harga_rata_rata, harga_satuan, stok, satuan')
       .eq('user_id', user.id);
       
     if (error) throw error;
@@ -32,7 +32,8 @@ export async function fetchBahanMap(): Promise<Record<string, any>> {
       map[it.id] = {
         ...it,
         harga_rata_rata: Number(it.harga_rata_rata ?? it.hargaRataRata ?? 0),
-        unit_price: Number(it.unit_price ?? it.harga ?? 0),
+        // Map schema base price (harga_satuan) to standardized unit_price
+        unit_price: Number(it.harga_satuan ?? it.unit_price ?? it.harga ?? 0),
       };
     });
     return map;

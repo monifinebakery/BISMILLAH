@@ -268,6 +268,12 @@ export const useProfitAnalysis = (
     queryFn: fetchBahanMap,
     enabled: enableWAC,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, err: any) => {
+      const status = Number((err?.status ?? err?.code ?? 0) as any);
+      if (status >= 500) return failureCount < 3;
+      return failureCount < 1;
+    },
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
 
   const pemakaianQuery = useQuery({
@@ -291,6 +297,12 @@ export const useProfitAnalysis = (
     },
     enabled: enableWAC && Boolean((mode === 'daily' && dateRange) || (mode !== 'daily' && currentPeriod)),
     staleTime: 60 * 1000, // 1 minute
+    retry: (failureCount, err: any) => {
+      const status = Number((err?.status ?? err?.code ?? 0) as any);
+      if (status >= 500) return failureCount < 3; // handle 503 gracefully
+      return failureCount < 1;
+    },
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
 
   // ✅ MUTATION: Manual calculation

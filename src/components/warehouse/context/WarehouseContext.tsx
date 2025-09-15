@@ -244,13 +244,25 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000, // 2 minutes cache to improve performance
-    // ✅ FIXED: Simplified retry logic for better error handling
+    // ✅ Improved retry logic: handle transient 5xx (e.g., 503) with backoff
     retry: (failureCount, err: any) => {
-      const code = toNumber(err?.code || err?.status || 0);
-      if (code >= 400 && code < 500) return false; // Don't retry client errors
-      return failureCount < 1; // Only 1 retry for other errors
+      const status = toNumber(err?.status || err?.code || 0);
+      if (status >= 500) return failureCount < 3; // retry up to 3x for server errors
+      if (status === 0 && navigator && !navigator.onLine) return false; // no retry when offline
+      return failureCount < 1; // minimal retry for other transient errors
     },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8000),
   });
+
+  // ✅ Friendly error hint for 503/5xx
+  useEffect(() => {
+    if (!error) return;
+    const status: any = (error as any).status || (error as any).code;
+    const code = toNumber(status);
+    if (code >= 500) {
+      toast.error('Layanan gudang sedang sibuk/maintenance. Mencoba ulang otomatis...');
+    }
+  }, [error]);
 
   // ✅ NEW: Real-time subscription for warehouse updates
   useEffect(() => {

@@ -63,13 +63,18 @@ export async function fetchPemakaianByPeriode(start: string, end: string): Promi
     // Use type assertion to bypass TypeScript schema validation
     const { data, error } = await (supabase as any)
       .from('pemakaian_bahan')
-      .select('bahan_baku_id, quantity, tanggal, harga_efektif, hpp_value')
+      .select('bahan_baku_id, qty_base, tanggal, harga_efektif, hpp_value')
       .eq('user_id', user.id)
       .gte('tanggal', start)
       .lte('tanggal', end);
       
     if (error) throw error;
-    return data ?? [];
+    // Normalize to legacy shape expected by calculators: expose quantity alias
+    const rows = Array.isArray(data) ? data : [];
+    return rows.map((row: any) => ({
+      ...row,
+      quantity: Number(row.qty_base ?? row.quantity ?? 0)
+    }));
   } catch (e) {
     logger.error('Failed to fetch pemakaian bahan:', e);
     return [];

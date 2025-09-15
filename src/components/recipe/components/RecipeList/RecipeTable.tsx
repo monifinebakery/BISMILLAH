@@ -134,32 +134,32 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
             <TableHead className="w-[320px]">
               <Button
                 variant="ghost"
-                onClick={() => onSort('namaResep')}
+                onClick={() => onSort('nama_resep')}
                 className="inline-flex h-auto items-center gap-1 p-0 font-semibold hover:bg-transparent"
               >
                 Nama Resep
-                {getSortIcon('namaResep')}
+                {getSortIcon('nama_resep')}
               </Button>
             </TableHead>
             <TableHead className="w-[160px]">
               <Button
                 variant="ghost"
-                onClick={() => onSort('kategoriResep')}
+                onClick={() => onSort('kategori_resep')}
                 className="inline-flex h-auto items-center gap-1 p-0 font-semibold hover:bg-transparent"
               >
                 Kategori
-                {getSortIcon('kategoriResep')}
+                {getSortIcon('kategori_resep')}
               </Button>
             </TableHead>
             <TableHead className="text-center">Porsi</TableHead>
             <TableHead className="text-right">
               <Button
                 variant="ghost"
-                onClick={() => onSort('hppPerPorsi')}
+                onClick={() => onSort('hpp_per_porsi')}
                 className="inline-flex h-auto items-center gap-1 p-0 font-semibold hover:bg-transparent"
               >
                 HPP/Porsi
-                {getSortIcon('hppPerPorsi')}
+                {getSortIcon('hpp_per_porsi')}
               </Button>
             </TableHead>
             <TableHead className="text-right">Harga Jual</TableHead>
@@ -176,11 +176,11 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
             <TableHead className="text-center">
               <Button
                 variant="ghost"
-                onClick={() => onSort('createdAt')}
+                onClick={() => onSort('created_at')}
                 className="inline-flex h-auto items-center gap-1 p-0 font-semibold hover:bg-transparent"
               >
                 Dibuat
-                {getSortIcon('createdAt')}
+                {getSortIcon('created_at')}
               </Button>
             </TableHead>
             <TableHead className="w-[70px]" />
@@ -196,7 +196,7 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
                   <Checkbox
                     checked={selectedIds.has(recipe.id)}
                     onCheckedChange={() => onSelectionChange?.(recipe.id)}
-                    aria-label={`Pilih resep ${recipe.namaResep}`}
+                    aria-label={`Pilih resep ${recipe.nama_resep}`}
                   />
                 </TableCell>
               )}
@@ -209,10 +209,10 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold text-gray-900">
-                      {highlightText(recipe.namaResep, searchTerm)}
+                      {highlightText(recipe.nama_resep, searchTerm)}
                     </div>
                     <div className="mt-1 text-xs text-gray-400">
-                      {recipe.bahanResep.length} bahan
+                      {(recipe.bahan_resep?.length ?? 0)} bahan
                     </div>
                   </div>
                 </div>
@@ -220,9 +220,9 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
 
               {/* Category */}
               <TableCell>
-                {recipe.kategoriResep ? (
+                {recipe.kategori_resep ? (
                   <Badge variant="outline" className="text-xs">
-                    {highlightText(recipe.kategoriResep, searchTerm)}
+                    {highlightText(recipe.kategori_resep, searchTerm)}
                   </Badge>
                 ) : (
                   <span className="text-sm text-gray-400">-</span>
@@ -231,43 +231,43 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
 
               {/* Portions */}
               <TableCell className="text-center">
-                <div className="text-sm font-medium">{recipe.jumlahPorsi}</div>
-                {recipe.jumlahPcsPerPorsi > 1 && (
-                  <div className="text-xs text-gray-500">({recipe.jumlahPcsPerPorsi} pcs/porsi)</div>
+                <div className="text-sm font-medium">{recipe.jumlah_porsi}</div>
+                {recipe.jumlah_pcs_per_porsi > 1 && (
+                  <div className="text-xs text-gray-500">({recipe.jumlah_pcs_per_porsi} pcs/porsi)</div>
                 )}
               </TableCell>
 
               {/* HPP per Portion */}
               <TableCell className="text-right text-nowrap">
-                <div className="font-semibold text-gray-900">{formatCurrency(recipe.hppPerPorsi)}</div>
-                {recipe.hppPerPcs > 0 && recipe.jumlahPcsPerPorsi > 1 && (
-                  <div className="text-xs text-gray-500">{formatCurrency(recipe.hppPerPcs)}/pcs</div>
+                <div className="font-semibold text-gray-900">{formatCurrency(recipe.hpp_per_porsi)}</div>
+                {recipe.hpp_per_pcs > 0 && recipe.jumlah_pcs_per_porsi > 1 && (
+                  <div className="text-xs text-gray-500">{formatCurrency(recipe.hpp_per_pcs)}/pcs</div>
                 )}
               </TableCell>
 
               {/* Selling Price */}
               <TableCell className="text-right text-nowrap">
                 <div className="font-semibold text-green-600">
-                  {formatCurrency(recipe.hargaJualPorsi)}
+                  {formatCurrency(recipe.harga_jual_porsi)}
                 </div>
-                {recipe.hargaJualPerPcs > 0 && recipe.jumlahPcsPerPorsi > 1 && (
-                  <div className="text-xs text-gray-500">{formatCurrency(recipe.hargaJualPerPcs)}/pcs</div>
+                {recipe.harga_jual_per_pcs > 0 && recipe.jumlah_pcs_per_porsi > 1 && (
+                  <div className="text-xs text-gray-500">{formatCurrency(recipe.harga_jual_per_pcs)}/pcs</div>
                 )}
               </TableCell>
 
               {/* Profitability */}
               <TableCell className="text-center">
                 <div className="flex flex-col items-center gap-1">
-                  {getProfitabilityBadge(recipe.marginKeuntunganPersen)}
+                  {getProfitabilityBadge(recipe.margin_keuntungan_persen)}
                   <div className="text-xs text-gray-600">
-                    {formatPercentage(recipe.marginKeuntunganPersen)}
+                    {formatPercentage(recipe.margin_keuntungan_persen)}
                   </div>
                 </div>
               </TableCell>
 
               {/* Created Date */}
               <TableCell className="text-center text-sm text-gray-500">
-                {new Date(recipe.createdAt).toLocaleDateString('id-ID', {
+                {new Date(recipe.created_at).toLocaleDateString('id-ID', {
                   day: '2-digit',
                   month: 'short',
                   year: 'numeric',

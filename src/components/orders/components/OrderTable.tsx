@@ -444,7 +444,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 No. Pesanan
               </th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">
-                Pelanggan
+                Nama Pelanggan
               </th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                 Tanggal Order

@@ -198,7 +198,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({ uiState, loading }) => {
           <div>
             <ItemsPerPageFilter
               value={uiState.itemsPerPage}
-              onChange={uiState.handleItemsPerPageChange}
+              onChange={uiState.setItemsPerPage}
               disabled={loading}
             />
           </div>

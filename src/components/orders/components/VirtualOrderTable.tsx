@@ -282,7 +282,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
       },
       {
         key: 'nama_pelanggan',
-        header: 'Pelanggan',
+        header: 'Nama Pelanggan',
         width: 180,
         render: (order: Order) => (
           <div className="flex flex-col">

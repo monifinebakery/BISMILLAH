@@ -1,6 +1,6 @@
 // src/components/AuthGuard.tsx - FORCE RE-RENDER VERSION
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -11,6 +11,7 @@ interface AuthGuardProps {
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, isLoading, isReady } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [renderCount, setRenderCount] = useState(0);
 
   // ✅ Development bypass authentication
@@ -66,18 +67,18 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // ✅ IMMEDIATE REDIRECT CHECK on user change
   useEffect(() => {
     if (isReady && !isLoading && user && location.pathname === '/auth') {
-      console.log(`🚀 [AuthGuard] IMMEDIATE REDIRECT triggered for user:`, user.email);
+      console.log(`🚀 [AuthGuard] IMMEDIATE SPA REDIRECT triggered for user:`, user.email);
       console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
-      
-      // Small delay to ensure state is stable
-      setTimeout(() => {
+      // Small delay to ensure state is stable, then SPA navigate
+      const t = setTimeout(() => {
         if (location.pathname === '/auth') {
-          console.log(`🚀 [AuthGuard] Executing delayed redirect`);
-          window.location.href = '/';
+          console.log(`🚀 [AuthGuard] Executing SPA redirect to /`);
+          navigate('/', { replace: true });
         }
-      }, 100);
+      }, 80);
+      return () => clearTimeout(t);
     }
-  }, [user, isReady, isLoading, location.pathname]);
+  }, [user, isReady, isLoading, location.pathname, navigate]);
 
   // ✅ ENHANCED: Loading state with more detailed info
   if (isLoading || !isReady) {

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
@@ -218,6 +219,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -289,7 +291,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const triggerRedirectCheck = () => {
     if (isReady && user && window.location.pathname === '/auth') {
       logger.info('AuthContext: Manual redirect trigger - user authenticated on auth page');
-      window.location.href = '/';
+      // SPA navigation to avoid full reload
+      navigate('/', { replace: true });
     }
   };
 
@@ -546,10 +549,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         logger.context('AuthContext', 'Auth state updated, letting AuthGuard handle navigation');
 
-        // 🔁 Redirect dari halaman auth jika user sudah terautentikasi
+        // 🔁 Redirect dari halaman auth jika user sudah terautentikasi (SPA)
         if (validUser && window.location.pathname === '/auth') {
-          logger.info('AuthContext: Redirecting authenticated user from /auth to /');
-          window.location.href = '/';
+          logger.info('AuthContext: Redirecting authenticated user from /auth to / (SPA)');
+          navigate('/', { replace: true });
         }
       }
     );

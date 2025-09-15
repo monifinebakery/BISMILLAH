@@ -301,12 +301,17 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
       if (ok === true) {
         logger.debug("EmailAuth: OTP verification successful");
+        // Refresh session and let AuthContext handle redirect from /auth
         await refreshUser();
-        redirectCheck();
         setAuthState("success");
         toast.success("Login berhasil! Mengarahkan ke dashboard...");
-        navigate(redirectUrl, { replace: true });
         onLoginSuccess?.();
+        // Give AuthContext a moment to receive onAuthStateChange, then trigger a safety check
+        setTimeout(() => {
+          try { redirectCheck(); } catch {}
+        }, 150);
+        // Do not navigate immediately to avoid race where ProtectedRoute reads user=null and sends back to /auth
+        return;
       } else if (ok === "expired") {
         setAuthState("expired");
         setError("Kode OTP sudah kadaluarsa. Silakan minta kode baru.");

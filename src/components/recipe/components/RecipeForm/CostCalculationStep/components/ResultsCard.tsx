@@ -10,9 +10,9 @@ import type { CostBreakdown, ProfitAnalysis, OverheadCalculation } from '../util
 interface ResultsCardProps {
   costBreakdown: CostBreakdown;
   profitAnalysis: ProfitAnalysis;
-  jumlahPorsi: number;
-  jumlahPcsPerPorsi: number;
-  marginKeuntunganPersen: number;
+  jumlah_porsi: number;
+  jumlah_pcs_per_porsi: number;
+  margin_keuntungan_persen: number;
   isUsingAutoOverhead?: boolean;
   overheadCalculation?: OverheadCalculation | null;
 }
@@ -20,9 +20,9 @@ interface ResultsCardProps {
 export const ResultsCard: React.FC<ResultsCardProps> = ({
   costBreakdown,
   profitAnalysis,
-  jumlahPorsi,
-  jumlahPcsPerPorsi,
-  marginKeuntunganPersen,
+  jumlah_porsi,
+  jumlah_pcs_per_porsi,
+  margin_keuntungan_persen,
   isUsingAutoOverhead = false,
   overheadCalculation,
 }) => {
@@ -31,8 +31,8 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
   const recommendations = getProfitabilityRecommendations(profitAnalysis.profitabilityLevel);
 
   // ✅ Calculate totals for better context
-  const totalPieces = jumlahPorsi * jumlahPcsPerPorsi;
-  const showPerPcsData = jumlahPcsPerPorsi > 1;
+  const totalPieces = jumlah_porsi * jumlah_pcs_per_porsi;
+  const showPerPcsData = jumlah_pcs_per_porsi > 1;
 
   return (
     <div className="space-y-6">
@@ -46,7 +46,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
             {/* ✅ NEW: Show total production info */}
             {showPerPcsData && (
               <Badge className="bg-purple-100 text-purple-800 border-purple-300">
-                {jumlahPorsi} porsi × {jumlahPcsPerPorsi} pcs = {totalPieces} pcs
+                {jumlah_porsi} porsi × {jumlah_pcs_per_porsi} pcs = {totalPieces} pcs
               </Badge>
             )}
           </CardTitle>
@@ -146,7 +146,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
               </Badge>
             </div>
             <div className="text-xs text-green-600">
-              {formatPercentage(marginKeuntunganPersen)} dari total HPP ({formatCurrency(costBreakdown.totalProductionCost)})
+              {formatPercentage(margin_keuntungan_persen)} dari total HPP ({formatCurrency(costBreakdown.totalProductionCost)})
             </div>
             {showPerPcsData && (
               <div className="text-xs text-green-600 mt-1">

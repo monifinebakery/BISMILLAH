@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { toSafeISOString } from '@/utils/unifiedDateUtils';
+import { UserFriendlyDate } from '@/utils/unifiedDateUtils';
 import type { OrderData } from '../types';
 
 export const invoiceApi = {
@@ -43,7 +44,7 @@ export const invoiceApi = {
       customer_address: data.alamat_pengiriman,
       customer_phone: data.telepon_pelanggan,
       customer_email: data.email_pelanggan,
-      order_date: data.tanggal,
+      order_date: UserFriendlyDate.safeParseToDate(data.tanggal),
       items: Array.isArray(data.items) ? data.items.map((item: any, index: number) => ({
         id: index + 1,
         item_name: item.item_name || item.namaBarang || item.nama || item.description || 'Item',
@@ -74,7 +75,7 @@ export const invoiceApi = {
       customer_address: 'Jl. Customer Address No. 123\nKelurahan ABC, Kecamatan DEF\nKota GHI 12345',
       customer_phone: '+62 123 456 789',
       customer_email: 'customer@email.com',
-      order_date: toSafeISOString(new Date()) || new Date().toISOString(),
+      order_date: new Date(),
       items: [
         { id: 1, item_name: 'Product 1', quantity: 2, unit_price: 50000, total_price: 100000 },
     { id: 2, item_name: 'Product 2', quantity: 1, unit_price: 75000, total_price: 75000 }

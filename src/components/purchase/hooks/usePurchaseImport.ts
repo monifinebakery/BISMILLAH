@@ -19,7 +19,7 @@ export interface PurchaseImportData {
     kuantitas: number;
     satuan: string;
   }>;
-  totalNilai: number;
+  total_nilai: number;
 }
 
 // Mapping of possible header names to our standard fields
@@ -57,10 +57,10 @@ const headerMap: Record<string, string> = {
   'uom': 'satuan',
 
   // Total variations
-  'total': 'totalNilai',
-  'total_nilai': 'totalNilai',
-  'total_harga': 'totalNilai',
-  'amount': 'totalNilai',
+  'total': 'total_nilai',
+  'total_nilai': 'total_nilai',
+  'total_harga': 'total_nilai',
+  'amount': 'total_nilai',
 };
 
 const requiredFields = [
@@ -69,7 +69,7 @@ const requiredFields = [
   'nama',
   'kuantitas',
   'satuan',
-  'totalNilai'
+  'total_nilai'
 ];
 
 export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () => void }) => {
@@ -254,7 +254,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
               kuantitas: parseFloat(mappedRow.kuantitas),
               satuan: mappedRow.satuan
             }],
-            totalNilai: parseFloat(mappedRow.totalNilai)
+            total_nilai: parseFloat(mappedRow.total_nilai)
           });
         }
       });
@@ -333,7 +333,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
               // 🔧 AUTOMATIC UNIT PRICE CALCULATION: Same as manual entry
               // Calculate unit price from total payment ÷ quantity
               const calculatedUnitPrice = item.kuantitas > 0 
-                ? Math.round((purchaseData.totalNilai / item.kuantitas) * 100) / 100
+                ? Math.round((purchaseData.total_nilai / item.kuantitas) * 100) / 100
                 : 0;
                 
               const subtotal = item.kuantitas * calculatedUnitPrice;
@@ -362,7 +362,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
               
               console.log('🔄 [IMPORT CALC] Automatic price calculation:', {
                 itemName: item.nama,
-                totalPayment: purchaseData.totalNilai,
+                totalPayment: purchaseData.total_nilai,
                 quantity: item.kuantitas,
                 calculatedPrice: calculatedUnitPrice,
                 subtotal: subtotal,
@@ -371,14 +371,14 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
               
               return {
                 ...item,
-                bahanBakuId: bahanBakuId, // ✅ LINK to warehouse item if found
-                unitPrice: calculatedUnitPrice, // Use calculated price instead of 0
+                bahanBakuId: bahanBakuId,
+                quantity: item.kuantitas, // Map kuantitas to quantity for PurchaseItem interface
+                unitPrice: calculatedUnitPrice,
                 subtotal: subtotal,
-                // Mark as imported for tracking, but treated SAMA with manual entry
-                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.totalNilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`
+                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.total_nilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`
               };
             }),
-            total_nilai: purchaseData.totalNilai,
+            total_nilai: purchaseData.total_nilai,
             metode_perhitungan: 'AVERAGE' as const,
             status: 'pending' as const // ✅ SAMA: Import and manual both start as pending
           };

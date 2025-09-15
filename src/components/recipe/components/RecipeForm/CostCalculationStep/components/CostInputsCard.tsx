@@ -40,20 +40,13 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
 }) => {
   const overheadManagement = useOverheadManagement({
     ingredientCost,
-    jumlahPorsi: data.jumlahPorsi,
-    currentOverheadCost: data.biayaOverhead,
-    onOverheadUpdate: (value) => onUpdate('biayaOverhead', value),
+    jumlah_porsi: data.jumlah_porsi,
+    currentOverheadCost: data.biaya_overhead,
+    onOverheadUpdate: (value) => onUpdate('biaya_overhead', value),
   });
 
   // ✅ Calculate per-piece costs for display - handle string values
-  const jumlahPorsi = typeof data.jumlahPorsi === 'string' 
-    ? (data.jumlahPorsi === '' ? 1 : parseInt(data.jumlahPorsi)) || 1
-    : data.jumlahPorsi || 1;
-  const jumlahPcsPerPorsi = typeof data.jumlahPcsPerPorsi === 'string'
-    ? (data.jumlahPcsPerPorsi === '' ? 1 : parseInt(data.jumlahPcsPerPorsi)) || 1  
-    : (data.jumlahPcsPerPorsi || 1);
-  const totalPieces = jumlahPorsi * jumlahPcsPerPorsi;
-  const ingredientCostPerPiece = totalPieces > 0 ? ingredientCost / totalPieces : 0;
+  const jumlah_porsi = typeof data.jumlah_porsi === 'string' \n    ? (data.jumlah_porsi === '' ? 1 : parseInt(data.jumlah_porsi)) || 1\n    : data.jumlah_porsi || 1;\n  const jumlah_pcs_per_porsi = typeof data.jumlah_pcs_per_porsi === 'string'\n    ? (data.jumlah_pcs_per_porsi === '' ? 1 : parseInt(data.jumlah_pcs_per_porsi)) || 1  \n    : (data.jumlah_pcs_per_porsi || 1);\n  const totalPieces = jumlah_porsi * jumlah_pcs_per_porsi;\n  const ingredientCostPerPiece = totalPieces > 0 ? ingredientCost / totalPieces : 0;\n
 
   return (
     <div className="xl:col-span-2 space-y-6">
@@ -77,11 +70,11 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             <div className="flex justify-between items-center">
               <span className="text-blue-700">Biaya per Porsi:</span>
               <Badge variant="outline" className="text-blue-700 border-blue-300">
-                {formatCurrency(jumlahPorsi > 0 ? ingredientCost / jumlahPorsi : 0)}
+                {formatCurrency(jumlah_porsi > 0 ? ingredientCost / jumlah_porsi : 0)}
               </Badge>
             </div>
             {/* ✅ NEW: Show per-piece cost if there are multiple pieces per portion */}
-            {jumlahPcsPerPorsi > 1 && (
+            {jumlah_pcs_per_porsi > 1 && (
               <div className="flex justify-between items-center">
                 <span className="text-blue-700">Biaya per Pcs:</span>
                 <Badge variant="outline" className="text-blue-700 border-blue-300">
@@ -92,9 +85,9 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             <div className="text-sm text-blue-600 bg-blue-100 p-2 rounded">
               {data.bahanResep.length} bahan telah dihitung otomatis
               {/* ✅ Show total pieces info */}
-              {jumlahPcsPerPorsi > 1 && (
+              {jumlah_pcs_per_porsi > 1 && (
                 <div className="mt-1 text-xs">
-                  Total: {jumlahPorsi} porsi × {jumlahPcsPerPorsi} pcs = {totalPieces} pcs
+                  Total: {jumlah_porsi} porsi × {jumlah_pcs_per_porsi} pcs = {totalPieces} pcs
                 </div>
               )}
             </div>
@@ -145,15 +138,15 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 type="number"
                 min="1"
                 max="100"
-                value={data.jumlahPcsPerPorsi || ''}
+                value={data.jumlah_pcs_per_porsi || ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === '') {
-                    onUpdate('jumlahPcsPerPorsi', '');
+                    onUpdate('jumlah_pcs_per_porsi', '');
                   } else {
                     const numValue = parseInt(value);
                     if (!isNaN(numValue) && numValue > 0) {
-                      onUpdate('jumlahPcsPerPorsi', numValue);
+                      onUpdate('jumlah_pcs_per_porsi', numValue);
                     }
                   }
                 }}
@@ -176,7 +169,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                 <button
                   key={pcs}
                   type="button"
-                  onClick={() => onUpdate('jumlahPcsPerPorsi', pcs)}
+                  onClick={() => onUpdate('jumlah_pcs_per_porsi', pcs)}
                   className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded border text-gray-600 hover:text-gray-800 transition-colors"
                   disabled={isLoading}
                 >

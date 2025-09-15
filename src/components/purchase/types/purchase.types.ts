@@ -264,8 +264,8 @@ export interface PurchaseExportData {
   supplier: string;
   total_nilai: string;
   status: string;
-  jumlahItem: string;
-  totalKuantitas: string;
+  jumlah_item: string;
+  total_kuantitas: string;
   dibuat: string;
 }
 

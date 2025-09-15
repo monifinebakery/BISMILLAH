@@ -21,7 +21,7 @@ const toYMD = (d: Date | string | null | undefined): string => {
     const parsedDate = UserFriendlyDate.safeParseToDate(d);
     return UserFriendlyDate.toYMD(parsedDate);
   } catch (error) {
-    logger.error('Error in toYMD conversion:', error);
+    logger.error('Error in toYMD conversion:', error, d);
     return UserFriendlyDate.toYMD(new Date());
   }
 };
@@ -50,7 +50,7 @@ const mapItemForDB = (i: any) => {
   const kuantitasRaw = i.quantity ?? i.kuantitas ?? i.jumlah ?? i.qty_base;
   const jumlah = parseQuantity(kuantitasRaw);
 
-  const hargaRaw = i.unitPrice ?? i.hargaSatuan ?? i.harga_per_satuan;
+  const hargaRaw = i.unitPrice ?? i.harga_satuan ?? i.harga_per_satuan;
   const hargaPerSatuan = parsePrice(hargaRaw);
 
   const satuan = String(
@@ -125,7 +125,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       userId: dbItem?.user_id ?? '',
       supplier: dbItem?.supplier ?? '',
       tanggal: new Date(),
-      total_nilai: 0,
+      totalAmount: 0,
       items: [],
       status: 'pending',
       metode_perhitungan: 'AVERAGE',
@@ -186,7 +186,7 @@ export const calculatePurchaseTotal = (items: any[]): number =>
         const s =
           it.subtotal !== undefined && it.subtotal !== null
             ? toNumber(it.subtotal)
-            : calculateItemSubtotal(toNumber(it.quantity ?? it.kuantitas ?? it.qty_base), toNumber(it.unitPrice ?? it.hargaSatuan ?? it.harga_per_satuan));
+            : calculateItemSubtotal(toNumber(it.quantity ?? it.kuantitas ?? it.qty_base), toNumber(it.unitPrice ?? it.harga_satuan ?? it.harga_per_satuan));
         return acc + s;
       }, 0)
     : 0;

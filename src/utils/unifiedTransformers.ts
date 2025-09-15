@@ -156,7 +156,7 @@ export const PURCHASE_FIELD_MAPPINGS = {
     total_nilai: 'total_nilai',
     items: 'items',
     status: 'status',
-    metode_perhitungan: 'metode_perhitungan',
+    metode_perhitungan: 'metodePerhitungan',
     created_at: 'createdAt',
     updated_at: 'updatedAt'
   },
@@ -170,7 +170,7 @@ export const PURCHASE_FIELD_MAPPINGS = {
     total_nilai: 'total_nilai',
     items: 'items',
     status: 'status',
-    metode_perhitungan: 'metode_perhitungan',
+    metodePerhitungan: 'metode_perhitungan',
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   }
@@ -265,7 +265,7 @@ export const transformPurchaseToDB = (
   userId: string,
   options?: TransformationOptions
 ): any => {
-  const baseData = transformToDB(purchase, PURCHASE_FIELD_MAPPINGS.toDB, options) as any;
+  const baseData = transformToDB(purchase, PURCHASE_FIELD_MAPPINGS.toDB, options);
   return {
     ...baseData,
     user_id: userId,
@@ -279,7 +279,7 @@ export const transformPurchaseToDB = (
  * Transform purchase from database
  */
 export const transformPurchaseFromDB = (dbItem: any, options?: TransformationOptions): any => {
-  const baseData = transformFromDB(dbItem, PURCHASE_FIELD_MAPPINGS.fromDB, options) as any;
+  const baseData = transformFromDB(dbItem, PURCHASE_FIELD_MAPPINGS.fromDB, options);
   return {
     ...baseData,
     items: Array.isArray(dbItem.items)
@@ -296,7 +296,7 @@ export const transformWarehouseToDB = (
   userId?: string,
   options?: TransformationOptions
 ): any => {
-  const baseData = transformToDB(item, WAREHOUSE_FIELD_MAPPINGS.toDB, options) as any;
+  const baseData = transformToDB(item, WAREHOUSE_FIELD_MAPPINGS.toDB, options);
   if (userId) {
     baseData.user_id = userId;
   }

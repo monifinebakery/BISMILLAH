@@ -118,7 +118,7 @@ const PurchaseAddEditPage: React.FC = () => {
     removeItem,
     handleSubmit,
     handleReset,
-    total_nilai,
+    totalValue,
   } = usePurchaseForm({
     mode: isEditing ? 'edit' : 'create',
     initialData: dataLoaded ? purchase : null, // Only pass data when it's loaded
@@ -446,7 +446,7 @@ const PurchaseAddEditPage: React.FC = () => {
                   <div className="p-4 bg-gray-50 border-t">
                     <div className="flex justify-between items-center">
                       <span className="font-bold text-gray-900">Total Keseluruhan:</span>
-                      <span className="font-bold text-lg text-green-600">{formatCurrency(total_nilai)}</span>
+                      <span className="font-bold text-lg text-green-600">{formatCurrency(totalValue)}</span>
                     </div>
                   </div>
                 </div>
@@ -517,7 +517,7 @@ const PurchaseAddEditPage: React.FC = () => {
                           Total
                         </td>
                         <td className="px-4 py-3 text-gray-900">
-                          {formatCurrency(total_nilai)}
+                          {formatCurrency(totalValue)}
                         </td>
                         {!isViewOnly && <td></td>}
                       </tr>
@@ -544,7 +544,7 @@ const PurchaseAddEditPage: React.FC = () => {
               <div className="flex-1">
                 <p className="text-sm text-gray-600">Total Pembelian</p>
                 <p className="text-3xl font-bold text-green-600">
-                  {formatCurrency(total_nilai)}
+                  {formatCurrency(totalValue)}
                 </p>
               </div>
               <div className="text-left sm:text-right">

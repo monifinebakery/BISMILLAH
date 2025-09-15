@@ -16,7 +16,7 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
 
   // Performance metrics
   const performanceMetrics = useMemo(() => {
-    const recipesWithProfit = recipes.filter(r => r.marginKeuntunganPersen > 0);
+    const recipesWithProfit = recipes.filter(r => r.margin_keuntungan_persen > 0);
     
     return {
       profitableRecipes: recipesWithProfit.length,
@@ -24,22 +24,22 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
         ? (recipesWithProfit.length / recipes.length) * 100 
         : 0,
       averageMargin: recipesWithProfit.length > 0
-        ? recipesWithProfit.reduce((sum, r) => sum + r.marginKeuntunganPersen, 0) / recipesWithProfit.length
+        ? recipesWithProfit.reduce((sum, r) => sum + r.margin_keuntungan_persen, 0) / recipesWithProfit.length
         : 0,
-      totalPotentialRevenue: recipes.reduce((sum, r) => sum + (r.hargaJualPorsi * r.jumlahPorsi), 0),
-      totalCost: recipes.reduce((sum, r) => sum + r.totalHpp, 0),
+      totalPotentialRevenue: recipes.reduce((sum, r) => sum + (r.harga_jual_porsi * r.jumlah_porsi), 0),
+      totalCost: recipes.reduce((sum, r) => sum + r.total_hpp, 0),
     };
   }, [recipes]);
 
   // Category insights
   const categoryInsights = useMemo(() => {
     const insights = Object.entries(stats.categoriesDistribution).map(([category, count]) => {
-      const categoryRecipes = recipes.filter(r => r.kategoriResep === category);
+      const categoryRecipes = recipes.filter(r => r.kategori_resep === category);
       const avgHpp = categoryRecipes.length > 0
-        ? categoryRecipes.reduce((sum, r) => sum + r.hppPerPorsi, 0) / categoryRecipes.length
+        ? categoryRecipes.reduce((sum, r) => sum + r.hpp_per_porsi, 0) / categoryRecipes.length
         : 0;
       const avgMargin = categoryRecipes.length > 0
-        ? categoryRecipes.reduce((sum, r) => sum + r.marginKeuntunganPersen, 0) / categoryRecipes.length
+        ? categoryRecipes.reduce((sum, r) => sum + r.margin_keuntungan_persen, 0) / categoryRecipes.length
         : 0;
 
       return {
@@ -57,7 +57,7 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
 
   // Cost analysis
   const costAnalysis = useMemo(() => {
-    const recipesWithCost = recipes.filter(r => r.totalHpp > 0);
+    const recipesWithCost = recipes.filter(r => r.total_hpp > 0);
     
     if (recipesWithCost.length === 0) {
       return {
@@ -69,7 +69,7 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
       };
     }
 
-    const costs = recipesWithCost.map(r => r.hppPerPorsi).sort((a, b) => a - b);
+    const costs = recipesWithCost.map(r => r.hpp_per_porsi).sort((a, b) => a - b);
     const totalCost = costs.reduce((sum, cost) => sum + cost, 0);
     const averageCost = totalCost / costs.length;
     const medianCost = costs[Math.floor(costs.length / 2)];
@@ -80,7 +80,7 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
     
     const costDistribution = recipesWithCost.reduce(
       (acc, recipe) => {
-        const cost = recipe.hppPerPorsi;
+        const cost = recipe.hpp_per_porsi;
         if (cost < lowThreshold) acc.low++;
         else if (cost > highThreshold) acc.high++;
         else acc.medium++;
@@ -93,10 +93,10 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
     const halfPoint = Math.floor(recipesWithCost.length / 2);
     const firstHalfAvg = recipesWithCost
       .slice(0, halfPoint)
-      .reduce((sum, r) => sum + r.hppPerPorsi, 0) / halfPoint;
+      .reduce((sum, r) => sum + r.hpp_per_porsi, 0) / halfPoint;
     const secondHalfAvg = recipesWithCost
       .slice(halfPoint)
-      .reduce((sum, r) => sum + r.hppPerPorsi, 0) / (recipesWithCost.length - halfPoint);
+      .reduce((sum, r) => sum + r.hpp_per_porsi, 0) / (recipesWithCost.length - halfPoint);
     
     const costTrend = secondHalfAvg > firstHalfAvg * 1.1 ? 'increasing' :
                      secondHalfAvg < firstHalfAvg * 0.9 ? 'decreasing' : 'stable';
@@ -122,19 +122,19 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
         low: { count: low, percentage: total > 0 ? (low / total) * 100 : 0 },
       },
       topPerformers: recipes
-        .filter(r => r.marginKeuntunganPersen >= 30)
-        .sort((a, b) => b.marginKeuntunganPersen - a.marginKeuntunganPersen)
+        .filter(r => r.margin_keuntungan_persen >= 30)
+        .sort((a, b) => b.margin_keuntungan_persen - a.margin_keuntungan_persen)
         .slice(0, 5),
       needsImprovement: recipes
-        .filter(r => r.marginKeuntunganPersen < 15)
-        .sort((a, b) => a.marginKeuntunganPersen - b.marginKeuntunganPersen)
+        .filter(r => r.margin_keuntungan_persen < 15)
+        .sort((a, b) => a.margin_keuntungan_persen - b.margin_keuntungan_persen)
         .slice(0, 5),
     };
   }, [recipes, stats.profitabilityStats]);
 
   // Ingredient insights
   const ingredientInsights = useMemo(() => {
-    const allIngredients = recipes.flatMap(r => r.bahanResep);
+    const allIngredients = recipes.flatMap(r => r.bahan_resep);
     const ingredientFrequency = allIngredients.reduce((acc, ingredient) => {
       acc[ingredient.nama] = (acc[ingredient.nama] || 0) + 1;
       return acc;
@@ -145,7 +145,7 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
       .slice(0, 10)
       .map(([name, count]) => ({ name, count }));
 
-    const totalIngredientCost = allIngredients.reduce((sum, ing) => sum + ing.totalHarga, 0);
+    const totalIngredientCost = allIngredients.reduce((sum, ing) => sum + ing.total_harga, 0);
     const averageIngredientCost = allIngredients.length > 0 ? totalIngredientCost / allIngredients.length : 0;
 
     return {
@@ -163,11 +163,11 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const recentRecipes = recipes.filter(r => {
-      const createdAt = new Date(r.createdAt);
+      const createdAt = new Date(r.created_at);
       return createdAt instanceof Date && !isNaN(createdAt.getTime()) && createdAt >= thirtyDaysAgo;
     });
     const thisWeekRecipes = recipes.filter(r => {
-      const createdAt = new Date(r.createdAt);
+      const createdAt = new Date(r.created_at);
       return createdAt instanceof Date && !isNaN(createdAt.getTime()) && createdAt >= sevenDaysAgo;
     });
 
@@ -213,7 +213,7 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
       overview: {
         totalRecipes: stats.totalRecipes,
         totalCategories: stats.totalCategories,
-        averageHppPerPorsi: stats.averageHppPerPorsi,
+        averageHppPerPorsi: stats.average_hpp_per_porsi,
       },
       performance: performanceMetrics,
       costs: costAnalysis,

@@ -34,9 +34,9 @@ export const getCategoryStats = (recipes: Recipe[], customCategories: string[]):
   const categoryGroups = new Map<string, Recipe[]>();
   
   recipes.forEach((recipe) => {
-    if (recipe.kategoriResep) {
-      const existing = categoryGroups.get(recipe.kategoriResep) || [];
-      categoryGroups.set(recipe.kategoriResep, [...existing, recipe]);
+    if (recipe.kategori_resep) {
+      const existing = categoryGroups.get(recipe.kategori_resep) || [];
+      categoryGroups.set(recipe.kategori_resep, [...existing, recipe]);
     }
   });
 
@@ -155,11 +155,11 @@ export const editCategory = async (
     }
     
     // Update all recipes with this category
-    const recipesToUpdate = recipes.filter(recipe => recipe.kategoriResep === oldName);
+    const recipesToUpdate = recipes.filter(recipe => recipe.kategori_resep === oldName);
     let updateSuccess = true;
     
     for (const recipe of recipesToUpdate) {
-      const success = await updateRecipe(recipe.id, { kategoriResep: trimmedNewName });
+      const success = await updateRecipe(recipe.id, { kategori_resep: trimmedNewName });
       if (!success) {
         updateSuccess = false;
       }
@@ -203,7 +203,7 @@ export const deleteCategory = async (
     }
     
     // Check if category is in use
-    const recipesInCategory = recipes.filter(recipe => recipe.kategoriResep === categoryName);
+    const recipesInCategory = recipes.filter(recipe => recipe.kategori_resep === categoryName);
     if (recipesInCategory.length > 0) {
       return { success: false, message: 'Tidak dapat menghapus kategori yang masih digunakan' };
     }

@@ -77,11 +77,11 @@ export const filterPurchases = (
 
     // Amount range filter
     if (filters.amountRangeFilter.min !== null || filters.amountRangeFilter.max !== null) {
-      if (filters.amountRangeFilter.min !== null && purchase.total_nilai < filters.amountRangeFilter.min) {
+      if (filters.amountRangeFilter.min !== null && purchase.totalNilai < filters.amountRangeFilter.min) {
         return false;
       }
-
-      if (filters.amountRangeFilter.max !== null && purchase.total_nilai > filters.amountRangeFilter.max) {
+      
+      if (filters.amountRangeFilter.max !== null && purchase.totalNilai > filters.amountRangeFilter.max) {
         return false;
       }
     }
@@ -169,7 +169,7 @@ export const calculateItemTotal = (jumlah: number, hargaSatuan: number): number 
 
 export const calculateAverageOrderValue = (purchases: Purchase[]): number => {
   if (purchases.length === 0) return 0;
-  const total = purchases.reduce((sum, purchase) => sum + purchase.total_nilai, 0);
+  const total = purchases.reduce((sum, purchase) => sum + purchase.totalNilai, 0);
   return total / purchases.length;
 };
 
@@ -179,8 +179,8 @@ export const calculatePurchaseStatistics = (
   suppliers: Array<{ id: string; nama: string }> = []
 ): PurchaseStatistics => {
   const totalPurchases = purchases.length;
-  const total_nilai = purchases.reduce((sum, p) => sum + p.total_nilai, 0);
-  const averageValue = totalPurchases > 0 ? total_nilai / totalPurchases : 0;
+  const totalValue = purchases.reduce((sum, p) => sum + p.totalNilai, 0);
+  const averageValue = totalPurchases > 0 ? totalValue / totalPurchases : 0;
 
   // Status breakdown
   const statusBreakdown = purchases.reduce(
@@ -199,7 +199,7 @@ export const calculatePurchaseStatistics = (
 
   return {
     totalPurchases,
-    total_nilai,
+    totalValue,
     averageValue,
     statusBreakdown,
     monthlyTrend,
@@ -210,7 +210,7 @@ export const calculatePurchaseStatistics = (
 const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
   const monthlyData = new Map<
     string,
-    { count: number; total_nilai: number; monthIndex: number; year: number }
+    { count: number; totalValue: number; monthIndex: number; year: number }
   >();
 
   purchases.forEach(purchase => {
@@ -220,7 +220,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
     if (!monthlyData.has(key)) {
       monthlyData.set(key, {
         count: 0,
-        total_nilai: 0,
+        totalValue: 0,
         monthIndex: date.getMonth(),
         year: date.getFullYear()
       });
@@ -228,7 +228,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
 
     const data = monthlyData.get(key)!;
     data.count++;
-    data.total_nilai += purchase.total_nilai;
+    data.totalValue += purchase.totalNilai;
   });
 
   return Array.from(monthlyData.values())
@@ -240,7 +240,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
     .slice(-12)
     .map(data => ({
       count: data.count,
-      total_nilai: data.total_nilai,
+      totalValue: data.totalValue,
       month: new Date(data.year, data.monthIndex).toLocaleString('id-ID', {
         month: 'long'
       }),
@@ -254,7 +254,7 @@ const generateTopSuppliers = (
 ): SupplierPurchaseData[] => {
   const supplierData = new Map<string, {
     purchaseCount: number;
-    total_nilai: number;
+    totalValue: number;
     lastPurchaseDate: Date;
   }>();
 
@@ -262,14 +262,14 @@ const generateTopSuppliers = (
     if (!supplierData.has(purchase.supplier)) {
       supplierData.set(purchase.supplier, {
         purchaseCount: 0,
-        total_nilai: 0,
+        totalValue: 0,
         lastPurchaseDate: new Date(purchase.tanggal)
       });
     }
 
     const data = supplierData.get(purchase.supplier)!;
     data.purchaseCount++;
-    data.total_nilai += purchase.total_nilai;
+    data.totalValue += purchase.totalNilai;
     
     const purchaseDate = new Date(purchase.tanggal);
     if (purchaseDate > data.lastPurchaseDate) {
@@ -286,7 +286,7 @@ const generateTopSuppliers = (
         ...data
       };
     })
-    .sort((a, b) => b.total_nilai - a.total_nilai)
+    .sort((a, b) => b.totalValue - a.totalValue)
     .slice(0, 5); // Top 5 suppliers
 };
 
@@ -482,7 +482,7 @@ export const preparePurchasesForExport = (
       'ID': purchase.id,
       'Tanggal': formatPurchaseDate(purchase.tanggal),
       'Supplier': supplier?.nama || 'Unknown',
-      'Total Nilai': formatCurrency(purchase.total_nilai),
+      'Total Nilai': formatCurrency(purchase.totalNilai),
       'Status': getStatusDisplay(purchase.status).label,
       'Jumlah Item': purchase.items.length,
       'Dibuat': formatPurchaseDate(purchase.createdAt),

@@ -210,7 +210,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
-    const qty = Number((item as any).quantity ?? 0);
+    const qty = Number((item as any).quantity ?? (item as any).jumlah ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
 
     console.log('🔄 [WAREHOUSE SYNC] Processing item:', {
@@ -256,7 +256,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     }
 
     const oldStock = existing?.stok ?? 0;
-    const oldWac = existing?.harga_rata_rata ?? 0;
+    const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;
     const newStock = oldStock + qty;
     const newWac = calculateNewWac(oldWac, oldStock, qty, unitPrice);
 
@@ -377,7 +377,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
   // Helper: derive unit price from any available fields  
   const deriveUnitPrice = (it: any, qty: number): number => {
     const toNum = (v: any) => (v == null || v === '' ? 0 : Number(v));
-    const explicit = toNum(it.unitPrice);
+    const explicit = toNum(it.unitPrice ?? it.harga_per_satuan ?? it.harga_satuan);
     if (explicit > 0) return explicit;
     const subtotal = toNum(it.subtotal);
     if (qty > 0 && subtotal > 0) return subtotal / qty;
@@ -388,7 +388,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
     const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
-    const qty = Number((item as any).quantity ?? 0);
+    const qty = Number((item as any).quantity ?? (item as any).jumlah ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
 
     if (qty <= 0) {
@@ -434,7 +434,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
       }
 
       const oldStock = existing.stok ?? 0;
-      const oldWac = existing.harga_rata_rata ?? 0;
+      const oldWac = existing.harga_rata_rata ?? existing.harga_satuan ?? 0;
       
       // ✅ IMPROVED: Use enhanced WAC calculation for reversal
       const wacResult = calculateEnhancedWac(oldWac, oldStock, -qty, unitPrice);

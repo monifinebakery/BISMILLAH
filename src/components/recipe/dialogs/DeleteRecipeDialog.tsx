@@ -88,12 +88,12 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 truncate">
-                    {recipe.namaResep}
+                    {recipe.nama_resep}
                   </h3>
                   
-                  {recipe.kategoriResep && (
+                  {recipe.kategori_resep && (
                     <Badge variant="outline" className="mt-1 text-xs">
-                      {recipe.kategoriResep}
+                      {recipe.kategori_resep}
                     </Badge>
                   )}
                   
@@ -112,8 +112,8 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                   <div>
                     <p className="text-xs text-gray-500">Porsi</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {recipe.jumlahPorsi}
-                      {recipe.jumlahPcsPerPorsi > 1 && ` (${recipe.jumlahPcsPerPorsi} pcs)`}
+                      {recipe.jumlah_porsi}
+                      {recipe.jumlah_pcs_per_porsi > 1 && ` (${recipe.jumlah_pcs_per_porsi} pcs)`}
                     </p>
                   </div>
                 </div>
@@ -123,7 +123,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                   <div>
                     <p className="text-xs text-gray-500">HPP/Porsi</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {formatCurrency(recipe.hppPerPorsi)}
+                      {formatCurrency(recipe.hpp_per_porsi)}
                     </p>
                   </div>
                 </div>
@@ -133,7 +133,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                   <div>
                     <p className="text-xs text-gray-500">Margin</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {formatPercentage(recipe.marginKeuntunganPersen)}
+                      {formatPercentage(recipe.margin_keuntungan_persen)}
                     </p>
                   </div>
                 </div>
@@ -143,7 +143,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
                   <div>
                     <p className="text-xs text-gray-500">Dibuat</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {recipe.createdAt.toLocaleDateString('id-ID', {
+                      {recipe.created_at.toLocaleDateString('id-ID', {
                         day: '2-digit',
                         month: 'short'
                       })}
@@ -155,7 +155,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
               {/* Ingredients Count */}
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <p className="text-sm text-gray-600">
-                  <span className="font-medium">{recipe.bahanResep.length}</span> bahan akan ikut terhapus
+                  <span className="font-medium">{recipe.bahan_resep.length}</span> bahan akan ikut terhapus
                 </p>
               </div>
             </div>

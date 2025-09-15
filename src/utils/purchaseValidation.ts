@@ -28,7 +28,7 @@ export interface PurchaseValidationResult {
   errors: string[];
   warnings: string[];
   corrections: {
-    total_nilai: number;
+    totalNilai: number;
     items: PurchaseItem[];
   };
   qualityScore: number; // 0-100
@@ -129,7 +129,7 @@ export function validatePurchaseData(
     });
 
     // Step 3: Total value validation
-    const originalTotal = Number(purchase.total_nilai) || 0;
+    const originalTotal = Number(purchase.totalValue) || 0;
     const calculatedTotal = correctedTotal;
 
     if (Math.abs(originalTotal - calculatedTotal) > 0.01) {
@@ -154,7 +154,7 @@ export function validatePurchaseData(
       errors,
       warnings,
       corrections: {
-        total_nilai: calculatedTotal,
+        totalNilai: calculatedTotal,
         items: correctedItems
       },
       qualityScore
@@ -166,7 +166,7 @@ export function validatePurchaseData(
       isValid: false,
       errors: ['Validation error occurred'],
       warnings: [],
-      corrections: { total_nilai: 0, items: [] },
+      corrections: { totalNilai: 0, items: [] },
       qualityScore: 0
     };
   }
@@ -245,7 +245,7 @@ export function validateStatusChange(
         errors.push('Cannot complete purchase without items');
       }
       
-      if (!purchase.total_nilai || purchase.total_nilai <= 0) {
+      if (!purchase.totalValue || purchase.totalValue <= 0) {
         errors.push('Cannot complete purchase with zero total value');
       }
       
@@ -311,7 +311,7 @@ export function monitorPurchaseDataQuality(
       pendingPurchases: purchases.filter(p => p.status === 'pending').length,
       cancelledPurchases: purchases.filter(p => p.status === 'cancelled').length,
       withItems: purchases.filter(p => p.items && p.items.length > 0).length,
-      total_nilai: purchases.reduce((sum, p) => sum + Number(p.total_nilai || 0), 0),
+      totalValue: purchases.reduce((sum, p) => sum + Number(p.totalValue || 0), 0),
       avgItemsPerPurchase: purchases.reduce((sum, p) => sum + (p.items?.length || 0), 0) / purchases.length,
     };
 

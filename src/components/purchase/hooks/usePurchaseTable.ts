@@ -43,7 +43,7 @@ export const usePurchaseTable = ({
   const [statusFilter, setStatusFilter] = useState<PurchaseStatus | 'all'>('all');
   
   // Sorting state
-  const [sortField, setSortField] = useState<'tanggal' | 'total_nilai' | 'supplier' | 'status'>('tanggal');
+  const [sortField, setSortField] = useState<'tanggal' | 'totalValue' | 'supplier' | 'status'>('tanggal');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Filtered and sorted purchases

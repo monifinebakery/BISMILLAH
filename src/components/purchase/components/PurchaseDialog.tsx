@@ -118,7 +118,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     removeItem,
     handleSubmit,
     handleReset,
-    total_nilai,
+    totalValue,
   } = usePurchaseForm({
     mode,
     initialData: purchase,
@@ -413,7 +413,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     <div className="p-4 bg-gray-50 border-t">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-gray-900">Total Keseluruhan:</span>
-                        <span className="font-bold text-lg text-green-600">{formatCurrency(total_nilai)}</span>
+                        <span className="font-bold text-lg text-green-600">{formatCurrency(totalValue)}</span>
                       </div>
                     </div>
                   </div>
@@ -480,7 +480,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                             Total
                           </td>
                           <td className="px-4 py-3 text-gray-900">
-                            {formatCurrency(total_nilai)}
+                            {formatCurrency(totalValue)}
                           </td>
                           <td></td>
                         </tr>
@@ -507,7 +507,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <div className="flex-1">
                   <p className="text-sm text-gray-600">Total Pembelian</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {formatCurrency(total_nilai)}
+                    {formatCurrency(totalValue)}
                   </p>
                 </div>
                 <div className="text-left sm:text-right">

@@ -144,9 +144,9 @@ export const convertWarehouseFromDB = (dbBahan: BahanBaku): BahanBakuFrontend =>
     harga: dbBahan.harga_satuan,
     hargaRataRata: dbBahan.harga_rata_rata,
     supplier: dbBahan.supplier,
-    expiry: dbBahan.tanggal_kadaluwarsa ? new Date(dbBahan.tanggal_kadaluwarsa) : undefined,
-    createdAt: new Date(dbBahan.created_at),
-    updatedAt: new Date(dbBahan.updated_at)
+    expiry: dbBahan.tanggal_kadaluwarsa,
+    createdAt: dbBahan.created_at,
+    updatedAt: dbBahan.updated_at
   };
 };
 
@@ -165,9 +165,9 @@ export const convertWarehouseToDB = (bahan: BahanBakuFrontend): BahanBaku => {
     harga_satuan: bahan.harga,
     harga_rata_rata: bahan.hargaRataRata,
     supplier: bahan.supplier,
-    tanggal_kadaluwarsa: bahan.expiry ? bahan.expiry.toISOString() : null,
-    created_at: bahan.createdAt.toISOString(),
-    updated_at: bahan.updatedAt.toISOString()
+    tanggal_kadaluwarsa: bahan.expiry,
+    created_at: bahan.createdAt,
+    updated_at: bahan.updatedAt
   };
 };
 
@@ -185,8 +185,8 @@ export const validatePurchaseConsistency = (purchase: Purchase): string[] => {
   }, 0);
   
   const tolerance = 0.01; // Allow small rounding differences
-  if (Math.abs(purchase.total_nilai - calculatedTotal) > tolerance) {
-    errors.push(`Total value (${purchase.total_nilai}) tidak sesuai dengan sum items (${calculatedTotal})`);
+  if (Math.abs(purchase.totalValue - calculatedTotal) > tolerance) {
+    errors.push(`Total value (${purchase.totalValue}) tidak sesuai dengan sum items (${calculatedTotal})`);
   }
   
   // Check for empty items
@@ -246,16 +246,16 @@ export const validateWarehouseConsistency = (bahan: BahanBakuFrontend): string[]
  */
 export const getStandardizedSortField = (field: string): string => {
   const fieldMap: Record<string, string> = {
-    'totalNilai': 'total_nilai',
-  'total_nilai': 'total_nilai',
+    'totalNilai': 'totalValue',
+    'total_nilai': 'totalValue',
     'kuantitas': 'quantity',
     'jumlah': 'quantity',
     'hargaSatuan': 'unitPrice',
     'harga_per_satuan': 'unitPrice',
     'unit_price': 'unitPrice',
-    'metodePerhitungan': 'metode_perhitungan',
-  'metode_perhitungan': 'metode_perhitungan',
-  'calculation_method': 'metode_perhitungan'
+    'metodePerhitungan': 'calculationMethod',
+    'metode_perhitungan': 'calculationMethod',
+    'calculation_method': 'calculationMethod'
   };
   
   return fieldMap[field] || field;

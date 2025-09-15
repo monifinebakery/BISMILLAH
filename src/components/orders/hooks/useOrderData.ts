@@ -368,10 +368,11 @@ export const useOrderStats = () => {
       
       const orders = await orderService.fetchOrders(user.id);
       
-      // Calculate statistics
+      // Calculate statistics (revenue from completed orders only)
       const totalOrders = orders.length;
-      const totalRevenue = orders.reduce((sum, order: any) => sum + (order.total_pesanan ?? order.totalPesanan ?? 0), 0);
-      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      const completedOnly = orders.filter((o: any) => o.status === 'completed');
+      const totalRevenue = completedOnly.reduce((sum, order: any) => sum + (order.total_pesanan ?? order.totalPesanan ?? 0), 0);
+      const averageOrderValue = completedOnly.length > 0 ? totalRevenue / completedOnly.length : 0;
       
       const statusCounts = orders.reduce((acc, order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;

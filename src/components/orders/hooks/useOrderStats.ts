@@ -62,8 +62,9 @@ export const useOrderStats = (orders: Order[]): {
       // Calculate basic metrics
       const totalOrders = orders.length;
       
-      // Calculate total revenue dari semua orders (regardless of status)
-      const totalRevenue = orders.reduce((sum, order: any) => {
+      // Calculate total revenue dari pesanan selesai saja (completed)
+      const completedOrdersList = orders.filter((o: any) => o.status === 'completed');
+      const totalRevenue = completedOrdersList.reduce((sum, order: any) => {
         const orderTotal = Number(order.total_pesanan ?? order.totalPesanan ?? order.total_amount) || 0;
         return sum + orderTotal;
       }, 0);
@@ -100,7 +101,7 @@ export const useOrderStats = (orders: Order[]): {
       }).length;
 
       // Calculate average order value (AOV)
-      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      const averageOrderValue = completedOrdersList.length > 0 ? totalRevenue / completedOrdersList.length : 0;
 
       const calculatedStats: OrderStatsData = {
         totalOrders,

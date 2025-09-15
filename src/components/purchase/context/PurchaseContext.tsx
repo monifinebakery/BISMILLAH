@@ -746,7 +746,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const issues = [];
         if (!it.bahanBakuId) issues.push('ID bahan baku');
         if (!it.nama || !it.nama.trim()) issues.push('nama');
-        if (!it.kuantitas || it.kuantitas <= 0) issues.push('kuantitas');
+        // Use standardized field name 'quantity' (mapped from DB 'jumlah')
+        if (!it.quantity || it.quantity <= 0) issues.push('kuantitas');
         if (!it.satuan || !it.satuan.trim()) issues.push('satuan');
         // Allow zero price for free items or automatic calculation
         if (it.unitPrice === undefined || it.unitPrice === null || it.unitPrice < 0) {

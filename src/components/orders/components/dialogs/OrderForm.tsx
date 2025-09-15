@@ -159,7 +159,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
       filtered = filtered.filter(recipe => recipe.kategoriResep === selectedCategory);
     }
     
-    return filtered.sort((a, b) => a.namaResep.localeCompare(b.namaResep));
+    const getName = (r: any) => (r?.namaResep ?? r?.nama_resep ?? r?.nama ?? '').toString();
+    return filtered.sort((a, b) => getName(a).localeCompare(getName(b)));
   }, [recipes, recipeSearchTerm, selectedCategory, searchRecipes]);
 
   // Get unique categories from recipes

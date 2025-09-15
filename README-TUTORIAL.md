@@ -39,6 +39,7 @@ Tutorial HPP & WAC adalah fitur pembelajaran komprehensif yang dibuat khusus unt
    - Bagaimana sistem menghitung HPP
    - Breakdown komponen biaya
    - Interpretasi hasil HPP
+   - Catatan: Di aplikasi, HPP = Bahan + Biaya Produksi; Biaya Produksi = Overhead Produksi (sudah termasuk TKL) + Biaya Operasional per pcs
 
 6. **Analisis Profit dan Margin** (15 menit)
    - Cara membaca analisis profit

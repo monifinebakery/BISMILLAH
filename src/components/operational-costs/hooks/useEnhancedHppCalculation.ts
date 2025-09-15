@@ -299,6 +299,7 @@ export const useRecipeHppIntegration = (recipeData: {
     ...hppHook,
     isEnhancedMode,
     setIsEnhancedMode,
-    hasOverheadSettings: Boolean(hppHook.appSettings?.overhead_per_pcs)
+    // Consider either overhead or operasional configured as "ready"
+    hasOverheadSettings: Boolean((hppHook.appSettings?.overhead_per_pcs || 0) + (hppHook.appSettings?.operasional_per_pcs || 0))
   };
 };

@@ -798,8 +798,8 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
         <Alert className="border-green-200 bg-green-50">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-green-800">
-            <strong>🤖 Smart HPP Calculator:</strong> Sistem sekarang otomatis menghitung HPP menggunakan overhead dari{' '}
-            <strong>Biaya Operasional → Dual-Mode Calculator</strong>. Hasil kalkulasi akan lebih akurat dan real-time!
+            <strong>🤖 Smart HPP Calculator:</strong> Sistem otomatis menghitung HPP menggunakan biaya produksi (overhead + operasional) dari{' '}
+            <strong>Biaya Operasional → Kalkulator Biaya Produksi</strong>. Hasil kalkulasi lebih akurat dan real-time!
           </AlertDescription>
         </Alert>
 

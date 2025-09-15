@@ -27,16 +27,17 @@ Setelah Anda input semua data, sistem akan **otomatis menghitung HPP** dengan ru
 #### 📐 Rumus HPP yang Digunakan:
 
               
-                HPP = Biaya Bahan Baku + Biaya Tenaga Kerja + Biaya Overhead
+                HPP = Biaya Bahan Baku + Biaya Produksi
+
+> Di aplikasi, Biaya Produksi = Overhead Produksi + Biaya Operasional. Tenaga Kerja (TKL) sudah termasuk di Overhead Produksi.
               
               
               
-##### 🧩 Komponen HPP:
+##### 🧩 Komponen HPP (di aplikasi):
 
               
 - **Biaya Bahan Baku:** Harga semua bahan dalam resep (pakai WAC)
-- **Biaya Tenaga Kerja:** Gaji dibagi jumlah produk per periode
-- **Biaya Overhead:** Listrik, sewa, dll dibagi jumlah produk
+- **Biaya Produksi:** Gabungan Overhead Produksi (sudah termasuk TKL) + Biaya Operasional per pcs
 
             
 
@@ -56,22 +57,17 @@ Setelah Anda input semua data, sistem akan **otomatis menghitung HPP** dengan ru
 - **Per porsi: Rp 8.325**
 
               
-##### 2️⃣ Biaya Tenaga Kerja:
+##### 2️⃣ Biaya Produksi (Overhead + Operasional):
 
               
-- Gaji koki per hari: Rp 100.000
-- Produksi per hari: 100 porsi
-- **Biaya tenaga kerja per porsi: Rp 1.000**
+- TKL sudah termasuk dalam Overhead Produksi
+- Biaya operasional (admin, marketing, dll) terdistribusi per pcs
 
               
-##### 3️⃣ Biaya Overhead:
+Contoh distribusi per hari:
 
-              
-- Listrik per hari: Rp 10.000
-- Gas per hari: Rp 15.000
-- Sewa tempat per hari: Rp 20.000
-- Total overhead: Rp 45.000
-- **Overhead per porsi: Rp 450**
+- Listrik: Rp 10.000; Gas: Rp 15.000; Sewa: Rp 20.000; dll
+- Total biaya produksi dibagi jumlah produk → biaya per porsi/pcs
 
               
                 
@@ -79,7 +75,7 @@ Setelah Anda input semua data, sistem akan **otomatis menghitung HPP** dengan ru
 
                 
 
-Rp 8.325 + Rp 1.000 + Rp 450 = **Rp 9.775**
+Rp 8.325 + Biaya Produksi per porsi = **HPP per porsi**
 
               
             

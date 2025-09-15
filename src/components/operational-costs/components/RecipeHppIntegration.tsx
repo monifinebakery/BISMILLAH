@@ -1,6 +1,6 @@
 // src/components/operational-costs/components/RecipeHppIntegration.tsx
-// 🔗 Recipe HPP Integration Component (Revision 10)
-// Integrates dual-mode overhead calculations with recipe forms
+// 🔗 Recipe HPP Integration Component
+// Integrates automatic overhead (overhead produksi + operasional) with recipe forms
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,13 +81,9 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
           <CardTitle className="text-lg flex items-center gap-2">
             <Zap className="h-5 w-5 text-purple-600" />
             Smart HPP Calculator
-            <Badge className="bg-purple-100 text-purple-800 border-purple-300">
-              🤖 AI Powered
-            </Badge>
+            <Badge className="bg-purple-100 text-purple-800 border-purple-300">🤖 Otomatis</Badge>
           </CardTitle>
-          <p className="text-sm text-purple-700">
-            Kalkulasi HPP otomatis menggunakan overhead yang sudah dihitung dari biaya operasional
-          </p>
+          <p className="text-sm text-purple-700">Kalkulasi HPP otomatis menggunakan biaya produksi (overhead + operasional) dari Biaya Operasional</p>
         </CardHeader>
         <CardContent className="space-y-4">
           
@@ -101,9 +97,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
               {hasOverheadSettings ? (
                 <>
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm font-semibold text-green-700">
-                    Rp {appSettings?.overhead_per_pcs?.toLocaleString('id-ID') || 0}/pcs
-                  </span>
+                  <span className="text-sm font-semibold text-green-700">Rp {((appSettings?.overhead_per_pcs || 0) + (appSettings?.operasional_per_pcs || 0)).toLocaleString('id-ID')}/pcs</span>
                   <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
                     Siap
                   </Badge>
@@ -180,9 +174,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
               <div className="bg-white p-6 rounded-lg border border-purple-200 shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Settings className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-800">
-                    Biaya Produksi (Overhead)
-                  </span>
+                  <span className="text-sm font-medium text-purple-800">Biaya Produksi (Overhead + Operasional)</span>
                 </div>
                 <p className="text-2xl font-bold text-purple-900">
                   Rp {result.overheadPerPcs.toLocaleString('id-ID')}
@@ -191,7 +183,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                 {result.breakdown.overheadBreakdown && (
                   <div className="text-xs text-purple-600 mt-2">
                     <div>💡 Overhead: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
-                    <div>📋 Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
+                    <div>📋 Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}</div>
                   </div>
                 )}
               </div>
@@ -240,12 +232,8 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                   <span className="text-gray-600">Metode Kalkulasi:</span>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-gray-800">
-                    {result.calculationMethod === 'enhanced_dual_mode' ? 'Enhanced Dual-Mode' : 'Standard'}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {result.breakdown.overheadSource === 'app_settings' ? 'Biaya produksi otomatis dari biaya operasional' : 'Biaya produksi input manual'}
-                  </p>
+                  <p className="font-medium text-gray-800">Enhanced (Otomatis)</p>
+                  <p className="text-xs text-gray-500">{result.breakdown.overheadSource === 'app_settings' ? 'Biaya produksi otomatis dari Biaya Operasional' : 'Biaya produksi input manual'}</p>
                 </div>
               </div>
             </div>
@@ -258,8 +246,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
         <Alert className="border-orange-200 bg-orange-50">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="text-orange-800">
-            <strong>🚀 Setup Diperlukan:</strong> Untuk kalkulasi HPP otomatis, silakan setup biaya produksi (overhead) terlebih dahulu:{' '}
-            <strong>Menu Biaya Operasional → Kalkulator Dual-Mode</strong>.
+            <strong>🚀 Setup Diperlukan:</strong> Untuk kalkulasi HPP otomatis, silakan hitung biaya produksi (overhead + operasional) terlebih dahulu di <strong>Menu Biaya Operasional → Kalkulator Biaya Produksi</strong>.
             <div className="mt-2 text-sm">
               💡 Setelah setup selesai, sistem akan otomatis menghitung biaya produksi berdasarkan biaya operasional aktual.
             </div>

@@ -36,11 +36,71 @@ if (!SUPABASE_PUBLISHABLE_KEY) {
   );
 }
 
+// Resilient fetch with retries for transient errors (503/5xx/429)
+const resilientFetch: typeof fetch = async (input, init) => {
+  const maxRetries = 4;
+  let attempt = 0;
+  let lastError: any;
+
+  const isRetriableStatus = (status: number) =>
+    status === 429 || status === 502 || status === 503 || status === 504;
+
+  while (attempt <= maxRetries) {
+    try {
+      const res = await fetch(input as RequestInfo, init as RequestInit);
+      if (!isRetriableStatus(res.status)) return res;
+
+      // Respect Retry-After when present
+      const retryAfter = res.headers.get("retry-after");
+      const retryMs = retryAfter
+        ? Math.min(Number(retryAfter) * 1000, 4000)
+        : Math.min(250 * Math.pow(2, attempt), 2000) + Math.random() * 150;
+
+      if (import.meta.env.DEV) {
+        console.warn(
+          `Supabase fetch retry ${attempt + 1}/${maxRetries} due to ${res.status}. Waiting ${Math.round(
+            retryMs
+          )}ms...`,
+          { url: typeof input === "string" ? input : (input as Request).url }
+        );
+      }
+
+      await new Promise((r) => setTimeout(r, retryMs));
+    } catch (err) {
+      // Network or CORS error — retry with backoff
+      lastError = err;
+      if (attempt >= maxRetries) break;
+      const wait = Math.min(300 * Math.pow(2, attempt), 2500) + Math.random() * 200;
+      if (import.meta.env.DEV) {
+        console.warn(
+          `Supabase fetch network error, retry ${attempt + 1}/${maxRetries} after ${Math.round(
+            wait
+          )}ms`,
+          err
+        );
+      }
+      await new Promise((r) => setTimeout(r, wait));
+    }
+    attempt++;
+  }
+
+  if (import.meta.env.DEV) {
+    console.error("Supabase fetch failed after retries", {
+      input,
+      init,
+      error: lastError,
+    });
+  }
+  // Final attempt (let it throw if it must)
+  return fetch(input as RequestInfo, init as RequestInit);
+};
+
 // Export client
-export const supabase = createClient<Database>(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  global: {
+    fetch: resilientFetch,
+  },
+});
 
 // Optional: expose in dev for easier debugging
 if (import.meta.env.DEV) {

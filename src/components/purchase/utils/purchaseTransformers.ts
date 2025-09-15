@@ -154,9 +154,11 @@ export const transformPurchaseForDB = (
   userId: string
 ) => {
   const baseData = transformToDB({...p, userId}, PURCHASE_FIELD_MAPPINGS.toDB);
-  
+  // Ensure total_nilai is populated even if caller uses legacy snake_case
+  const totalVal = Math.max(0, Number((p as any).totalNilai ?? (p as any).total_nilai) || 0);
   return {
     ...(baseData as any),
+    total_nilai: totalVal,
     // ✅ FIXED: Use unified transformer instead of legacy mapItemForDB
     items: (p.items ?? []).map((item: any) => {
       console.log('🔧 [PURCHASE TRANSFORM TO DB] Item:', item);

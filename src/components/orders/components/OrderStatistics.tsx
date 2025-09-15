@@ -34,13 +34,17 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
     }
 
     const totalOrders = orders.length;
+    // Sum only completed orders to represent realized revenue
     const totalRevenue = orders.reduce((sum, order) => {
-  const total = typeof (order as any).total_pesanan === 'number'
-    ? (order as any).total_pesanan
-    : typeof (order as any).totalAmount === 'number'
-      ? (order as any).totalAmount
-      : parseFloat(String((order as any).totalAmount || 0));
-      return sum + total;
+      if (order.status !== 'completed') return sum;
+      const raw =
+        (order as any).totalPesanan ??
+        (order as any).total_pesanan ??
+        (order as any).totalAmount ??
+        (order as any).total_amount ??
+        0;
+      const val = typeof raw === 'number' ? raw : Number(raw) || 0;
+      return sum + val;
     }, 0);
     
     const pendingOrders = orders.filter(order => order.status === 'pending').length;
@@ -49,7 +53,8 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
       ['confirmed', 'preparing'].includes(order.status)
     ).length;
     
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const completedOrders = orders.filter(order => order.status === 'completed').length;
+    const averageOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
     const completionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
 
     return {

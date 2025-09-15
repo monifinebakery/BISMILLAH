@@ -49,9 +49,16 @@ let crudService: any = null;
 const getCrudService = async () => {
   // Always refresh user to avoid stale/undefined userId
   const { data: { user } } = await supabase.auth.getUser();
-  if (!crudService || (user?.id && crudService?.config?.userId !== user.id)) {
+
+  // If no user yet, do not create a service to avoid RLS errors
+  if (!user) {
+    return null;
+  }
+
+  // Re-create service when user changes
+  if (!crudService || crudService?.config?.userId !== user.id) {
     crudService = await warehouseApi.createService('crud', {
-      userId: user?.id,
+      userId: user.id,
       onError: (error: string) => {
         logger.error('Warehouse API Error:', error);
       },
@@ -95,10 +102,20 @@ const fetchWarehouseItemsPaginated = async (page: number = 1, limit: number = 10
   limit: number;
   totalPages: number;
 }> => {
+  // If auth not ready or no user yet, return empty data without erroring
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    logger.warn('Warehouse (paginated): No authenticated user, returning empty items');
+    return { data: [], total: 0, page, limit, totalPages: 0 };
+  }
+
   try {
     const service = await getCrudService();
+    if (!service) {
+      return { data: [], total: 0, page, limit, totalPages: 0 };
+    }
     const result = await service.fetchBahanBakuPaginated(page, limit);
-    
+
     // Ensure numeric fields are properly typed
     const transformedData = result.data.map((item: BahanBakuFrontend) => ({
       ...item,
@@ -106,14 +123,16 @@ const fetchWarehouseItemsPaginated = async (page: number = 1, limit: number = 10
       minimum: toNumber(item.minimum),
       harga: toNumber(item.harga),
     }));
-    
+
     return {
       ...result,
       data: transformedData
     };
   } catch (error) {
     logger.error('Failed to fetch paginated warehouse items:', error);
-    throw new Error(`Failed to fetch paginated warehouse items: ${error}`);
+    toast.error('Tidak dapat memuat data gudang. Coba lagi nanti.');
+    // Return empty to keep UI functional and allow retry
+    return { data: [], total: 0, page, limit, totalPages: 0 };
   }
 };
 

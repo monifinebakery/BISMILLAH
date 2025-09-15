@@ -68,7 +68,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     getUniqueCategories 
   } = useRecipe();
 
-  // Form state dengan nama kolom 'tanggal' di backend
+  // Form state (dialog-local, mapped to NewOrder shape on submit)
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -97,29 +97,73 @@ const OrderForm: React.FC<OrderFormProps> = ({
   const [recipeSearchTerm, setRecipeSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // Helper: normalize Indonesian phone number inputs to match validation
+  const normalizePhoneNumber = (raw: string): string => {
+    if (!raw) return '';
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    // If starts with 62 (and not already with +), format as +62...
+    if (digits.startsWith('62')) {
+      return `+${digits}`; // +62XXXXXXXXXX
+    }
+    // If starts with 8 (common mobile shorthand), prefix 0
+    if (digits.startsWith('8')) {
+      return `0${digits}`; // 08XXXXXXXXX
+    }
+    // If already starts with 0, keep as is
+    if (digits.startsWith('0')) {
+      return digits;
+    }
+    // Fallback: return digits (will likely fail validation and show error)
+    return digits;
+  };
+
   // Initialize form dengan data existing jika edit mode
   useEffect(() => {
     if (initialData) {
       setFormData({
-        customerName: initialData.customerName || '',
-        customerPhone: initialData.customerPhone || '',
-        customerEmail: initialData.customerEmail || '',
-        alamatPengiriman: initialData.alamatPengiriman || '',
+        customerName: (initialData as any).customerName 
+          || (initialData as any).namaPelanggan 
+          || (initialData as any).customer_name 
+          || (initialData as any).nama_pelanggan 
+          || '',
+        customerPhone: (initialData as any).customerPhone 
+          || (initialData as any).teleponPelanggan 
+          || (initialData as any).customer_phone 
+          || (initialData as any).telepon_pelanggan 
+          || '',
+        customerEmail: (initialData as any).customerEmail 
+          || (initialData as any).emailPelanggan 
+          || (initialData as any).customer_email 
+          || (initialData as any).email_pelanggan 
+          || '',
+        alamatPengiriman: (initialData as any).alamatPengiriman 
+          || (initialData as any).alamat_pengiriman 
+          || '',
         status: initialData.status || 'pending',
-        catatan: initialData.catatan || '',
-        items: initialData.items || [],
-        subtotal: initialData.subtotal || 0,
-        diskonPromo: initialData.diskonPromo || 0,
-        totalSetelahDiskon: initialData.totalSetelahDiskon || 0,
-        pajak: initialData.pajak || 0,
-        totalAmount: initialData.totalAmount || 0,
+        catatan: (initialData as any).catatan || '',
+        items: (initialData as any).items || [],
+        subtotal: (initialData as any).subtotal || 0,
+        diskonPromo: (initialData as any).diskonPromo 
+          || (initialData as any).diskon_promo 
+          || 0,
+        totalSetelahDiskon: (initialData as any).totalSetelahDiskon 
+          || (initialData as any).total_setelah_diskon 
+          || 0,
+        pajak: (initialData as any).pajak 
+          || (initialData as any).tax_amount 
+          || 0,
+        totalAmount: (initialData as any).totalAmount 
+          || (initialData as any).totalPesanan 
+          || (initialData as any).total_pesanan 
+          || 0,
         isTaxEnabled: !!initialData.pajak,
         usePromo: !!(initialData.promoCode || initialData.diskonPromo),
         promoId: initialData.promoId || '',
         promoCode: initialData.promoCode || '',
         promoType: initialData.promoType || '',
-        tanggal: initialData.tanggal 
-          ? new Date(initialData.tanggal).toISOString().split('T')[0] 
+        tanggal: (initialData as any).tanggal 
+          ? new Date((initialData as any).tanggal).toISOString().split('T')[0] 
           : new Date().toISOString().split('T')[0], // Changed from tanggalPesanan to tanggal
       });
     } else {
@@ -293,17 +337,32 @@ const OrderForm: React.FC<OrderFormProps> = ({
     }));
   }, [formData.items, formData.isTaxEnabled, formData.diskonPromo, formData.usePromo]);
 
-  // Handle submit dengan validation
+  // Handle submit dengan validation (map dialog fields -> NewOrder expected fields)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convert string date to Date object for validation and submission
-    const dataForSubmission = {
-      ...formData,
-      tanggal: new Date(formData.tanggal)
+    // Build mapped payload to match validateOrderData/addOrder expectations
+    const mapped: Partial<NewOrder> & Record<string, any> = {
+      namaPelanggan: formData.customerName?.trim() || '',
+      teleponPelanggan: normalizePhoneNumber(formData.customerPhone),
+      emailPelanggan: formData.customerEmail?.trim() || '',
+      alamatPengiriman: formData.alamatPengiriman?.trim() || '',
+      status: formData.status,
+      catatan: formData.catatan,
+      items: formData.items,
+      subtotal: Number(formData.subtotal) || 0,
+      pajak: Number(formData.pajak) || 0,
+      totalPesanan: Number(formData.totalAmount) || 0,
+      tanggal: new Date(formData.tanggal),
+      // Carry promo extras if present
+      promoId: (formData as any).promoId,
+      promoCode: (formData as any).promoCode,
+      promoType: (formData as any).promoType,
+      diskonPromo: (formData as any).diskonPromo,
+      totalSetelahDiskon: (formData as any).totalSetelahDiskon,
     };
     
-    const validation = validateOrderData(dataForSubmission);
+    const validation = validateOrderData(mapped as any);
     if (!validation.isValid) {
       validation.errors.forEach(error => toast.error(error));
       return;
@@ -312,7 +371,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     setLoading(true);
     
     try {
-      await onSubmit(dataForSubmission);
+      await onSubmit(mapped);
       onOpenChange(false);
     } catch (error) {
       console.error('Error submitting form:', error);

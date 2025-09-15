@@ -17,10 +17,14 @@ export interface Purchase {
   userId: string;
   supplier: string;           // supplier name (nama supplier)
   tanggal: Date;
-  total_nilai: number;        // sesuai schema database
+  totalNilai?: number;         // FE camelCase
+  // Deprecated alias for backward-compat in UI codepaths
+  total_nilai?: number;
   items: PurchaseItem[];
   status: PurchaseStatus;
-  metode_perhitungan: CalculationMethod; // sesuai schema database
+  metodePerhitungan?: CalculationMethod; // FE camelCase
+  // Deprecated alias for backward-compat
+  metode_perhitungan?: CalculationMethod; // sesuai schema database
   keterangan?: string;        // Optional description/notes
   createdAt: Date;
   updatedAt: Date;
@@ -41,9 +45,13 @@ export interface PurchaseFormData {
   supplier: string; // supplier name (nama supplier)
   tanggal: Date | string; // Allow both Date object and string for flexibility
   items: PurchaseItem[];
-  metode_perhitungan: CalculationMethod; // sesuai schema database
+  metodePerhitungan: CalculationMethod; // FE camelCase
+  // Deprecated alias accepted when reading
+  metode_perhitungan?: CalculationMethod; // sesuai schema database
   keterangan?: string; // Add optional keterangan field
-  total_nilai?: number; // ✅ FIX: Add total_nilai for consistency with Purchase interface
+  totalNilai?: number; // FE camelCase
+  // Deprecated alias accepted when reading
+  total_nilai?: number; // kept for backward compatibility
 }
 
 // ============ Stats ============

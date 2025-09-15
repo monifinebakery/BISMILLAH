@@ -67,15 +67,19 @@ export const WAREHOUSE_FIELD_MAPPINGS = {
  * Convert Purchase from database format to frontend format
  */
 export const convertPurchaseFromDB = (dbPurchase: any): Purchase => {
+  const totalNilai = dbPurchase.total_nilai;
+  const metodePerhitungan = dbPurchase.metode_perhitungan || 'AVERAGE';
   return {
     id: dbPurchase.id,
     userId: dbPurchase.user_id,
     supplier: dbPurchase.supplier,
     tanggal: new Date(dbPurchase.tanggal),
-    total_nilai: dbPurchase.total_nilai,
+    totalNilai,
+    total_nilai: totalNilai, // legacy alias
     items: dbPurchase.items?.map(convertPurchaseItemFromDB) || [],
     status: dbPurchase.status,
-    metode_perhitungan: dbPurchase.metode_perhitungan || 'AVERAGE',
+    metodePerhitungan,
+    metode_perhitungan: metodePerhitungan, // legacy alias
     keterangan: dbPurchase.keterangan,
     createdAt: new Date(dbPurchase.created_at),
     updatedAt: new Date(dbPurchase.updated_at)
@@ -90,10 +94,10 @@ export const convertPurchaseToDB = (purchase: Purchase): CreatePurchaseRequest =
     user_id: purchase.userId,
     supplier: purchase.supplier,
     tanggal: purchase.tanggal instanceof Date ? purchase.tanggal.toISOString().split('T')[0] : String(purchase.tanggal),
-    total_nilai: purchase.total_nilai,
+    total_nilai: (purchase as any).totalNilai ?? (purchase as any).total_nilai,
     items: purchase.items.map(convertPurchaseItemToDB),
     status: purchase.status,
-    metode_perhitungan: purchase.metode_perhitungan
+    metode_perhitungan: (purchase as any).metodePerhitungan ?? (purchase as any).metode_perhitungan
   };
 };
 

@@ -87,7 +87,7 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
 
       <TableCell className="text-right">
         <div className="font-bold text-green-600">
-          {formatCurrency(purchase.total_nilai)}
+          {formatCurrency(((purchase as any).totalNilai ?? (purchase as any).total_nilai) as number)}
         </div>
       </TableCell>
 

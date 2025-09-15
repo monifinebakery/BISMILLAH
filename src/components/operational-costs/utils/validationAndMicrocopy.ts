@@ -78,8 +78,8 @@ export const MICROCOPY = {
       EXAMPLES: 'Contoh: Gas oven, sewa dapur, penyusutan mixer, supervisor produksi'
     },
     OPERASIONAL: {
-      LABEL: 'Biaya Operasional (di luar HPP)',
-      DESCRIPTION: 'Biaya untuk menjalankan operasional bisnis yang tidak terkait langsung dengan produksi, seperti marketing, administrasi, dan marketplace. Biaya ini tidak menambah HPP, tetapi digunakan untuk analisis BEP dan pricing.',
+      LABEL: 'Biaya Operasional',
+      DESCRIPTION: 'Biaya untuk menjalankan operasional bisnis (marketing, administrasi, marketplace, dll). Di aplikasi, biaya ini didistribusikan per pcs dan ikut masuk HPP resep agar pricing lebih realistis. Juga digunakan untuk analisis BEP.',
       EXAMPLES: 'Contoh: Marketing, admin kasir, internet toko, biaya marketplace'
     }
   },
@@ -138,7 +138,7 @@ export const MICROCOPY = {
     DATA_WILL_BE_LOST: 'Data yang belum disimpan akan hilang. Yakin ingin melanjutkan?',
     HIGH_OVERHEAD_PERCENTAGE: 'Persentase overhead cukup tinggi. Pastikan sudah sesuai dengan kondisi bisnis Anda.',
     LOW_PRODUCTION_TARGET: 'Target produksi terlihat rendah. Apakah sudah sesuai dengan kapasitas bisnis Anda?',
-    NO_OVERHEAD_SETTINGS: 'Belum ada pengaturan overhead. Silakan setup kalkulator dual-mode terlebih dahulu.',
+    NO_OVERHEAD_SETTINGS: 'Belum ada penghitungan biaya produksi. Silakan gunakan Kalkulator Biaya Produksi terlebih dahulu.',
     CLASSIFICATION_LOW_CONFIDENCE: 'Tingkat keyakinan klasifikasi rendah. Silakan pilih kelompok biaya secara manual.',
     PRODUCTION_DATA_OLD: 'Data produksi mungkin sudah lama. Pertimbangkan untuk memperbarui target secara manual.'
   },
@@ -164,9 +164,9 @@ export const MICROCOPY = {
     COST_TYPE_SELECTION: 'Tetap = sama setiap bulan. Variabel = berubah sesuai volume produksi.',
     CLASSIFICATION_SUGGESTION: 'Sistem memberikan saran kelompok berdasarkan nama biaya. Anda dapat mengubahnya jika diperlukan.',
     PRODUCTION_AUTO_FETCH: 'Klik untuk mengambil data produksi 30 hari terakhir secara otomatis dari pesanan yang sudah selesai.',
-    DUAL_MODE_CALCULATION: 'Kalkulasi ini memisahkan biaya yang masuk HPP dengan yang tidak masuk HPP, sesuai standar akuntansi UMKM.',
-    OVERHEAD_PER_PCS: 'Nilai ini akan otomatis ditambahkan ke setiap resep sebagai komponen overhead dalam HPP.',
-    OPERASIONAL_PER_PCS: 'Nilai ini digunakan untuk analisis BEP dan pricing, tidak menambah HPP produk.'
+    DUAL_MODE_CALCULATION: 'Kalkulasi ini mengelompokkan biaya produksi (overhead produksi + operasional) untuk distribusi per pcs.',
+    OVERHEAD_PER_PCS: 'Nilai ini otomatis ditambahkan ke setiap resep sebagai biaya produksi (termasuk TKL).',
+    OPERASIONAL_PER_PCS: 'Nilai ini ikut menambah HPP resep (digabung dengan overhead) dan digunakan untuk analisis BEP/pricing.'
   },
   
   // Confirmation messages

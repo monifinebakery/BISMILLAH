@@ -156,10 +156,10 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
             </span>
           ) : (
             <span className="inline-flex items-center gap-1">
-              <span>⏳ Menunggu</span> - Setup biaya produksi di Biaya Operasional → Dual-Mode Calculator
+              <span>⏳ Menunggu</span> - Hitung biaya produksi di Biaya Operasional → Kalkulator Biaya Produksi
             </span>
           )}<br/>
-          <strong>Formula:</strong> Bahan + Biaya Produksi Otomatis (sudah termasuk TKL) = HPP Akurat
+          <strong>Formula:</strong> Bahan + Biaya Produksi Otomatis (Overhead + Operasional, TKL termasuk di Overhead) = HPP Akurat
         </AlertDescription>
       </Alert>
 
@@ -240,7 +240,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 {enhancedHppResult.breakdown.overheadBreakdown && (
                   <div className="text-xs text-purple-600 space-y-1">
                     <div>💡 Overhead Produksi: Rp {enhancedHppResult.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
-                    <div>📋 Operasional: Rp {enhancedHppResult.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')} (terpisah)</div>
+                    <div>📋 Operasional: Rp {enhancedHppResult.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}</div>
                   </div>
                 )}
               </div>
@@ -249,8 +249,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
           
           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-600">
-              💡 <strong>Metode:</strong> {enhancedHppResult.calculationMethod === 'enhanced_dual_mode' ? 'Enhanced Dual-Mode' : 'Legacy'} •{' '}
-              <strong>Biaya Produksi:</strong> {enhancedHppResult.breakdown.overheadSource === 'app_settings' ? 'Otomatis dari Biaya Operasional' : 'Input Manual'}
+              💡 <strong>Metode:</strong> Enhanced (Otomatis) • <strong>Biaya Produksi:</strong> {enhancedHppResult.breakdown.overheadSource === 'app_settings' ? 'Otomatis dari Biaya Operasional' : 'Input Manual'}
             </p>
           </div>
         </div>

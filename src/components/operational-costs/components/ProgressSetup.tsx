@@ -99,7 +99,7 @@ const ProgressSetup: React.FC<ProgressSetupProps> = ({ costs, appSettings }) => 
                   <TooltipContent className="bg-orange-50 border-orange-200 text-orange-900 max-w-xs">
                     <p>{isStep2Complete
                       ? 'Langkah 2 selesai: Kalkulasi biaya per produk sudah dilakukan' 
-                      : 'Langkah 2: Lakukan kalkulasi biaya per produk di tab "Kalkulator Dual-Mode"'}</p>
+                      : 'Langkah 2: Lakukan kalkulasi biaya per produk di tab "Kalkulator Biaya Produksi"'}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

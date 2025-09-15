@@ -153,7 +153,8 @@ export const PURCHASE_FIELD_MAPPINGS = {
     user_id: 'userId',
     supplier: 'supplier',
     tanggal: 'tanggal',
-    total_nilai: 'total_nilai',
+    // Map DB total_nilai from FE camelCase totalNilai
+    total_nilai: 'totalNilai',
     items: 'items',
     status: 'status',
     metode_perhitungan: 'metodePerhitungan',
@@ -167,10 +168,14 @@ export const PURCHASE_FIELD_MAPPINGS = {
     userId: 'user_id',
     supplier: 'supplier',
     tanggal: 'tanggal',
+    // Provide both camelCase and legacy alias
+    totalNilai: 'total_nilai',
     total_nilai: 'total_nilai',
     items: 'items',
     status: 'status',
+    // Provide both camelCase and legacy alias
     metodePerhitungan: 'metode_perhitungan',
+    metode_perhitungan: 'metode_perhitungan',
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   }

@@ -275,7 +275,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Header */}
       <PurchaseHeader
         totalPurchases={finalStats.total}
-        total_nilai={finalStats.total_nilai}
+        total_nilai={(finalStats as any).totalNilai ?? finalStats.total_nilai}
         pendingCount={finalStats.byStatus.pending}
         onAddPurchase={(intent) => {
           if (intent === 'import' as any) {

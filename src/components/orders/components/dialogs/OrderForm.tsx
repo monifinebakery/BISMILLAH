@@ -200,7 +200,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     }
     
     if (selectedCategory && selectedCategory !== 'all') {
-      filtered = filtered.filter(recipe => recipe.kategoriResep === selectedCategory);
+      filtered = filtered.filter(recipe => (recipe as any).kategoriResep === selectedCategory || (recipe as any).kategori_resep === selectedCategory);
     }
     
     const getName = (r: any) => (r?.namaResep ?? r?.nama_resep ?? r?.nama ?? '').toString();
@@ -215,9 +215,11 @@ const OrderForm: React.FC<OrderFormProps> = ({
   // Helper function to detect if recipe uses enhanced HPP calculations
   const getCalculationMethodIndicator = (recipe: Recipe) => {
     // Check if recipe has enhanced calculation metadata or specific patterns
-    const hasEnhancedCalculation = recipe.updatedAt && 
-      new Date(recipe.updatedAt) > new Date('2024-01-01') && 
-      recipe.biayaOverhead && recipe.biayaOverhead % 100 === 0; // Enhanced usually results in round numbers
+    const updatedAt = (recipe as any).updatedAt ?? (recipe as any).updated_at;
+    const biayaOverhead = (recipe as any).biayaOverhead ?? (recipe as any).biaya_overhead;
+    const hasEnhancedCalculation = updatedAt && 
+      new Date(updatedAt) > new Date('2024-01-01') && 
+      biayaOverhead && biayaOverhead % 100 === 0; // heuristic
     
     return hasEnhancedCalculation ? {
       isEnhanced: true,
@@ -239,18 +241,26 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
   // Add item from recipe
   const addItemFromRecipe = (recipe: Recipe) => {
-    const pricePerPortion = recipe.hargaJualPorsi || recipe.hppPerPorsi || 0;
-    const pricePerPiece = recipe.hargaJualPerPcs || (pricePerPortion / (recipe.jumlahPcsPerPorsi || 1)) || 0;
+    const pricePerPortion = (recipe as any).hargaJualPorsi 
+      ?? (recipe as any).harga_jual_porsi 
+      ?? (recipe as any).hppPerPorsi 
+      ?? (recipe as any).hpp_per_porsi 
+      ?? 0;
+    const pcsPerPortion = (recipe as any).jumlahPcsPerPorsi ?? (recipe as any).jumlah_pcs_per_porsi ?? 1;
+    const pricePerPiece = (recipe as any).hargaJualPerPcs 
+      ?? (recipe as any).harga_jual_per_pcs 
+      ?? (pricePerPortion / (pcsPerPortion || 1)) 
+      ?? 0;
     const defaultPricingMode = 'per_portion'; // Default to per portion
     
     const newItem: OrderItem = {
       id: Date.now().toString(),
-      name: recipe.namaResep,
+      name: (recipe as any).namaResep ?? (recipe as any).nama_resep ?? (recipe as any).nama ?? '',
       quantity: 1,
       price: pricePerPortion, // Default to per portion price
       total: pricePerPortion,
-      recipeId: recipe.id,
-      recipeCategory: recipe.kategoriResep,
+      recipeId: (recipe as any).id,
+      recipeCategory: (recipe as any).kategoriResep ?? (recipe as any).kategori_resep,
       isFromRecipe: true,
       pricingMode: defaultPricingMode,
       pricePerPortion: pricePerPortion,
@@ -263,7 +273,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
     }));
     
     setIsRecipeSelectOpen(false);
-    toast.success(`${recipe.namaResep} ditambahkan ke pesanan`);
+    const recipeName = (recipe as any).namaResep ?? (recipe as any).nama_resep ?? (recipe as any).nama ?? 'Item';
+    toast.success(`${recipeName} ditambahkan ke pesanan`);
   };
 
   // Add custom item

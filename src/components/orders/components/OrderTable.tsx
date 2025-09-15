@@ -108,7 +108,7 @@ const OrderRowActions: React.FC<{
       onFollowUp();
     } else {
       // Fallback behavior
-      const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName'];
+      const nama = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName'];
       const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
       const phone = (order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['customerPhone'];
       const email = (order as any).email_pelanggan || (order as any).customer_email || (order as any)['customerEmail'];
@@ -387,7 +387,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       // Buka WhatsApp
       window.open(whatsappUrl, '_blank');
       
-      const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName'];
+      const nama = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName'];
       toast.success(`Follow up untuk ${nama} berhasil dibuka di WhatsApp`);
       
     } catch (error) {
@@ -395,7 +395,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       toast.error('Gagal memproses template follow up');
       
       // Fallback ke pesan sederhana
-      const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName'];
+      const nama = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName'];
       const fallbackMessage = `Halo ${nama}, saya ingin menanyakan status pesanan #${nomor}`;
       const cleanPhoneNumber = String(phone).replace(/\D/g, '');
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
@@ -504,16 +504,16 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 <td className="px-3 py-4 whitespace-nowrap min-w-[180px]">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">
-                      {(order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName']}
+                      {(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}
                     </div>
-                    {((order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['customerPhone']) && (
+                    {((order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone || (order as any)['customerPhone']) && (
                       <div className="text-xs text-gray-500">
-                        {(order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['customerPhone']}
+                        {(order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone || (order as any)['customerPhone']}
                       </div>
                     )}
-                    {((order as any).email_pelanggan || (order as any).customer_email || (order as any)['customerEmail']) && (
+                    {((order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email || (order as any)['customerEmail']) && (
                       <div className="text-xs text-gray-500">
-                        {(order as any).email_pelanggan || (order as any).customer_email || (order as any)['customerEmail']}
+                        {(order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email || (order as any)['customerEmail']}
                       </div>
                     )}
                   </div>

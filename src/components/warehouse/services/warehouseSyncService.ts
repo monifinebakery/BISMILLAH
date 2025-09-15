@@ -184,8 +184,185 @@ const findExistingMaterialByName = async (
   }
 };
 
-/**\n * ✅ IMPROVED: Apply a completed purchase to warehouse stock and WAC\n * Now supports stock accumulation for same materials from different suppliers\n */
-export const applyPurchaseToWarehouse = async (purchase: Purchase) => {\n  console.log('🔄 [WAREHOUSE SYNC] Starting applyPurchaseToWarehouse for purchase:', purchase.id);\n  console.log('🔄 [WAREHOUSE SYNC] Purchase items:', purchase.items);\n  \n  if (!purchase || !Array.isArray(purchase.items)) {\n    console.warn('⚠️ [WAREHOUSE SYNC] Invalid purchase data:', { purchase, items: purchase?.items });\n    return;\n  }\n\n  // Helper: derive unit price from standardized fields\n  const deriveUnitPrice = (it: any, qty: number): number => {\n    const toNum = (v: any) => (v == null || v === '' ? 0 : toNumber(v));\n    const explicit = toNum(it.unitPrice);\n    if (explicit > 0) return explicit;\n    // Fallback: subtotal / qty\n    const subtotal = toNum(it.subtotal);\n    if (qty > 0 && subtotal > 0) return subtotal / qty;\n    return 0;\n  };\n\n  for (const item of purchase.items) {\n    const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;\n    const itemName = (item as any).nama ?? '';\n    const itemSatuan = (item as any).satuan ?? '';\n    const qty = toNumber((item as any).quantity ?? (item as any).jumlah ?? 0);\n    const unitPrice = deriveUnitPrice(item as any, qty);\n\n    console.log('🔄 [WAREHOUSE SYNC] Processing item:', {\n      itemId,\n      itemName,\n      itemSatuan,\n      qty,\n      unitPrice,\n      rawItem: item\n    });\n\n    if (qty <= 0 || !itemName.trim()) {\n      console.warn('⚠️ [WAREHOUSE SYNC] Skipping invalid item:', {\n        itemId,\n        itemName,\n        qty,\n        unitPrice\n      });\n      continue;\n    }\n\n    // ✅ STEP 1: Try to find by exact ID first (for existing linked items)\n    let existing = null;\n    if (itemId) {\n      const { data: exactMatch, error: fetchError } = await supabase\n        .from('bahan_baku')\n        .select('id, nama, satuan, stok, harga_rata_rata, harga_satuan, supplier')\n        .eq('id', itemId)\n        .eq('user_id', purchase.userId)\n        .maybeSingle();\n        \n      if (fetchError) {\n        console.error('❌ [WAREHOUSE SYNC] Error fetching by ID:', fetchError);\n      } else if (exactMatch) {\n        existing = exactMatch;\n        console.log('✅ [WAREHOUSE SYNC] Found exact ID match:', existing);\n      }\n    }\n    \n    // ✅ STEP 2: If no ID match, try to find by name and unit (for stock accumulation)\n    if (!existing) {\n      existing = await findExistingMaterialByName(itemName, itemSatuan, purchase.userId);\n    }\n\n    const oldStock = existing?.stok ?? 0;\n    const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;\n    const newStock = toNumber(oldStock) + qty;\n    const newWac = calculateNewWac(oldWac, oldStock, qty, unitPrice);\n\n    console.log('🔄 [WAREHOUSE SYNC] Stock calculation:', {\n      itemId,\n      itemName,\n      oldStock,\n      qty,\n      newStock,\n      oldWac,\n      unitPrice,\n      newWac,\n      existing: existing?.id,\n      matchType: existing?.id === itemId ? 'ID_MATCH' : existing ? 'NAME_MATCH' : 'NEW_ITEM'\n    });\n\n    if (existing) {\n      // ✅ UPDATE existing item (whether matched by ID or name)\n      console.log('🔄 [WAREHOUSE SYNC] Updating existing item:', {\n        existingId: existing.id,\n        existingName: existing.nama,\n        matchedBy: existing.id === itemId ? 'ID' : 'NAME'\n      });\n      \n      const updateData: any = {\n        stok: newStock,\n        harga_rata_rata: newWac,\n        harga_satuan: unitPrice,\n        updated_at: new Date().toISOString()\n      };\n      \n      // ✅ OPTIONAL: Update supplier info if it's more recent\n      if ((purchase as any).supplier && (purchase as any).supplier.trim()) {\n        // If existing has no supplier or purchase supplier is different, update it\n        if (!existing.supplier || existing.supplier.trim() === '') {\n          updateData.supplier = (purchase as any).supplier;\n          console.log('📝 [WAREHOUSE SYNC] Adding supplier info:', (purchase as any).supplier);\n        } else if (existing.supplier !== (purchase as any).supplier) {\n          // Keep a combined supplier list (optional enhancement)\n          const existingSuppliers = existing.supplier.split(',').map((s: string) => s.trim());\n          const newSupplier = (purchase as any).supplier.trim();\n          if (!existingSuppliers.includes(newSupplier)) {\n            updateData.supplier = [...existingSuppliers, newSupplier].join(', ');\n            console.log('📝 [WAREHOUSE SYNC] Adding new supplier to list:', updateData.supplier);\n          }\n        }\n      }\n      \n      const { error: updateError } = await supabase\n        .from('bahan_baku')\n        .update(updateData)\n        .eq('id', existing.id)\n        .eq('user_id', purchase.userId);\n      \n      if (updateError) {\n        console.error('❌ [WAREHOUSE SYNC] Error updating item:', updateError);\n      } else {\n        console.log('✅ [WAREHOUSE SYNC] Successfully updated item:', {\n          id: existing.id,\n          name: existing.nama,\n          oldStock,\n          newStock,\n          oldWac: toNumber(oldWac).toFixed(2),\n          newWac: toNumber(newWac).toFixed(2)\n        });\n      }\n    } else {\n      // ✅ CREATE new item\n      console.log('🔄 [WAREHOUSE SYNC] Creating new item:', itemName);\n      \n      const insertData = {\n        id: itemId || crypto.randomUUID(), // Use provided ID or generate new one\n        user_id: purchase.userId,\n        nama: itemName,\n        kategori: (item as any).kategori ?? '',\n        stok: qty,\n        satuan: itemSatuan,\n        minimum: 0,\n        harga_satuan: unitPrice,\n        harga_rata_rata: unitPrice,\n        supplier: (purchase as any).supplier ?? null,\n        created_at: new Date().toISOString(),\n        updated_at: new Date().toISOString()\n      };\n      \n      const { error: insertError } = await supabase\n        .from('bahan_baku')\n        .insert(insertData);\n      \n      if (insertError) {\n        console.error('❌ [WAREHOUSE SYNC] Error creating item:', insertError);\n      } else {\n        console.log('✅ [WAREHOUSE SYNC] Successfully created item:', {\n          id: insertData.id,\n          name: itemName,\n          stock: qty,\n          price: toNumber(unitPrice).toFixed(2)\n        });\n      }\n    }\n  }\n  \n  console.log('✅ [WAREHOUSE SYNC] Completed applyPurchaseToWarehouse for purchase:', purchase.id);\n};
+/**
+ * ✅ IMPROVED: Apply a completed purchase to warehouse stock and WAC
+ * Now supports stock accumulation for same materials from different suppliers
+ */
+export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
+  console.log('🔄 [WAREHOUSE SYNC] Starting applyPurchaseToWarehouse for purchase:', purchase.id);
+  console.log('🔄 [WAREHOUSE SYNC] Purchase items:', purchase.items);
+
+  if (!purchase || !Array.isArray(purchase.items)) {
+    console.warn('⚠️ [WAREHOUSE SYNC] Invalid purchase data:', { purchase, items: (purchase as any)?.items });
+    return;
+  }
+
+  // Helper: derive unit price from standardized fields
+  const deriveUnitPrice = (it: any, qty: number): number => {
+    const toNum = (v: any) => (v == null || v === '' ? 0 : toNumber(v));
+    const explicit = toNum(it.unitPrice ?? it.harga_per_satuan ?? it.harga_satuan);
+    if (explicit > 0) return explicit;
+    // Fallback: subtotal / qty
+    const subtotal = toNum(it.subtotal);
+    if (qty > 0 && subtotal > 0) return subtotal / qty;
+    return 0;
+  };
+
+  for (const item of purchase.items) {
+    const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
+    const itemName = (item as any).nama ?? '';
+    const itemSatuan = (item as any).satuan ?? '';
+    const qty = toNumber((item as any).quantity ?? (item as any).jumlah ?? 0);
+    const unitPrice = deriveUnitPrice(item as any, qty);
+
+    console.log('🔄 [WAREHOUSE SYNC] Processing item:', {
+      itemId,
+      itemName,
+      itemSatuan,
+      qty,
+      unitPrice,
+      rawItem: item,
+    });
+
+    if (qty <= 0 || !itemName.trim()) {
+      console.warn('⚠️ [WAREHOUSE SYNC] Skipping invalid item:', {
+        itemId,
+        itemName,
+        qty,
+        unitPrice,
+      });
+      continue;
+    }
+
+    // ✅ STEP 1: Try to find by exact ID first (for existing linked items)
+    let existing: any = null;
+    if (itemId) {
+      const { data: exactMatch, error: fetchError } = await supabase
+        .from('bahan_baku')
+        .select('id, nama, satuan, stok, harga_rata_rata, harga_satuan, supplier')
+        .eq('id', itemId)
+        .eq('user_id', purchase.userId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('❌ [WAREHOUSE SYNC] Error fetching by ID:', fetchError);
+      } else if (exactMatch) {
+        existing = exactMatch;
+        console.log('✅ [WAREHOUSE SYNC] Found exact ID match:', existing);
+      }
+    }
+
+    // ✅ STEP 2: If no ID match, try to find by name and unit (for stock accumulation)
+    if (!existing) {
+      existing = await findExistingMaterialByName(itemName, itemSatuan, purchase.userId);
+    }
+
+    const oldStock = existing?.stok ?? 0;
+    const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;
+    const newStock = toNumber(oldStock) + qty;
+    const newWac = calculateNewWac(oldWac, oldStock, qty, unitPrice);
+
+    console.log('🔄 [WAREHOUSE SYNC] Stock calculation:', {
+      itemId,
+      itemName,
+      oldStock,
+      qty,
+      newStock,
+      oldWac,
+      unitPrice,
+      newWac,
+      existing: existing?.id,
+      matchType: existing?.id === itemId ? 'ID_MATCH' : existing ? 'NAME_MATCH' : 'NEW_ITEM',
+    });
+
+    if (existing) {
+      // ✅ UPDATE existing item (whether matched by ID or name)
+      console.log('🔄 [WAREHOUSE SYNC] Updating existing item:', {
+        existingId: existing.id,
+        existingName: existing.nama,
+        matchedBy: existing.id === itemId ? 'ID' : 'NAME',
+      });
+
+      const updateData: any = {
+        stok: newStock,
+        harga_rata_rata: newWac,
+        harga_satuan: unitPrice,
+        updated_at: new Date().toISOString(),
+      };
+
+      // ✅ OPTIONAL: Update supplier info if it's more recent
+      if ((purchase as any).supplier && (purchase as any).supplier.trim()) {
+        // If existing has no supplier or purchase supplier is different, update it
+        if (!existing.supplier || existing.supplier.trim() === '') {
+          updateData.supplier = (purchase as any).supplier;
+          console.log('📝 [WAREHOUSE SYNC] Adding supplier info:', (purchase as any).supplier);
+        } else if (existing.supplier !== (purchase as any).supplier) {
+          // Keep a combined supplier list (optional enhancement)
+          const existingSuppliers = existing.supplier.split(',').map((s: string) => s.trim());
+          const newSupplier = (purchase as any).supplier.trim();
+          if (!existingSuppliers.includes(newSupplier)) {
+            updateData.supplier = [...existingSuppliers, newSupplier].join(', ');
+            console.log('📝 [WAREHOUSE SYNC] Adding new supplier to list:', updateData.supplier);
+          }
+        }
+      }
+
+      const { error: updateError } = await supabase
+        .from('bahan_baku')
+        .update(updateData)
+        .eq('id', existing.id)
+        .eq('user_id', purchase.userId);
+
+      if (updateError) {
+        console.error('❌ [WAREHOUSE SYNC] Error updating item:', updateError);
+      } else {
+        console.log('✅ [WAREHOUSE SYNC] Successfully updated item:', {
+          id: existing.id,
+          name: existing.nama,
+          oldStock,
+          newStock,
+          oldWac: toNumber(oldWac).toFixed(2),
+          newWac: toNumber(newWac).toFixed(2),
+        });
+      }
+    } else {
+      // ✅ CREATE new item
+      console.log('🔄 [WAREHOUSE SYNC] Creating new item:', itemName);
+
+      const insertData = {
+        id: itemId || crypto.randomUUID(), // Use provided ID or generate new one
+        user_id: purchase.userId,
+        nama: itemName,
+        kategori: (item as any).kategori ?? '',
+        stok: qty,
+        satuan: itemSatuan,
+        minimum: 0,
+        harga_satuan: unitPrice,
+        harga_rata_rata: unitPrice,
+        supplier: (purchase as any).supplier ?? null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any;
+
+      const { error: insertError } = await supabase
+        .from('bahan_baku')
+        .insert(insertData);
+
+      if (insertError) {
+        console.error('❌ [WAREHOUSE SYNC] Error creating item:', insertError);
+      } else {
+        console.log('✅ [WAREHOUSE SYNC] Successfully created item:', {
+          id: (insertData as any).id,
+          name: itemName,
+          stock: qty,
+          price: toNumber(unitPrice).toFixed(2),
+        });
+      }
+    }
+  }
+
+  console.log('✅ [WAREHOUSE SYNC] Completed applyPurchaseToWarehouse for purchase:', purchase.id);
+};
 
 /**
  * ✅ IMPROVED: Reverse a purchase from warehouse stock and WAC

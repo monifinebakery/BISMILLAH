@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 // ✅ TAMBAH: Import useQuery
 import { useQuery } from '@tanstack/react-query';
+import { toNumber } from '../utils/typeUtils';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';

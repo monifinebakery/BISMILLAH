@@ -1,6 +1,7 @@
 // src/components/warehouse/services/priceSuggestionService.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { toNumber } from '../utils/typeUtils';
 
 export interface PriceSuggestion {
   price: number;

@@ -8,6 +8,7 @@ import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { formatCurrency } from '@/utils/formatUtils'; // ✅ Fallback import
 import type { BahanBakuFrontend } from '../types';
+import { toNumber } from '../utils/typeUtils';
 
 interface BulkOperationsDialogProps {
   isOpen: boolean;

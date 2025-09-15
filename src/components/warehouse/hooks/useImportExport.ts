@@ -6,6 +6,7 @@ import { headerMap, requiredFields, validate, loadXLSX } from '../dialogs/import
 // Sinkronkan kategori dengan analisis profit
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
+import { toNumber } from '../utils/typeUtils';
 
 
 interface UseImportExportProps {

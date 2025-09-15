@@ -3,6 +3,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { toNumber } from '../utils/typeUtils';
 import type { BahanBakuFrontend } from '../types';
 import type { Purchase } from '@/components/purchase/types/purchase.types';
 

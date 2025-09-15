@@ -29,7 +29,7 @@ export const usePurchaseCore = ({
       return statsRef.current.stats;
     }
     const total = purchases.length;
-    const totalValue = purchases.reduce((s: number, p: any) => s + Number(p.totalNilai ?? 0), 0);
+    const totalValue = purchases.reduce((s: number, p: any) => s + Number(p.total_nilai ?? 0), 0);
     const statusCounts = purchases.reduce((acc: Record<string, number>, p: any) => {
       acc[p.status ?? 'pending'] = (acc[p.status ?? 'pending'] || 0) + 1;
       return acc;

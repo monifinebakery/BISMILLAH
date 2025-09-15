@@ -345,7 +345,7 @@ export class PurchaseApiService {
               detail: { 
                 purchaseId: result.purchase.id, 
                 supplier: result.purchase.supplier, 
-                totalValue: result.purchase.totalNilai,
+                total_nilai: result.purchase.total_nilai,
                 oldStatus: prev.status,
                 newStatus: newStatus,
                 syncApplied: result.syncApplied

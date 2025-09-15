@@ -212,7 +212,7 @@ export interface PurchaseTablePropsExtended {
 
 export interface PurchaseHeaderProps {
   totalPurchases: number;
-  totalValue: number;
+  total_nilai: number;
   pendingCount: number;
   onAddPurchase: (intent?: AddPurchaseIntent) => void; // <— ubah ke terima intent
   className?: string;

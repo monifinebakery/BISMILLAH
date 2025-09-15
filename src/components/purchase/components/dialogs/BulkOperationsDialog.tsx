@@ -104,10 +104,10 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
     return items.reduce(
       (acc, item) => {
         acc.totalItems += item.items?.length || 0;
-        acc.totalAmount += item.total_nilai || 0;
+        acc.total_nilai += item.total_nilai || 0;
         return acc;
       },
-      { totalItems: 0, totalAmount: 0 }
+      { totalItems: 0, total_nilai: 0 }
     );
   };
 
@@ -159,7 +159,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                 </div>
                 <div className="col-span-2">
                   <span className="text-gray-500">Total Nilai:</span>
-                  <span className="ml-2 font-medium text-lg">{formatCurrency(totals.totalAmount)}</span>
+                  <span className="ml-2 font-medium text-lg">{formatCurrency(totals.total_nilai)}</span>
                 </div>
               </div>
             </div>
@@ -248,7 +248,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   <div>
                     <h4 className="font-medium text-red-900 mb-2">Peringatan!</h4>
                     <p className="text-sm text-red-800 mb-3">
-                      Anda akan menghapus {selectedCount} pembelian dengan total nilai {formatCurrency(totals.totalAmount)}.
+                      Anda akan menghapus {selectedCount} pembelian dengan total nilai {formatCurrency(totals.total_nilai)}.
                     </p>
                     <p className="text-sm text-red-800">
                       Data yang dihapus tidak dapat dikembalikan. Pastikan Anda yakin dengan tindakan ini.

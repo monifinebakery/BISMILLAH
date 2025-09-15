@@ -125,7 +125,7 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       userId: dbItem?.user_id ?? '',
       supplier: dbItem?.supplier ?? '',
       tanggal: new Date(),
-      totalAmount: 0,
+      total_nilai: 0,
       items: [],
       status: 'pending',
       metode_perhitungan: 'AVERAGE',
@@ -198,7 +198,7 @@ export const normalizePurchaseFormData = (formData: any): any => ({
     formData.tanggal instanceof Date ? formData.tanggal : new Date(formData.tanggal),
   items: Array.isArray(formData.items)
     ? formData.items.map((item: any) => {
-        const qty = toNumber(item.kuantitas ?? item.qty_base);
+        const qty = toNumber(item.quantity ?? item.qty_base);
         const price =
           toNumber(item.unitPrice ?? item.harga_per_satuan);
         return {
@@ -223,7 +223,7 @@ export const sanitizePurchaseData = (data: any): any => ({
   items: Array.isArray(data.items)
     ? data.items.map((item: any) => {
         const kuantitas = Number(
-          item.kuantitas ?? 
+          item.quantity ?? 
           item.jumlah ?? 
           item.qty_base ?? 
           0

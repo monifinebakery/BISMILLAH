@@ -77,11 +77,11 @@ export const filterPurchases = (
 
     // Amount range filter
     if (filters.amountRangeFilter.min !== null || filters.amountRangeFilter.max !== null) {
-      if (filters.amountRangeFilter.min !== null && purchase.totalNilai < filters.amountRangeFilter.min) {
+      if (filters.amountRangeFilter.min !== null && purchase.total_nilai < filters.amountRangeFilter.min) {
         return false;
       }
       
-      if (filters.amountRangeFilter.max !== null && purchase.totalNilai > filters.amountRangeFilter.max) {
+      if (filters.amountRangeFilter.max !== null && purchase.total_nilai > filters.amountRangeFilter.max) {
         return false;
       }
     }
@@ -160,7 +160,7 @@ export const paginatePurchases = (
 
 // 🧮 Calculation Helpers
 export const calculatePurchaseTotal = (items: PurchaseItem[]): number => {
-  return items.reduce((total, item) => total + item.totalHarga, 0);
+  return items.reduce((total, item) => total + item.subtotal, 0);
 };
 
 export const calculateItemTotal = (jumlah: number, hargaSatuan: number): number => {
@@ -169,7 +169,7 @@ export const calculateItemTotal = (jumlah: number, hargaSatuan: number): number 
 
 export const calculateAverageOrderValue = (purchases: Purchase[]): number => {
   if (purchases.length === 0) return 0;
-  const total = purchases.reduce((sum, purchase) => sum + purchase.totalNilai, 0);
+  const total = purchases.reduce((sum, purchase) => sum + purchase.total_nilai, 0);
   return total / purchases.length;
 };
 
@@ -179,7 +179,7 @@ export const calculatePurchaseStatistics = (
   suppliers: Array<{ id: string; nama: string }> = []
 ): PurchaseStatistics => {
   const totalPurchases = purchases.length;
-  const totalValue = purchases.reduce((sum, p) => sum + p.totalNilai, 0);
+  const totalValue = purchases.reduce((sum, p) => sum + p.total_nilai, 0);
   const averageValue = totalPurchases > 0 ? totalValue / totalPurchases : 0;
 
   // Status breakdown
@@ -228,7 +228,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
 
     const data = monthlyData.get(key)!;
     data.count++;
-    data.totalValue += purchase.totalNilai;
+    data.totalValue += purchase.total_nilai;
   });
 
   return Array.from(monthlyData.values())
@@ -269,7 +269,7 @@ const generateTopSuppliers = (
 
     const data = supplierData.get(purchase.supplier)!;
     data.purchaseCount++;
-    data.totalValue += purchase.totalNilai;
+    data.totalValue += purchase.total_nilai;
     
     const purchaseDate = new Date(purchase.tanggal);
     if (purchaseDate > data.lastPurchaseDate) {
@@ -309,10 +309,21 @@ export const getSupplierName = (
   return supplier?.nama || supplierId || 'Unknown Supplier';
 };
 
-export const formatItemsDisplay = (items: PurchaseItem[]): string => {
-  if (items.length === 0) return 'No items';
-  if (items.length === 1) return `1 item: ${items[0].namaBarang}`;
-  return `${items.length} items: ${items[0].namaBarang}${items.length > 1 ? `, +${items.length - 1} more` : ''}`;
+export const getItemsPreview = (items: Purchase['items'], maxItems: number = 2): string => {
+  if (!items || items.length === 0) {
+    return 'Tidak ada item';
+  }
+
+  const preview = items
+    .slice(0, maxItems)
+    .map(item => `${item.nama} (${item.quantity} ${item.satuan})`)
+    .join(', ');
+  
+  if (items.length > maxItems) {
+    return `${preview}, +${items.length - maxItems} lainnya`;
+  }
+  
+  return preview;
 };
 
 // 📅 Date Helpers
@@ -482,7 +493,7 @@ export const preparePurchasesForExport = (
       'ID': purchase.id,
       'Tanggal': formatPurchaseDate(purchase.tanggal),
       'Supplier': supplier?.nama || 'Unknown',
-      'Total Nilai': formatCurrency(purchase.totalNilai),
+      'Total Nilai': formatCurrency(purchase.total_nilai),
       'Status': getStatusDisplay(purchase.status).label,
       'Jumlah Item': purchase.items.length,
       'Dibuat': formatPurchaseDate(purchase.createdAt),
@@ -491,10 +502,10 @@ export const preparePurchasesForExport = (
 
     if (includeItems) {
       const itemsData = purchase.items.map((item, index) => ({
-        [`Item ${index + 1} - Nama`]: item.namaBarang,
-        [`Item ${index + 1} - Jumlah`]: `${item.jumlah} ${item.satuan}`,
-        [`Item ${index + 1} - Harga Satuan`]: formatCurrency(item.hargaSatuan),
-        [`Item ${index + 1} - Total`]: formatCurrency(item.totalHarga)
+        [`Item ${index + 1} - Nama`]: item.nama,
+        [`Item ${index + 1} - Jumlah`]: `${item.quantity} ${item.satuan}`,
+        [`Item ${index + 1} - Harga Satuan`]: formatCurrency(item.unitPrice),
+        [`Item ${index + 1} - Total`]: formatCurrency(item.subtotal)
       })).reduce((acc, item) => ({ ...acc, ...item }), {});
 
       return { ...baseData, ...itemsData };

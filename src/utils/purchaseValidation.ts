@@ -129,7 +129,7 @@ export function validatePurchaseData(
     });
 
     // Step 3: Total value validation
-    const originalTotal = Number(purchase.totalValue) || 0;
+    const originalTotal = Number(purchase.total_nilai) || 0;
     const calculatedTotal = correctedTotal;
 
     if (Math.abs(originalTotal - calculatedTotal) > 0.01) {
@@ -245,7 +245,7 @@ export function validateStatusChange(
         errors.push('Cannot complete purchase without items');
       }
       
-      if (!purchase.totalValue || purchase.totalValue <= 0) {
+      if (!purchase.total_nilai || purchase.total_nilai <= 0) {
         errors.push('Cannot complete purchase with zero total value');
       }
       
@@ -259,7 +259,7 @@ export function validateStatusChange(
         return (
           !it.bahanBakuId ||
           !(it.namaBarang || it.nama) ||
-          !(it.jumlah ?? it.kuantitas) ||
+          !(it.jumlah ?? it.kuantitas ?? it.quantity) ||
           !it.satuan
         );
       }) || [];
@@ -311,7 +311,7 @@ export function monitorPurchaseDataQuality(
       pendingPurchases: purchases.filter(p => p.status === 'pending').length,
       cancelledPurchases: purchases.filter(p => p.status === 'cancelled').length,
       withItems: purchases.filter(p => p.items && p.items.length > 0).length,
-      totalValue: purchases.reduce((sum, p) => sum + Number(p.totalValue || 0), 0),
+      totalValue: purchases.reduce((sum, p) => sum + Number(p.total_nilai || 0), 0),
       avgItemsPerPurchase: purchases.reduce((sum, p) => sum + (p.items?.length || 0), 0) / purchases.length,
     };
 

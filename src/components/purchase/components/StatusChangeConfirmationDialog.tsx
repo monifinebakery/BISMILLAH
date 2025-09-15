@@ -216,7 +216,7 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
                   {purchase.items.map((item: any, index: number) => (
                     <div key={index} className="text-xs text-gray-600 flex justify-between">
                       <span>{item.nama}</span>
-                      <span>{item.kuantitas} {item.satuan}</span>
+                      <span>{item.quantity} {item.satuan}</span>
                     </div>
                   ))}
                 </div>

@@ -109,7 +109,7 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
       errors.push('Satuan tidak boleh kosong');
     }
 
-    if (isNaN(data.totalNilai) || data.totalNilai < 0) {
+    if (isNaN(data.total_nilai) || data.total_nilai < 0) {
       errors.push('Total nilai tidak valid');
     }
 
@@ -332,11 +332,11 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
             items: purchaseData.items.map(item => {
               // 🔧 AUTOMATIC UNIT PRICE CALCULATION: Same as manual entry
               // Calculate unit price from total payment ÷ quantity
-              const calculatedUnitPrice = item.kuantitas > 0 
-                ? Math.round((purchaseData.total_nilai / item.kuantitas) * 100) / 100
-                : 0;
-                
-              const subtotal = item.kuantitas * calculatedUnitPrice;
+              const calculatedUnitPrice = item.quantity > 0
+? Math.round((purchaseData.total_nilai / item.quantity) * 100) / 100
+: 0;
+
+const subtotal = item.quantity * calculatedUnitPrice;
               
               // 🔄 WAREHOUSE LINKING: Find existing warehouse item by name and unit
               let bahanBakuId = '';
@@ -372,10 +372,10 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
               return {
                 ...item,
                 bahanBakuId: bahanBakuId,
-                quantity: item.kuantitas, // Map kuantitas to quantity for PurchaseItem interface
+                quantity: item.quantity, // Map kuantitas to quantity for PurchaseItem interface
                 unitPrice: calculatedUnitPrice,
                 subtotal: subtotal,
-                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.total_nilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`
+                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.total_nilai.toLocaleString('id-ID')} ÷ ${item.quantity} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`
               };
             }),
             total_nilai: purchaseData.total_nilai,

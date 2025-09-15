@@ -536,7 +536,8 @@ export const getMostExpensiveIngredients = (
   bahanResep: BahanResep[], 
   limit: number = 5
 ): BahanResep[] => {
-  return [...bahanResep]
+  const list = Array.isArray(bahanResep) ? bahanResep : [];
+  return [...list]
     .sort((a: any, b: any) => (b.total_harga ?? b.totalHarga ?? 0) - (a.total_harga ?? a.totalHarga ?? 0))
     .slice(0, limit);
 };

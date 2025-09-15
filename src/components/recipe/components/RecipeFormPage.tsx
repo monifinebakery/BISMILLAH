@@ -190,23 +190,31 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
   // Initialize form data
   useEffect(() => {
     if (initialData && isEditMode) {
-      setFormData({
-        namaResep: initialData.namaResep,
-        jumlahPorsi: initialData.jumlahPorsi,
-        kategoriResep: initialData.kategoriResep || '',
-        deskripsi: initialData.deskripsi || '',
-        fotoUrl: initialData.fotoUrl || '',
-        bahanResep: [...initialData.bahanResep],
-        biayaTenagaKerja: initialData.biayaTenagaKerja,
-        biayaOverhead: initialData.biayaOverhead,
-        marginKeuntunganPersen: initialData.marginKeuntunganPersen,
-        totalHpp: initialData.totalHpp,
-        hppPerPorsi: initialData.hppPerPorsi,
-        hargaJualPorsi: initialData.hargaJualPorsi,
-        jumlahPcsPerPorsi: initialData.jumlahPcsPerPorsi || 1,
-        hppPerPcs: initialData.hppPerPcs,
-        hargaJualPerPcs: initialData.hargaJualPerPcs,
-      });
+      const r: any = initialData;
+      // Normalize incoming data (support snake_case and camelCase)
+      const normalized = {
+        namaResep: r.namaResep ?? r.nama_resep ?? '',
+        jumlahPorsi: r.jumlahPorsi ?? r.jumlah_porsi ?? 1,
+        kategoriResep: r.kategoriResep ?? r.kategori_resep ?? '',
+        deskripsi: r.deskripsi ?? '',
+        fotoUrl: r.fotoUrl ?? r.foto_url ?? '',
+        bahanResep: Array.isArray(r.bahanResep)
+          ? [...r.bahanResep]
+          : Array.isArray(r.bahan_resep)
+            ? [...r.bahan_resep]
+            : [],
+        biayaTenagaKerja: r.biayaTenagaKerja ?? r.biaya_tenaga_kerja ?? 0,
+        biayaOverhead: r.biayaOverhead ?? r.biaya_overhead ?? 0,
+        marginKeuntunganPersen: r.marginKeuntunganPersen ?? r.margin_keuntungan_persen ?? 0,
+        totalHpp: r.totalHpp ?? r.total_hpp,
+        hppPerPorsi: r.hppPerPorsi ?? r.hpp_per_porsi,
+        hargaJualPorsi: r.hargaJualPorsi ?? r.harga_jual_porsi,
+        jumlahPcsPerPorsi: r.jumlahPcsPerPorsi ?? r.jumlah_pcs_per_porsi ?? 1,
+        hppPerPcs: r.hppPerPcs ?? r.hpp_per_pcs,
+        hargaJualPerPcs: r.hargaJualPerPcs ?? r.harga_jual_per_pcs,
+      } as any;
+
+      setFormData(normalized);
     } else if (!isEditMode) {
       // Reset form for add mode
       setFormData({

@@ -87,23 +87,29 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   // Initialize form with existing data
   useEffect(() => {
     if (initialData) {
-      setFormData({
-        namaResep: initialData.namaResep,
-        jumlahPorsi: initialData.jumlahPorsi,
-        kategoriResep: initialData.kategoriResep,
-        deskripsi: initialData.deskripsi,
-        fotoUrl: initialData.fotoUrl,
-        bahanResep: initialData.bahanResep || [],
-        biayaTenagaKerja: initialData.biayaTenagaKerja || 0,
-        biayaOverhead: initialData.biayaOverhead || 0,
-        marginKeuntunganPersen: initialData.marginKeuntunganPersen || 30,
-        jumlahPcsPerPorsi: initialData.jumlahPcsPerPorsi || 1,
-        totalHpp: initialData.totalHpp || 0,
-        hppPerPorsi: initialData.hppPerPorsi || 0,
-        hargaJualPorsi: initialData.hargaJualPorsi || 0,
-        hppPerPcs: initialData.hppPerPcs || 0,
-        hargaJualPerPcs: initialData.hargaJualPerPcs || 0,
-      });
+      const r: any = initialData;
+      const normalized = {
+        namaResep: r.namaResep ?? r.nama_resep ?? '',
+        jumlahPorsi: r.jumlahPorsi ?? r.jumlah_porsi ?? 1,
+        kategoriResep: r.kategoriResep ?? r.kategori_resep ?? '',
+        deskripsi: r.deskripsi ?? '',
+        fotoUrl: r.fotoUrl ?? r.foto_url ?? '',
+        bahanResep: Array.isArray(r.bahanResep)
+          ? [...r.bahanResep]
+          : Array.isArray(r.bahan_resep)
+            ? [...r.bahan_resep]
+            : [],
+        biayaTenagaKerja: r.biayaTenagaKerja ?? r.biaya_tenaga_kerja ?? 0,
+        biayaOverhead: r.biayaOverhead ?? r.biaya_overhead ?? 0,
+        marginKeuntunganPersen: r.marginKeuntunganPersen ?? r.margin_keuntungan_persen ?? 30,
+        jumlahPcsPerPorsi: r.jumlahPcsPerPorsi ?? r.jumlah_pcs_per_porsi ?? 1,
+        totalHpp: r.totalHpp ?? r.total_hpp ?? 0,
+        hppPerPorsi: r.hppPerPorsi ?? r.hpp_per_porsi ?? 0,
+        hargaJualPorsi: r.hargaJualPorsi ?? r.harga_jual_porsi ?? 0,
+        hppPerPcs: r.hppPerPcs ?? r.hpp_per_pcs ?? 0,
+        hargaJualPerPcs: r.hargaJualPerPcs ?? r.harga_jual_per_pcs ?? 0,
+      } as any;
+      setFormData(normalized);
     }
   }, [initialData]);
 

@@ -54,24 +54,42 @@ class RecipeApiService {
   }
 
   // Transform frontend format to database format
-  private transformToDB(recipe: Partial<NewRecipe>) {
+  private transformToDB(recipe: Partial<NewRecipe> | any) {
+    // Accept both snake_case (DB) and camelCase (form) inputs
+    const nama_resep = recipe.nama_resep ?? recipe.namaResep;
+    const jumlah_porsi = recipe.jumlah_porsi ?? recipe.jumlahPorsi;
+    const kategori_resep = recipe.kategori_resep ?? recipe.kategoriResep;
+    const deskripsi = recipe.deskripsi;
+    const foto_url = recipe.foto_url ?? recipe.fotoUrl;
+    const foto_base64 = recipe.foto_base64 ?? recipe.fotoBase64;
+    const bahan_resep = recipe.bahan_resep ?? recipe.bahanResep;
+    const biaya_tenaga_kerja = recipe.biaya_tenaga_kerja ?? recipe.biayaTenagaKerja ?? 0;
+    const biaya_overhead = recipe.biaya_overhead ?? recipe.biayaOverhead ?? 0;
+    const margin_keuntungan_persen = recipe.margin_keuntungan_persen ?? recipe.marginKeuntunganPersen ?? 0;
+    const total_hpp = recipe.total_hpp ?? recipe.totalHpp ?? 0;
+    const hpp_per_porsi = recipe.hpp_per_porsi ?? recipe.hppPerPorsi ?? 0;
+    const harga_jual_porsi = recipe.harga_jual_porsi ?? recipe.hargaJualPorsi ?? 0;
+    const jumlah_pcs_per_porsi = recipe.jumlah_pcs_per_porsi ?? recipe.jumlahPcsPerPorsi ?? 1;
+    const hpp_per_pcs = recipe.hpp_per_pcs ?? recipe.hppPerPcs ?? 0;
+    const harga_jual_per_pcs = recipe.harga_jual_per_pcs ?? recipe.hargaJualPerPcs ?? 0;
+
     return {
-      nama_resep: recipe.nama_resep,
-      jumlah_porsi: recipe.jumlah_porsi,
-      kategori_resep: recipe.kategori_resep,
-      deskripsi: recipe.deskripsi,
-      foto_url: recipe.foto_url,
-      foto_base64: recipe.foto_base64,
-      bahan_resep: recipe.bahan_resep,
-      biaya_tenaga_kerja: recipe.biaya_tenaga_kerja || 0,
-      biaya_overhead: recipe.biaya_overhead || 0,
-      margin_keuntungan_persen: recipe.margin_keuntungan_persen || 0,
-      total_hpp: recipe.total_hpp || 0,
-      hpp_per_porsi: recipe.hpp_per_porsi || 0,
-      harga_jual_porsi: recipe.harga_jual_porsi || 0,
-      jumlah_pcs_per_porsi: recipe.jumlah_pcs_per_porsi || 1,
-      hpp_per_pcs: recipe.hpp_per_pcs || 0,
-      harga_jual_per_pcs: recipe.harga_jual_per_pcs || 0,
+      nama_resep,
+      jumlah_porsi,
+      kategori_resep,
+      deskripsi,
+      foto_url,
+      foto_base64,
+      bahan_resep,
+      biaya_tenaga_kerja,
+      biaya_overhead,
+      margin_keuntungan_persen,
+      total_hpp,
+      hpp_per_porsi,
+      harga_jual_porsi,
+      jumlah_pcs_per_porsi,
+      hpp_per_pcs,
+      harga_jual_per_pcs,
     };
   }
   

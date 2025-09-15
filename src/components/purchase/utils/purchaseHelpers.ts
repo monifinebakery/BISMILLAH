@@ -93,7 +93,7 @@ export const sortPurchases = (
         comparison = new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime();
         break;
       case 'total_nilai':
-      comparison = (a.total_nilai || 0) - (b.total_nilai || 0);
+        comparison = (a.total_nilai || 0) - (b.total_nilai || 0);
         break;
       case 'supplier':
         comparison = (a.supplier || '').localeCompare(b.supplier || '');
@@ -300,9 +300,7 @@ export const validatePurchase = (purchase: Partial<Purchase>): {
   };
 };
 
-/**
- * Calculate total value from items
- */
+/**\n * Calculate total value from items\n */
 export const calculateTotalFromItems = (items: Purchase['items']): number => {
   if (!items || items.length === 0) return 0;
   

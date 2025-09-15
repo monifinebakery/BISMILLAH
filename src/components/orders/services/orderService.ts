@@ -3,6 +3,7 @@ import { logger } from '@/utils/logger';
 import { transformOrderFromDB, transformOrderToDB, toSafeISOString, validateOrderData } from '../utils';
 import { generateOrderNumber } from '@/utils/formatUtils'; // ✅ FIXED: Import order number generator
 import type { Order, NewOrder, OrderStatus } from '../types';
+import { to_snake_order, from_snake_order } from '../naming';
 
 // ✅ FIXED: Valid status values matching application values
 const VALID_ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'completed'];
@@ -44,6 +45,14 @@ export async function fetchOrders(userId: string): Promise<Order[]> {
   }
 
   return (data || []).map(transformOrderFromDB);
+}
+
+// ================= SNAKE_CASE WRAPPERS =================
+// These wrappers allow consumers to work purely with snake_case
+
+export async function fetchOrdersSnake(userId: string): Promise<any[]> {
+  const orders = await fetchOrders(userId);
+  return orders.map(to_snake_order);
 }
 
 // Get single order by ID
@@ -270,6 +279,12 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
   return transformOrderFromDB(data);
 }
 
+export async function addOrderSnake(userId: string, orderSnake: any): Promise<any> {
+  const camel = from_snake_order(orderSnake);
+  const created = await addOrder(userId, camel as any);
+  return to_snake_order(created);
+}
+
 // Update an order
 export async function updateOrder(userId: string, id: string, updatedData: Partial<Order>): Promise<Order> {
   const { data, error } = await supabase
@@ -300,6 +315,12 @@ export async function updateOrder(userId: string, id: string, updatedData: Parti
   }
 
   return transformOrderFromDB(data);
+}
+
+export async function updateOrderSnake(userId: string, id: string, updatedDataSnake: any): Promise<any> {
+  const camel = from_snake_order(updatedDataSnake);
+  const updated = await updateOrder(userId, id, camel as any);
+  return to_snake_order(updated);
 }
 
 // Update only status
@@ -380,6 +401,11 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
   return transformedOrder;
 }
 
+export async function updateOrderStatusSnake(userId: string, id: string, newStatus: string): Promise<any> {
+  const updated = await updateOrderStatus(userId, id, newStatus);
+  return to_snake_order(updated);
+}
+
 // Delete an order
 export async function deleteOrder(userId: string, id: string): Promise<void> {
   // ✅ STEP 1: Get order data before deletion for financial cleanup
@@ -447,6 +473,10 @@ export async function deleteOrder(userId: string, id: string): Promise<void> {
   } catch (eventError) {
     logger.warn('Could not emit order deletion event (non-critical):', eventError);
   }
+}
+
+export async function deleteOrderSnake(userId: string, id: string): Promise<void> {
+  return deleteOrder(userId, id);
 }
 
 // ULTRA OPTIMIZED: Bulk update dengan batching untuk performa maksimal

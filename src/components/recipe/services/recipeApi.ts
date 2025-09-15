@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { getCurrentUserId as getAuthUserId } from '@/utils/authHelpers';
 import { Recipe, RecipeDB, NewRecipe } from '../types';
+
+// import transformers from './recipeTransformers';
 export interface ApiResponse<T> {
   data: T;
   error?: string;
@@ -29,47 +31,47 @@ class RecipeApiService {
   private transformFromDB(dbItem: RecipeDB): Recipe {
     return {
     id: dbItem.id,
-    userId: dbItem.user_id,
-    createdAt: new Date(dbItem.created_at),
-    updatedAt: new Date(dbItem.updated_at),
-    namaResep: dbItem.nama_resep,
-    jumlahPorsi: Number(dbItem.jumlah_porsi),
-    kategoriResep: dbItem.kategori_resep,
+    user_id: dbItem.user_id,
+    created_at: new Date(dbItem.created_at),
+    updated_at: new Date(dbItem.updated_at),
+    nama_resep: dbItem.nama_resep,
+    jumlah_porsi: Number(dbItem.jumlah_porsi),
+    kategori_resep: dbItem.kategori_resep,
     deskripsi: dbItem.deskripsi,
-    fotoUrl: dbItem.foto_url,
-    fotoBase64: dbItem.foto_base64,
-    bahanResep: dbItem.bahan_resep || [],
-    biayaTenagaKerja: Number(dbItem.biaya_tenaga_kerja) || 0,
-    biayaOverhead: Number(dbItem.biaya_overhead) || 0,
-    marginKeuntunganPersen: Number(dbItem.margin_keuntungan_persen) || 0,
-    totalHpp: Number(dbItem.total_hpp) || 0,
-    hppPerPorsi: Number(dbItem.hpp_per_porsi) || 0,
-    hargaJualPorsi: Number(dbItem.harga_jual_porsi) || 0,
-    jumlahPcsPerPorsi: Number(dbItem.jumlah_pcs_per_porsi) || 1,
-    hppPerPcs: Number(dbItem.hpp_per_pcs) || 0,
-    hargaJualPerPcs: Number(dbItem.harga_jual_per_pcs) || 0,
+    foto_url: dbItem.foto_url,
+    foto_base64: dbItem.foto_base64,
+    bahan_resep: dbItem.bahan_resep || [],
+    biaya_tenaga_kerja: Number(dbItem.biaya_tenaga_kerja) || 0,
+    biaya_overhead: Number(dbItem.biaya_overhead) || 0,
+    margin_keuntungan_persen: Number(dbItem.margin_keuntungan_persen) || 0,
+    total_hpp: Number(dbItem.total_hpp) || 0,
+    hpp_per_porsi: Number(dbItem.hpp_per_porsi) || 0,
+    harga_jual_porsi: Number(dbItem.harga_jual_porsi) || 0,
+    jumlah_pcs_per_porsi: Number(dbItem.jumlah_pcs_per_porsi) || 1,
+    hpp_per_pcs: Number(dbItem.hpp_per_pcs) || 0,
+    harga_jual_per_pcs: Number(dbItem.harga_jual_per_pcs) || 0,
     };
   }
 
   // Transform frontend format to database format
   private transformToDB(recipe: Partial<NewRecipe>) {
     return {
-      nama_resep: recipe.namaResep,
-      jumlah_porsi: recipe.jumlahPorsi,
-      kategori_resep: recipe.kategoriResep,
+      nama_resep: recipe.nama_resep,
+      jumlah_porsi: recipe.jumlah_porsi,
+      kategori_resep: recipe.kategori_resep,
       deskripsi: recipe.deskripsi,
-      foto_url: recipe.fotoUrl,
-      foto_base64: recipe.fotoBase64,
-      bahan_resep: recipe.bahanResep,
-      biaya_tenaga_kerja: recipe.biayaTenagaKerja || 0,
-      biaya_overhead: recipe.biayaOverhead || 0,
-      margin_keuntungan_persen: recipe.marginKeuntunganPersen || 0,
-      total_hpp: recipe.totalHpp || 0,
-      hpp_per_porsi: recipe.hppPerPorsi || 0,
-      harga_jual_porsi: recipe.hargaJualPorsi || 0,
-      jumlah_pcs_per_porsi: recipe.jumlahPcsPerPorsi || 1,
-      hpp_per_pcs: recipe.hppPerPcs || 0,
-      harga_jual_per_pcs: recipe.hargaJualPerPcs || 0,
+      foto_url: recipe.foto_url,
+      foto_base64: recipe.foto_base64,
+      bahan_resep: recipe.bahan_resep,
+      biaya_tenaga_kerja: recipe.biaya_tenaga_kerja || 0,
+      biaya_overhead: recipe.biaya_overhead || 0,
+      margin_keuntungan_persen: recipe.margin_keuntungan_persen || 0,
+      total_hpp: recipe.total_hpp || 0,
+      hpp_per_porsi: recipe.hpp_per_porsi || 0,
+      harga_jual_porsi: recipe.harga_jual_porsi || 0,
+      jumlah_pcs_per_porsi: recipe.jumlah_pcs_per_porsi || 1,
+      hpp_per_pcs: recipe.hpp_per_pcs || 0,
+      harga_jual_per_pcs: recipe.harga_jual_per_pcs || 0,
     };
   }
   
@@ -125,7 +127,7 @@ class RecipeApiService {
       throw new Error('Unexpected error fetching recipes');
     }
   }
-
+  // Skip all snake variants and comments
   /**
    * ✅ useQuery-optimized: Get single recipe by ID
    */
@@ -162,7 +164,7 @@ class RecipeApiService {
   async createRecipe(recipe: NewRecipe): Promise<Recipe> {
     try {
       const userId = await this.getCurrentUserId();
-      logger.debug('RecipeAPI: Creating new recipe:', recipe.namaResep);
+      logger.debug('RecipeAPI: Creating new recipe:', recipe.nama_resep);
       const dbData = this.transformToDB(recipe);
       const { data, error } = await supabase
         .from(this.tableName)
@@ -215,6 +217,8 @@ class RecipeApiService {
       throw new Error('Unexpected error creating recipe');
     }
   }
+  
+  
   /**
    * ✅ useMutation-optimized: Update existing recipe
    */
@@ -275,6 +279,8 @@ class RecipeApiService {
       throw new Error('Unexpected error updating recipe');
     }
   }
+
+  
   /**
    * ✅ useMutation-optimized: Delete recipe
    */
@@ -311,7 +317,7 @@ class RecipeApiService {
       // Create new recipe data
       const duplicateData: NewRecipe = {
         ...original,
-        namaResep: newName,
+        nama_resep: newName,
         // Remove IDs and timestamps that shouldn't be copied
       };
       // Create the duplicate

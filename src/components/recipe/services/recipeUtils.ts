@@ -180,62 +180,7 @@ export const validateRecipeData = (recipe: Partial<NewRecipe>): ValidationResult
   const errors: string[] = [];
 
   // Basic validation
-  if (!recipe.namaResep || recipe.namaResep.trim().length === 0) {
-    errors.push('Nama resep wajib diisi');
-  }
-
-  // Handle both number and string types for jumlahPorsi
-  const jumlahPorsi = typeof recipe.jumlahPorsi === 'string' 
-    ? (recipe.jumlahPorsi === '' ? 0 : parseInt(recipe.jumlahPorsi))
-    : recipe.jumlahPorsi;
-  if (!jumlahPorsi || jumlahPorsi <= 0) {
-    errors.push('Jumlah porsi harus lebih dari 0');
-  }
-
-  if (!recipe.bahanResep || recipe.bahanResep.length === 0) {
-    errors.push('Minimal harus ada 1 bahan resep');
-  }
-
-  // Validate ingredients
-  if (recipe.bahanResep) {
-    recipe.bahanResep.forEach((bahan, index) => {
-      if (!bahan.nama || bahan.nama.trim().length === 0) {
-        errors.push(`Bahan resep ke-${index + 1}: Nama bahan wajib diisi`);
-      }
-      if (!bahan.jumlah || bahan.jumlah <= 0) {
-        errors.push(`Bahan resep ke-${index + 1}: Jumlah harus lebih dari 0`);
-      }
-      if (!bahan.hargaSatuan || bahan.hargaSatuan <= 0) {
-        errors.push(`Bahan resep ke-${index + 1}: Harga satuan harus lebih dari 0`);
-      }
-      if (!bahan.satuan || bahan.satuan.trim().length === 0) {
-        errors.push(`Bahan resep ke-${index + 1}: Satuan wajib diisi`);
-      }
-    });
-  }
-
-  // Validate costs
-  if (recipe.biayaTenagaKerja !== undefined && recipe.biayaTenagaKerja < 0) {
-    errors.push('Biaya tenaga kerja tidak boleh negatif');
-  }
-
-  if (recipe.biayaOverhead !== undefined && recipe.biayaOverhead < 0) {
-    errors.push('Biaya overhead tidak boleh negatif');
-  }
-
-  if (recipe.marginKeuntunganPersen !== undefined && recipe.marginKeuntunganPersen < 0) {
-    errors.push('Margin keuntungan tidak boleh negatif');
-  }
-
-  // Handle both number and string types for jumlahPcsPerPorsi
-  if (recipe.jumlahPcsPerPorsi !== undefined) {
-    const jumlahPcsPerPorsi = typeof recipe.jumlahPcsPerPorsi === 'string'
-      ? (recipe.jumlahPcsPerPorsi === '' ? 0 : parseInt(recipe.jumlahPcsPerPorsi))
-      : recipe.jumlahPcsPerPorsi;
-    if (jumlahPcsPerPorsi <= 0) {
-      errors.push('Jumlah pcs per porsi harus lebih dari 0');
-    }
-  }
+  // Di validateRecipeData:\nif (!recipe.nama_resep || recipe.nama_resep.trim().length === 0) {\n  errors.push('Nama resep wajib diisi');\n}\n\n// Handle both number and string types for jumlah_porsi\nconst jumlahPorsi = typeof recipe.jumlah_porsi === 'string' \n  ? (recipe.jumlah_porsi === '' ? 0 : parseInt(recipe.jumlah_porsi))\n  : recipe.jumlah_porsi;\nif (!jumlahPorsi || jumlahPorsi <= 0) {\n  errors.push('Jumlah porsi harus lebih dari 0');\n}\n\nif (!recipe.bahan_resep || recipe.bahan_resep.length === 0) {\n  errors.push('Minimal harus ada 1 bahan resep');\n}\n\n// Validate ingredients\nif (recipe.bahan_resep) {\n  recipe.bahan_resep.forEach((bahan, index) => {\n    if (!bahan.nama || bahan.nama.trim().length === 0) {\n      errors.push(`Bahan resep ke-${index + 1}: Nama bahan wajib diisi`);\n    }\n    if (!bahan.jumlah || bahan.jumlah <= 0) {\n      errors.push(`Bahan resep ke-${index + 1}: Jumlah harus lebih dari 0`);\n    }\n    if (!bahan.hargaSatuan || bahan.hargaSatuan <= 0) {\n      errors.push(`Bahan resep ke-${index + 1}: Harga satuan harus lebih dari 0`);\n    }\n    if (!bahan.satuan || bahan.satuan.trim().length === 0) {\n      errors.push(`Bahan resep ke-${index + 1}: Satuan wajib diisi`);\n    }\n  });\n}\n\n// Validate costs\nif (recipe.biaya_tenaga_kerja !== undefined && recipe.biaya_tenaga_kerja < 0) {\n  errors.push('Biaya tenaga kerja tidak boleh negatif');\n}\n\nif (recipe.biaya_overhead !== undefined && recipe.biaya_overhead < 0) {\n  errors.push('Biaya overhead tidak boleh negatif');\n}\n\nif (recipe.margin_keuntungan_persen !== undefined && recipe.margin_keuntungan_persen < 0) {\n  errors.push('Margin keuntungan tidak boleh negatif');\n}\n\n// Handle both number and string types for jumlah_pcs_per_porsi\nif (recipe.jumlah_pcs_per_porsi !== undefined) {\n  const jumlahPcsPerPorsi = typeof recipe.jumlah_pcs_per_porsi === 'string'\n    ? (recipe.jumlah_pcs_per_porsi === '' ? 0 : parseInt(recipe.jumlah_pcs_per_porsi))\n    : recipe.jumlah_pcs_per_porsi;\n  if (jumlahPcsPerPorsi <= 0) {\n    errors.push('Jumlah pcs per porsi harus lebih dari 0');\n  }\n}\n
 
   return {
     isValid: errors.length === 0,
@@ -261,36 +206,36 @@ export const calculateRecipeStats = (recipes: Recipe[]): RecipeStats => {
 
   // Basic stats
   const totalRecipes = recipes.length;
-  const categories = new Set(recipes.map(r => r.kategoriResep).filter(Boolean));
+  const categories = new Set(recipes.map(r => r.kategori_resep).filter(Boolean));
   const totalCategories = categories.size;
 
   // HPP statistics
-  const hppValues = recipes.map(r => r.hppPerPorsi).filter(hpp => hpp > 0);
+  const hppValues = recipes.map(r => r.hpp_per_porsi).filter(hpp => hpp > 0);
   const averageHppPerPorsi = hppValues.length > 0 
     ? hppValues.reduce((sum, hpp) => sum + hpp, 0) / hppValues.length 
     : 0;
 
   // Most/least expensive recipes
-  const recipesWithHpp = recipes.filter(r => r.hppPerPorsi > 0);
+  const recipesWithHpp = recipes.filter(r => r.hpp_per_porsi > 0);
   const mostExpensiveRecipe = recipesWithHpp.length > 0
-    ? recipesWithHpp.reduce((max, recipe) => recipe.hppPerPorsi > max.hppPerPorsi ? recipe : max)
+    ? recipesWithHpp.reduce((max, recipe) => recipe.hpp_per_porsi > max.hpp_per_porsi ? recipe : max)
     : null;
   
   const cheapestRecipe = recipesWithHpp.length > 0
-    ? recipesWithHpp.reduce((min, recipe) => recipe.hppPerPorsi < min.hppPerPorsi ? recipe : min)
+    ? recipesWithHpp.reduce((min, recipe) => recipe.hpp_per_porsi < min.hpp_per_porsi ? recipe : min)
     : null;
 
   // Categories distribution
   const categoriesDistribution: { [key: string]: number } = {};
   recipes.forEach(recipe => {
-    const category = recipe.kategoriResep || 'Tidak Berkategori';
+    const category = recipe.kategori_resep || 'Tidak Berkategori';
     categoriesDistribution[category] = (categoriesDistribution[category] || 0) + 1;
   });
 
   // Profitability stats
   const profitabilityStats = { high: 0, medium: 0, low: 0 };
   recipes.forEach(recipe => {
-    const profitability = recipe.marginKeuntunganPersen || 0;
+    const profitability = recipe.margin_keuntungan_persen || 0;
     if (profitability >= 30) {
       profitabilityStats.high++;
     } else if (profitability >= 15) {
@@ -345,10 +290,10 @@ export const searchRecipes = (recipes: Recipe[], query: string): Recipe[] => {
   
   const lowercaseQuery = query.toLowerCase();
   return recipes.filter(recipe => 
-    recipe.namaResep.toLowerCase().includes(lowercaseQuery) ||
-    recipe.kategoriResep?.toLowerCase().includes(lowercaseQuery) ||
+    recipe.nama_resep.toLowerCase().includes(lowercaseQuery) ||
+    recipe.kategori_resep?.toLowerCase().includes(lowercaseQuery) ||
     recipe.deskripsi?.toLowerCase().includes(lowercaseQuery) ||
-    recipe.bahanResep.some(bahan => 
+    recipe.bahan_resep.some(bahan => 
       bahan.nama.toLowerCase().includes(lowercaseQuery)
     )
   );
@@ -359,7 +304,7 @@ export const searchRecipes = (recipes: Recipe[], query: string): Recipe[] => {
  */
 export const filterRecipesByCategory = (recipes: Recipe[], category: string): Recipe[] => {
   if (!category.trim()) return recipes;
-  return recipes.filter(recipe => recipe.kategoriResep === category);
+  return recipes.filter(recipe => recipe.kategori_resep === category);
 };
 
 /**
@@ -400,7 +345,7 @@ export const sortRecipes = (
 export const getUniqueCategories = (recipes: Recipe[]): string[] => {
   const categories = new Set(
     recipes
-      .map(recipe => recipe.kategoriResep)
+      .map(recipe => recipe.kategori_resep)
       .filter((category): category is string => Boolean(category))
   );
   return Array.from(categories).sort();
@@ -443,23 +388,23 @@ export const generateRecipeSlug = (namaResep: string): string => {
 /**
  * Duplicate recipe with new name
  */
-export const duplicateRecipe = (recipe: Recipe, newName: string): NewRecipe => {
+export const duplicateRecipe = (recipe: Recipe, newName: string): NewRecipe =&gt; {
   return {
-    namaResep: newName,
-    jumlahPorsi: recipe.jumlahPorsi,
-    kategoriResep: recipe.kategoriResep,
+    nama_resep: newName,
+    jumlah_porsi: recipe.jumlah_porsi,
+    kategori_resep: recipe.kategori_resep,
     deskripsi: recipe.deskripsi,
-    fotoUrl: recipe.fotoUrl,
-    bahanResep: recipe.bahanResep.map(bahan => ({ ...bahan })), // Deep copy
-    biayaTenagaKerja: recipe.biayaTenagaKerja,
-    biayaOverhead: recipe.biayaOverhead,
-    marginKeuntunganPersen: recipe.marginKeuntunganPersen,
-    totalHpp: recipe.totalHpp,
-    hppPerPorsi: recipe.hppPerPorsi,
-    hargaJualPorsi: recipe.hargaJualPorsi,
-    jumlahPcsPerPorsi: recipe.jumlahPcsPerPorsi,
-    hppPerPcs: recipe.hppPerPcs,
-    hargaJualPerPcs: recipe.hargaJualPerPcs,
+    foto_url: recipe.foto_url,
+    bahan_resep: recipe.bahan_resep.map(bahan =&gt; ({ ...bahan })), // Deep copy
+    biaya_tenaga_kerja: recipe.biaya_tenaga_kerja,
+    biaya_overhead: recipe.biaya_overhead,
+    margin_keuntungan_persen: recipe.margin_keuntungan_persen,
+    total_hpp: recipe.total_hpp,
+    hpp_per_porsi: recipe.hpp_per_porsi,
+    harga_jual_porsi: recipe.harga_jual_porsi,
+    jumlah_pcs_per_porsi: recipe.jumlah_pcs_per_porsi,
+    hpp_per_pcs: recipe.hpp_per_pcs,
+    harga_jual_per_pcs: recipe.harga_jual_per_pcs,
   };
 };
 
@@ -501,10 +446,10 @@ export const exportRecipesToCSV = (recipes: Recipe[]): string => {
 /**
  * Calculate recipe cost per serving
  */
-export const calculateCostPerServing = (recipe: Recipe): number => {
-  const totalIngredientCost = calculateIngredientCost(recipe.bahanResep);
-  const totalCost = totalIngredientCost + recipe.biayaTenagaKerja + recipe.biayaOverhead;
-  return totalCost / recipe.jumlahPorsi;
+export const calculateCostPerServing = (recipe: Recipe): number =&gt; {
+  const totalIngredientCost = calculateIngredientCost(recipe.bahan_resep);
+  const totalCost = totalIngredientCost + recipe.biaya_tenaga_kerja + recipe.biaya_overhead;
+  return totalCost / recipe.jumlah_porsi;
 };
 
 /**

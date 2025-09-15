@@ -15,44 +15,7 @@ interface BahanResep {
 }
 
 interface IngredientCostSummaryProps {
-  bahanResep: BahanResep[];
-  jumlahPorsi: number;
-  jumlahPcsPerPorsi: number;
-  enhancedHppResult?: {
-    bahanPerPcs: number;
-    breakdown: {
-      ingredients: Array<{
-        nama: string;
-        jumlah: number;
-        hargaSatuan: number;
-        totalHarga: number;
-        wacPrice?: number;
-      }>;
-    };
-  };
-}
-
-export const IngredientCostSummary: React.FC<IngredientCostSummaryProps> = ({
-  bahanResep,
-  jumlahPorsi,
-  jumlahPcsPerPorsi,
-  enhancedHppResult
-}) => {
-  // Calculate total ingredient cost from the actual recipe data
-  const totalIngredientCost = bahanResep.reduce((sum, bahan) => sum + bahan.totalHarga, 0);
-  const totalPcs = jumlahPorsi * jumlahPcsPerPorsi;
-  const ingredientCostPerPcs = totalPcs > 0 ? totalIngredientCost / totalPcs : 0;
-  const ingredientCostPerPorsi = jumlahPorsi > 0 ? totalIngredientCost / jumlahPorsi : 0;
-
-  // Check if enhanced result seems reasonable compared to actual ingredient cost
-  const isEnhancedResultReasonable = enhancedHppResult ? 
-    Math.abs(enhancedHppResult.bahanPerPcs - ingredientCostPerPcs) < (ingredientCostPerPcs * 2) : true;
-
-  // Use the more reliable calculation
-  const displayBahanPerPcs = isEnhancedResultReasonable && enhancedHppResult ? 
-    enhancedHppResult.bahanPerPcs : ingredientCostPerPcs;
-
-  return (
+  bahan_resep: BahanResep[];\n  jumlah_porsi: number;\n  jumlah_pcs_per_porsi: number;\n  enhancedHppResult?: {\n    bahan_per_pcs: number;\n    breakdown: {\n      ingredients: Array<{\n        nama: string;\n        jumlah: number;\n        harga_satuan: number;\n        total_harga: number;\n        wac_price?: number;\n      }>;\n    };\n  };\n}\n\nexport const IngredientCostSummary: React.FC<IngredientCostSummaryProps> = ({\n  bahan_resep,\n  jumlah_porsi,\n  jumlah_pcs_per_porsi,\n  enhancedHppResult\n}) => {\n  // Calculate total ingredient cost from the actual recipe data\n  const totalIngredientCost = bahan_resep.reduce((sum, bahan) => sum + bahan.total_harga, 0);\n  const total_pcs = jumlah_porsi * jumlah_pcs_per_porsi;\n  const ingredient_cost_per_pcs = total_pcs > 0 ? totalIngredientCost / total_pcs : 0;\n  const ingredient_cost_per_porsi = jumlah_porsi > 0 ? totalIngredientCost / jumlah_porsi : 0;\n\n  // Check if enhanced result seems reasonable compared to actual ingredient cost\n  const isEnhancedResultReasonable = enhancedHppResult ? \n    Math.abs(enhancedHppResult.bahan_per_pcs - ingredient_cost_per_pcs) < (ingredient_cost_per_pcs * 2) : true;\n\n  // Use the more reliable calculation\n  const display_bahan_per_pcs = isEnhancedResultReasonable && enhancedHppResult ? \n    enhancedHppResult.bahan_per_pcs : ingredient_cost_per_pcs;\n\n  return (
     <Card className="border-blue-200 bg-blue-50">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
@@ -63,22 +26,7 @@ export const IngredientCostSummary: React.FC<IngredientCostSummaryProps> = ({
       <CardContent className="space-y-4">
         
         {/* Warning if enhanced result seems unreasonable */}
-        {!isEnhancedResultReasonable && enhancedHppResult && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-yellow-800">Perhatian: Perhitungan Tidak Konsisten</p>
-                <p className="text-yellow-700 mt-1">
-                  Terdapat perbedaan antara kalkulasi enhanced ({formatCurrency(enhancedHppResult.bahanPerPcs)}/pcs) 
-                  dengan kalkulasi biaya bahan aktual ({formatCurrency(ingredientCostPerPcs)}/pcs). 
-                  Menggunakan kalkulasi aktual yang lebih dapat dipercaya.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
+        {!isEnhancedResultReasonable && enhancedHppResult && (\n            <div className=\"bg-yellow-50 border border-yellow-200 rounded-lg p-3\">\n              <div className=\"flex items-start gap-2\">\n                <AlertTriangle className=\"h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0\" />\n                <div className=\"text-sm\">\n                  <p className=\"font-medium text-yellow-800\">Perhatian: Perhitungan Tidak Konsisten</p>\n                  <p className=\"text-yellow-700 mt-1\">\n                    Terdapat perbedaan antara kalkulasi enhanced ({formatCurrency(enhancedHppResult.bahan_per_pcs)}/pcs) \n                    dengan kalkulasi biaya bahan aktual ({formatCurrency(ingredient_cost_per_pcs)}/pcs). \n                    Menggunakan kalkulasi aktual yang lebih dapat dipercaya.\n                  </p>\n                </div>\n              </div>\n            </div>\n          )}\n
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-blue-700 font-medium">Total Biaya Bahan:</span>
@@ -90,32 +38,11 @@ export const IngredientCostSummary: React.FC<IngredientCostSummaryProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-blue-700">Biaya per Porsi:</span>
             <Badge variant="outline" className="text-blue-700 border-blue-300">
-              {formatCurrency(ingredientCostPerPorsi)}
+              {formatCurrency(ingredient_cost_per_porsi)}
             </Badge>
           </div>
           
-          {jumlahPcsPerPorsi > 1 && (
-            <div className="flex justify-between items-center">
-              <span className="text-blue-700">Biaya per Pcs:</span>
-              <Badge variant="outline" className="text-blue-700 border-blue-300">
-                {formatCurrency(displayBahanPerPcs)}
-              </Badge>
-            </div>
-          )}
-          
-          <div className="text-sm text-blue-600 bg-blue-100 p-2 rounded">
-            <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 flex-shrink-0" />
-              <div>
-                {bahanResep.length} bahan telah dihitung
-                {jumlahPcsPerPorsi > 1 && (
-                  <div className="mt-1 text-xs">
-                    Total: {jumlahPorsi} porsi × {jumlahPcsPerPorsi} pcs = {totalPcs} pcs
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          {jumlah_pcs_per_porsi > 1 && (\n            <div className=\"flex justify-between items-center\">\n              <span className=\"text-blue-700\">Biaya per Pcs:</span>\n              <Badge variant=\"outline\" className=\"text-blue-700 border-blue-300\">\n                {formatCurrency(display_bahan_per_pcs)}\n              </Badge>\n            </div>\n          )}\n          \n          <div className=\"text-sm text-blue-600 bg-blue-100 p-2 rounded\">\n            <div className=\"flex items-center gap-2\">\n              <Info className=\"h-4 w-4 flex-shrink-0\" />\n              <div>\n                {bahan_resep.length} bahan telah dihitung\n                {jumlah_pcs_per_porsi > 1 && (\n                  <div className=\"mt-1 text-xs\">\n                    Total: {jumlah_porsi} porsi × {jumlah_pcs_per_porsi} pcs = {total_pcs} pcs\n                  </div>\n                )}\n              </div>\n            </div>\n          </div>
         </div>
 
         {/* Ingredient breakdown (optional, for debugging) */}

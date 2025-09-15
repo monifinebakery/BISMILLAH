@@ -2,7 +2,21 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { toSafeISOString } from '@/utils/unifiedDateUtils';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 import type { OrderData } from '../types';
+
+interface OrderItemDB {
+  item_name?: string;
+  namaBarang?: string;
+  nama?: string;
+  description?: string;
+  quantity?: number;
+  jumlah?: number;
+  unit_price?: number;
+  hargaSatuan?: number;
+  harga?: number;
+  price?: number;
+}
 
 export const invoiceApi = {
   async getOrderById(orderId: string): Promise<OrderData> {
@@ -19,8 +33,6 @@ export const invoiceApi = {
         email_pelanggan,
         tanggal,
         items,
-        subtotal,
-        pajak,
         total_pesanan
       `)
       .eq('id', orderId)
@@ -36,27 +48,33 @@ export const invoiceApi = {
     }
 
     // Transform database data to OrderData format
+    const items = Array.isArray(data.items) ? (data.items as OrderItemDB[]).map((item: OrderItemDB, index: number) => ({
+      id: index + 1,
+      itemName: item.item_name || item.namaBarang || item.nama || item.description || 'Item',
+      quantity: item.quantity || item.jumlah || 1,
+      unitPrice: item.unit_price || item.hargaSatuan || item.harga || item.price || 0,
+      totalPrice: (item.quantity || item.jumlah || 1) * (item.unit_price || item.hargaSatuan || item.harga || item.price || 0)
+    })) : [];
+
+    // Calculate subtotal from items
+    const calculatedSubtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const taxAmount = 0; // No tax info in orders table
+
     const orderData: OrderData = {
       id: data.id,
-      order_number: data.nomor_pesanan,
-      customer_name: data.nama_pelanggan,
-      customer_address: data.alamat_pengiriman,
-      customer_phone: data.telepon_pelanggan,
-      customer_email: data.email_pelanggan,
-      order_date: data.tanggal,
-      items: Array.isArray(data.items) ? data.items.map((item: any, index: number) => ({
-        id: index + 1,
-        item_name: item.item_name || item.namaBarang || item.nama || item.description || 'Item',
-    quantity: item.quantity || item.jumlah || 1,
-    unit_price: item.unit_price || item.hargaSatuan || item.harga || item.price || 0,
-    total_price: (item.quantity || item.jumlah || 1) * (item.unit_price || item.hargaSatuan || item.harga || item.price || 0)
-      })) : [],
-      subtotal: data.subtotal || 0,
-      tax_amount: data.pajak || 0,
-      total_amount: data.total_pesanan || 0
+      orderNumber: data.nomor_pesanan,
+      customerName: data.nama_pelanggan,
+      customerAddress: data.alamat_pengiriman || undefined,
+      customerPhone: data.telepon_pelanggan || undefined,
+      customerEmail: data.email_pelanggan || undefined,
+      orderDate: UserFriendlyDate.safeParseToDate(data.tanggal),
+      items,
+      subtotal: calculatedSubtotal,
+      taxAmount,
+      totalAmount: data.total_pesanan || calculatedSubtotal
     };
 
-    logger.success('InvoiceAPI: Order data loaded successfully:', orderData.order_number);
+    logger.success('InvoiceAPI: Order data loaded successfully:', orderData.orderNumber);
     return orderData;
   },
 
@@ -69,19 +87,19 @@ export const invoiceApi = {
     
     return {
       id: orderId,
-      order_number: `ORD-${orderId}`,
-      customer_name: 'Customer Name',
-      customer_address: 'Jl. Customer Address No. 123\nKelurahan ABC, Kecamatan DEF\nKota GHI 12345',
-      customer_phone: '+62 123 456 789',
-      customer_email: 'customer@email.com',
-      order_date: toSafeISOString(new Date()) || new Date().toISOString(),
+      orderNumber: `ORD-${orderId}`,
+      customerName: 'Customer Name',
+      customerAddress: 'Jl. Customer Address No. 123\nKelurahan ABC, Kecamatan DEF\nKota GHI 12345',
+      customerPhone: '+62 123 456 789',
+      customerEmail: 'customer@email.com',
+      orderDate: new Date(),
       items: [
-        { id: 1, item_name: 'Product 1', quantity: 2, unit_price: 50000, total_price: 100000 },
-    { id: 2, item_name: 'Product 2', quantity: 1, unit_price: 75000, total_price: 75000 }
+        { id: 1, itemName: 'Product 1', quantity: 2, unitPrice: 50000, totalPrice: 100000 },
+        { id: 2, itemName: 'Product 2', quantity: 1, unitPrice: 75000, totalPrice: 75000 }
       ],
       subtotal: 175000,
-      tax_amount: 19250,
-      total_amount: 194250
+      taxAmount: 19250,
+      totalAmount: 194250
     };
   }
 };

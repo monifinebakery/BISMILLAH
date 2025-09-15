@@ -6,6 +6,8 @@ import { logger } from '@/utils/logger';
 import { useSupplier } from '@/contexts/SupplierContext';
 // Gunakan kategori yang sama dengan analisis profit
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
+// ✅ NEW: Import type utilities for consistent type conversion
+import { toNumber } from '../utils/typeUtils';
 
 // Types - Updated to use BahanBakuFrontend consistently
 import type { BahanBakuFrontend, FilterState, SortConfig } from '../types';
@@ -158,11 +160,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
     // Stock level filter - Fixed with proper number conversion
     if (filters.stockLevel === 'low') {
       const beforeCount = items.length;
-      items = items.filter(item => Number(item.stok) <= Number(item.minimum));
+      items = items.filter(item => toNumber(item.stok) <= toNumber(item.minimum));
       logger.debug(`[${hookId.current}] 📉 Low stock filtered: ${beforeCount} -> ${items.length}`);
     } else if (filters.stockLevel === 'out') {
       const beforeCount = items.length;
-      items = items.filter(item => Number(item.stok) === 0);
+      items = items.filter(item => toNumber(item.stok) === 0);
       logger.debug(`[${hookId.current}] 🚫 Out of stock filtered: ${beforeCount} -> ${items.length}`);
     }
 
@@ -193,8 +195,8 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       
       // Convert to numbers for numeric fields
       if (sortConfig.key === 'stok' || sortConfig.key === 'minimum' || sortConfig.key === 'harga') {
-        aValue = Number(aValue) || 0;
-        bValue = Number(bValue) || 0;
+        aValue = toNumber(aValue);
+        bValue = toNumber(bValue);
       }
       
       if ((aValue ?? '') < (bValue ?? '')) return sortConfig.direction === 'asc' ? -1 : 1;

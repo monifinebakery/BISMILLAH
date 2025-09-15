@@ -225,7 +225,7 @@ const PurchaseImportDialog: React.FC<PurchaseImportDialogProps> = ({
                               currency: 'IDR',
                               minimumFractionDigits: 0,
                               maximumFractionDigits: 0,
-                            }).format(purchase.totalNilai)}
+                            }).format(purchase.total_nilai)}
                           </td>
                         </tr>
                       ))}

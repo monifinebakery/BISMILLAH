@@ -39,7 +39,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   } = useOrderBulk();
 
   const selectedCount = selectedIds.length;
-  const totalSelectedAmount = selectedOrders.reduce((sum, order) => sum + order.totalPesanan, 0);
+  const totalSelectedAmount = selectedOrders.reduce((sum, order: any) => sum + (order.total_pesanan ?? order.totalPesanan ?? 0), 0);
 
   if (selectedCount === 0) {
     return null;

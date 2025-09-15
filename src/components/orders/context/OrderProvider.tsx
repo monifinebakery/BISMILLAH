@@ -406,7 +406,9 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
     const processing = orders.filter(o => o.status === 'preparing').length;
     const completed = orders.filter(o => o.status === 'completed').length;
     const cancelled = orders.filter(o => o.status === 'cancelled').length;
-    const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    const totalRevenue = orders
+      .filter(o => o.status === 'completed')
+      .reduce((sum, o: any) => sum + (o.total_pesanan ?? o.totalAmount ?? 0), 0);
     
     return {
       pending,
@@ -434,12 +436,18 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
   const searchOrders = useCallback((term: string) => {
     const t = term?.toLowerCase?.() || '';
     if (!t) return ordersRef.current;
-    return ordersRef.current.filter(o =>
-      o.customerName.toLowerCase().includes(t) ||
-      o.orderNumber.toLowerCase().includes(t) ||
-      o.customerPhone.toLowerCase().includes(t) ||
-      o.customerEmail?.toLowerCase().includes(t)
-    );
+    return ordersRef.current.filter((o: any) => {
+      const nama = o.nama_pelanggan || o.customer_name || o.customerName || '';
+      const nomor = o.nomor_pesanan || o.order_number || o.orderNumber || '';
+      const telp = o.telepon_pelanggan || o.customer_phone || o.customerPhone || '';
+      const email = o.email_pelanggan || o.customer_email || o.customerEmail || '';
+      return (
+        String(nama).toLowerCase().includes(t) ||
+        String(nomor).toLowerCase().includes(t) ||
+        String(telp).toLowerCase().includes(t) ||
+        String(email).toLowerCase().includes(t)
+      );
+    });
   }, []);
 
   // PERFORMANCE: Return computed stats instead of recalculating

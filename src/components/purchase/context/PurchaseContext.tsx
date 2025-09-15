@@ -332,14 +332,14 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ------------------- Stats (memo) -------------------
   const stats = useMemo(() => {
     const total = (purchases as Purchase[]).length;
-    const total_nilai = (purchases as Purchase[]).reduce((sum: number, p: Purchase) => sum + Number(p.total_nilai || 0), 0);
+    const totalValue = (purchases as Purchase[]).reduce((sum: number, p: Purchase) => sum + Number(p.total_nilai || 0), 0);
     const statusCounts = (purchases as Purchase[]).reduce((acc: Record<string, number>, p: Purchase) => {
       acc[p.status] = (acc[p.status] || 0) + 1;
       return acc;
     }, {});
     return {
       total,
-      total_nilai,
+      total_nilai: totalValue,
       byStatus: {
         pending: statusCounts.pending || 0,
         completed: statusCounts.completed || 0,
@@ -519,7 +519,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             queryClient.invalidateQueries({ queryKey: ['profit-analysis'] });
             
             window.dispatchEvent(new CustomEvent('purchase:completed', {
-              detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.total_nilai }
+              detail: { purchaseId: fresh.id, supplier: fresh.supplier, total_nilai: fresh.total_nilai }
             }));
           }
         }
@@ -567,7 +567,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // ✅ DISPATCH PURCHASE COMPLETION EVENT: Trigger WAC refresh in profit analysis
           console.log('🔄 Dispatching purchase completion event for WAC refresh');
           window.dispatchEvent(new CustomEvent('purchase:completed', {
-            detail: { purchaseId: fresh.id, supplier: fresh.supplier, totalValue: fresh.total_nilai }
+            detail: { purchaseId: fresh.id, supplier: fresh.supplier, total_nilai: fresh.total_nilai }
           }));
           
           // ✅ INVALIDATE FINANCIAL REPORTS: Purchase completion creates financial transaction

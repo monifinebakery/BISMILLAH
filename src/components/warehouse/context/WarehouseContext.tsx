@@ -14,6 +14,7 @@ import { createNotificationHelper } from '@/utils/notificationHelpers';
 // Services
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
+import { toNumber } from '../utils/typeUtils';
 
 // Types - ✅ FIXED: Use correct BahanResep type from recipe components
 import type { BahanBakuFrontend } from '../types';
@@ -99,9 +100,9 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
     // Transform to frontend format and ensure proper types
     const transformedItems = items.map((item: any) => ({
       ...item,
-      stok: Number(item.stok) || 0,
-      minimum: Number(item.minimum) || 0,
-      harga: Number(item.harga) || 0,
+      stok: toNumber(item.stok),
+      minimum: toNumber(item.minimum),
+      harga: toNumber(item.harga),
     }));
     
     logger.debug('✅ fetchWarehouseData transformed items:', transformedItems.length);
@@ -245,7 +246,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     staleTime: 2 * 60 * 1000, // 2 minutes cache to improve performance
     // ✅ FIXED: Simplified retry logic for better error handling
     retry: (failureCount, err: any) => {
-      const code = Number(err?.code || err?.status || 0);
+      const code = toNumber(err?.code || err?.status || 0);
       if (code >= 400 && code < 500) return false; // Don't retry client errors
       return failureCount < 1; // Only 1 retry for other errors
     },
@@ -547,15 +548,15 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   // Analysis functions - ✅ UPDATED: Use new critical stock logic with 20% buffer
   const getLowStockItems = React.useCallback((): BahanBakuFrontend[] => {
     return bahanBaku.filter(item => {
-      const currentStock = Number(item.stok) || 0;
-      const minimumStock = Number(item.minimum) || 0;
+      const currentStock = toNumber(item.stok);
+      const minimumStock = toNumber(item.minimum);
       const alertThreshold = minimumStock > 0 ? minimumStock * 1.2 : minimumStock;
       return currentStock < alertThreshold;
     });
   }, [bahanBaku]);
 
   const getOutOfStockItems = React.useCallback((): BahanBakuFrontend[] => {
-    return bahanBaku.filter(item => Number(item.stok) === 0);
+    return bahanBaku.filter(item => toNumber(item.stok) === 0);
   }, [bahanBaku]);
 
   const getExpiringItems = React.useCallback((days: number = 30): BahanBakuFrontend[] => {

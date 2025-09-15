@@ -155,6 +155,88 @@ export const transformOrderToDB = (data: Partial<Order>): Record<string, any> =>
   }
 };
 
+// ========== NEW: snake_case transformers for Orders ==========
+// These helpers return/accept snake_case fields to align with the new convention
+
+export const transform_order_from_db_snake = (dbItem: any): Order => {
+  // Map DB payload (snake) to Order with snake_case keys preserved
+  try {
+    return {
+      id: dbItem.id || 'unknown',
+      nomor_pesanan: dbItem.nomor_pesanan,
+      nama_pelanggan: dbItem.nama_pelanggan || 'Unknown Customer',
+      telepon_pelanggan: dbItem.telepon_pelanggan || '',
+      email_pelanggan: dbItem.email_pelanggan || undefined,
+      alamat_pengiriman: dbItem.alamat_pengiriman || '',
+      tanggal: safeParseDate(dbItem.tanggal) || new Date(),
+      tanggal_selesai: safeParseDate(dbItem.tanggal_selesai) || undefined,
+      items: Array.isArray(dbItem.items)
+        ? dbItem.items
+        : (typeof dbItem.items === 'string'
+          ? (() => { try { const p = JSON.parse(dbItem.items); return Array.isArray(p) ? p : []; } catch { return []; } })()
+          : []
+        ),
+      total_pesanan: Number(dbItem.total_pesanan) || 0,
+      status: dbItem.status || 'pending',
+      catatan: dbItem.catatan || '',
+      subtotal: Number(dbItem.subtotal) || 0,
+      pajak: Number(dbItem.pajak) || 0,
+      user_id: dbItem.user_id || '',
+      created_at: safeParseDate(dbItem.created_at) || new Date(),
+      updated_at: safeParseDate(dbItem.updated_at) || new Date(),
+    } as unknown as Order;
+  } catch (error) {
+    logger.error('Error transforming order from DB (snake):', error);
+    return createFallbackOrder(dbItem?.id);
+  }
+};
+
+export const transform_order_to_db_snake = (data: Partial<Order>): Record<string, any> => {
+  const dbData: Record<string, any> = {};
+  try {
+    const propertyMap = [
+      ['nomor_pesanan', 'nomor_pesanan'],
+      ['nama_pelanggan', 'nama_pelanggan'],
+      ['telepon_pelanggan', 'telepon_pelanggan'],
+      ['email_pelanggan', 'email_pelanggan'],
+      ['alamat_pengiriman', 'alamat_pengiriman'],
+      ['status', 'status'],
+      ['items', 'items'],
+      ['total_pesanan', 'total_pesanan'],
+      ['catatan', 'catatan'],
+      ['subtotal', 'subtotal'],
+      ['pajak', 'pajak']
+    ] as const;
+
+    propertyMap.forEach(([source, target]) => {
+      if ((data as any)[source] !== undefined) {
+        dbData[target] = (data as any)[source];
+      }
+    });
+
+    if ((data as any).tanggal !== undefined) {
+      const parsedDate = safeParseDate((data as any).tanggal);
+      dbData.tanggal = UnifiedDateHandler.toDatabaseTimestamp(parsedDate || new Date());
+    }
+
+    if ((data as any).tanggal_selesai !== undefined) {
+      const parsedCompletionDate = safeParseDate((data as any).tanggal_selesai as any);
+      dbData.tanggal_selesai = parsedCompletionDate ? UnifiedDateHandler.toDatabaseTimestamp(parsedCompletionDate) : null;
+    }
+
+    return dbData;
+  } catch (error) {
+    logger.error('Error transforming order to DB (snake):', error);
+    return {
+      status: (data as any).status || 'pending',
+      total_pesanan: Number((data as any).total_pesanan) || 0,
+      tanggal: UnifiedDateHandler.toDatabaseTimestamp(new Date()),
+      tanggal_selesai: null,
+      telepon_pelanggan: ''
+    };
+  }
+};
+
 // ✅ VALIDATION: Enhanced with specific error messages and integrated limits
 export const validateOrderData = (data: Partial<NewOrder>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
@@ -164,26 +246,26 @@ export const validateOrderData = (data: Partial<NewOrder>): { isValid: boolean; 
     errors.push('Nama pelanggan harus diisi');
   } else {
     const nameLength = data.namaPelanggan.trim().length;
-    if (nameLength < VALIDATION_LIMITS.customerName.min) {
-      errors.push(`Nama pelanggan minimal ${VALIDATION_LIMITS.customerName.min} karakter`);
+    if (nameLength < VALIDATION_LIMITS.customer_name.min) {
+      errors.push(`Nama pelanggan minimal ${VALIDATION_LIMITS.customer_name.min} karakter`);
     }
-    if (nameLength > VALIDATION_LIMITS.customerName.max) {
-      errors.push(`Nama pelanggan maksimal ${VALIDATION_LIMITS.customerName.max} karakter`);
+    if (nameLength > VALIDATION_LIMITS.customer_name.max) {
+      errors.push(`Nama pelanggan maksimal ${VALIDATION_LIMITS.customer_name.max} karakter`);
     }
   }
   
   // Order value validation with limits
-  if (!data.totalPesanan || data.totalPesanan <= VALIDATION_LIMITS.orderValue.min) {
-    errors.push(`Total pesanan harus lebih dari ${VALIDATION_LIMITS.orderValue.min}`);
-  } else if (data.totalPesanan > VALIDATION_LIMITS.orderValue.max) {
+  if (!data.totalPesanan || data.totalPesanan <= VALIDATION_LIMITS.order_value.min) {
+    errors.push(`Total pesanan harus lebih dari ${VALIDATION_LIMITS.order_value.min}`);
+  } else if (data.totalPesanan > VALIDATION_LIMITS.order_value.max) {
     errors.push('Total pesanan terlalu besar');
   }
   
   // Items validation with limits
   if (!Array.isArray(data.items) || data.items.length === 0) {
     errors.push('Minimal harus ada 1 item pesanan');
-  } else if (data.items.length > VALIDATION_LIMITS.itemsPerOrder.max) {
-    errors.push(`Maksimal ${VALIDATION_LIMITS.itemsPerOrder.max} item per pesanan`);
+  } else if (data.items.length > VALIDATION_LIMITS.items_per_order.max) {
+    errors.push(`Maksimal ${VALIDATION_LIMITS.items_per_order.max} item per pesanan`);
   }
   
   // Optional field validations with limits and improved regex

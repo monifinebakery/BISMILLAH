@@ -16,7 +16,7 @@ import { PurchaseHeaderProps } from '../types/purchase.types';
 
 const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   totalPurchases,
-  totalValue,
+  total_nilai,
   pendingCount,
   onAddPurchase,
   className = '',
@@ -91,7 +91,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
           </Button>
         </div>
 
-        {(totalPurchases > 0 || totalValue > 0) && (
+        {(totalPurchases > 0 || total_nilai > 0) && (
           <div className="mt-4 pt-4 border-t border-white border-opacity-20">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex flex-col">
@@ -104,7 +104,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
               <div className="flex flex-col">
                 <span className="text-white opacity-75 text-xs uppercase tracking-wide">Total Nilai</span>
                 <span className="font-bold text-lg">
-                  {formatCurrency(totalValue)}
+                  {formatCurrency(total_nilai)}
                 </span>
               </div>
 

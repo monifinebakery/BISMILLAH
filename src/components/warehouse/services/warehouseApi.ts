@@ -5,7 +5,15 @@ import { logger } from '@/utils/logger';
 import { UnifiedDateHandler, WarehouseDateUtils } from '@/utils/unifiedDateHandler';
 // ✅ NEW: Import standardized date range filtering
 import { applyStandardDateRangeFilters, STANDARD_DATE_FIELDS } from '@/utils/standardDateRangeFiltering';
+// ✅ NEW: Import type utilities for consistent type conversion
+import { toNumber, toDate, normalizeBahanBaku, normalizeBahanBakuFrontend } from '../utils/typeUtils';
 import type { BahanBaku, BahanBakuFrontend } from '../types';
+
+export interface ServiceConfig {
+  userId?: string;
+  onError?: (error: string) => void;
+  enableDebugLogs?: boolean;
+}
 
 export interface ServiceConfig {
   userId?: string;
@@ -16,22 +24,22 @@ export interface ServiceConfig {
 // Transform DB -> FE (tetap boleh membaca field kemasan lama untuk kompatibilitas tampilan,
 // tapi TIDAK dipakai untuk menghitung/menulis apa pun di warehouse)
 const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
-  const wac = dbItem.harga_rata_rata != null ? Number(dbItem.harga_rata_rata) : undefined;
+  const wac = dbItem.harga_rata_rata != null ? toNumber(dbItem.harga_rata_rata) : undefined;
 
   return {
     id: dbItem.id,
     userId: dbItem.user_id,
     nama: dbItem.nama,
     kategori: dbItem.kategori,
-    stok: Number(dbItem.stok) || 0,
-    minimum: Number(dbItem.minimum) || 0,
+    stok: toNumber(dbItem.stok),
+    minimum: toNumber(dbItem.minimum),
     satuan: dbItem.satuan,
-    harga: Number(dbItem.harga_satuan) || 0,
+    harga: toNumber(dbItem.harga_satuan),
     hargaRataRata: wac,
     supplier: dbItem.supplier || '',
-    expiry: dbItem.tanggal_kadaluwarsa ? new Date(dbItem.tanggal_kadaluwarsa) : undefined,
-    createdAt: new Date(dbItem.created_at),
-    updatedAt: new Date(dbItem.updated_at),
+    expiry: toDate(dbItem.tanggal_kadaluwarsa),
+    createdAt: toDate(dbItem.created_at) || new Date(),
+    updatedAt: toDate(dbItem.updated_at) || new Date(),
   };
 };
 
@@ -41,11 +49,11 @@ const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: 
     id: frontendItem.id,
     nama: frontendItem.nama,
     kategori: frontendItem.kategori,
-    stok: frontendItem.stok,
-    minimum: frontendItem.minimum,
+    stok: toNumber(frontendItem.stok),
+    minimum: toNumber(frontendItem.minimum),
     satuan: frontendItem.satuan,
-    harga_satuan: frontendItem.harga,
-    harga_rata_rata: frontendItem.hargaRataRata,
+    harga_satuan: toNumber(frontendItem.harga),
+    harga_rata_rata: frontendItem.hargaRataRata !== undefined ? toNumber(frontendItem.hargaRataRata) : undefined,
     supplier: frontendItem.supplier || '',
     tanggal_kadaluwarsa: frontendItem.expiry ? frontendItem.expiry.toISOString() : null,
   };
@@ -73,7 +81,11 @@ class CrudService {
       const { data, error } = await query.order('nama', { ascending: true });
       if (error) throw error;
 
-      return (data || []).map((item: any) => transformToFrontend(item));
+      return (data || []).map((item: any) => {
+        // Normalize the data before transforming
+        const normalizedItem = normalizeBahanBaku(item);
+        return transformToFrontend(normalizedItem);
+      });
     } catch (error: any) {
       this.handleError('Fetch failed', error);
       return [];
@@ -116,7 +128,11 @@ class CrudService {
         
       if (error) throw error;
       
-      const transformedData = (data || []).map((item: any) => transformToFrontend(item));
+      const transformedData = (data || []).map((item: any) => {
+        // Normalize the data before transforming
+        const normalizedItem = normalizeBahanBaku(item);
+        return transformToFrontend(normalizedItem);
+      });
       
       return {
         data: transformedData,
@@ -168,7 +184,11 @@ class CrudService {
       const { data, error } = await query.order('nama', { ascending: true });
       if (error) throw error;
 
-      const materials = (data || []).map((item: any) => transformToFrontend(item));
+      const materials = (data || []).map((item: any) => {
+        // Normalize the data before transforming
+        const normalizedItem = normalizeBahanBaku(item);
+        return transformToFrontend(normalizedItem);
+      });
 
       console.log('🔍 FIXED warehouse materials result:', {
         totalMaterials: materials.length,
@@ -195,7 +215,9 @@ class CrudService {
     bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string }
   ): Promise<boolean> {
     try {
-      const dbData = transformToDatabase(bahan, this.config.userId);
+      // Normalize the input data
+      const normalizedBahan = normalizeBahanBakuFrontend(bahan as BahanBakuFrontend);
+      const dbData = transformToDatabase(normalizedBahan, this.config.userId);
       const { error } = await supabase.from('bahan_baku').insert(dbData as any);
       if (error) throw error;
       return true;
@@ -207,7 +229,9 @@ class CrudService {
 
   async updateBahanBaku(id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> {
     try {
-      const dbUpdates = transformToDatabase(updates);
+      // Normalize the update data
+      const normalizedUpdates = normalizeBahanBakuFrontend(updates as BahanBakuFrontend);
+      const dbUpdates = transformToDatabase(normalizedUpdates);
       delete (dbUpdates as any).user_id;
 
       let query = supabase.from('bahan_baku').update(dbUpdates).eq('id', id);
@@ -230,7 +254,11 @@ class CrudService {
 
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
-      return data ? transformToFrontend(data as any) : null;
+      return data ? (() => {
+        // Normalize the data before transforming
+        const normalizedItem = normalizeBahanBaku(data as any);
+        return transformToFrontend(normalizedItem);
+      })() : null;
     } catch (error: any) {
       this.handleError('Get by ID failed', error);
       return null;

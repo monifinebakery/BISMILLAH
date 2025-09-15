@@ -108,16 +108,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   // ✅ ULTRA LIGHTWEIGHT: Zero validation during typing
   const {
     formData,
-    setFormData,
-    updateFormField, // ✅ NEW: Use this for single field updates
+    updateFormData,
+    errors,
     isSubmitting,
-    isDirty,
-    validation,
+    handleSubmit,
     addItem,
     updateItem,
     removeItem,
-    handleSubmit,
-    handleReset,
     total_nilai,
   } = usePurchaseForm({
     mode,

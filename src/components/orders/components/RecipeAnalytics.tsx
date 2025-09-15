@@ -26,7 +26,7 @@ const RecipeAnalytics: React.FC<RecipeAnalyticsProps> = ({ orders, className }) 
     const recipeItems = allItems.filter(item => item.isFromRecipe);
     const customItems = allItems.filter(item => !item.isFromRecipe);
     
-    const totalRevenue = orders.reduce((sum, order) => sum + order.totalPesanan, 0);
+    const totalRevenue = orders.reduce((sum, order: any) => sum + (order.total_pesanan ?? order.totalPesanan ?? 0), 0);
     const recipeRevenue = recipeItems.reduce((sum, item) => sum + item.total, 0);
     
     return {

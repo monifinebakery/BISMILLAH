@@ -48,20 +48,20 @@ export interface InvoiceData {
 
 export interface OrderData {
   id: string;
-  order_number: string; // Standardized field name
-  customer_name: string; // Standardized field name
-  customer_address?: string; // Standardized field name
-  customer_phone?: string; // Standardized field name
-  customer_email?: string; // Standardized field name
-  order_date?: string; // Standardized field name
+  orderNumber: string;
+  customerName: string;
+  customerAddress?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  orderDate?: Date;
   items: Array<{
     id: number;
-    item_name: string; // Standardized field name
+    itemName: string;
     quantity: number;
-    unit_price: number; // Standardized field name
-    total_price: number; // Standardized field name
+    unitPrice: number;
+    totalPrice: number;
   }>;
   subtotal: number;
-  tax_amount?: number; // Standardized field name
-  total_amount: number; // Standardized field name
+  taxAmount?: number;
+  totalAmount: number;
 }

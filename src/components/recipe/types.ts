@@ -5,9 +5,9 @@ export interface BahanResep {
   nama: string;
   jumlah: number;
   satuan: string;
-  hargaSatuan: number;
-  totalHarga: number;
-  warehouseId?: string; // Tambahkan ini
+  harga_satuan: number;
+  total_harga: number;
+  warehouse_id?: string; // Tambahkan ini
 }
 
 // Database format (snake_case)
@@ -37,44 +37,44 @@ export interface RecipeDB {
 // Frontend format (camelCase)
 export interface Recipe {
   id: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  namaResep: string;
-  jumlahPorsi: number;
-  kategoriResep?: string;
+  user_id: string;
+  created_at: Date;
+  updated_at: Date;
+  nama_resep: string;
+  jumlah_porsi: number;
+  kategori_resep?: string;
   deskripsi?: string;
-  fotoUrl?: string;
-  fotoBase64?: string;
-  bahanResep: BahanResep[];
-  biayaTenagaKerja: number;
-  biayaOverhead: number;
-  marginKeuntunganPersen: number;
-  totalHpp: number;
-  hppPerPorsi: number;
-  hargaJualPorsi: number;
-  jumlahPcsPerPorsi: number;
-  hppPerPcs: number;
-  hargaJualPerPcs: number;
+  foto_url?: string;
+  foto_base64?: string;
+  bahan_resep: BahanResep[];
+  biaya_tenaga_kerja: number;
+  biaya_overhead: number;
+  margin_keuntungan_persen: number;
+  total_hpp: number;
+  hpp_per_porsi: number;
+  harga_jual_porsi: number;
+  jumlah_pcs_per_porsi: number;
+  hpp_per_pcs: number;
+  harga_jual_per_pcs: number;
 }
 
 export interface NewRecipe {
-  namaResep: string;
-  jumlahPorsi: number | string; // Allow string for temporary empty state during editing
-  kategoriResep?: string;
+  nama_resep: string;
+  jumlah_porsi: number | string; // Allow string for temporary empty state during editing
+  kategori_resep?: string;
   deskripsi?: string;
-  fotoUrl?: string;
-  fotoBase64?: string;
-  bahanResep: BahanResep[];
-  biayaTenagaKerja: number;
-  biayaOverhead: number;
-  marginKeuntunganPersen: number;
-  totalHpp?: number;
-  hppPerPorsi?: number;
-  hargaJualPorsi?: number;
-  jumlahPcsPerPorsi?: number | string; // Allow string for temporary empty state during editing
-  hppPerPcs?: number;
-  hargaJualPerPcs?: number;
+  foto_url?: string;
+  foto_base64?: string;
+  bahan_resep: BahanResep[];
+  biaya_tenaga_kerja: number;
+  biaya_overhead: number;
+  margin_keuntungan_persen: number;
+  total_hpp?: number;
+  hpp_per_porsi?: number;
+  harga_jual_porsi?: number;
+  jumlah_pcs_per_porsi?: number | string; // Allow string for temporary empty state during editing
+  hpp_per_pcs?: number;
+  harga_jual_per_pcs?: number;
 }
 
 // HPP Calculation Result
@@ -107,12 +107,7 @@ export interface RecipeFilters {
 }
 
 export type RecipeSortField = 
-  | 'namaResep' 
-  | 'kategoriResep' 
-  | 'createdAt' 
-  | 'totalHpp' 
-  | 'hppPerPorsi' 
-  | 'profitabilitas';
+  | 'nama_resep' \n  | 'kategori_resep' \n  | 'created_at' \n  | 'total_hpp' \n  | 'hpp_per_porsi' \n  | 'profitabilitas';
 
 // Statistics
 export interface RecipeStats {
@@ -200,7 +195,7 @@ export type RecipeUnit = typeof RECIPE_UNITS[number];
 export const getCategoriesFromRecipes = (recipes: Recipe[]): string[] => {
   const categories = new Set(
     recipes
-      .map(recipe => recipe.kategoriResep)
+      .map(recipe => recipe.kategori_resep)
       .filter((category): category is string => Boolean(category?.trim()))
   );
   return Array.from(categories).sort();

@@ -59,8 +59,8 @@ export function checkFinancialPurchaseConsistency(
       purchase: {
         purchaseCount: purchases.length,
         completedPurchases: purchases.filter(p => p.status === 'completed').length,
-        totalValue: purchases.reduce(
-          (sum, p) => sum + Number((p as any).total_nilai ?? (p as any).totalNilai ?? 0),
+        total_nilai: purchases.reduce(
+          (sum, p) => sum + Number(p.total_nilai ?? 0),
           0
         ),
         validPurchases: purchases.filter(p => 
@@ -100,9 +100,7 @@ export function checkFinancialPurchaseConsistency(
       );
       
       if (relatedTransaction) {
-        const purchaseValue = Number(
-          (purchase as any).total_nilai ?? (purchase as any).totalNilai ?? 0
-        );
+        const purchaseValue = Number(purchase.total_nilai ?? 0);
         const transactionAmount = Number(relatedTransaction.amount || 0);
         
         if (Math.abs(purchaseValue - transactionAmount) > 0.01) {
@@ -158,7 +156,10 @@ export function checkFinancialPurchaseConsistency(
       issues,
       warnings,
       recommendations,
-      moduleStats
+      moduleStats: {
+        financial: { transactionCount: 0, totalIncome: 0, totalExpense: 0, validTransactions: 0 },
+        purchase: { purchaseCount: 0, completedPurchases: 0, total_nilai: 0, validPurchases: 0 }
+      }
     };
 
   } catch (error) {
@@ -239,7 +240,7 @@ export function validateHookImportConsistency(): ModuleConsistencyResult {
       recommendations,
       moduleStats: {
         financial: { transactionCount: 0, totalIncome: 0, totalExpense: 0, validTransactions: 0 },
-        purchase: { purchaseCount: 0, completedPurchases: 0, totalValue: 0, validPurchases: 0 }
+        purchase: { purchaseCount: 0, completedPurchases: 0, total_nilai: 0, validPurchases: 0 }
       }
     };
     
@@ -251,7 +252,7 @@ export function validateHookImportConsistency(): ModuleConsistencyResult {
       recommendations: ['Review hook export patterns and imports'],
       moduleStats: {
         financial: { transactionCount: 0, totalIncome: 0, totalExpense: 0, validTransactions: 0 },
-        purchase: { purchaseCount: 0, completedPurchases: 0, totalValue: 0, validPurchases: 0 }
+        purchase: { purchaseCount: 0, completedPurchases: 0, total_nilai: 0, validPurchases: 0 }
       }
     };
   }

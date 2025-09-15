@@ -10,6 +10,7 @@ import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { logger } from '@/utils/logger';
+import { toNumber } from '../utils/typeUtils';
 import type { BahanBakuFrontend } from '../types';
 // Gunakan kategori HPP yang sama dengan analisis profit
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
@@ -226,10 +227,10 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         nama: item.nama || '',
         kategori: item.kategori || '',
         supplier: resolvedSupplierName,
-        stok: Number(item.stok) || 0,
-        minimum: Number(item.minimum) || 0,
+        stok: toNumber(item.stok),
+        minimum: toNumber(item.minimum),
         satuan: item.satuan || '',
-        harga: Number(item.harga) || 0,
+        harga: toNumber(item.harga),
         expiry: item.expiry ? item.expiry.split('T')[0] : '',
       });
     } else {
@@ -537,7 +538,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         <Input
                           type="number"
                           value={formData.stok}
-                          onChange={(e) => handleFieldChange('stok', Number(e.target.value))}
+                          onChange={(e) => handleFieldChange('stok', toNumber(e.target.value))}
                           min="0"
                           disabled={isSubmitting}
                           required
@@ -551,7 +552,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         <Input
                           type="number"
                           value={formData.minimum}
-                          onChange={(e) => handleFieldChange('minimum', Number(e.target.value))}
+                          onChange={(e) => handleFieldChange('minimum', toNumber(e.target.value))}
                           min="0"
                           disabled={isSubmitting}
                           required
@@ -572,7 +573,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         <Input
                           type="number"
                           value={formData.harga}
-                          onChange={(e) => handleFieldChange('harga', Number(e.target.value))}
+                          onChange={(e) => handleFieldChange('harga', toNumber(e.target.value))}
                           min="0"
                           className="pl-10 sm:pl-12 text-sm input-mobile-safe"
                           disabled={isSubmitting}

@@ -383,7 +383,7 @@ const OrdersAddEditPage: React.FC = () => {
                 {isEditMode ? 'Edit Pesanan' : 'Pesanan Baru'}
                 {existingOrder && (
                   <Badge className="ml-2 text-xs bg-blue-100 text-blue-800">
-                    #{existingOrder.nomorPesanan}
+                    #{(existingOrder as any).nomor_pesanan || (existingOrder as any).order_number || (existingOrder as any)['nomorPesanan']}
                   </Badge>
                 )}
               </h1>

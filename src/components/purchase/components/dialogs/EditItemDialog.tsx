@@ -53,8 +53,8 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
 
   // Calculate subtotal in real time
   const kuantitasNum = parseRobustNumber(formData.quantity, 0);
-  const hargaSatuanNum = parseRobustNumber(formData.unitPrice, 0);
-  const subtotal = kuantitasNum * hargaSatuanNum;
+  const harga_satuan_num = parseRobustNumber(formData.unitPrice, 0);
+  const subtotal = kuantitasNum * harga_satuan_num;
 
   const handleSave = () => {
     if (!item || itemIndex === undefined) {
@@ -67,14 +67,14 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
       return;
     }
 
-    if (hargaSatuanNum <= 0) {
+    if (harga_satuan_num <= 0) {
       toast.error('Harga satuan harus lebih dari 0');
       return;
     }
 
     const updatedItem: Partial<PurchaseItem> = {
       quantity: kuantitasNum,
-      unitPrice: hargaSatuanNum,
+      unitPrice: harga_satuan_num,
       subtotal: subtotal,
       keterangan: formData.keterangan.trim(),
     };
@@ -170,11 +170,11 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
             </div>
 
             {/* Subtotal Preview */}
-            {(kuantitasNum > 0 && hargaSatuanNum > 0) && (
+            {(kuantitasNum > 0 && harga_satuan_num > 0) && (
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-green-700">
-                    <strong>Preview:</strong> {kuantitasNum} {item.satuan} × {formatCurrency(hargaSatuanNum)}
+                    <strong>Preview:</strong> {kuantitasNum} {item.satuan} × {formatCurrency(harga_satuan_num)}
                   </div>
                   <div className="text-lg font-bold text-green-900">
                     {formatCurrency(subtotal)}
@@ -196,7 +196,7 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={kuantitasNum <= 0 || hargaSatuanNum <= 0}
+                disabled={kuantitasNum <= 0 || harga_satuan_num <= 0}
                 className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
               >
                 <Save className="h-4 w-4 mr-2" />

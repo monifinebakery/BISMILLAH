@@ -6,7 +6,7 @@ import type { OverheadCalculation } from '../utils/types';
 
 interface UseOverheadManagementProps {
   ingredientCost: number;
-  jumlahPorsi: number;
+  jumlah_porsi: number;
   currentOverheadCost?: number;
   onOverheadUpdate: (value: number) => void;
 }
@@ -24,7 +24,7 @@ interface UseOverheadManagementReturn {
 
 export const useOverheadManagement = ({
   ingredientCost,
-  jumlahPorsi,
+  jumlah_porsi,
   currentOverheadCost = 0,
   onOverheadUpdate,
 }: UseOverheadManagementProps): UseOverheadManagementReturn => {
@@ -53,7 +53,7 @@ export const useOverheadManagement = ({
   useEffect(() => {
     if (isUsingAutoOverhead && overheadCalculation?.overhead_per_unit) {
       const overheadPerUnit = overheadCalculation.overhead_per_unit;
-      const totalOverheadForBatch = overheadPerUnit * jumlahPorsi;
+      const totalOverheadForBatch = overheadPerUnit * jumlah_porsi;
       
       // Only update if different from current value
       if (Math.abs(totalOverheadForBatch - currentOverheadCost) > 0.01) {
@@ -61,7 +61,7 @@ export const useOverheadManagement = ({
         onOverheadUpdate(totalOverheadForBatch);
       }
     }
-  }, [overheadCalculation, isUsingAutoOverhead, jumlahPorsi, currentOverheadCost]); // Removed onOverheadUpdate to prevent infinite re-renders
+  }, [overheadCalculation, isUsingAutoOverhead, jumlah_porsi, currentOverheadCost]); // Removed onOverheadUpdate to prevent infinite re-renders
 
   // Toggle between auto and manual mode
   const toggleOverheadMode = useCallback(() => {
@@ -73,11 +73,11 @@ export const useOverheadManagement = ({
       // Switching to auto mode
       setIsUsingAutoOverhead(true);
       if (overheadCalculation?.overhead_per_unit) {
-        const totalOverheadForBatch = overheadCalculation.overhead_per_unit * jumlahPorsi;
+        const totalOverheadForBatch = overheadCalculation.overhead_per_unit * jumlah_porsi;
         onOverheadUpdate(totalOverheadForBatch);
       }
     }
-  }, [isUsingAutoOverhead, overheadCalculation, jumlahPorsi, onOverheadUpdate]);
+  }, [isUsingAutoOverhead, overheadCalculation, jumlah_porsi, onOverheadUpdate]);
 
   // Manually refresh overhead calculation
   const refreshOverheadCalculation = useCallback(async () => {
@@ -90,13 +90,13 @@ export const useOverheadManagement = ({
   const setManualOverhead = useCallback((value: number) => {
     // Switch to manual mode if user manually edits and value differs from auto-calculated
     if (isUsingAutoOverhead && overheadCalculation?.overhead_per_unit) {
-      const expectedAutoValue = overheadCalculation.overhead_per_unit * jumlahPorsi;
+      const expectedAutoValue = overheadCalculation.overhead_per_unit * jumlah_porsi;
       if (Math.abs(value - expectedAutoValue) > 0.01) {
         setIsUsingAutoOverhead(false);
       }
     }
     onOverheadUpdate(value);
-  }, [isUsingAutoOverhead, overheadCalculation, jumlahPorsi, onOverheadUpdate]);
+  }, [isUsingAutoOverhead, overheadCalculation, jumlah_porsi, onOverheadUpdate]);
 
   return {
     isUsingAutoOverhead,

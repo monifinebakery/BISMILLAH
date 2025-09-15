@@ -80,7 +80,7 @@ export const filterPurchases = (
       if (filters.amountRangeFilter.min !== null && purchase.total_nilai < filters.amountRangeFilter.min) {
         return false;
       }
-
+      
       if (filters.amountRangeFilter.max !== null && purchase.total_nilai > filters.amountRangeFilter.max) {
         return false;
       }
@@ -160,7 +160,7 @@ export const paginatePurchases = (
 
 // 🧮 Calculation Helpers
 export const calculatePurchaseTotal = (items: PurchaseItem[]): number => {
-  return items.reduce((total, item) => total + item.totalHarga, 0);
+  return items.reduce((total, item) => total + item.subtotal, 0);
 };
 
 export const calculateItemTotal = (jumlah: number, hargaSatuan: number): number => {
@@ -179,8 +179,8 @@ export const calculatePurchaseStatistics = (
   suppliers: Array<{ id: string; nama: string }> = []
 ): PurchaseStatistics => {
   const totalPurchases = purchases.length;
-  const total_nilai = purchases.reduce((sum, p) => sum + p.total_nilai, 0);
-  const averageValue = totalPurchases > 0 ? total_nilai / totalPurchases : 0;
+  const totalValue = purchases.reduce((sum, p) => sum + p.total_nilai, 0);
+  const averageValue = totalPurchases > 0 ? totalValue / totalPurchases : 0;
 
   // Status breakdown
   const statusBreakdown = purchases.reduce(
@@ -199,7 +199,7 @@ export const calculatePurchaseStatistics = (
 
   return {
     totalPurchases,
-    total_nilai,
+    totalValue,
     averageValue,
     statusBreakdown,
     monthlyTrend,
@@ -210,7 +210,7 @@ export const calculatePurchaseStatistics = (
 const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
   const monthlyData = new Map<
     string,
-    { count: number; total_nilai: number; monthIndex: number; year: number }
+    { count: number; totalValue: number; monthIndex: number; year: number }
   >();
 
   purchases.forEach(purchase => {
@@ -220,7 +220,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
     if (!monthlyData.has(key)) {
       monthlyData.set(key, {
         count: 0,
-        total_nilai: 0,
+        totalValue: 0,
         monthIndex: date.getMonth(),
         year: date.getFullYear()
       });
@@ -228,7 +228,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
 
     const data = monthlyData.get(key)!;
     data.count++;
-    data.total_nilai += purchase.total_nilai;
+    data.totalValue += purchase.total_nilai;
   });
 
   return Array.from(monthlyData.values())
@@ -240,7 +240,7 @@ const generateMonthlyTrend = (purchases: Purchase[]): MonthlyPurchaseData[] => {
     .slice(-12)
     .map(data => ({
       count: data.count,
-      total_nilai: data.total_nilai,
+      totalValue: data.totalValue,
       month: new Date(data.year, data.monthIndex).toLocaleString('id-ID', {
         month: 'long'
       }),
@@ -254,7 +254,7 @@ const generateTopSuppliers = (
 ): SupplierPurchaseData[] => {
   const supplierData = new Map<string, {
     purchaseCount: number;
-    total_nilai: number;
+    totalValue: number;
     lastPurchaseDate: Date;
   }>();
 
@@ -262,14 +262,14 @@ const generateTopSuppliers = (
     if (!supplierData.has(purchase.supplier)) {
       supplierData.set(purchase.supplier, {
         purchaseCount: 0,
-        total_nilai: 0,
+        totalValue: 0,
         lastPurchaseDate: new Date(purchase.tanggal)
       });
     }
 
     const data = supplierData.get(purchase.supplier)!;
     data.purchaseCount++;
-    data.total_nilai += purchase.total_nilai;
+    data.totalValue += purchase.total_nilai;
     
     const purchaseDate = new Date(purchase.tanggal);
     if (purchaseDate > data.lastPurchaseDate) {
@@ -286,7 +286,7 @@ const generateTopSuppliers = (
         ...data
       };
     })
-    .sort((a, b) => b.total_nilai - a.total_nilai)
+    .sort((a, b) => b.totalValue - a.totalValue)
     .slice(0, 5); // Top 5 suppliers
 };
 
@@ -309,10 +309,21 @@ export const getSupplierName = (
   return supplier?.nama || supplierId || 'Unknown Supplier';
 };
 
-export const formatItemsDisplay = (items: PurchaseItem[]): string => {
-  if (items.length === 0) return 'No items';
-  if (items.length === 1) return `1 item: ${items[0].namaBarang}`;
-  return `${items.length} items: ${items[0].namaBarang}${items.length > 1 ? `, +${items.length - 1} more` : ''}`;
+export const getItemsPreview = (items: Purchase['items'], maxItems: number = 2): string => {
+  if (!items || items.length === 0) {
+    return 'Tidak ada item';
+  }
+
+  const preview = items
+    .slice(0, maxItems)
+    .map(item => `${item.nama} (${item.quantity} ${item.satuan})`)
+    .join(', ');
+  
+  if (items.length > maxItems) {
+    return `${preview}, +${items.length - maxItems} lainnya`;
+  }
+  
+  return preview;
 };
 
 // 📅 Date Helpers
@@ -491,10 +502,10 @@ export const preparePurchasesForExport = (
 
     if (includeItems) {
       const itemsData = purchase.items.map((item, index) => ({
-        [`Item ${index + 1} - Nama`]: item.namaBarang,
-        [`Item ${index + 1} - Jumlah`]: `${item.jumlah} ${item.satuan}`,
-        [`Item ${index + 1} - Harga Satuan`]: formatCurrency(item.hargaSatuan),
-        [`Item ${index + 1} - Total`]: formatCurrency(item.totalHarga)
+        [`Item ${index + 1} - Nama`]: item.nama,
+        [`Item ${index + 1} - Jumlah`]: `${item.quantity} ${item.satuan}`,
+        [`Item ${index + 1} - Harga Satuan`]: formatCurrency(item.unitPrice),
+        [`Item ${index + 1} - Total`]: formatCurrency(item.subtotal)
       })).reduce((acc, item) => ({ ...acc, ...item }), {});
 
       return { ...baseData, ...itemsData };

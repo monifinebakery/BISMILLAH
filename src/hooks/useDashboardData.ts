@@ -200,11 +200,11 @@ export const useDashboardData = (dateRange: DateRange) => {
           if (!item?.name) return;
           
           const recipe = recipes.find(r => r?.namaResep === item.name);
-          if (!recipe?.bahanResep) return;
+          if (!(recipe as any)?.bahan_resep) return;
           
           const quantity = safeNumber(item.quantity);
           
-          recipe.bahanResep.forEach((ingredient: any) => {
+          (recipe as any).bahan_resep.forEach((ingredient: any) => {
             if (!ingredient?.nama) return;
             
             if (!ingredientUsage[ingredient.nama]) {
@@ -241,11 +241,11 @@ export const useDashboardData = (dateRange: DateRange) => {
           if (!item?.name) return;
           
           const recipe = recipes.find(r => r?.namaResep === item.name);
-          if (!recipe?.bahanResep) return;
+          if (!(recipe as any)?.bahan_resep) return;
           
           const quantity = safeNumber(item.quantity);
           
-          recipe.bahanResep.forEach((ingredient: any) => {
+          (recipe as any).bahan_resep.forEach((ingredient: any) => {
             if (!ingredient?.nama) return;
             
             if (!ingredientUsage[ingredient.nama]) {

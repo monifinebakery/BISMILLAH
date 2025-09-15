@@ -152,7 +152,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                     <span className="text-xs text-gray-500">Bahan</span>
                   </div>
                   <p className="text-sm font-medium text-gray-900">
-                    {recipe.bahanResep.length}
+                    {(recipe as any).bahan_resep?.length ?? 0}
                   </p>
                 </div>
               </div>

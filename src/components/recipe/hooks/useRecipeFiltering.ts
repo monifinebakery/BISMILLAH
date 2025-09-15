@@ -12,7 +12,7 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<RecipeSortField>('namaResep');
+  const [sortBy, setSortBy] = useState<RecipeSortField>('nama_resep');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Check if any filters are active
@@ -74,8 +74,8 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
   const availableCategories = useMemo(() => {
     const categories = new Set(
       recipes
-        .map(recipe => recipe.kategoriResep)
-        .filter((category): category is string => Boolean(category))
+        .map(recipe => (recipe as any).kategori_resep)
+        .filter((category): category is string => Boolean((category as any)?.trim?.()))
     );
     return Array.from(categories).sort();
   }, [recipes]);
@@ -89,24 +89,23 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
   // Get recipes matching search term in specific fields
   const searchByField = useCallback((
     query: string, 
-    field: 'namaResep' | 'kategoriResep' | 'deskripsi' | 'bahanResep'
+    field: 'nama_resep' | 'kategori_resep' | 'deskripsi' | 'bahan_resep'
   ) => {
     if (!query.trim()) return recipes;
 
     const lowercaseQuery = query.toLowerCase();
     
     return recipes.filter(recipe => {
+      const r: any = recipe as any;
       switch (field) {
-        case 'namaResep':
-          return recipe.namaResep.toLowerCase().includes(lowercaseQuery);
-        case 'kategoriResep':
-          return recipe.kategoriResep?.toLowerCase().includes(lowercaseQuery);
+        case 'nama_resep':
+          return (r.nama_resep || '').toLowerCase().includes(lowercaseQuery);
+        case 'kategori_resep':
+          return (r.kategori_resep || '').toLowerCase().includes(lowercaseQuery);
         case 'deskripsi':
-          return recipe.deskripsi?.toLowerCase().includes(lowercaseQuery);
-        case 'bahanResep':
-          return recipe.bahanResep.some(bahan => 
-            bahan.nama.toLowerCase().includes(lowercaseQuery)
-          );
+          return (r.deskripsi || '').toLowerCase().includes(lowercaseQuery);
+        case 'bahan_resep':
+          return Array.isArray(r.bahan_resep) && r.bahan_resep.some((b: any) => (b.nama || '').toLowerCase().includes(lowercaseQuery));
         default:
           return false;
       }
@@ -116,7 +115,7 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
   // Advanced filter options
   const filterByProfitability = useCallback((level: 'high' | 'medium' | 'low') => {
     return filteredAndSortedRecipes.filter(recipe => {
-      const margin = recipe.marginKeuntunganPersen || 0;
+      const margin = (recipe as any).margin_keuntungan_persen || 0;
       switch (level) {
         case 'high': return margin >= 30;
         case 'medium': return margin >= 15 && margin < 30;
@@ -127,15 +126,17 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
   }, [filteredAndSortedRecipes]);
 
   const filterByHppRange = useCallback((min: number, max: number) => {
-    return filteredAndSortedRecipes.filter(recipe => 
-      recipe.hppPerPorsi >= min && recipe.hppPerPorsi <= max
-    );
+    return filteredAndSortedRecipes.filter(recipe => {
+      const h = (recipe as any).hpp_per_porsi || 0;
+      return h >= min && h <= max;
+    });
   }, [filteredAndSortedRecipes]);
 
   const filterByDateRange = useCallback((startDate: Date, endDate: Date) => {
-    return filteredAndSortedRecipes.filter(recipe => 
-      recipe.createdAt >= startDate && recipe.createdAt <= endDate
-    );
+    return filteredAndSortedRecipes.filter(recipe => {
+      const d = new Date((recipe as any).created_at);
+      return d >= startDate && d <= endDate;
+    });
   }, [filteredAndSortedRecipes]);
 
   // Get filter summary
@@ -150,12 +151,12 @@ export const useRecipeFiltering = ({ recipes }: UseRecipeFilteringProps) => {
       summary.push(`Kategori: ${categoryFilter}`);
     }
     
-    if (sortBy !== 'namaResep' || sortOrder !== 'asc') {
-      const sortLabel = sortBy === 'namaResep' ? 'Nama' :
-                       sortBy === 'kategoriResep' ? 'Kategori' :
-                       sortBy === 'createdAt' ? 'Tanggal' :
-                       sortBy === 'totalHpp' ? 'Total HPP' :
-                       sortBy === 'hppPerPorsi' ? 'HPP/Porsi' : 'Profitabilitas';
+    if (sortBy !== 'nama_resep' || sortOrder !== 'asc') {
+      const sortLabel = sortBy === 'nama_resep' ? 'Nama' :
+                       sortBy === 'kategori_resep' ? 'Kategori' :
+                       sortBy === 'created_at' ? 'Tanggal' :
+                       sortBy === 'total_hpp' ? 'Total HPP' :
+                       sortBy === 'hpp_per_porsi' ? 'HPP/Porsi' : 'Profitabilitas';
       const orderLabel = sortOrder === 'asc' ? 'A-Z' : 'Z-A';
       summary.push(`Urutkan: ${sortLabel} (${orderLabel})`);
     }

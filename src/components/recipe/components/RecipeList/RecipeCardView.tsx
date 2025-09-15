@@ -99,7 +99,8 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
 
   // Get recipe image source
   const getImageSrc = (recipe: Recipe) => {
-    return recipe.fotoBase64 || recipe.fotoUrl || null;
+    // Support both snake_case and camelCase fields
+    return (recipe as any).foto_base64 || (recipe as any).foto_url || null;
   };
 
   if (recipes.length === 0) return null;
@@ -141,7 +142,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                     <Checkbox
                       checked={selectedIds.has(recipe.id)}
                       onCheckedChange={() => onSelectionChange?.(recipe.id)}
-                      aria-label={`Pilih resep ${recipe.namaResep}`}
+                      aria-label={`Pilih resep ${(recipe as any).nama_resep}`}
                       className="bg-white border-2 border-white shadow-sm"
                     />
                   </div>
@@ -152,7 +153,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                   {imageSrc ? (
                     <img
                       src={imageSrc}
-                      alt={recipe.namaResep}
+                      alt={(recipe as any).nama_resep}
                       className="w-full h-full object-cover"
                       loading="lazy"
                       onError={(e) => {
@@ -223,22 +224,22 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                       WebkitLineClamp: 2, 
                       WebkitBoxOrient: 'vertical' as const 
                     }}>
-                      {highlightText(recipe.namaResep, searchTerm)}
+                      {highlightText((recipe as any).nama_resep, searchTerm)}
                     </h3>
                     
-                    {recipe.kategoriResep && (
+                    {(recipe as any).kategori_resep && (
                       <Badge variant="outline" className="text-xs">
-                        {highlightText(recipe.kategoriResep, searchTerm)}
+                        {highlightText((recipe as any).kategori_resep, searchTerm)}
                       </Badge>
                     )}
                     
-                    {recipe.deskripsi && (
+                    {(recipe as any).deskripsi && (
                       <p className="text-xs text-gray-500 overflow-hidden" style={{ 
                         display: '-webkit-box', 
                         WebkitLineClamp: 2, 
                         WebkitBoxOrient: 'vertical' as const 
                       }}>
-                        {highlightText(recipe.deskripsi, searchTerm)}
+                        {highlightText((recipe as any).deskripsi, searchTerm)}
                       </p>
                     )}
                   </div>
@@ -248,10 +249,10 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                     {/* Portions */}
                     <div className="flex items-center gap-2 text-gray-600">
                       <Users className="h-3 w-3" />
-                      <span>{recipe.jumlahPorsi} porsi</span>
-                      {recipe.jumlahPcsPerPorsi > 1 && (
+                      <span>{(recipe as any).jumlah_porsi} porsi</span>
+                      {(recipe as any).jumlah_pcs_per_porsi > 1 && (
                         <span className="text-gray-400">
-                          ({recipe.jumlahPcsPerPorsi} pcs/porsi)
+                          ({(recipe as any).jumlah_pcs_per_porsi} pcs/porsi)
                         </span>
                       )}
                     </div>

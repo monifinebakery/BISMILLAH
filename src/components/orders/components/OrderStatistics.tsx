@@ -48,19 +48,19 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
     }, 0);
     
     const pendingOrders = orders.filter(order => order.status === 'pending').length;
-    const completedOrders = orders.filter(order => order.status === 'completed').length;
+    const completedCount = orders.filter(order => order.status === 'completed').length;
     const processingOrders = orders.filter(order => 
       ['confirmed', 'preparing'].includes(order.status)
     ).length;
     
-    const averageOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
-    const completionRate = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
+    const averageOrderValue = completedCount > 0 ? totalRevenue / completedCount : 0;
+    const completionRate = totalOrders > 0 ? (completedCount / totalOrders) * 100 : 0;
 
     return {
       totalOrders,
       totalRevenue,
       pendingOrders,
-      completedOrders,
+      completedOrders: completedCount,
       processingOrders,
       averageOrderValue,
       completionRate

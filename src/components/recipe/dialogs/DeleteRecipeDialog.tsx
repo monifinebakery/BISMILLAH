@@ -155,7 +155,7 @@ const DeleteRecipeDialog: React.FC<DeleteRecipeDialogProps> = ({
               {/* Ingredients Count */}
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <p className="text-sm text-gray-600">
-                  <span className="font-medium">{recipe.bahan_resep.length}</span> bahan akan ikut terhapus
+                  <span className="font-medium">{recipe.bahan_resep?.length ?? 0}</span> bahan akan ikut terhapus
                 </p>
               </div>
             </div>

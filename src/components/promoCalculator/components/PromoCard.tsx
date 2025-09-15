@@ -251,10 +251,10 @@ const PromoCard = ({
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span>
                 {promo.tanggalMulai && promo.tanggalSelesai
-                  ? `${formatDate(promo.tanggalMulai)} - ${formatDate(promo.tanggalSelesai)}`
+                  ? `${formatDateForDisplay(promo.tanggalMulai)} - ${formatDateForDisplay(promo.tanggalSelesai)}`
                   : promo.tanggalMulai
-                    ? `Mulai: ${formatDate(promo.tanggalMulai)}`
-                    : `Berakhir: ${formatDate(promo.tanggalSelesai)}`
+                    ? `Mulai: ${formatDateForDisplay(promo.tanggalMulai)}`
+                    : `Berakhir: ${formatDateForDisplay(promo.tanggalSelesai)}`
                 }
               </span>
               
@@ -269,12 +269,12 @@ const PromoCard = ({
           {/* Created Date */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-200">
             <p className="text-xs text-gray-500">
-              Dibuat {formatDate(promo.createdAt)}
+              Dibuat {formatDateForDisplay(promo.createdAt)}
             </p>
             
             {promo.updatedAt && promo.updatedAt !== promo.createdAt && (
               <p className="text-xs text-gray-500">
-                Diperbarui {formatDate(promo.updatedAt)}
+                Diperbarui {formatDateForDisplay(promo.updatedAt)}
               </p>
             )}
           </div>

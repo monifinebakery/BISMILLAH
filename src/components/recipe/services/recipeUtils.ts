@@ -1,11 +1,11 @@
 // src/components/recipe/services/recipeUtils.ts
 
 import { logger } from '@/utils/logger';
-import type { 
-  Recipe, 
-  NewRecipe, 
-  BahanResep, 
-  HPPCalculationResult, 
+import type {
+  Recipe,
+  NewRecipe,
+  BahanResep,
+  HPPCalculationResult,
   ValidationResult,
   RecipeStats
 } from '../types';
@@ -18,7 +18,7 @@ import type {
  * Calculate ingredient total cost
  * Uses totalHarga if available, otherwise calculates from jumlah * hargaSatuan
  */
-export const calculateIngredientCost = (bahanResep: BahanResep[]): number => {
+export const calculateIngredientCost = (bahanResep: Array<any>): number => {
   // FORCE console.log untuk debugging
   console.log('🔍 [DEBUG] calculateIngredientCost called with:', bahanResep);
   
@@ -27,28 +27,30 @@ export const calculateIngredientCost = (bahanResep: BahanResep[]): number => {
   let usedCalculated = 0;
   
   bahanResep.forEach((bahan, index) => {
+    const totalHarga = typeof bahan.totalHarga === 'number' ? bahan.totalHarga : bahan.total_harga;
+    const hargaSatuan = typeof bahan.hargaSatuan === 'number' ? bahan.hargaSatuan : bahan.harga_satuan;
     console.log(`🔍 [DEBUG] Processing ingredient ${index + 1}:`, {
       nama: bahan.nama,
       jumlah: bahan.jumlah,
-      hargaSatuan: bahan.hargaSatuan,
-      totalHarga: bahan.totalHarga,
-      totalHargaType: typeof bahan.totalHarga,
-      totalHargaIsNaN: isNaN(bahan.totalHarga as number)
+      hargaSatuan,
+      totalHarga,
+      totalHargaType: typeof totalHarga,
+      totalHargaIsNaN: isNaN(totalHarga as number)
     });
     
     // Prioritize totalHarga if it exists and is valid
-    if (typeof bahan.totalHarga === 'number' && !isNaN(bahan.totalHarga)) {
-      totalCost += bahan.totalHarga;
+    if (typeof totalHarga === 'number' && !isNaN(totalHarga)) {
+      totalCost += totalHarga;
       usedTotalHarga++;
-      console.log(`✅ Using totalHarga: ${bahan.totalHarga}`);
-      logger.debug(`RecipeUtils: Ingredient ${index + 1} (${bahan.nama}) using totalHarga: ${bahan.totalHarga}`);
+      console.log(`✅ Using totalHarga: ${totalHarga}`);
+      logger.debug(`RecipeUtils: Ingredient ${index + 1} (${bahan.nama}) using totalHarga: ${totalHarga}`);
     } else {
       // Fallback to manual calculation
-      const calculated = bahan.jumlah * bahan.hargaSatuan;
+      const calculated = (Number(bahan.jumlah) || 0) * (Number(hargaSatuan) || 0);
       totalCost += calculated;
       usedCalculated++;
-      console.log(`⚠️ Using calculated: ${bahan.jumlah} × ${bahan.hargaSatuan} = ${calculated}`);
-      logger.debug(`RecipeUtils: Ingredient ${index + 1} (${bahan.nama}) calculated: ${bahan.jumlah} × ${bahan.hargaSatuan} = ${calculated}`);
+      console.log(`⚠️ Using calculated: ${bahan.jumlah} × ${hargaSatuan} = ${calculated}`);
+      logger.debug(`RecipeUtils: Ingredient ${index + 1} (${bahan.nama}) calculated: ${bahan.jumlah} × ${hargaSatuan} = ${calculated}`);
     }
   });
   
@@ -176,11 +178,73 @@ export const calculateHPP = (
 /**
  * Validate recipe data
  */
-export const validateRecipeData = (recipe: Partial<NewRecipe>): ValidationResult => {
+export const validateRecipeData = (recipe: Partial<NewRecipe> | any): ValidationResult => {
   const errors: string[] = [];
+  // Support both camelCase and snake_case inputs
+  const namaResep = (recipe as any).nama_resep ?? (recipe as any).namaResep;
+  const bahanList = (recipe as any).bahan_resep ?? (recipe as any).bahanResep;
+  const jumlah_porsi_val = (recipe as any).jumlah_porsi ?? (recipe as any).jumlahPorsi;
+  const jumlah_pcs_per_porsi_val = (recipe as any).jumlah_pcs_per_porsi ?? (recipe as any).jumlahPcsPerPorsi;
 
-  // Basic validation
-  // Di validateRecipeData:\nif (!recipe.nama_resep || recipe.nama_resep.trim().length === 0) {\n  errors.push('Nama resep wajib diisi');\n}\n\n// Handle both number and string types for jumlah_porsi\nconst jumlahPorsi = typeof recipe.jumlah_porsi === 'string' \n  ? (recipe.jumlah_porsi === '' ? 0 : parseInt(recipe.jumlah_porsi))\n  : recipe.jumlah_porsi;\nif (!jumlahPorsi || jumlahPorsi <= 0) {\n  errors.push('Jumlah porsi harus lebih dari 0');\n}\n\nif (!recipe.bahan_resep || recipe.bahan_resep.length === 0) {\n  errors.push('Minimal harus ada 1 bahan resep');\n}\n\n// Validate ingredients\nif (recipe.bahan_resep) {\n  recipe.bahan_resep.forEach((bahan, index) => {\n    if (!bahan.nama || bahan.nama.trim().length === 0) {\n      errors.push(`Bahan resep ke-${index + 1}: Nama bahan wajib diisi`);\n    }\n    if (!bahan.jumlah || bahan.jumlah <= 0) {\n      errors.push(`Bahan resep ke-${index + 1}: Jumlah harus lebih dari 0`);\n    }\n    if (!bahan.hargaSatuan || bahan.hargaSatuan <= 0) {\n      errors.push(`Bahan resep ke-${index + 1}: Harga satuan harus lebih dari 0`);\n    }\n    if (!bahan.satuan || bahan.satuan.trim().length === 0) {\n      errors.push(`Bahan resep ke-${index + 1}: Satuan wajib diisi`);\n    }\n  });\n}\n\n// Validate costs\nif (recipe.biaya_tenaga_kerja !== undefined && recipe.biaya_tenaga_kerja < 0) {\n  errors.push('Biaya tenaga kerja tidak boleh negatif');\n}\n\nif (recipe.biaya_overhead !== undefined && recipe.biaya_overhead < 0) {\n  errors.push('Biaya overhead tidak boleh negatif');\n}\n\nif (recipe.margin_keuntungan_persen !== undefined && recipe.margin_keuntungan_persen < 0) {\n  errors.push('Margin keuntungan tidak boleh negatif');\n}\n\n// Handle both number and string types for jumlah_pcs_per_porsi\nif (recipe.jumlah_pcs_per_porsi !== undefined) {\n  const jumlahPcsPerPorsi = typeof recipe.jumlah_pcs_per_porsi === 'string'\n    ? (recipe.jumlah_pcs_per_porsi === '' ? 0 : parseInt(recipe.jumlah_pcs_per_porsi))\n    : recipe.jumlah_pcs_per_porsi;\n  if (jumlahPcsPerPorsi <= 0) {\n    errors.push('Jumlah pcs per porsi harus lebih dari 0');\n  }\n}\n
+  // Name validation
+  if (!namaResep || typeof namaResep !== 'string' || namaResep.trim().length === 0) {
+    errors.push('Nama resep wajib diisi');
+  }
+
+  // Portion count
+  const jumlahPorsi = typeof jumlah_porsi_val === 'string'
+    ? (jumlah_porsi_val === '' ? 0 : parseInt(jumlah_porsi_val))
+    : (Number(jumlah_porsi_val) || 0);
+  if (!jumlahPorsi || jumlahPorsi <= 0) {
+    errors.push('Jumlah porsi harus lebih dari 0');
+  }
+
+  // Ingredients
+  if (!Array.isArray(bahanList) || bahanList.length === 0) {
+    errors.push('Minimal harus ada 1 bahan resep');
+  } else {
+    bahanList.forEach((bahan: any, index: number) => {
+      if (!bahan?.nama || String(bahan.nama).trim().length === 0) {
+        errors.push(`Bahan resep ke-${index + 1}: Nama bahan wajib diisi`);
+      }
+      const jumlah = Number(bahan?.jumlah) || 0;
+      if (jumlah <= 0) {
+        errors.push(`Bahan resep ke-${index + 1}: Jumlah harus lebih dari 0`);
+      }
+      const harga = Number(bahan?.hargaSatuan ?? bahan?.harga_satuan) || 0;
+      if (harga <= 0) {
+        errors.push(`Bahan resep ke-${index + 1}: Harga satuan harus lebih dari 0`);
+      }
+      if (!bahan?.satuan || String(bahan.satuan).trim().length === 0) {
+        errors.push(`Bahan resep ke-${index + 1}: Satuan wajib diisi`);
+      }
+    });
+  }
+
+  // Costs
+  const biayaTKL = (recipe as any).biaya_tenaga_kerja ?? (recipe as any).biayaTenagaKerja;
+  const biayaOverhead = (recipe as any).biaya_overhead ?? (recipe as any).biayaOverhead;
+  const marginPersen = (recipe as any).margin_keuntungan_persen ?? (recipe as any).marginKeuntunganPersen;
+
+  if (biayaTKL !== undefined && Number(biayaTKL) < 0) {
+    errors.push('Biaya tenaga kerja tidak boleh negatif');
+  }
+  if (biayaOverhead !== undefined && Number(biayaOverhead) < 0) {
+    errors.push('Biaya overhead tidak boleh negatif');
+  }
+  if (marginPersen !== undefined && Number(marginPersen) < 0) {
+    errors.push('Margin keuntungan tidak boleh negatif');
+  }
+
+  // Pieces per portion
+  if (jumlah_pcs_per_porsi_val !== undefined) {
+    const jumlahPcsPerPorsi = typeof jumlah_pcs_per_porsi_val === 'string'
+      ? (jumlah_pcs_per_porsi_val === '' ? 0 : parseInt(jumlah_pcs_per_porsi_val))
+      : (Number(jumlah_pcs_per_porsi_val) || 0);
+    if (jumlahPcsPerPorsi <= 0) {
+      errors.push('Jumlah pcs per porsi harus lebih dari 0');
+    }
+  }
 
   return {
     isValid: errors.length === 0,
@@ -388,14 +452,14 @@ export const generateRecipeSlug = (namaResep: string): string => {
 /**
  * Duplicate recipe with new name
  */
-export const duplicateRecipe = (recipe: Recipe, newName: string): NewRecipe =&gt; {
+export const duplicateRecipe = (recipe: Recipe, newName: string): NewRecipe => {
   return {
     nama_resep: newName,
     jumlah_porsi: recipe.jumlah_porsi,
     kategori_resep: recipe.kategori_resep,
     deskripsi: recipe.deskripsi,
     foto_url: recipe.foto_url,
-    bahan_resep: recipe.bahan_resep.map(bahan =&gt; ({ ...bahan })), // Deep copy
+    bahan_resep: recipe.bahan_resep.map(bahan => ({ ...bahan })), // Deep copy
     biaya_tenaga_kerja: recipe.biaya_tenaga_kerja,
     biaya_overhead: recipe.biaya_overhead,
     margin_keuntungan_persen: recipe.margin_keuntungan_persen,
@@ -411,7 +475,7 @@ export const duplicateRecipe = (recipe: Recipe, newName: string): NewRecipe =&gt
 /**
  * Export recipes to CSV format
  */
-export const exportRecipesToCSV = (recipes: Recipe[]): string => {
+export const exportRecipesToCSV = (recipes: Array<any>): string => {
   const headers = [
     'Nama Resep',
     'Kategori',
@@ -424,17 +488,30 @@ export const exportRecipesToCSV = (recipes: Recipe[]): string => {
     'Tanggal Dibuat'
   ];
 
-  const rows = recipes.map(recipe => [
-    recipe.namaResep,
-    recipe.kategoriResep || '',
-    recipe.jumlahPorsi.toString(),
-    recipe.totalHpp.toString(),
-    recipe.hppPerPorsi.toString(),
-    recipe.hargaJualPorsi.toString(),
-    recipe.marginKeuntunganPersen.toString(),
-    getProfitabilityLevel(recipe.marginKeuntunganPersen),
-    recipe.createdAt.toLocaleDateString('id-ID')
-  ]);
+  const rows = recipes.map((recipe) => {
+    const nama = recipe.nama_resep ?? recipe.namaResep ?? '';
+    const kategori = recipe.kategori_resep ?? recipe.kategoriResep ?? '';
+    const jumlahPorsi = (recipe.jumlah_porsi ?? recipe.jumlahPorsi ?? 0).toString();
+    const totalHpp = (recipe.total_hpp ?? recipe.totalHpp ?? 0).toString();
+    const hppPerPorsi = (recipe.hpp_per_porsi ?? recipe.hppPerPorsi ?? 0).toString();
+    const hargaJualPorsi = (recipe.harga_jual_porsi ?? recipe.hargaJualPorsi ?? 0).toString();
+    const margin = recipe.margin_keuntungan_persen ?? recipe.marginKeuntunganPersen ?? 0;
+    const profitLevel = getProfitabilityLevel(Number(margin) || 0);
+    const created = recipe.created_at ?? recipe.createdAt ?? null;
+    const createdStr = created ? (created instanceof Date ? created : new Date(created)).toLocaleDateString('id-ID') : '';
+
+    return [
+      nama,
+      kategori,
+      jumlahPorsi,
+      totalHpp,
+      hppPerPorsi,
+      hargaJualPorsi,
+      String(margin),
+      profitLevel,
+      createdStr
+    ];
+  });
 
   const csvContent = [headers, ...rows]
     .map(row => row.map(cell => `"${cell}"`).join(','))
@@ -446,8 +523,8 @@ export const exportRecipesToCSV = (recipes: Recipe[]): string => {
 /**
  * Calculate recipe cost per serving
  */
-export const calculateCostPerServing = (recipe: Recipe): number =&gt; {
-  const totalIngredientCost = calculateIngredientCost(recipe.bahan_resep);
+export const calculateCostPerServing = (recipe: Recipe): number => {
+  const totalIngredientCost = calculateIngredientCost(recipe.bahan_resep as any[]);
   const totalCost = totalIngredientCost + recipe.biaya_tenaga_kerja + recipe.biaya_overhead;
   return totalCost / recipe.jumlah_porsi;
 };
@@ -460,7 +537,7 @@ export const getMostExpensiveIngredients = (
   limit: number = 5
 ): BahanResep[] => {
   return [...bahanResep]
-    .sort((a, b) => b.totalHarga - a.totalHarga)
+    .sort((a: any, b: any) => (b.total_harga ?? b.totalHarga ?? 0) - (a.total_harga ?? a.totalHarga ?? 0))
     .slice(0, limit);
 };
 
@@ -471,5 +548,6 @@ export const calculateIngredientPercentage = (
   bahan: BahanResep, 
   totalCost: number
 ): number => {
-  return totalCost > 0 ? (bahan.totalHarga / totalCost) * 100 : 0;
+  const th = (bahan as any).total_harga ?? (bahan as any).totalHarga ?? 0;
+  return totalCost > 0 ? (Number(th) / totalCost) * 100 : 0;
 };

@@ -448,9 +448,10 @@ const RecipeNavigationContainer: React.FC = () => {
   }
 
   // List view (default)
+  // Align container and background with RecipeFormPage/RecipeList for consistent margins
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full p-4 sm:p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      <div className="container mx-auto p-4 sm:p-6 space-y-6">
 
         {/* Header with Add Recipe Button */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

@@ -488,7 +488,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
           <span className="text-sm text-gray-600">Tampilkan:</span>
           <select
             value={itemsPerPage}
-            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+            onChange={(e) => onItemsPerPageChange(toNumber(e.target.value))}
             className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-orange-500 focus:border-orange-500"
           >
             <option value={10}>10</option>

@@ -121,7 +121,7 @@ export const useImportExport = ({ onImport }: UseImportExportProps) => {
 
             if (['stok', 'minimum'].includes(mappedKey)) {
               const cleanValue = String(value).replace(/[,\s]/g, '').replace(/[^\d.-]/g, '');
-              value = parseFloat(cleanValue) || 0;
+              value = toNumber(cleanValue);
             }
 
             if (mappedKey === 'expiry' && value) {

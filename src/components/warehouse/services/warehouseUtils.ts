@@ -19,8 +19,8 @@ const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
   if (!item) return 0;
   
   // ✅ ENHANCED: Better validation and fallback logic
-  const wac = Number(item.hargaRataRata ?? 0);
-  const base = Number(item.harga ?? 0);
+  const wac = toNumber(item.hargaRataRata ?? 0);
+  const base = toNumber(item.harga ?? 0);
   
   // Priority 1: Use WAC if it exists and is positive
   if (wac > 0) {
@@ -61,7 +61,7 @@ const getEffectiveUnitPrice = (item: BahanBakuFrontend): number => {
  * This helps UI components indicate which pricing model is active
  */
 const isUsingWac = (item: BahanBakuFrontend): boolean => {
-  return item && Number(item.hargaRataRata ?? 0) > 0;
+  return item && toNumber(item.hargaRataRata ?? 0) > 0;
 };
 
 // Helper functions defined upfront to avoid self-referencing within object literal
@@ -189,7 +189,7 @@ export const warehouseUtils = {
     
     return items.reduce((sum, item) => {
       const price = getEffectiveUnitPrice(item);
-      const quantity = Number(item.stok || 0);
+      const quantity = toNumber(item.stok || 0);
       return sum + (price * quantity);
     }, 0);
   },

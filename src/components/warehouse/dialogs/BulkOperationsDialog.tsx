@@ -159,7 +159,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
       return warehouseUtils.getLowStockItems(items).length;
     }
     // Fallback implementation
-    return items.filter(item => Number(item.stok) <= Number(item.minimum)).length;
+    return items.filter(item => toNumber(item.stok) <= toNumber(item.minimum)).length;
   };
 
   const getExpiringCount = (items: BahanBakuFrontend[], days: number = 30) => {
@@ -216,7 +216,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {selectedItemsData.slice(0, 10).map((item) => {
-                  const stockLevel = getStockLevel(Number(item.stok), Number(item.minimum));
+                  const stockLevel = getStockLevel(toNumber(item.stok), toNumber(item.minimum));
                   
                   return (
                     <div key={item.id} className="flex items-center gap-2 text-sm">
@@ -336,7 +336,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   <Input
                     type="number"
                     value={bulkEditData.minimum || ''}
-                    onChange={(e) => handleFieldChange('minimum', e.target.value ? Number(e.target.value) : undefined)}
+                    onChange={(e) => handleFieldChange('minimum', e.target.value ? toNumber(e.target.value) : undefined)}
                     placeholder="Biarkan kosong jika tidak ingin mengubah"
                     min="0"
                     className="w-full"
@@ -356,7 +356,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     <Input
                       type="number"
                       value={bulkEditData.harga || ''}
-                      onChange={(e) => handleFieldChange('harga', e.target.value ? Number(e.target.value) : undefined)}
+                      onChange={(e) => handleFieldChange('harga', e.target.value ? toNumber(e.target.value) : undefined)}
                       placeholder="Biarkan kosong jika tidak ingin mengubah"
                       min="0"
                       className="w-full pl-12"
@@ -418,8 +418,8 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                     <span className="font-medium ml-2">
                       {formatCurrencyValue(
                         selectedItemsData.reduce((sum, item) => {
-                          const stok = Number(item.stok) || 0;
-                          const harga = Number(item.harga) || 0;
+                          const stok = toNumber(item.stok);
+                          const harga = toNumber(item.harga);
                           return sum + (stok * harga);
                         }, 0)
                       )}

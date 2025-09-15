@@ -15,6 +15,7 @@ import { warehouseUtils } from '../services/warehouseUtils';
 import type { BahanBakuFrontend } from '../types';
 import { logger } from '@/utils/logger';
 import { useSupplier } from '@/contexts/SupplierContext';
+import { toNumber } from '../utils/typeUtils';
 
 interface WarehouseTableRowProps {
   item: BahanBakuFrontend;
@@ -61,8 +62,8 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
   };
 
   const getStockLevel = (it: BahanBakuFrontend) => {
-    const stok = Number(it.stok) || 0;
-    const minimum = Number(it.minimum) || 0;
+    const stok = toNumber(it.stok);
+    const minimum = toNumber(it.minimum);
     return warehouseUtils.formatStockLevel(stok, minimum);
   };
 
@@ -75,13 +76,13 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
   };
 
   const isLowStockItem = (it: BahanBakuFrontend): boolean => {
-    const stok = Number(it.stok) || 0;
-    const minimum = Number(it.minimum) || 0;
+    const stok = toNumber(it.stok);
+    const minimum = toNumber(it.minimum);
     return stok <= minimum && stok > 0;
   };
 
   const isOutOfStockItem = (it: BahanBakuFrontend): boolean => {
-    const stok = Number(it.stok) || 0;
+    const stok = toNumber(it.stok);
     return stok <= 0;
   };
 

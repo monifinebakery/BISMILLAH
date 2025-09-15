@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
+import { toNumber } from '../utils/typeUtils';
 
 interface WarehouseHeaderProps {
   itemCount: number;
@@ -36,8 +37,8 @@ const fetchWarehouseStats = async () => {
     
     // Calculate stats
     const totalItems = items.length;
-    const lowStockItems = items.filter(item => Number(item.stok) <= Number(item.minimum));
-    const outOfStockItems = items.filter(item => Number(item.stok) === 0);
+    const lowStockItems = items.filter(item => toNumber(item.stok) <= toNumber(item.minimum));
+    const outOfStockItems = items.filter(item => toNumber(item.stok) === 0);
     const expiringItems = items.filter(item => {
       if (!item.expiry) return false;
       const expiryDate = new Date(item.expiry);
@@ -49,7 +50,7 @@ const fetchWarehouseStats = async () => {
     // ✅ UPDATE: Calculate total value using effective price (WAC)
     const totalValue = items.reduce((sum, item) => {
       const harga = item.hargaRataRata ?? item.harga ?? 0;
-      return sum + (Number(item.stok) * harga);
+      return sum + (toNumber(item.stok) * harga);
     }, 0);
     
     return {

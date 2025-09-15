@@ -26,7 +26,8 @@ import VirtualWarehouseTable from './components/VirtualWarehouseTable';
 import { useWarehouseCore } from './hooks/useWarehouseCore';
 // WarehouseContext will be imported dynamically
 
-// ✅ TAMBAH: Import types
+// ✅ TAMBAH: Import type utilities
+import { toNumber } from './utils/typeUtils';
 import type { BahanBakuFrontend } from './types';
 
 // ✅ TAMBAH: Query keys
@@ -69,9 +70,9 @@ const fetchWarehouseItems = async (): Promise<BahanBakuFrontend[]> => {
     // Ensure numeric fields are properly typed
     return items.map((item: BahanBakuFrontend) => ({
       ...item,
-      stok: Number(item.stok) || 0,
-      minimum: Number(item.minimum) || 0,
-      harga: Number(item.harga) || 0,
+      stok: toNumber(item.stok),
+      minimum: toNumber(item.minimum),
+      harga: toNumber(item.harga),
     }));
   } catch (error) {
     logger.error('Failed to fetch warehouse items:', error);
@@ -94,9 +95,9 @@ const fetchWarehouseItemsPaginated = async (page: number = 1, limit: number = 10
     // Ensure numeric fields are properly typed
     const transformedData = result.data.map((item: BahanBakuFrontend) => ({
       ...item,
-      stok: Number(item.stok) || 0,
-      minimum: Number(item.minimum) || 0,
-      harga: Number(item.harga) || 0,
+      stok: toNumber(item.stok),
+      minimum: toNumber(item.minimum),
+      harga: toNumber(item.harga),
     }));
     
     return {

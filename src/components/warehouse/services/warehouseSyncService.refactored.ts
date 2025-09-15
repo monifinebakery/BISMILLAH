@@ -120,7 +120,7 @@ export const extractItemId = (item: PurchaseItem): string | undefined => {
  * @returns Kuantitas atau 0 jika tidak ditemukan
  */
 export const extractQuantity = (item: PurchaseItem): number => {
-  return Number(item.kuantitas ?? item.jumlah ?? 0);
+  return toNumber(item.kuantitas ?? item.jumlah ?? 0);
 };
 
 /**
@@ -129,11 +129,10 @@ export const extractQuantity = (item: PurchaseItem): number => {
  * @returns Harga satuan atau 0 jika tidak ditemukan
  */
 export const extractUnitPrice = (item: PurchaseItem): number => {
-  return Number(
+  return toNumber(
     item.unitPrice ??
     item.hargaSatuan ?? 
     item.harga_per_satuan ?? 
-    item.harga_satuan ?? 
     0
   );
 };
@@ -153,9 +152,9 @@ export const calculateNewWac = (
   qty: number = 0,
   unitPrice: number = 0
 ): number => {
-  const previousValue = (Number(oldStock) || 0) * (Number(oldWac) || 0);
-  const deltaValue = (Number(qty) || 0) * (Number(unitPrice) || 0);
-  const newStock = (Number(oldStock) || 0) + (Number(qty) || 0);
+  const previousValue = (toNumber(oldStock) || 0) * (toNumber(oldWac) || 0);
+  const deltaValue = (toNumber(qty) || 0) * (toNumber(unitPrice) || 0);
+  const newStock = (toNumber(oldStock) || 0) + (toNumber(qty) || 0);
 
   if (newStock <= 0) return 0;
   return (previousValue + deltaValue) / newStock;

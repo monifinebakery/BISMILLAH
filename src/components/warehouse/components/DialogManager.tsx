@@ -251,27 +251,8 @@ const DialogManager: React.FC<DialogManagerProps> = ({
             logger.debug(`[${pageId}] ✓ Adding supplier: "${updates.supplier}"`);
           }
           
-          if (data.minimum !== undefined && data.minimum !== null && data.minimum !== '') {
-            const minimum = Number(data.minimum);
-            if (!isNaN(minimum) && minimum >= 0) {
-              updates.minimum = minimum;
-              hasValidUpdates = true;
-              logger.debug(`[${pageId}] ✓ Adding minimum: ${updates.minimum}`);
-            } else {
-              logger.warn(`[${pageId}] ⚠️ Invalid minimum value: ${data.minimum}`);
-            }
-          }
-          
-          if (data.harga !== undefined && data.harga !== null && data.harga !== '') {
-            const harga = Number(data.harga);
-            if (!isNaN(harga) && harga >= 0) {
-              updates.harga = harga;
-              hasValidUpdates = true;
-              logger.debug(`[${pageId}] ✓ Adding harga: ${updates.harga}`);
-            } else {
-              logger.warn(`[${pageId}] ⚠️ Invalid harga value: ${data.harga}`);
-            }
-          }
+          const minimum = toNumber(data.minimum);
+      const harga = toNumber(data.harga);
           
           if (data.expiry !== undefined && data.expiry !== null && String(data.expiry).trim() !== '') {
             const expiryStr = String(data.expiry).trim();

@@ -47,10 +47,9 @@ import { warehouseUtils } from './services/warehouseUtils';
 let crudService: any = null;
 
 const getCrudService = async () => {
-  if (!crudService) {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
+  // Always refresh user to avoid stale/undefined userId
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!crudService || (user?.id && crudService?.config?.userId !== user.id)) {
     crudService = await warehouseApi.createService('crud', {
       userId: user?.id,
       onError: (error: string) => {
@@ -63,6 +62,12 @@ const getCrudService = async () => {
 };
 
 const fetchWarehouseItems = async (): Promise<BahanBakuFrontend[]> => {
+  // If auth not ready or no user yet, return empty data without erroring
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    logger.warn('Warehouse: No authenticated user, returning empty items');
+    return [];
+  }
   try {
     const service = await getCrudService();
     const items = await service.fetchBahanBaku();
@@ -76,7 +81,9 @@ const fetchWarehouseItems = async (): Promise<BahanBakuFrontend[]> => {
     }));
   } catch (error) {
     logger.error('Failed to fetch warehouse items:', error);
-    throw new Error(`Failed to fetch warehouse items: ${error}`);
+    // Return empty list to avoid error boundary; UI can show toast
+    toast.error('Tidak dapat memuat data gudang. Coba lagi nanti.');
+    return [];
   }
 };
 

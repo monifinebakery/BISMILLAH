@@ -106,7 +106,7 @@ export const useOrderOperations = () => {
         status: newOrder.status || 'pending',
         subtotal: newOrder.subtotal || 0,
         pajak: newOrder.pajak || 0,
-        total_pesanan: (newOrder as any).total_pesanan ?? newOrder.totalPesanan || 0,
+        total_pesanan: ((newOrder as any).total_pesanan ?? newOrder.totalPesanan ?? 0),
         ...newOrder,
       };
 

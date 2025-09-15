@@ -150,7 +150,7 @@ npm run dev
 # ✅ Server berjalan di localhost:5174
 ```
 
-## Field Names Standard
+## Field Names Standard (Updated)
 
 ### Purchase Items
 | Field Lama | Field Baru | Tipe | Deskripsi |
@@ -167,17 +167,55 @@ npm run dev
 
 Catatan: Di frontend, tetap gunakan `totalNilai`. Transformer akan memastikan `total_nilai` terkirim ke DB.
 
+### Orders (Canonical snake_case → Fallback camelCase)
+
+| Canonical (DB/API)   | Fallback FE                    | Keterangan            |
+|----------------------|--------------------------------|-----------------------|
+| `nomor_pesanan`      | `nomorPesanan`, `order_number` | Nomor order           |
+| `nama_pelanggan`     | `namaPelanggan`, `customer_name` | Nama pelanggan      |
+| `telepon_pelanggan`  | `teleponPelanggan`, `customer_phone` | Telepon         |
+| `email_pelanggan`    | `emailPelanggan`, `customer_email`   | Email           |
+| `alamat_pengiriman`  | `alamatPengiriman`             | Alamat                |
+| `tanggal`            | `tanggal` (Date)               | Tanggal order         |
+| `tanggal_selesai`    | `tanggalSelesai` (Date)        | Tanggal selesai       |
+| `subtotal`           | `subtotal`                     | Subtotal              |
+| `pajak`              | `pajak`, `tax_amount`          | Pajak                 |
+| `total_pesanan`      | `totalPesanan`, `total_amount` | Total                 |
+| `items`              | `items`                        | Item array            |
+
+Komponen utama sudah sinkron: OrderTable, VirtualOrderTable, OrderFilters, OrdersAddEditPage, OrderForm dialog, OrderProvider/orderService.
+
+### Recipe (Canonical snake_case → Fallback camelCase)
+
+| Canonical (DB/API)         | Fallback FE              |
+|----------------------------|--------------------------|
+| `nama_resep`               | `namaResep`              |
+| `kategori_resep`           | `kategoriResep`          |
+| `deskripsi`                | `deskripsi`              |
+| `bahan_resep`              | `bahanResep`             |
+| `jumlah_porsi`             | `jumlahPorsi`            |
+| `jumlah_pcs_per_porsi`     | `jumlahPcsPerPorsi`      |
+| `hpp_per_porsi`            | `hppPerPorsi`            |
+| `hpp_per_pcs`              | `hppPerPcs`              |
+| `harga_jual_porsi`         | `hargaJualPorsi`         |
+| `harga_jual_per_pcs`       | `hargaJualPerPcs`        |
+| `margin_keuntungan_persen` | `marginKeuntunganPersen` |
+| `created_at`, `updated_at` | `createdAt`, `updatedAt` |
+
+Komponen utama sudah sinkron: RecipeStats, RecipeTable, RecipeCardView, RecipeBreadcrumb, DuplicateRecipeDialog, BulkOperationsDialog, RecipeNavigationContainer.
+
 ## Rekomendasi
 
 1. **Konsistensi**: Selalu gunakan field names baru untuk development selanjutnya
 2. **Testing**: Pastikan semua test menggunakan field names baru
-3. **Documentation**: Update API documentation untuk reflect field names baru
+3. **Documentation**: API/FE docs mengikuti tabel Orders/Recipe di atas
 4. **Migration**: Pertimbangkan database migration jika diperlukan
 
 ## Status
 
 - ✅ Purchase Module: Selesai diperbaiki
 - ✅ Warehouse Module: Selesai diperbaiki
+- ✅ Orders & Recipe: Selesai distandardisasi (snake_case canonical + fallback camelCase di UI)
 - ✅ Test Files: Selesai diperbaiki
 - ✅ TypeScript Compilation: Berhasil
 - ✅ Build Process: Berhasil

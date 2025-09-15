@@ -114,10 +114,21 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
         })
       : [];
 
-    return {
+    // Normalize to camelCase fields with legacy aliases for backward compatibility
+    const totalNilai = (baseData as any).totalNilai ?? (baseData as any).total_nilai ?? 0;
+    const metodePerhitungan = (baseData as any).metodePerhitungan ?? (baseData as any).metode_perhitungan ?? 'AVERAGE';
+
+    const result: any = {
       ...(baseData as any),
+      totalNilai,
+      metodePerhitungan,
+      // Keep legacy aliases to avoid breaking existing UI paths
+      total_nilai: totalNilai,
+      metode_perhitungan: metodePerhitungan,
       items
     };
+
+    return result as Purchase;
   } catch (error) {
     logger.error('Error transforming purchase from DB:', error);
     return {
@@ -125,9 +136,11 @@ export const transformPurchaseFromDB = (dbItem: any): Purchase => {
       userId: dbItem?.user_id ?? '',
       supplier: dbItem?.supplier ?? '',
       tanggal: new Date(),
+      totalNilai: 0,
       total_nilai: 0,
       items: [],
       status: 'pending',
+      metodePerhitungan: 'AVERAGE',
       metode_perhitungan: 'AVERAGE',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -160,9 +173,14 @@ export const transformPurchaseUpdateForDB = (p: Partial<Purchase>) => {
 
   if (p.supplier !== undefined) out.supplier = String(p.supplier || '').trim();
   if (p.tanggal !== undefined) out.tanggal = toYMD(p.tanggal as any);
-  if (p.total_nilai !== undefined) out.total_nilai = Math.max(0, Number(p.total_nilai) || 0); // ✅ FIX: Use consistent field name
+  if ((p as any).totalNilai !== undefined || (p as any).total_nilai !== undefined) {
+    const val = (p as any).totalNilai ?? (p as any).total_nilai;
+    out.total_nilai = Math.max(0, Number(val) || 0);
+  }
   if (p.status !== undefined) out.status = p.status;
-  if (p.metode_perhitungan !== undefined) out.metode_perhitungan = p.metode_perhitungan;
+  if ((p as any).metodePerhitungan !== undefined || (p as any).metode_perhitungan !== undefined) {
+    out.metode_perhitungan = (p as any).metodePerhitungan ?? (p as any).metode_perhitungan;
+  }
 
   if (p.items !== undefined) {
     // ✅ FIXED: Use unified transformer untuk update
@@ -193,7 +211,8 @@ export const calculatePurchaseTotal = (items: any[]): number =>
 
 export const normalizePurchaseFormData = (formData: any): any => ({
   ...formData,
-  total_nilai: Number(formData.total_nilai) || 0, // ✅ FIX: Use consistent field name
+  totalNilai: Number(formData.totalNilai ?? formData.total_nilai) || 0, // FE camelCase with legacy fallback
+  total_nilai: Number(formData.totalNilai ?? formData.total_nilai) || 0, // keep alias for compatibility
   tanggal:
     formData.tanggal instanceof Date ? formData.tanggal : new Date(formData.tanggal),
   items: Array.isArray(formData.items)
@@ -219,7 +238,8 @@ export const normalizePurchaseFormData = (formData: any): any => ({
 export const sanitizePurchaseData = (data: any): any => ({
   supplier: String(data.supplier || '').trim(),
   tanggal: data.tanggal,
-  total_nilai: Math.max(0, Number(data.total_nilai) || 0), // ✅ FIX: Use consistent field name
+  totalNilai: Math.max(0, Number(data.totalNilai ?? data.total_nilai) || 0),
+  total_nilai: Math.max(0, Number(data.totalNilai ?? data.total_nilai) || 0),
   items: Array.isArray(data.items)
     ? data.items.map((item: any) => {
         const kuantitas = Number(
@@ -252,5 +272,6 @@ export const sanitizePurchaseData = (data: any): any => ({
       })
     : [],
   status: data.status || 'pending',
-  metode_perhitungan: data.metode_perhitungan || 'AVERAGE',
+  metodePerhitungan: data.metodePerhitungan ?? data.metode_perhitungan ?? 'AVERAGE',
+  metode_perhitungan: data.metodePerhitungan ?? data.metode_perhitungan ?? 'AVERAGE',
 });

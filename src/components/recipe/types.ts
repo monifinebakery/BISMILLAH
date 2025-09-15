@@ -106,8 +106,13 @@ export interface RecipeFilters {
   sortOrder: 'asc' | 'desc';
 }
 
-export type RecipeSortField = 
-  | 'nama_resep' \n  | 'kategori_resep' \n  | 'created_at' \n  | 'total_hpp' \n  | 'hpp_per_porsi' \n  | 'profitabilitas';
+export type RecipeSortField =
+  | 'nama_resep'
+  | 'kategori_resep'
+  | 'created_at'
+  | 'total_hpp'
+  | 'hpp_per_porsi'
+  | 'profitabilitas';
 
 // Statistics
 export interface RecipeStats {

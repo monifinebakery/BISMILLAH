@@ -10,6 +10,7 @@ import {
   useInvoiceImage
 } from './hooks';
 import { InvoiceActions } from './components';
+import type { Customer, InvoiceItem, Discount, Tax, InvoiceStatus } from './types';
 
 // ✅ LAZY LOADING: InvoiceTemplate dengan code splitting
 const InvoiceTemplate = React.lazy(() => 
@@ -119,7 +120,7 @@ const InvoicePage: React.FC = () => {
   const { handleDownloadImage } = useInvoiceImage();
 
   // ✅ Handle form data changes
-  const handleDataChange = (changes: any) => {
+  const handleDataChange = (changes: Record<string, unknown>) => {
     Object.entries(changes).forEach(([key, value]) => {
       switch (key) {
         case 'invoiceNumber':
@@ -132,16 +133,16 @@ const InvoicePage: React.FC = () => {
           setDueDate(value as Date);
           break;
         case 'customer':
-          setCustomer(value as any);
+          setCustomer(value as Customer);
           break;
         case 'items':
-          setItems(value as any);
+          setItems(value as InvoiceItem[]);
           break;
         case 'discount':
-          setDiscount(value as any);
+          setDiscount(value as Discount);
           break;
         case 'tax':
-          setTax(value as any);
+          setTax(value as Tax);
           break;
         case 'shipping':
           setShipping(value as number);
@@ -153,7 +154,7 @@ const InvoicePage: React.FC = () => {
           setPaymentInstructions(value as string);
           break;
         case 'status':
-          setStatus(value as any);
+          setStatus(value as InvoiceStatus);
           break;
       }
     });
@@ -170,7 +171,7 @@ const InvoicePage: React.FC = () => {
   // ✅ Success message when order data loads
   useEffect(() => {
     if (orderData) {
-      logger.context('InvoicePage', 'Order data loaded successfully:', orderData.nomorPesanan);
+      logger.context('InvoicePage', 'Order data loaded successfully:', orderData.orderNumber);
       toast.success('Data pesanan berhasil dimuat');
     }
   }, [orderData]);
@@ -305,7 +306,7 @@ const InvoicePage: React.FC = () => {
             onBack={handleBack}
             onDownload={handleDownloadImage}
             orderId={orderId}
-            orderNumber={orderData?.nomorPesanan}
+            orderNumber={orderData?.orderNumber}
           />
 
           {/* Invoice Template */}
@@ -318,7 +319,7 @@ const InvoicePage: React.FC = () => {
               onRemoveItem={removeItem}
               onBack={handleBack}
               orderId={orderId}
-              orderNumber={orderData?.nomorPesanan}
+              orderNumber={orderData?.orderNumber}
             />
           </Suspense>
 

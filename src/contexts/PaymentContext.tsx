@@ -90,6 +90,8 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // 5. useRef for stable function reference
   const refreshAccessStatusRef = useRef<(() => Promise<void>) | null>(null);
+  // Prevent repeated auto-link attempts
+  const triedAutoLinkRef = useRef(false);
 
   // 6. ALL useCallback hooks - ALWAYS called in same order
   
@@ -248,6 +250,56 @@ const accessPromise = getUserAccessStatus();
       });
     }
   }, [authReady, authLoading, isUserValid, paymentLoading, isPaid]);
+
+  // ✅ EFFECT 2b: Auto-link unlinked payments by email after login (one-time, non-blocking)
+  useEffect(() => {
+    const autoLinkByEmail = async () => {
+      try {
+        if (!authReady || authLoading || !isUserValid || triedAutoLinkRef.current) return;
+        if (!user?.id || !user?.email) return;
+        triedAutoLinkRef.current = true;
+
+        logger.info('PaymentContext: Attempting auto-link of unlinked payments by email');
+        const { data: unlinked, error } = await supabase
+          .from('user_payments')
+          .select('id')
+          .is('user_id', null)
+          .eq('email', user.email)
+          .eq('is_paid', true)
+          .eq('payment_status', 'settled')
+          .limit(5);
+
+        if (error) {
+          logger.error('PaymentContext: Auto-link query error:', error);
+          return;
+        }
+        if (!unlinked || unlinked.length === 0) {
+          logger.debug('PaymentContext: No unlinked payments found for auto-link');
+          return;
+        }
+
+        const ids = unlinked.map((p: any) => p.id);
+        logger.info('PaymentContext: Auto-linking payments:', ids);
+        const { error: linkError } = await supabase
+          .from('user_payments')
+          .update({ user_id: user.id })
+          .in('id', ids);
+
+        if (linkError) {
+          logger.error('PaymentContext: Auto-link update error:', linkError);
+          return;
+        }
+
+        // Refresh related caches
+        await enhancedRefetch();
+        logger.success('PaymentContext: Auto-link completed');
+      } catch (e) {
+        logger.error('PaymentContext: Auto-link failed:', e);
+      }
+    };
+
+    autoLinkByEmail();
+  }, [authReady, authLoading, isUserValid, user?.id, user?.email, enhancedRefetch]);
 
   // ✅ EFFECT 3: Close popup when access granted
   useEffect(() => {

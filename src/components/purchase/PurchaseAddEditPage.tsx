@@ -183,8 +183,12 @@ const PurchaseAddEditPage: React.FC = () => {
       toast.error('Minimal harus ada 1 item dalam pembelian');
       return;
     }
+    if (status === 'completed' && (total_nilai ?? 0) <= 0) {
+      toast.error('Total nilai harus lebih dari 0 untuk menyelesaikan pembelian');
+      return;
+    }
     await handleSubmit(status);
-  }, [formData.items.length, handleSubmit]);
+  }, [formData.items.length, handleSubmit, total_nilai]);
 
   // Handle adding new item from form
   const handleAddNewItem = useCallback((item: PurchaseItem) => {

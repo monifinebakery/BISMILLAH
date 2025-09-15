@@ -22,7 +22,7 @@ export const calculatePurchaseStats = (purchases: Purchase[]): PurchaseStats => 
   const stats = purchases.reduce(
     (acc, purchase) => {
       acc.total += 1;
-      acc.total_nilai += purchase.total_nilai || 0;
+      acc.total_nilai += (((purchase as any).totalNilai ?? (purchase as any).total_nilai) as number) || 0;
       acc.byStatus[purchase.status] += 1;
       return acc;
     },
@@ -366,7 +366,7 @@ export const exportPurchasesToCSV = (
   const rows = purchases.map(purchase => [
     new Date(purchase.tanggal).toLocaleDateString('id-ID'),
     getSupplierName(purchase.supplier),                    // ✅ FIXED: Show supplier name instead of ID
-    (purchase.total_nilai ?? 0).toString(),                 // ✅ aman null/undefined
+    ((((purchase as any).totalNilai ?? (purchase as any).total_nilai) as number) ?? 0).toString(),                 // ✅ aman null/undefined
     getStatusDisplayText(purchase.status),
     (purchase.items?.length ?? 0).toString(),              // ✅ aman
     getFormattedTotalQuantities(purchase),

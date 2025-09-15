@@ -145,13 +145,13 @@ const createPurchaseColumns = (
     )
   },
   {
-    key: 'total_nilai',
+    key: 'totalNilai',
     header: 'Total',
     width: '120px',
     sortable: true,
     render: (purchase: Purchase) => (
       <span className="text-sm font-semibold text-green-600">
-        {formatCurrency(purchase.total_nilai)}
+        {formatCurrency((purchase.totalNilai ?? (purchase as any).total_nilai) as number)}
       </span>
     )
   },
@@ -261,9 +261,11 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
         // Use UserFriendlyDate for timezone-safe parsing
         aValue = UserFriendlyDate.safeParseToDate(aValue).getTime();
         bValue = UserFriendlyDate.safeParseToDate(bValue).getTime();
-      } else if (sortColumn === 'total_nilai') {
-        aValue = Number(aValue) || 0;
-        bValue = Number(bValue) || 0;
+      } else if (sortColumn === 'totalNilai' || sortColumn === 'total_nilai') {
+        const aRaw = (a as any).totalNilai ?? (a as any).total_nilai;
+        const bRaw = (b as any).totalNilai ?? (b as any).total_nilai;
+        aValue = Number(aRaw) || 0;
+        bValue = Number(bRaw) || 0;
       }
 
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;

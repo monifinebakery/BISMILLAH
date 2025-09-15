@@ -157,7 +157,7 @@ const MemoizedPurchaseRow = React.memo(({
       </TableCell>
       <TableCell className="text-right">
         <div className="text-sm font-medium text-gray-900">
-          {formatCurrency(purchase.total_nilai)}
+          {formatCurrency((purchase.totalNilai ?? (purchase as any).total_nilai) as number)}
         </div>
       </TableCell>
       <TableCell>
@@ -600,7 +600,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
 
                   <TableHead className="text-right">
                     <button
-                      onClick={() => handleSort('total_nilai')}
+              onClick={() => handleSort('total_nilai')}
                       className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
                     >
                       <Receipt className="h-4 w-4 mr-2" />

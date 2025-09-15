@@ -228,8 +228,9 @@ const RecipeNavigationContainer: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
       
-      const deletedRecipe = recipesQuery.data?.find(recipe => recipe.id === id);
-      toast.success(`Resep "${deletedRecipe?.namaResep || 'Unknown'}" berhasil dihapus`);
+      const deletedRecipe = recipesQuery.data?.find(recipe => recipe.id === id) as any;
+      const nama = deletedRecipe ? (deletedRecipe.nama_resep ?? deletedRecipe.namaResep ?? 'Unknown') : 'Unknown';
+      toast.success(`Resep "${nama}" berhasil dihapus`);
       
       // Reset dialog state
       setNavigationState(prev => ({ ...prev, dialogType: 'none', selectedRecipe: null }));
@@ -268,7 +269,9 @@ const RecipeNavigationContainer: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.all });
       
-      toast.success(`Resep "${newRecipe.namaResep}" berhasil diduplikasi`);
+      const anyRec: any = newRecipe as any;
+      const namaBaru = anyRec.nama_resep ?? anyRec.namaResep ?? 'Berhasil';
+      toast.success(`Resep "${namaBaru}" berhasil diduplikasi`);
       
       // Reset dialog state
       setNavigationState(prev => ({ ...prev, dialogType: 'none', selectedRecipe: null }));
@@ -362,7 +365,8 @@ const RecipeNavigationContainer: React.FC = () => {
   }, [queryClient]);
 
   const handleFormSuccess = useCallback((recipe: Recipe, isEdit: boolean) => {
-    logger.success('Recipe form success:', { id: recipe.id, nama: recipe.namaResep, isEdit });
+    const anyRec: any = recipe as any;
+    logger.success('Recipe form success:', { id: recipe.id, nama: anyRec.nama_resep ?? anyRec.namaResep, isEdit });
     
     if (!isEdit) {
       queryClient.invalidateQueries({ queryKey: RECIPE_QUERY_KEYS.categories() });

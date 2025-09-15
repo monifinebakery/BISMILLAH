@@ -268,10 +268,8 @@ export const validateOrderData = (data: Partial<NewOrder>): { isValid: boolean; 
     errors.push(`Maksimal ${VALIDATION_LIMITS.items_per_order.max} item per pesanan`);
   }
   
-  // Optional field validations with limits and improved regex
-  if (!data.teleponPelanggan || data.teleponPelanggan.length === 0) {
-    errors.push('Nomor telepon harus diisi');
-  } else {
+  // Phone is optional: validate only if provided
+  if (data.teleponPelanggan && data.teleponPelanggan.length > 0) {
     const phone = data.teleponPelanggan;
     const phoneLength = phone.length;
     if (phoneLength < VALIDATION_LIMITS.phone.min || phoneLength > VALIDATION_LIMITS.phone.max) {

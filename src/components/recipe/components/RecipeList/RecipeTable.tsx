@@ -212,7 +212,7 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
                       {highlightText(recipe.nama_resep, searchTerm)}
                     </div>
                     <div className="mt-1 text-xs text-gray-400">
-                      {(recipe.bahan_resep?.length ?? 0)} bahan
+                      {(((recipe as any).bahan_resep ?? (recipe as any).bahanResep)?.length ?? 0)} bahan
                     </div>
                   </div>
                 </div>

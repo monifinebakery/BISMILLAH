@@ -124,7 +124,19 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
       {/* Card Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {recipes.map((recipe) => {
+          const r: any = recipe as any;
           const imageSrc = getImageSrc(recipe);
+          const nama = (r.nama_resep ?? r.namaResep ?? '') as string;
+          const kategori = (r.kategori_resep ?? r.kategoriResep ?? '') as string;
+          const deskripsi = (r.deskripsi ?? '') as string;
+          const jumlahPorsi = Number(r.jumlah_porsi ?? r.jumlahPorsi) || 0;
+          const pcsPerPorsi = Number(r.jumlah_pcs_per_porsi ?? r.jumlahPcsPerPorsi) || 0;
+          const bahanList = (r.bahan_resep ?? r.bahanResep ?? []) as any[];
+          const created = r.created_at ?? r.createdAt;
+          const createdDate = created ? (created instanceof Date ? created : new Date(created)) : null;
+          const hppPerPorsi = Number(r.hpp_per_porsi ?? r.hppPerPorsi) || 0;
+          const hargaJualPorsi = Number(r.harga_jual_porsi ?? r.hargaJualPorsi) || 0;
+          const margin = Number(r.margin_keuntungan_persen ?? r.marginKeuntunganPersen) || 0;
           
           return (
             <Card 
@@ -142,7 +154,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                     <Checkbox
                       checked={selectedIds.has(recipe.id)}
                       onCheckedChange={() => onSelectionChange?.(recipe.id)}
-                      aria-label={`Pilih resep ${(recipe as any).nama_resep}`}
+                      aria-label={`Pilih resep ${nama}`}
                       className="bg-white border-2 border-white shadow-sm"
                     />
                   </div>
@@ -153,7 +165,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                   {imageSrc ? (
                     <img
                       src={imageSrc}
-                      alt={(recipe as any).nama_resep}
+                      alt={nama}
                       className="w-full h-full object-cover"
                       loading="lazy"
                       onError={(e) => {
@@ -224,22 +236,22 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                       WebkitLineClamp: 2, 
                       WebkitBoxOrient: 'vertical' as const 
                     }}>
-                      {highlightText((recipe as any).nama_resep, searchTerm)}
+                      {highlightText(nama, searchTerm)}
                     </h3>
                     
-                    {(recipe as any).kategori_resep && (
+                    {kategori && (
                       <Badge variant="outline" className="text-xs">
-                        {highlightText((recipe as any).kategori_resep, searchTerm)}
+                        {highlightText(kategori, searchTerm)}
                       </Badge>
                     )}
                     
-                    {(recipe as any).deskripsi && (
+                    {deskripsi && (
                       <p className="text-xs text-gray-500 overflow-hidden" style={{ 
                         display: '-webkit-box', 
                         WebkitLineClamp: 2, 
                         WebkitBoxOrient: 'vertical' as const 
                       }}>
-                        {highlightText((recipe as any).deskripsi, searchTerm)}
+                        {highlightText(deskripsi, searchTerm)}
                       </p>
                     )}
                   </div>
@@ -249,10 +261,10 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                     {/* Portions */}
                     <div className="flex items-center gap-2 text-gray-600">
                       <Users className="h-3 w-3" />
-                      <span>{(recipe as any).jumlah_porsi} porsi</span>
-                      {(recipe as any).jumlah_pcs_per_porsi > 1 && (
+                      <span>{jumlahPorsi} porsi</span>
+                      {pcsPerPorsi > 1 && (
                         <span className="text-gray-400">
-                          ({(recipe as any).jumlah_pcs_per_porsi} pcs/porsi)
+                          ({pcsPerPorsi} pcs/porsi)
                         </span>
                       )}
                     </div>
@@ -260,18 +272,18 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                     {/* Ingredients count */}
                     <div className="flex items-center gap-2 text-gray-600">
                       <ChefHat className="h-3 w-3" />
-                      <span>{recipe.bahanResep.length} bahan</span>
+                      <span>{bahanList.length} bahan</span>
                     </div>
 
                     {/* Created date */}
                     <div className="flex items-center gap-2 text-gray-500">
                       <Clock className="h-3 w-3" />
                       <span>
-                        {new Date(recipe.createdAt).toLocaleDateString('id-ID', {
+                        {createdDate ? createdDate.toLocaleDateString('id-ID', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric',
-                        })}
+                        }) : '-'}
                       </span>
                     </div>
                   </div>
@@ -281,14 +293,14 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-600">HPP/Porsi:</span>
                       <span className="text-xs font-semibold">
-                        {formatCurrency(recipe.hppPerPorsi)}
+                        {formatCurrency(hppPerPorsi)}
                       </span>
                     </div>
                     
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-600">Harga Jual:</span>
                       <span className="text-xs font-semibold text-green-600">
-                        {formatCurrency(recipe.hargaJualPorsi)}
+                        {formatCurrency(hargaJualPorsi)}
                       </span>
                     </div>
 
@@ -296,9 +308,9 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-600">Profit:</span>
                       <div className="flex items-center gap-1">
-                        {getProfitabilityBadge(recipe.marginKeuntunganPersen)}
+                        {getProfitabilityBadge(margin)}
                         <span className="text-xs font-medium">
-                          {formatPercentage(recipe.marginKeuntunganPersen)}
+                          {formatPercentage(margin)}
                         </span>
                       </div>
                     </div>

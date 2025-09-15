@@ -30,7 +30,9 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
 
   useEffect(() => {
     if (isOpen && recipe) {
-      const suggestedName = `${recipe.namaResep} (Copy)`;
+      const anyRec: any = recipe as any;
+      const original = (anyRec.nama_resep ?? anyRec.namaResep ?? '') as string;
+      const suggestedName = `${original} (Copy)`;
       setNewName(suggestedName);
       setError('');
     }
@@ -40,7 +42,11 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
     if (!name.trim()) return 'Nama resep tidak boleh kosong';
     if (name.trim().length < 3) return 'Nama resep minimal 3 karakter';
     if (name.trim().length > 100) return 'Nama resep maksimal 100 karakter';
-    if (recipe && name.trim() === recipe.namaResep) return 'Nama resep harus berbeda dari aslinya';
+    if (recipe) {
+      const anyRec: any = recipe as any;
+      const original = (anyRec.nama_resep ?? anyRec.namaResep ?? '') as string;
+      if (name.trim() === original) return 'Nama resep harus berbeda dari aslinya';
+    }
     return '';
   };
 
@@ -111,18 +117,18 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-gray-900 truncate">
-                    {recipe.namaResep}
+                    {(recipe as any).nama_resep ?? (recipe as any).namaResep}
                   </h4>
                   <div className="flex items-center gap-2 mt-2">
-                    {recipe.kategoriResep && (
+                    {((recipe as any).kategori_resep ?? (recipe as any).kategoriResep) && (
                       <Badge variant="outline" className="text-xs">
-                        {recipe.kategoriResep}
+                        {(recipe as any).kategori_resep ?? (recipe as any).kategoriResep}
                       </Badge>
                     )}
                   </div>
-                  {recipe.deskripsi && (
+                  {(recipe as any).deskripsi && (
                     <p className="text-sm text-gray-600 mt-2 line-clamp-2">
-                      {recipe.deskripsi}
+                      {(recipe as any).deskripsi}
                     </p>
                   )}
                 </div>
@@ -134,7 +140,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                     <span className="text-xs text-gray-500">Porsi</span>
                   </div>
                   <p className="text-sm font-medium text-gray-900">
-                    {recipe.jumlahPorsi}
+                    {(recipe as any).jumlah_porsi ?? (recipe as any).jumlahPorsi}
                   </p>
                 </div>
                 <div className="text-center">
@@ -143,7 +149,7 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
                     <span className="text-xs text-gray-500">HPP</span>
                   </div>
                   <p className="text-sm font-medium text-gray-900">
-                    {formatCurrency(recipe.hppPerPorsi)}
+                    {formatCurrency(Number((recipe as any).hpp_per_porsi ?? (recipe as any).hppPerPorsi) || 0)}
                   </p>
                 </div>
                 <div className="text-center">
@@ -230,11 +236,15 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
               Saran nama alternatif:
             </p>
             <div className="flex flex-wrap gap-2">
-              {[
-                `${recipe.namaResep} (Versi 2)`,
-                `${recipe.namaResep} - Modified`,
-                `New ${recipe.namaResep}`,
-              ].map((suggestion) => (
+              {(() => {
+                const anyRec: any = recipe as any;
+                const original = (anyRec.nama_resep ?? anyRec.namaResep ?? '') as string;
+                return [
+                  `${original} (Versi 2)`,
+                  `${original} - Modified`,
+                  `New ${original}`,
+                ];
+              })().map((suggestion) => (
                 <Button
                   key={suggestion}
                   variant="outline"

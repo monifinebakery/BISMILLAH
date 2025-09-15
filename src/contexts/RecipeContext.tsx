@@ -546,22 +546,21 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Search recipes
   const searchRecipes = useCallback((query: string): Recipe[] => {
     if (!query.trim()) return recipes;
-    
-    const lowercaseQuery = query.toLowerCase();
-    return recipes.filter(recipe => 
-      recipe.namaResep.toLowerCase().includes(lowercaseQuery) ||
-      recipe.kategoriResep?.toLowerCase().includes(lowercaseQuery) ||
-      recipe.deskripsi?.toLowerCase().includes(lowercaseQuery) ||
-      recipe.bahanResep.some(bahan => 
-        bahan.nama.toLowerCase().includes(lowercaseQuery)
-      )
-    );
+    const q = query.toLowerCase();
+    return recipes.filter((r: any) => {
+      const nama = (r.nama_resep ?? r.namaResep ?? '').toString().toLowerCase();
+      const kategori = (r.kategori_resep ?? r.kategoriResep ?? '').toString().toLowerCase();
+      const deskripsi = (r.deskripsi ?? '').toString().toLowerCase();
+      const bahanArr = (r.bahan_resep ?? r.bahanResep ?? []) as Array<any>;
+      const bahanMatch = Array.isArray(bahanArr) && bahanArr.some(b => String(b?.nama ?? '').toLowerCase().includes(q));
+      return nama.includes(q) || kategori.includes(q) || deskripsi.includes(q) || !!bahanMatch;
+    });
   }, [recipes]);
 
   // Get recipes by category
   const getRecipesByCategory = useCallback((category: string): Recipe[] => {
     if (!category.trim()) return recipes;
-    return recipes.filter(recipe => recipe.kategoriResep === category);
+    return recipes.filter((r: any) => (r.kategori_resep ?? r.kategoriResep) === category);
   }, [recipes]);
 
   // Get unique categories
@@ -576,25 +575,25 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const totalCategories = categories.length;
 
     // Calculate average HPP
-    const hppValues = recipes.map(r => r.hppPerPorsi).filter(hpp => hpp > 0);
+    const hppValues = recipes.map((r: any) => (r.hpp_per_porsi ?? r.hppPerPorsi) as number).filter((hpp: any) => Number(hpp) > 0);
     const averageHppPerPorsi = hppValues.length > 0 
       ? hppValues.reduce((sum, hpp) => sum + hpp, 0) / hppValues.length 
       : 0;
 
     // Find most/least expensive recipes
-    const recipesWithHpp = recipes.filter(r => r.hppPerPorsi > 0);
+    const recipesWithHpp = recipes.filter((r: any) => Number(r.hpp_per_porsi ?? r.hppPerPorsi) > 0) as any[];
     const mostExpensiveRecipe = recipesWithHpp.length > 0
-      ? recipesWithHpp.reduce((max, recipe) => recipe.hppPerPorsi > max.hppPerPorsi ? recipe : max)
-      : null;
+      ? recipesWithHpp.reduce((max: any, recipe: any) => (recipe.hpp_per_porsi ?? recipe.hppPerPorsi) > (max.hpp_per_porsi ?? max.hppPerPorsi) ? recipe : max)
+      : null as any;
     
     const cheapestRecipe = recipesWithHpp.length > 0
-      ? recipesWithHpp.reduce((min, recipe) => recipe.hppPerPorsi < min.hppPerPorsi ? recipe : min)
-      : null;
+      ? recipesWithHpp.reduce((min: any, recipe: any) => (recipe.hpp_per_porsi ?? recipe.hppPerPorsi) < (min.hpp_per_porsi ?? min.hppPerPorsi) ? recipe : min)
+      : null as any;
 
     // Calculate profitability stats
     const profitabilityStats = { high: 0, medium: 0, low: 0 };
-    recipes.forEach(recipe => {
-      const profitability = recipe.marginKeuntunganPersen || 0;
+    recipes.forEach((recipe: any) => {
+      const profitability = (recipe.margin_keuntungan_persen ?? recipe.marginKeuntunganPersen ?? 0) as number;
       if (profitability >= 30) {
         profitabilityStats.high++;
       } else if (profitability >= 15) {

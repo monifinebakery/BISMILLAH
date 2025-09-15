@@ -199,7 +199,7 @@ export const useDashboardData = (dateRange: DateRange) => {
         order?.items?.forEach(item => {
           if (!item?.name) return;
           
-          const recipe = recipes.find(r => r?.namaResep === item.name);
+          const recipe = recipes.find(r => (r as any)?.nama_resep === item.name || (r as any)?.namaResep === item.name);
           if (!(recipe as any)?.bahan_resep) return;
           
           const quantity = safeNumber(item.quantity);
@@ -240,7 +240,7 @@ export const useDashboardData = (dateRange: DateRange) => {
         order?.items?.forEach(item => {
           if (!item?.name) return;
           
-          const recipe = recipes.find(r => r?.namaResep === item.name);
+          const recipe = recipes.find(r => (r as any)?.nama_resep === item.name || (r as any)?.namaResep === item.name);
           if (!(recipe as any)?.bahan_resep) return;
           
           const quantity = safeNumber(item.quantity);

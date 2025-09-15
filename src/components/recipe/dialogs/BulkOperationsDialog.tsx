@@ -177,22 +177,28 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-32 overflow-y-auto">
-                {selectedRecipes.slice(0, 10).map((recipe) => (
-                  <div key={recipe.id} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <ChefHat className="h-3 w-3 text-orange-500" />
-                      <span className="font-medium">{recipe.namaResep}</span>
-                      {recipe.kategoriResep && (
-                        <Badge variant="secondary" className="text-xs">
-                          {recipe.kategoriResep}
-                        </Badge>
-                      )}
+                {selectedRecipes.slice(0, 10).map((recipe) => {
+                  const r: any = recipe as any;
+                  const nama = (r.nama_resep ?? r.namaResep ?? '') as string;
+                  const kategori = (r.kategori_resep ?? r.kategoriResep ?? '') as string;
+                  const hpp = Number(r.hpp_per_porsi ?? r.hppPerPorsi) || 0;
+                  return (
+                    <div key={recipe.id} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <ChefHat className="h-3 w-3 text-orange-500" />
+                        <span className="font-medium">{nama}</span>
+                        {kategori && (
+                          <Badge variant="secondary" className="text-xs">
+                            {kategori}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        HPP: {formatCurrency(hpp)}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      HPP: {formatCurrency(recipe.hppPerPorsi)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {selectedRecipes.length > 10 && (
                   <p className="text-xs text-gray-500 italic text-center">
                     ... dan {selectedRecipes.length - 10} resep lainnya

@@ -44,9 +44,11 @@ const RecipeBreadcrumb: React.FC<RecipeBreadcrumbProps> = ({
         icon: Plus,
       });
     } else if (currentView === 'edit' && currentRecipe) {
+      const anyRec: any = currentRecipe as any;
+      const nama = (anyRec.nama_resep ?? anyRec.namaResep ?? '') as string;
       items.push({
         type: 'current' as const,
-        label: `Edit: ${currentRecipe.namaResep}`,
+        label: `Edit: ${nama}`,
         icon: Edit2,
       });
     }

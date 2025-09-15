@@ -38,7 +38,7 @@ export const useCategoryManager = ({ recipes, updateRecipe, refreshRecipes }: Us
   // Recipe statistics
   const recipeStats = useMemo(() => {
     const totalRecipes = recipes.length;
-    const categorizedRecipes = recipes.filter(recipe => recipe.kategoriResep).length;
+    const categorizedRecipes = recipes.filter((r: any) => (r.kategori_resep ?? r.kategoriResep)).length;
     return { totalRecipes, categorizedRecipes };
   }, [recipes]);
 

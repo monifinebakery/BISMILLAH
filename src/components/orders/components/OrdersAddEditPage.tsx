@@ -211,7 +211,8 @@ const OrdersAddEditPage: React.FC = () => {
     }));
     
     setIsRecipeSelectOpen(false);
-    const recipeName = (recipe as any).namaResep ?? (recipe as any).nama_resep ?? (recipe as any).nama ?? 'Item';
+    const rawName = (recipe as any).nama_resep ?? (recipe as any).namaResep ?? (recipe as any).nama ?? '';
+    const recipeName = typeof rawName === 'string' && rawName.trim() ? rawName : 'Item';
     toast.success(`${recipeName} ditambahkan ke pesanan`);
   }, []);
 
@@ -559,6 +560,17 @@ const OrdersAddEditPage: React.FC = () => {
                     <CommandGroup className="max-h-64 overflow-auto">
                       {filteredRecipes.map((recipe) => {
                         const methodIndicator = getCalculationMethodIndicator(recipe);
+                        const anyRec: any = recipe as any;
+                        const safeName = (anyRec.nama_resep ?? anyRec.namaResep ?? anyRec.nama ?? '') as string;
+                        const displayName = typeof safeName === 'string' && safeName.trim() ? safeName : 'Item';
+                        const rawPrice = (anyRec.harga_jual_porsi ?? anyRec.hargaJualPorsi) as number | undefined;
+                        const safePrice = typeof rawPrice === 'number' && !isNaN(rawPrice) ? rawPrice : undefined;
+                        const safeCategory = (anyRec.kategori_resep ?? anyRec.kategoriResep ?? '') as string;
+                        const rawJumlah = (anyRec.jumlah_porsi ?? anyRec.jumlahPorsi) as number | undefined;
+                        const jumlahPorsi = typeof rawJumlah === 'number' && rawJumlah > 0 ? rawJumlah : undefined;
+                        const rawHpp = (anyRec.hpp_per_porsi ?? anyRec.hppPerPorsi) as number | undefined;
+                        const hppPerPorsi = typeof rawHpp === 'number' && rawHpp > 0 ? rawHpp : undefined;
+
                         return (
                           <CommandItem
                             key={recipe.id}
@@ -566,7 +578,7 @@ const OrdersAddEditPage: React.FC = () => {
                             className="flex flex-col items-start gap-2 p-3"
                           >
                             <div className="flex items-center justify-between w-full">
-                              <span className="font-medium">{recipe.namaResep}</span>
+                              <span className="font-medium">{displayName}</span>
                               <div className="flex items-center gap-2">
                                 <Badge 
                                   variant="outline" 
@@ -576,18 +588,22 @@ const OrdersAddEditPage: React.FC = () => {
                                   {methodIndicator.label}
                                 </Badge>
                                 <Badge variant="secondary" className="text-xs">
-                                  Rp {recipe.hargaJualPorsi?.toLocaleString('id-ID') || 'N/A'}
+                                  {safePrice !== undefined ? `Rp ${safePrice.toLocaleString('id-ID')}` : 'Rp N/A'}
                                 </Badge>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-500 w-full">
-                              <span>{recipe.kategoriResep}</span>
-                              <span>•</span>
-                              <span>{recipe.jumlahPorsi} porsi</span>
-                              {recipe.hppPerPorsi > 0 && (
+                              <span>{safeCategory}</span>
+                              {jumlahPorsi ? (
                                 <>
                                   <span>•</span>
-                                  <span>HPP: Rp {recipe.hppPerPorsi.toLocaleString('id-ID')}</span>
+                                  <span>{jumlahPorsi} porsi</span>
+                                </>
+                              ) : null}
+                              {hppPerPorsi !== undefined && (
+                                <>
+                                  <span>•</span>
+                                  <span>HPP: Rp {hppPerPorsi.toLocaleString('id-ID')}</span>
                                 </>
                               )}
                             </div>

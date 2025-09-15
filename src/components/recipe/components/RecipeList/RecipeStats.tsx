@@ -19,14 +19,8 @@ interface RecipeStatsProps {
       totalRecipes: number;
       totalCategories: number;
       averageHppPerPorsi: number;
-      mostExpensiveRecipe: {
-        namaResep: string;
-        hppPerPorsi: number;
-      } | null;
-      cheapestRecipe: {
-        namaResep: string;
-        hppPerPorsi: number;
-      } | null;
+      mostExpensiveRecipe: any | null;
+      cheapestRecipe: any | null;
       profitabilityStats: {
         high: number;
         medium: number;
@@ -222,10 +216,10 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
                     Termahal
                   </p>
                   <p className="truncate text-sm font-medium text-gray-900">
-                    {basicStats.mostExpensiveRecipe.namaResep}
+                    {(basicStats.mostExpensiveRecipe?.nama_resep ?? basicStats.mostExpensiveRecipe?.namaResep) as string}
                   </p>
                   <p className="text-sm text-red-600">
-                    {formatCurrency(basicStats.mostExpensiveRecipe.hppPerPorsi)}
+                    {formatCurrency((basicStats.mostExpensiveRecipe?.hpp_per_porsi ?? basicStats.mostExpensiveRecipe?.hppPerPorsi) as number)}
                   </p>
                 </div>
               )}
@@ -235,10 +229,10 @@ const RecipeStats: React.FC<RecipeStatsProps> = ({ stats }) => {
                     Termurah
                   </p>
                   <p className="truncate text-sm font-medium text-gray-900">
-                    {basicStats.cheapestRecipe.namaResep}
+                    {(basicStats.cheapestRecipe?.nama_resep ?? basicStats.cheapestRecipe?.namaResep) as string}
                   </p>
                   <p className="text-sm text-green-600">
-                    {formatCurrency(basicStats.cheapestRecipe.hppPerPorsi)}
+                    {formatCurrency((basicStats.cheapestRecipe?.hpp_per_porsi ?? basicStats.cheapestRecipe?.hppPerPorsi) as number)}
                   </p>
                 </div>
               )}

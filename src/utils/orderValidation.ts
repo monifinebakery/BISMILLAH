@@ -24,7 +24,7 @@ export const ORDER_VALIDATION_RULES = {
     pattern: /^[a-zA-Z\s\u00C0-\u017F\u0100-\u024F\u1E00-\u1EFF\u4e00-\u9faf\u3400-\u4dbf]+$/
   },
   PHONE: {
-    required: true,
+    required: false,
     pattern: /^(\+62|62|0)[0-9]{8,13}$/,
     message: 'Format nomor telepon tidak valid'
   },
@@ -123,10 +123,8 @@ export const validateCustomerInfo = (order: Partial<NewOrder>): OrderValidationR
     }
   }
 
-  // Phone validation (required)
-  if (!order.teleponPelanggan || !order.teleponPelanggan.trim()) {
-    errors.push('Nomor telepon tidak boleh kosong');
-  } else {
+  // Phone validation (optional): validate only if provided
+  if (order.teleponPelanggan?.trim()) {
     const phone = order.teleponPelanggan.trim();
     if (!ORDER_VALIDATION_RULES.PHONE.pattern.test(phone)) {
       errors.push(ORDER_VALIDATION_RULES.PHONE.message);

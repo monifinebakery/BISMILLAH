@@ -107,6 +107,12 @@ export const transformToDB = <T>(
         case 'total_nilai':
           result[dbField] = toNumber(value);
           break;
+        // Purchase item numeric fields
+        case 'harga_per_satuan':
+        case 'jumlah':
+        case 'unit_price':
+          result[dbField] = toNumber(value);
+          break;
           
         case 'tanggal':
         case 'created_at':
@@ -225,9 +231,9 @@ export const PURCHASE_ITEM_FIELD_MAPPINGS = {
   toDB: {
     bahan_baku_id: 'bahanBakuId',
     nama: 'nama',
-    jumlah: 'kuantitas', // ✅ FIX: Database uses 'jumlah' not 'kuantitas'
+    jumlah: 'quantity', // ✅ FIX: Database uses 'jumlah' not 'kuantitas'
     satuan: 'satuan',
-    harga_per_satuan: 'hargaSatuan',
+    harga_per_satuan: 'unitPrice',
     subtotal: 'subtotal',
     keterangan: 'keterangan'
   },
@@ -235,9 +241,9 @@ export const PURCHASE_ITEM_FIELD_MAPPINGS = {
   fromDB: {
     bahanBakuId: 'bahan_baku_id',
     nama: 'nama',
-    kuantitas: 'jumlah', // ✅ FIX: Database field is 'jumlah', frontend is 'kuantitas'
+    quantity: 'jumlah', // ✅ FIX: Database field is 'jumlah', frontend is 'kuantitas'
     satuan: 'satuan',
-    hargaSatuan: 'harga_per_satuan',
+    unitPrice: 'harga_per_satuan',
     subtotal: 'subtotal',
     keterangan: 'keterangan'
   }

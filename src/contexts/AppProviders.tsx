@@ -1,7 +1,11 @@
 // src/contexts/AppProviders.tsx - UPDATED WITH PROFIT ANALYSIS PROVIDER
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+// Initialize error monitoring
+import { userErrorMonitor } from '@/utils/userErrorMonitoring';
+import { logger } from '@/utils/logger';
 // ✅ ORIGINAL: Back to original structure
 import { AuthProvider } from './AuthContext';
 import { NotificationProvider } from './NotificationContext';
@@ -59,6 +63,33 @@ const DynamicBahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children 
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
+  
+  // Initialize error monitoring on app startup
+  useEffect(() => {
+    logger.info('🚀 App Providers initialized, starting error monitoring...');
+    
+    // Error monitoring is automatically initialized via import
+    // Log startup info for debugging
+    const startupInfo = {
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+      screenSize: `${screen.width}x${screen.height}`,
+      viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+      isMobile,
+      url: window.location.href
+    };
+    
+    logger.info('📊 App startup info', startupInfo);
+    
+    // Report successful app initialization
+    userErrorMonitor.reportCustomError(
+      'App initialization successful',
+      startupInfo,
+      'navigation'
+    );
+  }, [isMobile]);
   
   return (
     <>

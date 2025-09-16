@@ -248,40 +248,8 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
   const [sortColumn, setSortColumn] = useState<string>('tanggal');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // Memoized sorted and filtered data
-  const sortedPurchases = useMemo(() => {
-    if (!filteredPurchases) return [];
-
-    return [...filteredPurchases].sort((a, b) => {
-      let aValue: any = a[sortColumn as keyof Purchase];
-      let bValue: any = b[sortColumn as keyof Purchase];
-
-      // Handle special cases
-      if (sortColumn === 'tanggal') {
-        // Use UserFriendlyDate for timezone-safe parsing
-        aValue = UserFriendlyDate.safeParseToDate(aValue).getTime();
-        bValue = UserFriendlyDate.safeParseToDate(bValue).getTime();
-      } else if (sortColumn === 'totalNilai' || sortColumn === 'total_nilai') {
-        const aRaw = (a as any).totalNilai ?? (a as any).total_nilai;
-        const bRaw = (b as any).totalNilai ?? (b as any).total_nilai;
-        aValue = Number(aRaw) || 0;
-        bValue = Number(bRaw) || 0;
-      }
-
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [filteredPurchases, sortColumn, sortDirection]);
-
-  // Memoized table columns
-  const columns = useMemo(() => 
-    createPurchaseColumns(onEdit, onDelete, handleStatusChangeOptimistic, getSupplierName),
-    [onEdit, onDelete, getSupplierName]
-  );
-
   // ===========================================
-  // 🎯 OPTIMISTIC UPDATE HANDLERS
+  // 🎯 OPTIMISTIC UPDATE HANDLERS (MOVED UP)
   // ===========================================
 
   const handleStatusChangeOptimistic = useCallback(async (
@@ -316,6 +284,38 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
       logger.debug('✅ Optimistic status update successful');
     }
   }, [smartOptimisticUpdate, updatePurchase, userId, onStatusChange]);
+
+  // Memoized sorted and filtered data
+  const sortedPurchases = useMemo(() => {
+    if (!filteredPurchases) return [];
+
+    return [...filteredPurchases].sort((a, b) => {
+      let aValue: any = a[sortColumn as keyof Purchase];
+      let bValue: any = b[sortColumn as keyof Purchase];
+
+      // Handle special cases
+      if (sortColumn === 'tanggal') {
+        // Use UserFriendlyDate for timezone-safe parsing
+        aValue = UserFriendlyDate.safeParseToDate(aValue).getTime();
+        bValue = UserFriendlyDate.safeParseToDate(bValue).getTime();
+      } else if (sortColumn === 'totalNilai' || sortColumn === 'total_nilai') {
+        const aRaw = (a as any).totalNilai ?? (a as any).total_nilai;
+        const bRaw = (b as any).totalNilai ?? (b as any).total_nilai;
+        aValue = Number(aRaw) || 0;
+        bValue = Number(bRaw) || 0;
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredPurchases, sortColumn, sortDirection]);
+
+  // Memoized table columns (now handleStatusChangeOptimistic is available)
+  const columns = useMemo(() => 
+    createPurchaseColumns(onEdit, onDelete, handleStatusChangeOptimistic, getSupplierName),
+    [onEdit, onDelete, handleStatusChangeOptimistic, getSupplierName]
+  );
 
   // ===========================================
   // 📊 TABLE EVENT HANDLERS

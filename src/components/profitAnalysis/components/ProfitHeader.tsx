@@ -141,13 +141,7 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({
               Refresh
             </Button>
 
-            <Button
-              onClick={() => navigate('/laporan-keuangan')}
-              className="flex items-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-2 rounded-lg transition-all"
-            >
-              <TrendingUp className="h-4 w-4" />
-              Tambah Transaksi
-            </Button>
+            {/* Tombol Tambah Transaksi dihilangkan sesuai permintaan */}
           </div>
         </div>
 
@@ -159,13 +153,7 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({
             <RefreshCw className="h-4 w-4" />
             Refresh Data
           </Button>
-          <Button
-            onClick={() => navigate('/laporan-keuangan')}
-            className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-3 rounded-lg transition-all"
-          >
-            <TrendingUp className="h-4 w-4" />
-            Tambah Transaksi
-          </Button>
+          {/* Tombol Tambah Transaksi (mobile) dihilangkan */}
         </div>
 
         {(businessMetrics || period) && (

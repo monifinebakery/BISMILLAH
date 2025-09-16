@@ -74,6 +74,9 @@ class PWAManager {
         const newWorker = this.registration?.installing;
         if (newWorker) {
           safeDom.addEventListener(newWorker, 'statechange', () => {
+            // Dispatch custom event for state changes
+            window.dispatchEvent(new CustomEvent('sw-state-change', { detail: newWorker.state }));
+
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('[PWA] New service worker available');
               this.notifyUpdate();

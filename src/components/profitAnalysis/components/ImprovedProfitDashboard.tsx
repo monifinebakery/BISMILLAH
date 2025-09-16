@@ -18,6 +18,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useProfitAnalysis } from '../hooks';
 import { formatCurrency, formatPercentage } from '../utils/profitTransformers';
 import { toast } from 'sonner';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { DateRange } from 'react-day-picker';
+import { subDays, format } from 'date-fns';
+import { DatePickerWithRange } from '@/components/ui/date-picker';
+import { DashboardHeader } from '@/components/ui/DashboardHeader';
 
 // ===== TYPES =====
 interface DashboardStep {
@@ -163,9 +168,9 @@ const HealthScoreCard: React.FC<{ metrics: any }> = ({ metrics }) => {
 
   const healthScore = calculateHealthScore();
   const getHealthColor = () => {
-    if (healthScore >= 75) return 'text-green-600 bg-green-50';
-    if (healthScore >= 50) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (healthScore >= 75) return 'text-green-600 bg-green-100';
+    if (healthScore >= 50) return 'text-orange-600 bg-orange-100';
+    return 'text-red-600 bg-red-100';
   };
   
   const getHealthEmoji = () => {
@@ -175,7 +180,7 @@ const HealthScoreCard: React.FC<{ metrics: any }> = ({ metrics }) => {
   };
 
   return (
-    <Card className={`border-2 ${healthScore >= 75 ? 'border-green-200' : healthScore >= 50 ? 'border-yellow-200' : 'border-red-200'}`}>
+    <Card className={`border-2 ${healthScore >= 75 ? 'border-green-200' : healthScore >= 50 ? 'border-orange-200' : 'border-red-200'}`}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Kesehatan Bisnis</span>
@@ -187,7 +192,7 @@ const HealthScoreCard: React.FC<{ metrics: any }> = ({ metrics }) => {
           <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full ${getHealthColor()}`}>
             <span className="text-5xl font-bold">{healthScore}</span>
           </div>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-muted-foreground">
             {healthScore >= 75 ? 'Mantap! Bisnis kamu sehat 💪' :
              healthScore >= 50 ? 'Lumayan, tapi masih bisa lebih baik 📈' :
              'Perlu perhatian khusus nih 🔧'}
@@ -232,7 +237,7 @@ const HealthIndicator: React.FC<{
   const getStatusColor = () => {
     switch (status) {
       case 'good': return 'bg-green-500';
-      case 'warning': return 'bg-yellow-500';
+      case 'warning': return 'bg-orange-500';
       case 'danger': return 'bg-red-500';
     }
   };
@@ -243,10 +248,10 @@ const HealthIndicator: React.FC<{
         <span>{label}</span>
         <span className="font-semibold">
           {formatPercentage(value)}
-          <span className="text-gray-400 ml-1">/ {target}%</span>
+          <span className="text-muted-foreground ml-1">/ {target}%</span>
         </span>
       </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
         <div 
           className={`h-full transition-all duration-500 ${getStatusColor()}`}
           style={{ width: `${percentage}%` }}
@@ -305,7 +310,7 @@ const QuickInsights: React.FC<{ analysis: any }> = ({ analysis }) => {
   return (
     <div className="space-y-3">
       <h3 className="font-semibold flex items-center gap-2">
-        <Lightbulb className="h-5 w-5 text-yellow-500" />
+        <Lightbulb className="h-5 w-5 text-orange-500" />
         Quick Insights
       </h3>
       
@@ -314,7 +319,7 @@ const QuickInsights: React.FC<{ analysis: any }> = ({ analysis }) => {
           key={index}
           className={
             insight.type === 'success' ? 'border-green-200 bg-green-50' :
-            insight.type === 'warning' ? 'border-yellow-200 bg-yellow-50' :
+            insight.type === 'warning' ? 'border-orange-200 bg-orange-50' :
             'border-red-200 bg-red-50'
           }
         >
@@ -382,10 +387,95 @@ const SimplifiedMetricCard: React.FC<{
   );
 };
 
+// 6. Detail Breakdown Component
+const DetailBreakdown: React.FC<{ 
+  revenueData: any; 
+  cogsData: any; 
+  opexData: any; 
+}> = ({ revenueData, cogsData, opexData }) => {
+  const topRevenueItems = revenueData?.details?.slice(0, 3) || [];
+  const topCogsItems = cogsData?.details?.slice(0, 3) || [];
+  const topOpexItems = opexData?.details?.slice(0, 3) || [];
+
+  return (
+    <div className="space-y-4 pt-4">
+      <BreakdownCategory 
+        title="Penjualan Teratas" 
+        items={topRevenueItems} 
+        total={revenueData?.total}
+        color="green"
+      />
+      <BreakdownCategory 
+        title="Bahan Paling Mahal"
+        items={topCogsItems}
+        total={cogsData?.total}
+        color="red"
+      />
+      <BreakdownCategory 
+        title="Operasional Terbesar"
+        items={topOpexItems}
+        total={opexData?.total}
+        color="orange"
+      />
+    </div>
+  );
+};
+
+const BreakdownCategory: React.FC<{ 
+  title: string; 
+  items: { name: string; total: number }[];
+  total: number;
+  color: 'green' | 'red' | 'orange';
+}> = ({ title, items, total, color }) => {
+  const getColorClasses = () => {
+    switch (color) {
+      case 'green': return { bg: 'bg-green-50', text: 'text-green-800', border: 'border-green-200' };
+      case 'red': return { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200' };
+      case 'orange': return { bg: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-200' };
+    }
+  };
+  const { bg, text, border } = getColorClasses();
+
+  return (
+    <div className={`p-4 rounded-lg ${bg} ${border}`}>
+      <h4 className={`font-semibold mb-2 ${text}`}>{title}</h4>
+      <ul className="space-y-2">
+        {items.map((item, index) => (
+          <li key={index} className="flex justify-between text-sm">
+            <span>{item.name}</span>
+            <span className="font-medium">{formatCurrency(item.total)}</span>
+          </li>
+        ))}
+        {items.length === 0 && <li className="text-sm text-gray-500">Tidak ada data detail.</li>}
+      </ul>
+      <div className="flex justify-between font-bold mt-3 pt-2 border-t border-gray-200">
+        <span>Total</span>
+        <span>{formatCurrency(total || 0)}</span>
+      </div>
+    </div>
+  );
+}
+
+
 // ===== MAIN DASHBOARD COMPONENT =====
 const ImprovedProfitDashboard: React.FC = () => {
   const [showWelcome, setShowWelcome] = useState(true);
-  const [selectedView, setSelectedView] = useState<'overview' | 'details' | 'trends'>('overview');
+  const [selectedView, setSelectedView] = useState('overview');
+  const [mode, setMode] = useState<'monthly' | 'daily'>('monthly');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 29),
+    to: new Date(),
+  });
+
+  const trendData = [
+    { name: 'Jan', revenue: 4000, netProfit: 2400 },
+    { name: 'Feb', revenue: 3000, netProfit: 1398 },
+    { name: 'Mar', revenue: 2000, netProfit: 9800 },
+    { name: 'Apr', revenue: 2780, netProfit: 3908 },
+    { name: 'May', revenue: 1890, netProfit: 4800 },
+    { name: 'Jun', revenue: 2390, netProfit: 3800 },
+    { name: 'Jul', revenue: 3490, netProfit: 4300 },
+  ];
   const isMobile = useIsMobile();
 
   const {
@@ -394,18 +484,28 @@ const ImprovedProfitDashboard: React.FC = () => {
     error,
     refreshAnalysis,
     profitMetrics,
-    currentPeriod,
+    currentPeriod: defaultPeriod,
   } = useProfitAnalysis({
     autoCalculate: true,
     enableWAC: true,
+    mode: mode,
+    dateRange: mode === 'daily' ? dateRange : undefined,
   });
+
+  const currentPeriod = useMemo(() => {
+    if (mode === 'daily' && dateRange?.from) {
+      if (dateRange.to) {
+        return `${format(dateRange.from, 'd MMM yyyy')} - ${format(dateRange.to, 'd MMM yyyy')}`;
+      }
+      return format(dateRange.from, 'd MMM yyyy');
+    }
+    return defaultPeriod;
+  }, [mode, dateRange, defaultPeriod]);
+
 
   // Check if setup is complete
   const isSetupComplete = useMemo(() => {
     const hasRevenue = (currentAnalysis?.revenue_data?.total || 0) > 0;
-    const hasCogs = (currentAnalysis?.cogs_data?.total || 0) > 0;
-    const hasOpex = (currentAnalysis?.opex_data?.total || 0) > 0;
-    
     return hasRevenue; // Simplified check - at least have revenue
   }, [currentAnalysis]);
 
@@ -474,33 +574,33 @@ const ImprovedProfitDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Analisis Profit {currentPeriod}</h1>
-          <p className="text-gray-600">
-            Pantau kesehatan bisnis kamu dengan mudah
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleRefresh}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Export
-          </Button>
-        </div>
-      </div>
+      <DashboardHeader 
+        title={`Analisis Profit ${currentPeriod}`}
+        description="Pantau kesehatan bisnis kamu dengan mudah"
+        actions={
+          <div className="flex items-center gap-2">
+            {mode === 'daily' && (
+              <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+            )}
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => setMode(mode === 'monthly' ? 'daily' : 'monthly')}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              {mode === 'monthly' ? 'Pilih Tanggal' : 'Lihat Bulanan'}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRefresh}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
+            </Button>
+          </div>
+        }
+      />
 
       {/* Quick Insights */}
       {businessMetrics && <QuickInsights analysis={currentAnalysis} />}
@@ -555,7 +655,7 @@ const ImprovedProfitDashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={selectedView} onValueChange={(v: any) => setSelectedView(v)}>
+                            <Tabs value={selectedView} onValueChange={setSelectedView} defaultValue="overview">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="overview">Ringkasan</TabsTrigger>
                   <TabsTrigger value="details">Detail</TabsTrigger>
@@ -596,15 +696,27 @@ const ImprovedProfitDashboard: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="details">
-                  <p className="text-gray-600 text-sm">
-                    Detail breakdown akan ditampilkan di sini...
-                  </p>
+                  <DetailBreakdown 
+                    revenueData={currentAnalysis?.revenue_data}
+                    cogsData={currentAnalysis?.cogs_data}
+                    opexData={currentAnalysis?.opex_data}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="trends">
-                  <p className="text-gray-600 text-sm">
-                    Trend analysis akan ditampilkan di sini...
-                  </p>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trendData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                        <Legend />
+                        <Line type="monotone" dataKey="revenue" stroke="#8884d8" name="Omset" />
+                        <Line type="monotone" dataKey="netProfit" stroke="#82ca9d" name="Untung Bersih" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </TabsContent>
               </Tabs>
             </CardContent>

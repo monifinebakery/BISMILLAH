@@ -2,7 +2,6 @@
 // Export barrel for clean imports
 export { default as SupplierManagement } from './SupplierManagement';
 export { default as SupplierTable } from './SupplierTable';
-export { default as VirtualSupplierTable } from './VirtualSupplierTable';
 export { default as SupplierForm } from './SupplierForm';
 export { default as SupplierDialog } from './SupplierDialog';
 export { default as SupplierFilters } from './SupplierFilters';

@@ -3,7 +3,6 @@
 // Main components
 export { default as TransactionTable } from './TransactionTable';
 export { default as TransactionTableWithFilters } from './TransactionTableWithFilters';
-export { default as VirtualTransactionTable } from './VirtualTransactionTable';
 export { default as FinancialTransactionDialog } from './FinancialTransactionDialog';
 
 // Filter and bulk components

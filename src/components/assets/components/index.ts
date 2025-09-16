@@ -3,7 +3,6 @@
 // Re-export all components
 export * from './AssetStatistics';
 export * from './AssetTable';
-export { default as VirtualAssetTable } from './VirtualAssetTable';
 export * from './AssetCard';
 export * from './AssetForm';
 export * from './AssetFormFields';

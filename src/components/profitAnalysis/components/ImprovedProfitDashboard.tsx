@@ -12,7 +12,8 @@ import {
   TrendingUp, TrendingDown, AlertCircle, CheckCircle2, 
   ArrowRight, Target, Calendar, Download, RefreshCw,
   DollarSign, Package, Calculator, Info, ChevronRight,
-  Lightbulb, AlertTriangle, Sparkles, PieChart
+  Lightbulb, AlertTriangle, Sparkles, PieChart,
+  BarChart3, TrendingUp as TrendingUpIcon
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useProfitAnalysis } from '../hooks';
@@ -21,8 +22,19 @@ import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DateRange } from 'react-day-picker';
 import { subDays, format } from 'date-fns';
-import { DatePickerWithRange } from '@/components/ui/date-picker';
-import { DashboardHeader } from '@/components/ui/DashboardHeader';
+import { id } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
+
+// Import date picker with responsive handling
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Button as DatePickerButton } from '@/components/ui/button';
+import { format as formatDate } from 'date-fns';
 
 // ===== TYPES =====
 interface DashboardStep {
@@ -352,15 +364,15 @@ const SimplifiedMetricCard: React.FC<{
       case 'good': return 'border-green-200 bg-green-50';
       case 'warning': return 'border-yellow-200 bg-yellow-50';
       case 'danger': return 'border-red-200 bg-red-50';
-      default: return 'border-gray-200';
+      default: return 'border-gray-200 bg-white';
     }
   };
 
   return (
-    <Card className={`relative overflow-hidden ${getStatusColor()}`}>
+    <Card className={`relative overflow-hidden ${getStatusColor()} border`}>
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
-          <Icon className="h-8 w-8 text-gray-400" />
+          <Icon className="h-8 w-8 text-gray-500" />
           {trend !== undefined && (
             <Badge variant={trend >= 0 ? 'default' : 'destructive'} className="text-xs">
               {trend >= 0 ? '+' : ''}{trend.toFixed(1)}%
@@ -370,13 +382,13 @@ const SimplifiedMetricCard: React.FC<{
         
         <div className="space-y-1">
           <p className="text-sm text-gray-600">{title}</p>
-          <p className="text-2xl font-bold">{formatCurrency(value)}</p>
+          <p className="text-2xl font-bold text-gray-900">{formatCurrency(value)}</p>
           {subtitle && (
             <p className="text-xs text-gray-500">{subtitle}</p>
           )}
         </div>
 
-        <div className="mt-3 pt-3 border-t border-gray-100">
+        <div className="mt-3 pt-3 border-t border-gray-200">
           <p className="text-xs text-gray-600 flex items-center gap-1">
             <Info className="h-3 w-3" />
             {helpText}
@@ -437,7 +449,7 @@ const BreakdownCategory: React.FC<{
   const { bg, text, border } = getColorClasses();
 
   return (
-    <div className={`p-4 rounded-lg ${bg} ${border}`}>
+    <div className={`p-4 rounded-lg ${bg} ${border} border`}>
       <h4 className={`font-semibold mb-2 ${text}`}>{title}</h4>
       <ul className="space-y-2">
         {items.map((item, index) => (
@@ -454,8 +466,234 @@ const BreakdownCategory: React.FC<{
       </div>
     </div>
   );
-}
+};
 
+// Responsive Date Picker Component
+const ResponsiveDatePicker: React.FC<{
+  dateRange: DateRange | undefined;
+  setDateRange: (date: DateRange | undefined) => void;
+}> = ({ dateRange, setDateRange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  const formatDateRange = (range: DateRange | undefined) => {
+    if (!range?.from) return 'Pilih tanggal';
+    if (!range.to) return formatDate(range.from, 'd MMM yyyy', { locale: id });
+    return `${formatDate(range.from, 'd MMM', { locale: id })} - ${formatDate(range.to, 'd MMM yyyy', { locale: id })}`;
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <DatePickerButton
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left font-normal",
+            !dateRange?.from && "text-muted-foreground",
+            "bg-white border border-gray-300 hover:bg-gray-50"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          <span className="truncate">{formatDateRange(dateRange)}</span>
+        </DatePickerButton>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <div className="p-3 border-b">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium">Pilih Periode</h4>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDateRange(undefined)}
+            >
+              Reset
+            </Button>
+          </div>
+        </div>
+        {/* You can add a custom date range picker here if needed */}
+        <div className="p-3 space-y-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              const today = new Date();
+              setDateRange({
+                from: subDays(today, 6),
+                to: today,
+              });
+              setIsOpen(false);
+            }}
+          >
+            7 Hari Terakhir
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              const today = new Date();
+              setDateRange({
+                from: subDays(today, 29),
+                to: today,
+              });
+              setIsOpen(false);
+            }}
+          >
+            30 Hari Terakhir
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+// Profit Header Component (consistent with warehouse/purchase headers)
+const ProfitHeader: React.FC<{
+  period: string;
+  mode: 'monthly' | 'daily';
+  setMode: (mode: 'monthly' | 'daily') => void;
+  dateRange: DateRange | undefined;
+  setDateRange: (date: DateRange | undefined) => void;
+  onRefresh: () => void;
+  businessMetrics: any;
+}> = ({ period, mode, setMode, dateRange, setDateRange, onRefresh, businessMetrics }) => {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white shadow-lg">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="bg-white bg-opacity-10 p-3 rounded-xl backdrop-blur-sm">
+              <BarChart3 className="h-8 w-8 text-white" />
+            </div>
+            
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+                Analisis Profit
+              </h1>
+              <p className="text-white text-opacity-90">
+                Pantau kesehatan bisnis kamu dengan mudah
+              </p>
+            </div>
+          </div>
+
+          <div className="hidden md:flex gap-3">
+            <Button 
+              onClick={onRefresh}
+              className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+
+            <Button
+              onClick={() => navigate('/laporan-keuangan')}
+              className="flex items-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-2 rounded-lg transition-all"
+            >
+              <TrendingUpIcon className="h-4 w-4" />
+              Tambah Transaksi
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex md:hidden flex-col gap-3 mt-6">
+          <Button
+            onClick={onRefresh}
+            className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh Data
+          </Button>
+          <Button
+            onClick={() => navigate('/laporan-keuangan')}
+            className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-3 rounded-lg transition-all"
+          >
+            <TrendingUpIcon className="h-4 w-4" />
+            Tambah Transaksi
+          </Button>
+        </div>
+
+        {(businessMetrics || period) && (
+          <div className="mt-4 pt-4 border-t border-white border-opacity-20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex flex-col">
+                <span className="text-white opacity-75 text-xs uppercase tracking-wide">Periode</span>
+                <span className="font-bold text-lg">
+                  {period}
+                </span>
+              </div>
+
+              {businessMetrics && (
+                <>
+                  <div className="flex flex-col">
+                    <span className="text-white opacity-75 text-xs uppercase tracking-wide">Omset</span>
+                    <span className="font-bold text-lg">
+                      {formatCurrency(businessMetrics.revenue || 0)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-white opacity-75 text-xs uppercase tracking-wide">Untung Bersih</span>
+                    <span className={`font-bold text-lg ${businessMetrics.netProfit > 0 ? 'text-green-200' : 'text-red-200'}`}>
+                      {formatCurrency(businessMetrics.netProfit || 0)}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Date Range Controls */}
+        <div className="mt-4 pt-4 border-t border-white border-opacity-20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={mode === 'monthly' ? 'default' : 'outline'}
+                size="sm"
+                className={mode === 'monthly' ? 'bg-white text-orange-600 hover:bg-gray-100' : 'bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30'}
+                onClick={() => setMode('monthly')}
+              >
+                Bulanan
+              </Button>
+              <Button
+                variant={mode === 'daily' ? 'default' : 'outline'}
+                size="sm"
+                className={mode === 'daily' ? 'bg-white text-orange-600 hover:bg-gray-100' : 'bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30'}
+                onClick={() => setMode('daily')}
+              >
+                Custom
+              </Button>
+            </div>
+
+            {mode === 'daily' && (
+              <div className="w-full sm:w-auto">
+                <ResponsiveDatePicker 
+                  dateRange={dateRange} 
+                  setDateRange={setDateRange} 
+                />
+              </div>
+            )}
+
+            <div className="sm:ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30"
+                onClick={onRefresh}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
 
 // ===== MAIN DASHBOARD COMPONENT =====
 const ImprovedProfitDashboard: React.FC = () => {
@@ -495,9 +733,9 @@ const ImprovedProfitDashboard: React.FC = () => {
   const currentPeriod = useMemo(() => {
     if (mode === 'daily' && dateRange?.from) {
       if (dateRange.to) {
-        return `${format(dateRange.from, 'd MMM yyyy')} - ${format(dateRange.to, 'd MMM yyyy')}`;
+        return `${format(dateRange.from, 'd MMM yyyy', { locale: id })} - ${format(dateRange.to, 'd MMM yyyy', { locale: id })}`;
       }
-      return format(dateRange.from, 'd MMM yyyy');
+      return format(dateRange.from, 'd MMM yyyy', { locale: id });
     }
     return defaultPeriod;
   }, [mode, dateRange, defaultPeriod]);
@@ -574,32 +812,15 @@ const ImprovedProfitDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <DashboardHeader 
-        title={`Analisis Profit ${currentPeriod}`}
-        description="Pantau kesehatan bisnis kamu dengan mudah"
-        actions={
-          <div className="flex items-center gap-2">
-            {mode === 'daily' && (
-              <DatePickerWithRange date={dateRange} setDate={setDateRange} />
-            )}
-            <Button 
-              variant="outline"
-              size="sm"
-              onClick={() => setMode(mode === 'monthly' ? 'daily' : 'monthly')}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              {mode === 'monthly' ? 'Pilih Tanggal' : 'Lihat Bulanan'}
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleRefresh}
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Refresh
-            </Button>
-          </div>
-        }
+      {/* Header with consistent styling */}
+      <ProfitHeader 
+        period={currentPeriod}
+        mode={mode}
+        setMode={setMode}
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        onRefresh={handleRefresh}
+        businessMetrics={businessMetrics}
       />
 
       {/* Quick Insights */}
@@ -647,7 +868,7 @@ const ImprovedProfitDashboard: React.FC = () => {
           </div>
 
           {/* Detailed Breakdown */}
-          <Card>
+          <Card className="border rounded-xl">
             <CardHeader>
               <CardTitle>Breakdown Detail</CardTitle>
               <CardDescription>
@@ -655,7 +876,7 @@ const ImprovedProfitDashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                            <Tabs value={selectedView} onValueChange={setSelectedView} defaultValue="overview">
+              <Tabs value={selectedView} onValueChange={setSelectedView} defaultValue="overview">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="overview">Ringkasan</TabsTrigger>
                   <TabsTrigger value="details">Detail</TabsTrigger>
@@ -664,28 +885,28 @@ const ImprovedProfitDashboard: React.FC = () => {
                 
                 <TabsContent value="overview" className="space-y-4">
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
                       <span className="font-medium">💰 Pemasukan</span>
                       <span className="font-bold">{formatCurrency(businessMetrics?.revenue || 0)}</span>
                     </div>
                     
-                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
                       <span className="font-medium">📦 Modal Bahan</span>
                       <span className="font-bold">- {formatCurrency(businessMetrics?.cogs || 0)}</span>
                     </div>
                     
-                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
                       <span className="font-medium">= Untung Kotor</span>
                       <span className="font-bold">{formatCurrency(businessMetrics?.grossProfit || 0)}</span>
                     </div>
                     
-                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
                       <span className="font-medium">💡 Biaya Operasional</span>
                       <span className="font-bold">- {formatCurrency(businessMetrics?.opex || 0)}</span>
                     </div>
                     
-                    <div className={`flex justify-between items-center p-3 rounded-lg ${
-                      businessMetrics?.netProfit > 0 ? 'bg-green-100' : 'bg-red-100'
+                    <div className={`flex justify-between items-center p-3 rounded-lg border ${
+                      businessMetrics?.netProfit > 0 ? 'bg-green-100 border-green-200' : 'bg-red-100 border-red-200'
                     }`}>
                       <span className="font-bold">= Untung Bersih</span>
                       <span className="font-bold text-lg">
@@ -728,7 +949,7 @@ const ImprovedProfitDashboard: React.FC = () => {
           {businessMetrics && <HealthScoreCard metrics={businessMetrics} />}
           
           {/* Tips & Recommendations */}
-          <Card className="mt-6">
+          <Card className="mt-6 border rounded-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lightbulb className="h-5 w-5 text-yellow-500" />

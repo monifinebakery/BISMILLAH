@@ -158,8 +158,8 @@ export const initializeRoutePreloaders = () => {
   registerRoutePreloader('financial', () => import('../components/financial/FinancialReportPage'));
   
   // Feature routes
-  registerRoutePreloader('recipes', () => import('../components/recipe/Recipes'));
-  registerRoutePreloader('promo', () => import('../components/promoCalculator/PromoCalculatorPage'));
+  registerRoutePreloader('recipes', () => import('../pages/Recipes'));
+  registerRoutePreloader('promo', () => import('../pages/PromoCalculatorPage'));
   registerRoutePreloader('operational-costs', () => import('../components/operational-costs/OperationalCostPage'));
   registerRoutePreloader('assets', () => import('../components/assets/AssetPage'));
   registerRoutePreloader('invoice', () => import('../components/invoice/InvoicePage'));
@@ -169,8 +169,8 @@ export const initializeRoutePreloaders = () => {
   registerRoutePreloader('profit-analysis', () => import('../components/profitAnalysis/components/ImprovedProfitDashboard'));
   
   // Settings routes
-  registerRoutePreloader('settings', () => import('../components/settings/Settings'));
-  registerRoutePreloader('devices', () => import('../components/device/DeviceManagementPage'));
+  registerRoutePreloader('settings', () => import('../pages/Settings'));
+  registerRoutePreloader('devices', () => import('../components/devices/DeviceManagementPage'));
 };
 
 // React import for hooks

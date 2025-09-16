@@ -111,8 +111,15 @@ const App = () => {
     };
   }, [handleQueryError]);
 
-  // Load dehydrated state from localStorage once
-  const dehydratedState = React.useMemo(() => loadPersistedQueryState(), []);
+  // Load dehydrated state from IndexedDB (async) once
+  const [dehydratedState, setDehydratedState] = React.useState<any>(null);
+  React.useEffect(() => {
+    let mounted = true;
+    loadPersistedQueryState().then((state) => {
+      if (mounted) setDehydratedState(state);
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

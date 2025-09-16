@@ -248,6 +248,75 @@ export const appSettingsApi = {
   },
 
   /**
+   * Calculate overhead using database function calculate_overhead_detailed
+   * This function calls the Supabase RPC function that auto-syncs with production target
+   */
+  async calculateOverhead(materialCost: number = 0): Promise<ApiResponse<any>> {
+    try {
+      const userId = await getCurrentUserId();
+      if (!userId) {
+        return { 
+          data: null, 
+          error: 'User tidak ditemukan. Silakan login kembali.' 
+        };
+      }
+
+      logger.info('🔄 Calling calculate_overhead_detailed RPC', {
+        materialCost,
+        userId
+      });
+
+      // Call the database function that auto-syncs with production target
+      const { data, error } = await supabase
+        .rpc('calculate_overhead_detailed', {
+          p_material_cost: materialCost,
+          p_user_id: userId
+        });
+
+      if (error) {
+        logger.error('❌ Error calling calculate_overhead_detailed:', error);
+        throw error;
+      }
+
+      // The RPC returns a table, so we need to get the first row
+      const result = Array.isArray(data) ? data[0] : data;
+      
+      if (!result) {
+        logger.warn('⚠️ No result from calculate_overhead_detailed');
+        return {
+          data: {
+            overhead_per_unit: 0,
+            total_costs: 0,
+            allocation_method: 'per_unit',
+            basis_value: 1000,
+            production_target: 1000,
+            calculation_notes: 'No operational costs found or invalid settings'
+          }
+        };
+      }
+
+      logger.success('✅ Overhead calculation result:', result);
+      
+      return { 
+        data: {
+          overhead_per_unit: Number(result.overhead_per_unit) || 0,
+          total_costs: Number(result.total_costs) || 0,
+          allocation_method: result.allocation_method || 'per_unit',
+          basis_value: Number(result.basis_value) || 1000,
+          production_target: Number(result.production_target) || 1000,
+          calculation_notes: result.calculation_notes || 'Auto-calculated from current settings'
+        }
+      };
+    } catch (error) {
+      logger.error('❌ Error calculating overhead:', error);
+      return { 
+        data: null, 
+        error: 'Gagal menghitung overhead. Pastikan Anda memiliki biaya operasional dan pengaturan yang valid.' 
+      };
+    }
+  },
+
+  /**
    * Calculate and update both cost groups simultaneously
    */
   async calculateAndUpdateCosts(

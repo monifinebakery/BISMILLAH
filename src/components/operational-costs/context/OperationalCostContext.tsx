@@ -249,6 +249,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       logger.info('🎉 Cost mutation success, invalidating queries');
       // Invalidate and refetch costs (partial key to match all filter variants)
       queryClient.invalidateQueries({ queryKey: ['operational-costs', 'costs'] });
+      // Also invalidate overhead calculations since costs changed
+      queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] });
     },
     onError: (error: Error) => {
       logger.error('❌ Create cost mutation error:', error instanceof Error ? error.message : String(error));
@@ -271,6 +273,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       logger.info('🎉 Update cost mutation success, invalidating queries');
       // Invalidate and refetch costs (partial key)
       queryClient.invalidateQueries({ queryKey: ['operational-costs', 'costs'] });
+      // Also invalidate overhead calculations since costs changed
+      queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] });
     },
     onError: (error: Error) => {
       logger.error('❌ Update cost mutation error:', error instanceof Error ? error.message : String(error));
@@ -293,6 +297,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       logger.info('🎉 Delete cost mutation success, invalidating queries');
       // Invalidate and refetch costs (partial key)
       queryClient.invalidateQueries({ queryKey: ['operational-costs', 'costs'] });
+      // Also invalidate overhead calculations since costs changed
+      queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] });
     },
     onError: (error: Error) => {
       logger.error('❌ Delete cost mutation error:', error instanceof Error ? error.message : String(error));
@@ -315,6 +321,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       logger.info('🎉 Save allocation mutation success, invalidating queries');
       // Invalidate and refetch allocation settings
       queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.allocationSettings() });
+      // Also invalidate overhead calculations since allocation settings changed
+      queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] });
     },
     onError: (error: Error) => {
       logger.error('❌ Save allocation mutation error:', error instanceof Error ? error.message : String(error));
@@ -334,9 +342,15 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       logger.info('🔄 Calculating overhead with material cost:', materialCost);
       setLoading('overhead', true);
       
+      // Get current production target for query key consistency
+      const targetResponse = await productionOutputApi.getCurrentProductionTarget();
+      const currentTarget = targetResponse.data || 1000;
+      
+      logger.debug('🎯 Using production target for calculation:', currentTarget);
+      
       // Use queryClient.fetchQuery for manual triggering
       const data = await queryClient.fetchQuery({
-        queryKey: OPERATIONAL_COST_QUERY_KEYS.overheadCalculation(materialCost),
+        queryKey: OPERATIONAL_COST_QUERY_KEYS.overheadCalculation(materialCost, currentTarget),
         queryFn: async () => {
           const response = await calculationApi.calculateOverhead(materialCost);
           if (response.error) {
@@ -344,7 +358,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
           }
           return response.data;
         },
-        staleTime: 1 * 60 * 1000, // 1 minute - overhead calculation can change frequently
+        staleTime: 30 * 1000, // 30 seconds - overhead calculation can change frequently
         retry: 2,
       });
 

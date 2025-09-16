@@ -11,7 +11,7 @@ export interface AssetFormData {
   kondisi: AssetCondition | '';
   lokasi: string;
   deskripsi: string;
-  depresiasi: number | '';
+  depresiasi: number | null | '';
 }
 
 export interface AssetFormErrors {

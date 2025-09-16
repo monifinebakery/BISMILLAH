@@ -81,7 +81,7 @@ export const transformAssetForDB = (
     kondisi: asset.kondisi,
     lokasi: asset.lokasi.trim(),
     deskripsi: asset.deskripsi?.trim() || null,
-    depresiasi: asset.depresiasi || null,
+    depresiasi: asset.depresiasi !== null && asset.depresiasi !== undefined && asset.depresiasi !== '' ? asset.depresiasi : null,
   };
 };
 
@@ -128,7 +128,7 @@ export const transformAssetUpdateForDB = (asset: AssetUpdateInput): DatabaseAsse
   }
   
   if (asset.depresiasi !== undefined) {
-    updateData.depresiasi = asset.depresiasi;
+    updateData.depresiasi = asset.depresiasi !== null && asset.depresiasi !== '' ? asset.depresiasi : null;
   }
 
   return updateData;

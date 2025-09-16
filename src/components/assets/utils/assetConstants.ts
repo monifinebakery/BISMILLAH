@@ -78,7 +78,7 @@ export const DEFAULT_FORM_DATA = {
   kondisi: '' as AssetCondition | '',
   lokasi: '',
   deskripsi: '',
-  depresiasi: '' as number | '',
+  depresiasi: null as number | null | '',
 };
 
 export const QUERY_KEYS = {

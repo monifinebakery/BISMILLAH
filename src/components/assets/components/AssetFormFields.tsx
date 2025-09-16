@@ -230,7 +230,7 @@ const AssetDepreciationField: React.FC<FieldProps> = ({ value, error, onChange, 
       id="depresiasi"
       type="number"
       value={getInputValue(value)}
-      onChange={(e) => onChange(e.target.value ? parseFloat(e.target.value) : '')}
+      onChange={(e) => onChange(e.target.value ? parseFloat(e.target.value) : null)}
       placeholder="0"
       className={`border-orange-200 focus:border-orange-400 ${
         error ? 'border-red-500' : ''

@@ -7,7 +7,6 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 // 🚀 Import performance optimizations
 import {
   createSmartMemo,
-  VirtualTable,
   MemoizedFormField,
   useRenderCount,
   useWhyDidYouUpdate

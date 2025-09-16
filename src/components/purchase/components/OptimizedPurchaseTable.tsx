@@ -14,7 +14,6 @@ import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 // Import our performance optimization utilities
 import {
   createSmartMemo,
-  VirtualTable,
   MemoizedTableRow,
   useRenderCount,
   useWhyDidYouUpdate

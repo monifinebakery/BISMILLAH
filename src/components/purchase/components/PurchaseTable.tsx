@@ -11,7 +11,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 // 🚀 Import performance optimizations
 import {
   createSmartMemo,
-  VirtualTable,
   useRenderCount,
   useWhyDidYouUpdate
 } from '@/utils/performance/componentOptimizations';

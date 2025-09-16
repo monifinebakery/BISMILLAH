@@ -56,12 +56,6 @@ const TransactionTable = React.lazy(() =>
   })
 );
 
-const VirtualTransactionTable = React.lazy(() => 
-  import('./components/VirtualTransactionTable').catch((error) => {
-    logger.error('Failed to load VirtualTransactionTable:', error);
-    return { default: () => <div>Error loading VirtualTransactionTable</div> };
-  })
-);
 
 const FinancialTransactionDialog = React.lazy(() => 
   import('./dialogs/FinancialTransactionDialog').catch((error) => {

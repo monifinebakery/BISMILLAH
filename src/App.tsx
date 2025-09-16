@@ -10,9 +10,28 @@ import { queryClient } from "@/config/queryClient";
 import { AppLoader } from "@/components/loaders";
 import { logger } from "@/utils/logger";
 import { CodeSplittingProvider, CodeSplittingLoadingIndicator } from "@/providers/CodeSplittingProvider";
+import { UpdateNotificationBanner } from "@/components/common/UpdateNotificationBanner";
+import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 // import MemoryMonitor from "@/components/MemoryMonitor";
 
 const App = () => {
+  // ✅ Auto-update system - Setup update detection and notifications
+  const autoUpdate = useAutoUpdate({
+    checkInterval: 5, // Check every 5 minutes
+    enableInDev: false, // Disable in development
+    showNotifications: true, // Show update banner
+    onUpdateDetected: (result) => {
+      logger.success('🎉 New app update available!', {
+        currentVersion: result.currentVersion.version,
+        latestVersion: result.latestVersion?.version,
+        updateType: result.updateType
+      });
+    },
+    onUpdateCheckError: (error) => {
+      logger.warn('⚠️ Update check failed (this is normal):', error.message);
+    }
+  });
+
   // ✅ Memoized initial setup handler
   const handleInitialSetup = useCallback(async () => {
     try {
@@ -80,6 +99,17 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        {/* ✅ Auto-Update Banner - Shows when new version is available */}
+        <UpdateNotificationBanner 
+          isVisible={autoUpdate.updateNotification.isVisible}
+          updateInfo={autoUpdate.updateNotification.updateInfo}
+          onDismiss={autoUpdate.dismissUpdateNotification}
+          onRefresh={async () => {
+            // Custom refresh logic if needed
+            logger.info('🔄 User triggered app refresh for update...');
+          }}
+        />
+        
         {/* ✅ Code Splitting Provider untuk optimasi loading */}
         <CodeSplittingProvider>
           {/* ✅ AppProviders already includes AuthProvider and PaymentProvider in correct order */}

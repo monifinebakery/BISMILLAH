@@ -588,7 +588,7 @@ const PurchaseAddEditPage: React.FC = () => {
               {isEditing ? 'Simpan Perubahan' : 'Simpan Draft'}
             </Button>
 
-            {(!purchase || purchase?.status !== 'completed') && (
+            {(purchase && purchase.status !== 'completed') && (
               <Button
                 type="button"
                 onClick={() => onSubmit('completed')}

@@ -220,10 +220,19 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
         
         // Check if bahan baku with same name already exists
-        const existingBahanBaku = (bahanBaku as any[])?.find((bb: any) => 
+        // Prefer match by name + satuan + same supplier
+        let existingBahanBaku = (bahanBaku as any[])?.find((bb: any) => 
           bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
+          (bb.satuan?.toLowerCase()?.trim() || '') === (item.satuan?.toLowerCase()?.trim() || '') &&
           bb.supplier === supplierId
         );
+        // Fallback: match by name + satuan regardless of supplier (accumulate by material)
+        if (!existingBahanBaku) {
+          existingBahanBaku = (bahanBaku as any[])?.find((bb: any) => 
+            bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
+            (bb.satuan?.toLowerCase()?.trim() || '') === (item.satuan?.toLowerCase()?.trim() || '')
+          );
+        }
         
         if (existingBahanBaku) {
           results.push({ ...item, bahanBakuId: existingBahanBaku.id });

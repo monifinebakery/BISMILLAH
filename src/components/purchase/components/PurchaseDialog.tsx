@@ -547,7 +547,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <span className="truncate">{mode === 'create' ? 'Simpan Draft' : 'Simpan Perubahan'}</span>
                 </Button>
 
-                {purchase?.status !== 'completed' && (
+                {purchase && purchase.status !== 'completed' && (
                   <Button
                     type="button"
                     onClick={() => onSubmit('completed')}

@@ -90,17 +90,31 @@ export const sendWhatsAppForOrder = (
     return false;
   }
 
-  if (!order.teleponPelanggan) {
+  // Try multiple possible phone field names for compatibility
+  const phoneNumber = (order as any).telefonPelanggan || 
+                     (order as any).telepon_pelanggan || 
+                     (order as any).customerPhone ||
+                     (order as any).customer_phone ||
+                     order.customer_phone;
+
+  if (!phoneNumber) {
     toast.error('Nomor telepon pelanggan tidak tersedia');
     return false;
   }
 
-  return sendWhatsApp(order.teleponPelanggan, template, {
+  // Try multiple possible order number field names
+  const orderNumber = (order as any).nomorPesanan || 
+                     (order as any).nomor_pesanan || 
+                     (order as any).orderNumber ||
+                     (order as any).order_number ||
+                     order.order_number;
+
+  return sendWhatsApp(phoneNumber, template, {
     ...options,
     onSuccess: () => {
       options.onSuccess?.();
       // Optional: Log activity or update order status
-      console.log('WhatsApp sent for order:', order.nomorPesanan);
+      console.log('WhatsApp sent for order:', orderNumber || order.id);
     },
   });
 };

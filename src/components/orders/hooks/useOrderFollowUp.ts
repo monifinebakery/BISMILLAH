@@ -32,16 +32,45 @@ export const useOrderFollowUp = () => {
   // Get WhatsApp URL with optional specific status
   const getWhatsappUrl = useCallback(
     (order: Order, specificStatus?: string): string | null => {
-      const phone = (order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['teleponPelanggan'] || (order as any)['telefonPelanggan'];
-      if (!phone) return null;
+      // Try multiple possible phone field names for compatibility
+      const phone = (order as any).telepon_pelanggan || 
+                   (order as any).customer_phone || 
+                   (order as any).customerPhone ||
+                   (order as any).teleponPelanggan ||
+                   order.customer_phone; // TypeScript field
+      
+      if (!phone) {
+        console.warn('WhatsApp follow-up: No phone number found for order:', order.id);
+        return null;
+      }
       
       const statusToUse = specificStatus || order.status;
-      const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
-      const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['namaPelanggan'];
-      const message = getMessage(order, statusToUse) ||
-        `Halo ${nama}, saya ingin menanyakan status pesanan #${nomor}`;
       
-      const cleanPhone = String(phone).replace(/\D/g, '');
+      // Try multiple possible order number field names
+      const nomor = (order as any).nomor_pesanan || 
+                   (order as any).order_number || 
+                   (order as any).orderNumber ||
+                   (order as any).nomorPesanan ||
+                   order.order_number; // TypeScript field
+      
+      // Try multiple possible customer name field names  
+      const nama = (order as any).nama_pelanggan || 
+                  (order as any).customer_name || 
+                  (order as any).customerName ||
+                  (order as any).namaPelanggan ||
+                  order.customer_name; // TypeScript field
+      
+      const message = getMessage(order, statusToUse) ||
+        `Halo ${nama || 'Pelanggan'}, saya ingin menanyakan status pesanan #${nomor || 'N/A'}`;
+      
+      // Clean and format phone number for Indonesian numbers
+      let cleanPhone = String(phone).replace(/\D/g, '');
+      if (cleanPhone.startsWith('0')) {
+        cleanPhone = '62' + cleanPhone.substring(1);
+      } else if (!cleanPhone.startsWith('62')) {
+        cleanPhone = '62' + cleanPhone;
+      }
+      
       return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     },
     [getMessage]

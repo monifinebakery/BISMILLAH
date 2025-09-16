@@ -47,6 +47,7 @@ import {
   PurchaseTableRow,
   StatusDropdown,
   ActionButtons,
+  MobileActionDropdown,
 } from './table';
 import BulkActions from './BulkActions';
 import { BulkOperationsDialog } from './dialogs';
@@ -558,87 +559,145 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
           </div>
         ) : (
           <div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={selectAll}
-                      aria-label="Select all purchases"
-                    />
-                  </TableHead>
-
-                  <TableHead>
-                    <button
-                      onClick={() => handleSort('tanggal')}
-                      className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Tanggal Pembelian
-                      {renderSortIcon('tanggal')}
-                    </button>
-                  </TableHead>
-
-                  <TableHead>
-                    <button
-                      onClick={() => handleSort('supplier')}
-                      className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      Supplier
-                      {renderSortIcon('supplier')}
-                    </button>
-                  </TableHead>
-
-                  <TableHead>
-                    <div className="flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      Items
+            {/* Mobile Card Layout */}
+            <div className="block md:hidden">
+              {paginationData.currentPurchases.map((purchase) => (
+                <div key={purchase.id} className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Checkbox
+                        checked={selectedItems.includes(purchase.id)}
+                        onCheckedChange={() => toggleSelectItem(purchase.id)}
+                        aria-label={`Select purchase ${purchase.id}`}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-gray-900 truncate">
+                            {getSupplierName ? getSupplierName(purchase.supplier) : (purchase.supplier || 'Supplier Tidak Diketahui')}
+                          </h4>
+                          <div className="ml-2">
+                            <StatusBadge status={purchase.status} />
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {new Date(purchase.tanggal).toLocaleDateString('id-ID')}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {purchase.items && purchase.items.length > 0 ? (
+                            purchase.items.length === 1 ? (
+                              purchase.items[0].nama || 'Item tanpa nama'
+                            ) : (
+                              `${purchase.items[0].nama || 'Item tanpa nama'} +${purchase.items.length - 1} lainnya`
+                            )
+                          ) : (
+                            'Data sedang dimuat...'
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </TableHead>
+                    <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                      <div className="text-right">
+                        <div className="font-bold text-green-600 text-sm">
+                          {formatCurrency((purchase.totalNilai ?? (purchase as any).total_nilai) as number)}
+                        </div>
+                      </div>
+                      <MobileActionDropdown
+                        purchase={purchase}
+                        onEdit={onEdit}
+                        onDelete={openDelete}
+                        onStatusChange={handleStatusChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                  <TableHead className="text-right">
-                    <button
-              onClick={() => handleSort('total_nilai')}
-                      className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
-                    >
-                      <Receipt className="h-4 w-4 mr-2" />
-                      Total Nilai
-                      {renderSortIcon('total_nilai')}
-                    </button>
-                  </TableHead>
+            {/* Desktop Table Layout */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={selectAll}
+                        aria-label="Select all purchases"
+                      />
+                    </TableHead>
 
-                  <TableHead>
-                    <button
-                      onClick={() => handleSort('status')}
-                      className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
-                    >
-                      Status
-                      {renderSortIcon('status')}
-                    </button>
-                  </TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort('tanggal')}
+                        className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Tanggal Pembelian
+                        {renderSortIcon('tanggal')}
+                      </button>
+                    </TableHead>
 
-                  <TableHead className="w-[100px]">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginationData.currentPurchases.map((purchase) => (
-                  <MemoizedPurchaseRow
-                    key={purchase.id}
-                    purchase={purchase}
-                    isSelected={selectedItems.includes(purchase.id)}
-                    editingStatusId={editingStatusId}
-                    onToggleSelect={toggleSelectItem}
-                    onEdit={onEdit}
-                    onDelete={openDelete}
-                    onStatusChange={handleStatusChange}
-                    onEditStatus={setEditingStatusId}
-                    getSupplierName={getSupplierName}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort('supplier')}
+                        className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        Supplier
+                        {renderSortIcon('supplier')}
+                      </button>
+                    </TableHead>
+
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Items
+                      </div>
+                    </TableHead>
+
+                    <TableHead className="text-right">
+                      <button
+                onClick={() => handleSort('total_nilai')}
+                        className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
+                      >
+                        <Receipt className="h-4 w-4 mr-2" />
+                        Total Nilai
+                        {renderSortIcon('total_nilai')}
+                      </button>
+                    </TableHead>
+
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort('status')}
+                        className="flex items-center h-auto p-0 font-medium hover:bg-transparent"
+                      >
+                        Status
+                        {renderSortIcon('status')}
+                      </button>
+                    </TableHead>
+
+                    <TableHead className="w-[100px]">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginationData.currentPurchases.map((purchase) => (
+                    <MemoizedPurchaseRow
+                      key={purchase.id}
+                      purchase={purchase}
+                      isSelected={selectedItems.includes(purchase.id)}
+                      editingStatusId={editingStatusId}
+                      onToggleSelect={toggleSelectItem}
+                      onEdit={onEdit}
+                      onDelete={openDelete}
+                      onStatusChange={handleStatusChange}
+                      onEditStatus={setEditingStatusId}
+                      getSupplierName={getSupplierName}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
             {/* Pagination */}
             {paginationData.showPagination && (

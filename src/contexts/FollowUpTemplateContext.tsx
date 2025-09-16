@@ -462,22 +462,46 @@ export const useProcessTemplate = () => {
       }).format(amount || 0);
     };
 
-    // ✅ ENHANCED: Process template dengan semua variables
+    // ✅ ENHANCED: Process template dengan semua variables dan field mapping
+    const getName = () => {
+      return orderData.namaPelanggan || orderData.nama_pelanggan || orderData.customerName || orderData.customer_name || '';
+    };
+    
+    const getOrderNumber = () => {
+      return orderData.nomorPesanan || orderData.nomor_pesanan || orderData.orderNumber || orderData.order_number || '';
+    };
+    
+    const getPhone = () => {
+      return orderData.telefonPelanggan || orderData.telepon_pelanggan || orderData.customerPhone || orderData.customer_phone || '';
+    };
+    
+    const getEmail = () => {
+      return orderData.emailPelanggan || orderData.email_pelanggan || orderData.customerEmail || orderData.customer_email || '';
+    };
+    
+    const getAddress = () => {
+      return orderData.alamatPengiriman || orderData.alamat_pengiriman || orderData.shippingAddress || orderData.shipping_address || '';
+    };
+    
+    const getTotal = () => {
+      return orderData.totalPesanan || orderData.total_pesanan || orderData.totalAmount || orderData.total_amount || 0;
+    };
+    
     const processedTemplate = template
-      // Basic order info
-      .replace(/\{\{namaPelanggan\}\}/g, orderData.namaPelanggan || '')
-      .replace(/\{\{nomorPesanan\}\}/g, orderData.nomorPesanan || '')
-      .replace(/\{\{telefonPelanggan\}\}/g, orderData.telefonPelanggan || '')
-      .replace(/\{\{emailPelanggan\}\}/g, orderData.emailPelanggan || '')
-      .replace(/\{\{alamatPengiriman\}\}/g, orderData.alamatPengiriman || '')
+      // Basic order info with flexible field mapping
+      .replace(/\{\{namaPelanggan\}\}/g, getName())
+      .replace(/\{\{nomorPesanan\}\}/g, getOrderNumber())
+      .replace(/\{\{telefonPelanggan\}\}/g, getPhone())
+      .replace(/\{\{emailPelanggan\}\}/g, getEmail())
+      .replace(/\{\{alamatPengiriman\}\}/g, getAddress())
       .replace(/\{\{catatan\}\}/g, orderData.catatan || '')
       .replace(/\{\{status\}\}/g, orderData.status || '')
       
-      // Date and money
+      // Date and money with flexible field mapping
       .replace(/\{\{tanggal\}\}/g, orderData.tanggal ? new Date(orderData.tanggal).toLocaleDateString('id-ID') : '')
-      .replace(/\{\{totalPesanan\}\}/g, formatCurrency(orderData.totalPesanan))
+      .replace(/\{\{totalPesanan\}\}/g, formatCurrency(getTotal()))
       .replace(/\{\{subtotal\}\}/g, formatCurrency(orderData.subtotal || 0))
-      .replace(/\{\{pajak\}\}/g, formatCurrency(orderData.pajak || 0))
+      .replace(/\{\{pajak\}\}/g, formatCurrency(orderData.pajak || orderData.tax_amount || 0))
       
       // ✅ NEW: Items-related variables
       .replace(/\{\{items\}\}/g, generateItemsList(orderData.items || [], 'simple'))

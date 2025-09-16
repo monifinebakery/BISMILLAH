@@ -165,7 +165,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     formData.marginKeuntunganPersen,
     formData.jumlahPcsPerPorsi,
     calculateHPP,
-    isEnhancedHppActive // Add dependency to re-run when enhanced mode changes
+    enhancedHppResult // Add dependency to re-run when enhanced result changes
   ]);
 
   // Handle enhanced HPP result updates

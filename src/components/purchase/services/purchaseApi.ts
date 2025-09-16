@@ -292,6 +292,38 @@ export class PurchaseApiService {
   }
 
   /**
+   * Helper function to get supplier name by ID from database
+   * Used for displaying proper names in notifications instead of IDs
+   */
+  private static async getSupplierNameById(supplierId: string | null | undefined): Promise<string> {
+    if (!supplierId || typeof supplierId !== 'string' || supplierId.trim() === '') {
+      return 'Supplier tidak diketahui';
+    }
+
+    try {
+      // First try to parse as number (supplier ID)
+      const supplierIdNum = parseInt(supplierId.trim());
+      if (!isNaN(supplierIdNum)) {
+        const { data, error } = await supabase
+          .from('suppliers')
+          .select('nama')
+          .eq('id', supplierIdNum)
+          .single();
+
+        if (!error && data?.nama) {
+          return data.nama.trim();
+        }
+      }
+      
+      // If not a number or not found, return as is (could be a name already)
+      return supplierId.trim();
+    } catch (error) {
+      logger.warn('Error fetching supplier name:', error);
+      return supplierId.trim();
+    }
+  }
+
+  /**
    * ✅ NEW: Atomic purchase status update with robust sync handling
    * Set status (pending/completed/cancelled) with atomic warehouse sync
    */
@@ -341,10 +373,13 @@ export class PurchaseApiService {
           // Dispatch status change event for WAC refresh
           logger.info('🔄 [PURCHASE API] Dispatching purchase status change event');
           if (typeof window !== 'undefined') {
+            // Get supplier name from database to avoid showing supplier ID in notifications
+            const supplierName = await this.getSupplierNameById(result.purchase.supplier);
+            
             window.dispatchEvent(new CustomEvent('purchase:status:changed', {
               detail: { 
                 purchaseId: result.purchase.id, 
-                supplier: result.purchase.supplier, 
+                supplier: supplierName, // Now using resolved supplier name instead of ID
                 total_nilai: result.purchase.total_nilai,
                 oldStatus: prev.status,
                 newStatus: newStatus,

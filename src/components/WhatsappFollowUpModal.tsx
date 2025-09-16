@@ -12,10 +12,18 @@ interface WhatsappFollowUpModalProps {
   onClose: () => void;
   order: {
     id: string;
-    orderNumber: string;
-    customerName: string;
+    orderNumber?: string;
+    customerName?: string;
     status: string;
-    customerPhone: string;
+    customerPhone?: string;
+    // Database field compatibility
+    nomor_pesanan?: string;
+    nama_pelanggan?: string;
+    telepon_pelanggan?: string;
+    // Other possible formats
+    order_number?: string;
+    customer_name?: string;
+    customer_phone?: string;
     [key: string]: any;
   } | null;
   // ✅ FIXED: Remove dependency on legacy getWhatsappTemplateByStatus
@@ -42,8 +50,10 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
         
         const rawTemplate = getTemplate(status);
         if (!rawTemplate) {
-          logger.warn('WhatsappFollowUpModal: No template found for status:', status);
-          return `Halo ${orderData?.customerName || 'Pelanggan'}, saya ingin menanyakan status pesanan #${orderData?.orderNumber || 'N/A'}.`;
+        logger.warn('WhatsappFollowUpModal: No template found for status:', status);
+        const customerName = orderData?.customerName || orderData?.nama_pelanggan || orderData?.customer_name || 'Pelanggan';
+        const orderNumber = orderData?.orderNumber || orderData?.nomor_pesanan || orderData?.order_number || 'N/A';
+        return `Halo ${customerName}, saya ingin menanyakan status pesanan #${orderNumber}.`;
         }
         
         const processedTemplate = processTemplate(rawTemplate, orderData);
@@ -72,15 +82,21 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
   }, [order, isOpen, generateWhatsAppTemplate]);
 
   // --- STEP 1 & 2: Process and memoize the phone number ---
-  // useMemo ensures this logic only runs when `order.teleponPelanggan` changes.
+  // useMemo ensures this logic only runs when phone number changes.
   const processedPhoneNumber = useMemo(() => {
+    // Try multiple possible phone field names for compatibility
+    const phoneNumber = order?.customerPhone || 
+                       (order as any)?.customer_phone || 
+                       (order as any)?.teleponPelanggan || 
+                       (order as any)?.telepon_pelanggan;
+    
     // Return empty string if there's no order or phone number
-    if (!order?.customerPhone) {
+    if (!phoneNumber) {
       return '';
     }
 
     // Start with a clean string, removing all whitespace
-    let number = order.customerPhone.replace(/\s+/g, '');
+    let number = phoneNumber.replace(/\s+/g, '');
 
     // Remove '+' prefix if present
     if (number.startsWith('+')) {
@@ -103,7 +119,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
     }
 
     return number;
-  }, [order?.customerPhone]); // Dependency array ensures this only re-runs when the phone number changes
+  }, [order?.customerPhone, (order as any)?.customer_phone, (order as any)?.telefonPelanggan, (order as any)?.telepon_pelanggan]); // Dependency array ensures this only re-runs when the phone number changes
 
   // Function to handle sending the WhatsApp message
   const handleSendWhatsapp = () => {
@@ -152,11 +168,15 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
           <div className="space-y-1 border-b pb-4">
             <div className="flex justify-between text-sm">
               <span className="font-medium text-gray-600">Nomor Pesanan:</span>
-              <span className="text-gray-800 font-mono">{order.orderNumber}</span>
+              <span className="text-gray-800 font-mono">
+                {order.orderNumber || order.nomor_pesanan || order.order_number || 'N/A'}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="font-medium text-gray-600">Pelanggan:</span>
-              <span className="text-gray-800">{order.customerName}</span>
+              <span className="text-gray-800">
+                {order.customerName || order.nama_pelanggan || order.customer_name || 'N/A'}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="font-medium text-gray-600">Status Saat Ini:</span>

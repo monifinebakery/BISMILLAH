@@ -103,8 +103,6 @@ export const PERFORMANCE_CONFIG = {
       THRESHOLD: 0.1,
     },
     
-    // Virtualization thresholds
-    VIRTUALIZE_THRESHOLD: 100, // Enable virtualization for lists > 100 items
     
     // Skeleton loading delays
     SKELETON_DELAYS: {

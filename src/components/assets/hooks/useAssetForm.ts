@@ -36,7 +36,7 @@ export const useAssetForm = ({
         kondisi: asset.kondisi,
         lokasi: asset.lokasi,
         deskripsi: asset.deskripsi || '',
-        depresiasi: asset.depresiasi || '',
+        depresiasi: asset.depresiasi !== null ? asset.depresiasi : null,
       };
     }
     

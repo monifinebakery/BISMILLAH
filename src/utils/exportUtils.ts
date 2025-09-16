@@ -146,7 +146,7 @@ export const exportAllDataToExcel = async (
           return (p.items || []).map((item: any) => ({
             ...item,
             tanggal: p.tanggal,
-            supplierName: supplier?.nama || p.supplier,
+            supplierName: supplier?.nama || 'Supplier Tidak Dikenal',
             status: p.status
           }));
         }),

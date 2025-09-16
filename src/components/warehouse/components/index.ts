@@ -9,7 +9,6 @@
 // ✅ STATIC COMPONENTS ONLY
 export { default as WarehouseHeader } from './WarehouseHeader';
 export { default as WarehouseTable } from './WarehouseTable';
-export { default as VirtualWarehouseTable } from './VirtualWarehouseTable';
 export { default as WarehouseFilters } from './WarehouseFilters';
 export { default as BulkActions } from './BulkActions';
 

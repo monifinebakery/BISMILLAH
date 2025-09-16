@@ -64,19 +64,19 @@ const ActivityRow: React.FC<{
     // Ganti semua UUID yang ditemukan
     result = result.replace(uuidPattern, (match) => {
       const supplier = suppliers.find(s => s.id === match);
-      return supplier ? supplier.nama : match;
+      return supplier ? supplier.nama : 'Supplier Tidak Dikenal';
     });
     
     // Ganti semua short ID yang ditemukan
     result = result.replace(shortIdPattern, (match) => {
       const supplier = suppliers.find(s => s.id === match);
-      return supplier ? supplier.nama : match;
+      return supplier ? supplier.nama : 'Supplier Tidak Dikenal';
     });
     
     // Ganti pattern "Supplier [ID]"
     result = result.replace(supplierIdPattern, (match, supplierId) => {
       const supplier = suppliers.find(s => s.id === supplierId);
-      return supplier ? supplier.nama : match;
+      return supplier ? supplier.nama : 'Supplier Tidak Dikenal';
     });
     
     return result;

@@ -115,7 +115,7 @@ export const AssetManagement: React.FC = () => {
           kondisi: formData.kondisi as any,
           lokasi: formData.lokasi,
           deskripsi: formData.deskripsi || undefined,
-          depresiasi: formData.depresiasi as number || undefined,
+          depresiasi: formData.depresiasi === null || formData.depresiasi === '' ? undefined : formData.depresiasi as number,
         };
         await updateAsset(editingAsset.id, updateData);
       } else {
@@ -128,7 +128,7 @@ export const AssetManagement: React.FC = () => {
           kondisi: formData.kondisi as any,
           lokasi: formData.lokasi,
           deskripsi: formData.deskripsi || undefined,
-          depresiasi: formData.depresiasi as number || undefined,
+          depresiasi: formData.depresiasi === null || formData.depresiasi === '' ? undefined : formData.depresiasi as number,
         };
         await createAsset(createData);
       }

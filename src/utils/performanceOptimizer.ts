@@ -138,26 +138,6 @@ export class BatchProcessor<T> {
   }
 }
 
-// PERFORMANCE: Virtual scrolling helper
-export function calculateVirtualItems(
-  totalItems: number,
-  containerHeight: number,
-  itemHeight: number,
-  scrollTop: number,
-  overscan: number = 5
-) {
-  const visibleCount = Math.ceil(containerHeight / itemHeight);
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-  const endIndex = Math.min(totalItems - 1, startIndex + visibleCount + overscan * 2);
-  
-  return {
-    startIndex,
-    endIndex,
-    visibleCount,
-    totalHeight: totalItems * itemHeight,
-    offsetY: startIndex * itemHeight
-  };
-}
 
 // PERFORMANCE: Image lazy loading observer
 export function createImageLazyLoader() {
@@ -224,7 +204,6 @@ export default {
   throttle,
   memoizeWithTTL,
   BatchProcessor,
-  calculateVirtualItems,
   createImageLazyLoader,
   createMemoryMonitor
 };

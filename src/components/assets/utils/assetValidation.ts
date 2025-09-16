@@ -98,6 +98,7 @@ export const validateField = (field: keyof AssetFormData, value: any): string | 
       break;
       
     case 'depresiasi':
+      // Depresiasi is optional, so null, undefined, and empty string are all valid
       if (value !== '' && value !== null && value !== undefined) {
         const numValue = Number(value);
         if (isNaN(numValue)) {

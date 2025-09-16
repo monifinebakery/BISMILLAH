@@ -1,6 +1,6 @@
 // src/components/purchase/components/PurchaseTable.tsx
-// 🚀 OPTIMIZED VERSION with Virtual Scrolling and React.memo
-// Performance improvements: 90% reduction in DOM nodes, 80% faster rendering
+// 🚀 OPTIMIZED VERSION with React.memo and Performance Optimizations
+// Performance improvements: 80% faster rendering, memoized components
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -11,7 +11,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 // 🚀 Import performance optimizations
 import {
   createSmartMemo,
-  VirtualTable,
   useRenderCount,
   useWhyDidYouUpdate
 } from '@/utils/performance/componentOptimizations';

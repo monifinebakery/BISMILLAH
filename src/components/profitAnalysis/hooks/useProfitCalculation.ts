@@ -28,6 +28,11 @@ interface FinancialTransaction {
 interface BahanBakuFrontend {
   id: string;
   name?: string;
+  namaBahan?: string;
+  jumlahStok?: number;
+  weightedAveragePrice?: number;
+  averagePrice?: number;
+  hargaSatuan?: number;
 }
 
 interface OperationalCost {
@@ -62,6 +67,9 @@ export interface UseProfitCalculationReturn {
     grossMargin: number;
     netMargin: number;
   };
+  
+  // 🆕 WAC-based COGS calculation
+  calculateWACBasedCOGS: (materials: BahanBakuFrontend[]) => number;
   
   // 🍽️ F&B specific margin analysis
   analyzeMargins: (grossMargin: number, netMargin: number) => {
@@ -106,6 +114,34 @@ export const useProfitCalculation = (
   options: UseProfitCalculationOptions = {}
 ): UseProfitCalculationReturn => {
   
+  // 🆕 CALCULATE WAC-BASED COGS - Fallback untuk menghitung modal bahan baku dari nilai stok warehouse
+  const calculateWACBasedCOGS = useCallback((materials: BahanBakuFrontend[]) => {
+    try {
+      // Hitung total nilai stok berdasarkan WAC (Weighted Average Cost)
+      const totalWACValue = (materials || []).reduce((sum, material) => {
+        const wacPrice = material.weightedAveragePrice || material.averagePrice || material.hargaSatuan || 0;
+        const currentStock = material.jumlahStok || 0;
+        return sum + (wacPrice * currentStock);
+      }, 0);
+      
+      console.log('📊 WAC-Based COGS Calculation:', {
+        materialsCount: materials?.length || 0,
+        totalWACValue,
+        materials: materials?.map(m => ({
+          name: m.namaBahan,
+          stock: m.jumlahStok,
+          wacPrice: m.weightedAveragePrice || m.averagePrice || m.hargaSatuan,
+          value: (m.weightedAveragePrice || m.averagePrice || m.hargaSatuan || 0) * (m.jumlahStok || 0)
+        })) || []
+      });
+      
+      return totalWACValue;
+    } catch (error) {
+      console.error('Error calculating WAC-based COGS:', error);
+      return 0;
+    }
+  }, []);
+
   // ✅ LOCAL PROFIT CALCULATION - Now supports both period and date range filtering
   const calculateLocalProfit = useCallback((
     transactions: FinancialTransaction[],
@@ -124,17 +160,27 @@ export const useProfitCalculation = (
       const revenueTransactions = periodTransactions.filter(t => t?.type === 'income');
       const revenue = revenueTransactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
       
-      // Calculate COGS
+      // Calculate COGS from transactions first
       const cogsTransactions = periodTransactions.filter(t => 
         t?.type === 'expense' && t?.category === 'Pembelian Bahan Baku'
       );
       
+      const transactionBasedCogs = cogsTransactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
+      
+      // 🆕 FALLBACK: If no transaction-based COGS, use WAC-based calculation from stock value
+      const wacBasedCogs = transactionBasedCogs === 0 ? calculateWACBasedCOGS(materials) : 0;
+      const cogs = transactionBasedCogs > 0 ? transactionBasedCogs : wacBasedCogs;
+      
       // 🔍 DEBUG: Enhanced logging for COGS calculation
-      console.log('🔍 COGS Calculation Debug:', {
+      console.log('🔍 Enhanced COGS Calculation Debug:', {
         period,
         totalTransactions: transactions?.length || 0,
         periodTransactions: periodTransactions.length,
         cogsTransactions: cogsTransactions.length,
+        transactionBasedCogs,
+        wacBasedCogs,
+        finalCogs: cogs,
+        cogsSource: transactionBasedCogs > 0 ? 'transactions' : 'wac-stock',
         cogsTransactionDetails: cogsTransactions.map(t => ({
           id: t.id,
           type: t.type,
@@ -149,8 +195,6 @@ export const useProfitCalculation = (
           to: dateRange.to.toISOString()
         } : null
       });
-      
-      const cogs = cogsTransactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
       
       // Calculate OpEx
       const activeCosts = (costs || []).filter(c => c?.status === 'aktif');
@@ -462,6 +506,7 @@ export const useProfitCalculation = (
 
   return {
     calculateLocalProfit,
+    calculateWACBasedCOGS,
     analyzeMargins,
     comparePeriods,
     generateForecast,

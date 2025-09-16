@@ -25,7 +25,14 @@ import type { EnhancedHPPCalculationResult } from '../utils/enhancedHppCalculati
 
 interface AutoSyncRecipeDisplayProps {
   recipeData: {
-    bahanResep: any[];
+    bahanResep: Array<{
+      nama: string;
+      jumlah: number;
+      satuan: string;
+      hargaSatuan: number;
+      totalHarga: number;
+      warehouseId?: string;
+    }>;
     jumlahPorsi: number;
     jumlahPcsPerPorsi: number;
     marginKeuntunganPersen: number;

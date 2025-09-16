@@ -67,22 +67,22 @@ export interface Recipe {
 }
 
 export interface NewRecipe {
-  nama_resep: string;
-  jumlah_porsi: number | string; // Allow string for temporary empty state during editing
-  kategori_resep?: string;
+  namaResep: string;
+  jumlahPorsi: number | string; // Allow string for temporary empty state during editing
+  kategoriResep?: string;
   deskripsi?: string;
-  foto_url?: string;
-  foto_base64?: string;
-  bahan_resep: BahanResep[];
-  biaya_tenaga_kerja: number;
-  biaya_overhead: number;
-  margin_keuntungan_persen: number;
-  total_hpp?: number;
-  hpp_per_porsi?: number;
-  harga_jual_porsi?: number;
-  jumlah_pcs_per_porsi?: number | string; // Allow string for temporary empty state during editing
-  hpp_per_pcs?: number;
-  harga_jual_per_pcs?: number;
+  fotoUrl?: string;
+  fotoBase64?: string;
+  bahanResep: BahanResep[];
+  biayaTenagaKerja: number;
+  biayaOverhead: number;
+  marginKeuntunganPersen: number;
+  totalHpp?: number;
+  hppPerPorsi?: number;
+  hargaJualPorsi?: number;
+  jumlahPcsPerPorsi?: number | string; // Allow string for temporary empty state during editing
+  hppPerPcs?: number;
+  hargaJualPerPcs?: number;
   // Manual pricing fields (from schema)
   is_manual_pricing_enabled?: boolean;
   manual_selling_price_per_portion?: number | null;

@@ -446,6 +446,50 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     };
   }, [queryClient]);
 
+  // ✅ NEW: Real-time subscription for app_settings changes
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+
+    let mounted = true;
+    logger.info('📡 Setting up real-time subscription for app_settings');
+
+    const subscription = supabase
+      .channel('app_settings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'app_settings',
+        },
+        (payload) => {
+          if (!mounted) return;
+          
+          logger.info('📡 App settings changed, invalidating related queries:', payload);
+          
+          // Invalidate all queries that depend on app settings (like production target)
+          const invalidationPromises = [
+            queryClient.invalidateQueries({ queryKey: ['app-settings'] }),
+            queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget() }),
+            queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] }),
+            queryClient.invalidateQueries({ queryKey: ['recipe-overhead'] }),
+            queryClient.invalidateQueries({ queryKey: ['enhanced-hpp'] }),
+          ];
+          
+          Promise.all(invalidationPromises).then(() => {
+            logger.success('✅ Real-time app settings update processed');
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      logger.debug('📡 App settings real-time subscription cleaned up');
+    };
+  }, [state.isAuthenticated, queryClient]);
+
   // ✅ Calculate summary from costs query data
   const summary = useMemo(() => {
     const costs = costsQuery.data || [];
@@ -595,42 +639,81 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         throw new Error(response.error);
       }
 
-      // ✅ Invalidate overhead calculations to trigger recalculation
-      queryClient.invalidateQueries({ 
-        queryKey: ['operational-costs', 'overhead-calculation']
-      });
+      // ✅ Comprehensive query invalidation for auto-update
+      const invalidationPromises = [
+        // Core operational cost queries
+        queryClient.invalidateQueries({ queryKey: ['operational-costs'] }),
+        
+        // Overhead calculations (all variants)
+        queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] }),
+        
+        // Production target queries
+        queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget() }),
+        
+        // Recipe-related overhead queries
+        queryClient.invalidateQueries({ queryKey: ['recipe-overhead'] }),
+        
+        // App settings queries (where production target is stored)
+        queryClient.invalidateQueries({ queryKey: ['app-settings'] }),
+        
+        // Enhanced HPP calculations
+        queryClient.invalidateQueries({ queryKey: ['enhanced-hpp'] }),
+        
+        // Cost calculations
+        queryClient.invalidateQueries({ queryKey: ['cost-calculation'] }),
+      ];
       
-      // ✅ Invalidate production target queries
-      queryClient.invalidateQueries({ 
-        queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget()
-      });
+      // Execute all invalidations simultaneously
+      await Promise.all(invalidationPromises);
+      
+      // ✅ Force refetch current data to ensure immediate UI update
+      const refetchPromises = [
+        costsQuery.refetch(),
+        allocationQuery.refetch(),
+      ];
+      
+      await Promise.all(refetchPromises);
 
-      logger.success('✅ Production target updated successfully:', targetPcs);
+      logger.success('✅ Production target updated and all queries invalidated:', targetPcs);
       return true;
     } catch (error) {
       logger.error('❌ Error updating production target:', error);
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Gagal memperbarui target produksi' });
       return false;
     }
-  }, [state.isAuthenticated, queryClient]);
+  }, [state.isAuthenticated, queryClient, costsQuery, allocationQuery]);
 
   // ✅ NEW: Manual invalidation function for overhead calculations
   const invalidateOverheadCalculations = useCallback(() => {
     logger.info('🔄 Manually invalidating overhead calculations');
     
-    // Invalidate all overhead calculation queries
-    queryClient.invalidateQueries({ 
-      queryKey: ['operational-costs', 'overhead-calculation']
-    });
+    // Comprehensive invalidation for real-time updates
+    const invalidationPromises = [
+      // All operational cost queries
+      queryClient.invalidateQueries({ queryKey: ['operational-costs'] }),
+      
+      // All overhead calculation queries
+      queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] }),
+      
+      // Allocation settings
+      queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.allocationSettings() }),
+      
+      // Production target
+      queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget() }),
+      
+      // Recipe overhead calculations
+      queryClient.invalidateQueries({ queryKey: ['recipe-overhead'] }),
+      
+      // App settings
+      queryClient.invalidateQueries({ queryKey: ['app-settings'] }),
+      
+      // Enhanced HPP calculations
+      queryClient.invalidateQueries({ queryKey: ['enhanced-hpp'] }),
+    ];
     
-    // Also invalidate allocation settings as they might affect calculations
-    queryClient.invalidateQueries({ 
-      queryKey: OPERATIONAL_COST_QUERY_KEYS.allocationSettings()
-    });
-    
-    // Invalidate production target
-    queryClient.invalidateQueries({ 
-      queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget()
+    // Execute all invalidations
+    Promise.all(invalidationPromises).then(() => {
+      logger.success('✅ All overhead-related queries invalidated');
     });
   }, [queryClient]);
 

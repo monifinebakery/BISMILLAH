@@ -1,8 +1,11 @@
 // src/components/recipe/components/RecipeForm/CostCalculationStep/hooks/useOverheadManagement.ts
 
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useOperationalCost } from '@/components/operational-costs/context/OperationalCostContext';
+import { productionOutputApi } from '@/components/operational-costs/services/productionOutputApi';
 import type { OverheadCalculation } from '../utils/types';
+import { logger } from '@/utils/logger';
 
 interface UseOverheadManagementProps {
   ingredientCost: number;
@@ -42,12 +45,37 @@ export const useOverheadManagement = ({
   const [isUsingAutoOverhead, setIsUsingAutoOverhead] = useState(true);
   const [lastCalculatedOverhead, setLastCalculatedOverhead] = useState<number>(0);
 
+  // ✅ Subscribe to production target changes for auto-refresh
+  const productionTargetQuery = useQuery({
+    queryKey: ['operational-costs', 'production-target'],
+    queryFn: async () => {
+      const response = await productionOutputApi.getCurrentProductionTarget();
+      if (response.error) {
+        logger.error('❌ Error fetching production target in overhead management:', response.error);
+        return null;
+      }
+      logger.debug('✅ Production target fetched in overhead management:', response.data);
+      return response.data;
+    },
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
+
   // Auto-calculate overhead when ingredients change
   useEffect(() => {
     if (isUsingAutoOverhead && isAuthenticated && ingredientCost > 0) {
       calculateOverhead(ingredientCost);
     }
   }, [ingredientCost, isUsingAutoOverhead, isAuthenticated, calculateOverhead]);
+
+  // ✅ Auto-recalculate overhead when production target changes
+  useEffect(() => {
+    if (isUsingAutoOverhead && isAuthenticated && ingredientCost > 0 && productionTargetQuery.data) {
+      logger.info('🎯 Production target changed in overhead management, recalculating:', productionTargetQuery.data);
+      calculateOverhead(ingredientCost);
+    }
+  }, [productionTargetQuery.data, isUsingAutoOverhead, isAuthenticated, ingredientCost, calculateOverhead]);
 
   // Auto-populate overhead when calculation completes
   useEffect(() => {

@@ -580,7 +580,7 @@ const PurchaseAddEditPage: React.FC = () => {
             <Button
               type="button"
               onClick={() => onSubmit()}
-              disabled={isSubmitting || !isDirty}
+              disabled={isSubmitting}
               variant="outline"
               className="h-11"
             >
@@ -588,12 +588,14 @@ const PurchaseAddEditPage: React.FC = () => {
               {isEditing ? 'Simpan Perubahan' : 'Simpan Draft'}
             </Button>
 
-            {(purchase && purchase.status !== 'completed') && (
+            {/* Always show Complete button unless purchase is already completed */}
+            {(!purchase || purchase.status !== 'completed') && (
               <Button
                 type="button"
                 onClick={() => onSubmit('completed')}
-                disabled={isSubmitting || !isDirty}
+                disabled={isSubmitting || formData.items.length === 0 || !formData.supplier.trim()}
                 className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500 h-11 flex-1 sm:flex-none"
+                title={formData.items.length === 0 ? 'Tambahkan minimal 1 item' : !formData.supplier.trim() ? 'Pilih supplier terlebih dahulu' : 'Selesaikan pembelian dan update stok gudang'}
               >
                 {isSubmitting ? (
                   <>
@@ -608,6 +610,13 @@ const PurchaseAddEditPage: React.FC = () => {
                   </>
                 )}
               </Button>
+            )}
+            
+            {/* Debug info - remove this after testing */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-gray-500 mt-2">
+                Debug: purchase={purchase?.status || 'null'}, items={formData.items.length}, supplier={formData.supplier ? 'set' : 'empty'}
+              </div>
             )}
           </div>
         )}

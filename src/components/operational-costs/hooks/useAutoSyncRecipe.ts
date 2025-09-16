@@ -3,16 +3,25 @@
 // Otomatis sync biaya operasional ke recipe tanpa dual mode
 
 import { useState, useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { EnhancedHPPCalculationResult } from '../utils/enhancedHppCalculations';
 import { 
   calculateEnhancedHPP,
   getCurrentAppSettings,
 } from '../utils/enhancedHppCalculations';
+import { productionOutputApi } from '../services/productionOutputApi';
 import { logger } from '@/utils/logger';
 
 interface AutoSyncRecipeProps {
-  bahanResep: any[];
+  bahanResep: Array<{
+    nama: string;
+    jumlah: number;
+    satuan: string;
+    hargaSatuan: number;
+    totalHarga: number;
+    warehouseId?: string;
+  }>;
   jumlahPorsi: number;
   jumlahPcsPerPorsi: number;
   marginKeuntunganPersen: number;
@@ -47,36 +56,102 @@ export const useAutoSyncRecipe = ({
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasOperationalCosts, setHasOperationalCosts] = useState(false);
+  
+  const queryClient = useQueryClient();
 
-  // Check if operational costs are available
-  const checkOperationalCosts = useCallback(async () => {
-    setIsLoadingSettings(true);
-    setError(null);
-    
-    try {
+  // ✅ Subscribe to app settings changes for auto-refresh
+  const appSettingsQuery = useQuery({
+    queryKey: ['auto-sync', 'app-settings'],
+    queryFn: async () => {
+      logger.debug('🔄 Fetching app settings for auto-sync recipe');
       const settings = await getCurrentAppSettings();
+      return settings;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+  
+  // ✅ Subscribe to production target changes
+  const productionTargetQuery = useQuery({
+    queryKey: ['auto-sync', 'production-target'],
+    queryFn: async () => {
+      const response = await productionOutputApi.getCurrentProductionTarget();
+      if (response.error) {
+        logger.error('❌ Error fetching production target in auto-sync:', response.error);
+        return null;
+      }
+      logger.debug('✅ Production target fetched in auto-sync:', response.data);
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: true,
+  });
+
+  // ✅ Update operational costs status from query data
+  useEffect(() => {
+    if (appSettingsQuery.data) {
+      const settings = appSettingsQuery.data;
       const hasSettings = Boolean(
         (settings?.overhead_per_pcs && settings.overhead_per_pcs > 0) || 
         (settings?.operasional_per_pcs && settings.operasional_per_pcs > 0)
       );
       
       setHasOperationalCosts(hasSettings);
+      setIsLoadingSettings(false);
       
       if (hasSettings) {
-        logger.info('✅ Operational costs detected, auto-sync enabled');
+        logger.info('✅ Operational costs detected from query, auto-sync enabled');
       } else {
-        logger.info('ℹ️ No operational costs configured, auto-sync disabled');
+        logger.info('ℹ️ No operational costs in query, auto-sync disabled');
       }
-      
-    } catch (err) {
+    }
+  }, [appSettingsQuery.data]);
+  
+  useEffect(() => {
+    setIsLoadingSettings(appSettingsQuery.isLoading);
+  }, [appSettingsQuery.isLoading]);
+  
+  useEffect(() => {
+    if (appSettingsQuery.error) {
       const errorMessage = 'Gagal memuat pengaturan biaya operasional';
       setError(errorMessage);
       setHasOperationalCosts(false);
-      logger.error('Error checking operational costs:', err);
-    } finally {
-      setIsLoadingSettings(false);
+      logger.error('Auto-sync app settings query error:', appSettingsQuery.error);
     }
-  }, []);
+  }, [appSettingsQuery.error]);
+
+  // Check if operational costs are available (fallback method)
+  const checkOperationalCosts = useCallback(async () => {
+    if (!appSettingsQuery.data && !appSettingsQuery.isLoading) {
+      setIsLoadingSettings(true);
+      setError(null);
+      
+      try {
+        const settings = await getCurrentAppSettings();
+        const hasSettings = Boolean(
+          (settings?.overhead_per_pcs && settings.overhead_per_pcs > 0) || 
+          (settings?.operasional_per_pcs && settings.operasional_per_pcs > 0)
+        );
+        
+        setHasOperationalCosts(hasSettings);
+        
+        if (hasSettings) {
+          logger.info('✅ Operational costs detected via fallback, auto-sync enabled');
+        } else {
+          logger.info('ℹ️ No operational costs via fallback, auto-sync disabled');
+        }
+        
+      } catch (err) {
+        const errorMessage = 'Gagal memuat pengaturan biaya operasional';
+        setError(errorMessage);
+        setHasOperationalCosts(false);
+        logger.error('Error checking operational costs fallback:', err);
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    }
+  }, [appSettingsQuery.data, appSettingsQuery.isLoading]);
 
   // Auto-calculate when recipe data changes and operational costs are available
   const performCalculation = useCallback(async () => {
@@ -126,10 +201,12 @@ export const useAutoSyncRecipe = ({
     }
   }, [hasOperationalCosts, bahanResep, jumlahPorsi, jumlahPcsPerPorsi, marginKeuntunganPersen]);
 
-  // Initialize and check operational costs on mount
+  // Initialize and check operational costs on mount (fallback)
   useEffect(() => {
-    checkOperationalCosts();
-  }, [checkOperationalCosts]);
+    if (!appSettingsQuery.data && !appSettingsQuery.isLoading) {
+      checkOperationalCosts();
+    }
+  }, [checkOperationalCosts, appSettingsQuery.data, appSettingsQuery.isLoading]);
 
   // Auto-calculate when data changes with debounce
   useEffect(() => {
@@ -141,6 +218,21 @@ export const useAutoSyncRecipe = ({
       return () => clearTimeout(timer);
     }
   }, [performCalculation, hasOperationalCosts, isLoadingSettings]);
+  
+  // ✅ Auto-recalculate when production target or app settings change
+  useEffect(() => {
+    if (hasOperationalCosts && !isLoadingSettings && 
+        (productionTargetQuery.data || appSettingsQuery.data)) {
+      logger.info('🎯 Production target or app settings changed, recalculating auto-sync recipe');
+      
+      // Debounce to avoid rapid recalculations
+      const timer = setTimeout(() => {
+        performCalculation();
+      }, 750); // Slightly longer debounce for auto-updates
+      
+      return () => clearTimeout(timer);
+    }
+  }, [productionTargetQuery.data, appSettingsQuery.data, hasOperationalCosts, isLoadingSettings, performCalculation]);
 
   // Notify parent of result changes
   useEffect(() => {

@@ -1,8 +1,11 @@
 // src/components/recipe/hooks/useRecipeOverhead.ts
 
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOperationalCost } from '@/components/operational-costs/context/OperationalCostContext';
+import { productionOutputApi } from '@/components/operational-costs/services/productionOutputApi';
 import type { OverheadCalculation } from '@/components/operational-costs/types';
+import { logger } from '@/utils/logger';
 
 interface UseRecipeOverheadReturn {
   // State
@@ -48,12 +51,39 @@ export const useRecipeOverhead = (): UseRecipeOverheadReturn => {
       error: overheadError,
       isAuthenticated 
     },
-    actions: { calculateOverhead, setError: clearOverheadError }
+    actions: { calculateOverhead, setError: clearOverheadError, invalidateOverheadCalculations }
   } = useOperationalCost();
+
+  const queryClient = useQueryClient();
 
   // Local state
   const [isAutoMode, setIsAutoMode] = useState(true);
   const [lastIngredientCost, setLastIngredientCost] = useState<number>(0);
+
+  // ✅ Subscribe to production target changes for auto-refresh
+  const productionTargetQuery = useQuery({
+    queryKey: ['operational-costs', 'production-target'],
+    queryFn: async () => {
+      const response = await productionOutputApi.getCurrentProductionTarget();
+      if (response.error) {
+        logger.error('❌ Error fetching production target:', response.error);
+        return null;
+      }
+      logger.debug('✅ Production target fetched:', response.data);
+      return response.data;
+    },
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
+
+  // ✅ Auto-recalculate overhead when production target changes
+  useEffect(() => {
+    if (isAutoMode && isAuthenticated && lastIngredientCost > 0 && productionTargetQuery.data) {
+      logger.info('🎯 Production target changed, recalculating overhead:', productionTargetQuery.data);
+      calculateOverhead(lastIngredientCost);
+    }
+  }, [productionTargetQuery.data, isAutoMode, isAuthenticated, lastIngredientCost, calculateOverhead]);
 
   // Computed values
   const overheadPerUnit = overheadCalculation?.overhead_per_unit || 0;

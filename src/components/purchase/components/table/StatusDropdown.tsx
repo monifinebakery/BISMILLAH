@@ -92,7 +92,7 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
   }
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-1">
       <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
         purchase.status === 'completed' 
           ? 'bg-green-100 text-green-800' 
@@ -109,14 +109,32 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
         )}
         {getStatusDisplayText(purchase.status)}
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onStartEdit}
-        className="h-8 w-8 p-0 ml-2"
-      >
-        <ChevronDown className="h-4 w-4" />
-      </Button>
+      
+      <div className="flex items-center gap-1">
+        {/* Quick Complete button for pending purchases */}
+        {purchase.status === 'pending' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onStatusChange(purchase.id, 'completed')}
+            className="h-7 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+            title="Selesaikan & Update Gudang"
+          >
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Selesaikan
+          </Button>
+        )}
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onStartEdit}
+          className="h-8 w-8 p-0"
+          title="Ubah Status"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };

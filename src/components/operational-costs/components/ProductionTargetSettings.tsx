@@ -73,17 +73,20 @@ const ProductionTargetSettings: React.FC<ProductionTargetSettingsProps> = ({
         setLastSavedTarget(targetPcs);
         setHasChanged(false);
         
-        // Notify parent component if callback provided
+        // ✅ Additional manual invalidation to ensure all components update
+        actions.invalidateOverheadCalculations();
+        
+        // ✅ Notify parent component if callback provided
         onTargetChanged?.(targetPcs);
         
         toast.success(
           `Target produksi berhasil diubah menjadi ${targetPcs.toLocaleString('id-ID')} pcs/bulan`,
           {
-            description: 'Biaya overhead per unit akan otomatis dikalkulasi ulang'
+            description: 'Semua perhitungan biaya overhead akan otomatis terupdate'
           }
         );
         
-        logger.success('✅ Production target saved and overhead invalidated');
+        logger.success('✅ Production target saved and all related calculations invalidated');
       } else {
         throw new Error('Gagal menyimpan target produksi');
       }

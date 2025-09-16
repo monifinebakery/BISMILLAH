@@ -187,18 +187,34 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.warn('addBahanBaku not available in warehouse context');
     return false;
   });
-  const getSupplierName = useCallback((supplierName: string): string => {
-    // Since supplier field now stores name directly, just return the name with fallback
+  const getSupplierName = useCallback((supplierValue: string): string => {
+    // Handle supplier field that could be either ID or name
     try {
-      if (!supplierName || typeof supplierName !== 'string') {
+      if (!supplierValue || typeof supplierValue !== 'string') {
         return 'Supplier Tidak Diketahui';
       }
-      const trimmedName = supplierName.trim();
-      return trimmedName || 'Supplier Tidak Diketahui';
+      
+      const trimmedValue = supplierValue.trim();
+      if (!trimmedValue) {
+        return 'Supplier Tidak Diketahui';
+      }
+      
+      // If supplierValue looks like an ID (UUID pattern), try to find the supplier name
+      if (trimmedValue.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        const supplierFound = suppliers?.find(s => s.id === trimmedValue);
+        if (supplierFound) {
+          return supplierFound.nama;
+        }
+        // If ID not found, return "Unknown Supplier" with ID hint
+        return `Supplier (${trimmedValue.slice(0, 8)}...)`;
+      }
+      
+      // If it's not an ID pattern, assume it's already a name
+      return trimmedValue;
     } catch {
-      return supplierName || 'Supplier Tidak Diketahui';
+      return supplierValue || 'Supplier Tidak Diketahui';
     }
-  }, []);
+  }, [suppliers]);
 
   // ✅ HELPER: Invalidate warehouse data after purchase changes
   const invalidateWarehouseData = useCallback(() => {

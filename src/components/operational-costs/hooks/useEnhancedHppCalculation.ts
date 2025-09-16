@@ -3,6 +3,7 @@
 // Integrates dual-mode costs with recipe BOM calculations
 
 import { useState, useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { 
   EnhancedHPPCalculationResult,
@@ -16,7 +17,9 @@ import {
   formatCalculationSummary,
   validateEnhancedCalculationInputs
 } from '../utils/enhancedHppCalculations';
+import { productionOutputApi } from '../services/productionOutputApi';
 import type { AppSettings } from '../types/operationalCost.types';
+import { logger } from '@/utils/logger';
 
 interface UseEnhancedHppCalculationProps {
   autoCalculate?: boolean;
@@ -66,11 +69,64 @@ export const useEnhancedHppCalculation = ({
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const queryClient = useQueryClient();
 
-  // Load app settings on mount
+  // ✅ Subscribe to app settings changes (including production target)
+  const appSettingsQuery = useQuery({
+    queryKey: ['enhanced-hpp', 'app-settings'],
+    queryFn: async () => {
+      logger.debug('🔄 Fetching app settings for enhanced HPP');
+      const settings = await getCurrentAppSettings();
+      return settings;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+  
+  // ✅ Subscribe to production target changes
+  const productionTargetQuery = useQuery({
+    queryKey: ['enhanced-hpp', 'production-target'],
+    queryFn: async () => {
+      const response = await productionOutputApi.getCurrentProductionTarget();
+      if (response.error) {
+        logger.error('❌ Error fetching production target in enhanced HPP:', response.error);
+        return null;
+      }
+      logger.debug('✅ Production target fetched in enhanced HPP:', response.data);
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: true,
+  });
+
+  // ✅ Update local state when queries complete
   useEffect(() => {
-    refreshAppSettings();
-  }, []);
+    if (appSettingsQuery.data) {
+      setAppSettings(appSettingsQuery.data);
+      setIsLoadingSettings(false);
+      logger.debug('✅ App settings updated in enhanced HPP:', appSettingsQuery.data);
+    }
+  }, [appSettingsQuery.data]);
+  
+  useEffect(() => {
+    setIsLoadingSettings(appSettingsQuery.isLoading);
+  }, [appSettingsQuery.isLoading]);
+  
+  useEffect(() => {
+    if (appSettingsQuery.error) {
+      setError(appSettingsQuery.error.message || 'Gagal memuat pengaturan overhead');
+      logger.error('❌ App settings query error in enhanced HPP:', appSettingsQuery.error);
+    }
+  }, [appSettingsQuery.error]);
+
+  // Load app settings on mount (fallback)
+  useEffect(() => {
+    if (!appSettingsQuery.data && !appSettingsQuery.isLoading) {
+      refreshAppSettings();
+    }
+  }, [appSettingsQuery.data, appSettingsQuery.isLoading]);
 
   /**
    * Refresh app settings from database
@@ -218,7 +274,7 @@ export const useEnhancedHppCalculation = ({
     isLoadingSettings,
     error,
     
-    // Calculation methods
+    // Calculation
     calculateHPP,
     refreshAppSettings,
     
@@ -231,7 +287,11 @@ export const useEnhancedHppCalculation = ({
     
     // State management
     clearResult,
-    clearError
+    clearError,
+    
+    // ✅ Expose queries for external monitoring
+    appSettingsQuery,
+    productionTargetQuery,
   };
 };
 
@@ -294,6 +354,39 @@ export const useRecipeHppIntegration = (recipeData: {
     recipeData.marginKeuntunganPersen,
     hppHook.calculateHPP
   ]); // Fixed dependency to prevent infinite re-renders
+  
+  // ✅ Auto-recalculate when production target or app settings change
+  useEffect(() => {
+    if (isEnhancedMode && recipeData.bahanResep.length > 0 && 
+        (hppHook.productionTargetQuery?.data || hppHook.appSettingsQuery?.data)) {
+      logger.info('🎯 Production target or app settings changed, recalculating HPP in integration');
+      
+      const params: CalculateHPPParams = {
+        bahanResep: recipeData.bahanResep.map(bahan => ({
+          nama: bahan.nama,
+          jumlah: bahan.jumlah,
+          satuan: bahan.satuan,
+          hargaSatuan: bahan.hargaSatuan,
+          totalHarga: bahan.totalHarga,
+          warehouseId: bahan.warehouseId
+        })),
+        jumlahPorsi: recipeData.jumlahPorsi,
+        jumlahPcsPerPorsi: recipeData.jumlahPcsPerPorsi,
+        pricingMode: {
+          mode: 'markup',
+          percentage: recipeData.marginKeuntunganPersen
+        },
+        useAppSettingsOverhead: true
+      };
+      
+      // Debounce to avoid rapid recalculations
+      const timer = setTimeout(() => {
+        hppHook.calculateHPP(params);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hppHook.productionTargetQuery?.data, hppHook.appSettingsQuery?.data]);
   
   return {
     ...hppHook,

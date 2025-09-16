@@ -249,14 +249,29 @@ export const usePurchaseForm = ({
   // Form submission
   const handleSubmit = useCallback(async (newStatus?: 'completed') => {
     console.log('DEBUG: Form data before validation:', {
+      supplier: formData.supplier,
+      tanggal: formData.tanggal,
       items: formData.items.map(item => ({
         nama: item.nama,
         quantity: item.quantity,
         type: typeof item.quantity,
         unitPrice: item.unitPrice,
-        subtotal: item.subtotal
-      }))
+        subtotal: item.subtotal,
+        bahanBakuId: item.bahanBakuId
+      })),
+      total_nilai: total_nilai
     });
+    
+    // Enhanced validation
+    if (!formData.supplier || formData.supplier.trim() === '') {
+      onError?.('Supplier harus dipilih');
+      return;
+    }
+    
+    if (!formData.items || formData.items.length === 0) {
+      onError?.('Minimal harus ada 1 item dalam pembelian');
+      return;
+    }
     
     const validationResult = validateForm();
     if (!validationResult.isValid) {

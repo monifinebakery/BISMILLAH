@@ -32,6 +32,10 @@ export interface RecipeDB {
   jumlah_pcs_per_porsi: number;
   hpp_per_pcs: number;
   harga_jual_per_pcs: number;
+  // Manual pricing fields (from schema)
+  is_manual_pricing_enabled: boolean;
+  manual_selling_price_per_portion?: number | null;
+  manual_selling_price_per_piece?: number | null;
 }
 
 // Frontend format (camelCase)
@@ -56,6 +60,10 @@ export interface Recipe {
   jumlah_pcs_per_porsi: number;
   hpp_per_pcs: number;
   harga_jual_per_pcs: number;
+  // Manual pricing fields (from schema)
+  is_manual_pricing_enabled: boolean;
+  manual_selling_price_per_portion?: number | null;
+  manual_selling_price_per_piece?: number | null;
 }
 
 export interface NewRecipe {
@@ -75,6 +83,10 @@ export interface NewRecipe {
   jumlah_pcs_per_porsi?: number | string; // Allow string for temporary empty state during editing
   hpp_per_pcs?: number;
   harga_jual_per_pcs?: number;
+  // Manual pricing fields (from schema)
+  is_manual_pricing_enabled?: boolean;
+  manual_selling_price_per_portion?: number | null;
+  manual_selling_price_per_piece?: number | null;
 }
 
 // HPP Calculation Result

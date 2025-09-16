@@ -26,8 +26,32 @@ export const useRecipeStats = ({ recipes }: UseRecipeStatsProps) => {
       averageMargin: recipesWithProfit.length > 0
         ? recipesWithProfit.reduce((sum, r) => sum + r.margin_keuntungan_persen, 0) / recipesWithProfit.length
         : 0,
-      totalPotentialRevenue: recipes.reduce((sum, r) => sum + (r.harga_jual_porsi * r.jumlah_porsi), 0),
+      // 💰 ENHANCED: Revenue potential with manual pricing support
+      totalPotentialRevenue: recipes.reduce((sum, r) => {
+        // Use manual price if enabled and available, otherwise calculated price
+        const effectivePrice = r.is_manual_pricing_enabled && r.manual_selling_price_per_portion
+          ? r.manual_selling_price_per_portion  
+          : r.harga_jual_porsi;
+        return sum + effectivePrice;
+      }, 0),
       totalCost: recipes.reduce((sum, r) => sum + r.total_hpp, 0),
+      // 🧮 ENHANCED: Per-piece metrics with manual pricing support
+      totalPotentialRevenuePcs: recipes.reduce((sum, r) => {
+        const pcsPerPorsi = r.jumlah_pcs_per_porsi || 1;
+        const effectivePricePerPcs = r.is_manual_pricing_enabled && r.manual_selling_price_per_piece
+          ? r.manual_selling_price_per_piece
+          : r.harga_jual_per_pcs || (r.harga_jual_porsi / pcsPerPorsi);
+        return sum + effectivePricePerPcs;
+      }, 0),
+      // 📊 ENHANCED: Data quality indicators with manual pricing insights
+      recipesWithoutCostData: recipes.filter(r => !r.total_hpp || r.total_hpp <= 0).length,
+      recipesWithNegativeMargin: recipes.filter(r => r.margin_keuntungan_persen < 0).length,
+      recipesWithManualPricing: recipes.filter(r => r.is_manual_pricing_enabled).length,
+      recipesWithPricingGaps: recipes.filter(r => {
+        // Recipes where manual pricing is enabled but no manual prices are set
+        return r.is_manual_pricing_enabled && 
+               (!r.manual_selling_price_per_portion && !r.manual_selling_price_per_piece);
+      }).length,
     };
   }, [recipes]);
 

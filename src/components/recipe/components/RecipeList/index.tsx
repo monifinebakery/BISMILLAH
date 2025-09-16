@@ -132,16 +132,12 @@ const RecipeList: React.FC = () => {
       setIsLoading(true);
       try {
         logger.debug('RecipeList: Loading recipes for user:', user.id);
-        const result = await recipeApi.getRecipes(user.id);
+        const recipes = await recipeApi.getRecipes();
         
         if (!isMounted) return; // Prevent state update if unmounted
         
-        if (result.error) {
-          toast.error(`Gagal memuat resep: ${result.error}`);
-        } else {
-          setRecipes(result.data);
-          logger.debug(`RecipeList: Loaded ${result.data.length} recipes`);
-        }
+        setRecipes(recipes);
+        logger.debug(`RecipeList: Loaded ${recipes.length} recipes`);
       } catch (error) {
         if (isMounted) {
           logger.error('RecipeList: Error loading recipes:', error);
@@ -158,13 +154,12 @@ const RecipeList: React.FC = () => {
 
     // ✅ OPTIMIZED: Real-time subscription with cleanup
     const unsubscribe = recipeApi.setupRealtimeSubscription(
-      user.id,
       (newRecipe) => {
         if (!isMounted) return;
         setRecipes(prev => {
           const exists = prev.find(r => r.id === newRecipe.id);
           if (exists) return prev;
-          return [newRecipe, ...prev].sort((a, b) => a.namaResep.localeCompare(b.namaResep));
+          return [newRecipe, ...prev].sort((a, b) => a.nama_resep.localeCompare(b.nama_resep));
         });
       },
       (updatedRecipe) => {

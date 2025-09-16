@@ -1,4 +1,5 @@
 // src/components/layout/AppLayout.tsx - SIMPLIFIED: Only AutoLinkingPopup
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -8,14 +9,44 @@ import { MobileLayout } from "./MobileLayout";
 import { DesktopLayout } from "./DesktopLayout";
 import { AppLoader } from "@/components/loaders";
 import { AutoLinkingPopup } from "@/components/popups";
-import { UpdateBanner } from '@/components/pwa/UpdateBanner';
+import { UpdateNotificationBanner, useUpdateNotification } from '@/components/common/UpdateNotificationBanner';
 import { logger } from "@/utils/logger";
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
   const [forceReady, setForceReady] = useState(false);
+  const { 
+    updateAvailable,
+    updateInfo,
+    isVisible,
+    checkForUpdate,
+    dismissUpdateNotification 
+  } = useUpdateNotification();
   
-  // ✅ Use ref to prevent infinite loops
+  // Check for new version periodically
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const response = await fetch('/version.json?t=' + new Date().getTime());
+        const data = await response.json();
+        const latestCommit = data.commitHash;
+        const currentCommit = import.meta.env.VITE_COMMIT_HASH;
+
+        if (latestCommit && currentCommit && latestCommit !== currentCommit) {
+          checkForUpdate({ commitHash: latestCommit });
+        }
+      } catch (error) {
+        console.warn('Failed to check for new version:', error);
+      }
+    };
+
+    const interval = setInterval(checkVersion, 5 * 60 * 1000); // Check every 5 minutes
+    checkVersion(); // Initial check
+
+    return () => clearInterval(interval);
+  }, [checkForUpdate]);
+
+  // ... (rest of the component remains the same)
   const timeoutRef = useRef<NodeJS.Timeout>();
   const lastLogRef = useRef<number>(0);
   
@@ -35,9 +66,7 @@ export const AppLayout = () => {
   // Lazy-loaded Supabase client for popup
   const [supabaseClient, setSupabaseClient] = useState<any>(null);
   
-  // ✅ SIMPLIFIED: Auto-show AutoLinkingPopup when needed
   useEffect(() => {
-    // Show popup if there are unlinked payments OR user needs order linking
     if ((unlinkedPayments.length > 0 || needsOrderLinking) && !showAutoLinkPopup && currentUser) {
       logger.debug('AppLayout: Auto-showing AutoLinkingPopup', {
         unlinkedCount: unlinkedPayments.length,
@@ -47,7 +76,6 @@ export const AppLayout = () => {
       
       const timer = setTimeout(async () => {
         try {
-          // Dynamically import supabase client only when needed
           if (!supabaseClient) {
             const mod = await import('@/integrations/supabase/client');
             setSupabaseClient(mod.supabase);
@@ -56,27 +84,23 @@ export const AppLayout = () => {
         } catch (e) {
           logger.error('Failed to load Supabase client for AutoLinkingPopup', e);
         }
-      }, 1500); // Small delay to let page load
+      }, 1500);
       
       return () => clearTimeout(timer);
     }
   }, [unlinkedPayments.length, needsOrderLinking, showAutoLinkPopup, currentUser, setShowAutoLinkPopup, supabaseClient]);
   
-  // ✅ Handle successful auto-linking
   const handleAutoLinked = (linkedPayments: any[]) => {
     logger.success('AppLayout: Auto-linked payments:', linkedPayments);
-    refetchPayment(); // Refresh payment status
+    refetchPayment();
     setShowAutoLinkPopup(false);
   };
   
-  // ✅ SIMPLIFIED: Only one timeout effect, no recursive dependencies
   useEffect(() => {
-    // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     
-    // Only set timeout if actually loading
     if (isLoading && !forceReady) {
       logger.debug('AppLayout: Starting 10 second timeout for loading state');
       
@@ -86,7 +110,6 @@ export const AppLayout = () => {
       }, 10000);
     }
     
-    // Cleanup on unmount
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -94,7 +117,6 @@ export const AppLayout = () => {
     };
   }, [isLoading, forceReady]);
   
-  // ✅ THROTTLED debug logging (max once per 2 seconds)
   useEffect(() => {
     const now = Date.now();
     
@@ -111,12 +133,10 @@ export const AppLayout = () => {
     }
   }, [isLoading, forceReady, isPaid, unlinkedPayments.length, needsOrderLinking]);
   
-  // ✅ Show loading screen - SIMPLE condition
   if (isLoading && !forceReady) {
     return <AppLoader title="Mengecek status pembayaran..." />;
   }
   
-  // ✅ Render auto-link indicator in header/sidebar
   const renderAutoLinkIndicator = () => {
     if (autoLinkCount === 0) return null;
     
@@ -132,7 +152,6 @@ export const AppLayout = () => {
     );
   };
   
-  // ✅ Render manual link button for users who need to link payments
   const renderOrderLinkButton = () => {
     if (isPaid) return null;
     
@@ -146,7 +165,6 @@ export const AppLayout = () => {
     );
   };
   
-  // ✅ Simple layout props
   const layoutProps = {
     isPaid,
     renderOrderLinkButton,
@@ -156,14 +174,18 @@ export const AppLayout = () => {
   
   return (
     <>
-      {/* ✅ Render layout */}
+      <UpdateNotificationBanner 
+        isVisible={isVisible}
+        updateInfo={updateInfo}
+        onDismiss={dismissUpdateNotification}
+      />
+
       {isMobile ? (
         <MobileLayout {...layoutProps} />
       ) : (
         <DesktopLayout {...layoutProps} />
       )}
       
-      {/* ✅ ONLY AutoLinkingPopup - handles both manual and automatic linking */}
       <AutoLinkingPopup
         isOpen={showAutoLinkPopup}
         onClose={() => setShowAutoLinkPopup(false)}
@@ -172,9 +194,6 @@ export const AppLayout = () => {
         supabaseClient={supabaseClient}
         onSuccess={handleAutoLinked}
       />
-      
-      {/* PWA Update Banner */}
-      <UpdateBanner />
     </>
   );
 };

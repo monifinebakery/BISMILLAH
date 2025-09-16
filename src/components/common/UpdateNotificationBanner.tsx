@@ -1,3 +1,4 @@
+
 // UpdateNotificationBanner.tsx - Auto-update notification system
 // ==============================================
 
@@ -143,11 +144,75 @@ export const useUpdateNotification = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+
+  const VERCEL_API_TOKEN = import.meta.env.VITE_VERCEL_API_TOKEN;
+  const VERCEL_PROJECT_ID = import.meta.env.VITE_VERCEL_PROJECT_ID;
+
+  const pollDeploymentStatus = async (commitHash: string, timeout = 5 * 60 * 1000) => {
+    if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
+      console.warn('Vercel environment variables are not set. Cannot poll for deployment status.');
+      // Fallback to showing banner immediately
+      showUpdateNotification({ newVersion: commitHash });
+      return;
+    }
+
+    setIsPolling(true);
+    const startTime = Date.now();
+
+    const checkStatus = async () => {
+      if (Date.now() - startTime > timeout) {
+        console.warn('Polling for deployment status timed out.');
+        setIsPolling(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&limit=5`, {
+          headers: {
+            Authorization: `Bearer ${VERCEL_API_TOKEN}`,
+          },
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch Vercel deployments.');
+          setIsPolling(false);
+          return;
+        }
+
+        const data = await response.json();
+        const deployment = data.deployments.find((d: any) => d.meta?.githubCommitSha === commitHash);
+
+        // Only show banner when deployment is READY, not during BUILDING or QUEUED
+        if (deployment && deployment.state === 'READY') {
+          showUpdateNotification({ newVersion: commitHash, deploymentUrl: deployment.url });
+          setIsPolling(false);
+        } else if (deployment && (deployment.state === 'BUILDING' || deployment.state === 'QUEUED')) {
+          // Continue polling every 15 seconds while building
+          setTimeout(checkStatus, 15000);
+        } else {
+          // Deployment not found or in a different state, stop polling
+          setIsPolling(false);
+        }
+      } catch (error) {
+        console.error('Error polling deployment status:', error);
+        setIsPolling(false);
+      }
+    };
+
+    checkStatus();
+  };
+
 
   const showUpdateNotification = (info: any) => {
     setUpdateInfo(info);
     setUpdateAvailable(true);
     setIsVisible(true);
+  };
+
+  const checkForUpdate = (info: any) => {
+    if (isPolling) return;
+    pollDeploymentStatus(info.commitHash);
   };
 
   const hideUpdateNotification = () => {
@@ -164,7 +229,7 @@ export const useUpdateNotification = () => {
     updateAvailable,
     updateInfo,
     isVisible,
-    showUpdateNotification,
+    checkForUpdate, // Changed from showUpdateNotification
     hideUpdateNotification,
     dismissUpdateNotification
   };

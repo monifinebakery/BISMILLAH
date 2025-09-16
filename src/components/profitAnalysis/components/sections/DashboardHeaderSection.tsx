@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RotateCw, CheckCircle, AlertTriangle, Target, BarChart3, Info } from 'lucide-react';
-import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
+import { formatCurrency, formatPercentage as formatPercentageUtil } from '../../utils/profitTransformers';
 import { useIsMobile } from '@/hooks/use-mobile';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 
@@ -128,7 +128,7 @@ const DashboardHeaderSection: React.FC<DashboardHeaderSectionProps> = ({
           <span className="text-gray-600 text-xs sm:text-sm">
             Modal bahan:
             <span className="font-medium text-orange-600">
-              {formatPercentage(quickStatus.cogsPercentage)}
+              {formatPercentageUtil(quickStatus.cogsPercentage)}
             </span>{' '}
             dari omset
           </span>

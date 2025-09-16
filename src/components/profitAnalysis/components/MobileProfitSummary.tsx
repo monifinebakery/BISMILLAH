@@ -16,7 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
-import { formatCurrency, formatPercentage } from '../utils/profitTransformers';
+import { formatCurrency, formatPercentage as formatPercentageUtil } from '../utils/profitTransformers';
 import { safeCalculateMargins } from '@/utils/profitValidation';
 
 interface MobileProfitSummaryProps {
@@ -136,7 +136,7 @@ const MobileProfitSummary: React.FC<MobileProfitSummaryProps> = ({
               {formatCurrency(margins.netProfit)}
             </div>
             <div className="text-sm text-gray-600">
-              Margin: <span className="font-semibold">{formatPercentage(margins.netMargin)}</span>
+              Margin: <span className="font-semibold">{formatPercentageUtil(margins.netMargin)}</span>
             </div>
           </div>
 
@@ -145,7 +145,7 @@ const MobileProfitSummary: React.FC<MobileProfitSummaryProps> = ({
             <div className="flex items-center justify-center gap-2 pt-2 border-t">
               {getChangeIcon(profitChange)}
               <span className={`text-sm font-medium ${getChangeColor(profitChange)}`}>
-                {formatPercentage(Math.abs(profitChange))} vs bulan lalu
+                {formatPercentageUtil(Math.abs(profitChange))} vs bulan lalu
               </span>
             </div>
           )}
@@ -170,7 +170,7 @@ const MobileProfitSummary: React.FC<MobileProfitSummaryProps> = ({
               <div className="flex items-center gap-1">
                 {getChangeIcon(revenueChange)}
                 <span className={`text-xs ${getChangeColor(revenueChange)}`}>
-                  {formatPercentage(Math.abs(revenueChange))}
+                  {formatPercentageUtil(Math.abs(revenueChange))}
                 </span>
               </div>
             )}
@@ -190,7 +190,7 @@ const MobileProfitSummary: React.FC<MobileProfitSummaryProps> = ({
               {formatCurrency(cogs)}
             </div>
             <div className="text-xs text-gray-500">
-              {revenue > 0 ? formatPercentage((cogs / revenue) * 100) : '0%'} dari penjualan
+              {revenue > 0 ? formatPercentageUtil((cogs / revenue) * 100) : '0%'} dari penjualan
             </div>
           </CardContent>
         </Card>
@@ -215,7 +215,7 @@ const MobileProfitSummary: React.FC<MobileProfitSummaryProps> = ({
             <div>
               <div className="text-xs text-gray-500 mb-1">Margin Bersih</div>
               <div className={`text-sm font-bold ${margins.netMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatPercentage(margins.netMargin)}
+                {formatPercentageUtil(margins.netMargin)}
               </div>
             </div>
           </div>

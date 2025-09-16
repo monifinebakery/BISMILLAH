@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 import { 
   formatCurrency, 
-  formatPercentage, 
+  formatPercentage as formatPercentageUtil, 
   transformToRevenueBreakdown,
   transformToOpExBreakdown 
 } from '../utils/profitTransformers';
@@ -113,7 +113,7 @@ const MemoizedTableRow = React.memo(({ item, itemIndex }: { item: BreakdownItem;
         </div>
         {/* Show percentage on mobile (when hidden column) */}
         <div className="sm:hidden text-xs text-gray-500 mt-1">
-          {formatPercentage(item.percentage)}
+          {formatPercentageUtil(item.percentage)}
         </div>
       </TableCell>
       
@@ -126,7 +126,7 @@ const MemoizedTableRow = React.memo(({ item, itemIndex }: { item: BreakdownItem;
       <TableCell className="text-right hidden sm:table-cell">
         <div className="flex items-center justify-end space-x-2">
           <span className="font-medium text-xs sm:text-sm">
-            {formatPercentage(item.percentage)}
+            {formatPercentageUtil(item.percentage)}
           </span>
           
           <div className="w-12 sm:w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -182,7 +182,7 @@ const MemoizedSectionSummary = React.memo(({ section, sortedItems }: { section: 
           <span className="text-gray-600">Item Terbesar:</span>
           <span className="ml-2 font-semibold">
             {sortedItems.length > 0 
-              ? formatPercentage(Math.max(...sortedItems.map(i => i.percentage)))
+              ? formatPercentageUtil(Math.max(...sortedItems.map(i => i.percentage)))
               : '0%'
             }
           </span>
@@ -726,7 +726,7 @@ const DetailedBreakdownTable = ({
                   )}
                 </div>
                 <div className="text-xs text-gray-600 mt-1">
-                  {formatPercentage(
+                  {formatPercentageUtil(
                     breakdownSections[0]?.total > 0
                       ? ((breakdownSections[0].total - (breakdownSections[1]?.total || 0) - (breakdownSections[2]?.total || 0)) / breakdownSections[0].total) * 100
                       : 0

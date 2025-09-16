@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-import { formatCurrency, formatPercentage, calculateGrowth, getGrowthStatus } from '../utils/profitTransformers';
+import { formatCurrency, formatPercentage as formatPercentageUtil, calculateGrowth, getGrowthStatus } from '../utils/profitTransformers';
 import { RealTimeProfitCalculation } from '../types/profitAnalysis.types';
 import { getEffectiveCogs } from '@/utils/cogsCalculation';
 import { safeCalculateMargins } from '@/utils/profitValidation';
@@ -172,7 +172,7 @@ const generateCards = (
       icon: TrendingUp,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
-      subtitle: `${formatPercentage(metrics.grossMargin)} dari penjualan`,
+      subtitle: `${formatPercentageUtil(metrics.grossMargin)} dari penjualan`,
       change: changes.grossProfitChange,
       changeType: getGrowthStatus(changes.grossProfitChange).status,
       helpText: 'Untung sebelum dipotong biaya operasional (listrik, sewa, gaji)'
@@ -183,7 +183,7 @@ const generateCards = (
       icon: Calculator,
       color: metrics.netProfit >= 0 ? 'text-orange-700' : 'text-red-600',
       bgColor: metrics.netProfit >= 0 ? 'bg-orange-50' : 'bg-red-50',
-      subtitle: `${formatPercentage(metrics.netMargin)} margin akhir`,
+      subtitle: `${formatPercentageUtil(metrics.netMargin)} margin akhir`,
       change: changes.netProfitChange,
       changeType: getGrowthStatus(changes.netProfitChange).status,
       helpText: 'Untung beneran yang bisa dibawa pulang setelah semua biaya'
@@ -194,7 +194,7 @@ const generateCards = (
       icon: ShoppingCart,
       color: cogsPercentage > 60 ? 'text-red-600' : cogsPercentage > 40 ? 'text-orange-600' : 'text-green-600',
       bgColor: cogsPercentage > 60 ? 'bg-red-50' : cogsPercentage > 40 ? 'bg-orange-50' : 'bg-green-50',
-      subtitle: `${formatPercentage(cogsPercentage)} dari penjualan`,
+      subtitle: `${formatPercentageUtil(cogsPercentage)} dari penjualan`,
       change: changes.cogsChange,
       changeType: getGrowthStatus(changes.cogsChange * -1).status,
       helpText: labels?.hppHint ? 
@@ -404,7 +404,7 @@ const ProfitSummaryCards: React.FC<ProfitSummaryCardsProps> = ({
                     card.changeType === 'positive' ? 'text-green-600' : 
                     card.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
                   }`}>
-                    {formatPercentage(Math.abs(card.change || 0))}
+                    {formatPercentageUtil(Math.abs(card.change || 0))}
                   </span>
                   <span className="text-sm text-gray-500">
                     vs bulan lalu

@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
+import { formatCurrency, formatPercentage as formatPercentageUtil } from '../../utils/profitTransformers';
 
 // ==============================================
 // TYPES
@@ -82,7 +82,7 @@ const ForecastCard: React.FC<ForecastCardProps> = ({ period, data, currentProfit
           </div>
           <div>
             <div className="text-lg font-semibold text-blue-600">
-              {formatPercentage(data.margin)}
+              {formatPercentageUtil(data.margin)}
             </div>
             <div className="text-sm text-gray-600">
               Margin prediksi

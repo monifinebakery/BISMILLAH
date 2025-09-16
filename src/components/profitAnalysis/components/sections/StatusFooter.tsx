@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CheckCircle } from 'lucide-react';
-import { formatCurrency, formatPercentage } from '../../utils/profitTransformers';
+import { formatCurrency, formatPercentage as formatPercentageUtil } from '../../utils/profitTransformers';
 
 // ==============================================
 // TYPES
@@ -62,7 +62,7 @@ const StatusFooter: React.FC<StatusFooterProps> = ({
           </span>
           <span className="hidden sm:inline text-gray-400">•</span>
           <span className="flex items-center">
-            Margin: <span className="font-medium ml-1 text-blue-700">{formatPercentage(data.netMargin)}</span>
+            Margin: <span className="font-medium ml-1 text-blue-700">{formatPercentageUtil(data.netMargin)}</span>
           </span>
           
           {/* WAC active badge */}

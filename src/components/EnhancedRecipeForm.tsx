@@ -18,8 +18,8 @@ import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useRecipe } from "@/contexts/RecipeContext";
 import { formatCurrency } from "@/utils/formatUtils";
 
-// Enhanced HPP Integration
-import RecipeHppIntegration from '@/components/operational-costs/components/RecipeHppIntegration';
+// Auto-Sync HPP Integration (Simplified)
+import AutoSyncRecipeDisplay from '@/components/operational-costs/components/AutoSyncRecipeDisplay';
 import type { EnhancedHPPCalculationResult } from '@/components/operational-costs/utils/enhancedHppCalculations';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -79,7 +79,6 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     biayaTenagaKerja: number;
     biayaOverhead: number;
   } | null>(null);
-  const [isEnhancedHppActive, setIsEnhancedHppActive] = useState(false); // Track enhanced HPP state
   const [enhancedHppResult, setEnhancedHppResult] = useState<EnhancedHPPCalculationResult | null>(null);
   // Manual selling prices are now handled directly in the form data
   // No separate manual pricing mode needed
@@ -113,10 +112,10 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     }
   }, [initialData]);
 
-  // Auto-calculate HPP when form data changes (only if enhanced mode is NOT active)
+  // Auto-calculate HPP when form data changes (legacy calculation as fallback)
   useEffect(() => {
-    // Skip legacy calculation if enhanced HPP is active
-    if (isEnhancedHppActive) {
+    // Skip if enhanced HPP result is available (auto-sync takes precedence)
+    if (enhancedHppResult) {
       return;
     }
     
@@ -205,10 +204,7 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
     }
   }, [formData.jumlahPorsi, formData.jumlahPcsPerPorsi]);
 
-  // Handle enhanced HPP mode changes
-  const handleEnhancedHppModeChange = React.useCallback((isActive: boolean) => {
-    setIsEnhancedHppActive(isActive);
-  }, []);
+  // Note: Enhanced HPP mode is now auto-detected, no manual mode changes needed
 
   // Memoize recipe data for enhanced HPP integration to prevent infinite re-renders
   const recipeDataForHpp = React.useMemo(() => ({
@@ -809,11 +805,10 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
           </AlertDescription>
         </Alert>
 
-        {/* Enhanced HPP Integration */}
-        <RecipeHppIntegration
+        {/* Auto-Sync HPP Integration */}
+        <AutoSyncRecipeDisplay
           recipeData={recipeDataForHpp}
-          onEnhancedResultChange={handleEnhancedHppChange}
-          onEnhancedModeChange={handleEnhancedHppModeChange}
+          onResultChange={handleEnhancedHppChange}
         />
 
         {/* Form Actions */}

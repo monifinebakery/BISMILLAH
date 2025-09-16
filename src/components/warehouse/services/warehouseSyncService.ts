@@ -281,7 +281,8 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
   // Helper: derive unit price from standardized fields
   const deriveUnitPrice = (it: any, qty: number): number => {
     const toNum = (v: any) => (v == null || v === '' ? 0 : toNumber(v));
-    const explicit = toNum(it.unitPrice ?? it.harga_per_satuan ?? it.harga_satuan);
+    // ✅ FIXED: Database stores 'harga_per_satuan', frontend might use 'unitPrice'
+    const explicit = toNum(it.harga_per_satuan ?? it.unitPrice ?? it.harga_satuan);
     if (explicit > 0) return explicit;
     // Fallback: subtotal / qty
     const subtotal = toNum(it.subtotal);
@@ -290,11 +291,13 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
   };
 
   for (const item of purchase.items) {
-    const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
+    // ✅ FIXED: Database stores 'bahan_baku_id', frontend might use 'bahanBakuId'
+    const itemId = (item as any).bahan_baku_id || (item as any).bahanBakuId || (item as any).id;
     const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
     const itemSatuanNorm = normalizeUnit(itemSatuan);
-    const qty = toNumber((item as any).quantity ?? (item as any).jumlah ?? 0);
+    // ✅ FIXED: Database stores 'jumlah', but frontend might use 'quantity'
+    const qty = toNumber((item as any).jumlah ?? (item as any).quantity ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
 
     console.log('🔄 [WAREHOUSE SYNC] Processing item:', {
@@ -415,6 +418,22 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         }
       }
 
+      console.log('🔄 [WAREHOUSE SYNC] About to update warehouse item:', {
+        itemId: existing.id,
+        itemName: existing.nama,
+        updateData: {
+          stok: updateData.stok,
+          harga_rata_rata: updateData.harga_rata_rata,
+          harga_satuan: updateData.harga_satuan,
+          supplier: updateData.supplier
+        },
+        beforeUpdate: {
+          stok: existing.stok,
+          harga_rata_rata: existing.harga_rata_rata,
+          harga_satuan: existing.harga_satuan
+        }
+      });
+      
       const { error: updateError } = await supabase
         .from('bahan_baku')
         .update(updateData)
@@ -570,7 +589,8 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
   // Helper: derive unit price from any available fields  
   const deriveUnitPrice = (it: any, qty: number): number => {
     const toNum = (v: any) => (v == null || v === '' ? 0 : toNumber(v));
-    const explicit = toNum(it.unitPrice ?? it.harga_per_satuan ?? it.harga_satuan);
+    // ✅ FIXED: Database stores 'harga_per_satuan', frontend might use 'unitPrice'
+    const explicit = toNum(it.harga_per_satuan ?? it.unitPrice ?? it.harga_satuan);
     if (explicit > 0) return explicit;
     const subtotal = toNum(it.subtotal);
     if (qty > 0 && subtotal > 0) return subtotal / qty;
@@ -578,11 +598,13 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
   };
 
   for (const item of purchase.items) {
-    const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
+    // ✅ FIXED: Database stores 'bahan_baku_id', frontend might use 'bahanBakuId'
+    const itemId = (item as any).bahan_baku_id || (item as any).bahanBakuId || (item as any).id;
     const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
     const itemSatuanNorm = normalizeUnit(itemSatuan);
-    const qty = toNumber((item as any).quantity ?? (item as any).jumlah ?? 0);
+    // ✅ FIXED: Database stores 'jumlah', but frontend might use 'quantity'
+    const qty = toNumber((item as any).jumlah ?? (item as any).quantity ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
 
     if (qty <= 0) {

@@ -19,6 +19,7 @@ export { default as OperationalCostHeader } from './OperationalCostHeader';
 export { default as CostManagementTab } from './CostManagementTab';
 export { default as CalculatorTab } from './CalculatorTab';
 export { default as BulkActionsNew } from './BulkActionsNew';
+export { default as AutoSyncRecipeDisplay } from './AutoSyncRecipeDisplay';
 
 // REMOVED: Lazy loaded components - use direct imports when needed
 // - CostFormLazy, CostListLazy, etc.

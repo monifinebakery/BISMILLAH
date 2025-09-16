@@ -25,11 +25,12 @@ export {
   EmptyState 
 } from './components';
 
-// ✅ NEW: Recipe Integration Component
-export { default as RecipeHppIntegration } from './components/RecipeHppIntegration';
+// ✅ NEW: Auto-Sync Recipe Integration Component (Simplified)
+export { default as AutoSyncRecipeDisplay } from './components/AutoSyncRecipeDisplay';
 
 // ✅ NEW: Essential Hooks for Recipe Integration
-export { useEnhancedHppCalculation, useRecipeHppIntegration } from './hooks/useEnhancedHppCalculation';
+export { useEnhancedHppCalculation } from './hooks/useEnhancedHppCalculation';
+export { useAutoSyncRecipe } from './hooks/useAutoSyncRecipe';
 export { useCostClassification } from './hooks/useCostClassification';
 
 // ❌ REMOVED - Reduce dependencies:

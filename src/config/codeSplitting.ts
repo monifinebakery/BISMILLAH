@@ -17,16 +17,6 @@ export const ProfitAnalysisComponents = {
   ProfitDashboard: React.lazy(() => 
     import(/* webpackChunkName: "profit-dashboard" */ '@/components/profitAnalysis/components/ImprovedProfitDashboard')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat dashboard profit') }))
-  ),
-  
-  DetailedBreakdownTable: React.lazy(() => 
-    import(/* webpackChunkName: "profit-breakdown" */ '@/components/profitAnalysis/components/DetailedBreakdownTable')
-      .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat tabel breakdown') }))
-  ),
-  
-  ProfitSummaryCards: React.lazy(() => 
-    import(/* webpackChunkName: "profit-summary" */ '@/components/profitAnalysis/components/ProfitSummaryCards')
-      .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat ringkasan profit') }))
   )
 };
 
@@ -164,8 +154,7 @@ export const preloadComponents = {
           
         case 'profit-analysis':
           await Promise.allSettled([
-            import('@/components/profitAnalysis/components/ImprovedProfitDashboard'),
-            import('@/components/profitAnalysis/components/DetailedBreakdownTable')
+            import('@/components/profitAnalysis/components/ImprovedProfitDashboard')
           ]);
           break;
           

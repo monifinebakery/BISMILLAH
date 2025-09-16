@@ -49,22 +49,8 @@ export type {
 } from './hooks';
 
 // ===== COMPONENTS =====
-// PERBAIKAN: Gunakan default export yang benar
-export { default as ProfitSummaryCards } from './components/ProfitSummaryCards';
-export { default as ProfitBreakdownChart } from './components/lazy/LazyProfitBreakdownChart';
-export { default as ProfitTrendChart } from './components/lazy/LazyProfitTrendChart';
-export { default as DetailedBreakdownTable } from './components/lazy/LazyDetailedBreakdownTable';
-export { default as ProfitDashboard } from './components/ImprovedProfitDashboard';
+// Ekspor hanya komponen utama yang digunakan
 export { default as ImprovedProfitDashboard } from './components/ImprovedProfitDashboard';
-
-// Export types dari components
-export type {
-  ProfitSummaryCardsProps,
-  ProfitBreakdownChartProps,
-  ProfitTrendChartProps,
-  DetailedBreakdownTableProps,
-  ProfitDashboardProps
-} from './components/ImprovedProfitDashboard';
 
 // ===== API SERVICE =====
 export { default as profitAnalysisApi } from './services/profitAnalysisApi';

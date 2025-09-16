@@ -14,6 +14,15 @@ interface MetricCardProps {
   status?: 'good' | 'warning' | 'danger';
 }
 
+// Format percentage for Indonesian locale (expects 0-100 value)
+const formatPercentage = (value: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'percent',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format((value || 0) / 100);
+};
+
 const MetricCard: React.FC<MetricCardProps> = ({ 
   title, 
   value, 
@@ -39,15 +48,6 @@ const MetricCard: React.FC<MetricCardProps> = ({
       currency: 'IDR',
       notation: 'compact'
     }).format(amount);
-  };
-
-  // Format percentage
-  const formatPercentage = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'percent',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1
-    }).format(value / 100);
   };
 
   return (

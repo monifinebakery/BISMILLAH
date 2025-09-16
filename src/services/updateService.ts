@@ -136,7 +136,7 @@ class UpdateService {
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/vnd.github.v3+json',
-          // Add GitHub token if available (optional for public repos)
+          // Add GitHub token if available (required for private repos)
           ...(import.meta.env.VITE_GITHUB_TOKEN && {
             'Authorization': `token ${import.meta.env.VITE_GITHUB_TOKEN}`
           })
@@ -144,6 +144,21 @@ class UpdateService {
       });
 
       if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 404) {
+          logger.warn('⚠️ Repository not found or private. Auto-update disabled.', {
+            repo: `${this.REPO_OWNER}/${this.REPO_NAME}`,
+            status: response.status,
+            needsToken: !import.meta.env.VITE_GITHUB_TOKEN
+          });
+          return null;
+        }
+        
+        if (response.status === 403) {
+          logger.warn('⚠️ GitHub API rate limit exceeded or access denied:', response.status);
+          return null;
+        }
+        
         throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }
 

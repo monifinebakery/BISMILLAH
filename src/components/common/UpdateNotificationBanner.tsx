@@ -79,12 +79,12 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg">
+    <div className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg">
       <Alert className="border-0 bg-transparent text-white rounded-none">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <Download className="h-4 w-4 text-blue-200" />
+              <Download className="h-4 w-4 text-orange-200" />
               <AlertTriangle className="h-4 w-4 text-yellow-300 animate-pulse" />
             </div>
             
@@ -92,17 +92,11 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
               <AlertDescription className="text-white font-medium">
                 🎉 <strong>Update tersedia!</strong> Aplikasi telah diperbarui dengan fitur terbaru.
                 {updateInfo?.newVersion && (
-                  <span className="ml-2 text-blue-200 text-sm">
+                  <span className="ml-2 text-orange-200 text-sm">
                     v{updateInfo.newVersion}
                   </span>
                 )}
               </AlertDescription>
-              
-              {updateInfo?.commitHash && (
-                <div className="text-blue-200 text-xs mt-1">
-                  Build: {updateInfo.commitHash.slice(0, 8)}
-                </div>
-              )}
             </div>
           </div>
 
@@ -113,7 +107,7 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="bg-white text-blue-700 hover:bg-blue-50 border-0 font-semibold px-4"
+              className="bg-white text-orange-700 hover:bg-orange-50 border-0 font-semibold px-4"
             >
               {isRefreshing ? (
                 <>
@@ -133,7 +127,7 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
               variant="ghost"
               size="sm"
               onClick={handleDismiss}
-              className="text-white hover:bg-blue-600 hover:text-white p-1 h-8 w-8"
+              className="text-white hover:bg-orange-600 hover:text-white p-1 h-8 w-8"
             >
               <X className="h-4 w-4" />
             </Button>

@@ -143,36 +143,7 @@ export type {
   OperationalCostActual
 } from './utils/profitCalculations';
 
-// ===== CONVENIENT DEFAULT EXPORT =====
-// ✅ FIXED: Import separate instances to avoid reference issues
-import React from 'react';
-import { ProfitAnalysisProvider as Provider } from './contexts/ProfitAnalysisContext';
-import { useProfitAnalysis } from './hooks/useProfitAnalysis';
-const ProfitDashboard = React.lazy(() => 
-  import(/* webpackChunkName: "profit-dashboard" */ './components/ImprovedProfitDashboard')
-    .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat dashboard profit') }))
-);
-import profitAnalysisApi from './services/profitAnalysisApi';
-import { PROFIT_CONSTANTS } from './constants/profitConstants';
-import { PROFIT_QUERY_KEYS as queryKeys } from './constants/queryKeys';
-
-// Default export untuk kemudahan penggunaan
-export default {
-  // Provider utama
-  Provider,
-  
-  // Hook utama
-  useProfitAnalysis,
-  
-  // Komponen utama
-  Dashboard: ProfitDashboard,
-  
-  // API service
-  api: profitAnalysisApi,
-  
-  // Konstanta
-  constants: PROFIT_CONSTANTS,
-  
-  // Query keys
-  queryKeys
-};
+// Note:
+// Default export intentionally removed to avoid potential circular
+// initialization issues in some bundlers during lazy loading.
+// Use named exports instead (Provider, hooks, components, services).

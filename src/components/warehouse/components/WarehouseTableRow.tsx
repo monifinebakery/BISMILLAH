@@ -44,7 +44,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
   const supplierName = useMemo(() => {
     if (!item.supplier) return '-';
     const supplier = getSupplierById(item.supplier);
-    return supplier?.nama || item.supplier;
+    return supplier?.nama || 'Supplier Tidak Dikenal';
   }, [item.supplier, getSupplierById]);
 
   const highlightText = (text: string, term: string) => {

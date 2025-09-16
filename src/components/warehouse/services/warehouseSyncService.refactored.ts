@@ -235,7 +235,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase): Promise<void
         }
       } else {
         logger.debug('Creating new item:', itemId);
-        const { error: insertError } = await supabase.from('bahan_baku').insert({
+        const { error: insertError } = await supabase.from('bahan_baku').upsert({
           id: itemId,
           user_id: purchase.userId,
           nama: (item as PurchaseItem).nama ?? '',
@@ -248,6 +248,9 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase): Promise<void
           supplier: (purchase as any).supplier ?? null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id',
+          ignoreDuplicates: false
         });
         
         if (insertError) {

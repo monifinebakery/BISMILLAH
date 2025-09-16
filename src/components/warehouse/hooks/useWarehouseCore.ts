@@ -92,7 +92,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   const resolveSupplierName = useCallback((supplierId?: string) => {
     if (!supplierId) return '';
     const supplier = getSupplierById(supplierId);
-    return supplier?.nama || supplierId;
+    return supplier?.nama || 'Supplier Tidak Dikenal';
   }, [getSupplierById]);
 
   // ✅ ENHANCED: Log editing item changes

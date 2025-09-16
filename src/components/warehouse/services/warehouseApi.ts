@@ -257,10 +257,20 @@ class CrudService {
       // Normalize the input data
       const normalizedBahan = normalizeBahanBakuFrontend(bahan as BahanBakuFrontend);
       const dbData = transformToDatabase(normalizedBahan, this.config.userId);
-      const { error } = await supabase.from('bahan_baku').insert(dbData as any);
+
+      // Use upsert to avoid 409 conflicts on unique constraints (e.g., user_id+nama+satuan)
+      // If your DB has a different unique index, adjust onConflict accordingly.
+      const { error } = await supabase
+        .from('bahan_baku')
+        .upsert(dbData as any, {
+          onConflict: 'user_id,nama,satuan',
+          ignoreDuplicates: false
+        });
+
       if (error) throw error;
       return true;
     } catch (error: any) {
+      // If still failing, log and return false gracefully
       this.handleError('Add failed', error);
       return false;
     }

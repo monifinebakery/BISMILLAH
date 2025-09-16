@@ -19,8 +19,6 @@ const WarehouseTable = React.lazy(() =>
     .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat tabel gudang') }))
 );
 
-// ✅ TAMBAH: Import VirtualWarehouseTable untuk data besar
-import VirtualWarehouseTable from './components/VirtualWarehouseTable';
 
 // CONSOLIDATED HOOK IMPORTS
 import { useWarehouseCore } from './hooks/useWarehouseCore';
@@ -637,9 +635,8 @@ const WarehousePageContent: React.FC = () => {
             activeFiltersCount={core.filters?.activeCount || 0}
           />
 
-          {/* ✅ ENHANCED: Conditional rendering berdasarkan jumlah data */}
-          {(core.pagination?.currentItems || []).length > 100 ? (
-            <VirtualWarehouseTable
+          <Suspense fallback={<TableSkeleton />}>
+            <WarehouseTable
               items={core.pagination?.currentItems || []}
               isLoading={context.loading}
               isSelectionMode={core.selection?.isSelectionMode || false}
@@ -660,37 +657,8 @@ const WarehousePageContent: React.FC = () => {
               isSelected={core.selection?.isSelected}
               isPageSelected={core.selection?.isPageSelected}
               isPagePartiallySelected={core.selection?.isPagePartiallySelected}
-              // Virtual scrolling props
-              containerHeight={600}
-              itemHeight={80}
-              enableVirtualScrolling={true}
             />
-          ) : (
-            <Suspense fallback={<TableSkeleton />}>
-              <WarehouseTable
-                items={core.pagination?.currentItems || []}
-                isLoading={context.loading}
-                isSelectionMode={core.selection?.isSelectionMode || false}
-                searchTerm={core.filters?.searchTerm || ''}
-                sortConfig={core.filters?.sortConfig}
-                onSort={core.handlers?.sort}
-                onEdit={core.handlers?.edit}
-                onDelete={enhancedHandlers.delete}
-                emptyStateAction={() => navigate('/pembelian')}
-                onRefresh={async () => {
-                  await warehouseData.refetch();
-                }}
-                lastUpdated={warehouseData.lastUpdated}
-                // Selection props
-                selectedItems={core.selection?.selectedItems || []}
-                onToggleSelection={core.selection?.toggle}
-                onSelectPage={core.selection?.selectPage}
-                isSelected={core.selection?.isSelected}
-                isPageSelected={core.selection?.isPageSelected}
-                isPagePartiallySelected={core.selection?.isPagePartiallySelected}
-              />
-            </Suspense>
-          )}
+          </Suspense>
 
           {/* Info Update */}
           <div className="p-4 border-t border-gray-200 bg-gray-50">

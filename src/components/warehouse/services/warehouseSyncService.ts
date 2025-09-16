@@ -16,6 +16,21 @@ export interface WACCalculationResult {
   validationWarnings: string[];
 }
 
+// Normalize common unit synonyms to a canonical form
+const normalizeUnit = (raw: string | undefined | null): string => {
+  const u = String(raw || '').toLowerCase().trim();
+  if (!u) return '';
+  const map: Record<string, string> = {
+    gr: 'gram', g: 'gram', gram: 'gram',
+    kg: 'kg', kilogram: 'kg',
+    l: 'liter', liter: 'liter', litre: 'liter',
+    ml: 'ml', mililiter: 'ml', milliliter: 'ml',
+    pcs: 'pcs', buah: 'pcs', piece: 'pcs',
+    bungkus: 'bungkus', sachet: 'sachet',
+  };
+  return map[u] || u;
+};
+
 /**
  * Enhanced Weighted Average Cost (WAC) calculation
  * Handles edge cases: negative values, zero stock scenarios, price preservation
@@ -132,17 +147,18 @@ export const calculateEnhancedWac = (
  */
 const findExistingMaterialByName = async (
   materialName: string,
-  satuan: string,
+  rawSatuan: string,
   userId: string
 ): Promise<any | null> => {
   try {
     // Normalize name for better matching
     const normalizedName = materialName.toLowerCase().trim();
+    const normalizedUnit = normalizeUnit(rawSatuan);
     
     console.log('🔍 [WAREHOUSE SYNC] Searching for existing material:', {
       originalName: materialName,
       normalizedName,
-      satuan,
+      satuan: normalizedUnit,
       userId
     });
     
@@ -150,8 +166,7 @@ const findExistingMaterialByName = async (
       .from('bahan_baku')
       .select('id, nama, satuan, stok, harga_rata_rata, harga_satuan, supplier')
       .eq('user_id', userId)
-      .ilike('nama', normalizedName) // Case-insensitive search
-      .eq('satuan', satuan); // Must have same unit
+      .ilike('nama', normalizedName); // Case-insensitive search by name only (unit filtered locally)
     
     if (error) {
       console.error('❌ [WAREHOUSE SYNC] Error searching materials by name:', error);
@@ -160,6 +175,18 @@ const findExistingMaterialByName = async (
     
     // If multiple matches, prefer exact name match first
     if (materials && materials.length > 0) {
+      // Filter by normalized unit first
+      const unitMatches = materials.filter(m => normalizeUnit(m.satuan) === normalizedUnit);
+      if (unitMatches.length > 0) {
+        // Prefer exact name match among unit matches
+        const exactUnitMatch = unitMatches.find(m => m.nama.toLowerCase().trim() === normalizedName);
+        if (exactUnitMatch) {
+          console.log('✅ [WAREHOUSE SYNC] Found exact name+unit match:', exactUnitMatch);
+          return exactUnitMatch;
+        }
+        console.log('✅ [WAREHOUSE SYNC] Found unit-normalized match:', unitMatches[0]);
+        return unitMatches[0];
+      }
       // First try exact match (case insensitive)
       const exactMatch = materials.find(m => 
         m.nama.toLowerCase().trim() === normalizedName
@@ -182,6 +209,60 @@ const findExistingMaterialByName = async (
     console.error('❌ [WAREHOUSE SYNC] Error in findExistingMaterialByName:', error);
     return null;
   }
+};
+
+/**
+ * ✅ NEW: Validate WAC calculation result for consistency
+ */
+const validateWacCalculation = (
+  oldStock: number,
+  oldWac: number,
+  qty: number,
+  unitPrice: number,
+  calculatedWac: number,
+  itemName: string
+): { isValid: boolean; warnings: string[] } => {
+  const warnings: string[] = [];
+  let isValid = true;
+  
+  // Check for mathematical consistency
+  const newStock = oldStock + qty;
+  const expectedValue = (oldStock * oldWac) + (qty * unitPrice);
+  const calculatedValue = newStock * calculatedWac;
+  
+  if (newStock > 0) {
+    const valueDiff = Math.abs(expectedValue - calculatedValue);
+    const tolerance = Math.max(0.01, Math.min(expectedValue, calculatedValue) * 0.0001); // 0.01% tolerance
+    
+    if (valueDiff > tolerance) {
+      warnings.push(`Value mismatch: expected ${expectedValue.toFixed(4)}, got ${calculatedValue.toFixed(4)}`);
+      isValid = false;
+    }
+  }
+  
+  // Check for reasonable WAC bounds
+  if (oldWac > 0 && unitPrice > 0) {
+    const minExpected = Math.min(oldWac, unitPrice);
+    const maxExpected = Math.max(oldWac, unitPrice);
+    
+    if (calculatedWac < minExpected * 0.9 || calculatedWac > maxExpected * 1.1) {
+      warnings.push(`WAC ${calculatedWac.toFixed(4)} outside reasonable bounds [${(minExpected * 0.9).toFixed(4)}, ${(maxExpected * 1.1).toFixed(4)}]`);
+    }
+  }
+  
+  // Log validation results
+  if (warnings.length > 0) {
+    logger.warn(`⚠️ [WAC VALIDATION] ${itemName}:`, {
+      oldStock,
+      oldWac: oldWac.toFixed(4),
+      qty,
+      unitPrice: unitPrice.toFixed(4),
+      calculatedWac: calculatedWac.toFixed(4),
+      warnings
+    });
+  }
+  
+  return { isValid, warnings };
 };
 
 /**
@@ -212,6 +293,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
+    const itemSatuanNorm = normalizeUnit(itemSatuan);
     const qty = toNumber((item as any).quantity ?? (item as any).jumlah ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
 
@@ -254,25 +336,39 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
 
     // ✅ STEP 2: If no ID match, try to find by name and unit (for stock accumulation)
     if (!existing) {
-      existing = await findExistingMaterialByName(itemName, itemSatuan, purchase.userId);
+      existing = await findExistingMaterialByName(itemName, itemSatuanNorm, purchase.userId);
     }
 
-    const oldStock = existing?.stok ?? 0;
-    const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;
-    const newStock = toNumber(oldStock) + qty;
-    const newWac = calculateNewWac(oldWac, oldStock, qty, unitPrice);
+    const oldStock = toNumber(existing?.stok ?? 0);
+    const oldWac = toNumber(existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0);
+    const newStock = oldStock + qty;
+    
+    // ✅ ENHANCED: Use enhanced WAC calculation with validation
+    const wacResult = calculateEnhancedWac(oldWac, oldStock, qty, unitPrice);
+    const newWac = wacResult.newWac;
+    
+    // ✅ SAFETY: Validate final stock calculation matches
+    if (Math.abs(wacResult.newStock - newStock) > 0.01) {
+      logger.warn('⚠️ [WAREHOUSE SYNC] Stock calculation mismatch:', {
+        itemId,
+        itemName,
+        calculatedStock: newStock,
+        wacResultStock: wacResult.newStock
+      });
+    }
 
-    console.log('🔄 [WAREHOUSE SYNC] Stock calculation:', {
+    console.log('🔄 [WAREHOUSE SYNC] Enhanced stock calculation:', {
       itemId,
       itemName,
       oldStock,
       qty,
       newStock,
-      oldWac,
-      unitPrice,
-      newWac,
+      oldWac: oldWac.toFixed(4),
+      unitPrice: unitPrice.toFixed(4),
+      newWac: newWac.toFixed(4),
       existing: existing?.id,
       matchType: existing?.id === itemId ? 'ID_MATCH' : existing ? 'NAME_MATCH' : 'NEW_ITEM',
+      wacWarnings: wacResult.validationWarnings
     });
 
     if (existing) {
@@ -283,6 +379,18 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         matchedBy: existing.id === itemId ? 'ID' : 'NAME',
       });
 
+      // ✅ ENHANCED: Validate WAC calculation for correctness
+      const wacValidation = validateWacCalculation(oldStock, oldWac, qty, unitPrice, newWac, itemName);
+      
+      // Log WAC warnings if any
+      if (wacResult.validationWarnings.length > 0) {
+        logger.warn(`⚠️ [WAREHOUSE SYNC] WAC calculation warnings for ${itemName}:`, wacResult.validationWarnings);
+      }
+      
+      if (!wacValidation.isValid) {
+        logger.error(`❌ [WAREHOUSE SYNC] WAC validation failed for ${itemName}:`, wacValidation.warnings);
+      }
+      
       const updateData: any = {
         stok: newStock,
         harga_rata_rata: newWac,
@@ -315,30 +423,66 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
 
       if (updateError) {
         console.error('❌ [WAREHOUSE SYNC] Error updating item:', updateError);
+        logger.error(`Failed to update warehouse item ${itemName}:`, updateError);
       } else {
         console.log('✅ [WAREHOUSE SYNC] Successfully updated item:', {
           id: existing.id,
           name: existing.nama,
           oldStock,
           newStock,
-          oldWac: toNumber(oldWac).toFixed(2),
-          newWac: toNumber(newWac).toFixed(2),
+          oldWac: toNumber(oldWac).toFixed(4),
+          newWac: toNumber(newWac).toFixed(4),
+          priceUsed: unitPrice.toFixed(4),
+          wacValid: wacValidation.isValid
         });
+        
+        // ✅ OPTIONAL: Verify the update was successful by reading back the data
+        if (process.env.NODE_ENV === 'development') {
+          setTimeout(async () => {
+            try {
+              const { data: verifyData, error: verifyError } = await supabase
+                .from('bahan_baku')
+                .select('stok, harga_rata_rata, harga_satuan')
+                .eq('id', existing.id)
+                .single();
+              
+              if (!verifyError && verifyData) {
+                const actualStock = toNumber(verifyData.stok);
+                const actualWac = toNumber(verifyData.harga_rata_rata);
+                
+                if (Math.abs(actualStock - newStock) > 0.001 || Math.abs(actualWac - newWac) > 0.001) {
+                  logger.warn(`⚠️ [WAREHOUSE SYNC] Post-update verification mismatch for ${itemName}:`, {
+                    expectedStock: newStock,
+                    actualStock,
+                    expectedWac: newWac.toFixed(4),
+                    actualWac: actualWac.toFixed(4)
+                  });
+                }
+              }
+            } catch (e) {
+              // Verification failed, but update may have succeeded
+              logger.debug('Post-update verification failed (non-critical):', e);
+            }
+          }, 100); // Small delay to allow DB to settle
+        }
       }
     } else {
       // ✅ CREATE new item
       console.log('🔄 [WAREHOUSE SYNC] Creating new item:', itemName);
 
+      // ✅ ENHANCED: For new items, WAC equals unit price (no existing stock to average)
+      const initialWac = unitPrice > 0 ? unitPrice : 0;
+      
       const insertData = {
         id: itemId || crypto.randomUUID(), // Use provided ID or generate new one
         user_id: purchase.userId,
         nama: itemName,
-        kategori: (item as any).kategori ?? '',
+        kategori: (item as any).kategori ?? 'Lainnya',
         stok: qty,
-        satuan: itemSatuan,
+        satuan: itemSatuanNorm || itemSatuan,
         minimum: 0,
         harga_satuan: unitPrice,
-        harga_rata_rata: unitPrice,
+        harga_rata_rata: initialWac,
         supplier: (purchase as any).supplier ?? null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -362,6 +506,53 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
   }
 
   console.log('✅ [WAREHOUSE SYNC] Completed applyPurchaseToWarehouse for purchase:', purchase.id);
+};
+
+/**
+ * ✅ NEW: Debug utility to trace WAC calculation step by step
+ */
+export const debugWacCalculation = (
+  itemName: string,
+  oldStock: number,
+  oldWac: number,
+  qty: number,
+  unitPrice: number
+): void => {
+  console.group(`🔍 [WAC DEBUG] ${itemName}`);
+  console.log('Input values:', {
+    oldStock: oldStock.toFixed(4),
+    oldWac: oldWac.toFixed(4),
+    quantity: qty.toFixed(4),
+    unitPrice: unitPrice.toFixed(4)
+  });
+  
+  const newStock = oldStock + qty;
+  const oldValue = oldStock * oldWac;
+  const addedValue = qty * unitPrice;
+  const totalValue = oldValue + addedValue;
+  const calculatedWac = newStock > 0 ? totalValue / newStock : unitPrice;
+  
+  console.log('Calculation steps:', {
+    newStock: newStock.toFixed(4),
+    oldValue: oldValue.toFixed(4),
+    addedValue: addedValue.toFixed(4),
+    totalValue: totalValue.toFixed(4),
+    calculatedWac: calculatedWac.toFixed(4)
+  });
+  
+  // Compare with enhanced calculation
+  const enhancedResult = calculateEnhancedWac(oldWac, oldStock, qty, unitPrice);
+  console.log('Enhanced result:', {
+    newWac: enhancedResult.newWac.toFixed(4),
+    newStock: enhancedResult.newStock.toFixed(4),
+    warnings: enhancedResult.validationWarnings
+  });
+  
+  // Validation
+  const validation = validateWacCalculation(oldStock, oldWac, qty, unitPrice, enhancedResult.newWac, itemName);
+  console.log('Validation:', validation);
+  
+  console.groupEnd();
 };
 
 /**
@@ -390,6 +581,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
     const itemId = (item as any).bahanBakuId || (item as any).bahan_baku_id || (item as any).id;
     const itemName = (item as any).nama ?? '';
     const itemSatuan = (item as any).satuan ?? '';
+    const itemSatuanNorm = normalizeUnit(itemSatuan);
     const qty = toNumber((item as any).quantity ?? (item as any).jumlah ?? 0);
     const unitPrice = deriveUnitPrice(item as any, qty);
 
@@ -420,7 +612,7 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
       
       // If no ID match, try to find by name (for previously accumulated stock)
       if (!existing && itemName.trim()) {
-        existing = await findExistingMaterialByName(itemName, itemSatuan, purchase.userId);
+        existing = await findExistingMaterialByName(itemName, itemSatuanNorm, purchase.userId);
         if (existing) {
           logger.debug('✅ [WAREHOUSE SYNC] Found name match for reversal:', existing);
         }

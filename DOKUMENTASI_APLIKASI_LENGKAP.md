@@ -153,9 +153,13 @@ Sistem inventory yang powerful untuk mengelola stok dengan akurasi tinggi.
 - **Automatic Reorder Points**: Alert otomatis untuk restocking
 - **Multi-location Support**: Kelola stok di berbagai lokasi
 
-### **Advanced Stock Management**
-- **WAC (Weighted Average Cost)**: Perhitungan harga rata-rata berbobot
-- **FIFO/LIFO Support**: Metode valuasi stok yang fleksibel
+### **Advanced Stock Management - WAC System**
+- **WAC (Weighted Average Cost)**: Perhitungan harga rata-rata berbobot otomatis dan akurat
+- **Material Accumulation**: Akumulasi stok material yang sama dari supplier berbeda
+- **Real-time Price Calculation**: Hitung ulang WAC setiap ada pembelian baru
+- **Cross-supplier Aggregation**: Gabungkan stok berdasarkan nama + satuan material
+- **Price Preservation**: Maintain harga saat stok mencapai zero
+- **Mathematical Validation**: Validasi konsistensi perhitungan WAC
 - **Batch Tracking**: Pelacakan lot/batch untuk quality control
 - **Expiry Management**: Monitor tanggal kadaluarsa
 

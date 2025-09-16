@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 
-// Enhanced HPP Integration (Primary Method)
-import RecipeHppIntegration from '@/components/operational-costs/components/RecipeHppIntegration';
+// Auto-Sync HPP Integration (Simplified)
+import AutoSyncRecipeDisplay from '@/components/operational-costs/components/AutoSyncRecipeDisplay';
 import type { EnhancedHPPCalculationResult } from '@/components/operational-costs/utils/enhancedHppCalculations';
 
 // Types
@@ -163,11 +163,10 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
         </AlertDescription>
       </Alert>
 
-      {/* Main Enhanced HPP Calculator */}
-      <RecipeHppIntegration
+      {/* Main Auto-Sync HPP Calculator */}
+      <AutoSyncRecipeDisplay
         recipeData={recipeDataForHpp}
-        onEnhancedResultChange={handleEnhancedHppChange}
-        onEnhancedModeChange={handleEnhancedHppModeChange}
+        onResultChange={handleEnhancedHppChange}
         className=""
       />
 

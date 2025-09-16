@@ -403,29 +403,93 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return false;
     }
 
-    // Calculate HPP if not provided
+    // Auto-calculate HPP using operational costs if available
     let finalRecipeData = { ...recipeData };
     if (!finalRecipeData.totalHpp || !finalRecipeData.hppPerPorsi) {
-      // NOTE: This uses legacy HPP calculation for backward compatibility
-      // Enhanced HPP calculation with operational costs integration
-      // is available through RecipeHppIntegration component
-      const calculation = calculateHPP(
-        finalRecipeData.bahanResep || [],
-        finalRecipeData.jumlahPorsi || 1,
-        finalRecipeData.biayaTenagaKerja || 0,
-        finalRecipeData.biayaOverhead || 0,
-        finalRecipeData.marginKeuntunganPersen || 0,
-        finalRecipeData.jumlahPcsPerPorsi || 1
-      );
-
-      finalRecipeData = {
-        ...finalRecipeData,
-        totalHpp: calculation.totalHPP,
-        hppPerPorsi: calculation.hppPerPorsi,
-        hargaJualPorsi: calculation.hargaJualPorsi,
-        hppPerPcs: calculation.hppPerPcs,
-        hargaJualPerPcs: calculation.hargaJualPerPcs,
-      };
+      try {
+        // Try to use enhanced calculation with operational costs first
+        const { calculateEnhancedHPP, getCurrentAppSettings } = await import('@/components/operational-costs/utils/enhancedHppCalculations');
+        const settings = await getCurrentAppSettings();
+        
+        // Check if operational costs are configured
+        const hasOperationalCosts = (settings?.overhead_per_pcs && settings.overhead_per_pcs > 0) || 
+                                   (settings?.operasional_per_pcs && settings.operasional_per_pcs > 0);
+        
+        if (hasOperationalCosts) {
+          // Use enhanced calculation with operational costs
+          logger.info('💡 Using operational costs for recipe calculation');
+          
+          const enhancedResult = await calculateEnhancedHPP(
+            (finalRecipeData.bahanResep || []).map(bahan => ({
+              nama: bahan.nama,
+              jumlah: bahan.jumlah,
+              satuan: bahan.satuan,
+              hargaSatuan: bahan.hargaSatuan,
+              totalHarga: bahan.totalHarga,
+              warehouseId: bahan.warehouseId
+            })),
+            finalRecipeData.jumlahPorsi || 1,
+            finalRecipeData.jumlahPcsPerPorsi || 1,
+            {
+              mode: 'markup',
+              percentage: finalRecipeData.marginKeuntunganPersen || 0
+            },
+            true // Use app settings overhead
+          );
+          
+          finalRecipeData = {
+            ...finalRecipeData,
+            totalHpp: enhancedResult.totalHPP,
+            hppPerPorsi: enhancedResult.hppPerPorsi,
+            hargaJualPorsi: enhancedResult.hargaJualPerPorsi,
+            hppPerPcs: enhancedResult.hppPerPcs,
+            hargaJualPerPcs: enhancedResult.hargaJualPerPcs,
+            // Store combined operational costs in overhead field for database compatibility
+            biayaOverhead: enhancedResult.overheadPerPcs,
+            biayaTenagaKerja: 0 // TKL included in overhead from operational costs
+          };
+        } else {
+          // Fallback to legacy calculation if no operational costs configured
+          logger.info('⚠️ No operational costs configured, using legacy calculation');
+          const calculation = calculateHPP(
+            finalRecipeData.bahanResep || [],
+            finalRecipeData.jumlahPorsi || 1,
+            finalRecipeData.biayaTenagaKerja || 0,
+            finalRecipeData.biayaOverhead || 0,
+            finalRecipeData.marginKeuntunganPersen || 0,
+            finalRecipeData.jumlahPcsPerPorsi || 1
+          );
+          
+          finalRecipeData = {
+            ...finalRecipeData,
+            totalHpp: calculation.totalHPP,
+            hppPerPorsi: calculation.hppPerPorsi,
+            hargaJualPorsi: calculation.hargaJualPorsi,
+            hppPerPcs: calculation.hppPerPcs,
+            hargaJualPerPcs: calculation.hargaJualPerPcs,
+          };
+        }
+      } catch (error) {
+        // If enhanced calculation fails, fallback to legacy
+        logger.warn('Enhanced calculation failed, using legacy calculation:', error);
+        const calculation = calculateHPP(
+          finalRecipeData.bahanResep || [],
+          finalRecipeData.jumlahPorsi || 1,
+          finalRecipeData.biayaTenagaKerja || 0,
+          finalRecipeData.biayaOverhead || 0,
+          finalRecipeData.marginKeuntunganPersen || 0,
+          finalRecipeData.jumlahPcsPerPorsi || 1
+        );
+        
+        finalRecipeData = {
+          ...finalRecipeData,
+          totalHpp: calculation.totalHPP,
+          hppPerPorsi: calculation.hppPerPorsi,
+          hargaJualPorsi: calculation.hargaJualPorsi,
+          hppPerPcs: calculation.hppPerPcs,
+          hargaJualPerPcs: calculation.hargaJualPerPcs,
+        };
+      }
     }
 
     try {
@@ -442,7 +506,7 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return false;
     }
 
-    // Recalculate HPP if relevant data changed and not skipping auto-calculation
+    // Auto-recalculate HPP using operational costs if relevant data changed
     let finalUpdates = { ...updates };
     const existingRecipe = recipes.find(r => r.id === id);
     
@@ -461,27 +525,85 @@ export const RecipeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const marginKeuntunganPersen = updates.marginKeuntunganPersen ?? existingRecipe.marginKeuntunganPersen;
       const jumlahPcsPerPorsi = updates.jumlahPcsPerPorsi ?? existingRecipe.jumlahPcsPerPorsi;
 
-      // NOTE: This uses legacy HPP calculation for backward compatibility
-      // Enhanced HPP calculation with operational costs integration
-      // is available through RecipeHppIntegration component
-      // Use skipAutoCalculation=true when updating with enhanced calculation results
-      const calculation = calculateHPP(
-        bahanResep,
-        jumlahPorsi,
-        biayaTenagaKerja,
-        biayaOverhead,
-        marginKeuntunganPersen,
-        jumlahPcsPerPorsi
-      );
-
-      finalUpdates = {
-        ...finalUpdates,
-        totalHpp: calculation.totalHPP,
-        hppPerPorsi: calculation.hppPerPorsi,
-        hargaJualPorsi: calculation.hargaJualPorsi,
-        hppPerPcs: calculation.hppPerPcs,
-        hargaJualPerPcs: calculation.hargaJualPerPcs,
-      };
+      try {
+        // Auto-use operational costs if available
+        const { calculateEnhancedHPP, getCurrentAppSettings } = await import('@/components/operational-costs/utils/enhancedHppCalculations');
+        const settings = await getCurrentAppSettings();
+        
+        const hasOperationalCosts = (settings?.overhead_per_pcs && settings.overhead_per_pcs > 0) || 
+                                   (settings?.operasional_per_pcs && settings.operasional_per_pcs > 0);
+        
+        if (hasOperationalCosts) {
+          logger.info('💡 Auto-updating recipe with operational costs');
+          
+          const enhancedResult = await calculateEnhancedHPP(
+            (bahanResep || []).map(bahan => ({
+              nama: bahan.nama,
+              jumlah: bahan.jumlah,
+              satuan: bahan.satuan,
+              hargaSatuan: bahan.hargaSatuan,
+              totalHarga: bahan.totalHarga,
+              warehouseId: bahan.warehouseId
+            })),
+            jumlahPorsi,
+            jumlahPcsPerPorsi,
+            {
+              mode: 'markup',
+              percentage: marginKeuntunganPersen
+            },
+            true
+          );
+          
+          finalUpdates = {
+            ...finalUpdates,
+            totalHpp: enhancedResult.totalHPP,
+            hppPerPorsi: enhancedResult.hppPerPorsi,
+            hargaJualPorsi: enhancedResult.hargaJualPerPorsi,
+            hppPerPcs: enhancedResult.hppPerPcs,
+            hargaJualPerPcs: enhancedResult.hargaJualPerPcs,
+            biayaOverhead: enhancedResult.overheadPerPcs,
+            biayaTenagaKerja: 0
+          };
+        } else {
+          // Fallback to legacy calculation
+          const calculation = calculateHPP(
+            bahanResep,
+            jumlahPorsi,
+            biayaTenagaKerja,
+            biayaOverhead,
+            marginKeuntunganPersen,
+            jumlahPcsPerPorsi
+          );
+          
+          finalUpdates = {
+            ...finalUpdates,
+            totalHpp: calculation.totalHPP,
+            hppPerPorsi: calculation.hppPerPorsi,
+            hargaJualPorsi: calculation.hargaJualPorsi,
+            hppPerPcs: calculation.hppPerPcs,
+            hargaJualPerPcs: calculation.hargaJualPerPcs,
+          };
+        }
+      } catch (error) {
+        logger.warn('Auto-calculation failed, using legacy calculation:', error);
+        const calculation = calculateHPP(
+          bahanResep,
+          jumlahPorsi,
+          biayaTenagaKerja,
+          biayaOverhead,
+          marginKeuntunganPersen,
+          jumlahPcsPerPorsi
+        );
+        
+        finalUpdates = {
+          ...finalUpdates,
+          totalHpp: calculation.totalHPP,
+          hppPerPorsi: calculation.hppPerPorsi,
+          hargaJualPorsi: calculation.hargaJualPorsi,
+          hppPerPcs: calculation.hppPerPcs,
+          hargaJualPerPcs: calculation.hargaJualPerPcs,
+        };
+      }
     }
 
     try {

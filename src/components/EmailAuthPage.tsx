@@ -1,9 +1,8 @@
-// src/components/auth/EmailAuthPage.tsx — OTP Authentication with Turnstile
+// src/components/auth/EmailAuthPage.tsx — Simple OTP Authentication
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Clock, RefreshCw } from "lucide-react";
 import { sendEmailOtp, verifyEmailOtp } from "@/services/auth";
-import TurnstileWidget from "@/components/auth/TurnstileWidget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,10 +55,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(0);
 
-  // Turnstile CAPTCHA integration
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileError, setTurnstileError] = useState<string | null>(null);
-  const turnstileSitekey = (import.meta as any).env?.VITE_TURNSTILE_SITEKEY || '0x4AAAAAABvpDKhb8eM31rVE';
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -103,21 +98,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
-  // Disable CAPTCHA globally for now
-  const isCaptchaEnabled = false;
-  
-  console.log('🔍 OTP Authentication Mode with Turnstile:', {
-    captchaEnabled: isCaptchaEnabled,
-    mode: import.meta.env.MODE,
-    message: 'Cloudflare Turnstile aktif untuk pengiriman OTP'
-  });
-  
   // Simple button validation:
   const canSend =
     isValidEmail(email) &&
     cooldownTime === 0 &&
-    authState !== "sending" &&
-    (!isCaptchaEnabled || !!turnstileToken);
+    authState !== "sending";
 
   const canVerify =
     otp.every((d) => d !== "") &&
@@ -142,34 +127,15 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       return;
     }
 
-    // Server-side Turnstile validation (only when enabled)
-    if (isCaptchaEnabled) {
-      try {
-        const resp = await fetch('/api/turnstile-verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: turnstileToken }),
-        });
-        if (!resp.ok) {
-          const data = await resp.json().catch(() => ({}));
-          toast.error(data?.message || 'Verifikasi CAPTCHA gagal');
-          return;
-        }
-      } catch (e) {
-        toast.error('Tidak dapat memverifikasi CAPTCHA. Periksa koneksi.');
-        return;
-      }
-    }
-
     setAuthState("sending");
     setError("");
 
     try {
       const success = await sendEmailOtp(
         email,
-        isCaptchaEnabled ? turnstileToken : null,
+        null,
         true,
-        !isCaptchaEnabled
+        true
       );
 
       if (!mountedRef.current) return;
@@ -207,31 +173,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
 
     try {
-      // Server-side Turnstile validation sebelum resend (only when enabled)
-      if (isCaptchaEnabled) {
-        try {
-          const resp = await fetch('/api/turnstile-verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: turnstileToken }),
-          });
-          if (!resp.ok) {
-            const data = await resp.json().catch(() => ({}));
-            toast.error(data?.message || 'Verifikasi CAPTCHA gagal');
-            setAuthState("error");
-            return;
-          }
-        } catch (e) {
-          toast.error('Tidak dapat memverifikasi CAPTCHA. Periksa koneksi.');
-          setAuthState("error");
-          return;
-        }
-      }
       const success = await sendEmailOtp(
         email,
-        isCaptchaEnabled ? turnstileToken : null,
+        null,
         true,
-        !isCaptchaEnabled
+        true
       );
 
       if (!mountedRef.current) return;
@@ -368,7 +314,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
         <CardContent className="space-y-6">
           {!isSent ? (
-            // Email Input + Turnstile
+            // Email Input
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">
@@ -391,35 +337,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   />
                 </div>
               </div>
-
-              {isCaptchaEnabled && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Verifikasi Keamanan
-                  </label>
-                  <div className="p-3 border rounded bg-white">
-                    <TurnstileWidget
-                      sitekey={turnstileSitekey}
-                      onSuccess={(token) => {
-                        setTurnstileToken(token);
-                        setTurnstileError(null);
-                      }}
-                      onError={() => {
-                        setTurnstileToken(null);
-                        setTurnstileError('Verifikasi CAPTCHA gagal, coba lagi');
-                      }}
-                      onExpired={() => {
-                        setTurnstileToken(null);
-                        setTurnstileError('CAPTCHA kedaluwarsa, silakan verifikasi ulang');
-                      }}
-                      className="block"
-                    />
-                    {turnstileError && (
-                      <p className="mt-2 text-xs text-red-600">{turnstileError}</p>
-                    )}
-                  </div>
-                </div>
-              )}
 
               <Button
                 onClick={handleSendOtp}

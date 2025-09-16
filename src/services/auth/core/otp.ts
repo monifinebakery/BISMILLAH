@@ -9,7 +9,7 @@ export const sendEmailOtp = async (
   email: string, 
   captchaToken: string | null = null,
   allowSignup: boolean = true,
-  skipCaptcha: boolean = false
+  skipCaptcha: boolean = true
 ): Promise<boolean> => {
   try {
     if (!validateEmail(email)) {
@@ -23,43 +23,11 @@ export const sendEmailOtp = async (
       shouldCreateUser: allowSignup,
     };
     
-    if (!skipCaptcha) {
-      if (!captchaToken) {
-        toast.error('Verifikasi CAPTCHA diperlukan');
-        return false;
-      }
-      const secretKey = (import.meta.env.VITE_TURNSTILE_SECRETKEY || '').trim();
-      if (!secretKey) {
-        logger.error('Turnstile secret key missing');
-        toast.error('Konfigurasi Turnstile belum lengkap');
-        return false;
-      }
-
-      try {
-        const verifyResp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(captchaToken)}`,
-        });
-        const verifyData = await verifyResp.json();
-        if (!verifyData.success) {
-          logger.error('Turnstile verification failed:', verifyData);
-          toast.error('Verifikasi CAPTCHA gagal');
-          return false;
-        }
-        logger.debug('Turnstile token verified');
-      } catch (e) {
-        logger.error('Turnstile verification error:', e);
-        toast.error('Gagal memverifikasi CAPTCHA');
-        return false;
-      }
-    }
+    // CAPTCHA validation disabled
 
     console.log('🔧 [DEBUG] Sending OTP request to Supabase:', {
       email,
-      otpOptions,
-      skipCaptcha,
-      captchaToken: captchaToken ? 'HAS_TOKEN' : 'NO_TOKEN'
+      otpOptions
     });
     
     const { data, error } = await supabase.auth.signInWithOtp({
@@ -82,7 +50,7 @@ export const sendEmailOtp = async (
       if (error.message?.includes('Signups not allowed') && allowSignup) {
         logger.info('Signup disabled, trying existing users only...');
         toast.info('Mencoba untuk pengguna terdaftar...');
-        return await sendEmailOtp(email, captchaToken, false, skipCaptcha);
+        return await sendEmailOtp(email, null, false, true);
       }
       
       // Handle 500 Internal Server Error
@@ -98,11 +66,6 @@ export const sendEmailOtp = async (
         return false;
       }
       
-      // Handle CAPTCHA-related errors
-      if (error.message?.includes('captcha') || error.message?.includes('CAPTCHA')) {
-        toast.error('Error CAPTCHA: Pastikan CAPTCHA dinonaktifkan di Supabase dashboard.');
-        return false;
-      }
       
       const errorMsg = getErrorMessage(error);
       toast.error(errorMsg);

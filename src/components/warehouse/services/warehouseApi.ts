@@ -45,23 +45,62 @@ const transformToFrontend = (dbItem: any): BahanBakuFrontend => {
 
 // Transform FE -> DB (❗️tanpa field kemasan)
 const transformToDatabase = (frontendItem: Partial<BahanBakuFrontend>, userId?: string): any => {
-  const dbItem: any = {
-    id: frontendItem.id,
-    nama: frontendItem.nama,
-    kategori: frontendItem.kategori,
-    stok: toNumber(frontendItem.stok),
-    minimum: toNumber(frontendItem.minimum),
-    satuan: frontendItem.satuan,
-    harga_satuan: toNumber(frontendItem.harga),
-    harga_rata_rata: frontendItem.hargaRataRata !== undefined ? toNumber(frontendItem.hargaRataRata) : undefined,
-    supplier: frontendItem.supplier || '',
-    tanggal_kadaluwarsa: frontendItem.expiry ? frontendItem.expiry.toISOString() : null,
-  };
-  if (userId) dbItem.user_id = userId;
+  const dbItem: Record<string, any> = {};
 
-  return Object.fromEntries(
-    Object.entries(dbItem).filter(([, v]) => v !== undefined)
-  );
+  if (frontendItem.id !== undefined) dbItem.id = frontendItem.id;
+  if (frontendItem.nama !== undefined) dbItem.nama = frontendItem.nama;
+  if (frontendItem.kategori !== undefined) dbItem.kategori = frontendItem.kategori;
+
+  if ('stok' in frontendItem && frontendItem.stok !== undefined) {
+    dbItem.stok = toNumber(frontendItem.stok);
+  }
+
+  if ('minimum' in frontendItem && frontendItem.minimum !== undefined) {
+    dbItem.minimum = toNumber(frontendItem.minimum);
+  }
+
+  if (frontendItem.satuan !== undefined) {
+    dbItem.satuan = frontendItem.satuan;
+  }
+
+  if ('harga' in frontendItem && frontendItem.harga !== undefined) {
+    dbItem.harga_satuan = toNumber(frontendItem.harga);
+  }
+
+  if ('hargaRataRata' in frontendItem) {
+    const value = (frontendItem as any).hargaRataRata;
+    if (value === null) {
+      dbItem.harga_rata_rata = null;
+    } else if (value !== undefined) {
+      dbItem.harga_rata_rata = toNumber(value);
+    }
+  }
+
+  if (frontendItem.supplier !== undefined) {
+    dbItem.supplier = frontendItem.supplier || '';
+  }
+
+  if ('expiry' in frontendItem) {
+    const expiryValue = (frontendItem as any).expiry;
+
+    if (expiryValue === null) {
+      dbItem.tanggal_kadaluwarsa = null;
+    } else if (expiryValue instanceof Date) {
+      dbItem.tanggal_kadaluwarsa = isNaN(expiryValue.getTime()) ? null : expiryValue.toISOString();
+    } else if (typeof expiryValue === 'string') {
+      const parsedDate = new Date(expiryValue);
+      dbItem.tanggal_kadaluwarsa = isNaN(parsedDate.getTime()) ? null : parsedDate.toISOString();
+    } else if (expiryValue !== undefined) {
+      const parsedDate = new Date(expiryValue);
+      dbItem.tanggal_kadaluwarsa = isNaN(parsedDate.getTime()) ? null : parsedDate.toISOString();
+    }
+  }
+
+  if (userId) {
+    dbItem.user_id = userId;
+  }
+
+  return dbItem;
 };
 
 class CrudService {
@@ -229,10 +268,14 @@ class CrudService {
 
   async updateBahanBaku(id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> {
     try {
-      // Normalize the update data
-      const normalizedUpdates = normalizeBahanBakuFrontend(updates as BahanBakuFrontend);
-      const dbUpdates = transformToDatabase(normalizedUpdates);
+      // Hanya transform field yang benar-benar dikirim supaya nilai lain tidak ter-reset
+      const dbUpdates = transformToDatabase(updates);
       delete (dbUpdates as any).user_id;
+
+      if (Object.keys(dbUpdates).length === 0) {
+        logger.warn('UpdateBahanBaku dipanggil tanpa field yang valid', { id, updates });
+        return true;
+      }
 
       let query = supabase.from('bahan_baku').update(dbUpdates).eq('id', id);
       if (this.config.userId) query = query.eq('user_id', this.config.userId);

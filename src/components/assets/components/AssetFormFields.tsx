@@ -35,6 +35,7 @@ export const AssetFormFields: React.FC<AssetFormFieldsProps> = ({
         error={errors.nama}
         onChange={(value) => onFieldChange('nama', value)}
         disabled={disabled}
+        category={formData.kategori}
       />
 
       {/* Category Field */}
@@ -49,12 +50,13 @@ export const AssetFormFields: React.FC<AssetFormFieldsProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <AssetValueField
           id="nilaiAwal"
-          label="Nilai Awal *"
+          label="Harga Beli *"
           value={formData.nilaiAwal}
           error={errors.nilaiAwal}
           onChange={(value) => onFieldChange('nilaiAwal', value)}
           disabled={disabled}
-          placeholder="0"
+          placeholder="Contoh: 5000000"
+          helpText="Berapa harga saat membeli aset ini?"
         />
         
         <AssetValueField
@@ -64,7 +66,8 @@ export const AssetFormFields: React.FC<AssetFormFieldsProps> = ({
           error={errors.nilaiSaatIni}
           onChange={(value) => onFieldChange('nilaiSaatIni', value)}
           disabled={disabled}
-          placeholder="0"
+          placeholder={formData.nilaiAwal ? `Contoh: ${Math.floor(Number(formData.nilaiAwal) * 0.85)}` : "Berapa nilai jika dijual sekarang?"}
+          helpText="Perkiraan harga jika aset ini dijual hari ini"
         />
       </div>
 
@@ -121,7 +124,26 @@ interface FieldProps {
   disabled?: boolean;
 }
 
-const AssetNameField: React.FC<FieldProps> = ({ value, error, onChange, disabled }) => (
+interface NameFieldProps extends FieldProps {
+  category?: string;
+}
+
+const getPlaceholderByCategory = (category: string): string => {
+  switch (category) {
+    case 'Peralatan':
+      return 'Contoh: Stand Mixer, Oven Listrik, Kompor Gas';
+    case 'Kendaraan':
+      return 'Contoh: Honda Beat, Toyota Avanza';
+    case 'Bangunan':
+      return 'Contoh: Toko Depan, Gudang Belakang';
+    case 'Mesin':
+      return 'Contoh: Mesin Jahit, Mesin Potong';
+    default:
+      return 'Contoh: Stand Mixer 10L, Motor Honda Beat';
+  }
+};
+
+const AssetNameField: React.FC<NameFieldProps> = ({ value, error, onChange, disabled, category }) => (
   <div>
     <Label htmlFor="nama" className="text-gray-700">
       Nama Aset *
@@ -130,13 +152,16 @@ const AssetNameField: React.FC<FieldProps> = ({ value, error, onChange, disabled
       id="nama"
       value={getInputValue(value)}
       onChange={(e) => onChange(e.target.value)}
-      placeholder="Masukkan nama aset"
+      placeholder={getPlaceholderByCategory(category || '')}
       className={`border-orange-200 focus:border-orange-400 ${
         error ? 'border-red-500' : ''
       }`}
       disabled={disabled}
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    <p className="text-xs text-gray-500 mt-1">
+      Tulis nama spesifik beserta merk/model jika ada
+    </p>
   </div>
 );
 
@@ -153,12 +178,15 @@ const AssetCategoryField: React.FC<FieldProps> = ({ value, error, onChange, disa
       <SelectTrigger className={`border-orange-200 focus:border-orange-400 ${
         error ? 'border-red-500' : ''
       }`}>
-        <SelectValue placeholder="Pilih kategori" />
+        <SelectValue placeholder="Pilih kategori aset" />
       </SelectTrigger>
       <SelectContent>
         {ASSET_CATEGORIES.map((category) => (
           <SelectItem key={category.value} value={category.value}>
-            {category.label}
+            <div className="flex flex-col">
+              <span className="font-medium">{category.label}</span>
+              <span className="text-xs text-gray-500">{category.description}</span>
+            </div>
           </SelectItem>
         ))}
       </SelectContent>
@@ -171,6 +199,7 @@ interface ValueFieldProps extends FieldProps {
   id: string;
   label: string;
   placeholder?: string;
+  helpText?: string;
 }
 
 const AssetValueField: React.FC<ValueFieldProps> = ({ 
@@ -180,7 +209,8 @@ const AssetValueField: React.FC<ValueFieldProps> = ({
   error, 
   onChange, 
   disabled, 
-  placeholder 
+  placeholder,
+  helpText 
 }) => (
   <div>
     <Label htmlFor={id} className="text-gray-700">
@@ -199,6 +229,7 @@ const AssetValueField: React.FC<ValueFieldProps> = ({
       disabled={disabled}
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    {helpText && <p className="text-xs text-gray-500 mt-1">{helpText}</p>}
   </div>
 );
 
@@ -223,15 +254,31 @@ const AssetDateField: React.FC<FieldProps> = ({ value, error, onChange, disabled
 
 const AssetDepreciationField: React.FC<FieldProps> = ({ value, error, onChange, disabled }) => (
   <div>
-    <Label htmlFor="depresiasi" className="text-gray-700">
-      Depresiasi (%)
-    </Label>
+    <div className="flex items-center gap-2">
+      <Label htmlFor="depresiasi" className="text-gray-700">
+        Penyusutan Nilai (%)
+      </Label>
+      <div className="group relative">
+        <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9,9h1.5a1.5,1.5,0,0,1,1.5,1.5v0a1.5,1.5,0,0,1-1.5,1.5H9"></path>
+          <line x1="12" y1="17" x2="12" y2="17"></line>
+        </svg>
+        <div className="invisible group-hover:visible absolute bottom-6 left-0 w-64 p-3 text-xs bg-gray-800 text-white rounded shadow-lg z-10">
+          <div className="font-semibold mb-1">Contoh Penyusutan:</div>
+          <div>• Motor: 20-25% per tahun</div>
+          <div>• Mesin produksi: 10-15% per tahun</div>
+          <div>• Peralatan: 15-20% per tahun</div>
+          <div className="mt-1 text-gray-300">Kosongkan jika tidak yakin</div>
+        </div>
+      </div>
+    </div>
     <Input
       id="depresiasi"
       type="number"
       value={getInputValue(value)}
       onChange={(e) => onChange(e.target.value ? parseFloat(e.target.value) : null)}
-      placeholder="0"
+      placeholder="Contoh: 15 (untuk 15% per tahun)"
       className={`border-orange-200 focus:border-orange-400 ${
         error ? 'border-red-500' : ''
       }`}
@@ -242,7 +289,9 @@ const AssetDepreciationField: React.FC<FieldProps> = ({ value, error, onChange, 
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     <p className="text-xs text-gray-500 mt-1">
-      Opsional: Persentase penyusutan nilai aset
+      <span className="text-orange-600">Opsional:</span> Berapa persen nilai aset berkurang per tahun?
+      <br />
+      <span className="text-gray-400">Tips: Jika beli seharga 1jt, setelah 1 tahun bernilai 850rb = penyusutan 15%</span>
     </p>
   </div>
 );

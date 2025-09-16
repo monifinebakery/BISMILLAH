@@ -60,10 +60,15 @@ export interface CostFilters {
 }
 
 export interface OverheadCalculation {
-  total_costs: number;
   overhead_per_unit: number;
-  metode: 'per_unit' | 'persentase';
-  nilai_basis: number;
+  total_costs: number;
+  allocation_method: 'per_unit' | 'persentase';
+  basis_value: number;
+  production_target: number;
+  calculation_notes: string;
+  // Legacy fields for backward compatibility
+  metode?: 'per_unit' | 'persentase';
+  nilai_basis?: number;
   material_cost?: number;
 }
 

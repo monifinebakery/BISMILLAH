@@ -2,12 +2,12 @@
 
 import { AssetCategory, AssetCondition } from '../types';
 
-export const ASSET_CATEGORIES: { value: AssetCategory; label: string }[] = [
-  { value: 'Peralatan', label: 'Peralatan' },
-  { value: 'Kendaraan', label: 'Kendaraan' },
-  { value: 'Bangunan', label: 'Bangunan' },
-  { value: 'Mesin', label: 'Mesin' },
-  { value: 'Lain-lain', label: 'Lain-lain' },
+export const ASSET_CATEGORIES: { value: AssetCategory; label: string; description: string }[] = [
+  { value: 'Peralatan', label: 'Peralatan Produksi', description: 'Alat untuk membuat produk (mixer, oven, dll)' },
+  { value: 'Kendaraan', label: 'Kendaraan', description: 'Motor, mobil untuk operasional bisnis' },
+  { value: 'Bangunan', label: 'Bangunan & Properti', description: 'Toko, gudang, tempat usaha' },
+  { value: 'Mesin', label: 'Mesin Produksi', description: 'Mesin besar untuk produksi massal' },
+  { value: 'Lain-lain', label: 'Lainnya', description: 'Aset lain yang tidak masuk kategori di atas' },
 ];
 
 export const ASSET_CONDITIONS: { value: AssetCondition; label: string }[] = [

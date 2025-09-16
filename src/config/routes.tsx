@@ -32,6 +32,7 @@ import tutorialRoutes from '@/routes/tutorial';
 
 // Development only - Calendar testing
 import TestCalendarPage from '@/test-calendar-page';
+import { OverheadDebug } from '@/components/debug/OverheadDebug';
 
 // Membuat komponen AppRouter agar dapat diimpor sebagai named export
 export const AppRouter: React.FC = () => (
@@ -69,9 +70,12 @@ export const AppRouter: React.FC = () => (
       {networkOptimizationRoutes}
       {tutorialRoutes}
 
-      {/* Development only - Calendar responsiveness test */}
+      {/* Development only - Testing pages */}
       {process.env.NODE_ENV === 'development' && (
-        <Route path="/test-calendar" element={<TestCalendarPage />} />
+        <>
+          <Route path="/test-calendar" element={<TestCalendarPage />} />
+          <Route path="/debug-overhead" element={<OverheadDebug />} />
+        </>
       )}
       
       {notFoundRoutes}

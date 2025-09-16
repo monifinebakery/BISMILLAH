@@ -148,7 +148,10 @@ export const useRecipeOverhead = (): UseRecipeOverheadReturn => {
     }
 
     // Check allocation method
-    if (calculation.metode === 'per_unit' && calculation.nilai_basis <= 0) {
+    const method = calculation.allocation_method || calculation.metode;
+    const basisValue = calculation.basis_value || calculation.nilai_basis;
+    
+    if (method === 'per_unit' && (basisValue || 0) <= 0) {
       warnings.push('Basis alokasi per unit tidak valid. Periksa pengaturan alokasi.');
       isValid = false;
     }

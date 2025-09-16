@@ -13,6 +13,8 @@ export interface VirtualTableColumn<T> {
   render: (item: T, index: number) => React.ReactNode;
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
+  hideOnMobile?: boolean; // Hide this column on mobile devices
+  mobileWidth?: number; // Custom width for mobile
 }
 
 interface VirtualTableProps<T> {
@@ -60,8 +62,28 @@ const VirtualTable = <T,>({
 }: VirtualTableProps<T>) => {
   const [scrollTop, setScrollTop] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // Tailwind md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Filter columns based on mobile state
+  const visibleColumns = useMemo(() => {
+    if (!isMobile) return columns;
+    
+    return columns.filter(column => !column.hideOnMobile);
+  }, [columns, isMobile]);
 
   // Calculate virtual items
   const virtualItems = useMemo(() => {
@@ -147,9 +169,12 @@ const VirtualTable = <T,>({
     }
   }, [selectable, onSelectionChange, data, selectedItems, getItemId]);
 
-  // Calculate column widths
-  const totalFixedWidth = columns.reduce((sum, col) => sum + (col.width || 0), 0);
-  const flexColumns = columns.filter(col => !col.width);
+  // Calculate column widths based on visible columns
+  const totalFixedWidth = visibleColumns.reduce((sum, col) => {
+    const width = isMobile && col.mobileWidth ? col.mobileWidth : (col.width || 0);
+    return sum + width;
+  }, 0);
+  const flexColumns = visibleColumns.filter(col => !col.width);
   const remainingWidth = Math.max(0, 100 - (totalFixedWidth / 8)); // Assuming 8px = 1%
   const flexWidth = flexColumns.length > 0 ? remainingWidth / flexColumns.length : 0;
 
@@ -184,7 +209,7 @@ const VirtualTable = <T,>({
                 <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
               </div>
             )}
-            {columns.map((column, index) => (
+            {visibleColumns.map((column, index) => (
               <div
                 key={column.key}
                 className="p-3 flex-1"
@@ -203,7 +228,7 @@ const VirtualTable = <T,>({
                   <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
                 </div>
               )}
-              {columns.map((column) => (
+              {visibleColumns.map((column) => (
                 <div
                   key={column.key}
                   className="p-3 flex-1"
@@ -229,7 +254,7 @@ const VirtualTable = <T,>({
                 <input type="checkbox" disabled className="rounded" />
               </div>
             )}
-            {columns.map((column) => (
+            {visibleColumns.map((column) => (
               <div
                 key={column.key}
                 className={cn(
@@ -275,7 +300,7 @@ const VirtualTable = <T,>({
               />
             </div>
           )}
-          {columns.map((column) => (
+          {visibleColumns.map((column) => (
             <div
               key={column.key}
               className={cn(
@@ -284,10 +309,13 @@ const VirtualTable = <T,>({
                 column.align === 'right' && 'justify-end',
                 column.sortable && 'cursor-pointer hover:bg-gray-100 transition-colors'
               )}
-              style={{ width: column.width ? `${column.width}px` : `${flexWidth}%` }}
+              style={{ 
+                width: isMobile && column.mobileWidth ? `${column.mobileWidth}px` : 
+                       column.width ? `${column.width}px` : `${flexWidth}%` 
+              }}
               onClick={() => column.sortable && handleSort(column.key)}
             >
-              <span>{column.header}</span>
+              <span className="truncate">{column.header}</span>
               {column.sortable && renderSortIcon(column.key)}
             </div>
           ))}
@@ -343,7 +371,7 @@ const VirtualTable = <T,>({
                       />
                     </div>
                   )}
-                  {columns.map((column) => (
+                  {visibleColumns.map((column) => (
                     <div
                       key={column.key}
                       className={cn(
@@ -351,7 +379,10 @@ const VirtualTable = <T,>({
                         column.align === 'center' && 'justify-center',
                         column.align === 'right' && 'justify-end'
                       )}
-                      style={{ width: column.width ? `${column.width}px` : `${flexWidth}%` }}
+                      style={{ 
+                        width: isMobile && column.mobileWidth ? `${column.mobileWidth}px` : 
+                               column.width ? `${column.width}px` : `${flexWidth}%` 
+                      }}
                     >
                       {column.render(item, actualIndex)}
                     </div>

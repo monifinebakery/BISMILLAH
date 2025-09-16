@@ -271,6 +271,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         key: 'nomor_pesanan',
         header: 'No. Pesanan',
         width: 140,
+        mobileWidth: 110,
         render: (order: Order) => {
           const orderNumber = (order as any).nomor_pesanan || (order as any)['nomorPesanan'] || (order as any).order_number || 'N/A';
           return (
@@ -285,6 +286,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         key: 'nama_pelanggan',
         header: 'Nama Pelanggan',
         width: 200,
+        mobileWidth: 140,
         render: (order: Order) => {
           const customerName = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || 'N/A';
           const phone = (order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone;
@@ -302,6 +304,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         key: 'tanggal',
         header: 'Tanggal Order',
         width: 130,
+        hideOnMobile: true,
         sortable: true,
         render: (order: Order) => {
           const orderDate = (order as any).tanggal || order.tanggal;
@@ -325,25 +328,28 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         key: 'tanggal_selesai',
         header: 'Tanggal Selesai',
         width: 140,
+        hideOnMobile: true,
         render: (order: Order) => <CompletionDateCell order={order} />
       },
       {
         key: 'total_pesanan',
         header: 'Total',
         width: 130,
+        mobileWidth: 100,
         sortable: true,
         align: 'right' as const,
         render: (order: Order) => {
-          const total = (order as any).total_pesanan || (order as any)['totalPesanan'] || 0;
-          const items = (order as any).items || [];
+          const total = (order as any).total_pesanan || (order as any)['totalPesanan'] || (order as any).total_amount || 0;
+          const items = (order as any).items || (order as any).order_items || [];
+          const itemCount = Array.isArray(items) ? items.length : 0;
           return (
             <div className="flex flex-col items-end min-w-0">
               <div className="text-sm font-semibold text-green-600">
                 {formatCurrency(total)}
               </div>
-              {items.length > 0 && (
+              {itemCount > 0 && (
                 <div className="text-xs text-gray-500">
-                  {items.length} item{items.length > 1 ? 's' : ''}
+                  {itemCount} item{itemCount > 1 ? 's' : ''}
                 </div>
               )}
             </div>
@@ -354,6 +360,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         key: 'status',
         header: 'Status',
         width: 120,
+        mobileWidth: 80,
         sortable: true,
         render: (order: Order) => (
           <StatusBadge
@@ -367,6 +374,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         key: 'actions',
         header: 'Aksi',
         width: 80,
+        mobileWidth: 50,
         align: 'center' as const,
         render: (order: Order) => (
           <OrderRowActions

@@ -217,108 +217,134 @@ const VirtualPurchaseTable: React.FC<VirtualPurchaseTableProps> = ({
   onClearFilters
 }) => {
 
-  // Define table columns with improved styling
-  const columns: VirtualTableColumn<Purchase>[] = useMemo(() => [
-    {
-      key: 'tanggal',
-      header: 'Tanggal',
-      width: 130,
-      sortable: true,
-      render: (purchase) => {
-        const date = purchase.tanggal;
-        const createdAt = purchase.created_at;
-        return (
-          <div className="flex flex-col min-w-0">
-            <div className="text-sm text-gray-900">
-              {formatDateForDisplay(date)}
-            </div>
-            <div className="text-xs text-gray-500">
-              {new Date(createdAt).toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'supplier',
-      header: 'Supplier',
-      width: 180,
-      sortable: true,
-      render: (purchase) => {
-        const supplierName = getSupplierName ? getSupplierName(purchase.supplier) : purchase.supplier;
-        return (
-          <div className="flex flex-col min-w-0">
-            <div className="text-sm font-medium text-gray-900 truncate">
-              {supplierName || 'Supplier Tidak Diketahui'}
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'totalNilai',
-      header: 'Total Nilai',
-      width: 130,
-      sortable: true,
-      align: 'right' as const,
-      render: (purchase) => {
-        const total = purchase.totalNilai ?? purchase.total_nilai ?? 0;
-        const itemCount = purchase.items?.length ?? 0;
-        return (
-          <div className="flex flex-col items-end min-w-0">
-            <div className="text-sm font-semibold text-green-600">
-              {formatCurrency(total)}
-            </div>
-            {itemCount > 0 && (
-              <div className="text-xs text-gray-500">
-                {itemCount} item{itemCount > 1 ? 's' : ''}
+  // Define table columns with mobile responsive features
+  const columns: VirtualTableColumn<Purchase>[] = useMemo(() => {
+    const baseColumns: VirtualTableColumn<Purchase>[] = [
+      {
+        key: 'tanggal',
+        header: 'Tanggal',
+        width: 120,
+        mobileWidth: 100,
+        sortable: true,
+        render: (purchase) => {
+          const date = purchase.tanggal;
+          const createdAt = purchase.created_at;
+          return (
+            <div className="flex flex-col min-w-0">
+              <div className="text-sm text-gray-900">
+                {formatDateForDisplay(date)}
               </div>
-            )}
-          </div>
-        );
+              <div className="text-xs text-gray-500">
+                {new Date(createdAt).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            </div>
+          );
+        },
       },
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      width: 120,
-      sortable: true,
-      render: (purchase) => (
-        <StatusBadge
-          status={purchase.status}
-          onChange={(newStatus) => onStatusChange(purchase.id, newStatus)}
-          disabled={purchase.status === 'completed' || purchase.status === 'cancelled'}
-        />
-      ),
-    },
-    {
-      key: 'catatan',
-      header: 'Catatan',
-      width: 150,
-      render: (purchase) => (
-        <div className="text-sm text-gray-600 truncate">
-          {purchase.catatan || '-'}
-        </div>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Aksi',
-      width: 80,
-      align: 'center' as const,
-      render: (purchase) => (
-        <PurchaseRowActions
-          purchase={purchase}
-          onEdit={() => onEditPurchase(purchase)}
-          onDelete={() => onDeletePurchase(purchase.id)}
-          onViewDetail={onViewDetail ? () => onViewDetail(purchase) : undefined}
-        />
-      ),
-    },
-  ], [onEditPurchase, onDeletePurchase, onStatusChange, onViewDetail, getSupplierName]);
+      {
+        key: 'supplier',
+        header: 'Supplier',
+        width: 160,
+        mobileWidth: 120,
+        sortable: true,
+        render: (purchase) => {
+          // Enhanced supplier name resolution with fallbacks
+          let supplierName = 'Supplier Tidak Dikenal';
+          
+          try {
+            if (getSupplierName && purchase.supplier) {
+              supplierName = getSupplierName(purchase.supplier);
+            } else if (purchase.supplier) {
+              // If no getSupplierName function, show raw supplier value
+              // Check if it looks like a UUID/ID or actual name
+              const supplier = purchase.supplier;
+              if (supplier.length > 30 || supplier.includes('-')) {
+                // Looks like UUID, truncate it
+                supplierName = supplier.slice(0, 8) + '...';
+              } else {
+                // Looks like actual supplier name
+                supplierName = supplier;
+              }
+            }
+          } catch (error) {
+            logger.error('Error resolving supplier name:', error);
+            supplierName = 'Error: ' + (purchase.supplier?.slice(0, 8) || 'N/A');
+          }
+          
+          return (
+            <div className="flex flex-col min-w-0">
+              <div className="text-sm font-medium text-gray-900 truncate">
+                {supplierName}
+              </div>
+              {purchase.supplier && purchase.supplier !== supplierName && (
+                <div className="text-xs text-gray-400 truncate">
+                  {purchase.supplier.slice(0, 8)}...
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        key: 'totalNilai',
+        header: 'Total',
+        width: 110,
+        mobileWidth: 90,
+        sortable: true,
+        align: 'right' as const,
+        render: (purchase) => {
+          const total = purchase.totalNilai ?? purchase.total_nilai ?? 0;
+          const itemCount = Array.isArray(purchase.items) ? purchase.items.length : 0;
+          return (
+            <div className="flex flex-col items-end min-w-0">
+              <div className="text-sm font-semibold text-green-600">
+                {formatCurrency(total)}
+              </div>
+              {itemCount > 0 && (
+                <div className="text-xs text-gray-500">
+                  {itemCount} item{itemCount > 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        width: 100,
+        mobileWidth: 80,
+        sortable: true,
+        render: (purchase) => (
+          <StatusBadge
+            status={purchase.status}
+            onChange={(newStatus) => onStatusChange(purchase.id, newStatus)}
+            disabled={purchase.status === 'completed' || purchase.status === 'cancelled'}
+          />
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Aksi',
+        width: 60,
+        mobileWidth: 50,
+        align: 'center' as const,
+        render: (purchase) => (
+          <PurchaseRowActions
+            purchase={purchase}
+            onEdit={() => onEditPurchase(purchase)}
+            onDelete={() => onDeletePurchase(purchase.id)}
+            onViewDetail={onViewDetail ? () => onViewDetail(purchase) : undefined}
+          />
+        ),
+      },
+    ];
+
+    return baseColumns;
+  }, [onEditPurchase, onDeletePurchase, onStatusChange, onViewDetail, getSupplierName]);
 
   // Handle row click
   const handleRowClick = useCallback((purchase: Purchase) => {

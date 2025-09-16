@@ -13,14 +13,8 @@ const HealthIndicator: React.FC<HealthIndicatorProps> = ({ label, value, target,
   const percentage = Math.min((value / target) * 100, 100);
   const status = value >= target ? 'good' : value >= target * 0.75 ? 'warning' : 'danger';
   
-  const getStatusColor = () => {
-    switch (status) {
-      case 'good': return 'bg-green-500';
-      case 'warning': return 'bg-orange-500';
-      case 'danger': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
-  };
+  // Neutral progress bar fill for a clean look
+  const getStatusColor = () => 'bg-gray-700';
 
   // Format percentage
   const formatPercentage = (value: number) => {
@@ -81,11 +75,7 @@ const HealthScoreCard: React.FC<HealthScoreCardProps> = ({ metrics }) => {
   };
 
   const healthScore = calculateHealthScore();
-  const getHealthColor = () => {
-    if (healthScore >= 75) return 'text-green-600 bg-green-100';
-    if (healthScore >= 50) return 'text-orange-600 bg-orange-100';
-    return 'text-red-600 bg-red-100';
-  };
+  const getHealthColor = () => 'text-gray-900 bg-gray-100';
   
   const getHealthEmoji = () => {
     if (healthScore >= 75) return '🎉';
@@ -94,7 +84,7 @@ const HealthScoreCard: React.FC<HealthScoreCardProps> = ({ metrics }) => {
   };
 
   return (
-    <Card className={`border-2 ${healthScore >= 75 ? 'border-green-200' : healthScore >= 50 ? 'border-orange-200' : 'border-red-200'}`}>
+    <Card className={`border border-gray-200 bg-white`}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Kesehatan Bisnis</span>

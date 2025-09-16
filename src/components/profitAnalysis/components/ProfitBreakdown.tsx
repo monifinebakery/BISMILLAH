@@ -1,5 +1,6 @@
 // ProfitBreakdown.tsx - Breakdown section for profit analysis
 import React from 'react';
+import { ResponsiveContainer, AreaChart, Area, Tooltip as RTooltip, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -16,15 +17,10 @@ interface BreakdownCategoryProps {
 }
 
 const BreakdownCategory: React.FC<BreakdownCategoryProps> = ({ title, items, total, color }) => {
-  const getColorClasses = () => {
-    switch (color) {
-      case 'green': return { bg: 'bg-green-50', text: 'text-green-800', border: 'border-green-200' };
-      case 'red': return { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200' };
-      case 'orange': return { bg: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-200' };
-      default: return { bg: 'bg-gray-50', text: 'text-gray-800', border: 'border-gray-200' };
-    }
-  };
-  const { bg, text, border } = getColorClasses();
+  // Neutral card styling for breakdown items
+  const bg = 'bg-white';
+  const text = 'text-gray-800';
+  const border = 'border-gray-200';
 
   // Format currency in Indonesian format
   const formatCurrency = (amount: number) => {
@@ -124,7 +120,7 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
   };
 
   return (
-    <Card className="border rounded-xl">
+    <Card className="border border-gray-200 rounded-xl bg-white">
       <CardHeader>
         <CardTitle>Breakdown Detail</CardTitle>
         <CardDescription>
@@ -141,29 +137,27 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
           
           <TabsContent value="overview" className="space-y-4">
             <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="font-medium">💰 Pemasukan</span>
                 <span className="font-bold">{formatCurrency(businessMetrics?.revenue || 0)}</span>
               </div>
               
-              <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="font-medium">📦 Modal Bahan</span>
                 <span className="font-bold">- {formatCurrency(businessMetrics?.cogs || 0)}</span>
               </div>
               
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="font-medium">= Untung Kotor</span>
                 <span className="font-bold">{formatCurrency(businessMetrics?.grossProfit || 0)}</span>
               </div>
               
-              <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="font-medium">💡 Biaya Operasional</span>
                 <span className="font-bold">- {formatCurrency(businessMetrics?.opex || 0)}</span>
               </div>
               
-              <div className={`flex justify-between items-center p-3 rounded-lg border ${
-                businessMetrics?.netProfit > 0 ? 'bg-green-100 border-green-200' : 'bg-red-100 border-red-200'
-              }`}>
+              <div className={`flex justify-between items-center p-3 rounded-lg border bg-white border-gray-200`}>
                 <span className="font-bold">= Untung Bersih</span>
                 <span className="font-bold text-lg">
                   {formatCurrency(businessMetrics?.netProfit || 0)}
@@ -196,49 +190,87 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
           </TabsContent>
           
           <TabsContent value="trends">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                <div className="text-xs text-blue-800 mb-1">Margin Kotor</div>
-                <div className="text-xl font-bold text-blue-700">
-                  {(() => {
-                    const rev = businessMetrics?.revenue || 0;
-                    const gross = businessMetrics?.grossProfit || 0;
-                    const pct = rev > 0 ? (gross / rev) * 100 : 0;
-                    return `${pct.toFixed(1)}%`;
-                  })()}
+            <div className="space-y-4 pt-4">
+              {/* Modern responsive composition chart */}
+              <div className="p-4 rounded-lg bg-white border border-gray-200">
+                <div className="text-sm text-gray-700 mb-3 font-medium">Komposisi Bulan Ini</div>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[{
+                      name: 'Revenue', value: Number(businessMetrics?.revenue || 0)
+                    },{
+                      name: 'COGS', value: Number(businessMetrics?.cogs || 0)
+                    },{
+                      name: 'OpEx', value: Number(businessMetrics?.opex || 0)
+                    }]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#e5e7eb' }} />
+                      <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#e5e7eb' }} tickFormatter={(v)=> new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(Number(v)||0)} />
+                      <RTooltip content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const p = payload[0];
+                          return (
+                            <div className="rounded-md border border-gray-200 bg-white p-2 shadow-sm">
+                              <div className="text-xs text-gray-500">{p?.payload?.name}</div>
+                              <div className="text-sm font-semibold text-gray-900">
+                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Number(p?.value)||0)}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }} />
+                      <Bar dataKey="value" radius={[6,6,0,0]} fill="#9CA3AF" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-green-50 border border-green-200">
-                <div className="text-xs text-green-800 mb-1">Margin Bersih</div>
-                <div className="text-xl font-bold text-green-700">
-                  {(() => {
-                    const rev = businessMetrics?.revenue || 0;
-                    const net = businessMetrics?.netProfit || 0;
-                    const pct = rev > 0 ? (net / rev) * 100 : 0;
-                    return `${pct.toFixed(1)}%`;
-                  })()}
+
+              {/* Neutral quick KPI cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 rounded-lg bg-white border border-gray-200">
+                  <div className="text-xs text-gray-600 mb-1">Margin Kotor</div>
+                  <div className="text-xl font-bold text-gray-900">
+                    {(() => {
+                      const rev = businessMetrics?.revenue || 0;
+                      const gross = businessMetrics?.grossProfit || 0;
+                      const pct = rev > 0 ? (gross / rev) * 100 : 0;
+                      return `${pct.toFixed(1)}%`;
+                    })()}
+                  </div>
                 </div>
-              </div>
-              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
-                <div className="text-xs text-amber-800 mb-1">COGS % Omset</div>
-                <div className="text-xl font-bold text-amber-700">
-                  {(() => {
-                    const rev = businessMetrics?.revenue || 0;
-                    const cogs = businessMetrics?.cogs || 0;
-                    const pct = rev > 0 ? (cogs / rev) * 100 : 0;
-                    return `${pct.toFixed(1)}%`;
-                  })()}
+                <div className="p-4 rounded-lg bg-white border border-gray-200">
+                  <div className="text-xs text-gray-600 mb-1">Margin Bersih</div>
+                  <div className="text-xl font-bold text-gray-900">
+                    {(() => {
+                      const rev = businessMetrics?.revenue || 0;
+                      const net = businessMetrics?.netProfit || 0;
+                      const pct = rev > 0 ? (net / rev) * 100 : 0;
+                      return `${pct.toFixed(1)}%`;
+                    })()}
+                  </div>
                 </div>
-              </div>
-              <div className="p-4 rounded-lg bg-purple-50 border border-purple-200">
-                <div className="text-xs text-purple-800 mb-1">Opex % Omset</div>
-                <div className="text-xl font-bold text-purple-700">
-                  {(() => {
-                    const rev = businessMetrics?.revenue || 0;
-                    const opex = businessMetrics?.opex || 0;
-                    const pct = rev > 0 ? (opex / rev) * 100 : 0;
-                    return `${pct.toFixed(1)}%`;
-                  })()}
+                <div className="p-4 rounded-lg bg-white border border-gray-200">
+                  <div className="text-xs text-gray-600 mb-1">COGS % Omset</div>
+                  <div className="text-xl font-bold text-gray-900">
+                    {(() => {
+                      const rev = businessMetrics?.revenue || 0;
+                      const cogs = businessMetrics?.cogs || 0;
+                      const pct = rev > 0 ? (cogs / rev) * 100 : 0;
+                      return `${pct.toFixed(1)}%`;
+                    })()}
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg bg-white border border-gray-200">
+                  <div className="text-xs text-gray-600 mb-1">Opex % Omset</div>
+                  <div className="text-xl font-bold text-gray-900">
+                    {(() => {
+                      const rev = businessMetrics?.revenue || 0;
+                      const opex = businessMetrics?.opex || 0;
+                      const pct = rev > 0 ? (opex / rev) * 100 : 0;
+                      return `${pct.toFixed(1)}%`;
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>

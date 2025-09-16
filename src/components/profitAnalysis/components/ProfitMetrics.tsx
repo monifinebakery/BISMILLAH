@@ -32,14 +32,8 @@ const MetricCard: React.FC<MetricCardProps> = ({
   helpText, 
   status 
 }) => {
-  const getStatusColor = () => {
-    switch (status) {
-      case 'good': return 'border-green-200 bg-green-50';
-      case 'warning': return 'border-yellow-200 bg-yellow-50';
-      case 'danger': return 'border-red-200 bg-red-50';
-      default: return 'border-gray-200 bg-white';
-    }
-  };
+  // Neutral card styling regardless of status
+  const getStatusColor = () => 'border-gray-200 bg-white';
 
   // Format currency in Indonesian format
   const formatCurrency = (amount: number) => {
@@ -56,7 +50,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
         <div className="flex justify-between items-start mb-2">
           <Icon className="h-8 w-8 text-gray-500" />
           {trend !== undefined && (
-            <Badge variant={trend >= 0 ? 'default' : 'destructive'} className="text-xs">
+            <Badge variant="outline" className="text-xs text-gray-600 border-gray-300">
               {trend >= 0 ? '+' : ''}{trend.toFixed(1)}%
             </Badge>
           )}

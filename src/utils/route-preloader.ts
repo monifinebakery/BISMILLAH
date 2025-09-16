@@ -165,7 +165,8 @@ export const initializeRoutePreloaders = () => {
   registerRoutePreloader('invoice', () => import('../components/invoice/InvoicePage'));
   
   // Analysis routes
-  registerRoutePreloader('profit-analysis', () => import('../components/profitAnalysis/ProfitAnalysisPage'));
+  // Load dashboard directly to avoid barrel default export issues
+  registerRoutePreloader('profit-analysis', () => import('../components/profitAnalysis/components/ImprovedProfitDashboard'));
   
   // Settings routes
   registerRoutePreloader('settings', () => import('../components/settings/Settings'));

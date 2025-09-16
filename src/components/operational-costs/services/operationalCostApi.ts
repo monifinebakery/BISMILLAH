@@ -659,43 +659,50 @@ export const calculationApi = {
         };
       }
 
-      // Get total costs for current user
-      const { data: totalCosts, error: costsError } = await supabase
-        .rpc('get_total_costs', { p_user_id: userId }); // ✅ Pass user_id to function
+      // Use the enhanced calculate_overhead_detailed function for better debugging
+      const { data: detailedResult, error: detailError } = await supabase
+        .rpc('calculate_overhead_detailed', { 
+          p_material_cost: materialCost,
+          p_user_id: userId
+        });
 
-      if (costsError) throw costsError;
+      if (detailError) {
+        logger.error('Error in calculate_overhead_detailed:', detailError);
+        throw detailError;
+      }
 
-      // Get allocation settings for current user
-      const { data: settings } = await allocationApi.getSettings();
-
-      if (!settings) {
+      if (!detailedResult || detailedResult.length === 0) {
         return {
           data: {
-            total_costs: totalCosts || 0,
+            total_costs: 0,
             overhead_per_unit: 0,
             metode: 'per_unit',
             nilai_basis: 1000,
           },
-          error: 'Pengaturan alokasi belum dikonfigurasi'
+          error: 'Tidak ada hasil perhitungan overhead'
         };
       }
 
-      // Calculate overhead using database function
-      const { data: overhead, error: calcError } = await supabase
-        .rpc('calculate_overhead', { 
-          p_material_cost: materialCost,
-          p_user_id: userId // ✅ Pass user_id to function
-        });
-
-      if (calcError) throw calcError;
+      const result = detailedResult[0];
+      
+      logger.debug('✅ Overhead calculation result:', {
+        overhead_per_unit: result.overhead_per_unit,
+        total_costs: result.total_costs,
+        allocation_method: result.allocation_method,
+        basis_value: result.basis_value,
+        production_target: result.production_target,
+        calculation_notes: result.calculation_notes
+      });
 
       return {
         data: {
-          total_costs: totalCosts || 0,
-          overhead_per_unit: overhead || 0,
-          metode: settings.metode,
-          nilai_basis: settings.nilai,
+          total_costs: result.total_costs || 0,
+          overhead_per_unit: result.overhead_per_unit || 0,
+          metode: result.allocation_method as 'per_unit' | 'persentase',
+          nilai_basis: result.basis_value || 1000,
           material_cost: materialCost,
+          production_target: result.production_target,
+          calculation_notes: result.calculation_notes,
         }
       };
     } catch (error) {

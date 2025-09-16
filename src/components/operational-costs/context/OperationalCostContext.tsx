@@ -12,6 +12,7 @@ import {
   OverheadCalculation 
 } from '../types';
 import { operationalCostApi, allocationApi, calculationApi } from '../services';
+import { productionOutputApi } from '../services/productionOutputApi';
 import { transformCostsToSummary } from '../utils/costTransformers';
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
@@ -20,7 +21,13 @@ import { logger } from "@/utils/logger";
 export const OPERATIONAL_COST_QUERY_KEYS = {
   costs: (filters?: CostFilters) => ['operational-costs', 'costs', filters],
   allocationSettings: () => ['operational-costs', 'allocation-settings'],
-  overheadCalculation: (materialCost?: number) => ['operational-costs', 'overhead-calculation', materialCost],
+  overheadCalculation: (materialCost?: number, productionTarget?: number) => [
+    'operational-costs', 
+    'overhead-calculation', 
+    materialCost, 
+    productionTarget
+  ],
+  productionTarget: () => ['operational-costs', 'production-target'],
 } as const;
 
 // State interface
@@ -146,6 +153,8 @@ interface OperationalCostContextType {
     loadAllocationSettings: () => Promise<void>;
     saveAllocationSettings: (data: AllocationFormData) => Promise<boolean>;
     calculateOverhead: (materialCost?: number) => Promise<void>;
+    updateProductionTarget: (targetPcs: number) => Promise<boolean>;
+    invalidateOverheadCalculations: () => void;
     setFilters: (filters: CostFilters) => void;
     clearFilters: () => void;
     refreshData: () => Promise<void>;
@@ -555,6 +564,62 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     dispatch({ type: 'SET_ERROR', payload: error });
   }, []);
 
+  // ✅ NEW: Production target update function
+  const updateProductionTarget = useCallback(async (targetPcs: number): Promise<boolean> => {
+    if (!state.isAuthenticated) {
+      logger.warn('🔐 Update production target attempted without authentication');
+      dispatch({ type: 'SET_ERROR', payload: 'Silakan login terlebih dahulu' });
+      return false;
+    }
+
+    try {
+      logger.info('🎯 Updating production target:', targetPcs);
+      
+      const response = await productionOutputApi.saveProductionTarget(targetPcs, 'manual_input');
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // ✅ Invalidate overhead calculations to trigger recalculation
+      queryClient.invalidateQueries({ 
+        queryKey: ['operational-costs', 'overhead-calculation']
+      });
+      
+      // ✅ Invalidate production target queries
+      queryClient.invalidateQueries({ 
+        queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget()
+      });
+
+      logger.success('✅ Production target updated successfully:', targetPcs);
+      return true;
+    } catch (error) {
+      logger.error('❌ Error updating production target:', error);
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Gagal memperbarui target produksi' });
+      return false;
+    }
+  }, [state.isAuthenticated, queryClient]);
+
+  // ✅ NEW: Manual invalidation function for overhead calculations
+  const invalidateOverheadCalculations = useCallback(() => {
+    logger.info('🔄 Manually invalidating overhead calculations');
+    
+    // Invalidate all overhead calculation queries
+    queryClient.invalidateQueries({ 
+      queryKey: ['operational-costs', 'overhead-calculation']
+    });
+    
+    // Also invalidate allocation settings as they might affect calculations
+    queryClient.invalidateQueries({ 
+      queryKey: OPERATIONAL_COST_QUERY_KEYS.allocationSettings()
+    });
+    
+    // Invalidate production target
+    queryClient.invalidateQueries({ 
+      queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget()
+    });
+  }, [queryClient]);
+
   // ✅ Enhanced state with query data
   const enhancedState: OperationalCostState = {
     ...state,
@@ -580,6 +645,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
       loadAllocationSettings,
       saveAllocationSettings,
       calculateOverhead: calculateOverheadQuery,
+      updateProductionTarget,
+      invalidateOverheadCalculations,
       setFilters,
       clearFilters,
       refreshData,
@@ -594,6 +661,8 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
     loadAllocationSettings,
     saveAllocationSettings,
     calculateOverheadQuery,
+    updateProductionTarget,
+    invalidateOverheadCalculations,
     setFilters,
     clearFilters,
     refreshData,

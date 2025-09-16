@@ -138,11 +138,15 @@ const createPurchaseColumns = (
     header: 'Supplier',
     width: '150px',
     sortable: true,
-    render: (purchase: Purchase) => (
-      <span className="text-sm text-gray-900">
-        {purchase.supplier || 'Supplier Tidak Diketahui'}
-      </span>
-    )
+    render: (purchase: Purchase) => {
+      // Use getSupplierName function if available, otherwise fallback to direct supplier value
+      const supplierName = getSupplierName ? getSupplierName(purchase.supplier) : purchase.supplier;
+      return (
+        <span className="text-sm text-gray-900">
+          {supplierName || 'Supplier Tidak Diketahui'}
+        </span>
+      );
+    }
   },
   {
     key: 'totalNilai',

@@ -344,15 +344,32 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
   // ✅ FIXED: Validate status before update
   const validatedStatus = validateStatus(statusStr);
   
+  // ✅ NEW: Prepare update data with completion date tracking
+  const updateData: { 
+    status: string, 
+    updated_at: string, 
+    tanggal_selesai?: string 
+  } = {
+    status: validatedStatus,
+    updated_at: new Date().toISOString()
+  };
+  
+  // ✅ ADD: Set completion date when status becomes completed/delivered
+  if (validatedStatus === 'completed' || validatedStatus === 'delivered') {
+    updateData.tanggal_selesai = new Date().toISOString();
+    logger.info('🎯 Setting completion date for order:', { orderId: orderIdStr, status: validatedStatus });
+  }
+  
   const { data, error } = await supabase
     .from('orders')
-    .update({ status: validatedStatus, updated_at: new Date().toISOString() })
+    .update(updateData)
     .eq('id', orderIdStr)
     .eq('user_id', userIdStr)
     .select(`
       id,
       nomor_pesanan,
       tanggal,
+      tanggal_selesai,
       nama_pelanggan,
       telepon_pelanggan,
       email_pelanggan,

@@ -65,11 +65,16 @@ export const useAutoSyncRecipe = ({
     queryFn: async () => {
       logger.debug('🔄 Fetching app settings for auto-sync recipe');
       const settings = await getCurrentAppSettings();
+      logger.debug('📊 App settings fetched:', {
+        overhead_per_pcs: settings?.overhead_per_pcs,
+        operasional_per_pcs: settings?.operasional_per_pcs,
+        target_output_monthly: settings?.target_output_monthly
+      });
       return settings;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // Reduced to 30 seconds for more responsive updates
     refetchOnWindowFocus: true,
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchInterval: 60 * 1000, // More frequent refetch every 1 minute
   });
   
   // ✅ Subscribe to production target changes
@@ -84,7 +89,7 @@ export const useAutoSyncRecipe = ({
       logger.debug('✅ Production target fetched in auto-sync:', response.data);
       return response.data;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // Reduced to 30 seconds for more responsive updates
     refetchOnWindowFocus: true,
   });
 
@@ -242,12 +247,18 @@ export const useAutoSyncRecipe = ({
   }, [result, onResultChange]);
 
   const refreshCalculation = useCallback(() => {
+    logger.info('🔄 Manual refresh triggered - invalidating queries and recalculating');
+    
+    // Force refresh queries
+    queryClient.invalidateQueries({ queryKey: ['auto-sync', 'app-settings'] });
+    queryClient.invalidateQueries({ queryKey: ['auto-sync', 'production-target'] });
+    
     if (hasOperationalCosts) {
       performCalculation();
     } else {
       checkOperationalCosts();
     }
-  }, [hasOperationalCosts, performCalculation, checkOperationalCosts]);
+  }, [hasOperationalCosts, performCalculation, checkOperationalCosts, queryClient]);
 
   const clearError = useCallback(() => {
     setError(null);

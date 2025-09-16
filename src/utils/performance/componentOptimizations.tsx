@@ -1,6 +1,6 @@
 // src/utils/performance/componentOptimizations.tsx
 // 🚀 ADVANCED REACT COMPONENT PERFORMANCE OPTIMIZATIONS
-// React.memo, Virtual Scrolling, Debounced Validation
+// React.memo, Memoization, Debounced Validation
 
 import React, { 
   memo, 
@@ -408,17 +408,8 @@ export const useWhyDidYouUpdate = (name: string, props: Record<string, any>) => 
 // Example 1: Smart memoization for table rows
 const OptimizedPurchaseTable = createSmartMemo(PurchaseTable, ['purchases', 'filters'], 'OptimizedPurchaseTable');
 
-// Example 2: Virtual scrolling for large lists
-<VirtualTable
-  data={purchases}
-  columns={columns}
-  height={600}
-  rowHeight={60}
-  getRowId={(item) => item.id}
-  onRowClick={(purchase) => onEdit(purchase)}
-  selectedRows={selectedRows}
-  onRowSelect={(id, selected) => toggleSelection(id, selected)}
-/>
+// Example 2: Memoized table components
+const MemoizedTable = createSmartMemo(PurchaseTable, ['purchases'], 'MemoizedPurchaseTable');
 
 // Example 3: Debounced form validation
 const { values, errors, setValue, setTouchedField, validateAll } = useFormValidation(
@@ -439,8 +430,6 @@ export default {
   createSmartMemo,
   MemoizedTableRow,
   MemoizedFormField,
-  VirtualScroll,
-  VirtualTable,
   useFormValidation,
   useRenderCount,
   useWhyDidYouUpdate,

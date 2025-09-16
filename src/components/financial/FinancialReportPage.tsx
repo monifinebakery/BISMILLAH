@@ -628,35 +628,18 @@ const FinancialReportPage: React.FC = () => {
               </SafeSuspense>
             )}
             <Suspense fallback={<ChartSkeleton />}>
-              {filteredTransactions.length > 100 ? (
-                <VirtualTransactionTable
-                  transactions={filteredTransactions}
-                  onEditTransaction={openTransactionDialog}
-                  onAddTransaction={() => openTransactionDialog()}
-                  onDeleteTransaction={handleDeleteTransaction}
-                  isLoading={isLoading}
-                  selectedIds={transactionTable.selectedIds}
-                  onSelectionChange={transactionTable.handleSelectionChange}
-                  isSelectionMode={transactionTable.isSelectionMode}
-                  onSelectAll={transactionTable.handleSelectAll}
-                  isAllSelected={transactionTable.isAllSelected}
-                  containerHeight={600}
-                  itemHeight={80}
-                />
-              ) : (
-                <TransactionTable
-                  transactions={filteredTransactions}
-                  onEditTransaction={openTransactionDialog}
-                  onAddTransaction={() => openTransactionDialog()}
-                  onDeleteTransaction={handleDeleteTransaction}
-                  isLoading={isLoading}
-                  selectedIds={transactionTable.selectedIds}
-                  onSelectionChange={transactionTable.handleSelectionChange}
-                  isSelectionMode={transactionTable.isSelectionMode}
-                  onSelectAll={transactionTable.handleSelectAll}
-                  isAllSelected={transactionTable.isAllSelected}
-                />
-              )}
+              <TransactionTable
+                transactions={filteredTransactions}
+                onEditTransaction={openTransactionDialog}
+                onAddTransaction={() => openTransactionDialog()}
+                onDeleteTransaction={handleDeleteTransaction}
+                isLoading={isLoading}
+                selectedIds={transactionTable.selectedIds}
+                onSelectionChange={transactionTable.handleSelectionChange}
+                isSelectionMode={transactionTable.isSelectionMode}
+                onSelectAll={transactionTable.handleSelectAll}
+                isAllSelected={transactionTable.isAllSelected}
+              />
             </Suspense>
           </TabsContent>
 

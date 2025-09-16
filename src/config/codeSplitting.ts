@@ -32,7 +32,7 @@ export const ProfitAnalysisComponents = {
 
 // 🛒 ORDER MANAGEMENT COMPONENTS (Bundle Size: ~120KB)
 export const OrderComponents = {
-  // Tabel order dengan virtual scrolling
+  // Tabel order dengan optimasi
   OrderTable: React.lazy(() => 
     import(/* webpackChunkName: "order-table" */ '@/components/orders/components/OrderTable')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat tabel pesanan') }))

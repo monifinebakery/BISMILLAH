@@ -17,7 +17,6 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useProfitAnalysis } from '../hooks';
 import { formatCurrency, formatPercentage } from '../utils/profitTransformers';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 // ===== TYPES =====
@@ -87,11 +86,7 @@ const WelcomeSection: React.FC<{ onComplete: () => void }> = ({ onComplete }) =>
 
         <div className="space-y-3">
           {steps.map((step, index) => (
-            <motion.div
-              key={step.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
+            <div
               className={`p-4 rounded-lg border ${
                 step.completed 
                   ? 'bg-green-50 border-green-200' 
@@ -121,7 +116,7 @@ const WelcomeSection: React.FC<{ onComplete: () => void }> = ({ onComplete }) =>
                   </Button>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 

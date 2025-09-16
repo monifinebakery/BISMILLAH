@@ -71,7 +71,8 @@ const SettingsPage = () => {
         settings.ownerName !== formState.ownerName ||
         settings.email !== formState.email ||
         settings.phone !== formState.phone ||
-        settings.address !== formState.address;
+        settings.address !== formState.address ||
+        settings.whatsappType !== formState.whatsappType;
       setHasChanges(hasChanged);
     }
   }, [settings, formState]);
@@ -106,6 +107,7 @@ const SettingsPage = () => {
         email: formState.email,
         phone: formState.phone,
         address: formState.address,
+        whatsappType: formState.whatsappType,
       };
 
       const success = await saveSettings(settingsToUpdate);
@@ -300,6 +302,112 @@ const SettingsPage = () => {
                     </>
                   )}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* WHATSAPP SETTINGS SECTION */}
+          <Card className="border-0 overflow-hidden">
+            <CardHeader className="bg-gray-50 border-b">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 p-2 rounded-lg">
+                  <MessageSquare className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Pengaturan WhatsApp</CardTitle>
+                  <CardDescription>
+                    Pilih tipe WhatsApp untuk fitur follow-up pelanggan
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    Tipe WhatsApp untuk Follow-up
+                  </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Personal WhatsApp Option */}
+                    <div 
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                        formState.whatsappType === 'personal'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handleInputChange('whatsappType', 'personal')}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
+                          formState.whatsappType === 'personal'
+                            ? 'border-green-500 bg-green-500'
+                            : 'border-gray-300'
+                        }`}>
+                          {formState.whatsappType === 'personal' && (
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 mb-1">
+                            WhatsApp Personal
+                          </h4>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Menggunakan WhatsApp Web biasa (wa.me)
+                          </p>
+                          <div className="text-xs text-gray-500">
+                            ✅ Lebih universal<br/>
+                            ✅ Kompatibel dengan semua perangkat<br/>
+                            ✅ Tidak memerlukan WhatsApp Business
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Business WhatsApp Option */}
+                    <div 
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                        formState.whatsappType === 'business'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handleInputChange('whatsappType', 'business')}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
+                          formState.whatsappType === 'business'
+                            ? 'border-blue-500 bg-blue-500'
+                            : 'border-gray-300'
+                        }`}>
+                          {formState.whatsappType === 'business' && (
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 mb-1">
+                            WhatsApp Business
+                          </h4>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Menggunakan WhatsApp Business API
+                          </p>
+                          <div className="text-xs text-gray-500">
+                            ✅ Fitur bisnis lengkap<br/>
+                            ✅ Analytics dan insights<br/>
+                            ⚠️ Memerlukan WhatsApp Business app
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h5 className="font-semibold text-blue-900 mb-2">ℹ️ Informasi:</h5>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Setting ini mengatur URL yang digunakan saat mengirim follow-up WhatsApp</li>
+                    <li>• Anda bisa mengubah setting ini kapan saja sesuai kebutuhan</li>
+                    <li>• Kedua pilihan akan membuka WhatsApp dengan pesan yang sudah disiapkan</li>
+                  </ul>
+                </div>
               </div>
             </CardContent>
           </Card>

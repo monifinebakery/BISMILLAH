@@ -17,6 +17,7 @@ export interface UserSettings {
   email: string;
   phone: string;
   address: string;
+  whatsappType: 'personal' | 'business'; // Added WhatsApp type selection
   notifications: {
     lowStock: boolean;
     newOrder: boolean;
@@ -63,6 +64,7 @@ const defaultSettings: UserSettings = {
   email: '',
   phone: '',
   address: '',
+  whatsappType: 'personal', // Default to personal WhatsApp
   notifications: {
     lowStock: true,
     newOrder: true,
@@ -84,6 +86,7 @@ const userSettingsApi = {
         email,
         phone,
         address,
+        whatsapp_type,
         notifications,
         updated_at,
         created_at
@@ -121,6 +124,7 @@ const userSettingsApi = {
       email: data.email || userEmail || defaultSettings.email,
       phone: data.phone || defaultSettings.phone,
       address: data.address || defaultSettings.address,
+      whatsappType: (data.whatsapp_type as 'personal' | 'business') || defaultSettings.whatsappType,
       notifications: {
         lowStock: notifications?.lowStock ?? defaultSettings.notifications.lowStock,
         newOrder: notifications?.newOrder ?? defaultSettings.notifications.newOrder,
@@ -142,6 +146,7 @@ const userSettingsApi = {
       email: settings.email,
       phone: settings.phone,
       address: settings.address,
+      whatsapp_type: settings.whatsappType,
       notifications: settings.notifications,
       updated_at: new Date().toISOString()
     };
@@ -176,6 +181,7 @@ const userSettingsApi = {
       email: data.email || '',
       phone: data.phone || '',
       address: data.address || '',
+      whatsappType: (data.whatsapp_type as 'personal' | 'business') || defaultSettings.whatsappType,
       notifications: {
         lowStock: savedNotifications?.lowStock ?? defaultSettings.notifications.lowStock,
         newOrder: savedNotifications?.newOrder ?? defaultSettings.notifications.newOrder,

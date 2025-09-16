@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { logger } from '@/utils/logger';
 
 // Define the props interface for the component
@@ -41,6 +42,9 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
   // ✅ FIXED: Use FollowUpTemplateContext instead of legacy function
   const { getTemplate } = useFollowUpTemplate();
   const { processTemplate } = useProcessTemplate();
+  
+  // ✅ NEW: Get user settings to determine WhatsApp type
+  const { settings } = useUserSettings();
 
   // ✅ FIXED: Generate template using the same system as FollowUpTemplateManager
   const generateWhatsAppTemplate = useMemo(() => {
@@ -138,11 +142,20 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
       // Encode the message to be safely used in a URL
       const encodedMessage = encodeURIComponent(message);
 
-      // Construct the WhatsApp URL
-      const whatsappUrl = `https://wa.me/${processedPhoneNumber}?text=${encodedMessage}`;
+      // ✅ NEW: Construct different WhatsApp URLs based on user's preference
+      let whatsappUrl: string;
+      
+      if (settings.whatsappType === 'business') {
+        // WhatsApp Business Web URL
+        whatsappUrl = `https://api.whatsapp.com/send/?phone=${processedPhoneNumber}&text=${encodedMessage}&type=phone_number&app_absent=0`;
+      } else {
+        // Standard WhatsApp Web URL (Personal)
+        whatsappUrl = `https://wa.me/${processedPhoneNumber}?text=${encodedMessage}`;
+      }
+      
       window.open(whatsappUrl, '_blank');
 
-      toast.success('WhatsApp follow-up initiated');
+      toast.success(`WhatsApp ${settings.whatsappType === 'business' ? 'Business' : 'Personal'} follow-up initiated`);
 
       // Close the modal on success
       onClose();
@@ -186,6 +199,14 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
               <span className="font-medium text-gray-600">Nomor WhatsApp:</span>
               {/* Display the processed number or a fallback message */}
               <span className="font-semibold text-green-700">{processedPhoneNumber || 'Tidak Tersedia'}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="font-medium text-gray-600">Tipe WhatsApp:</span>
+              <span className={`font-semibold ${
+                settings.whatsappType === 'business' ? 'text-blue-700' : 'text-green-700'
+              }`}>
+                {settings.whatsappType === 'business' ? 'Business' : 'Personal'}
+              </span>
             </div>
           </div>
 

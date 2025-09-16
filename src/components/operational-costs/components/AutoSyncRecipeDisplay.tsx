@@ -80,28 +80,41 @@ const AutoSyncRecipeDisplay: React.FC<AutoSyncRecipeDisplayProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           
-          {/* Status Information */}
+          {/* Status Information with Refresh Button */}
           <div className="flex items-center justify-between p-3 bg-white/70 rounded-lg border border-blue-200">
             <div className="flex items-center gap-2">
               <Settings2 className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-800">Status:</span>
             </div>
-            <div className="flex items-center gap-2">
-              {hasOperationalCosts ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm font-semibold text-green-700">
-                    Biaya operasional tersinkron
-                  </span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm text-orange-700">
-                    Belum ada biaya operasional
-                  </span>
-                </>
-              )}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {hasOperationalCosts ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span className="text-sm font-semibold text-green-700">
+                      Biaya operasional tersinkron
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                    <span className="text-sm text-orange-700">
+                      Belum ada biaya operasional
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Manual Refresh Button */}
+              <button
+                onClick={refreshCalculation}
+                disabled={isCalculating || isLoadingSettings}
+                className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh data biaya operasional"
+              >
+                <RefreshCw className={`h-3 w-3 ${(isCalculating || isLoadingSettings) ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
             </div>
           </div>
 
@@ -241,6 +254,25 @@ const AutoSyncRecipeDisplay: React.FC<AutoSyncRecipeDisplayProps> = ({
                   </p>
                 </div>
               </div>
+              
+              {/* Debug Panel - Show in development */}
+              {process.env.NODE_ENV === 'development' && result?.breakdown.overheadBreakdown && (
+                <details className="mt-4 p-3 bg-gray-50 rounded border">
+                  <summary className="text-xs font-medium text-gray-700 cursor-pointer hover:text-gray-900">
+                    🔍 Debug Info (Dev Only)
+                  </summary>
+                  <div className="mt-2 text-xs text-gray-600 space-y-1">
+                    <div><strong>Overhead Only:</strong> Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}/pcs</div>
+                    <div><strong>Operasional Only:</strong> Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}/pcs</div>
+                    <div><strong>Combined Total:</strong> Rp {result.breakdown.overheadBreakdown.combined.toLocaleString('id-ID')}/pcs</div>
+                    <div><strong>Method:</strong> {result.calculationMethod}</div>
+                    <div><strong>Source:</strong> {result.breakdown.overheadSource}</div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      💡 {result.breakdown.overheadBreakdown.note}
+                    </div>
+                  </div>
+                </details>
+              )}
             </div>
 
           </CardContent>

@@ -90,7 +90,7 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
             
             <div className="flex-1">
               <AlertDescription className="text-white font-medium">
-                🎉 <strong>Update tersedia!</strong> Aplikasi telah diperbarui dengan fitur terbaru.
+                🎉 <strong>Update tersedia!</strong> Silakan refresh aplikasi anda.
                 {updateInfo?.newVersion && (
                   <span className="ml-2 text-orange-200 text-sm">
                     v{updateInfo.newVersion}

@@ -55,6 +55,7 @@ export { default as ProfitBreakdownChart } from './components/lazy/LazyProfitBre
 export { default as ProfitTrendChart } from './components/lazy/LazyProfitTrendChart';
 export { default as DetailedBreakdownTable } from './components/lazy/LazyDetailedBreakdownTable';
 export { default as ProfitDashboard } from './components/ProfitDashboard';
+export { default as ImprovedProfitDashboard } from './components/ImprovedProfitDashboard';
 
 // Export types dari components
 export type {
@@ -67,6 +68,8 @@ export type {
 
 // ===== API SERVICE =====
 export { default as profitAnalysisApi } from './services/profitAnalysisApi';
+export { EnhancedCalculationService } from './services/enhancedCalculationService';
+export type { EnhancedProfitCalculation } from './services/enhancedCalculationService';
 
 // ===== CONSTANTS =====
 export {
@@ -160,7 +163,7 @@ import React from 'react';
 import { ProfitAnalysisProvider as Provider } from './contexts/ProfitAnalysisContext';
 import { useProfitAnalysis } from './hooks/useProfitAnalysis';
 const ProfitDashboard = React.lazy(() => 
-  import(/* webpackChunkName: "profit-dashboard" */ './components/ProfitDashboard')
+  import(/* webpackChunkName: "profit-dashboard" */ './components/ImprovedProfitDashboard')
     .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat dashboard profit') }))
 );
 import profitAnalysisApi from './services/profitAnalysisApi';

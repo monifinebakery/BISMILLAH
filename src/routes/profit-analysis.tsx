@@ -6,7 +6,7 @@ import { logger } from '@/utils/logger';
 
 const ProfitAnalysisPage = React.lazy(() =>
   import(/* webpackChunkName: "profit-analysis" */ '@/components/profitAnalysis').then(module => ({
-    default: module.ProfitDashboard,
+    default: module.ImprovedProfitDashboard,
   }))
 );
 

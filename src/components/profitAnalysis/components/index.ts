@@ -6,7 +6,9 @@ export { default as ProfitSummaryCards } from './ProfitSummaryCards';
 export { default as ProfitBreakdownChart } from './lazy/LazyProfitBreakdownChart';
 export { default as ProfitTrendChart } from './lazy/LazyProfitTrendChart';
 export { default as DetailedBreakdownTable } from './lazy/LazyDetailedBreakdownTable';
-export { default as ProfitDashboard } from './ProfitDashboard';
+export { default as LegacyProfitDashboard } from './ProfitDashboard'; // Keep as legacy
+export { default as ProfitDashboard } from './ImprovedProfitDashboard';
+export { default as ImprovedProfitDashboard } from './ImprovedProfitDashboard';
 
 // Export types
 export type { ProfitSummaryCardsProps } from './ProfitSummaryCards';

@@ -24,12 +24,12 @@ import {
 } from './components';
 import { LoadingSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 
-// Lazy loaded components
-const PurchaseTable = React.lazy(() => 
-  import('./components/PurchaseTable').catch(() => ({
+// Lazy loaded components - using OptimizedPurchaseTable for virtual scrolling
+const OptimizedPurchaseTable = React.lazy(() => 
+  import('./components/OptimizedPurchaseTable').catch(() => ({
     default: () => (
       <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg">
-        <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat tabel</div>
+        <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat virtual tabel</div>
         <p className="text-gray-600 text-sm">Silakan refresh halaman atau hubungi admin</p>
       </div>
     )
@@ -297,13 +297,14 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
         <>
           <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
             <Suspense fallback={<TableSkeleton rows={8} columns={6} />}>
-              <PurchaseTable
+              <OptimizedPurchaseTable
                 onEdit={navigationActions.purchase.openEdit}
                 onStatusChange={setStatus}
                 onDelete={async (purchaseId: string) => {
                   await businessHandlers.delete(purchaseId);
                 }}
-                validateStatusChange={async () => ({ canChange: true, warnings: [], errors: [] })}
+                userId={user?.id || ''}
+                height={600}
               />
             </Suspense>
           </PurchaseTableProvider>

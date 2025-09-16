@@ -57,14 +57,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { getStatusText } from '../constants'; // Pastikan path ini benar
 import { fetchOrdersPaginated } from '../services/orderService';
 
-// ✅ OPTIMIZED: Lazy loading with better error boundaries
-const OrderTable = React.lazy(() => 
-  import('./OrderTable').catch((error) => {
-    logger.error('Failed to load OrderTable component:', error);
+// ✅ OPTIMIZED: Lazy loading VirtualOrderTable with better error boundaries
+const VirtualOrderTable = React.lazy(() => 
+  import('./VirtualOrderTable').catch((error) => {
+    logger.error('Failed to load VirtualOrderTable component:', error);
     return {
       default: () => (
         <div className="p-8 text-center border-2 border-dashed border-red-200 rounded-lg">
-          <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat tabel pesanan</div>
+          <div className="text-red-500 text-lg mb-2">⚠️ Gagal memuat virtual tabel pesanan</div>
           <p className="text-gray-600 text-sm">Silakan refresh halaman atau hubungi admin</p>
         </div>
       )
@@ -764,7 +764,7 @@ const OrdersPage: React.FC = () => {
            </SafeSuspense>
          )}
         
-        <OrderTable
+        <VirtualOrderTable
           uiState={uiState}
           loading={finalIsLoading}
           onEditOrder={businessHandlers.editOrder}

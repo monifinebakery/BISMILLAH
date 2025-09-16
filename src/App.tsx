@@ -16,9 +16,11 @@ import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 
 const App = () => {
   // ✅ Auto-update system - Setup update detection and notifications
+  // ⚠️ DISABLED for private repository - enable with VITE_GITHUB_TOKEN
   const autoUpdate = useAutoUpdate({
     checkInterval: 5, // Check every 5 minutes
     enableInDev: false, // Disable in development
+    autoStart: !!import.meta.env.VITE_GITHUB_TOKEN, // Only start if token available
     showNotifications: true, // Show update banner
     onUpdateDetected: (result) => {
       logger.success('🎉 New app update available!', {
@@ -28,7 +30,12 @@ const App = () => {
       });
     },
     onUpdateCheckError: (error) => {
-      logger.warn('⚠️ Update check failed (this is normal):', error.message);
+      // Don't spam logs for private repo without token
+      if (!import.meta.env.VITE_GITHUB_TOKEN) {
+        logger.debug('🔒 Auto-update disabled: Private repository needs VITE_GITHUB_TOKEN');
+      } else {
+        logger.warn('⚠️ Update check failed:', error.message);
+      }
     }
   });
 

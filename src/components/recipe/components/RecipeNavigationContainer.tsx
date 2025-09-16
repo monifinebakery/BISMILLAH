@@ -25,8 +25,6 @@ import BulkActions from './BulkActions';
 import RecipeFormPage from './RecipeFormPage';
 import { LoadingSkeleton, Skeleton } from '@/components/ui/skeleton';
 
-// Migration components
-import RecipeMigrationBanner from './RecipeMigrationBanner';
 
 // Breadcrumb and view mode types
 import type { RecipeViewMode } from './RecipeBreadcrumb';
@@ -472,17 +470,6 @@ const RecipeNavigationContainer: React.FC = () => {
           </div>
           <div className="flex gap-3 flex-wrap">
             <Button
-              onClick={() => window.location.href = '/resep/migration'}
-              variant="outline"
-              size="sm"
-              className="border-blue-200 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Recipe Migration
-            </Button>
-            <Button
               onClick={() => setNavigationState(prev => ({ ...prev, dialogType: 'category' }))}
               disabled={isProcessing}
               variant="outline"
@@ -505,8 +492,6 @@ const RecipeNavigationContainer: React.FC = () => {
           <RecipeStats stats={stats} />
         </LazyComponentWrapper>
 
-        {/* Migration Banner */}
-        <RecipeMigrationBanner className="mb-2" />
 
         {/* Main Content Card */}
         <Card className="border border-gray-200 bg-white/90 backdrop-blur-sm">

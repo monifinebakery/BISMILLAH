@@ -15,6 +15,9 @@ export { default as PurchaseHeader } from './PurchaseHeader';
 export { default as MaterialComboBox } from './MaterialComboBox';
 export { default as SupplierComboBox } from './SupplierComboBox';
 
+// ✅ TABLE COMPONENTS: New virtual table implementation
+export { default as VirtualPurchaseTable } from './VirtualPurchaseTable';
+
 // ✅ TYPE-ONLY EXPORTS: Zero runtime cost
 export type {
   PurchaseHeaderProps,

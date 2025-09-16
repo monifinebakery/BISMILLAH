@@ -270,83 +270,96 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
       {
         key: 'nomor_pesanan',
         header: 'No. Pesanan',
-        width: 120,
-        render: (order: Order) => (
-          <div className="flex flex-col">
-            <div className="text-sm font-medium text-gray-900">#
-              {(order as any).nomor_pesanan || (order as any)['nomorPesanan'] || (order as any).order_number}
+        width: 140,
+        render: (order: Order) => {
+          const orderNumber = (order as any).nomor_pesanan || (order as any)['nomorPesanan'] || (order as any).order_number || 'N/A';
+          return (
+            <div className="flex flex-col min-w-0">
+              <div className="text-sm font-medium text-gray-900 truncate">#{orderNumber}</div>
+              <div className="text-xs text-gray-500 truncate">{order.id.slice(0, 8)}...</div>
             </div>
-            <div className="text-xs text-gray-500">{order.id.slice(0, 8)}...</div>
-          </div>
-        )
+          );
+        }
       },
       {
         key: 'nama_pelanggan',
         header: 'Nama Pelanggan',
-        width: 180,
-        render: (order: Order) => (
-          <div className="flex flex-col">
-            <div className="text-sm font-medium text-gray-900">
-              {(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name}
+        width: 200,
+        render: (order: Order) => {
+          const customerName = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || 'N/A';
+          const phone = (order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone;
+          return (
+            <div className="flex flex-col min-w-0">
+              <div className="text-sm font-medium text-gray-900 truncate">{customerName}</div>
+              {phone && (
+                <div className="text-xs text-gray-500 truncate">{phone}</div>
+              )}
             </div>
-            {((order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone) && (
-              <div className="text-xs text-gray-500">
-                {(order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone}
-              </div>
-            )}
-            {((order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email) && (
-              <div className="text-xs text-gray-500">
-                {(order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email}
-              </div>
-            )}
-          </div>
-        )
+          );
+        }
       },
       {
         key: 'tanggal',
         header: 'Tanggal Order',
-        width: 120,
-        render: (order: Order) => (
-          <div className="text-sm text-gray-900">
-            {formatDateForDisplay(order.tanggal)}
-          </div>
-        )
+        width: 130,
+        sortable: true,
+        render: (order: Order) => {
+          const orderDate = (order as any).tanggal || order.tanggal;
+          const createdAt = (order as any).created_at || (order as any)['createdAt'] || new Date();
+          return (
+            <div className="flex flex-col min-w-0">
+              <div className="text-sm text-gray-900">
+                {formatDateForDisplay(orderDate)}
+              </div>
+              <div className="text-xs text-gray-500">
+                {new Date(createdAt).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            </div>
+          );
+        }
       },
       {
         key: 'tanggal_selesai',
         header: 'Tanggal Selesai',
-        width: 120,
+        width: 140,
         render: (order: Order) => <CompletionDateCell order={order} />
       },
       {
         key: 'total_pesanan',
         header: 'Total',
-        width: 100,
+        width: 130,
+        sortable: true,
         align: 'right' as const,
-        render: (order: Order) => (
-          <div className="text-sm font-medium text-gray-900">
-            {formatCurrency((order as any).total_pesanan || (order as any)['totalPesanan'])}
-          </div>
-        )
-      },
-      {
-        key: 'updated_at',
-        header: 'Terakhir Diperbarui',
-        width: 120,
-        render: (order: Order) => (
-          <div className="text-sm text-gray-500">
-            {formatDateForDisplay((order as any).updated_at || (order as any)['updatedAt'])}
-          </div>
-        )
+        render: (order: Order) => {
+          const total = (order as any).total_pesanan || (order as any)['totalPesanan'] || 0;
+          const items = (order as any).items || [];
+          return (
+            <div className="flex flex-col items-end min-w-0">
+              <div className="text-sm font-semibold text-green-600">
+                {formatCurrency(total)}
+              </div>
+              {items.length > 0 && (
+                <div className="text-xs text-gray-500">
+                  {items.length} item{items.length > 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
+          );
+        }
       },
       {
         key: 'status',
         header: 'Status',
-        width: 100,
+        width: 120,
+        sortable: true,
         render: (order: Order) => (
           <StatusBadge
             status={order.status}
             onChange={(newStatus) => onStatusChange(order.id, newStatus)}
+            disabled={order.status === 'completed' || order.status === 'cancelled'}
           />
         )
       },
@@ -354,7 +367,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
         key: 'actions',
         header: 'Aksi',
         width: 80,
-        align: 'right' as const,
+        align: 'center' as const,
         render: (order: Order) => (
           <OrderRowActions
             order={order}
@@ -362,6 +375,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
             onDelete={() => onDeleteOrder(order.id)}
             onFollowUp={() => handleFollowUp(order)}
             onViewDetail={onViewDetail ? () => onViewDetail(order) : undefined}
+            disabled={isSelectionMode}
           />
         )
       }
@@ -393,7 +407,7 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
     }
 
     return baseColumns;
-  }, [isSelectionMode, selectedIds, isAllSelected, onSelectAll, onSelectionChange, onEditOrder, onDeleteOrder, onStatusChange, onViewDetail]);
+  }, [isSelectionMode, selectedIds, isAllSelected, onSelectAll, onSelectionChange, onEditOrder, onDeleteOrder, onStatusChange, onViewDetail, handleFollowUp]);
 
   // Handle row click
   const handleRowClick = (order: Order) => {
@@ -404,11 +418,11 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
     }
   };
 
-  if (uiState.currentOrders.length === 0 && !loading) {
+  if (uiState.current_orders.length === 0 && !loading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+      <div className="w-full max-w-full">
         <EmptyState
-          hasFilters={uiState.hasActiveFilters}
+          hasFilters={uiState.has_active_filters}
           onAddFirst={onNewOrder}
           onClearFilters={uiState.clearFilters}
         />
@@ -417,20 +431,58 @@ const VirtualOrderTable: React.FC<VirtualOrderTableProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
-      <VirtualTable
-        data={uiState.currentOrders}
-        columns={columns}
-        loading={loading}
-        itemHeight={60}
-        containerHeight={600}
-        onRowClick={handleRowClick}
-        className="w-full"
-        emptyMessage="Tidak ada pesanan"
-        hoverable={true}
-        striped={true}
-        getItemId={(order) => order.id}
-      />
+    <div className="w-full max-w-full space-y-4">
+      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+        <VirtualTable
+          data={uiState.current_orders}
+          columns={columns}
+          loading={loading}
+          itemHeight={72}
+          containerHeight={600}
+          onRowClick={handleRowClick}
+          selectable={isSelectionMode}
+          selectedItems={new Set(selectedIds)}
+          onSelectionChange={(newSelection) => {
+            if (onSelectionChange) {
+              newSelection.forEach(id => onSelectionChange(id));
+            }
+          }}
+          className="w-full"
+          emptyMessage="Tidak ada pesanan ditemukan"
+          hoverable={true}
+          striped={true}
+          getItemId={(order) => order.id}
+        />
+      </div>
+      
+      {/* Pagination */}
+      {uiState.total_pages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-2">
+          <div className="text-sm text-gray-700 text-center sm:text-left">
+            Menampilkan {((uiState.current_page - 1) * uiState.items_per_page) + 1} - 
+            {Math.min(uiState.current_page * uiState.items_per_page, uiState.total_items)} dari {uiState.total_items} pesanan
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              onClick={() => uiState.setCurrentPage(Math.max(1, uiState.current_page - 1))}
+              disabled={uiState.current_page === 1 || loading}
+            >
+              Sebelumnya
+            </button>
+            <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded text-sm font-medium">
+              {uiState.current_page} / {uiState.total_pages}
+            </span>
+            <button
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              onClick={() => uiState.setCurrentPage(Math.min(uiState.total_pages, uiState.current_page + 1))}
+              disabled={uiState.current_page === uiState.total_pages || loading}
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

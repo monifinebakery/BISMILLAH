@@ -16,6 +16,7 @@ const ProfitMetrics = React.lazy(() => import('./ProfitMetrics'));
 const ProfitBreakdown = React.lazy(() => import('./ProfitBreakdown'));
 const HealthScoreCard = React.lazy(() => import('./HealthScoreCard'));
 const ProfitTips = React.lazy(() => import('./ProfitTips'));
+const UpdateBanner = React.lazy(() => import('./UpdateBanner'));
 const QuickInsights = React.lazy(() => import('./QuickInsights'));
 
 // Loading fallback components
@@ -111,6 +112,9 @@ const ImprovedProfitDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <React.Suspense fallback={null}>
+        <UpdateBanner />
+      </React.Suspense>
       <React.Suspense fallback={<LoadingSkeleton />}>
         <ProfitHeader 
           period={currentPeriod}

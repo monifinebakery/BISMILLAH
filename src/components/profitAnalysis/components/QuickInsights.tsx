@@ -72,26 +72,22 @@ const QuickInsights: React.FC<QuickInsightsProps> = ({ analysis }) => {
 
   return (
     <div className="space-y-3">
-      <h3 className="font-semibold flex items-center gap-2 text-lg">
-        <span className="text-orange-500">💡</span>
+      <h3 className="font-semibold flex items-center gap-2 text-lg text-gray-900">
+        <span className="text-gray-500">💡</span>
         Quick Insights
       </h3>
       
       {insights.map((insight, index) => (
         <Alert 
           key={index}
-          className={
-            insight.type === 'success' ? 'border-green-200 bg-green-50' :
-            insight.type === 'warning' ? 'border-orange-200 bg-orange-50' :
-            'border-red-200 bg-red-50'
-          }
+          className={'border border-gray-200 bg-white text-gray-900'}
         >
-          <insight.icon className="h-4 w-4" />
+          <insight.icon className="h-4 w-4 text-gray-600" />
           <AlertTitle>{insight.title}</AlertTitle>
-          <AlertDescription>
+          <AlertDescription className="text-gray-700">
             {insight.description}
             {insight.action && (
-              <p className="mt-2 font-semibold">{insight.action}</p>
+              <p className="mt-2 font-semibold text-gray-800">{insight.action}</p>
             )}
           </AlertDescription>
         </Alert>

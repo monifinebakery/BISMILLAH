@@ -1,6 +1,6 @@
 // ProfitBreakdown.tsx - Breakdown section for profit analysis
 import React from 'react';
-import { ResponsiveContainer, AreaChart, Area, Tooltip as RTooltip, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
+import { ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -196,13 +196,11 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
                 <div className="text-sm text-gray-700 mb-3 font-medium">Komposisi Bulan Ini</div>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[{
-                      name: 'Revenue', value: Number(businessMetrics?.revenue || 0)
-                    },{
-                      name: 'COGS', value: Number(businessMetrics?.cogs || 0)
-                    },{
-                      name: 'OpEx', value: Number(businessMetrics?.opex || 0)
-                    }]}>
+                    <LineChart data={[
+                      { name: 'Revenue', value: Number(businessMetrics?.revenue || 0) },
+                      { name: 'COGS', value: Number(businessMetrics?.cogs || 0) },
+                      { name: 'OpEx', value: Number(businessMetrics?.opex || 0) }
+                    ]}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#e5e7eb' }} />
                       <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#e5e7eb' }} tickFormatter={(v)=> new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(Number(v)||0)} />
@@ -220,8 +218,8 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
                         }
                         return null;
                       }} />
-                      <Bar dataKey="value" radius={[6,6,0,0]} fill="#9CA3AF" />
-                    </BarChart>
+                      <Line type="monotone" dataKey="value" stroke="#111827" strokeWidth={2.5} dot={{ r: 3, stroke: '#111827', strokeWidth: 1, fill: '#ffffff' }} />
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>

@@ -5,15 +5,15 @@ import { Lightbulb } from 'lucide-react';
 
 const ProfitTips: React.FC = () => {
   return (
-    <Card className="mt-6 border rounded-xl">
+    <Card className="mt-6 border border-gray-200 rounded-xl bg-white">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-yellow-500" />
+        <CardTitle className="flex items-center gap-2 text-gray-900">
+          <Lightbulb className="h-5 w-5 text-gray-500" />
           Tips Meningkatkan Profit
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-2 text-sm text-gray-700">
           <li className="flex items-start gap-2">
             <span>📈</span>
             <span>Naikkan harga menu yang laris 5-10%</span>

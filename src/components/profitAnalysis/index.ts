@@ -54,7 +54,7 @@ export { default as ProfitSummaryCards } from './components/ProfitSummaryCards';
 export { default as ProfitBreakdownChart } from './components/lazy/LazyProfitBreakdownChart';
 export { default as ProfitTrendChart } from './components/lazy/LazyProfitTrendChart';
 export { default as DetailedBreakdownTable } from './components/lazy/LazyDetailedBreakdownTable';
-export { default as ProfitDashboard } from './components/ProfitDashboard';
+export { default as ProfitDashboard } from './components/ImprovedProfitDashboard';
 export { default as ImprovedProfitDashboard } from './components/ImprovedProfitDashboard';
 
 // Export types dari components
@@ -64,7 +64,7 @@ export type {
   ProfitTrendChartProps,
   DetailedBreakdownTableProps,
   ProfitDashboardProps
-} from './components';
+} from './components/ImprovedProfitDashboard';
 
 // ===== API SERVICE =====
 export { default as profitAnalysisApi } from './services/profitAnalysisApi';

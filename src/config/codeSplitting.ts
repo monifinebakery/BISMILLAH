@@ -15,7 +15,7 @@ import { logger } from '@/utils/logger';
 export const ProfitAnalysisComponents = {
   // Komponen dashboard profit yang sangat berat
   ProfitDashboard: React.lazy(() => 
-    import(/* webpackChunkName: "profit-dashboard" */ '@/components/profitAnalysis/components/ProfitDashboard')
+    import(/* webpackChunkName: "profit-dashboard" */ '@/components/profitAnalysis/components/ImprovedProfitDashboard')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat dashboard profit') }))
   ),
   
@@ -164,7 +164,7 @@ export const preloadComponents = {
           
         case 'profit-analysis':
           await Promise.allSettled([
-            import('@/components/profitAnalysis/components/ProfitDashboard'),
+            import('@/components/profitAnalysis/components/ImprovedProfitDashboard'),
             import('@/components/profitAnalysis/components/DetailedBreakdownTable')
           ]);
           break;

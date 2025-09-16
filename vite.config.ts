@@ -20,6 +20,11 @@ export default defineConfig(({ mode }) => {
   // 🔎 Build-time visibility (muncul di log Netlify)
   // Hapus kalau sudah tidak perlu debug
    
+  // 🔧 Auto-update build information
+  const buildId = `build_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const commitHash = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'local';
+  const buildTime = new Date().toISOString();
+  
   console.log("🐛 [VITE CONFIG]", {
     mode,
     isProd,
@@ -27,6 +32,10 @@ export default defineConfig(({ mode }) => {
     CONTEXT: process.env.CONTEXT,
     keepLogs,
     VITE_FORCE_LOGS: env.VITE_FORCE_LOGS,
+    // Auto-update info
+    buildId,
+    commitHash: commitHash.slice(0, 8),
+    buildTime
   });
 
   return {
@@ -125,6 +134,10 @@ export default defineConfig(({ mode }) => {
       __DEV__: JSON.stringify(!isProd),
       __PROD__: JSON.stringify(isProd),
       __CONSOLE_ENABLED__: JSON.stringify(!(isProd && !keepLogs)),
+      // 🔧 Auto-update build information (available as import.meta.env)
+      "import.meta.env.VITE_BUILD_ID": JSON.stringify(buildId),
+      "import.meta.env.VITE_COMMIT_HASH": JSON.stringify(commitHash),
+      "import.meta.env.VITE_BUILD_TIME": JSON.stringify(buildTime),
     },
 
     resolve: {

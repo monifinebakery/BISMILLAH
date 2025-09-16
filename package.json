@@ -21,8 +21,6 @@
     "check-react": "pnpm ls | grep react",
     "debug:payment": "node debug-payment-issue.js",
     "fix:payment": "node fix-payment-linking.js",
-    "push": "./auto-push.sh",
-    "push:msg": "./auto-push.sh",
     "export:tutorials": "node scripts/export-tutorials-to-md.js"
   },
   "dependencies": {

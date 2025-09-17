@@ -1,4 +1,3 @@
-import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
 // src/contexts/AppProviders.tsx - MOBILE-OPTIMIZED PROGRESSIVE LOADING
@@ -58,7 +57,7 @@ const LazyFinancialProvider: React.FC<{ enabled: boolean; children: ReactNode }>
     }
   }, [enabled, ProviderComp]);
   if (!enabled) return <>{children}</>;
-  if (!ProviderComp) return <DashboardSkeleton />;
+  if (!ProviderComp) return <div className="min-h-screen bg-gray-50 p-6 animate-pulse"><div className="max-w-5xl mx-auto space-y-4"><div className="h-8 bg-gray-200 rounded w-40" /><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{Array.from({length:8}).map((_,i)=>(<div key={i} className="h-20 bg-gray-200 rounded"/>))}</div></div></div>;
   const Comp = ProviderComp as React.ComponentType<any>;
   return <Comp>{children}</Comp>;
 };
@@ -73,7 +72,7 @@ const LazyProfitAnalysisProvider: React.FC<{ enabled: boolean; children: ReactNo
     }
   }, [enabled, ProviderComp]);
   if (!enabled) return <>{children}</>;
-  if (!ProviderComp) return <DashboardSkeleton />;
+  if (!ProviderComp) return <div className="min-h-screen bg-gray-50 p-6 animate-pulse"><div className="max-w-5xl mx-auto space-y-4"><div className="h-8 bg-gray-200 rounded w-40" /><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{Array.from({length:8}).map((_,i)=>(<div key={i} className="h-20 bg-gray-200 rounded"/>))}</div></div></div>;
   const Comp = ProviderComp as React.ComponentType<any>;
   return <Comp>{children}</Comp>;
 };
@@ -139,7 +138,18 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const LoadingIndicator: React.FC<{ stage: number; total: number; message: string }> = ({ stage, total, message }) => {
     // Show full dashboard skeleton for the final loading stages to improve perceived performance.
     if (stage >= 2) {
-      return <DashboardSkeleton />
+      return (
+        <div className="min-h-screen bg-gray-50 p-6 animate-pulse">
+          <div className="max-w-5xl mx-auto space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-40" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-20 bg-gray-200 rounded" />
+              ))}
+            </div>
+          </div>
+        </div>
+      )
     }
     // Show a simpler, centered indicator for the initial auth check.
     return (

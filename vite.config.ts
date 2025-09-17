@@ -123,8 +123,9 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
-              // Same-origin images
-              urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'image',
+              // Images (any origin)
+              // Note: generateSW requires string or RegExp, not a function
+              urlPattern: new RegExp('\\.(?:png|jpg|jpeg|svg|gif|webp|avif)$'),
               handler: 'CacheFirst',
               options: {
                 cacheName: 'image-cache',

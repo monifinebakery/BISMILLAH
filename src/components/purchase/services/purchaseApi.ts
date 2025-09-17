@@ -10,6 +10,7 @@ import {
   transformPurchaseUpdateForDB
 } from '../utils/purchaseTransformers';
 import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
+import { withRetry, handleSupabaseError, recordError } from '@/utils/supabaseErrorHandler';
 
 // ✅ NEW: Atomic transaction utilities for sync reliability
 interface AtomicSyncOptions {
@@ -146,22 +147,29 @@ export class PurchaseApiService {
   /** Get all purchases */
   static async fetchPurchases(userId: string): Promise<{ data: Purchase[] | null; error: string | null }> {
     try {
-      const { data, error } = await supabase
-        .from('purchases')
-        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-        .eq('user_id', userId)
-        .order('tanggal', { ascending: false });
+      const data = await withRetry(async () => {
+        const { data, error } = await supabase
+          .from('purchases')
+          .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
+          .eq('user_id', userId)
+          .order('tanggal', { ascending: false });
 
-      if (error) throw new Error(error.message);
+        if (error) {
+          recordError(error, 'fetchPurchases');
+          throw error;
+        }
+        return data;
+      }, {
+        maxRetries: 4,
+        onRetry: (attempt, error) => {
+          logger.warn(`🔄 Retrying fetchPurchases (${attempt}/4):`, error.message);
+        }
+      });
+      
       return { data: transformPurchasesFromDB(data ?? []), error: null };
     } catch (err: any) {
       logger.error('Error fetching purchases:', err);
-      // Check if it's a 503 error and provide a more user-friendly message
-      if (err.message && err.message.includes('503')) {
-        toast.error('Layanan sedang tidak tersedia', {
-          description: 'Database sedang dalam perbaikan. Silakan coba beberapa saat lagi.'
-        });
-      }
+      handleSupabaseError(err, 'memuat data pembelian');
       return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
   }
@@ -675,24 +683,31 @@ export class PurchaseApiService {
   /** Get purchases by date range manually */
   static async getPurchasesByDateRange(userId: string, startDate: Date, endDate: Date) {
     try {
-      const { data, error } = await supabase
-        .from('purchases')
-        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-        .eq('user_id', userId)
-        .gte('tanggal', startDate.toISOString().slice(0, 10))
-        .lte('tanggal', endDate.toISOString().slice(0, 10))
-        .order('tanggal', { ascending: false });
+      const data = await withRetry(async () => {
+        const { data, error } = await supabase
+          .from('purchases')
+          .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
+          .eq('user_id', userId)
+          .gte('tanggal', startDate.toISOString().slice(0, 10))
+          .lte('tanggal', endDate.toISOString().slice(0, 10))
+          .order('tanggal', { ascending: false });
 
-      if (error) throw new Error(error.message);
+        if (error) {
+          recordError(error, 'getPurchasesByDateRange');
+          throw error;
+        }
+        return data;
+      }, {
+        maxRetries: 4,
+        onRetry: (attempt, error) => {
+          logger.warn(`🔄 Retrying getPurchasesByDateRange (${attempt}/4):`, error.message);
+        }
+      });
+      
       return { data: transformPurchasesFromDB(data ?? []), error: null };
     } catch (err: any) {
       logger.error('Error fetching purchases by date range:', err);
-      // Check if it's a 503 error and provide a more user-friendly message
-      if (err.message && err.message.includes('503')) {
-        toast.error('Layanan sedang tidak tersedia', {
-          description: 'Database sedang dalam perbaikan. Silakan coba beberapa saat lagi.'
-        });
-      }
+      handleSupabaseError(err, 'memuat data pembelian berdasarkan tanggal');
       return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
   }

@@ -223,7 +223,7 @@ export default defineConfig(({ mode }) => {
               if (id.includes('xlsx') || id.includes('exceljs') || id.includes('file-saver')) return 'excel';
               if (id.includes('recharts')) return 'charts';
               if (id.includes('@supabase/')) return 'supabase';
-              if (id.includes('@radix-ui/')) return 'radix';
+              // Keep Radix in vendor to avoid React.forwardRef interop issues when split
               return 'vendor';
             }
             // Return undefined for app code to let Rollup/Vite perform default per-route/code-splitting

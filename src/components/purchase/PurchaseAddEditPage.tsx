@@ -303,7 +303,7 @@ const PurchaseAddEditPage: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Supplier dan Tanggal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-6">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">Supplier *</Label>
                 <SupplierComboBox

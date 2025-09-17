@@ -41,7 +41,7 @@ import { usePurchaseTableDialogs } from '../hooks/usePurchaseTableDialogs';
 // Component imports
 import EmptyState from './EmptyState';
 import StatusChangeConfirmationDialog from './StatusChangeConfirmationDialog';
-import {
+import { 
   TableFilters,
   PurchaseTableRow,
   StatusDropdown,
@@ -92,111 +92,7 @@ const StatusBadge = React.memo(({ status }: { status: PurchaseStatus }) => {
 });
 StatusBadge.displayName = 'StatusBadge';
 
-const MemoizedPurchaseRow = React.memo(({
-  purchase,
-  isSelected,
-  editingStatusId,
-  onToggleSelect,
-  onEdit,
-  onDelete,
-  onStatusChange,
-  onEditStatus,
-  getSupplierName
-}: {
-  purchase: Purchase;
-  isSelected: boolean;
-  editingStatusId: string | null;
-  onToggleSelect: (id: string) => void;
-  onEdit: (purchase: Purchase) => void;
-  onDelete: (purchase: Purchase) => void;
-  onStatusChange: (purchaseId: string, newStatus: string) => void;
-  onEditStatus: (id: string) => void;
-  getSupplierName?: (supplierName: string) => string; // Optional since supplier field now stores name directly
-}) => {
-  const handleToggleSelect = useCallback(() => onToggleSelect(purchase.id), [purchase.id, onToggleSelect]);
-  const handleEdit = useCallback(() => onEdit(purchase), [purchase, onEdit]);
-  const handleDelete = useCallback(() => onDelete(purchase), [purchase, onDelete]);
-  const handleEditStatus = useCallback(() => onEditStatus(purchase.id), [purchase.id, onEditStatus]);
-
-  return (
-    <TableRow className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}>
-      <TableCell>
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={handleToggleSelect}
-          aria-label={`Select purchase ${purchase.id}`}
-        />
-      </TableCell>
-      <TableCell>
-        <div className="text-sm font-medium text-gray-900">
-          {new Date(purchase.tanggal).toLocaleDateString('id-ID')}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="text-sm text-gray-900">
-          {getSupplierName ? getSupplierName(purchase.supplier) : (purchase.supplier || 'Supplier Tidak Diketahui')}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="text-sm text-gray-900">
-          {purchase.items && purchase.items.length > 0 ? (
-            purchase.items.length === 1 ? (
-              // Single item: show name
-              <div className="font-medium">{purchase.items[0].nama || 'Item tanpa nama'}</div>
-            ) : (
-              // Multiple items: show first item + count
-              <div>
-                <div className="font-medium">{purchase.items[0].nama || 'Item tanpa nama'}</div>
-                <div className="text-xs text-gray-500">+{purchase.items.length - 1} item lainnya</div>
-              </div>
-            )
-          ) : (
-            <div className="text-gray-400 italic">Data sedang dimuat...</div>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-right">
-        <div className="text-sm font-medium text-gray-900">
-          {formatCurrency((purchase.totalNilai ?? (purchase as any).total_nilai) as number)}
-        </div>
-      </TableCell>
-      <TableCell>
-        <StatusDropdown
-          purchase={purchase}
-          isEditing={editingStatusId === purchase.id}
-          onStartEdit={handleEditStatus}
-          onStatusChange={onStatusChange}
-        />
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleEdit}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-          >
-            Edit
-          </button>
-          <button
-            onClick={handleDelete}
-            className="text-red-600 hover:text-red-800 text-sm font-medium"
-          >
-            Hapus
-          </button>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison for performance
-  return (
-    prevProps.purchase.id === nextProps.purchase.id &&
-    prevProps.purchase.status === nextProps.purchase.status &&
-    prevProps.purchase.updated_at === nextProps.purchase.updated_at &&
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.editingStatusId === nextProps.editingStatusId
-  );
-});
-MemoizedPurchaseRow.displayName = 'MemoizedPurchaseRow';
+// Row is provided by ./table/PurchaseTableRow, removing inline duplicate for maintainability
 
 // ✅ Main PurchaseTable component - Optimized version
 const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
@@ -681,15 +577,15 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                 </TableHeader>
                 <TableBody>
                   {paginationData.currentPurchases.map((purchase) => (
-                    <MemoizedPurchaseRow
+                    <PurchaseTableRow
                       key={purchase.id}
                       purchase={purchase}
                       isSelected={selectedItems.includes(purchase.id)}
-                      editingStatusId={editingStatusId}
+                      isEditingStatus={editingStatusId === purchase.id}
                       onToggleSelect={toggleSelectItem}
                       onEdit={onEdit}
                       onDelete={openDelete}
-                      onStatusChange={handleStatusChange}
+                      onStatusChange={(id, newStatus) => Promise.resolve(handleStatusChange(id, newStatus))}
                       onEditStatus={setEditingStatusId}
                       getSupplierName={getSupplierName}
                     />

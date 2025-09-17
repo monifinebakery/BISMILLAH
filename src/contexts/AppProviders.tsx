@@ -102,6 +102,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
       
       {/* ✅ GLOBAL UI */}
       <Toaster 
+        className="toaster"
         position="top-center"
         closeButton
         offset={24}

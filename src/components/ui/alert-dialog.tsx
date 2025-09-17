@@ -16,7 +16,9 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-[150] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // Use very high z-index to ensure overlay always shows above layout chrome
+      // and below the dialog content itself
+      "fixed inset-0 z-[9998] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -34,7 +36,9 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-[150] grid w-full max-w-lg max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background py-4 sm:py-6 px-4 sm:px-6 lg:px-8 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-xl max-h-[70vh] overflow-y-auto overflow-x-hidden shadow-xl",
+        // Center reliably and float above any UI (navbars, sidebars, sheets, etc.)
+        // On mobile: take nearly full width with safe margins; on larger screens: cap width
+        "fixed left-1/2 top-1/2 z-[9999] grid w-full sm:w-auto max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background py-4 sm:py-6 px-4 sm:px-6 lg:px-8 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-xl max-h-[75vh] sm:max-h-[70vh] overflow-y-auto overflow-x-hidden shadow-xl",
         className
       )}
       {...props}

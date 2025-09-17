@@ -43,17 +43,23 @@
 
 /* Toast container improvements */
 .toaster {
-  --width: 356px;
+  /* Wider default width to prevent clipping long Indonesian copy */
+  --width: 420px;
   --front-z-index: 1000;
-  
-  /* Improved positioning */
-  position: fixed !important;
-  top: 16px !important;
-  right: 16px !important;
+  /* Let Sonner control positioning based on `position` prop */
   z-index: var(--front-z-index) !important;
-  
-  /* Mobile responsive */
+  /* Safety cap so it never exceeds viewport on small screens */
   max-width: calc(100vw - 32px);
+}
+
+/* Desktop: allow roomier notifications */
+@media (min-width: 1024px) {
+  .toaster { --width: 520px; }
+}
+
+/* Mobile: use almost full width with safe padding */
+@media (max-width: 640px) {
+  .toaster { --width: calc(100vw - 24px); }
 }
 
 /* Individual toast styling */
@@ -104,6 +110,9 @@
   line-height: 1.4 !important;
   margin: 0 0 4px 0 !important;
   padding-right: 32px !important; /* Space for close button */
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 /* Description styling */
@@ -113,6 +122,9 @@
   line-height: 1.3 !important;
   margin: 0 !important;
   padding-right: 32px !important; /* Space for close button */
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 /* Icon styling */

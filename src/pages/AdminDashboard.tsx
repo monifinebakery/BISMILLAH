@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, Users, DollarSign, Search, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentSession } from '@/services/auth';
-import { Skeleton, LoadingSkeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // URL Edge Function API Admin Anda
 const ADMIN_API_URL = 'https://kewhzkfvswbimmwtpymw.supabase.co/functions/v1/admin-api';
@@ -112,13 +112,55 @@ const AdminDashboard = () => {
           {/* Stats cards skeleton */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <LoadingSkeleton key={i} type="card" />
+              <div key={i} className="bg-white p-6 rounded-lg border animate-pulse">
+                <div className="space-y-3">
+                  <Skeleton variant="text" className="w-1/2" />
+                  <Skeleton variant="text" className="w-3/4 h-8" />
+                  <Skeleton variant="text" className="w-1/3" />
+                </div>
+              </div>
             ))}
           </div>
           {/* Payments table skeleton */}
-          <LoadingSkeleton type="table" />
+          <div className="bg-white rounded-lg border p-6 animate-pulse">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Skeleton variant="text" className="w-1/4 h-6" />
+                <Skeleton variant="rectangular" className="w-64 h-10" />
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 border rounded">
+                    <div className="flex-1 space-y-2">
+                      <Skeleton variant="text" className="w-1/2" />
+                      <Skeleton variant="text" className="w-1/3" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Skeleton variant="rectangular" width={80} height={32} />
+                      <Skeleton variant="rectangular" width={80} height={32} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           {/* Users table skeleton */}
-          <LoadingSkeleton type="table" />
+          <div className="bg-white rounded-lg border p-6 animate-pulse">
+            <div className="space-y-4">
+              <Skeleton variant="text" className="w-1/4 h-6" />
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 border rounded">
+                    <div className="flex-1 space-y-2">
+                      <Skeleton variant="text" className="w-1/2" />
+                      <Skeleton variant="text" className="w-1/3" />
+                    </div>
+                    <Skeleton variant="rectangular" width={80} height={24} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

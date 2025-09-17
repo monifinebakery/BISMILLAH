@@ -50,24 +50,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// ✅ TAMBAH: Loading skeleton untuk chart
+// ✅ IMPROVED: Safe loading skeleton untuk chart that won't break UI
 const ChartLoadingSkeleton = () => {
-  const heights = [60, 80, 45, 90, 70, 55, 85, 65];
-  
   return (
-    <div className="h-80 space-y-4 p-4">
-      <div className="flex justify-between items-center">
-        <Skeleton variant="text" className="w-32 h-6" />
-        <Skeleton variant="text" className="w-24 h-6" />
-      </div>
-      <div className="space-y-3">
-        {heights.map((height, i) => (
-          <div key={i} className="flex items-end space-x-2">
-            <Skeleton variant="rectangular" className="flex-1" height={height} />
-            <Skeleton variant="rectangular" className="flex-1" height={height + 20} />
-            <Skeleton variant="rectangular" className="flex-1" height={height + 10} />
-          </div>
-        ))}
+    <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
+      <div className="text-center space-y-4">
+        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-32 mx-auto animate-pulse"></div>
+          <div className="h-3 bg-gray-200 rounded w-24 mx-auto animate-pulse"></div>
+        </div>
       </div>
     </div>
   );

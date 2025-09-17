@@ -647,7 +647,7 @@ export class WarehouseSyncService {
       // Get current item data
       const { data: currentItem, error: itemError } = await supabase
         .from('bahan_baku')
-        .select(`\n          id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)         id,\n          user_id,\n          tanggal,\n          supplier,\n          total_pembelian,\n          status,\n          catatan,\n          created_at,\n          updated_at\n        `)
+        .select('id, user_id, nama, stok, harga_satuan, harga_rata_rata, satuan, minimum, created_at, updated_at')
         .eq('id', itemId)
         .eq('user_id', this.userId)
         .single();

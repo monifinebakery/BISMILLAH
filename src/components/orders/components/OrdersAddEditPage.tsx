@@ -32,6 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import OrderItemsSection from './dialogs/OrderItemsSection';
 
 // Import Breadcrumb components
 import {
@@ -511,262 +512,23 @@ const OrdersAddEditPage: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Add Items Controls */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Popover open={isRecipeSelectOpen} onOpenChange={setIsRecipeSelectOpen}>
-                <PopoverTrigger asChild>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="flex items-center gap-2 flex-1 sm:flex-none"
-                    disabled={recipesLoading}
-                  >
-                    <ChefHat className="h-4 w-4" />
-                    {recipesLoading ? 'Memuat...' : 'Dari Resep'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
-                  <Command>
-                    <div className="flex items-center border-b px-3">
-                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                      <CommandInput 
-                        placeholder="Cari resep..." 
-                        value={recipeSearchTerm}
-                        onValueChange={setRecipeSearchTerm}
-                      />
-                    </div>
-                    
-                    <div className="p-2 border-b">
-                      <Select
-                        value={selectedCategory}
-                        onValueChange={setSelectedCategory}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="Semua kategori" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Semua Kategori</SelectItem>
-                          {availableCategories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <CommandEmpty>Tidak ada resep ditemukan</CommandEmpty>
-                    
-                    <CommandGroup className="max-h-64 overflow-auto">
-                      {filteredRecipes.map((recipe) => {
-                        const methodIndicator = getCalculationMethodIndicator(recipe);
-                        const anyRec: any = recipe as any;
-                        const safeName = (anyRec.nama_resep ?? anyRec.namaResep ?? anyRec.nama ?? '') as string;
-                        const displayName = typeof safeName === 'string' && safeName.trim() ? safeName : 'Item';
-                        const rawPrice = (anyRec.harga_jual_porsi ?? anyRec.hargaJualPorsi) as number | undefined;
-                        const safePrice = typeof rawPrice === 'number' && !isNaN(rawPrice) ? rawPrice : undefined;
-                        const safeCategory = (anyRec.kategori_resep ?? anyRec.kategoriResep ?? '') as string;
-                        const rawJumlah = (anyRec.jumlah_porsi ?? anyRec.jumlahPorsi) as number | undefined;
-                        const jumlahPorsi = typeof rawJumlah === 'number' && rawJumlah > 0 ? rawJumlah : undefined;
-                        const rawHpp = (anyRec.hpp_per_porsi ?? anyRec.hppPerPorsi) as number | undefined;
-                        const hppPerPorsi = typeof rawHpp === 'number' && rawHpp > 0 ? rawHpp : undefined;
-
-                        return (
-                          <CommandItem
-                            key={recipe.id}
-                            onSelect={() => addItemFromRecipe(recipe)}
-                            className="flex flex-col items-start gap-2 p-3"
-                          >
-                            <div className="flex items-center justify-between w-full">
-                              <span className="font-medium">{displayName}</span>
-                              <div className="flex items-center gap-2">
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${methodIndicator.className}`}
-                                >
-                                  <methodIndicator.icon className="w-3 h-3 mr-1" />
-                                  {methodIndicator.label}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs">
-                                  {safePrice !== undefined ? `Rp ${safePrice.toLocaleString('id-ID')}` : 'Rp N/A'}
-                                </Badge>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 w-full">
-                              <span>{safeCategory}</span>
-                              {jumlahPorsi ? (
-                                <>
-                                  <span>•</span>
-                                  <span>{jumlahPorsi} porsi</span>
-                                </>
-                              ) : null}
-                              {hppPerPorsi !== undefined && (
-                                <>
-                                  <span>•</span>
-                                  <span>HPP: Rp {hppPerPorsi.toLocaleString('id-ID')}</span>
-                                </>
-                              )}
-                            </div>
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-
-              <Button 
-                type="button" 
-                onClick={addCustomItem} 
-                className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 flex-1 sm:flex-none"
-              >
-                <Plus className="h-4 w-4" />
-                Item Manual
-              </Button>
-            </div>
-
-            {/* Items List */}
-            {formData.items.length > 0 ? (
-              <div className="space-y-4">
-                {formData.items.map((item, index) => {
-                  const recipe = item.recipeId ? recipes.find(r => r.id === item.recipeId) : null;
-                  const methodIndicator = recipe ? getCalculationMethodIndicator(recipe) : null;
-                  
-                  return (
-                    <div key={item.id} className="p-4 border rounded-lg bg-gray-50 space-y-4">
-                      {/* Item Name and Actions */}
-                      <div className="flex items-center gap-3">
-                        <Input
-                          placeholder="Nama menu/item"
-                          value={item.name}
-                          onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                          disabled={item.isFromRecipe}
-                          className={`flex-1 ${item.isFromRecipe ? 'bg-blue-50' : ''}`}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(item.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      {/* Badges */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {item.isFromRecipe && (
-                          <Badge variant="outline" className="text-blue-600 border-blue-200">
-                            <ChefHat className="h-3 w-3 mr-1" />
-                            Resep
-                          </Badge>
-                        )}
-                        {methodIndicator && (
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ${methodIndicator.className}`}
-                          >
-                            <methodIndicator.icon className="w-3 h-3 mr-1" />
-                            {methodIndicator.label}
-                          </Badge>
-                        )}
-                        {item.recipeCategory && (
-                          <Badge variant="secondary" className="text-xs">
-                            {item.recipeCategory}
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      {/* Pricing Mode Selection (only for recipe items) */}
-                      {item.isFromRecipe && (item.pricePerPortion || item.pricePerPiece) && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <Label className="text-sm font-medium text-blue-900 mb-2 block">
-                            💰 Mode Harga Jual
-                          </Label>
-                          <RadioGroup
-                            value={item.pricingMode || 'per_portion'}
-                            onValueChange={(value) => updateItem(item.id, 'pricingMode', value)}
-                            className="flex flex-col sm:flex-row gap-3"
-                          >
-                            {item.pricePerPortion && (
-                              <div className="flex items-center space-x-2 bg-white p-2 rounded border">
-                                <RadioGroupItem value="per_portion" id={`${item.id}-per_portion`} />
-                                <Label htmlFor={`${item.id}-per_portion`} className="text-sm flex-1 cursor-pointer">
-                                  <div className="font-medium">Per Porsi</div>
-                                  <div className="text-xs text-gray-500">
-                                    Rp {item.pricePerPortion?.toLocaleString('id-ID')}
-                                  </div>
-                                </Label>
-                              </div>
-                            )}
-                            {item.pricePerPiece && (
-                              <div className="flex items-center space-x-2 bg-white p-2 rounded border">
-                                <RadioGroupItem value="per_piece" id={`${item.id}-per_piece`} />
-                                <Label htmlFor={`${item.id}-per_piece`} className="text-sm flex-1 cursor-pointer">
-                                  <div className="font-medium">Per Pcs</div>
-                                  <div className="text-xs text-gray-500">
-                                    Rp {item.pricePerPiece?.toLocaleString('id-ID')}
-                                  </div>
-                                </Label>
-                              </div>
-                            )}
-                          </RadioGroup>
-                        </div>
-                      )}
-                      
-                      {/* Quantity, Price, and Total */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div>
-                          <Label className="text-xs text-gray-500 font-medium">Jumlah</Label>
-                          <Input
-                            type="number"
-                            placeholder="Qty"
-                            value={item.quantity}
-                            onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                            min="1"
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-xs text-gray-500 font-medium">
-                            Harga {item.pricingMode === 'per_piece' ? 'Per Pcs' : 'Per Porsi'}
-                          </Label>
-                          <Input
-                            type="number"
-                            placeholder="Harga"
-                            value={item.price}
-                            onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
-                            min="0"
-                            className="mt-1"
-                            disabled={item.isFromRecipe}
-                          />
-                        </div>
-                        
-                        <div className="col-span-2">
-                          <Label className="text-xs text-gray-500 font-medium">Total Harga</Label>
-                          <div className="mt-1 p-2 bg-white border rounded-md">
-                            <div className="font-semibold text-lg text-green-700">
-                              Rp {item.total.toLocaleString('id-ID')}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {item.quantity} × Rp {item.price.toLocaleString('id-ID')}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 border rounded-lg bg-gray-50">
-                <ChefHat className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                <p className="mb-2">Belum ada item dalam pesanan</p>
-                <p className="text-sm">Pilih dari resep yang ada atau tambah item manual</p>
-              </div>
-            )}
+            <OrderItemsSection
+              items={formData.items as any}
+              recipes={recipes as any}
+              filteredRecipes={filteredRecipes as any}
+              availableCategories={availableCategories as any}
+              isRecipeSelectOpen={isRecipeSelectOpen}
+              setIsRecipeSelectOpen={setIsRecipeSelectOpen}
+              recipeSearchTerm={recipeSearchTerm}
+              setRecipeSearchTerm={setRecipeSearchTerm}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              addItemFromRecipe={addItemFromRecipe as any}
+              addCustomItem={addCustomItem}
+              updateItem={updateItem as any}
+              removeItem={removeItem}
+              getCalculationMethodIndicator={getCalculationMethodIndicator as any}
+            />
           </CardContent>
         </Card>
 

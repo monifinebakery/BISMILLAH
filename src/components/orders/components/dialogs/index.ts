@@ -12,7 +12,6 @@
 // const OrderForm = React.lazy(() => import('./dialogs/OrderForm'));
 
 // ✅ DIALOG IMPORTS: Reusable import functions
-const importOrderForm = () => import('./OrderForm');
 const importFollowUpTemplate = () => import('./FollowUpTemplateManager');
 const importBulkDeleteDialog = () => import('./BulkDeleteDialog');
 const importBulkEditDialog = () => import('./BulkEditDialog');
@@ -21,10 +20,8 @@ const importBulkEditDialog = () => import('./BulkEditDialog');
 export const ORDERS_DIALOG_GROUPS = {
   // Form dialogs - order management
   forms: () => Promise.all([
-    importOrderForm(),
     importFollowUpTemplate()
-  ]).then(([form, template]) => ({
-    OrderForm: form.default,
+  ]).then(([template]) => ({
     FollowUpTemplateManager: template.default
   })),
   
@@ -39,12 +36,10 @@ export const ORDERS_DIALOG_GROUPS = {
   
   // All dialogs
   all: () => Promise.all([
-    importOrderForm(),
     importBulkDeleteDialog(),
     importBulkEditDialog(),
     importFollowUpTemplate()
-  ]).then(([form, bulkDelete, bulkEdit, template]) => ({
-    OrderForm: form.default,
+  ]).then(([bulkDelete, bulkEdit, template]) => ({
     BulkDeleteDialog: bulkDelete.default,
     BulkEditDialog: bulkEdit.default,
     FollowUpTemplateManager: template.default
@@ -74,7 +69,6 @@ export const ORDERS_DIALOG_UTILS = {
   preloadCriticalDialogs: async () => {
     // Preload most commonly used dialogs
     return await Promise.all([
-      importOrderForm(),
       importFollowUpTemplate()
     ]);
   }
@@ -92,7 +86,6 @@ export const DIALOG_CONSTANTS = {
   
   // Dialog sizes
   sizes: {
-    OrderForm: 'max-w-4xl',
     BulkDeleteDialog: 'max-w-md',
     BulkEditDialog: 'max-w-2xl',
     FollowUpTemplateManager: 'max-w-3xl'
@@ -100,7 +93,6 @@ export const DIALOG_CONSTANTS = {
   
   // Loading messages
   loadingMessages: {
-    OrderForm: 'Memuat form pesanan...',
     BulkDeleteDialog: 'Memuat dialog hapus...',
     BulkEditDialog: 'Memuat dialog edit...',
     FollowUpTemplateManager: 'Memuat template manager...'
@@ -111,14 +103,13 @@ export const DIALOG_CONSTANTS = {
 export const ORDERS_DIALOGS_MIGRATION = {
   instructions: `
     // CURRENT (direct import - recommended for dialogs):
-    import { OrderForm, BulkDeleteDialog } from '@/components/orders/components/dialogs';
+    import { BulkDeleteDialog } from '@/components/orders/components/dialogs';
     
     // OR (lazy import - best for performance):
-    const OrderForm = React.lazy(() => import('@/components/orders/components/dialogs/OrderForm'));
     const BulkDeleteDialog = React.lazy(() => import('@/components/orders/components/dialogs/BulkDeleteDialog'));
     
     // OR (group import - for batch loading):
-    const { OrderForm, FollowUpTemplateManager } = await ORDERS_DIALOG_GROUPS.forms();
+    const { FollowUpTemplateManager } = await ORDERS_DIALOG_GROUPS.forms();
     const { BulkDeleteDialog, BulkEditDialog } = await ORDERS_DIALOG_GROUPS.bulk();
   `,
   

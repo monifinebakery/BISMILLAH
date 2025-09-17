@@ -53,7 +53,7 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
     return (
       <PaymentVerificationLoader 
         stage="checking"
-        timeout={15000}
+        timeout={10000}
         onTimeout={() => {
           logger.warn('Payment verification timeout');
           // Could show timeout fallback or retry

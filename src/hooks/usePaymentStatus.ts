@@ -6,12 +6,14 @@ import { getCurrentUser, isAuthenticated } from '@/services/auth';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 import { RealtimeChannel, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
+import { usePaymentDebounce } from './usePaymentDebounce';
 
 export interface PaymentStatus {
   id: string;
   user_id: string | null;
   order_id: string | null;
   pg_reference_id: string | null;
+  name: string | null; // ✅ Use 'name' from actual schema
   email: string | null;
   payment_status: string | null;
   is_paid: boolean;
@@ -22,7 +24,6 @@ export interface PaymentStatus {
   marketing_channel: string | null;
   campaign_id: string | null;
   currency: string | null;
-  customer_name: string | null;
 }
 
 export const usePaymentStatus = () => {
@@ -34,6 +35,13 @@ export const usePaymentStatus = () => {
   const authSubRef = useRef<any>(null);
   const currentUserRef = useRef<any>(null);
   const setupTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // ✅ OPTIMIZED: Use debounce hook untuk prevent spam
+  const { smartInvalidatePayment, cleanup } = usePaymentDebounce({ 
+    delay: 800, // Slight delay untuk better UX
+    maxWait: 3000, // Max wait 3 seconds
+    immediate: false 
+  });
 
   const { data: paymentStatus, isLoading, error, refetch } = useQuery<PaymentStatus | null, Error>({
     queryKey: ['paymentStatus'],
@@ -58,10 +66,10 @@ export const usePaymentStatus = () => {
         logger.hook('usePaymentStatus', 'Checking payment for user:', user.email);
       }
 
-      // ✅ STEP 1: Check for LINKED payments only
+      // ✅ STEP 1: Check for LINKED payments only (OPTIMIZED)
       const { data: linkedPayments, error: linkedError } = await supabase
         .from('user_payments')
-        .select('*')
+        .select('id,user_id,name,email,order_id,pg_reference_id,payment_status,is_paid,created_at,updated_at') // ✅ Use actual schema columns
         .eq('user_id', user.id)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -82,7 +90,11 @@ export const usePaymentStatus = () => {
           ...payment,
           created_at: safeParseDate(payment.created_at),
           updated_at: safeParseDate(payment.updated_at),
-          payment_date: safeParseDate(payment.payment_date),
+          payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
+          amount: null, // ✅ Not in schema, set null
+          currency: 'IDR', // ✅ Default currency
+          marketing_channel: null, // ✅ Not in schema, set null
+          campaign_id: null // ✅ Not in schema, set null
         };
       }
 
@@ -90,14 +102,14 @@ export const usePaymentStatus = () => {
         logger.error('Error checking linked payments:', linkedError);
       }
 
-      // ✅ STEP 2: Check for UNLINKED payments (SIMPLIFIED - only by email)
+      // ✅ STEP 2: Check for UNLINKED payments (OPTIMIZED)
       if (process.env.NODE_ENV === 'development') {
         logger.hook('usePaymentStatus', 'Checking for unlinked payments...');
       }
       
       const { data: unlinkedPayments, error: unlinkedError } = await supabase
         .from('user_payments')
-        .select('*')
+        .select('id,user_id,name,email,order_id,pg_reference_id,payment_status,is_paid,created_at,updated_at') // ✅ Use actual schema columns
         .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -118,7 +130,11 @@ export const usePaymentStatus = () => {
           ...payment,
           created_at: safeParseDate(payment.created_at),
           updated_at: safeParseDate(payment.updated_at),
-          payment_date: safeParseDate(payment.payment_date),
+          payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
+          amount: null, // ✅ Not in schema, set null
+          currency: 'IDR', // ✅ Default currency
+          marketing_channel: null, // ✅ Not in schema, set null
+          campaign_id: null // ✅ Not in schema, set null
         };
       }
 
@@ -133,26 +149,31 @@ export const usePaymentStatus = () => {
       return null;
     },
     enabled: true,
-    staleTime: 10000, // 10 seconds
-    cacheTime: 300000, // 5 minutes
-    refetchOnWindowFocus: true,
+    staleTime: 60000, // ✅ OPTIMIZED: 1 minute (longer cache for better UX)
+    cacheTime: 900000, // ✅ OPTIMIZED: 15 minutes (longer cache)
+    refetchOnWindowFocus: false, // ✅ FIXED: Don't refetch on focus untuk speed
+    refetchOnMount: false, // ✅ OPTIMIZED: Don't refetch on mount if data exists
+    refetchOnReconnect: 'always', // ✅ OPTIMIZED: Only refetch on reconnect if needed
+    refetchInterval: false, // ✅ OPTIMIZED: No polling, rely on realtime only
+    refetchIntervalInBackground: false,
+    notifyOnChangeProps: ['data', 'error'], // ✅ OPTIMIZED: Only notify on data/error changes
     retry: (failureCount, error) => {
       if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1; // ✅ FIXED: Only 1 retry instead of 2
     },
   });
 
-  // ✅ Debounced invalidation to prevent spam
-  const debouncedInvalidate = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-    
-    // Optional immediate refetch after slight delay
-    setTimeout(() => {
-      queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
-    }, 500);
-  }, [queryClient]);
+  // ✅ REMOVED: Now using dedicated debounce hook instead
+  // const debouncedInvalidate = useCallback(() => {
+  //   queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+  //   
+  //   // Optional immediate refetch after slight delay
+  //   setTimeout(() => {
+  //     queryClient.refetchQueries({ queryKey: ['paymentStatus'] });
+  //   }, 500);
+  // }, [queryClient]);
 
   // ✅ Fixed real-time subscription - no more spam!
   useEffect(() => {
@@ -222,8 +243,8 @@ export const usePaymentStatus = () => {
                   });
                 }
                 
-                // ✅ Use debounced invalidation
-                debouncedInvalidate();
+                // ✅ OPTIMIZED: Use smart invalidation dengan background refetch
+                smartInvalidatePayment();
               }
             )
             .subscribe((status) => {
@@ -298,6 +319,9 @@ export const usePaymentStatus = () => {
         authSubRef.current.data.subscription.unsubscribe();
         authSubRef.current = null;
       }
+      
+      // ✅ OPTIMIZED: Clean up debounce timers
+      cleanup();
       
       currentUserRef.current = null;
     };
@@ -382,7 +406,7 @@ export const usePaymentStatus = () => {
     needsOrderLinking: finalNeedsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
-    userName: paymentStatus?.customer_name || null,
+    userName: paymentStatus?.name || null, // ✅ Use 'name' from schema
     hasValidPayment: finalIsPaid,
     hasValidLinkedPayment: bypassAuth ? true : hasValidLinkedPayment,
     isLinkedToCurrentUser: bypassAuth ? true : isLinkedToCurrentUser

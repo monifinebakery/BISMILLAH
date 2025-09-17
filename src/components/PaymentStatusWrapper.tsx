@@ -55,7 +55,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
       <PaymentVerificationLoader 
         stage="verifying"
         message="Memeriksa Status Pembayaran"
-        timeout={20000}
+        timeout={10000}
         onTimeout={() => {
           console.warn('Payment verification timeout in wrapper');
         }}
@@ -139,7 +139,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
       stage="linking"
       message=""
       showProgress={false}
-      timeout={10000}
+      timeout={8000}
       onTimeout={() => {
         console.warn('Final fallback timeout');
       }}

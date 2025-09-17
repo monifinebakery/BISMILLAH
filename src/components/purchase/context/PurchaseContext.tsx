@@ -99,17 +99,29 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const { addActivity } = useActivity();
   
-  // ✅ FIXED: Defensive error handling for useFinancial hook
+  // ✅ FIXED: Safe financial context access without hooks in useEffect
+  let financialContext: any = null;
   let addFinancialTransaction: any = async () => false;
   let deleteFinancialTransaction: any = async () => false;
+  
   try {
-    const financialContext = useFinancial();
-    addFinancialTransaction = financialContext?.addFinancialTransaction || (async () => false);
-    deleteFinancialTransaction = financialContext?.deleteFinancialTransaction || (async () => false);
+    // Try to get financial context directly, without useEffect
+    financialContext = useFinancial();
+    if (financialContext) {
+      addFinancialTransaction = financialContext.addFinancialTransaction || (async () => false);
+      deleteFinancialTransaction = financialContext.deleteFinancialTransaction || (async () => false);
+      logger.debug('PurchaseContext: FinancialContext available');
+    }
   } catch (error) {
-    console.warn('Failed to get financial context in PurchaseContext:', error);
-    addFinancialTransaction = async () => false;
-    deleteFinancialTransaction = async () => false;
+    logger.warn('PurchaseContext: FinancialContext not available, using fallbacks:', error);
+    addFinancialTransaction = async () => {
+      logger.debug('PurchaseContext: addFinancialTransaction not available, skipping');
+      return false;
+    };
+    deleteFinancialTransaction = async () => {
+      logger.debug('PurchaseContext: deleteFinancialTransaction not available, skipping');
+      return false;
+    };
   }
   
   const { suppliers } = useSupplier();

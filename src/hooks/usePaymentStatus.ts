@@ -247,15 +247,18 @@ export const usePaymentStatus = () => {
                 smartInvalidatePayment();
               }
             )
-            .subscribe((status) => {
+            .subscribe((status, err) => {
               if (!mounted) return;
 
               if (status === 'SUBSCRIBED') {
                 if (process.env.NODE_ENV === 'development') {
                   logger.success('Realtime subscription active for payment changes');
                 }
+              } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                logger.warn(`Payment realtime subscription ${status.toLowerCase()}:`, err);
+                // Don't treat these as hard errors, just log them
               } else if (status === 'SUBSCRIPTION_ERROR') {
-                logger.error('Realtime subscription failed');
+                logger.error('Realtime subscription failed:', err);
               }
             });
         }, 200);

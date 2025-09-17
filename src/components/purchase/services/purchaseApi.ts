@@ -160,10 +160,52 @@ export class PurchaseApiService {
     }
   }
 
+  /** Get purchases with pagination */
+  static async fetchPurchasesPaginated(
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ data: Purchase[]; total: number; totalPages: number; error: string | null }> {
+    try {
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const { count, error: countError } = await supabase
+        .from('purchases')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      if (countError) throw new Error(countError.message);
+
+      // Get paginated data
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
+        .eq('user_id', userId)
+        .order('tanggal', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) throw new Error(error.message);
+
+      const total = count || 0;
+      const totalPages = Math.ceil(total / limit) || 1;
+
+      return {
+        data: transformPurchasesFromDB(data ?? []),
+        total,
+        totalPages,
+        error: null,
+      };
+    } catch (err: any) {
+      logger.error('Error fetching paginated purchases:', err);
+      return { data: [], total: 0, totalPages: 0, error: err.message || 'Gagal memuat data pembelian' };
+    }
+  }
+
   /** Get one purchase */
   static async fetchPurchaseById(id: string, userId: string): Promise<{ data: Purchase | null; error: string | null }> {
     try {
-      console.log('🔍 fetchPurchaseById called with:', { id, userId });
+      logger.debug('🔍 fetchPurchaseById called with:', { id, userId });
       const { data, error } = await supabase
         .from('purchases')
         .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
@@ -173,20 +215,58 @@ export class PurchaseApiService {
 
       // Handle PGRST116 error (no rows found) gracefully
       if (error) {
-        console.log('⚠️ fetchPurchaseById error:', { code: error.code, message: error.message, id, userId });
+        logger.warn('⚠️ fetchPurchaseById error:', { code: error.code, message: error.message, id, userId });
         if (error.code === 'PGRST116') {
-          console.log('ℹ️ PGRST116 handled gracefully in fetchPurchaseById');
+          logger.info('ℹ️ PGRST116 handled gracefully in fetchPurchaseById');
           return { data: null, error: null }; // No data found, but not an error
         }
         throw new Error(error.message);
       }
-      console.log('✅ fetchPurchaseById success:', { hasData: !!data, id });
+      logger.info('✅ fetchPurchaseById success:', { hasData: !!data, id });
       return { data: data ? transformPurchaseFromDB(data) : null, error: null };
     } catch (err: any) {
-      console.error('❌ fetchPurchaseById catch:', { err, id, userId });
+      logger.error('❌ fetchPurchaseById catch:', { err, id, userId });
       logger.error('Error fetching purchase:', err);
       return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
+  }
+
+  /** Create then fetch created purchase */
+  static async createPurchaseAndFetch(
+    purchaseData: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
+    userId: string
+  ): Promise<{ data: Purchase | null; error: string | null }> {
+    const res = await this.createPurchase(purchaseData, userId);
+    if (!res.success || !res.purchaseId) {
+      return { data: null, error: res.error || 'Gagal membuat pembelian' };
+    }
+    return this.fetchPurchaseById(res.purchaseId, userId);
+  }
+
+  /** Update then fetch updated purchase */
+  static async updatePurchaseAndFetch(
+    id: string,
+    updatedData: Partial<Purchase>,
+    userId: string
+  ): Promise<{ data: Purchase | null; error: string | null }> {
+    const res = await this.updatePurchase(id, updatedData, userId);
+    if (!res.success) {
+      return { data: null, error: res.error || 'Gagal memperbarui pembelian' };
+    }
+    return this.fetchPurchaseById(id, userId);
+  }
+
+  /** Set status then fetch updated purchase */
+  static async setStatusAndFetch(
+    id: string,
+    userId: string,
+    newStatus: Purchase['status']
+  ): Promise<{ data: Purchase | null; error: string | null }> {
+    const res = await this.setPurchaseStatus(id, userId, newStatus);
+    if (!res.success) {
+      return { data: null, error: res.error || 'Gagal update status' };
+    }
+    return this.fetchPurchaseById(id, userId);
   }
 
   /** Create purchase (status biasanya 'pending' dulu) */
@@ -242,7 +322,7 @@ export class PurchaseApiService {
         .eq('user_id', userId)
         .single();
       if (fetchErr) {
-        console.log('⚠️ updatePurchase fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
+        logger.warn('⚠️ updatePurchase fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
         if (fetchErr.code === 'PGRST116') {
           return { success: false, error: 'Pembelian tidak ditemukan' };
         }
@@ -272,12 +352,12 @@ export class PurchaseApiService {
         .eq('user_id', userId)
         .single();
       if (fetchUpdatedErr) {
-        console.log('⚠️ updatePurchase fetchUpdatedErr:', { code: fetchUpdatedErr.code, message: fetchUpdatedErr.message, id, userId });
+        logger.warn('⚠️ updatePurchase fetchUpdatedErr:', { code: fetchUpdatedErr.code, message: fetchUpdatedErr.message, id, userId });
         if (fetchUpdatedErr.code !== 'PGRST116') {
           throw new Error(fetchUpdatedErr.message);
         }
         // PGRST116 means row not found after update, which shouldn't happen but we'll handle it gracefully
-        console.log('ℹ️ PGRST116 after purchase update - purchase may have been deleted by another process');
+        logger.info('ℹ️ PGRST116 after purchase update - purchase may have been deleted by another process');
       }
       const updated = updatedRow ? transformPurchaseFromDB(updatedRow) : null;
 
@@ -344,7 +424,7 @@ export class PurchaseApiService {
         .single();
       
       if (fetchErr) {
-        console.log('⚠️ setPurchaseStatus fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
+        logger.warn('⚠️ setPurchaseStatus fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
         if (fetchErr.code === 'PGRST116') {
           return { success: false, error: 'Pembelian tidak ditemukan' };
         }
@@ -476,7 +556,7 @@ export class PurchaseApiService {
       
       // If record doesn't exist, that's fine for deletion
       if (fetchErr) {
-        console.log('⚠️ deletePurchase fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
+        logger.warn('⚠️ deletePurchase fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
         if (fetchErr.code !== 'PGRST116') {
           logger.warn('Warning fetching purchase for deletion:', fetchErr.message);
         } else {

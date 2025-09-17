@@ -18,6 +18,7 @@ import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+import { ensureBahanBakuIdsForItems } from '@/components/warehouse/utils/warehouseItemUtils';
 import { PurchaseApiService } from '../services/purchaseApi';
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -25,19 +26,9 @@ import {
   transformPurchaseFromDB,
   transformPurchaseForDB,
   transformPurchaseUpdateForDB,
-  transformPurchasesFromDB,
 } from '../utils/purchaseTransformers';
 import { validatePurchaseData, getStatusDisplayText } from '../utils/purchaseHelpers';
-
-// ------------------- Query Keys -------------------
-// ✅ STANDARDIZED: Query Keys for consistent patterns across modules
-const purchaseQueryKeys = {
-  all: ['purchases'] as const,
-  list: (userId?: string) => [...purchaseQueryKeys.all, 'list', userId] as const,
-  // ✅ ADD: Additional keys for comprehensive functionality
-  stats: (userId?: string) => [...purchaseQueryKeys.all, 'stats', userId] as const,
-  byStatus: (userId?: string, status?: string) => [...purchaseQueryKeys.all, 'byStatus', userId, status] as const,
-} as const;
+import { purchaseQueryKeys } from '../query/purchase.queryKeys';
 
 // ✅ WAREHOUSE QUERY KEYS: Untuk invalidation
 const warehouseQueryKeys = {
@@ -47,14 +38,9 @@ const warehouseQueryKeys = {
 
 // ------------------- API helpers -------------------
 const fetchPurchases = async (userId: string): Promise<Purchase[]> => {
-  const { data, error } = await supabase
-    .from('purchases')
-    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-    .eq('user_id', userId)
-    .order('tanggal', { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return transformPurchasesFromDB(data || []);
+  const { data, error } = await PurchaseApiService.fetchPurchases(userId);
+  if (error) throw new Error(error);
+  return data || [];
 };
 
 // ✅ NEW: Fungsi untuk mengambil data purchase dengan paginasi
@@ -63,101 +49,35 @@ const fetchPurchasesPaginated = async (
   page: number = 1,
   limit: number = 10
 ): Promise<{ data: Purchase[]; total: number; totalPages: number }> => {
-  const offset = (page - 1) * limit;
-
-  // Ambil total count
-  const { count, error: countError } = await supabase
-    .from('purchases')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
-
-  if (countError) throw new Error(countError.message);
-
-  // Ambil data dengan paginasi
-  const { data, error } = await supabase
-    .from('purchases')
-    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-    .eq('user_id', userId)
-    .order('tanggal', { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (error) throw new Error(error.message);
-
-  const totalPages = Math.ceil((count || 0) / limit);
-
-  return {
-    data: transformPurchasesFromDB(data || []),
-    total: count || 0,
-    totalPages
-  };
+  const { data, total, totalPages, error } = await PurchaseApiService.fetchPurchasesPaginated(userId, page, limit);
+  if (error) throw new Error(error);
+  return { data, total, totalPages };
 };
 
-// CREATE via service (manual warehouse sync handled in service), then fetch the created row
+// CREATE via service and fetch fresh row in service
 const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string) => {
-  console.log('🆕 apiCreatePurchase called');
-  const res = await PurchaseApiService.createPurchase(payload, userId);
-  if (!res.success || !res.purchaseId) throw new Error(res.error || 'Gagal membuat pembelian');
-  console.log('🔍 apiCreatePurchase fetching created record:', res.purchaseId);
-  const { data, error } = await supabase
-    .from('purchases')
-    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-    .eq('id', res.purchaseId)
-    .eq('user_id', userId)
-    .single();
-  if (error) {
-    console.log('⚠️ apiCreatePurchase error:', { code: error.code, message: error.message, purchaseId: res.purchaseId });
-    if (error.code === 'PGRST116') {
-      throw new Error('Pembelian tidak ditemukan setelah dibuat');
-    }
-    throw new Error(error.message);
-  }
-  console.log('✅ apiCreatePurchase success');
-  return transformPurchaseFromDB(data);
+  logger.debug('🆕 apiCreatePurchase called');
+  const { data, error } = await PurchaseApiService.createPurchaseAndFetch(payload, userId);
+  if (error || !data) throw new Error(error || 'Gagal membuat pembelian');
+  logger.info('✅ apiCreatePurchase success', { id: data.id });
+  return data;
 };
 
 const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId: string) => {
-  console.log('✏️ apiUpdatePurchase called:', { id });
-  const res = await PurchaseApiService.updatePurchase(id, updates, userId);
-  if (!res.success) throw new Error(res.error || 'Gagal memperbarui pembelian');
-  console.log('🔍 apiUpdatePurchase fetching updated record:', id);
-  const { data, error } = await supabase
-    .from('purchases')
-    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-    .eq('id', id)
-    .eq('user_id', userId)
-    .single();
-  if (error) {
-    console.log('⚠️ apiUpdatePurchase error:', { code: error.code, message: error.message, id });
-    if (error.code === 'PGRST116') {
-      throw new Error('Pembelian tidak ditemukan');
-    }
-    throw new Error(error.message);
-  }
-  console.log('✅ apiUpdatePurchase success');
-  return transformPurchaseFromDB(data);
+  logger.debug('✏️ apiUpdatePurchase called:', { id });
+  const { data, error } = await PurchaseApiService.updatePurchaseAndFetch(id, updates, userId);
+  if (error || !data) throw new Error(error || 'Gagal memperbarui pembelian');
+  logger.info('✅ apiUpdatePurchase success', { id: data.id });
+  return data;
 };
 
-// Status via service (service handles manual warehouse sync), then fetch fresh row
+// Status via service (service handles manual warehouse sync) and fetch within service
 const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatus) => {
-  console.log('📊 apiSetStatus called:', { id, newStatus });
-  const res = await PurchaseApiService.setPurchaseStatus(id, userId, newStatus);
-  if (!res.success) throw new Error(res.error || 'Gagal update status');
-  console.log('🔍 apiSetStatus fetching updated record:', id);
-  const { data, error } = await supabase
-    .from('purchases')
-    .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-    .eq('id', id)
-    .eq('user_id', userId)
-    .single();
-  if (error) {
-    console.log('⚠️ apiSetStatus error:', { code: error.code, message: error.message, id, newStatus });
-    if (error.code === 'PGRST116') {
-      throw new Error('Pembelian tidak ditemukan');
-    }
-    throw new Error(error.message);
-  }
-  console.log('✅ apiSetStatus success');
-  return transformPurchaseFromDB(data);
+  logger.debug('📊 apiSetStatus called:', { id, newStatus });
+  const { data, error } = await PurchaseApiService.setStatusAndFetch(id, userId, newStatus);
+  if (error || !data) throw new Error(error || 'Gagal update status');
+  logger.info('✅ apiSetStatus success', { id: data.id, status: data.status });
+  return data;
 };
 
 const apiDeletePurchase = async (id: string, userId: string) => {
@@ -223,101 +143,15 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
 
-  // ✅ FIXED: Pastikan setiap item memiliki ID bahan baku dengan race condition protection
+  // ✅ Moved to util: ensure all items have bahanBakuId (decoupled from context)
   const ensureBahanBakuIds = useCallback(
     async (items: PurchaseItem[], supplierId: string): Promise<PurchaseItem[]> => {
-      const results: PurchaseItem[] = [];
-      
-      // Process items sequentially to avoid race conditions
-      for (const item of items) {
-        if (item.bahanBakuId?.trim()) {
-          results.push(item);
-          continue;
-        }
-        
-        // Check if bahan baku with same name already exists
-        // Prefer match by name + satuan + same supplier
-        let existingBahanBaku = (bahanBaku as any[])?.find((bb: any) => 
-          bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
-          (bb.satuan?.toLowerCase()?.trim() || '') === (item.satuan?.toLowerCase()?.trim() || '') &&
-          bb.supplier === supplierId
-        );
-        // Fallback: match by name + satuan regardless of supplier (accumulate by material)
-        if (!existingBahanBaku) {
-          existingBahanBaku = (bahanBaku as any[])?.find((bb: any) => 
-            bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
-            (bb.satuan?.toLowerCase()?.trim() || '') === (item.satuan?.toLowerCase()?.trim() || '')
-          );
-        }
-        
-        if (existingBahanBaku) {
-          results.push({ ...item, bahanBakuId: existingBahanBaku.id });
-          continue;
-        }
-        
-        // Create new bahan baku with retry logic for race conditions
-        let retryCount = 0;
-        const maxRetries = 3;
-        let success = false;
-        let newId = crypto.randomUUID();
-        
-        while (!success && retryCount < maxRetries) {
-          try {
-            console.log(`🌱 [BAHAN BAKU] Creating new bahan baku (attempt ${retryCount + 1}):`, item.nama);
-            
-            await addBahanBaku({
-              id: newId,
-              nama: item.nama,
-              kategori: 'Lainnya',
-              // Stok awal 0; penambahan stok dilakukan saat status purchase menjadi 'completed'
-              stok: 0,
-              minimum: 0,
-              satuan: item.satuan || '-',
-              harga: item.unitPrice || 0,
-              supplier: supplierId,
-            });
-            
-            success = true;
-            console.log('✅ [BAHAN BAKU] Successfully created:', item.nama);
-            results.push({ ...item, bahanBakuId: newId });
-            
-          } catch (error: any) {
-            retryCount++;
-            console.log(`⚠️ [BAHAN BAKU] Creation attempt ${retryCount} failed:`, error?.message);
-            
-            // Check if it's a duplicate error
-            if (error?.message?.includes('duplicate') || error?.code === '23505') {
-              console.log('🔄 [BAHAN BAKU] Duplicate detected, checking for existing record...');
-              
-              // Try to find the existing record that was just created by another process
-              const newExisting = (bahanBaku as any[])?.find((bb: any) => 
-                bb.nama?.toLowerCase()?.trim() === item.nama?.toLowerCase()?.trim() &&
-                bb.supplier === supplierId
-              );
-              
-              if (newExisting) {
-                console.log('✅ [BAHAN BAKU] Found existing record after duplicate error:', newExisting.nama);
-                results.push({ ...item, bahanBakuId: newExisting.id });
-                success = true;
-                break;
-              }
-              
-              // Generate new ID for next attempt
-              newId = crypto.randomUUID();
-            }
-            
-            if (retryCount >= maxRetries) {
-              console.error('❌ [BAHAN BAKU] Failed to create after max retries:', item.nama);
-              // Use the item without bahanBakuId as fallback
-              results.push(item);
-            }
-          }
-        }
-      }
-      
-      return results;
+      return ensureBahanBakuIdsForItems(items, supplierId, {
+        bahanBaku,
+        addBahanBaku,
+      });
     },
-    [addBahanBaku, bahanBaku]
+    [bahanBaku, addBahanBaku]
   );
 
   // ------------------- Query (list) -------------------
@@ -426,6 +260,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
+      // ✅ INVALIDATE PURCHASE STATS
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
 
       // Info
       const totalValue = formatCurrency((((newRow as any).totalNilai ?? (newRow as any).total_nilai) as number));
@@ -463,13 +299,15 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { prev, id };
     },
     onSuccess: (fresh, _vars, ctx) => {
-      console.log('✅ Update mutation success:', fresh.id);
+      logger.info('✅ Update mutation success:', { id: fresh.id });
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
       // ✅ OPTIMIZED: Only invalidate warehouse if items changed
       if (_vars.updates.items || _vars.updates.status) {
         invalidateWarehouseData();
       }
+      // ✅ INVALIDATE PURCHASE STATS
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
 
       toast.success('Pembelian diperbarui. (Stok akan disesuaikan otomatis bila diperlukan)');
     },
@@ -482,27 +320,29 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // SET STATUS (optimistic)
   const statusMutation = useMutation({
     mutationFn: ({ id, newStatus }: { id: string; newStatus: PurchaseStatus }) => {
-      console.log('🔄 Status mutation called with:', { id, newStatus });
+      logger.debug('🔄 Status mutation called with:', { id, newStatus });
       return apiSetStatus(id, user!.id, newStatus);
     },
     onMutate: async ({ id, newStatus }) => {
-      console.log('🔄 Status mutation onMutate with:', { id, newStatus });
+      logger.debug('🔄 Status mutation onMutate with:', { id, newStatus });
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
       setCacheList((old) => old.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
       return { prev, id, newStatus };
     },
     onSuccess: (fresh, _vars, ctx) => {
-      console.log('✅ Status mutation onSuccess with:', fresh);
+      logger.info('✅ Status mutation onSuccess with:', { id: fresh.id, status: fresh.status });
       setCacheList((old) => old.map((p) => (p.id === ctx?.id ? fresh : p)));
 
       // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
+      // ✅ INVALIDATE PURCHASE STATS
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
 
       toast.success(`Status diubah ke "${getStatusDisplayText(fresh.status)}". Stok gudang akan tersinkron otomatis.`);
 
       // 🔍 DEBUG: Log mutation context for debugging
-      console.log('🔍 Status mutation context:', {
+      logger.debug('🔍 Status mutation context:', {
         id: ctx?.id,
         newStatus: ctx?.newStatus,
         previousData: ctx?.prev?.find(p => p.id === ctx?.id),
@@ -515,20 +355,20 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // ✅ FALLBACK: If prevPurchase not available in context, try to find it or check database
       if (!prevPurchase) {
-        console.log('⚠️ Previous purchase data not found in mutation context, trying fallback methods');
+        logger.warn('⚠️ Previous purchase data not found in mutation context, trying fallback methods');
         
         // Try to find in current cache first
         const currentCachePurchase = findPurchase(fresh.id);
         if (currentCachePurchase) {
           prevPurchase = currentCachePurchase;
-          console.log('📋 Found previous purchase data in current cache');
+          logger.debug('📋 Found previous purchase data in current cache');
         } else {
           // As a last resort, check if fresh status is 'completed' and create transaction anyway
           // This ensures financial sync works even when context is missing
-          console.log('📋 No previous purchase data available, will create financial transaction if status is completed');
+          logger.debug('📋 No previous purchase data available, will create financial transaction if status is completed');
           
           if (fresh.status === 'completed') {
-            console.log('💰 Creating financial transaction for completed purchase (fallback mode)');
+            logger.info('💰 Creating financial transaction for completed purchase (fallback mode)');
             
             void addFinancialTransaction({
               type: 'expense',
@@ -542,6 +382,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             // Invalidate related caches
             queryClient.invalidateQueries({ queryKey: ['financial'] });
             queryClient.invalidateQueries({ queryKey: ['profit-analysis'] });
+            queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
             
             window.dispatchEvent(new CustomEvent('purchase:completed', {
               detail: { purchaseId: fresh.id, supplier: fresh.supplier, total_nilai: (((fresh as any).totalNilai ?? (fresh as any).total_nilai) as number) }
@@ -551,7 +392,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       
       if (prevPurchase) {
-        console.log('🔍 Purchase status comparison:', {
+        logger.debug('🔍 Purchase status comparison:', {
           previousStatus: prevPurchase.status,
           newStatus: fresh.status,
           willCreateTransaction: prevPurchase.status !== 'completed' && fresh.status === 'completed'
@@ -559,7 +400,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
           // Tambahkan transaksi ketika status berubah ke completed (expense)
-          console.log('💰 Creating financial transaction for completed purchase:', {
+          logger.info('💰 Creating financial transaction for completed purchase:', {
             purchaseId: fresh.id,
             amount: (((fresh as any).totalNilai ?? (fresh as any).total_nilai) as number),
             supplier: getSupplierName(fresh.supplier),
@@ -584,25 +425,26 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
           
           // ✅ INVALIDATE PROFIT ANALYSIS: Purchase completion affects profit calculations
-          console.log('📈 Invalidating profit analysis cache after purchase completion');
+          logger.debug('📈 Invalidating profit analysis cache after purchase completion');
           queryClient.invalidateQueries({ 
             queryKey: ['profit-analysis'] 
           });
           
           // ✅ DISPATCH PURCHASE COMPLETION EVENT: Trigger WAC refresh in profit analysis
-          console.log('🔄 Dispatching purchase completion event for WAC refresh');
+          logger.debug('🔄 Dispatching purchase completion event for WAC refresh');
           window.dispatchEvent(new CustomEvent('purchase:completed', {
             detail: { purchaseId: fresh.id, supplier: fresh.supplier, total_nilai: (((fresh as any).totalNilai ?? (fresh as any).total_nilai) as number) }
           }));
           
           // ✅ INVALIDATE FINANCIAL REPORTS: Purchase completion creates financial transaction
-          console.log('💰 Invalidating financial transaction cache after purchase completion');
+          logger.debug('💰 Invalidating financial transaction cache after purchase completion');
           queryClient.invalidateQueries({ 
             queryKey: ['financial'] 
           });
+          queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
         } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
           // Hapus transaksi ketika status berubah dari completed (berdasarkan related_id)
-          console.log('💰 Deleting financial transaction for reverted purchase:', fresh.id);
+          logger.info('💰 Deleting financial transaction for reverted purchase:', fresh.id);
           
           // Cari transaksi terkait lalu hapus
           (async () => {
@@ -620,23 +462,24 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               }
               
               // ✅ INVALIDATE PROFIT ANALYSIS: Financial transaction deletion affects profit calculations
-              console.log('📈 Invalidating profit analysis cache after financial transaction deletion');
+              logger.debug('📈 Invalidating profit analysis cache after financial transaction deletion');
               queryClient.invalidateQueries({ 
                 queryKey: ['profit-analysis'] 
               });
               
               // ✅ INVALIDATE FINANCIAL REPORTS: Financial transaction deletion affects reports
-              console.log('💰 Invalidating financial transaction cache after deletion');
+              logger.debug('💰 Invalidating financial transaction cache after deletion');
               queryClient.invalidateQueries({ 
                 queryKey: ['financial'] 
               });
+              queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
             } catch (e) {
               logger.warn('Gagal membersihkan transaksi keuangan saat revert purchase:', e);
             }
           })();
         }
       } else {
-        console.warn('⚠️ Previous purchase data not found in mutation context for:', fresh.id);
+        logger.warn('⚠️ Previous purchase data not found in mutation context for:', fresh.id);
       }
     },
     onError: (err, _vars, ctx) => {
@@ -657,11 +500,13 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     onSuccess: async (_res, id, ctx) => {
       // ✅ INVALIDATE WAREHOUSE
       invalidateWarehouseData();
+      // ✅ INVALIDATE PURCHASE STATS
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
       
       const p = ctx?.prev?.find((x) => x.id === id);
       if (p) {
         // ✅ FIXED: Delete related financial transactions when purchase is deleted
-        console.log('💰 Cleaning up financial transactions for deleted purchase:', id);
+        logger.info('💰 Cleaning up financial transactions for deleted purchase:', id);
         try {
           const { data, error } = await supabase
             .from('financial_transactions')
@@ -671,14 +516,14 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             .eq('type', 'expense');
           
           if (error) {
-            console.error('⚠️ Error fetching financial transactions for cleanup:', error);
+            logger.error('⚠️ Error fetching financial transactions for cleanup:', error);
           } else if (data && data.length > 0) {
-            console.log(`🗑️ Found ${data.length} financial transaction(s) to delete for purchase:`, id);
+            logger.info(`🗑️ Found ${data.length} financial transaction(s) to delete for purchase:`, id);
             const deletePromises = data.map((transaction: any) => 
               deleteFinancialTransaction(transaction.id)
             );
             await Promise.all(deletePromises);
-            console.log('✅ Financial transactions cleaned up successfully');
+            logger.info('✅ Financial transactions cleaned up successfully');
             
             // ✅ INVALIDATE FINANCIAL REPORTS: Financial transaction deletion affects reports
             queryClient.invalidateQueries({ 
@@ -690,10 +535,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               queryKey: ['profit-analysis'] 
             });
           } else {
-            console.log('ℹ️ No financial transactions found for purchase:', id);
+            logger.info('ℹ️ No financial transactions found for purchase:', id);
           }
         } catch (e) {
-          console.error('⚠️ Failed to cleanup financial transactions for deleted purchase:', e);
+          logger.error('⚠️ Failed to cleanup financial transactions for deleted purchase:', e);
           logger.warn('Gagal membersihkan transaksi keuangan saat hapus purchase:', e);
         }
         
@@ -838,7 +683,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [suppliers?.length]);
 
   const refreshPurchases = useCallback(async () => {
-    console.log('🔄 Manual refresh purchases triggered');
+    logger.debug('🔄 Manual refresh purchases triggered');
     await queryClient.invalidateQueries({ 
       queryKey: purchaseQueryKeys.list(user?.id),
       refetchType: 'active' // Force active queries to refetch immediately
@@ -859,7 +704,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         window.clearTimeout(debounceTimerRef.current);
       }
       debounceTimerRef.current = window.setTimeout(() => {
-        console.log('🔄 Realtime invalidating purchase data');
+        logger.debug('🔄 Realtime invalidating purchase data');
         // ✅ FIXED: Force refetch for realtime updates
         queryClient.invalidateQueries({ 
           queryKey: purchaseQueryKeys.list(user.id),

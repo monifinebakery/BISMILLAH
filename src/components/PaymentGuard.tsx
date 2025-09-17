@@ -54,9 +54,9 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
     return (
       <PaymentVerificationLoader 
         stage="checking"
-        timeout={10000}
+        timeout={6000}
         onTimeout={() => {
-          logger.warn('PaymentGuard: Payment verification timeout - proceeding with fallback UI');
+          logger.debug('PaymentGuard: Payment verification timeout - proceeding with fallback UI');
           setTimedOut(true);
           // Fire a background refetch to update status when available
           setTimeout(() => refetch?.(), 500);

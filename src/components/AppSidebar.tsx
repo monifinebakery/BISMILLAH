@@ -79,7 +79,6 @@ export function AppSidebar() {
     { label: "Hitung HPP", items: [
       { title: "Manajemen Resep", url: "/resep", icon: ChefHat },
       { title: "Gudang Bahan Baku", url: "/gudang", icon: Package },
-      { title: "Pemakaian Bahan", url: "/pemakaian", icon: Package },
       { title: "Biaya Operasional", url: "/biaya-operasional", icon: DollarSign },
     ]},
     { label: "Bisnis", items: [

@@ -390,6 +390,19 @@ export async function updateOrderStatus(userId: string, id: string, newStatus: s
       logger.error(`Error in auto financial sync for order ${transformedOrder.nomorPesanan}:`, syncError);
       // Don't throw - order status update should still succeed
     }
+
+    // ✅ MATERIAL USAGE SYNC: Record pemakaian_bahan from recipes when order is completed
+    try {
+      const { syncOrderMaterialUsage } = await import('@/utils/orderMaterialUsage');
+      const ok = await syncOrderMaterialUsage(transformedOrder as any, userIdStr);
+      if (ok) {
+        logger.success('✅ Material usage recorded for order:', transformedOrder.nomorPesanan);
+      } else {
+        logger.warn('⚠️ Material usage recording failed (non-critical):', transformedOrder.nomorPesanan);
+      }
+    } catch (usageError) {
+      logger.error(`Error recording material usage for order ${transformedOrder.nomorPesanan}:`, usageError);
+    }
   } else {
     logger.debug('Order status is not completed, skipping financial sync:', {
       orderId: transformedOrder.id,

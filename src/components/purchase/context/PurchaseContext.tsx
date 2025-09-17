@@ -124,7 +124,17 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }
   
-  const { suppliers } = useSupplier();
+  // ✅ FIXED: Safe supplier context access with fallback
+  let suppliers: any[] = [];
+  try {
+    const supplierContext = useSupplier();
+    suppliers = supplierContext?.suppliers || [];
+    logger.debug('PurchaseContext: SupplierContext available');
+  } catch (error) {
+    logger.warn('PurchaseContext: SupplierContext not available, using fallbacks:', error);
+    suppliers = [];
+  }
+  
   const { addNotification } = useNotification();
   
   // ✅ FIXED: Safe warehouse context access without try-catch around hooks

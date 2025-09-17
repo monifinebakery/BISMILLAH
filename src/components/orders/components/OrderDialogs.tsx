@@ -11,7 +11,6 @@ import { DialogLoader } from './shared/LoadingStates';
 import { logger } from '@/utils/logger';
 
 // ✅ OPTIMIZED: Lazy loading sederhana untuk dialog
-const OrderForm = React.lazy(() => import('./dialogs/OrderForm'));
 const FollowUpTemplateManager = React.lazy(() => import('./dialogs/FollowUpTemplateManager'));
 const BulkDeleteDialog = React.lazy(() => import('./dialogs/BulkDeleteDialog'));
 const BulkEditDialog = React.lazy(() => import('./dialogs/BulkEditDialog'));
@@ -21,12 +20,6 @@ const OrderDetailDialog = React.lazy(() => import('./dialogs/OrderDetailDialog')
 
 // ✅ INTERFACES: Props interface
 interface OrderDialogsProps {
-  // Form dialog
-  showOrderForm: boolean;
-  editingOrder: Order | null;
-  onSubmitOrder: (data: Partial<Order> | Partial<NewOrder>) => void;
-  onCloseOrderForm: () => void;
-  
   // Template manager
   showTemplateManager: boolean;
   selectedOrderForTemplate: Order | null;
@@ -49,12 +42,6 @@ interface OrderDialogsProps {
 }
 
 const OrderDialogs: React.FC<OrderDialogsProps> = ({
-  // Form dialog props
-  showOrderForm,
-  editingOrder,
-  onSubmitOrder,
-  onCloseOrderForm,
-  
   // Template manager props
   showTemplateManager,
   selectedOrderForTemplate,
@@ -122,18 +109,6 @@ const OrderDialogs: React.FC<OrderDialogsProps> = ({
 
   return (
     <>
-      {/* ✅ ORDER FORM DIALOG: Create/Edit orders */}
-      {showOrderForm && (
-        <Suspense fallback={<DialogLoader message="Memuat form pesanan..." />}>
-          <OrderForm
-            open={showOrderForm}
-            onOpenChange={onCloseOrderForm}
-            onSubmit={onSubmitOrder}
-            initialData={editingOrder}
-          />
-        </Suspense>
-      )}
-
       {/* ✅ TEMPLATE MANAGER DIALOG: WhatsApp templates */}
       {showTemplateManager && (
         <Suspense fallback={<DialogLoader message="Memuat template manager..." />}>

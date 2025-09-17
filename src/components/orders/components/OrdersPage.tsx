@@ -522,14 +522,10 @@ const OrdersPage: React.FC = () => {
         />
         
         <OrderDialogs
-          showOrderForm={pageState.dialogs.orderForm}
-          editingOrder={pageState.editingOrder}
           showTemplateManager={pageState.dialogs.templateManager}
           selectedOrderForTemplate={pageState.selectedOrderForTemplate}
           showDetailDialog={pageState.dialogs.detail}
           detailOrder={pageState.viewingOrder}
-          onSubmitOrder={businessHandlers.submitOrder}
-          onCloseOrderForm={dialogHandlers.closeOrderForm}
           onCloseTemplateManager={dialogHandlers.closeTemplateManager}
           onCloseDetail={dialogHandlers.closeDetail}
         />

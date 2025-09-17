@@ -1,5 +1,9 @@
+// Removed external skeleton imports to keep bundle lean
+
+
 // src/contexts/AppProviders.tsx - MOBILE-OPTIMIZED PROGRESSIVE LOADING
 import React, { ReactNode, Suspense, useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { logger } from '@/utils/logger';
@@ -14,7 +18,7 @@ import { UserSettingsProvider } from './UserSettingsContext';
 
 // ⚡ MEDIUM PRIORITY: Load progressively
 import { ActivityProvider } from './ActivityContext';
-import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
+// Defer heavy contexts on mobile via lazy wrappers (defined below)
 import { RecipeProvider } from './RecipeContext';
 import { SupplierProvider } from './SupplierContext';
 import { WarehouseProvider } from '@/components/warehouse/context/WarehouseContext';
@@ -25,7 +29,6 @@ import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
 import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
-import { ProfitAnalysisProvider } from '@/components/profitAnalysis';
 import { DeviceProvider } from './DeviceContext';
 
 
@@ -44,8 +47,40 @@ interface AppProvidersProps {
  * This version uses a flattened structure to ensure each provider group
  * is fully loaded before rendering the next, eliminating context errors.
  */
+// Lazy provider wrappers
+const LazyFinancialProvider: React.FC<{ enabled: boolean; children: ReactNode }> = ({ enabled, children }) => {
+  const [ProviderComp, setProviderComp] = useState<React.ComponentType<any> | null>(null);
+  useEffect(() => {
+    if (enabled && !ProviderComp) {
+      import('@/components/financial/contexts/FinancialContext').then(m => {
+        setProviderComp(() => (m as any).FinancialProvider);
+      });
+    }
+  }, [enabled, ProviderComp]);
+  if (!enabled) return <>{children}</>;
+  if (!ProviderComp) return <div className="min-h-screen bg-gray-50 p-6 animate-pulse"><div className="max-w-5xl mx-auto space-y-4"><div className="h-8 bg-gray-200 rounded w-40" /><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{Array.from({length:8}).map((_,i)=>(<div key={i} className="h-20 bg-gray-200 rounded"/>))}</div></div></div>;
+  const Comp = ProviderComp as React.ComponentType<any>;
+  return <Comp>{children}</Comp>;
+};
+
+const LazyProfitAnalysisProvider: React.FC<{ enabled: boolean; children: ReactNode }> = ({ enabled, children }) => {
+  const [ProviderComp, setProviderComp] = useState<React.ComponentType<any> | null>(null);
+  useEffect(() => {
+    if (enabled && !ProviderComp) {
+      import('@/components/profitAnalysis/contexts/ProfitAnalysisContext').then(m => {
+        setProviderComp(() => (m as any).ProfitAnalysisProvider);
+      });
+    }
+  }, [enabled, ProviderComp]);
+  if (!enabled) return <>{children}</>;
+  if (!ProviderComp) return <div className="min-h-screen bg-gray-50 p-6 animate-pulse"><div className="max-w-5xl mx-auto space-y-4"><div className="h-8 bg-gray-200 rounded w-40" /><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{Array.from({length:8}).map((_,i)=>(<div key={i} className="h-20 bg-gray-200 rounded"/>))}</div></div></div>;
+  const Comp = ProviderComp as React.ComponentType<any>;
+  return <Comp>{children}</Comp>;
+};
+
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
+  const location = useLocation();
   const [loadingStage, setLoadingStage] = useState(1);
 
   useEffect(() => {
@@ -70,9 +105,15 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     { component: NotificationProvider, name: 'Notification', priority: 'critical' as const },
     { component: UserSettingsProvider, name: 'UserSettings', priority: 'critical' as const },
   ];
+  // Financial provider is heavy; mount only when needed on mobile routes
+  const onFinancialRoute = location.pathname.startsWith('/laporan');
+  const FinancialProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => (
+    <LazyFinancialProvider enabled={isMobile ? onFinancialRoute : true}>{children}</LazyFinancialProvider>
+  );
+
   const highProviders = [
     { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
-    { component: FinancialProvider, name: 'Financial', priority: 'high' as const },
+    { component: FinancialProviderWrapper, name: 'Financial', priority: 'high' as const },
     { component: RecipeProvider, name: 'Recipe', priority: 'high' as const },
     { component: WarehouseProvider, name: 'Warehouse', priority: 'high' as const },
   ];
@@ -81,23 +122,47 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     { component: PurchaseProvider, name: 'Purchase', priority: 'medium' as const },
     { component: OrderProvider, name: 'Order', priority: 'medium' as const },
   ];
+  // Profit analysis provider is heavy; mount only when needed on mobile routes
+  const onProfitRoute = location.pathname.startsWith('/analisis-profit');
+  const ProfitAnalysisProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => (
+    <LazyProfitAnalysisProvider enabled={isMobile ? onProfitRoute : true}>{children}</LazyProfitAnalysisProvider>
+  );
+
   const lowProviders = [
     { component: OperationalCostProvider, name: 'OperationalCost', priority: 'low' as const },
     { component: PromoProvider, name: 'Promo', priority: 'low' as const },
     { component: FollowUpTemplateProvider, name: 'FollowUpTemplate', priority: 'low' as const },
     { component: DeviceProvider, name: 'Device', priority: 'low' as const },
-    { component: ProfitAnalysisProvider, name: 'ProfitAnalysis', priority: 'low' as const },
+    { component: ProfitAnalysisProviderWrapper, name: 'ProfitAnalysis', priority: 'low' as const },
   ];
 
-  const LoadingIndicator: React.FC<{ stage: number; total: number; message: string }> = ({ stage, total, message }) => (
-    <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
-      <div className="text-center">
-        <div className={`w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}></div>
-        <h2 className={`text-lg font-semibold text-gray-700`}>{message}</h2>
-        <p className="text-sm text-gray-500 mt-1">({stage}/{total})</p>
+  const LoadingIndicator: React.FC<{ stage: number; total: number; message: string }> = ({ stage, total, message }) => {
+    // Show full dashboard skeleton for the final loading stages to improve perceived performance.
+    if (stage >= 2) {
+      return (
+        <div className="min-h-screen bg-gray-50 p-6 animate-pulse">
+          <div className="max-w-5xl mx-auto space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-40" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-20 bg-gray-200 rounded" />
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    }
+    // Show a simpler, centered indicator for the initial auth check.
+    return (
+      <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
+        <div className="text-center">
+          <div className={`w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}></div>
+          <h2 className={`text-lg font-semibold text-gray-700`}>{message}</h2>
+          <p className="text-sm text-gray-500 mt-1">({stage}/{total})</p>
+        </div>
       </div>
-    </div>
-  );
+    )
+  };
   
   const renderProviders = (providers: any[], content: ReactNode): ReactNode => {
       return providers.reduceRight((acc, p) => {

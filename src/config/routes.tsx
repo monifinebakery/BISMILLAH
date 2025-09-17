@@ -10,10 +10,10 @@ import { logger } from '@/utils/logger';
 
 import dashboardRoutes from '@/routes/dashboard';
 import recipeRoutes from '@/routes/recipes';
-import warehouseRoutes from '@/routes/warehouse';
+import LazyWarehousePage from '@/pages/Warehouse';
 import supplierRoutes from '@/routes/supplier';
-import purchaseRoutes from '@/routes/purchase';
-import ordersRoutes from '@/routes/orders';
+import LazyPurchasePage from '@/pages/Purchase';
+import LazyOrdersPage from '@/pages/Orders';
 import operationalCostRoutes from '@/routes/operational-costs';
 import invoiceRoutes from '@/routes/invoice';
 import financialRoutes from '@/routes/financial';
@@ -51,10 +51,12 @@ export const AppRouter: React.FC = () => (
     >
       {dashboardRoutes}
       {recipeRoutes}
-      {warehouseRoutes}
+<Route path="/gudang" element={<LazyWarehousePage />} />
       {supplierRoutes}
-      {purchaseRoutes}
-      {ordersRoutes}
+{/* Other routes */}
+      <Route path="/pembelian" element={<LazyPurchasePage />} />
+{/* Other routes */}
+      <Route path="/pesanan" element={<LazyOrdersPage />} />
       {operationalCostRoutes}
       {invoiceRoutes}
       {financialRoutes}

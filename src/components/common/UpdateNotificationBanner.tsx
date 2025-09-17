@@ -140,14 +140,18 @@ export const useUpdateNotification = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
 
-  const VERCEL_API_TOKEN = import.meta.env.VITE_VERCEL_API_TOKEN;
+  const VERCEL_TOKEN = import.meta.env.VITE_VERCEL_TOKEN;
   const VERCEL_PROJECT_ID = import.meta.env.VITE_VERCEL_PROJECT_ID;
+  const HAS_VERCEL_ENV = Boolean(VERCEL_TOKEN && VERCEL_PROJECT_ID);
 
   const pollDeploymentStatus = async (commitHash: string, timeout = 5 * 60 * 1000) => {
-    if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
-      console.warn('Vercel environment variables are not set. Cannot poll for deployment status.');
-      // Fallback to showing banner immediately
-      showUpdateNotification({ newVersion: commitHash });
+    // If env vars are not available (e.g., local dev or preview without secrets),
+    // silently skip polling and do nothing.
+    if (!HAS_VERCEL_ENV) {
+      if (import.meta.env.DEV) {
+        // Keep logs only in dev to avoid noisy console in production
+        console.info('[update] Skipping Vercel polling: env not set');
+      }
       return;
     }
 
@@ -164,7 +168,7 @@ export const useUpdateNotification = () => {
       try {
         const response = await fetch(`https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&limit=5`, {
           headers: {
-            Authorization: `Bearer ${VERCEL_API_TOKEN}`,
+            Authorization: `Bearer ${VERCEL_TOKEN}`,
           },
         });
 
@@ -206,6 +210,8 @@ export const useUpdateNotification = () => {
 
   const checkForUpdate = (info: any) => {
     if (isPolling) return;
+    // Guard: only poll when Vercel env is available
+    if (!HAS_VERCEL_ENV) return;
     pollDeploymentStatus(info.commitHash);
   };
 

@@ -87,6 +87,15 @@ export default defineConfig(({ mode }) => {
           ]
         },
         workbox: {
+          // Exclude very large rarely-used chunks from precache to speed up first install on mobile
+          maximumFileSizeToCacheInBytes: 700_000, // ~0.7 MB limit
+          globIgnores: [
+            '**/vendor-*.js',
+            '**/excel-*.js',
+            '**/charts-*.js',
+            '**/*.map',
+            'stats.html'
+          ],
           navigateFallback: '/index.html',
           runtimeCaching: [
             {
@@ -207,20 +216,17 @@ export default defineConfig(({ mode }) => {
         // },
         // external: ["next-themes"], // Removed - not installed
         output: {
-          // Ultra-conservative chunk splitting - NO app code splitting to avoid React issues
+          // Enable code splitting and group a few heavy vendors for better caching
           manualChunks: (id) => {
-            // Node modules splitting
             if (id.includes('node_modules')) {
-              // Only separate libraries that are 100% pure utilities with zero dependencies
+              // Group very heavy libs explicitly
               if (id.includes('xlsx') || id.includes('exceljs') || id.includes('file-saver')) return 'excel';
-              
-              // Keep ALL other libraries in vendor to avoid any dependency/initialization issues
-              // This includes: react, react-dom, recharts, @radix-ui, @tanstack, supabase, date libs, etc.
+              if (id.includes('recharts')) return 'charts';
+              if (id.includes('@supabase/')) return 'supabase';
+              // Keep Radix in vendor to avoid React.forwardRef interop issues when split
               return 'vendor';
             }
-            
-            // NO app code splitting - keep everything in main bundle for React access
-            // All components, hooks, contexts stay in main bundle to prevent forwardRef errors
+            // Return undefined for app code to let Rollup/Vite perform default per-route/code-splitting
           },
           entryFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",
           chunkFileNames: isProd ? "assets/[name]-[hash].js" : "assets/[name].js",

@@ -58,7 +58,14 @@ const LazyFinancialProvider: React.FC<{ enabled: boolean; children: ReactNode }>
     }
   }, [enabled, ProviderComp]);
   if (!enabled) return <>{children}</>;
-  if (!ProviderComp) return <div className="min-h-screen bg-gray-50 p-6 animate-pulse"><div className="max-w-5xl mx-auto space-y-4"><div className="h-8 bg-gray-200 rounded w-40" /><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{Array.from({length:8}).map((_,i)=>(<div key={i} className="h-20 bg-gray-200 rounded"/>))}</div></div></div>;
+  if (!ProviderComp) return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="text-center text-gray-600">
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <div className="text-sm">Memuat Laporan Keuangan...</div>
+      </div>
+    </div>
+  );
   const Comp = ProviderComp as React.ComponentType<any>;
   return <Comp>{children}</Comp>;
 };
@@ -73,7 +80,14 @@ const LazyProfitAnalysisProvider: React.FC<{ enabled: boolean; children: ReactNo
     }
   }, [enabled, ProviderComp]);
   if (!enabled) return <>{children}</>;
-  if (!ProviderComp) return <div className="min-h-screen bg-gray-50 p-6 animate-pulse"><div className="max-w-5xl mx-auto space-y-4"><div className="h-8 bg-gray-200 rounded w-40" /><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{Array.from({length:8}).map((_,i)=>(<div key={i} className="h-20 bg-gray-200 rounded"/>))}</div></div></div>;
+  if (!ProviderComp) return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="text-center text-gray-600">
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <div className="text-sm">Memuat Analisis Profit...</div>
+      </div>
+    </div>
+  );
   const Comp = ProviderComp as React.ComponentType<any>;
   return <Comp>{children}</Comp>;
 };

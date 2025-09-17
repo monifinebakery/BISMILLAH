@@ -35,12 +35,37 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
     setIsRefreshing(true);
     
     try {
-      // Clear cache and reload
+      // Mark update in progress to avoid banner reappearing before reload completes
+      try { localStorage.setItem('appUpdateRefreshing', '1'); } catch {}
+
+      // Try to activate the new service worker first (if waiting)
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        const waiting = registration?.waiting;
+        if (waiting) {
+          // Listen for controller change then reload
+          const controllerChanged = new Promise<void>((resolve) => {
+            const onControllerChange = () => {
+              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange as any);
+              resolve();
+            };
+            navigator.serviceWorker.addEventListener('controllerchange', onControllerChange as any);
+          });
+          waiting.postMessage({ type: 'SKIP_WAITING' });
+          await Promise.race([
+            controllerChanged,
+            new Promise((r) => setTimeout(r, 1500)), // Fallback timeout
+          ]);
+        } else {
+          // No waiting SW – trigger an update check
+          await registration?.update();
+        }
+      }
+
+      // Clear cache to ensure fresh assets on reload
       if ('caches' in window) {
         const cacheNames = await caches.keys();
-        await Promise.all(
-          cacheNames.map(name => caches.delete(name))
-        );
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
       }
       
       // Show loading toast
@@ -54,10 +79,10 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
         await onRefresh();
       }
       
-      // Force reload page
+      // Force reload page (small delay to allow SW activation)
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 300);
       
     } catch (error) {
       console.error('Error refreshing app:', error);
@@ -203,6 +228,13 @@ export const useUpdateNotification = () => {
 
 
   const showUpdateNotification = (info: any) => {
+    // If a refresh is already in progress, don't show the banner again
+    try {
+      if (localStorage.getItem('appUpdateRefreshing') === '1') {
+        return;
+      }
+    } catch {}
+
     setUpdateInfo(info);
     setUpdateAvailable(true);
     setIsVisible(true);

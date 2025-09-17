@@ -27,7 +27,12 @@ export const AppLayout = () => {
   useEffect(() => {
     const checkVersion = async () => {
       try {
-        const response = await fetch('/version.json?t=' + new Date().getTime());
+        // If a refresh is already in progress, skip showing update banner
+        try {
+          if (localStorage.getItem('appUpdateRefreshing') === '1') return;
+        } catch {}
+
+        const response = await fetch('/version.json?t=' + new Date().getTime(), { cache: 'no-store' });
         const data = await response.json();
         const latestCommit = data.commitHash;
         const currentCommit = import.meta.env.VITE_COMMIT_HASH;
@@ -45,6 +50,11 @@ export const AppLayout = () => {
 
     return () => clearInterval(interval);
   }, [checkForUpdate]);
+
+  // After full load, clear the in-progress flag so future updates can show
+  useEffect(() => {
+    try { localStorage.removeItem('appUpdateRefreshing'); } catch {}
+  }, []);
 
   // ... (rest of the component remains the same)
   const timeoutRef = useRef<NodeJS.Timeout>();

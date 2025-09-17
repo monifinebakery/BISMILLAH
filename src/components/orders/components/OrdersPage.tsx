@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { LoadingSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 // ✅ CONSOLIDATED: Order context and hooks
@@ -124,6 +125,7 @@ const OrdersPage: React.FC = () => {
 
   // ✅ AUTH: Get current user
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // ✅ DEV BYPASS: Bypass autentikasi untuk pengembangan
   const isDev = import.meta.env.DEV;
@@ -222,12 +224,12 @@ const OrdersPage: React.FC = () => {
   // ✅ MEMOIZED: Dialog handlers
   const dialogHandlers = useMemo(() => ({
     openOrderForm: (order: Order | null = null) => {
-      logger.component('OrdersPage', 'Opening order form:', { isEdit: !!order, orderId: order?.id });
-      setPageState(prev => ({
-        ...prev,
-        dialogs: { ...prev.dialogs, orderForm: true },
-        editingOrder: order
-      }));
+      logger.component('OrdersPage', 'Navigate to order form page:', { isEdit: !!order, orderId: order?.id });
+      if (order?.id) {
+        navigate(`/pesanan/edit/${order.id}`);
+      } else {
+        navigate('/pesanan/add');
+      }
     },
 
     closeOrderForm: () => {

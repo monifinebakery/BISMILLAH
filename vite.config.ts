@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import removeConsole from "vite-plugin-remove-console";
 import { visualizer } from "rollup-plugin-visualizer";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => {
   // ✅ hanya load VITE_* (client-safe)
@@ -48,7 +49,8 @@ export default defineConfig(({ mode }) => {
               includes: ["log", "debug", "info", "warn", "trace"],
             }),
           ]
-        : []),
+        : []
+      ),
       ...(env.VITE_ANALYZE === "true"
         ? [
             visualizer({
@@ -59,7 +61,32 @@ export default defineConfig(({ mode }) => {
               open: false,
             }),
           ]
-        : []),
+        : []
+      ),
+      VitePWA({
+        registerType: 'autoUpdate',
+        devOptions: {
+          enabled: true
+        },
+        manifest: {
+          name: 'Bismillah App',
+          short_name: 'Bismillah',
+          description: 'My Awesome App description',
+          theme_color: '#ffffff',
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png'
+            }
+          ]
+        }
+      })
     ],
 
     // konsisten dengan netlify.toml (targetPort=5173) & preview 5500

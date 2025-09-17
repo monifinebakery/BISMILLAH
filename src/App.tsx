@@ -12,6 +12,7 @@ import { AppLoader } from "@/components/loaders";
 import { logger } from "@/utils/logger";
 import { CodeSplittingProvider, CodeSplittingLoadingIndicator } from "@/providers/CodeSplittingProvider";
 import { UpdateNotificationBanner } from "@/components/common/UpdateNotificationBanner";
+import InstallBanner from '@/components/InstallBanner';
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
 // import MemoryMonitor from "@/components/MemoryMonitor";
@@ -161,6 +162,9 @@ const App = () => {
             
             {/* Vercel Speed Insights - Performance monitoring */}
             <SpeedInsights />
+
+            {/* PWA Install Banner */}
+            <InstallBanner />
           </AppProviders>
         </CodeSplittingProvider>
       </TooltipProvider>

@@ -109,7 +109,7 @@ const MandatoryUpgradeModal = () => {
       <PaymentVerificationLoader
         stage={processingStage}
         message={processingStage === 'verifying' ? 'Mempersiapkan Pembayaran' : 'Membuka Halaman Pembayaran'}
-        timeout={10000}
+        timeout={6000}
         onTimeout={() => {
           setIsProcessing(false);
           toast.error('Proses terlalu lama. Silakan coba lagi.');

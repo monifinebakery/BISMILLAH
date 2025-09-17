@@ -17,7 +17,7 @@ const PaymentVerificationLoader: React.FC<PaymentVerificationLoaderProps> = ({
   stage = 'checking',
   progress = 0,
   showProgress = true,
-  timeout = 30000, // 30 seconds default
+  timeout = 8000, // 8 seconds default - more responsive UX
   onTimeout
 }) => {
   const [timeLeft, setTimeLeft] = useState(Math.ceil(timeout / 1000));

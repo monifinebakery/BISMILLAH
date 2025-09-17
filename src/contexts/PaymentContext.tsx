@@ -116,7 +116,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       logger.debug('PaymentContext: Refreshing access status for valid user:', user?.email);
       
 const accessPromise = getUserAccessStatus();
-      const accessStatus = await withTimeout(accessPromise, 8000, 'Access status timeout') as any;
+      const accessStatus = await withTimeout(accessPromise, 3000, 'Access status timeout') as any; // ✅ FIXED: 3s timeout instead of 8s
       
       logger.debug('Access status result:', {
         hasAccess: accessStatus.hasAccess,

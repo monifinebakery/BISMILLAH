@@ -58,10 +58,10 @@ export const usePaymentStatus = () => {
         logger.hook('usePaymentStatus', 'Checking payment for user:', user.email);
       }
 
-      // ✅ STEP 1: Check for LINKED payments only
+      // ✅ STEP 1: Check for LINKED payments only (OPTIMIZED)
       const { data: linkedPayments, error: linkedError } = await supabase
         .from('user_payments')
-        .select('*')
+        .select('id,user_id,order_id,pg_reference_id,email,payment_status,is_paid,created_at,updated_at,payment_date,amount,currency,customer_name') // ✅ FIXED: Select only needed fields
         .eq('user_id', user.id)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -90,14 +90,14 @@ export const usePaymentStatus = () => {
         logger.error('Error checking linked payments:', linkedError);
       }
 
-      // ✅ STEP 2: Check for UNLINKED payments (SIMPLIFIED - only by email)
+      // ✅ STEP 2: Check for UNLINKED payments (OPTIMIZED)
       if (process.env.NODE_ENV === 'development') {
         logger.hook('usePaymentStatus', 'Checking for unlinked payments...');
       }
       
       const { data: unlinkedPayments, error: unlinkedError } = await supabase
         .from('user_payments')
-        .select('*')
+        .select('id,user_id,order_id,pg_reference_id,email,payment_status,is_paid,created_at,updated_at,payment_date,amount,currency,customer_name') // ✅ FIXED: Select only needed fields
         .is('user_id', null)
         .eq('is_paid', true)
         .eq('payment_status', 'settled')
@@ -133,14 +133,14 @@ export const usePaymentStatus = () => {
       return null;
     },
     enabled: true,
-    staleTime: 10000, // 10 seconds
-    cacheTime: 300000, // 5 minutes
-    refetchOnWindowFocus: true,
+    staleTime: 30000, // ✅ FIXED: 30 seconds (longer cache)
+    cacheTime: 600000, // ✅ FIXED: 10 minutes (longer cache)
+    refetchOnWindowFocus: false, // ✅ FIXED: Don't refetch on focus untuk speed
     retry: (failureCount, error) => {
       if (error.message?.includes('session missing') || error.message?.includes('not authenticated')) {
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1; // ✅ FIXED: Only 1 retry instead of 2
     },
   });
 

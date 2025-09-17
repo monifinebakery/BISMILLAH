@@ -51,15 +51,16 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
 
     logger.info('[AccessCheck] User authenticated, checking payment status:', user.email);
 
-    // ✅ STEP 1: Check if user has linked payment (ONLY linked payments)
+    // ✅ STEP 1: Check if user has linked payment (OPTIMIZED query)
     const { data: linkedPayments, error: linkedError } = await supabase
       .from('user_payments')
-      .select('*')
+      .select('id,user_id,order_id,is_paid,payment_status,email,customer_name,created_at,updated_at') // ✅ FIXED: Select only needed fields
       .eq('user_id', user.id)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
       .order('updated_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .single(); // ✅ FIXED: Use single() for better performance
 
     if (linkedError) {
       logger.error('[AccessCheck] Error checking linked payments:', linkedError);
@@ -74,40 +75,41 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
     }
 
     // ✅ User has linked payment - FULL ACCESS
-    if (linkedPayments && linkedPayments.length > 0) {
+    if (linkedPayments && !linkedError) {
       logger.success('[AccessCheck] User has valid linked payment:', {
-        orderId: linkedPayments[0].order_id,
-        userId: linkedPayments[0].user_id
+        orderId: linkedPayments.order_id,
+        userId: linkedPayments.user_id
       });
       return {
         hasAccess: true,
         isAuthenticated: true,
-        paymentRecord: linkedPayments[0],
+        paymentRecord: linkedPayments,
         needsOrderVerification: false,
         needsLinking: false,
         message: 'Akses penuh tersedia'
       };
     }
 
-    // ✅ STEP 2: Check for unlinked payments - NO AUTO-LINK
+    // ✅ STEP 2: Check for unlinked payments - OPTIMIZED query
     const { data: unlinkedPayments, error: unlinkedError } = await supabase
       .from('user_payments')
-      .select('*')
+      .select('id,order_id,email,customer_name,is_paid,payment_status,created_at') // ✅ FIXED: Select only needed fields
       .eq('email', user.email)
       .is('user_id', null)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
       .order('created_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .single(); // ✅ FIXED: Use single() for better performance
 
-    if (!unlinkedError && unlinkedPayments && unlinkedPayments.length > 0) {
+    if (!unlinkedError && unlinkedPayments) {
       logger.info('[AccessCheck] Found unlinked payment for user email - NO AUTO-LINK');
       
       // ✅ REMOVED AUTO-LINK - Let user manually link via popup
       return {
         hasAccess: false,
         isAuthenticated: true,
-        paymentRecord: unlinkedPayments[0] as PaymentRecord,
+        paymentRecord: unlinkedPayments as PaymentRecord,
         needsOrderVerification: false,
         needsLinking: true,
         message: 'Pembayaran ditemukan, silakan hubungkan dengan Order ID'

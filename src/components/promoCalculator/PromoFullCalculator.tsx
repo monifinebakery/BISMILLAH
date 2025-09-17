@@ -55,11 +55,6 @@ const PromoFullCalculator = () => {
 
   // Render function for step content
   const renderStepContent = () => {
-    // Add null checks to prevent undefined errors
-    if (!formData || !handleInputChange || !handleSelectChange) {
-      return <div>Loading...</div>;
-    }
-    
     const stepProps = {
       formData,
       stepErrors: stepErrors?.[currentStep] || [],

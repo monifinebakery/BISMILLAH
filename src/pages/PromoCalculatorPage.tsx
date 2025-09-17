@@ -1,12 +1,9 @@
 import React from 'react';
-import { PromoCalculatorLayout } from '@/components/promoCalculator/index';
+import PromoFullCalculator from '@/components/promoCalculator/PromoFullCalculator';
 
 const PromoCalculatorPage = () => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <PromoCalculatorLayout />
-    </div>
-  );
+  // Fullpage promo calculator with white background for consistency
+  return <PromoFullCalculator />;
 };
 
 export default PromoCalculatorPage;

@@ -18,8 +18,8 @@
   top: 8px !important;
   right: 8px !important;
   z-index: 10;
-  background: rgba(0, 0, 0, 0.1) !important;
-  border: none !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
   border-radius: 50% !important;
   width: 24px !important;
   height: 24px !important;
@@ -31,7 +31,8 @@
 }
 
 .toaster [data-sonner-toast] [data-close-button]:hover {
-  background: rgba(0, 0, 0, 0.2) !important;
+  background: rgba(0, 0, 0, 0.1) !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
   opacity: 1;
   transform: scale(1.1);
 }
@@ -65,41 +66,47 @@
 /* Individual toast styling */
 .toaster [data-sonner-toast] {
   background: white !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 2px solid #e2e8f0 !important;
   border-radius: 8px !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
   padding: 16px !important;
   margin-bottom: 8px !important;
   min-height: 64px;
   position: relative;
   overflow: visible;
+  transition: all 0.3s ease;
+}
+
+.toaster [data-sonner-toast]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Success toast */
 .toaster [data-sonner-toast][data-type="success"] {
   background: #f0fdf4 !important;
-  border-color: #bbf7d0 !important;
+  border: 2px solid #bbf7d0 !important;
   color: #15803d !important;
 }
 
 /* Error toast */
 .toaster [data-sonner-toast][data-type="error"] {
   background: #fef2f2 !important;
-  border-color: #fecaca !important;
+  border: 2px solid #fecaca !important;
   color: #dc2626 !important;
 }
 
 /* Warning toast */
 .toaster [data-sonner-toast][data-type="warning"] {
   background: #fefce8 !important;
-  border-color: #fef08a !important;
+  border: 2px solid #fef08a !important;
   color: #ca8a04 !important;
 }
 
 /* Info toast */
 .toaster [data-sonner-toast][data-type="info"] {
   background: #eff6ff !important;
-  border-color: #bfdbfe !important;
+  border: 2px solid #bfdbfe !important;
   color: #2563eb !important;
 }
 
@@ -233,19 +240,4 @@
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .toaster [data-sonner-toast] {
-    background: #1f2937 !important;
-    border-color: #374151 !important;
-    color: #f9fafb !important;
-  }
-  
-  .toaster [data-sonner-toast] [data-close-button] {
-    background: rgba(255, 255, 255, 0.1) !important;
-  }
-  
-  .toaster [data-sonner-toast] [data-close-button]:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
-  }
-}
+/* App uses light mode only - no dark mode styling needed */

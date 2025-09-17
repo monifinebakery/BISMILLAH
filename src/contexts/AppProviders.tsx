@@ -21,6 +21,8 @@ import { ActivityProvider } from './ActivityContext';
 import { RecipeProvider } from './RecipeContext';
 import { SupplierProvider } from './SupplierContext';
 import { WarehouseProvider } from '@/components/warehouse/context/WarehouseContext';
+// ✅ CRITICAL: Import FinancialProvider directly instead of lazy loading
+import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 
 // ⚡ LOW PRIORITY: Load last
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
@@ -164,17 +166,11 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     };
   }, [isMobile]);
 
-  // ✅ FIXED: Financial provider - always load on both mobile and desktop with better logging
-  const FinancialProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => {
-    logger.debug('FinancialProviderWrapper: Rendering with enabled=true');
-    return <LazyFinancialProvider enabled={true}>{children}</LazyFinancialProvider>;
-  };
-  
   // ✅ FIXED: Define providers for each stage with better logging
   const criticalProviders = [
     { component: NotificationProvider, name: 'Notification', priority: 'critical' as const },
     { component: UserSettingsProvider, name: 'UserSettings', priority: 'critical' as const },
-    { component: FinancialProviderWrapper, name: 'Financial', priority: 'critical' as const },
+    { component: FinancialProvider, name: 'Financial', priority: 'critical' as const }, // ✅ Direct import instead of lazy wrapper
   ];
   
   logger.debug('AppProviders: Critical providers configured:', {
@@ -187,7 +183,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
     { component: RecipeProvider, name: 'Recipe', priority: 'high' as const },
     { component: WarehouseProvider, name: 'Warehouse', priority: 'high' as const },
-    { component: PurchaseProvider, name: 'Purchase', priority: 'high' as const }, // ✅ Moved to high priority after FinancialProvider
+    { component: PurchaseProvider, name: 'Purchase', priority: 'high' as const }, // ✅ Back to high priority
   ];
   const mediumProviders = [
     { component: SupplierProvider, name: 'Supplier', priority: 'medium' as const },

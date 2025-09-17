@@ -17,14 +17,14 @@ const AssetEditPage: React.FC = () => {
 
   const { data: asset, isLoading, isError } = useAssetDetailQuery(id, user?.id);
 
-  const { data: formData, errors, updateField, resetForm, setData, validateForm } = useAssetForm({
+  const { data: formData, errors, updateField, resetForm, setFormData, validateForm } = useAssetForm({
     mode: 'edit',
     asset: asset,
   });
 
   useEffect(() => {
-    if (asset) setData(asset);
-  }, [asset, setData]);
+    if (asset) setFormData(asset);
+  }, [asset, setFormData]);
 
   const { updateAsset, isLoading: isSaving } = useAssetMutations({
     userId: user?.id || '',
@@ -141,4 +141,3 @@ const AssetEditPage: React.FC = () => {
 };
 
 export default AssetEditPage;
-

@@ -136,7 +136,7 @@ const ImprovedProfitDashboard: React.FC = () => {
         // Query by tanggal
         const { data, error } = await supabase
           .from('purchases')
-          .select('total_pembelian, total_nilai, total_amount, status, tanggal')
+          .select('total_nilai, status, tanggal')
           .eq('status', 'completed')
           .gte('tanggal', startYMD)
           .lte('tanggal', endYMD);
@@ -146,7 +146,7 @@ const ImprovedProfitDashboard: React.FC = () => {
         const sumTotals = (rows: any[] | null | undefined) => {
           if (!Array.isArray(rows)) return 0;
           return rows.reduce((sum, row) => {
-            const val = Number(row.total_pembelian ?? row.total_nilai ?? row.total_amount ?? 0);
+            const val = Number(row.total_nilai ?? 0);
             return sum + (isFinite(val) ? val : 0);
           }, 0);
         };
@@ -157,7 +157,7 @@ const ImprovedProfitDashboard: React.FC = () => {
         if (total === 0) {
           const { data: data2, error: err2 } = await supabase
             .from('purchases')
-            .select('total_pembelian, total_nilai, total_amount, status, purchase_date')
+            .select('total_nilai, status, purchase_date')
             .eq('status', 'completed')
             .gte('purchase_date', startYMD)
             .lte('purchase_date', endYMD);

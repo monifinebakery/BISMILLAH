@@ -44,15 +44,14 @@ const renderCustomizedLabel = ({
   );
 };
 
-// ✅ TAMBAH: Loading skeleton untuk category charts
+// ✅ IMPROVED: Safe loading skeleton untuk category charts yang tidak break UI
 const CategoryLoadingSkeleton = () => (
-  <div className="h-64 bg-gray-50 rounded p-4">
-    <div className="space-y-4">
-      <div className="h-6 bg-gray-200 rounded animate-pulse w-1/3" />
-      <div className="h-32 bg-gray-200 rounded-full animate-pulse mx-auto w-32" />
-      <div className="space-y-2">
-        <div className="h-4 bg-gray-200 rounded animate-pulse" />
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+  <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
+    <div className="text-center space-y-3">
+      <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <div className="space-y-1">
+        <div className="h-4 bg-gray-200 rounded w-24 mx-auto animate-pulse"></div>
+        <div className="h-3 bg-gray-200 rounded w-20 mx-auto animate-pulse"></div>
       </div>
     </div>
   </div>

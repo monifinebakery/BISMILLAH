@@ -331,19 +331,13 @@ const MemoizedTransactionRow = React.memo(({
 });
 MemoizedTransactionRow.displayName = 'MemoizedTransactionRow';
 
-// ✅ Loading Skeleton
+// ✅ IMPROVED: Safe Loading Skeleton that won't break layout
 const TableSkeleton = React.memo(() => (
-  <div className="space-y-3">
-    {Array.from({ length: 5 }, (_, i) => (
-      <div key={i} className="flex items-center space-x-4 p-4">
-        <div className="bg-gray-200 rounded h-4 w-20 animate-pulse" />
-        <div className="bg-gray-200 rounded h-4 w-48 animate-pulse" />
-        <div className="bg-gray-200 rounded h-4 w-16 animate-pulse" />
-        <div className="bg-gray-200 rounded h-4 w-20 animate-pulse" />
-        <div className="bg-gray-200 rounded h-4 w-24 animate-pulse ml-auto" />
-        <div className="bg-gray-200 rounded h-8 w-16 animate-pulse" />
-      </div>
-    ))}
+  <div className="p-6 space-y-4">
+    <div className="text-center">
+      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-sm text-gray-500">Memuat data transaksi...</p>
+    </div>
   </div>
 ));
 TableSkeleton.displayName = 'TableSkeleton';

@@ -114,20 +114,21 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     return () => stageTimers.forEach(clearTimeout);
   }, [isMobile]);
 
+  // Financial provider is heavy; mount only when needed on mobile routes
+  const onFinancialRoute = location.pathname.startsWith('/laporan') || location.pathname.startsWith('/purchase') || location.pathname.startsWith('/pembelian');
+  const FinancialProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => (
+    <LazyFinancialProvider enabled={isMobile ? onFinancialRoute : true}>{children}</LazyFinancialProvider>
+  );
+  
   // Define providers for each stage
   const criticalProviders = [
     { component: NotificationProvider, name: 'Notification', priority: 'critical' as const },
     { component: UserSettingsProvider, name: 'UserSettings', priority: 'critical' as const },
+    { component: FinancialProviderWrapper, name: 'Financial', priority: 'critical' as const },
   ];
-  // Financial provider is heavy; mount only when needed on mobile routes
-  const onFinancialRoute = location.pathname.startsWith('/laporan');
-  const FinancialProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => (
-    <LazyFinancialProvider enabled={isMobile ? onFinancialRoute : true}>{children}</LazyFinancialProvider>
-  );
 
   const highProviders = [
     { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
-    { component: FinancialProviderWrapper, name: 'Financial', priority: 'high' as const },
     { component: RecipeProvider, name: 'Recipe', priority: 'high' as const },
     { component: WarehouseProvider, name: 'Warehouse', priority: 'high' as const },
   ];

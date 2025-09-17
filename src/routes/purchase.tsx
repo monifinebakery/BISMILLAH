@@ -26,45 +26,43 @@ const purchaseRoutes = (
       }
     />
     
-    {/* New routes structure */}
-    <Route path="purchase">
-      <Route 
-        index 
-        element={
-          <OptimizedRouteWrapper 
-            routeName="purchase" 
-            priority="medium"
-            preloadOnHover={true}
-          >
-            <PurchaseManagement />
-          </OptimizedRouteWrapper>
-        } 
-      />
-      <Route 
-        path="add" 
-        element={
-          <OptimizedRouteWrapper 
-            routeName="purchase-add" 
-            priority="medium"
-            preloadOnHover={true}
-          >
-            <PurchaseAddEditPage />
-          </OptimizedRouteWrapper>
-        } 
-      />
-      <Route 
-        path="edit/:id" 
-        element={
-          <OptimizedRouteWrapper 
-            routeName="purchase-edit" 
-            priority="medium"
-            preloadOnHover={true}
-          >
-            <PurchaseAddEditPage />
-          </OptimizedRouteWrapper>
-        } 
-      />
-    </Route>
+    {/* New flat routes structure */}
+    <Route 
+      path="purchase" 
+      element={
+        <OptimizedRouteWrapper 
+          routeName="purchase" 
+          priority="medium"
+          preloadOnHover={true}
+        >
+          <PurchaseManagement />
+        </OptimizedRouteWrapper>
+      } 
+    />
+    <Route 
+      path="purchase/add" 
+      element={
+        <OptimizedRouteWrapper 
+          routeName="purchase-add" 
+          priority="medium"
+          preloadOnHover={true}
+        >
+          <PurchaseAddEditPage />
+        </OptimizedRouteWrapper>
+      } 
+    />
+    <Route 
+      path="purchase/edit/:id" 
+      element={
+        <OptimizedRouteWrapper 
+          routeName="purchase-edit" 
+          priority="medium"
+          preloadOnHover={true}
+        >
+          <PurchaseAddEditPage />
+        </OptimizedRouteWrapper>
+      } 
+    />
   </>
 );
 

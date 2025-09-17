@@ -1,106 +1,140 @@
-// src/contexts/AppProviders.tsx - UPDATED WITH PROFIT ANALYSIS PROVIDER
-import React, { ReactNode } from 'react';
+// src/contexts/AppProviders.tsx - MOBILE-OPTIMIZED PROGRESSIVE LOADING
+import React, { ReactNode, Suspense, useState, useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-// ✅ ORIGINAL: Back to original structure
+import { logger } from '@/utils/logger';
+
+// ⚡ CRITICAL: Always load immediately
 import { AuthProvider } from './AuthContext';
+import { PaymentProvider } from './PaymentContext';
+
+// ⚡ HIGH PRIORITY: Load after auth is ready
 import { NotificationProvider } from './NotificationContext';
 import { UserSettingsProvider } from './UserSettingsContext';
+
+// ⚡ MEDIUM PRIORITY: Load progressively
 import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
-import { PaymentProvider } from './PaymentContext';
-import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
-// BahanBakuProvider will be loaded dynamically
-import { SupplierProvider } from './SupplierContext';
 import { RecipeProvider } from './RecipeContext';
+import { SupplierProvider } from './SupplierContext';
+import { WarehouseProvider } from '@/components/warehouse/context/WarehouseContext';
+
+// ⚡ LOW PRIORITY: Load last
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
 import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
-
-
-
-// ✅ NEW: Import ProfitAnalysisProvider
+import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
 import { ProfitAnalysisProvider } from '@/components/profitAnalysis';
-
-// ✅ NEW: Import DeviceProvider
 import { DeviceProvider } from './DeviceContext';
+
 
 interface AppProvidersProps {
   children: ReactNode;
 }
 
-// Dynamic BahanBakuProvider wrapper
-const DynamicBahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [BahanBakuProvider, setBahanBakuProvider] = React.useState<React.ComponentType<{ children: ReactNode }> | null>(null);
-
-  React.useEffect(() => {
-    import('@/components/warehouse/context/WarehouseContext')
-      .then(({ BahanBakuProvider }) => {
-        setBahanBakuProvider(() => BahanBakuProvider);
-      })
-      .catch(error => {
-        console.error('Failed to load BahanBakuProvider:', error);
-        // Provide fallback
-        setBahanBakuProvider(() => ({ children }: { children: ReactNode }) => <>{children}</>);
-      });
-  }, []);
-
-  if (!BahanBakuProvider) {
-    return <div className="loading-warehouse">Loading warehouse...</div>;
-  }
-
-  return <BahanBakuProvider>{children}</BahanBakuProvider>;
-};
+// ⚡ WAREHOUSE PROVIDER: Now handled in provider queue with HIGH priority
 
 /**
- * ✅ UPDATED - Add ProfitAnalysisProvider to Original Working Structure
- * Keeping the exact same structure as before but adding ProfitAnalysisProvider
+ * ⚡ MOBILE-OPTIMIZED: Progressive Provider Loading
+ * Load providers berdasarkan priority untuk mengurangi loading time
+ */
+/**
+ * ⚡ REFACTORED: Progressive Provider Loading to fix race conditions.
+ * This version uses a flattened structure to ensure each provider group
+ * is fully loaded before rendering the next, eliminating context errors.
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
+  const [loadingStage, setLoadingStage] = useState(1);
+
+  useEffect(() => {
+    const stageTimers: NodeJS.Timeout[] = [];
+    const advanceStage = (stage: number, delay: number) => {
+      stageTimers.push(setTimeout(() => {
+        logger.info(`AppProviders: Advancing to loading stage ${stage}`);
+        setLoadingStage(stage);
+      }, delay));
+    };
+
+    const baseDelay = isMobile ? 80 : 120;
+    advanceStage(2, baseDelay);
+    advanceStage(3, baseDelay * 2);
+    advanceStage(4, baseDelay * 3);
+
+    return () => stageTimers.forEach(clearTimeout);
+  }, [isMobile]);
+
+  // Define providers for each stage
+  const criticalProviders = [
+    { component: NotificationProvider, name: 'Notification', priority: 'critical' as const },
+    { component: UserSettingsProvider, name: 'UserSettings', priority: 'critical' as const },
+  ];
+  const highProviders = [
+    { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
+    { component: FinancialProvider, name: 'Financial', priority: 'high' as const },
+    { component: RecipeProvider, name: 'Recipe', priority: 'high' as const },
+    { component: WarehouseProvider, name: 'Warehouse', priority: 'high' as const },
+  ];
+  const mediumProviders = [
+    { component: SupplierProvider, name: 'Supplier', priority: 'medium' as const },
+    { component: PurchaseProvider, name: 'Purchase', priority: 'medium' as const },
+    { component: OrderProvider, name: 'Order', priority: 'medium' as const },
+  ];
+  const lowProviders = [
+    { component: OperationalCostProvider, name: 'OperationalCost', priority: 'low' as const },
+    { component: PromoProvider, name: 'Promo', priority: 'low' as const },
+    { component: FollowUpTemplateProvider, name: 'FollowUpTemplate', priority: 'low' as const },
+    { component: DeviceProvider, name: 'Device', priority: 'low' as const },
+    { component: ProfitAnalysisProvider, name: 'ProfitAnalysis', priority: 'low' as const },
+  ];
+
+  const LoadingIndicator: React.FC<{ stage: number; total: number; message: string }> = ({ stage, total, message }) => (
+    <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
+      <div className="text-center">
+        <div className={`w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}></div>
+        <h2 className={`text-lg font-semibold text-gray-700`}>{message}</h2>
+        <p className="text-sm text-gray-500 mt-1">({stage}/{total})</p>
+      </div>
+    </div>
+  );
   
+  const renderProviders = (providers: any[], content: ReactNode): ReactNode => {
+      return providers.reduceRight((acc, p) => {
+          const ProviderComponent = p.component;
+          return <ProviderComponent>{acc}</ProviderComponent>;
+      }, <>{content}</>);
+  };
+
+  // Core providers that are always present
+  const CoreProviders: React.FC<{ children: ReactNode }> = ({ children }) => (
+      <AuthProvider>
+        <PaymentProvider>{children}</PaymentProvider>
+      </AuthProvider>
+  );
+
+  // This structure ensures that children are only rendered inside the fully composed provider tree.
   return (
     <>
-      {/* ✅ ORIGINAL STRUCTURE - Proven to work + ProfitAnalysisProvider */}
-      <AuthProvider>
-        <PaymentProvider>
-          <NotificationProvider>
-            <UserSettingsProvider>
-              <ActivityProvider>
-                <FinancialProvider>
-                  <DynamicBahanBakuProvider>
-                    <SupplierProvider>
-                      <RecipeProvider>
-                        <PurchaseProvider>
-                          <OrderProvider>
-                            <OperationalCostProvider>
-                              <PromoProvider>
-                                <FollowUpTemplateProvider>
-                                  {/* ✅ NEW: Add DeviceProvider */}
-                                  <DeviceProvider>
-                                    {/* ✅ NEW: Add ProfitAnalysisProvider */}
-                                    <ProfitAnalysisProvider>
-                                        {/* ✅ APP CONTENT */}
-                                        {children}
-                                    </ProfitAnalysisProvider>
-                                  </DeviceProvider>
-                                </FollowUpTemplateProvider>
-                              </PromoProvider>
-                            </OperationalCostProvider>
-                          </OrderProvider>
-                        </PurchaseProvider>
-                      </RecipeProvider>
-                    </SupplierProvider>
-                  </DynamicBahanBakuProvider>
-                </FinancialProvider>
-              </ActivityProvider>
-            </UserSettingsProvider>
-          </NotificationProvider>
-        </PaymentProvider>
-      </AuthProvider>
+      <CoreProviders>
+        {loadingStage >= 1 ? (
+          renderProviders(criticalProviders,
+            loadingStage >= 2 ? (
+              renderProviders(highProviders,
+                loadingStage >= 3 ? (
+                  renderProviders(mediumProviders,
+                    loadingStage >= 4 ? (
+                      renderProviders(lowProviders, children)
+                    ) : <LoadingIndicator stage={3} total={4} message="Memuat Fitur Tambahan..." />
+                  )
+                ) : <LoadingIndicator stage={2} total={4} message="Memuat Komponen Utama..." />
+              )
+            ) : <LoadingIndicator stage={1} total={4} message="Menyiapkan Aplikasi..." />
+          )
+        ) : <LoadingIndicator stage={0} total={4} message="Memverifikasi Akses..." />}
+      </CoreProviders>
       
-      {/* ✅ GLOBAL UI */}
+      {/* Global UI elements rendered outside the main provider logic */}
       <Toaster 
         className="toaster"
         position="top-center"

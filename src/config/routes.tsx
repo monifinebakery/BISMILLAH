@@ -19,6 +19,7 @@ import invoiceRoutes from '@/routes/invoice';
 import financialRoutes from '@/routes/financial';
 import profitAnalysisRoutes from '@/routes/profit-analysis';
 import assetRoutes from '@/routes/assets';
+import purchaseRoutes from '@/routes/purchase';
 
 import settingsRoutes from '@/routes/settings';
 import deviceRoutes from '@/routes/devices';
@@ -53,9 +54,10 @@ export const AppRouter: React.FC = () => (
       {recipeRoutes}
 <Route path="/gudang" element={<LazyWarehousePage />} />
       {supplierRoutes}
-{/* Other routes */}
+      {/* Back-compat and new purchase routes */}
       <Route path="/pembelian" element={<LazyPurchasePage />} />
-{/* Other routes */}
+      {/* Mount nested purchase routes including /purchase/add */}
+      {purchaseRoutes}
       <Route path="/pesanan" element={<LazyOrdersPage />} />
       {operationalCostRoutes}
       {invoiceRoutes}

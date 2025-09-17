@@ -153,8 +153,8 @@ const Dashboard = () => {
     );
   }
 
-  // 🔄 Loading state
-  if (settingsLoading || !dateRange || !dateRange.from || !dateRange.to) {
+  // 🔄 Loading state (progressive: don't block on settingsLoading)
+  if (!dateRange || !dateRange.from || !dateRange.to) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
         <div className="text-center">

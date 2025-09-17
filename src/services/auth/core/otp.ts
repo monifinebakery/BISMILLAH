@@ -50,6 +50,8 @@ export const sendEmailOtp = async (
       if (error.message?.includes('Signups not allowed') && allowSignup) {
         logger.info('Signup disabled, trying existing users only...');
         toast.info('Mencoba untuk pengguna terdaftar...');
+        // ✅ FIXED: Add delay to prevent rapid retry which can trigger rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
         return await sendEmailOtp(email, null, false, true);
       }
       
@@ -145,8 +147,21 @@ export const verifyEmailOtp = async (
       logger.success('OTP verified successfully:', {
         userId: data.user.id,
         email: data.user.email,
-        duration: `${duration}ms`
+        duration: `${duration}ms`,
+        sessionExpiresAt: data.session.expires_at,
+        accessToken: data.session.access_token ? 'present' : 'missing'
       });
+      
+      // ✅ ENHANCED: Verify session is properly created and valid
+      if (!data.session.access_token || !data.user.id) {
+        logger.error('OTP verified but session is incomplete:', {
+          hasAccessToken: !!data.session.access_token,
+          hasUserId: !!data.user.id,
+          userId: data.user.id
+        });
+        toast.error('Sesi tidak lengkap. Silakan coba login ulang.');
+        return false;
+      }
       
       // ✅ CRITICAL: Session is now created by Supabase
       // AuthContext onAuthStateChange will automatically pick up this session
@@ -154,10 +169,17 @@ export const verifyEmailOtp = async (
       
       logger.debug('[OTP] Verification successful, AuthContext will detect session change');
       
+      // ✅ ENHANCED: Force a small delay to ensure session is fully committed
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       toast.success('Login berhasil!');
       return true;
     } else {
-      logger.warn('OTP verified but no session created');
+      logger.warn('OTP verified but no session/user created:', {
+        hasSession: !!data.session,
+        hasUser: !!data.user,
+        dataKeys: Object.keys(data || {})
+      });
       toast.error('Verifikasi berhasil tetapi sesi tidak dibuat. Silakan coba login ulang.');
       return false;
     }

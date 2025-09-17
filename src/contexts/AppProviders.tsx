@@ -17,6 +17,7 @@ import { ActivityProvider } from './ActivityContext';
 import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 import { RecipeProvider } from './RecipeContext';
 import { SupplierProvider } from './SupplierContext';
+import { WarehouseProvider } from '@/components/warehouse/context/WarehouseContext';
 
 // ⚡ LOW PRIORITY: Load last
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
@@ -27,193 +28,113 @@ import { PromoProvider } from '@/components/promoCalculator/context/PromoContext
 import { ProfitAnalysisProvider } from '@/components/profitAnalysis';
 import { DeviceProvider } from './DeviceContext';
 
-// ⚡ MOBILE: Import lazy wrapper components
-import { LazyProviderWrapper, MobileProviderQueue } from './LazyProviderWrapper';
 
 interface AppProvidersProps {
   children: ReactNode;
 }
 
-// ⚡ MOBILE-OPTIMIZED: Dynamic BahanBakuProvider dengan timeout dan fallback
-const DynamicBahanBakuProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [BahanBakuProvider, setBahanBakuProvider] = React.useState<React.ComponentType<{ children: ReactNode }> | null>(null);
-  const isMobile = useIsMobile();
-
-  React.useEffect(() => {
-    const loadProvider = async () => {
-      try {
-        // ⚡ MOBILE: Shorter timeout untuk mobile
-        const timeout = isMobile ? 3000 : 5000;
-        const importPromise = import('@/components/warehouse/context/WarehouseContext');
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('BahanBakuProvider import timeout')), timeout)
-        );
-
-        const { BahanBakuProvider } = await Promise.race([importPromise, timeoutPromise]) as any;
-        setBahanBakuProvider(() => BahanBakuProvider);
-        logger.debug('BahanBakuProvider loaded successfully (mobile:', isMobile, ')');
-      } catch (error) {
-        logger.error('Failed to load BahanBakuProvider:', error);
-        // Provide non-blocking fallback
-        setBahanBakuProvider(() => ({ children }: { children: ReactNode }) => <>{children}</>);
-      }
-    };
-
-    // ⚡ MOBILE: Delayed load to not block initial render
-    const delay = isMobile ? 200 : 100;
-    const timer = setTimeout(loadProvider, delay);
-    
-    return () => clearTimeout(timer);
-  }, [isMobile]);
-
-  if (!BahanBakuProvider) {
-    // ⚡ MOBILE: Lighter loading state
-    return (
-      <div className={`${
-        isMobile ? 'text-xs py-1' : 'text-sm py-2'
-      } text-center text-gray-500`}>
-        Loading warehouse...
-      </div>
-    );
-  }
-
-  return <BahanBakuProvider>{children}</BahanBakuProvider>;
-};
+// ⚡ WAREHOUSE PROVIDER: Now handled in provider queue with HIGH priority
 
 /**
  * ⚡ MOBILE-OPTIMIZED: Progressive Provider Loading
  * Load providers berdasarkan priority untuk mengurangi loading time
  */
+/**
+ * ⚡ REFACTORED: Progressive Provider Loading to fix race conditions.
+ * This version uses a flattened structure to ensure each provider group
+ * is fully loaded before rendering the next, eliminating context errors.
+ */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const [loadingStage, setLoadingStage] = useState(1);
 
-  // ⚡ MOBILE: Auto-advance loading stages
   useEffect(() => {
-    const stageDelay = isMobile ? 150 : 200;
-    
-    // Auto-advance stages dengan delay
-    const timers = [
-      setTimeout(() => setLoadingStage(2), stageDelay),
-      setTimeout(() => setLoadingStage(3), stageDelay * 2),
-      setTimeout(() => setLoadingStage(4), stageDelay * 3),
-    ];
-    
-    return () => timers.forEach(timer => clearTimeout(timer));
+    const stageTimers: NodeJS.Timeout[] = [];
+    const advanceStage = (stage: number, delay: number) => {
+      stageTimers.push(setTimeout(() => {
+        logger.info(`AppProviders: Advancing to loading stage ${stage}`);
+        setLoadingStage(stage);
+      }, delay));
+    };
+
+    const baseDelay = isMobile ? 80 : 120;
+    advanceStage(2, baseDelay);
+    advanceStage(3, baseDelay * 2);
+    advanceStage(4, baseDelay * 3);
+
+    return () => stageTimers.forEach(clearTimeout);
   }, [isMobile]);
 
-  // ⚡ MOBILE: Define provider queue dengan priority
-  const providerQueue = [
-    // CRITICAL: Load immediately
+  // Define providers for each stage
+  const criticalProviders = [
     { component: NotificationProvider, name: 'Notification', priority: 'critical' as const },
     { component: UserSettingsProvider, name: 'UserSettings', priority: 'critical' as const },
-    
-    // HIGH: Load after critical
+  ];
+  const highProviders = [
     { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
     { component: FinancialProvider, name: 'Financial', priority: 'high' as const },
     { component: RecipeProvider, name: 'Recipe', priority: 'high' as const },
-    
-    // MEDIUM: Load progressively
+    { component: WarehouseProvider, name: 'Warehouse', priority: 'high' as const },
+  ];
+  const mediumProviders = [
     { component: SupplierProvider, name: 'Supplier', priority: 'medium' as const },
     { component: PurchaseProvider, name: 'Purchase', priority: 'medium' as const },
     { component: OrderProvider, name: 'Order', priority: 'medium' as const },
-    
-    // LOW: Load last
+  ];
+  const lowProviders = [
     { component: OperationalCostProvider, name: 'OperationalCost', priority: 'low' as const },
     { component: PromoProvider, name: 'Promo', priority: 'low' as const },
     { component: FollowUpTemplateProvider, name: 'FollowUpTemplate', priority: 'low' as const },
     { component: DeviceProvider, name: 'Device', priority: 'low' as const },
     { component: ProfitAnalysisProvider, name: 'ProfitAnalysis', priority: 'low' as const },
   ];
+
+  const LoadingIndicator: React.FC<{ stage: number; total: number; message: string }> = ({ stage, total, message }) => (
+    <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
+      <div className="text-center">
+        <div className={`w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}></div>
+        <h2 className={`text-lg font-semibold text-gray-700`}>{message}</h2>
+        <p className="text-sm text-gray-500 mt-1">({stage}/{total})</p>
+      </div>
+    </div>
+  );
   
+  const renderProviders = (providers: any[], content: ReactNode): ReactNode => {
+      return providers.reduceRight((acc, p) => {
+          const ProviderComponent = p.component;
+          return <ProviderComponent>{acc}</ProviderComponent>;
+      }, <>{content}</>);
+  };
+
+  // Core providers that are always present
+  const CoreProviders: React.FC<{ children: ReactNode }> = ({ children }) => (
+      <AuthProvider>
+        <PaymentProvider>{children}</PaymentProvider>
+      </AuthProvider>
+  );
+
+  // This structure ensures that children are only rendered inside the fully composed provider tree.
   return (
     <>
-      {/* ⚡ CRITICAL: Always load immediately */}
-      <AuthProvider>
-        <PaymentProvider>
-          {loadingStage >= 1 && (
-            <MobileProviderQueue providers={providerQueue.filter(p => p.priority === 'critical')}>
-              {loadingStage >= 2 && (
-                <LazyProviderWrapper priority="high">
-                  <MobileProviderQueue providers={providerQueue.filter(p => p.priority === 'high')}>
-                    {loadingStage >= 3 && (
-                      <LazyProviderWrapper priority="medium">
-                        <MobileProviderQueue providers={providerQueue.filter(p => p.priority === 'medium')}>
-                          {loadingStage >= 4 && (
-                            <LazyProviderWrapper priority="low">
-                              <MobileProviderQueue providers={providerQueue.filter(p => p.priority === 'low')}>
-                                <DynamicBahanBakuProvider>
-                                  {/* ⚡ APP CONTENT - Load when all providers ready */}
-                                  {children}
-                                </DynamicBahanBakuProvider>
-                              </MobileProviderQueue>
-                            </LazyProviderWrapper>
-                          )}
-                          {loadingStage < 4 && (
-                            <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
-                              <div className="text-center">
-                                <div className={`${
-                                  isMobile ? 'w-8 h-8' : 'w-12 h-12'
-                                } border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3`}></div>
-                                <p className={`${
-                                  isMobile ? 'text-sm' : 'text-base'
-                                } text-gray-600`}>Memuat fitur tambahan...</p>
-                                <p className="text-xs text-gray-400 mt-1">Stage {loadingStage}/4</p>
-                              </div>
-                            </div>
-                          )}
-                        </MobileProviderQueue>
-                      </LazyProviderWrapper>
-                    )}
-                    {loadingStage < 3 && (
-                      <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
-                        <div className="text-center">
-                          <div className={`${
-                            isMobile ? 'w-10 h-10' : 'w-14 h-14'
-                          } border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}></div>
-                          <p className={`${
-                            isMobile ? 'text-base' : 'text-lg'
-                          } text-gray-700 font-medium`}>Memuat komponen utama...</p>
-                          <p className="text-xs text-gray-400 mt-1">Stage {loadingStage}/4</p>
-                        </div>
-                      </div>
-                    )}
-                  </MobileProviderQueue>
-                </LazyProviderWrapper>
-              )}
-              {loadingStage < 2 && (
-                <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
-                  <div className="text-center">
-                    <div className={`${
-                      isMobile ? 'w-12 h-12' : 'w-16 h-16'
-                    } border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6`}></div>
-                    <h2 className={`${
-                      isMobile ? 'text-lg' : 'text-xl'
-                    } font-semibold text-gray-700 mb-2`}>Memuat Aplikasi</h2>
-                    <p className="text-gray-500">Menyiapkan sistem...</p>
-                    <p className="text-xs text-gray-400 mt-2">Stage {loadingStage}/4</p>
-                  </div>
-                </div>
-              )}
-            </MobileProviderQueue>
-          )}
-          {loadingStage < 1 && (
-            <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
-              <div className="text-center">
-                <div className={`${
-                  isMobile ? 'w-12 h-12' : 'w-16 h-16'
-                } border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6`}></div>
-                <h2 className={`${
-                  isMobile ? 'text-lg' : 'text-xl'
-                } font-semibold text-gray-700 mb-2`}>Memuat Autentikasi</h2>
-                <p className="text-gray-500">Memverifikasi akses...</p>
-              </div>
-            </div>
-          )}
-        </PaymentProvider>
-      </AuthProvider>
+      <CoreProviders>
+        {loadingStage >= 1 ? (
+          renderProviders(criticalProviders,
+            loadingStage >= 2 ? (
+              renderProviders(highProviders,
+                loadingStage >= 3 ? (
+                  renderProviders(mediumProviders,
+                    loadingStage >= 4 ? (
+                      renderProviders(lowProviders, children)
+                    ) : <LoadingIndicator stage={3} total={4} message="Memuat Fitur Tambahan..." />
+                  )
+                ) : <LoadingIndicator stage={2} total={4} message="Memuat Komponen Utama..." />
+              )
+            ) : <LoadingIndicator stage={1} total={4} message="Menyiapkan Aplikasi..." />
+          )
+        ) : <LoadingIndicator stage={0} total={4} message="Memverifikasi Akses..." />}
+      </CoreProviders>
       
-      {/* ✅ GLOBAL UI */}
+      {/* Global UI elements rendered outside the main provider logic */}
       <Toaster 
         className="toaster"
         position="top-center"

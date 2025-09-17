@@ -29,6 +29,8 @@ import {
 } from '../utils/purchaseTransformers';
 import { validatePurchaseData, getStatusDisplayText } from '../utils/purchaseHelpers';
 import { purchaseQueryKeys } from '../query/purchase.queryKeys';
+import { broadcastPurchaseCreated } from '../utils/purchaseBroadcast';
+import { onCompletedFinancialSync, onRevertedFinancialCleanup, cleanupFinancialForDeleted } from '../utils/financialSync';
 
 // ✅ WAREHOUSE QUERY KEYS: Untuk invalidation
 const warehouseQueryKeys = {
@@ -104,7 +106,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const warehouseContext = useBahanBaku();
   const bahanBaku = warehouseContext?.bahanBaku || [];
   const addBahanBaku = warehouseContext?.addBahanBaku || (async (_: any) => {
-    console.warn('addBahanBaku not available in warehouse context');
+    logger.warn('addBahanBaku not available in warehouse context');
     return false;
   });
   const getSupplierName = useCallback((supplierValue: string): string => {
@@ -138,7 +140,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ✅ HELPER: Invalidate warehouse data after purchase changes
   const invalidateWarehouseData = useCallback(() => {
-    console.log('🔄 Invalidating warehouse data');
+    logger.debug('🔄 Invalidating warehouse data');
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
@@ -262,22 +264,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       invalidateWarehouseData();
       // ✅ INVALIDATE PURCHASE STATS
       queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
-
-      // Info
-      const totalValue = formatCurrency((((newRow as any).totalNilai ?? (newRow as any).total_nilai) as number));
-      toast.success(`Pembelian dibuat (${getSupplierName(newRow.supplier)} • ${totalValue})`);
-      addActivity?.({ title: 'Pembelian Ditambahkan', description: `Pembelian dari ${getSupplierName(newRow.supplier)} senilai ${totalValue}`, type: 'purchase', value: null });
-      addNotification?.({
-        title: '📦 Pembelian Baru',
-        message: `Pembelian dari ${getSupplierName(newRow.supplier)} senilai ${totalValue}`,
-        type: 'success',
-        icon: 'shopping-cart',
-        priority: 2,
-        related_type: 'purchase',
-        related_id: newRow.id,
-        action_url: '/pembelian',
-        is_read: false,
-      });
+      // ✅ Broadcast info
+      broadcastPurchaseCreated(newRow, getSupplierName, addActivity, addNotification);
     },
     onError: (err, _payload, ctx) => {
       // rollback
@@ -399,84 +387,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
-          // Tambahkan transaksi ketika status berubah ke completed (expense)
-          logger.info('💰 Creating financial transaction for completed purchase:', {
-            purchaseId: fresh.id,
-            amount: (((fresh as any).totalNilai ?? (fresh as any).total_nilai) as number),
-            supplier: getSupplierName(fresh.supplier),
-            category: 'Pembelian Bahan Baku',
-            transactionData: {
-              type: 'expense',
-              amount: fresh.total_nilai,
-              description: `Pembelian dari ${getSupplierName(fresh.supplier)}`,
-              category: 'Pembelian Bahan Baku',
-              date: new Date(),
-              relatedId: fresh.id,
-            }
-          });
-          
-          void addFinancialTransaction({
-            type: 'expense',
-            amount: fresh.total_nilai,
-            description: `Pembelian dari ${getSupplierName(fresh.supplier)}`,
-            category: 'Pembelian Bahan Baku',
-            date: new Date(),
-            relatedId: fresh.id,
-          });
-          
-          // ✅ INVALIDATE PROFIT ANALYSIS: Purchase completion affects profit calculations
-          logger.debug('📈 Invalidating profit analysis cache after purchase completion');
-          queryClient.invalidateQueries({ 
-            queryKey: ['profit-analysis'] 
-          });
-          
-          // ✅ DISPATCH PURCHASE COMPLETION EVENT: Trigger WAC refresh in profit analysis
-          logger.debug('🔄 Dispatching purchase completion event for WAC refresh');
-          window.dispatchEvent(new CustomEvent('purchase:completed', {
-            detail: { purchaseId: fresh.id, supplier: fresh.supplier, total_nilai: (((fresh as any).totalNilai ?? (fresh as any).total_nilai) as number) }
-          }));
-          
-          // ✅ INVALIDATE FINANCIAL REPORTS: Purchase completion creates financial transaction
-          logger.debug('💰 Invalidating financial transaction cache after purchase completion');
-          queryClient.invalidateQueries({ 
-            queryKey: ['financial'] 
-          });
-          queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
+          void onCompletedFinancialSync(fresh, getSupplierName, addFinancialTransaction, queryClient, user!.id);
         } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
-          // Hapus transaksi ketika status berubah dari completed (berdasarkan related_id)
-          logger.info('💰 Deleting financial transaction for reverted purchase:', fresh.id);
-          
-          // Cari transaksi terkait lalu hapus
-          (async () => {
-            try {
-              const { data, error } = await supabase
-                .from('financial_transactions')
-                .select('id')
-                .eq('user_id', user!.id)
-                .eq('related_id', fresh.id)
-                .eq('type', 'expense');
-              if (error) throw error;
-              const ids = (data || []).map((r: any) => r.id);
-              for (const id of ids) {
-                await deleteFinancialTransaction(id);
-              }
-              
-              // ✅ INVALIDATE PROFIT ANALYSIS: Financial transaction deletion affects profit calculations
-              logger.debug('📈 Invalidating profit analysis cache after financial transaction deletion');
-              queryClient.invalidateQueries({ 
-                queryKey: ['profit-analysis'] 
-              });
-              
-              // ✅ INVALIDATE FINANCIAL REPORTS: Financial transaction deletion affects reports
-              logger.debug('💰 Invalidating financial transaction cache after deletion');
-              queryClient.invalidateQueries({ 
-                queryKey: ['financial'] 
-              });
-              queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user?.id) });
-            } catch (e) {
-              logger.warn('Gagal membersihkan transaksi keuangan saat revert purchase:', e);
-            }
-          })();
+          void onRevertedFinancialCleanup(fresh.id, user!.id, deleteFinancialTransaction, queryClient);
         }
       } else {
         logger.warn('⚠️ Previous purchase data not found in mutation context for:', fresh.id);
@@ -505,42 +418,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       const p = ctx?.prev?.find((x) => x.id === id);
       if (p) {
-        // ✅ FIXED: Delete related financial transactions when purchase is deleted
-        logger.info('💰 Cleaning up financial transactions for deleted purchase:', id);
-        try {
-          const { data, error } = await supabase
-            .from('financial_transactions')
-            .select('id')
-            .eq('user_id', user!.id)
-            .eq('related_id', id)
-            .eq('type', 'expense');
-          
-          if (error) {
-            logger.error('⚠️ Error fetching financial transactions for cleanup:', error);
-          } else if (data && data.length > 0) {
-            logger.info(`🗑️ Found ${data.length} financial transaction(s) to delete for purchase:`, id);
-            const deletePromises = data.map((transaction: any) => 
-              deleteFinancialTransaction(transaction.id)
-            );
-            await Promise.all(deletePromises);
-            logger.info('✅ Financial transactions cleaned up successfully');
-            
-            // ✅ INVALIDATE FINANCIAL REPORTS: Financial transaction deletion affects reports
-            queryClient.invalidateQueries({ 
-              queryKey: ['financial'] 
-            });
-            
-            // ✅ INVALIDATE PROFIT ANALYSIS: Financial transaction deletion affects profit calculations
-            queryClient.invalidateQueries({ 
-              queryKey: ['profit-analysis'] 
-            });
-          } else {
-            logger.info('ℹ️ No financial transactions found for purchase:', id);
-          }
-        } catch (e) {
-          logger.error('⚠️ Failed to cleanup financial transactions for deleted purchase:', e);
-          logger.warn('Gagal membersihkan transaksi keuangan saat hapus purchase:', e);
-        }
+        await cleanupFinancialForDeleted(id, user!.id, deleteFinancialTransaction, queryClient);
         
         const supplierName = getSupplierName(p.supplier);
         const totalValue = formatCurrency(p.total_nilai);

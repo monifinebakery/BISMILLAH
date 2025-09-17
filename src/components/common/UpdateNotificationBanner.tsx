@@ -230,6 +230,7 @@ export const useUpdateNotification = () => {
     updateInfo,
     isVisible,
     checkForUpdate, // Changed from showUpdateNotification
+    showUpdateNotification,
     hideUpdateNotification,
     dismissUpdateNotification
   };

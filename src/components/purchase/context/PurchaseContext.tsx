@@ -14,10 +14,12 @@ import { logger } from '@/utils/logger';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { useFinancial } from '@/components/financial/contexts/FinancialContext';
-import { useSupplier } from '@/contexts/SupplierContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
+
+// ✅ SAFE CONTEXT IMPORTS: Import contexts directly to check availability
+import { FinancialContext } from '@/components/financial/contexts/FinancialContext';
+import { SupplierContext } from '@/contexts/SupplierContext';
 import { ensureBahanBakuIdsForItems } from '@/components/warehouse/utils/warehouseItemUtils';
 import { PurchaseApiService } from '../services/purchaseApi';
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
@@ -99,41 +101,42 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const { addActivity } = useActivity();
   
-  // ✅ FIXED: Safe financial context access without hooks in useEffect
-  let financialContext: any = null;
-  let addFinancialTransaction: any = async () => false;
-  let deleteFinancialTransaction: any = async () => false;
+  // ✅ SAFE CONTEXT ACCESS: Check context availability without hooks in try-catch
+  const financialContext = useContext(FinancialContext);
+  const supplierContext = useContext(SupplierContext);
   
-  try {
-    // Try to get financial context directly, without useEffect
-    financialContext = useFinancial();
-    if (financialContext) {
-      addFinancialTransaction = financialContext.addFinancialTransaction || (async () => false);
-      deleteFinancialTransaction = financialContext.deleteFinancialTransaction || (async () => false);
+  // Financial context handlers with safe fallbacks
+  const addFinancialTransaction = useMemo(() => {
+    if (financialContext?.addFinancialTransaction) {
       logger.debug('PurchaseContext: FinancialContext available');
+      return financialContext.addFinancialTransaction;
     }
-  } catch (error) {
-    logger.warn('PurchaseContext: FinancialContext not available, using fallbacks:', error);
-    addFinancialTransaction = async () => {
+    logger.warn('PurchaseContext: FinancialContext not available, using fallbacks');
+    return async () => {
       logger.debug('PurchaseContext: addFinancialTransaction not available, skipping');
       return false;
     };
-    deleteFinancialTransaction = async () => {
+  }, [financialContext]);
+  
+  const deleteFinancialTransaction = useMemo(() => {
+    if (financialContext?.deleteFinancialTransaction) {
+      return financialContext.deleteFinancialTransaction;
+    }
+    return async () => {
       logger.debug('PurchaseContext: deleteFinancialTransaction not available, skipping');
       return false;
     };
-  }
+  }, [financialContext]);
   
-  // ✅ FIXED: Safe supplier context access with fallback
-  let suppliers: any[] = [];
-  try {
-    const supplierContext = useSupplier();
-    suppliers = supplierContext?.suppliers || [];
-    logger.debug('PurchaseContext: SupplierContext available');
-  } catch (error) {
-    logger.warn('PurchaseContext: SupplierContext not available, using fallbacks:', error);
-    suppliers = [];
-  }
+  // Supplier context data with safe fallbacks
+  const suppliers = useMemo(() => {
+    if (supplierContext?.suppliers) {
+      logger.debug('PurchaseContext: SupplierContext available');
+      return supplierContext.suppliers;
+    }
+    logger.warn('PurchaseContext: SupplierContext not available, using fallbacks');
+    return [];
+  }, [supplierContext]);
   
   const { addNotification } = useNotification();
   

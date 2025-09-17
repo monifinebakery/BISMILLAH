@@ -88,7 +88,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         size="xl" 
-        className="w-full max-w-4xl max-h-[95vh] overflow-y-auto"
+        className="w-full max-w-4xl"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -396,7 +396,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
             </form>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-4 py-3">
           <Button
             type="button"
             variant="outline"

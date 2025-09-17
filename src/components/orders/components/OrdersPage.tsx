@@ -142,13 +142,7 @@ const OrdersPage: React.FC = () => {
     refreshData // ✅ TAMBAHKAN: Untuk refresh manual jika diperlukan
   } = contextValue;
 
-  // Snake_case operations for new submissions/updates
-  const {
-    addOrder: addOrderSnake,
-    updateOrder: updateOrderSnake,
-    updateOrderStatus: updateOrderStatusSnake,
-    deleteOrder: deleteOrderSnake
-  } = useOrderOperationsSnake();
+  // Snake_case operations are handled inside useOrderActions hook
 
   // ✅ LAZY LOADING STATE: State untuk kontrol lazy loading
   const [currentPage, setCurrentPage] = useState(1);

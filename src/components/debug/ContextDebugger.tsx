@@ -73,20 +73,38 @@ export const ContextDebugger: React.FC = () => {
         });
       }
 
-      // 3. Financial Context
+      // 3. Financial Context (with defensive handling)
       try {
-        const financialContext = useFinancial();
-        results.push({
-          name: 'FinancialContext',
-          status: financialContext ? 'ready' : 'loading',
-          details: {
-            exists: !!financialContext,
-            hasAddTransaction: !!financialContext?.addFinancialTransaction,
-            addTransactionType: typeof financialContext?.addFinancialTransaction,
-            contextType: typeof financialContext
-          },
-          loadTime: Date.now() - startTime
-        });
+        let financialContext = null;
+        try {
+          financialContext = useFinancial();
+        } catch (hookError) {
+          // If useFinancial hook fails, it means provider is not available
+          results.push({
+            name: 'FinancialContext',
+            status: 'error',
+            details: { 
+              error: hookError instanceof Error ? hookError.message : String(hookError),
+              reason: 'Hook execution failed - provider likely not available'
+            },
+            loadTime: Date.now() - startTime
+          });
+          financialContext = null; // Continue with next context
+        }
+        
+        if (financialContext !== null) {
+          results.push({
+            name: 'FinancialContext',
+            status: financialContext ? 'ready' : 'loading',
+            details: {
+              exists: !!financialContext,
+              hasAddTransaction: !!financialContext?.addFinancialTransaction,
+              addTransactionType: typeof financialContext?.addFinancialTransaction,
+              contextType: typeof financialContext
+            },
+            loadTime: Date.now() - startTime
+          });
+        }
       } catch (error) {
         results.push({
           name: 'FinancialContext',

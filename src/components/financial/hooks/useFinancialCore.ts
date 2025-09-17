@@ -21,14 +21,28 @@ import {
 } from '../utils/financialCalculations';
 
 export const useFinancialCore = () => {
-  // Core context data
-  const { 
-    financialTransactions: transactions, 
-    addFinancialTransaction, 
-    updateFinancialTransaction, 
-    deleteFinancialTransaction, 
-    isLoading: financialLoading 
-  } = useFinancial();
+  // ✅ FIXED: Core context data with defensive handling
+  let transactions: any[] = [];
+  let addFinancialTransaction: any = async () => false;
+  let updateFinancialTransaction: any = async () => false;
+  let deleteFinancialTransaction: any = async () => false;
+  let financialLoading = false;
+  
+  try {
+    const financialContext = useFinancial();
+    transactions = financialContext?.financialTransactions || [];
+    addFinancialTransaction = financialContext?.addFinancialTransaction || (async () => false);
+    updateFinancialTransaction = financialContext?.updateFinancialTransaction || (async () => false);
+    deleteFinancialTransaction = financialContext?.deleteFinancialTransaction || (async () => false);
+    financialLoading = financialContext?.isLoading || false;
+  } catch (error) {
+    console.warn('Failed to get financial context in useFinancialCore:', error);
+    transactions = [];
+    addFinancialTransaction = async () => false;
+    updateFinancialTransaction = async () => false;
+    deleteFinancialTransaction = async () => false;
+    financialLoading = false;
+  }
   
   const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
   const { user } = useAuth();

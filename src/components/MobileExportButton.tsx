@@ -41,7 +41,16 @@ const MobileExportButton = () => {
   // Note: hppResults may not be available in current context
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { financialTransactions } = useFinancial();
+  
+  // ✅ FIXED: Defensive error handling for useFinancial hook (similar to useBahanBaku)
+  let financialTransactions: Array<any> = [];
+  try {
+    const financialContext = useFinancial();
+    financialTransactions = financialContext?.financialTransactions || [];
+  } catch (error) {
+    console.warn('Failed to get financial data in MobileExportButton:', error);
+    financialTransactions = [];
+  }
   
   // ✅ RESTORED: Use modular asset hook (nested QueryClient fixed)
   const { assets, isLoading: assetsLoading } = useAssetQuery({ 

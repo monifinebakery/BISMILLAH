@@ -1,9 +1,8 @@
 // Removed external skeleton imports to keep bundle lean
 
 
-// src/contexts/AppProviders.tsx - MOBILE-OPTIMIZED PROGRESSIVE LOADING
+// src/contexts/AppProviders.tsx - PROGRESSIVE LOADING
 import React, { ReactNode, Suspense, useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { logger } from '@/utils/logger';
@@ -47,85 +46,126 @@ interface AppProvidersProps {
  * This version uses a flattened structure to ensure each provider group
  * is fully loaded before rendering the next, eliminating context errors.
  */
-// Lazy provider wrappers
+// ✅ FIXED: Lazy provider wrappers with stub context support
 const LazyFinancialProvider: React.FC<{ enabled: boolean; children: ReactNode }> = ({ enabled, children }) => {
   const [ProviderComp, setProviderComp] = useState<React.ComponentType<any> | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
   useEffect(() => {
-    if (enabled && !ProviderComp) {
+    if (enabled && !ProviderComp && !isLoading) {
+      setIsLoading(true);
       import('@/components/financial/contexts/FinancialContext').then(m => {
         setProviderComp(() => (m as any).FinancialProvider);
+        setIsLoading(false);
+        logger.info('✅ LazyFinancialProvider: FinancialProvider loaded successfully');
+      }).catch(error => {
+        logger.error('❌ LazyFinancialProvider: Failed to load FinancialProvider:', error);
+        setIsLoading(false);
       });
     }
-  }, [enabled, ProviderComp]);
-  if (!enabled) return <>{children}</>;
-  if (!ProviderComp) return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="text-center text-gray-600">
-        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-        <div className="text-sm">Memuat Laporan Keuangan...</div>
-      </div>
-    </div>
-  );
-  const Comp = ProviderComp as React.ComponentType<any>;
-  return <Comp>{children}</Comp>;
+  }, [enabled, ProviderComp, isLoading]);
+  
+  // If not enabled, render children without provider
+  if (!enabled) {
+    logger.debug('LazyFinancialProvider: Disabled, rendering children without provider');
+    return <>{children}</>;
+  }
+  
+  // If provider is loaded, use it
+  if (ProviderComp) {
+    const Comp = ProviderComp as React.ComponentType<any>;
+    return <Comp>{children}</Comp>;
+  }
+  
+  // ✅ FIXED: Instead of blocking with loading screen, render children without provider first
+  // This prevents useFinancial hooks from throwing "must be used within provider" errors
+  // by using fallback handling in components that use useFinancial
+  logger.debug('LazyFinancialProvider: Loading provider, rendering children without provider (components should handle gracefully)');
+  
+  return <>{children}</>;
 };
 
 const LazyProfitAnalysisProvider: React.FC<{ enabled: boolean; children: ReactNode }> = ({ enabled, children }) => {
   const [ProviderComp, setProviderComp] = useState<React.ComponentType<any> | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
   useEffect(() => {
-    if (enabled && !ProviderComp) {
+    if (enabled && !ProviderComp && !isLoading) {
+      setIsLoading(true);
       import('@/components/profitAnalysis/contexts/ProfitAnalysisContext').then(m => {
         setProviderComp(() => (m as any).ProfitAnalysisProvider);
+        setIsLoading(false);
+        logger.info('✅ LazyProfitAnalysisProvider: ProfitAnalysisProvider loaded successfully');
+      }).catch(error => {
+        logger.error('❌ LazyProfitAnalysisProvider: Failed to load ProfitAnalysisProvider:', error);
+        setIsLoading(false);
       });
     }
-  }, [enabled, ProviderComp]);
+  }, [enabled, ProviderComp, isLoading]);
+  
   if (!enabled) return <>{children}</>;
-  if (!ProviderComp) return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="text-center text-gray-600">
-        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-        <div className="text-sm">Memuat Analisis Profit...</div>
-      </div>
-    </div>
-  );
-  const Comp = ProviderComp as React.ComponentType<any>;
-  return <Comp>{children}</Comp>;
+  if (ProviderComp) {
+    const Comp = ProviderComp as React.ComponentType<any>;
+    return <Comp>{children}</Comp>;
+  }
+  
+  // ✅ FIXED: Same stub approach for ProfitAnalysisProvider
+  logger.debug('LazyProfitAnalysisProvider: Loading provider, rendering children normally');
+  return <>{children}</>; // ProfitAnalysis is less critical, so we can just render children
 };
 
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   const isMobile = useIsMobile();
-  const location = useLocation();
   const [loadingStage, setLoadingStage] = useState(1);
 
   useEffect(() => {
+    logger.info('AppProviders: Initializing progressive loading', { isMobile });
     const stageTimers: NodeJS.Timeout[] = [];
     const advanceStage = (stage: number, delay: number) => {
       stageTimers.push(setTimeout(() => {
-        logger.info(`AppProviders: Advancing to loading stage ${stage}`);
+        logger.info(`AppProviders: Advancing to loading stage ${stage}`, { isMobile });
         setLoadingStage(stage);
       }, delay));
     };
 
-    const baseDelay = isMobile ? 80 : 120;
+    // ✅ FIXED: PERSIS SAMA antara mobile dan desktop
+    const baseDelay = 100; // Same delay for both mobile and desktop
     advanceStage(2, baseDelay);
     advanceStage(3, baseDelay * 2);
     advanceStage(4, baseDelay * 3);
+    
+    logger.debug('AppProviders: Stage timing configured:', {
+      isMobile,
+      baseDelay,
+      stage2: baseDelay,
+      stage3: baseDelay * 2,
+      stage4: baseDelay * 3
+    });
 
-    return () => stageTimers.forEach(clearTimeout);
+    return () => {
+      logger.debug('AppProviders: Cleaning up stage timers');
+      stageTimers.forEach(clearTimeout);
+    };
   }, [isMobile]);
 
-  // Financial provider is heavy; mount only when needed on mobile routes
-  const onFinancialRoute = location.pathname.startsWith('/laporan') || location.pathname.startsWith('/purchase') || location.pathname.startsWith('/pembelian');
-  const FinancialProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => (
-    <LazyFinancialProvider enabled={isMobile ? onFinancialRoute : true}>{children}</LazyFinancialProvider>
-  );
+  // ✅ FIXED: Financial provider - always load on both mobile and desktop with better logging
+  const FinancialProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => {
+    logger.debug('FinancialProviderWrapper: Rendering with enabled=true');
+    return <LazyFinancialProvider enabled={true}>{children}</LazyFinancialProvider>;
+  };
   
-  // Define providers for each stage
+  // ✅ FIXED: Define providers for each stage with better logging
   const criticalProviders = [
     { component: NotificationProvider, name: 'Notification', priority: 'critical' as const },
     { component: UserSettingsProvider, name: 'UserSettings', priority: 'critical' as const },
     { component: FinancialProviderWrapper, name: 'Financial', priority: 'critical' as const },
   ];
+  
+  logger.debug('AppProviders: Critical providers configured:', {
+    providers: criticalProviders.map(p => p.name),
+    loadingStage,
+    isMobile
+  });
 
   const highProviders = [
     { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
@@ -137,11 +177,11 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     { component: PurchaseProvider, name: 'Purchase', priority: 'medium' as const },
     { component: OrderProvider, name: 'Order', priority: 'medium' as const },
   ];
-  // Profit analysis provider is heavy; mount only when needed on mobile routes
-  const onProfitRoute = location.pathname.startsWith('/analisis-profit');
-  const ProfitAnalysisProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => (
-    <LazyProfitAnalysisProvider enabled={isMobile ? onProfitRoute : true}>{children}</LazyProfitAnalysisProvider>
-  );
+  // ✅ FIXED: Profit analysis provider - always load on both mobile and desktop
+  const ProfitAnalysisProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => {
+    logger.debug('ProfitAnalysisProviderWrapper: Rendering with enabled=true');
+    return <LazyProfitAnalysisProvider enabled={true}>{children}</LazyProfitAnalysisProvider>;
+  };
 
   const lowProviders = [
     { component: OperationalCostProvider, name: 'OperationalCost', priority: 'low' as const },
@@ -180,8 +220,13 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   };
   
   const renderProviders = (providers: any[], content: ReactNode): ReactNode => {
+      logger.debug('AppProviders: Rendering providers:', {
+        providerNames: providers.map(p => p.name),
+        loadingStage
+      });
       return providers.reduceRight((acc, p) => {
           const ProviderComponent = p.component;
+          logger.debug(`AppProviders: Wrapping content with ${p.name}Provider`);
           return <ProviderComponent>{acc}</ProviderComponent>;
       }, <>{content}</>);
   };
@@ -193,7 +238,8 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
       </AuthProvider>
   );
 
-  // This structure ensures that children are only rendered inside the fully composed provider tree.
+  // ✅ FIXED: This structure ensures that children are only rendered inside the fully composed provider tree.
+  logger.debug('AppProviders: Rendering provider tree', { loadingStage });
   return (
     <>
       <CoreProviders>

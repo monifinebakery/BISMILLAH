@@ -62,21 +62,21 @@ const detectDeviceCapabilities = () => {
   return capabilities;
 };
 
-// ✅ MOBILE-OPTIMIZED: Adaptive timeout yang lebih agresif untuk mobile
-const getAdaptiveTimeout = (baseTimeout = 8000) => { // ⚡ Kurangi dari 15s ke 8s
+// ✅ FIXED: Consistent timeout untuk mobile dan desktop - TIDAK ADA DISKRIMINASI
+const getAdaptiveTimeout = (baseTimeout = 12000) => { // ✅ SAME: Naikkan ke 12s untuk semua device
   const capabilities = detectDeviceCapabilities();
   const safariDetection = detectSafariIOS();
   
-  // ⚡ MOBILE FIRST: Deteksi mobile device untuk timeout yang lebih cepat
+// ✅ FIXED: Consistent timeout untuk mobile dan desktop - TIDAK ADA DISKRIMINASI
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const mobileMultiplier = isMobile ? 0.8 : 1.0; // 20% lebih cepat di mobile
+  const mobileMultiplier = 1.0; // ✅ SAME: Persis sama untuk mobile dan desktop
   
-  // Use Safari-specific timeout if on Safari iOS dengan optimasi lebih agresif
+  // ✅ FIXED: Safari-specific timeout yang lebih reasonable - TIDAK ADA DISKRIMINASI
   if (safariDetection.isSafariIOS) {
-    // ⚡ Optimasi agresif untuk Safari iOS - max 8 detik
-    const safariTimeout = getSafariTimeout(baseTimeout * 0.6); // 60% dari base
-    const optimizedTimeout = Math.min(safariTimeout, baseTimeout * 0.8); // Max 80% base
-    logger.debug('Safari iOS: Using aggressive mobile timeout', { 
+    // ✅ SAME: Safari timeout yang reasonable - sama seperti device lain
+    const safariTimeout = getSafariTimeout(baseTimeout); // ✅ 100% dari base (tidak dipotong)
+    const optimizedTimeout = Math.min(safariTimeout, maxTimeout); // ✅ Sama dengan max timeout
+    logger.debug('Safari iOS: Using consistent timeout', { 
       original: safariTimeout, 
       optimized: optimizedTimeout,
       isMobile 
@@ -86,23 +86,23 @@ const getAdaptiveTimeout = (baseTimeout = 8000) => { // ⚡ Kurangi dari 15s ke 
   
   let timeout = baseTimeout * mobileMultiplier;
 
-  // ⚡ MOBILE: Kurangi multiplier untuk device lambat
+  // ✅ FIXED: Same multiplier untuk device lambat - TIDAK ADA DISKRIMINASI
   if (capabilities.isSlowDevice) {
-    timeout *= isMobile ? 1.3 : 2; // Mobile: 30% increase, Desktop: 100%
-    logger.debug('AuthContext: Slow device detected, mobile-optimized timeout:', timeout);
+    timeout *= 2; // ✅ SAME: 100% increase untuk semua device
+    logger.debug('AuthContext: Slow device detected, consistent timeout:', timeout);
   }
 
-  // ⚡ MOBILE: Network-based timeout yang lebih realistis
+  // ✅ FIXED: Network-based timeout yang konsisten - TIDAK ADA DISKRIMINASI
   if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
-    timeout *= isMobile ? 1.8 : 3; // Mobile: 80% increase, Desktop: 200%
-    logger.debug('AuthContext: Slow network detected, mobile-optimized timeout:', timeout);
+    timeout *= 3; // ✅ SAME: 200% increase untuk semua device
+    logger.debug('AuthContext: Slow network detected, consistent timeout:', timeout);
   } else if (capabilities.networkType === '3g') {
-    timeout *= isMobile ? 1.2 : 1.5; // Mobile: 20% increase, Desktop: 50%
-    logger.debug('AuthContext: 3G network detected, mobile-optimized timeout:', timeout);
+    timeout *= 1.5; // ✅ SAME: 50% increase untuk semua device
+    logger.debug('AuthContext: 3G network detected, consistent timeout:', timeout);
   }
   
-  // ⚡ MOBILE: Max timeout lebih rendah - 15s untuk mobile, 30s untuk desktop
-  const maxTimeout = isMobile ? 15000 : 30000;
+  // ✅ FIXED: Max timeout sama untuk mobile dan desktop - TIDAK ADA DISKRIMINASI
+  const maxTimeout = 30000; // ✅ SAME: 30s untuk semua device
   return Math.min(timeout, maxTimeout);
 };
 
@@ -240,7 +240,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshUser = async () => {
     try {
       logger.context('AuthContext', 'Manual user refresh triggered');
-      const adaptiveTimeout = getAdaptiveTimeout(6000); // ⚡ Kurangi dari 10s ke 6s
+      const adaptiveTimeout = getAdaptiveTimeout(12000); // ✅ FIXED: Konsisten dengan timeout lain
 
       // ✅ FIX: Use safe timeout wrapper with retry
       const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
@@ -495,7 +495,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
            }
         }
         
-        const adaptiveTimeout = getAdaptiveTimeout(8000); // ⚡ Kurangi dari 15s ke 8s
+        const adaptiveTimeout = getAdaptiveTimeout(12000); // ✅ FIXED: Naikkan ke 12s untuk konsistensi
         
         // ✅ Get session first
         const { data: sessionResult, error: sessionError } = await safeWithTimeout(

@@ -22,11 +22,10 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
            is_paid: true,
            payment_status: 'settled',
            email: 'dev@example.com',
-           customer_name: 'Development User',
+           name: 'Development User', // ✅ Use 'name' instead of customer_name
            created_at: new Date().toISOString(),
            updated_at: new Date().toISOString(),
-           pg_reference_id: null,
-           name: 'Development User'
+           pg_reference_id: null
          } as any,
          needsOrderVerification: false,
          needsLinking: false,
@@ -54,7 +53,7 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
     // ✅ STEP 1: Check if user has linked payment (OPTIMIZED query)
     const { data: linkedPayments, error: linkedError } = await supabase
       .from('user_payments')
-      .select('id,user_id,order_id,is_paid,payment_status,email,customer_name,created_at,updated_at') // ✅ FIXED: Select only needed fields
+      .select('id,user_id,name,order_id,is_paid,payment_status,email,created_at,updated_at') // ✅ FIXED: Use existing schema columns
       .eq('user_id', user.id)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
@@ -93,7 +92,7 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
     // ✅ STEP 2: Check for unlinked payments - OPTIMIZED query
     const { data: unlinkedPayments, error: unlinkedError } = await supabase
       .from('user_payments')
-      .select('id,order_id,email,customer_name,is_paid,payment_status,created_at') // ✅ FIXED: Select only needed fields
+      .select('id,name,order_id,email,is_paid,payment_status,created_at') // ✅ FIXED: Use existing schema columns
       .eq('email', user.email)
       .is('user_id', null)
       .eq('is_paid', true)

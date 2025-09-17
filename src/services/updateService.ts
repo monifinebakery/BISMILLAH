@@ -31,6 +31,11 @@ class UpdateService {
   private readonly REPO_OWNER = 'monifinebakery';
   private readonly REPO_NAME = 'BISMILLAH';
   private readonly BRANCH = 'main';
+  
+  // Vercel API endpoints  
+  private readonly VERCEL_API_BASE = 'https://api.vercel.com';
+  private readonly VERCEL_TEAM_ID = import.meta.env.VITE_VERCEL_TEAM_ID;
+  private readonly VERCEL_PROJECT_ID = import.meta.env.VITE_VERCEL_PROJECT_ID;
 
   constructor() {
     this.currentVersion = this.getCurrentVersion();
@@ -73,6 +78,61 @@ class UpdateService {
     return `build_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   }
 
+  // Check Vercel deployment status
+  private async checkDeploymentStatus(commitSha: string): Promise<boolean> {
+    try {
+      // If no Vercel config, assume deployment is ready (fallback)
+      if (!this.VERCEL_PROJECT_ID) {
+        logger.debug('🟡 No Vercel config found, assuming deployment ready');
+        return true;
+      }
+      
+      const url = `${this.VERCEL_API_BASE}/v6/deployments`;
+      const params = new URLSearchParams({
+        projectId: this.VERCEL_PROJECT_ID,
+        gitCommitSha: commitSha,
+        limit: '1'
+      });
+      
+      const response = await fetch(`${url}?${params}`, {
+        headers: {
+          'Accept': 'application/json',
+          ...(import.meta.env.VITE_VERCEL_TOKEN && {
+            'Authorization': `Bearer ${import.meta.env.VITE_VERCEL_TOKEN}`
+          })
+        }
+      });
+
+      if (!response.ok) {
+        logger.warn('⚠️ Failed to check Vercel deployment status, assuming ready');
+        return true; // Fallback to true if can't check
+      }
+
+      const data = await response.json();
+      const deployment = data.deployments?.[0];
+      
+      if (!deployment) {
+        logger.debug('🟡 No deployment found for commit, assuming ready');
+        return true;
+      }
+
+      const isReady = deployment.readyState === 'READY';
+      
+      logger.info('🌐 Deployment status check:', {
+        commitSha: commitSha.slice(0, 8),
+        status: deployment.readyState,
+        isReady,
+        url: deployment.url
+      });
+
+      return isReady;
+      
+    } catch (error) {
+      logger.warn('⚠️ Error checking deployment status, assuming ready:', error);
+      return true; // Fallback to true on error
+    }
+  }
+
   // Check for updates from GitHub
   async checkForUpdates(): Promise<UpdateCheckResult> {
     if (this.isChecking) {
@@ -95,6 +155,14 @@ class UpdateService {
       const hasUpdate = this.compareVersions(this.currentVersion.commitHash, latestCommit.sha.slice(0, 8));
       
       if (hasUpdate) {
+        // 🆕 NEW: Check if deployment is ready before showing update
+        const isDeploymentReady = await this.checkDeploymentStatus(latestCommit.sha);
+        
+        if (!isDeploymentReady) {
+          logger.info('🕑 Update found but deployment not ready yet, waiting...');
+          return this.noUpdateResult();
+        }
+        
         const latestVersion: VersionInfo = {
           version: this.generateVersionString(),
           buildId: `build_${latestCommit.sha.slice(0, 8)}`,
@@ -103,7 +171,7 @@ class UpdateService {
           environment: 'production'
         };
 
-        logger.success('✨ Update available!', { 
+        logger.success('✨ Update available and deployment ready!', { 
           current: this.currentVersion.commitHash,
           latest: latestVersion.commitHash 
         });

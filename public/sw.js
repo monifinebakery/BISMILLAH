@@ -212,10 +212,7 @@ async function handleAPIRequest(request) {
       return fetch(request);
     }
     
-    // Always bypass cache for sensitive verification endpoints
-    if (url.pathname === '/api/turnstile-verify') {
-      return await fetch(request);
-    }
+    // No special bypass endpoints currently in use
   } catch (e) {
     // ignore URL parse errors
   }

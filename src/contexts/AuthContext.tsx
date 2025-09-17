@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -20,6 +20,8 @@ import {
   needsSafariWorkaround,
   logSafariInfo 
 } from '@/utils/safariUtils';
+import { clearPersistedQueryState } from '@/utils/queryPersistence';
+import { queryClient } from '@/config/queryClient';
 
 // ✅ Menggunakan fungsi yang sama dari authUtils
 const detectDeviceCapabilities = () => {
@@ -224,6 +226,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   const refreshUser = async () => {
     try {
@@ -295,6 +298,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       navigate('/', { replace: true });
     }
   };
+
+  // ✅ Ensure cache segregation per user: clear RQ cache + persisted cache when user changes
+  useEffect(() => {
+    const currentId = user?.id || null;
+    const prevId = lastUserIdRef.current;
+    if (prevId === null && currentId === null) return;
+    if (prevId !== null && currentId !== null && prevId === currentId) return;
+
+    // User switched or logged in/out → clear caches
+    (async () => {
+      try {
+        queryClient.clear();
+        await clearPersistedQueryState();
+        logger.info('AuthContext: Cleared React Query cache and persisted state due to user change', { prevId, currentId });
+      } catch (e) {
+        logger.warn('AuthContext: Failed to clear persisted query state', e);
+      } finally {
+        lastUserIdRef.current = currentId;
+      }
+    })();
+  }, [user?.id]);
 
   // ✅ Expose validateSession dari authUtils
   const validateSessionWrapper = async (): Promise<boolean> => {

@@ -229,7 +229,7 @@ npx webpack-bundle-analyzer build/static/js/*.js
 ### 1. **Chunk Naming**
 ```typescript
 // Gunakan nama chunk yang deskriptif
-import(/* webpackChunkName: "profit-dashboard" */ '@/components/ProfitDashboard')
+import(/* webpackChunkName: "profit-dashboard" */ '@/components/profitAnalysis/components/ImprovedProfitDashboard')
 ```
 
 ### 2. **Error Handling**

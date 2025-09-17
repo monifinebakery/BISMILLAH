@@ -9,6 +9,18 @@ const AssetPage = React.lazy(() =>
   }))
 );
 
+const AssetCreatePage = React.lazy(() =>
+  import(/* webpackChunkName: "assets-create" */ '@/components/assets/AssetCreatePage').then(module => ({
+    default: module.default,
+  }))
+);
+
+const AssetEditPage = React.lazy(() =>
+  import(/* webpackChunkName: "assets-edit" */ '@/components/assets/AssetEditPage').then(module => ({
+    default: module.default,
+  }))
+);
+
 const AssetErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void; routeName?: string }> = ({ error, resetErrorBoundary }) => {
   logger.error('Asset Error:', error);
   return (
@@ -49,19 +61,47 @@ const AssetErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => voi
 };
 
 const assetRoutes = (
-  <Route
-    path="aset"
-    element={
-      <OptimizedRouteWrapper 
-        routeName="assets" 
-        priority="low"
-        preloadOnHover={false}
-        errorFallback={AssetErrorFallback}
-      >
-        <AssetPage />
-      </OptimizedRouteWrapper>
-    }
-  />
+  <>
+    <Route
+      path="aset"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="assets" 
+          priority="low"
+          preloadOnHover={false}
+          errorFallback={AssetErrorFallback}
+        >
+          <AssetPage />
+        </OptimizedRouteWrapper>
+      }
+    />
+    <Route
+      path="aset/tambah"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="assets-create" 
+          priority="low"
+          preloadOnHover={false}
+          errorFallback={AssetErrorFallback}
+        >
+          <AssetCreatePage />
+        </OptimizedRouteWrapper>
+      }
+    />
+    <Route
+      path="aset/edit/:id"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="assets-edit" 
+          priority="low"
+          preloadOnHover={false}
+          errorFallback={AssetErrorFallback}
+        >
+          <AssetEditPage />
+        </OptimizedRouteWrapper>
+      }
+    />
+  </>
 );
 
 export default assetRoutes;

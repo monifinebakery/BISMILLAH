@@ -68,8 +68,6 @@ pnpm fix:payment
 
 ### Git Automation
 ```bash
-# Quick push with automated commit message
-pnpm push:quick
 
 # Push with custom message (interactive)
 pnpm push

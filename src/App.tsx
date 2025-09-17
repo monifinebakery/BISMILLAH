@@ -1,6 +1,6 @@
 // src/App.tsx - UPDATED & INTEGRATED
 import React, { Suspense, useEffect, useCallback } from 'react';
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, HydrationBoundary } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Analytics } from "@vercel/analytics/react";
@@ -12,6 +12,7 @@ import { logger } from "@/utils/logger";
 import { CodeSplittingProvider, CodeSplittingLoadingIndicator } from "@/providers/CodeSplittingProvider";
 import { UpdateNotificationBanner } from "@/components/common/UpdateNotificationBanner";
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
+import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
 // import MemoryMonitor from "@/components/MemoryMonitor";
 
 const App = () => {
@@ -82,6 +83,9 @@ const App = () => {
 
   // ✅ Enhanced error handling for QueryClient
   useEffect(() => {
+    // ✅ Hydrate from persisted cache (once on mount)
+    // Using HydrationBoundary below to apply this state
+
     // ✅ Set up global query error handler
     const queryUnsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query?.state?.error) {
@@ -96,15 +100,30 @@ const App = () => {
       }
     });
     
+    // Setup cache persistence (best-effort)
+    const cleanupPersistence = setupQueryPersistence(queryClient);
+
     // Cleanup subscriptions
     return () => {
       queryUnsubscribe();
       mutationUnsubscribe();
+      cleanupPersistence();
     };
   }, [handleQueryError]);
 
+  // Load dehydrated state from IndexedDB (async) once
+  const [dehydratedState, setDehydratedState] = React.useState<any>(null);
+  React.useEffect(() => {
+    let mounted = true;
+    loadPersistedQueryState().then((state) => {
+      if (mounted) setDehydratedState(state);
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
+      <HydrationBoundary state={dehydratedState as any}>
       <TooltipProvider>
         {/* ✅ Auto-Update Banner - Shows when new version is available */}
         <UpdateNotificationBanner 
@@ -141,6 +160,7 @@ const App = () => {
           </AppProviders>
         </CodeSplittingProvider>
       </TooltipProvider>
+      </HydrationBoundary>
     </QueryClientProvider>
   );
 };

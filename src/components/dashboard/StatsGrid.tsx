@@ -22,7 +22,7 @@ import {
   AlertCircle,
   AlertTriangle
 } from "lucide-react";
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 

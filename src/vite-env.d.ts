@@ -16,8 +16,7 @@ declare module '*.svg?raw' { const src: string; export default src; }
 declare module '*?url' { const src: string; export default src; }
 
 interface ImportMetaEnv {
-  readonly VITE_TURNSTILE_SITEKEY: string;
-  readonly VITE_TURNSTILE_SECRETKEY: string;
+  // Add typed Vite env here when needed
 }
 
 interface ImportMeta {

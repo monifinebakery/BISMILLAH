@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, Users, DollarSign, Search, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentSession } from '@/services/auth';
+import { Skeleton, LoadingSkeleton } from '@/components/ui/skeleton';
 
 // URL Edge Function API Admin Anda
 const ADMIN_API_URL = 'https://kewhzkfvswbimmwtpymw.supabase.co/functions/v1/admin-api';
@@ -98,10 +99,26 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Memuat data admin...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header skeleton */}
+          <div className="flex items-center gap-4">
+            <Skeleton variant="circular" width={48} height={48} />
+            <div className="flex-1 space-y-2">
+              <Skeleton variant="text" className="w-40 h-6" />
+              <Skeleton variant="text" className="w-64 h-4" />
+            </div>
+          </div>
+          {/* Stats cards skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <LoadingSkeleton key={i} type="card" />
+            ))}
+          </div>
+          {/* Payments table skeleton */}
+          <LoadingSkeleton type="table" />
+          {/* Users table skeleton */}
+          <LoadingSkeleton type="table" />
         </div>
       </div>
     );

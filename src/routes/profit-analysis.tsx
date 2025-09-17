@@ -4,10 +4,9 @@ import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrappe
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import { logger } from '@/utils/logger';
 
+// Load the dashboard component directly to avoid touching the barrel index
 const ProfitAnalysisPage = React.lazy(() =>
-  import(/* webpackChunkName: "profit-analysis" */ '@/components/profitAnalysis').then(module => ({
-    default: module.ProfitDashboard,
-  }))
+  import(/* webpackChunkName: "profit-analysis" */ '@/components/profitAnalysis/components/ImprovedProfitDashboard')
 );
 
 const ProfitAnalysisErrorFallback: React.FC<{ 

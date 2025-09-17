@@ -50,10 +50,12 @@ VITE_GITHUB_TOKEN=your_github_personal_access_token_here
 
 1. **Git Push** → Vercel deteksi commit baru
 2. **Build Process** → Inject environment variables 
-3. **Deploy Success** → App dengan build info baru live
-4. **User Opens App** → Auto-update system check GitHub API
-5. **Commit Comparison** → Deteksi update tersedia
-6. **Banner Shows** → User bisa refresh untuk update
+3. **Deploy in Progress** → Status: BUILDING/QUEUED
+4. **Deploy Success** → Status: READY, app live
+5. **User Opens App** → Auto-update system check GitHub API
+6. **Commit Comparison** → Deteksi commit baru
+7. **🆕 Deployment Check** → Validasi status READY di Vercel
+8. **Banner Shows** → Hanya jika deployment READY
 
 ## 📋 Vercel Settings (Tidak Perlu Diubah)
 
@@ -67,11 +69,19 @@ Development Command: pnpm dev
 ```
 
 ### **Environment Variables (Optional)**
-Jika ingin menambah GitHub token untuk rate limit lebih tinggi:
+Untuk functionality yang lebih baik, tambahkan variables berikut:
 
+**GitHub Token (untuk rate limit lebih tinggi):**
 1. Go to **Project Settings** → **Environment Variables**
 2. Add: `VITE_GITHUB_TOKEN` = `your_github_token_here`
 3. Scope: **Production, Preview, Development**
+
+**Vercel Deployment Status Check (untuk deployment validation):**
+1. Add: `VITE_VERCEL_PROJECT_ID` = `your_project_id_here`
+2. Add: `VITE_VERCEL_TOKEN` = `your_vercel_token_here` (optional)
+3. Scope: **Production, Preview, Development**
+
+> ⚡ **Smart Feature**: System akan cek deployment status READY sebelum show banner!
 
 ### **Function & Build Settings**
 - ✅ **Node.js Version**: 18.x (default)

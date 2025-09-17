@@ -11,6 +11,7 @@
     "build:dev": "vite build --mode development",
     "build:debug": "vite build --mode development --minify false",
     "build:simple": "vite build --no-minify",
+    "prebuild": "node -e \"require('fs').writeFileSync('public/version.json', JSON.stringify({ commitHash: require('child_process').execSync('git rev-parse HEAD').toString().trim() }))\"",
     "preview": "vite preview --port 5500",
     "analyze": "cross-env VITE_ANALYZE=true vite build",
     "analyze:server": "cross-env VITE_ANALYZE=true vite build && vite preview --port 5500",

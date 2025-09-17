@@ -1,4 +1,5 @@
-import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+// Removed external skeleton imports to keep bundle lean
+
 
 // src/contexts/AppProviders.tsx - MOBILE-OPTIMIZED PROGRESSIVE LOADING
 import React, { ReactNode, Suspense, useState, useEffect } from 'react';

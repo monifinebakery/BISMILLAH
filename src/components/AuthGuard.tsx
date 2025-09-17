@@ -13,6 +13,11 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [renderCount, setRenderCount] = useState(0);
+  const [isMobileOptimized, setIsMobileOptimized] = useState(false);
+  const [showQuickPreview, setShowQuickPreview] = useState(false);
+  
+  // ⚡ MOBILE DETECTION
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   // ✅ Development bypass authentication
   const isDevelopmentBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
@@ -64,37 +69,82 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isLoading, isReady, location.pathname, renderCount]);
 
-  // ✅ IMMEDIATE REDIRECT CHECK on user change
+  // ⚡ MOBILE-OPTIMIZED: Quick preview untuk user experience
+  useEffect(() => {
+    if (user && isReady && !isLoading) {
+      if (!isMobileOptimized) {
+        // Show quick preview first untuk mobile
+        if (isMobile) {
+          setShowQuickPreview(true);
+          setTimeout(() => setIsMobileOptimized(true), 50);
+        } else {
+          setIsMobileOptimized(true);
+        }
+      }
+    }
+  }, [user, isReady, isLoading, isMobile, isMobileOptimized]);
+
+  // ✅ IMMEDIATE REDIRECT CHECK on user change - optimized untuk mobile
   useEffect(() => {
     if (isReady && !isLoading && user && location.pathname === '/auth') {
       console.log(`🚀 [AuthGuard] IMMEDIATE SPA REDIRECT triggered for user:`, user.email);
       console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
-      // Small delay to ensure state is stable, then SPA navigate
+      
+      // ⚡ MOBILE: Lebih cepat redirect untuk mobile - 30ms vs 80ms
+      const delay = isMobile ? 30 : 80;
       const t = setTimeout(() => {
         if (location.pathname === '/auth') {
-          console.log(`🚀 [AuthGuard] Executing SPA redirect to /`);
+          console.log(`🚀 [AuthGuard] Executing SPA redirect to / (mobile: ${isMobile})`);
           navigate('/', { replace: true });
         }
-      }, 80);
+      }, delay);
       return () => clearTimeout(t);
     }
-  }, [user, isReady, isLoading, location.pathname, navigate]);
+  }, [user, isReady, isLoading, location.pathname, navigate, isMobile]);
 
-  // ✅ ENHANCED: Loading state with more detailed info
+  // ⚡ MOBILE-OPTIMIZED: Loading state dengan progressive improvement
   if (isLoading || !isReady) {
-    console.log(`🔄 [AuthGuard #${renderCount}] Loading state:`, { isLoading, isReady });
+    console.log(`🔄 [AuthGuard #${renderCount}] Loading state:`, { isLoading, isReady, isMobile });
     
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Autentikasi</h2>
-          <p className="text-gray-500">
-            {!isReady ? 'Memuat sistem...' : 'Memverifikasi sesi...'}
+          {/* ⚡ MOBILE: Smaller spinner untuk mobile */}
+          <div className={`${
+            isMobile ? 'w-12 h-12' : 'w-16 h-16'
+          } border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}></div>
+          
+          <h2 className={`${
+            isMobile ? 'text-lg' : 'text-xl'
+          } font-semibold text-gray-700 mb-2`}>Memuat Autentikasi</h2>
+          
+          <p className="text-gray-500 text-sm">
+            {!isReady ? (
+              isMobile ? 'Memuat...' : 'Memuat sistem...'
+            ) : (
+              isMobile ? 'Verifikasi...' : 'Memverifikasi sesi...'
+            )}
           </p>
-          <p className="text-xs text-gray-400 mt-2">
-            Render #{renderCount} | isLoading: {isLoading.toString()} | isReady: {isReady.toString()}
-          </p>
+          
+          {/* ⚡ MOBILE: Hide debug info di mobile untuk cleaner UI */}
+          {!isMobile && (
+            <p className="text-xs text-gray-400 mt-2">
+              Render #{renderCount} | isLoading: {isLoading.toString()} | isReady: {isReady.toString()}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  // ⚡ MOBILE: Quick preview state untuk smoother transition
+  if (user && showQuickPreview && !isMobileOptimized && isMobile) {
+    console.log(`⚡ [AuthGuard #${renderCount}] Showing quick preview for mobile`);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-sm text-gray-600">Hampir siap...</p>
         </div>
       </div>
     );

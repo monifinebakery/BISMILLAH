@@ -62,39 +62,48 @@ const detectDeviceCapabilities = () => {
   return capabilities;
 };
 
-// ✅ Adaptive timeout - sama dengan authUtils
-const getAdaptiveTimeout = (baseTimeout = 15000) => {
+// ✅ MOBILE-OPTIMIZED: Adaptive timeout yang lebih agresif untuk mobile
+const getAdaptiveTimeout = (baseTimeout = 8000) => { // ⚡ Kurangi dari 15s ke 8s
   const capabilities = detectDeviceCapabilities();
   const safariDetection = detectSafariIOS();
   
-  // Use Safari-specific timeout if on Safari iOS dengan optimasi tambahan
+  // ⚡ MOBILE FIRST: Deteksi mobile device untuk timeout yang lebih cepat
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const mobileMultiplier = isMobile ? 0.8 : 1.0; // 20% lebih cepat di mobile
+  
+  // Use Safari-specific timeout if on Safari iOS dengan optimasi lebih agresif
   if (safariDetection.isSafariIOS) {
-    // Optimasi khusus untuk Safari iOS agar sama dengan browser lain
-    const safariTimeout = getSafariTimeout(baseTimeout);
-    const optimizedTimeout = Math.min(safariTimeout * 0.8, baseTimeout * 1.2);
-    logger.debug('Safari iOS: Using optimized timeout', { 
+    // ⚡ Optimasi agresif untuk Safari iOS - max 8 detik
+    const safariTimeout = getSafariTimeout(baseTimeout * 0.6); // 60% dari base
+    const optimizedTimeout = Math.min(safariTimeout, baseTimeout * 0.8); // Max 80% base
+    logger.debug('Safari iOS: Using aggressive mobile timeout', { 
       original: safariTimeout, 
-      optimized: optimizedTimeout 
+      optimized: optimizedTimeout,
+      isMobile 
     });
     return optimizedTimeout;
   }
   
-  let timeout = baseTimeout;
+  let timeout = baseTimeout * mobileMultiplier;
 
+  // ⚡ MOBILE: Kurangi multiplier untuk device lambat
   if (capabilities.isSlowDevice) {
-    timeout *= 2;
-    logger.debug('AuthContext: Slow device detected, doubling timeout:', timeout);
+    timeout *= isMobile ? 1.3 : 2; // Mobile: 30% increase, Desktop: 100%
+    logger.debug('AuthContext: Slow device detected, mobile-optimized timeout:', timeout);
   }
 
+  // ⚡ MOBILE: Network-based timeout yang lebih realistis
   if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
-    timeout *= 3;
-    logger.debug('AuthContext: Slow network detected, tripling timeout:', timeout);
+    timeout *= isMobile ? 1.8 : 3; // Mobile: 80% increase, Desktop: 200%
+    logger.debug('AuthContext: Slow network detected, mobile-optimized timeout:', timeout);
   } else if (capabilities.networkType === '3g') {
-    timeout *= 1.5;
-    logger.debug('AuthContext: 3G network detected, increasing timeout:', timeout);
+    timeout *= isMobile ? 1.2 : 1.5; // Mobile: 20% increase, Desktop: 50%
+    logger.debug('AuthContext: 3G network detected, mobile-optimized timeout:', timeout);
   }
   
-  return Math.min(timeout, 45000); // Max 45 seconds for non-Safari
+  // ⚡ MOBILE: Max timeout lebih rendah - 15s untuk mobile, 30s untuk desktop
+  const maxTimeout = isMobile ? 15000 : 30000;
+  return Math.min(timeout, maxTimeout);
 };
 
 // ✅ User sanitization dengan validasi yang lebih ketat
@@ -231,7 +240,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshUser = async () => {
     try {
       logger.context('AuthContext', 'Manual user refresh triggered');
-      const adaptiveTimeout = getAdaptiveTimeout(10000);
+      const adaptiveTimeout = getAdaptiveTimeout(6000); // ⚡ Kurangi dari 10s ke 6s
 
       // ✅ FIX: Use safe timeout wrapper with retry
       const { data: sessionResult, error: timeoutError } = await safeWithTimeout(
@@ -299,25 +308,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // ✅ Ensure cache segregation per user: clear RQ cache + persisted cache when user changes
+  // ✅ MOBILE-OPTIMIZED: Non-blocking cache segregation per user
   useEffect(() => {
     const currentId = user?.id || null;
     const prevId = lastUserIdRef.current;
     if (prevId === null && currentId === null) return;
     if (prevId !== null && currentId !== null && prevId === currentId) return;
 
-    // User switched or logged in/out → clear caches
-    (async () => {
+    // ⚡ IMMEDIATE: Update ref first to prevent UI blocking
+    lastUserIdRef.current = currentId;
+
+    // ⚡ NON-BLOCKING: Clear caches using requestIdleCallback atau setTimeout
+    const clearCaches = async () => {
       try {
-        queryClient.clear();
-        await clearPersistedQueryState();
-        logger.info('AuthContext: Cleared React Query cache and persisted state due to user change', { prevId, currentId });
+        // Clear React Query cache in chunks to avoid blocking
+        const queries = queryClient.getQueryCache().getAll();
+        const chunkSize = 50;
+        
+        for (let i = 0; i < queries.length; i += chunkSize) {
+          const chunk = queries.slice(i, i + chunkSize);
+          chunk.forEach(query => queryClient.removeQueries({ queryKey: query.queryKey }));
+          
+          // Yield to main thread setiap chunk
+          if (i + chunkSize < queries.length) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+        }
+        
+        // Clear persisted state (non-blocking)
+        clearPersistedQueryState(); // Remove await - let it run async
+        
+        logger.info('AuthContext: Non-blocking cache clear completed', { prevId, currentId });
       } catch (e) {
-        logger.warn('AuthContext: Failed to clear persisted query state', e);
-      } finally {
-        lastUserIdRef.current = currentId;
+        logger.warn('AuthContext: Non-blocking cache clear failed', e);
       }
-    })();
+    };
+
+    // ⚡ Use requestIdleCallback if available, fallback to setTimeout
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(() => clearCaches(), { timeout: 2000 });
+    } else {
+      setTimeout(clearCaches, 100); // Small delay to let UI render first
+    }
   }, [user?.id]);
 
   // ✅ Expose validateSession dari authUtils
@@ -463,7 +495,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
            }
         }
         
-        const adaptiveTimeout = getAdaptiveTimeout(15000);
+        const adaptiveTimeout = getAdaptiveTimeout(8000); // ⚡ Kurangi dari 15s ke 8s
         
         // ✅ Get session first
         const { data: sessionResult, error: sessionError } = await safeWithTimeout(

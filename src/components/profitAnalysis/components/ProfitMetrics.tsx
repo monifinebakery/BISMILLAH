@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info, DollarSign, TrendingUp, Package, Calculator } from 'lucide-react';
 
 interface MetricCardProps {
@@ -65,10 +66,21 @@ const MetricCard: React.FC<MetricCardProps> = ({
         </div>
 
         <div className="mt-3 pt-3 border-t border-gray-200">
-          <p className="text-xs text-gray-600 flex items-center gap-1">
-            <Info className="h-3 w-3" />
-            {helpText}
-          </p>
+          <TooltipProvider delayDuration={100}>
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button aria-label="Info" className="inline-flex items-center justify-center rounded hover:text-gray-800">
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p>{helpText}</p>
+                </TooltipContent>
+              </Tooltip>
+              <span className="truncate">{helpText}</span>
+            </div>
+          </TooltipProvider>
         </div>
       </CardContent>
     </Card>
@@ -76,17 +88,25 @@ const MetricCard: React.FC<MetricCardProps> = ({
 };
 
 interface ProfitMetricsProps {
-  businessMetrics: any;
+  businessMetrics: any; // expects { revenue, cogs, opex, netProfit, netMargin, purchaseSpending? }
 }
 
 const ProfitMetrics: React.FC<ProfitMetricsProps> = ({ businessMetrics }) => {
   if (!businessMetrics) return null;
 
+  const revenue = businessMetrics?.revenue || 0;
+  const cogs = businessMetrics?.cogs || 0;
+  const opex = businessMetrics?.opex || 0;
+  const netProfit = businessMetrics?.netProfit || 0;
+  const purchaseSpending = businessMetrics?.purchaseSpending || 0;
+
+  const ratio = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100 : 0);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <MetricCard
         title="Omset Penjualan"
-        value={businessMetrics?.revenue || 0}
+        value={revenue}
         icon={DollarSign}
         helpText="Total uang masuk dari jualan"
         status="good"
@@ -94,26 +114,34 @@ const ProfitMetrics: React.FC<ProfitMetricsProps> = ({ businessMetrics }) => {
       
       <MetricCard
         title="Untung Bersih"
-        value={businessMetrics?.netProfit || 0}
+        value={netProfit}
         subtitle={`${formatPercentage(businessMetrics?.netMargin || 0)} margin`}
         icon={TrendingUp}
         helpText="Untung yang bisa dibawa pulang"
-        status={businessMetrics?.netProfit > 0 ? 'good' : 'danger'}
+        status={netProfit > 0 ? 'good' : 'danger'}
       />
       
       <MetricCard
         title="Modal Bahan"
-        value={businessMetrics?.cogs || 0}
-        subtitle={`${formatPercentage((businessMetrics?.cogs / businessMetrics?.revenue) * 100 || 0)} dari omset`}
+        value={cogs}
+        subtitle={`${formatPercentage(ratio(cogs, revenue))} dari omset`}
         icon={Package}
         helpText="Total biaya bahan baku"
-        status={(businessMetrics?.cogs / businessMetrics?.revenue) * 100 < 40 ? 'good' : 'warning'}
+        status={ratio(cogs, revenue) < 40 ? 'good' : 'warning'}
       />
       
       <MetricCard
+        title="Belanja Bahan (Kas)"
+        value={purchaseSpending}
+        subtitle={`${formatPercentage(ratio(purchaseSpending, revenue))} dari omset`}
+        icon={DollarSign}
+        helpText="Total pembelian bahan pada periode"
+      />
+
+      <MetricCard
         title="Biaya Operasional"
-        value={businessMetrics?.opex || 0}
-        subtitle={`${formatPercentage((businessMetrics?.opex / businessMetrics?.revenue) * 100 || 0)} dari omset`}
+        value={opex}
+        subtitle={`${formatPercentage(ratio(opex, revenue))} dari omset`}
         icon={Calculator}
         helpText="Sewa, listrik, gaji, dll"
       />

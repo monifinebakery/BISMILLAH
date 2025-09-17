@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 
 // Lazy load components for better code splitting
 const ProfitHeader = React.lazy(() => import('./ProfitHeader'));
@@ -101,6 +102,80 @@ const ImprovedProfitDashboard: React.FC = () => {
     };
   }, [currentAnalysis, profitMetrics]);
 
+  // Belanja Bahan (Kas Keluar) - total pembelian completed pada periode
+  const [purchaseSpending, setPurchaseSpending] = useState<number>(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchPurchases = async () => {
+      try {
+        // Derive date range (YYYY-MM-DD)
+        let startYMD = '';
+        let endYMD = '';
+        if (mode === 'daily' && dateRange?.from) {
+          const from = dateRange.from;
+          const to = dateRange.to || dateRange.from;
+          startYMD = from.toISOString().split('T')[0];
+          endYMD = to.toISOString().split('T')[0];
+        } else {
+          // Monthly mode uses defaultPeriod (YYYY-MM)
+          const [y, m] = (defaultPeriod || '').split('-').map(Number);
+          if (y && m) {
+            const start = new Date(y, m - 1, 1);
+            const end = new Date(y, m, 0);
+            startYMD = start.toISOString().split('T')[0];
+            endYMD = end.toISOString().split('T')[0];
+          }
+        }
+
+        if (!startYMD || !endYMD) {
+          if (!cancelled) setPurchaseSpending(0);
+          return;
+        }
+
+        // Query by tanggal
+        const { data, error } = await supabase
+          .from('purchases')
+          .select('total_pembelian, total_nilai, total_amount, status, tanggal')
+          .eq('status', 'completed')
+          .gte('tanggal', startYMD)
+          .lte('tanggal', endYMD);
+
+        if (error) throw error;
+
+        const sumTotals = (rows: any[] | null | undefined) => {
+          if (!Array.isArray(rows)) return 0;
+          return rows.reduce((sum, row) => {
+            const val = Number(row.total_pembelian ?? row.total_nilai ?? row.total_amount ?? 0);
+            return sum + (isFinite(val) ? val : 0);
+          }, 0);
+        };
+
+        let total = sumTotals(data);
+
+        // Fallback: if no rows via 'tanggal', try 'purchase_date'
+        if (total === 0) {
+          const { data: data2, error: err2 } = await supabase
+            .from('purchases')
+            .select('total_pembelian, total_nilai, total_amount, status, purchase_date')
+            .eq('status', 'completed')
+            .gte('purchase_date', startYMD)
+            .lte('purchase_date', endYMD);
+          if (!err2) {
+            total = sumTotals(data2);
+          }
+        }
+
+        if (!cancelled) setPurchaseSpending(total || 0);
+      } catch {
+        if (!cancelled) setPurchaseSpending(0);
+      }
+    };
+
+    fetchPurchases();
+    return () => { cancelled = true; };
+  }, [mode, dateRange?.from, dateRange?.to, defaultPeriod]);
+
   if (loading) {
     return <LoadingSkeleton />;
   }
@@ -135,7 +210,7 @@ const ImprovedProfitDashboard: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Key Metrics Cards */}
           <React.Suspense fallback={<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-40 bg-gray-100 rounded-lg animate-pulse" />}>
-            <ProfitMetrics businessMetrics={businessMetrics} />
+            <ProfitMetrics businessMetrics={{ ...businessMetrics, purchaseSpending }} />
           </React.Suspense>
 
           {/* Detailed Breakdown */}

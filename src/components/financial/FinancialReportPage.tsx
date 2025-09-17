@@ -146,10 +146,9 @@ const QuickSkeleton = ({ className = "" }: { className?: string }) => (
 );
 
 const ChartSkeleton = () => (
-  <Card>
-    <CardHeader><QuickSkeleton className="h-6 w-1/3" /></CardHeader>
-    <CardContent><QuickSkeleton className="h-64 md:h-80" /></CardContent>
-  </Card>
+  <div className="flex items-center justify-center h-48 md:h-64 bg-white rounded-lg border">
+    <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+  </div>
 );
 
 // ✅ ENHANCED Summary Cards Component - With auto-refresh feedback
@@ -346,7 +345,7 @@ const FinancialReportPage: React.FC = () => {
   const transactionTable = useTransactionTable(filteredTransactions);
 
   // ✅ STATE - Dialogs and active tab (only charts and transactions)
-  const [activeTab, setActiveTab] = useState('charts');
+  const [activeTab, setActiveTab] = useState(isMobile ? 'transactions' : 'charts');
   const [dialogs, setDialogs] = useState({
     transaction: { isOpen: false, editing: null as any },
     category: { isOpen: false }
@@ -358,6 +357,16 @@ const FinancialReportPage: React.FC = () => {
       // Dialog just opened, ensure we have fresh data
     }
   }, [dialogs.category.isOpen]);
+
+  // Prefetch heavy chart chunks on mobile after idle to reduce long skeleton
+  React.useEffect(() => {
+    if (!isMobile) return;
+    const idle = (cb: () => void) => (window as any).requestIdleCallback ? (window as any).requestIdleCallback(cb) : setTimeout(cb, 600);
+    idle(() => {
+      import('./components/FinancialCharts');
+      import('./components/CategoryCharts');
+    });
+  }, [isMobile]);
 
   // ✅ DIALOG HANDLERS
   const openTransactionDialog = (transaction: any = null) => {

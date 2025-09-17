@@ -81,27 +81,21 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
 
   return (
     <div className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg">
-      <Alert className="border-0 bg-transparent text-white rounded-none">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
+      <Alert className="border-0 bg-transparent text-white rounded-none px-3 sm:px-4 py-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 mt-0.5 sm:mt-0">
               <Download className="h-4 w-4 text-orange-200" />
               <AlertTriangle className="h-4 w-4 text-yellow-300 animate-pulse" />
             </div>
-            
-            <div className="flex-1">
-              <AlertDescription className="text-white font-medium">
-                🎉 <strong>Update tersedia!</strong> Silakan refresh aplikasi anda.
-                {updateInfo?.newVersion && (
-                  <span className="ml-2 text-orange-200 text-sm">
-                    v{updateInfo.newVersion}
-                  </span>
-                )}
+            <div className="flex-1 min-w-0">
+              <AlertDescription className="text-white font-medium leading-snug">
+                Update terbaru! silakan refresh aplikasi anda.
               </AlertDescription>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2 sm:self-auto">
             {/* Refresh Button */}
             <Button
               variant="secondary"
@@ -113,12 +107,12 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
               {isRefreshing ? (
                 <>
                   <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                  Updating...
+                  Muat ulang...
                 </>
               ) : (
                 <>
                   <RefreshCw className="h-3 w-3 mr-1" />
-                  Refresh Now
+                  Refresh
                 </>
               )}
             </Button>

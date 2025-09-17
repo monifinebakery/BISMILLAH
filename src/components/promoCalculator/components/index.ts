@@ -21,6 +21,18 @@ export { default as PromoWarnings } from './PromoWarnings';
 export { default as SearchInput } from './SearchInput';
 
 // ============================================
+// REFACTORED COMPONENTS - New architecture
+// ============================================
+export { PromoWizard } from './PromoWizard';
+export { PromoCalculationDisplay } from './PromoCalculationDisplay';
+export { PromoNavigation } from './PromoNavigation';
+
+// Step Components
+export { PromoBasicInfoStep } from './steps/PromoBasicInfoStep';
+export { PromoSettingsStep } from './steps/PromoSettingsStep';
+export { PromoStatusStep } from './steps/PromoStatusStep';
+
+// ============================================
 // STATIC COMPONENT GROUPS - Removed dynamic imports
 // ============================================
 export const PROMO_COMPONENT_GROUPS = {

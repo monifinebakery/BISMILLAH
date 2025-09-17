@@ -1,750 +1,80 @@
 // src/components/warehouse/services/warehouseSyncService.ts
-// Manual warehouse synchronization and WAC recalculation service
+// Refactored modular WarehouseSyncService using smaller service modules
 
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-// ✅ NEW: Import type utilities for consistent type conversion
-import { toNumber, toDate } from '../utils/typeUtils';
-import type { BahanBakuFrontend } from '../types';
-import type { Purchase } from '@/components/purchase/types/purchase.types';
+import { supabase } from '@/integrations/supabase/client';
+import { toNumber } from '../utils/typeUtils';
 
-// ✅ IMPROVED: Enhanced WAC calculation with edge case handling
+// Import service modules
+import { calculateEnhancedWac, calculateNewWac } from './core/wacCalculationService';
+import { getAllMaterials } from './core/materialSearchService';
+import { 
+  validateWarehouseIntegrity, 
+  checkWarehouseConsistency,
+  type WarehouseConsistencyCheck,
+  type ValidationResult
+} from './core/warehouseValidationService';
+import { 
+  applyPurchaseToWarehouse, 
+  reversePurchaseFromWarehouse 
+} from './core/purchaseSyncService';
+
+// Import types
+import type { 
+  SyncResult, 
+  SyncSummary, 
+  WarehouseServiceConfig,
+  WacRecalculationOptions 
+} from './types/serviceTypes';
+
+// Re-export types for backward compatibility  
 export interface WACCalculationResult {
   newWac: number;
   newStock: number;
-  preservedPrice?: number; // Last known price when stock hits zero
+  preservedPrice?: number;
   validationWarnings: string[];
 }
 
-// Normalize common unit synonyms to a canonical form
-const normalizeUnit = (raw: string | undefined | null): string => {
-  const u = String(raw || '').toLowerCase().trim();
-  if (!u) return '';
-  const map: Record<string, string> = {
-    gr: 'gram', g: 'gram', gram: 'gram',
-    kg: 'kg', kilogram: 'kg',
-    l: 'liter', liter: 'liter', litre: 'liter',
-    ml: 'ml', mililiter: 'ml', milliliter: 'ml',
-    pcs: 'pcs', buah: 'pcs', piece: 'pcs',
-    bungkus: 'bungkus', sachet: 'sachet',
-  };
-  return map[u] || u;
-};
+export { type SyncResult, type SyncSummary, type WarehouseConsistencyCheck };
 
 /**
- * Enhanced Weighted Average Cost (WAC) calculation
- * Handles edge cases: negative values, zero stock scenarios, price preservation
+ * Main WarehouseSyncService class - refactored to use modular services
  */
-export const calculateNewWac = (
-  oldWac: number = 0,
-  oldStock: number = 0,
-  qty: number = 0,
-  unitPrice: number = 0
-): number => {
-  // ✅ ENHANCED: Input validation and normalization
-  const safeOldWac = Math.max(0, toNumber(oldWac));
-  const safeOldStock = Math.max(0, toNumber(oldStock));
-  const safeQty = toNumber(qty);
-  const safeUnitPrice = Math.max(0, toNumber(unitPrice));
-  
-  // Calculate new stock first
-  const newStock = safeOldStock + safeQty;
-  
-  // ✅ EDGE CASE: Negative or zero stock handling
-  if (newStock <= 0) {
-    // Preserve the last known price if we had valid pricing before
-    return safeOldWac > 0 ? safeOldWac : safeUnitPrice;
-  }
-  
-  // ✅ EDGE CASE: Initial stock with no previous WAC
-  if (safeOldStock <= 0) {
-    return safeUnitPrice;
-  }
-  
-  // ✅ EDGE CASE: Adding stock with zero unit price
-  if (safeQty > 0 && safeUnitPrice <= 0) {
-    // Don't change WAC if adding stock with no valid price
-    return safeOldWac;
-  }
-  
-  // ✅ STANDARD WAC CALCULATION
-  const previousValue = safeOldStock * safeOldWac;
-  const deltaValue = safeQty * safeUnitPrice;
-  const newWac = (previousValue + deltaValue) / newStock;
-  
-  // ✅ VALIDATION: Ensure result is reasonable
-  if (!isFinite(newWac) || newWac < 0) {
-    logger.warn('⚠️ WAC calculation resulted in invalid value:', {
-      oldWac: safeOldWac,
-      oldStock: safeOldStock,
-      qty: safeQty,
-      unitPrice: safeUnitPrice,
-      result: newWac
-    });
-    return safeOldWac > 0 ? safeOldWac : safeUnitPrice;
-  }
-  
-  return newWac;
-};
-
-/**
- * ✅ NEW: Enhanced WAC calculation with detailed results
- */
-export const calculateEnhancedWac = (
-  oldWac: number = 0,
-  oldStock: number = 0,
-  qty: number = 0,
-  unitPrice: number = 0
-): WACCalculationResult => {
-  const warnings: string[] = [];
-  
-  // Input validation
-  const safeOldWac = Math.max(0, toNumber(oldWac));
-  const safeOldStock = Math.max(0, toNumber(oldStock));
-  const safeQty = toNumber(qty);
-  const safeUnitPrice = Math.max(0, toNumber(unitPrice));
-  
-  if (oldWac < 0 || oldStock < 0 || unitPrice < 0) {
-    warnings.push('Negative values detected and normalized');
-  }
-  
-  const newStock = safeOldStock + safeQty;
-  let newWac: number;
-  let preservedPrice: number | undefined;
-  
-  if (newStock <= 0) {
-    preservedPrice = safeOldWac > 0 ? safeOldWac : safeUnitPrice;
-    newWac = preservedPrice;
-    warnings.push('Stock reached zero or negative, price preserved');
-  } else if (safeOldStock <= 0) {
-    newWac = safeUnitPrice;
-    warnings.push('Initial stock entry');
-  } else if (safeQty > 0 && safeUnitPrice <= 0) {
-    newWac = safeOldWac;
-    warnings.push('Stock added with zero price, WAC unchanged');
-  } else {
-    const previousValue = safeOldStock * safeOldWac;
-    const deltaValue = safeQty * safeUnitPrice;
-    newWac = (previousValue + deltaValue) / newStock;
-    
-    if (!isFinite(newWac) || newWac < 0) {
-      newWac = safeOldWac > 0 ? safeOldWac : safeUnitPrice;
-      warnings.push('Invalid calculation result, fallback applied');
-    }
-  }
-  
-  return {
-    newWac,
-    newStock,
-    preservedPrice,
-    validationWarnings: warnings
-  };
-};
-
-/**
- * Helper function to find existing material by name and satuan
- * This enables stock accumulation for the same material from different suppliers
- */
-const findExistingMaterialByName = async (
-  materialName: string,
-  rawSatuan: string,
-  userId: string
-): Promise<any | null> => {
-  try {
-    // Normalize name for better matching
-    const normalizedName = materialName.toLowerCase().trim();
-    const normalizedUnit = normalizeUnit(rawSatuan);
-    
-    console.log('🔍 [WAREHOUSE SYNC] Searching for existing material:', {
-      originalName: materialName,
-      normalizedName,
-      satuan: normalizedUnit,
-      userId
-    });
-    
-    const { data: materials, error } = await supabase
-      .from('bahan_baku')
-      .select('id, nama, satuan, stok, harga_rata_rata, harga_satuan, supplier')
-      .eq('user_id', userId)
-      .ilike('nama', normalizedName); // Case-insensitive search by name only (unit filtered locally)
-    
-    if (error) {
-      console.error('❌ [WAREHOUSE SYNC] Error searching materials by name:', error);
-      return null;
-    }
-    
-    // If multiple matches, prefer exact name match first
-    if (materials && materials.length > 0) {
-      // Filter by normalized unit first
-      const unitMatches = materials.filter(m => normalizeUnit(m.satuan) === normalizedUnit);
-      if (unitMatches.length > 0) {
-        // Prefer exact name match among unit matches
-        const exactUnitMatch = unitMatches.find(m => m.nama.toLowerCase().trim() === normalizedName);
-        if (exactUnitMatch) {
-          console.log('✅ [WAREHOUSE SYNC] Found exact name+unit match:', exactUnitMatch);
-          return exactUnitMatch;
-        }
-        console.log('✅ [WAREHOUSE SYNC] Found unit-normalized match:', unitMatches[0]);
-        return unitMatches[0];
-      }
-      // First try exact match (case insensitive)
-      const exactMatch = materials.find(m => 
-        m.nama.toLowerCase().trim() === normalizedName
-      );
-      
-      if (exactMatch) {
-        console.log('✅ [WAREHOUSE SYNC] Found exact name match:', exactMatch);
-        return exactMatch;
-      }
-      
-      // If no exact match, use the first similar match
-      const similarMatch = materials[0];
-      console.log('⚠️ [WAREHOUSE SYNC] Found similar name match:', similarMatch);
-      return similarMatch;
-    }
-    
-    console.log('ℹ️ [WAREHOUSE SYNC] No existing material found by name');
-    return null;
-  } catch (error) {
-    console.error('❌ [WAREHOUSE SYNC] Error in findExistingMaterialByName:', error);
-    return null;
-  }
-};
-
-/**
- * ✅ NEW: Validate WAC calculation result for consistency
- */
-const validateWacCalculation = (
-  oldStock: number,
-  oldWac: number,
-  qty: number,
-  unitPrice: number,
-  calculatedWac: number,
-  itemName: string
-): { isValid: boolean; warnings: string[] } => {
-  const warnings: string[] = [];
-  let isValid = true;
-  
-  // Check for mathematical consistency
-  const newStock = oldStock + qty;
-  const expectedValue = (oldStock * oldWac) + (qty * unitPrice);
-  const calculatedValue = newStock * calculatedWac;
-  
-  if (newStock > 0) {
-    const valueDiff = Math.abs(expectedValue - calculatedValue);
-    const tolerance = Math.max(0.01, Math.min(expectedValue, calculatedValue) * 0.0001); // 0.01% tolerance
-    
-    if (valueDiff > tolerance) {
-      warnings.push(`Value mismatch: expected ${expectedValue.toFixed(4)}, got ${calculatedValue.toFixed(4)}`);
-      isValid = false;
-    }
-  }
-  
-  // Check for reasonable WAC bounds
-  if (oldWac > 0 && unitPrice > 0) {
-    const minExpected = Math.min(oldWac, unitPrice);
-    const maxExpected = Math.max(oldWac, unitPrice);
-    
-    if (calculatedWac < minExpected * 0.9 || calculatedWac > maxExpected * 1.1) {
-      warnings.push(`WAC ${calculatedWac.toFixed(4)} outside reasonable bounds [${(minExpected * 0.9).toFixed(4)}, ${(maxExpected * 1.1).toFixed(4)}]`);
-    }
-  }
-  
-  // Log validation results
-  if (warnings.length > 0) {
-    logger.warn(`⚠️ [WAC VALIDATION] ${itemName}:`, {
-      oldStock,
-      oldWac: oldWac.toFixed(4),
-      qty,
-      unitPrice: unitPrice.toFixed(4),
-      calculatedWac: calculatedWac.toFixed(4),
-      warnings
-    });
-  }
-  
-  return { isValid, warnings };
-};
-
-/**
- * ✅ IMPROVED: Apply a completed purchase to warehouse stock and WAC
- * Now supports stock accumulation for same materials from different suppliers
- */
-export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
-  console.log('🔄 [WAREHOUSE SYNC] Starting applyPurchaseToWarehouse for purchase:', purchase.id);
-  console.log('🔄 [WAREHOUSE SYNC] Purchase items:', purchase.items);
-
-  if (!purchase || !Array.isArray(purchase.items)) {
-    console.warn('⚠️ [WAREHOUSE SYNC] Invalid purchase data:', { purchase, items: (purchase as any)?.items });
-    return;
-  }
-
-  // Helper: derive unit price from standardized fields
-  const deriveUnitPrice = (it: any, qty: number): number => {
-    const toNum = (v: any) => (v == null || v === '' ? 0 : toNumber(v));
-    // ✅ FIXED: Database stores 'harga_per_satuan', frontend might use 'unitPrice'
-    const explicit = toNum(it.harga_per_satuan ?? it.unitPrice ?? it.harga_satuan);
-    if (explicit > 0) return explicit;
-    // Fallback: subtotal / qty
-    const subtotal = toNum(it.subtotal);
-    if (qty > 0 && subtotal > 0) return subtotal / qty;
-    return 0;
-  };
-
-  for (const item of purchase.items) {
-    // ✅ FIXED: Database stores 'bahan_baku_id', frontend might use 'bahanBakuId'
-    const itemId = (item as any).bahan_baku_id || (item as any).bahanBakuId || (item as any).id;
-    const itemName = (item as any).nama ?? '';
-    const itemSatuan = (item as any).satuan ?? '';
-    const itemSatuanNorm = normalizeUnit(itemSatuan);
-    // ✅ FIXED: Database stores 'jumlah', but frontend might use 'quantity'
-    const qty = toNumber((item as any).jumlah ?? (item as any).quantity ?? 0);
-    const unitPrice = deriveUnitPrice(item as any, qty);
-
-    console.log('🔄 [WAREHOUSE SYNC] Processing item:', {
-      itemId,
-      itemName,
-      itemSatuan,
-      qty,
-      unitPrice,
-      rawItem: item,
-    });
-
-    if (qty <= 0 || !itemName.trim()) {
-      console.warn('⚠️ [WAREHOUSE SYNC] Skipping invalid item:', {
-        itemId,
-        itemName,
-        qty,
-        unitPrice,
-      });
-      continue;
-    }
-
-    // ✅ STEP 1: Try to find by exact ID first (for existing linked items)
-    let existing: any = null;
-    if (itemId) {
-      const { data: exactMatch, error: fetchError } = await supabase
-        .from('bahan_baku')
-        .select('id, nama, satuan, stok, harga_rata_rata, harga_satuan, supplier')
-        .eq('id', itemId)
-        .eq('user_id', purchase.userId)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error('❌ [WAREHOUSE SYNC] Error fetching by ID:', fetchError);
-      } else if (exactMatch) {
-        existing = exactMatch;
-        console.log('✅ [WAREHOUSE SYNC] Found exact ID match:', existing);
-      }
-    }
-
-    // ✅ STEP 2: If no ID match, try to find by name and unit (for stock accumulation)
-    if (!existing) {
-      existing = await findExistingMaterialByName(itemName, itemSatuanNorm, purchase.userId);
-    }
-
-    const oldStock = toNumber(existing?.stok ?? 0);
-    const oldWac = toNumber(existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0);
-    const newStock = oldStock + qty;
-    
-    // ✅ ENHANCED: Use enhanced WAC calculation with validation
-    const wacResult = calculateEnhancedWac(oldWac, oldStock, qty, unitPrice);
-    const newWac = wacResult.newWac;
-    
-    // ✅ SAFETY: Validate final stock calculation matches
-    if (Math.abs(wacResult.newStock - newStock) > 0.01) {
-      logger.warn('⚠️ [WAREHOUSE SYNC] Stock calculation mismatch:', {
-        itemId,
-        itemName,
-        calculatedStock: newStock,
-        wacResultStock: wacResult.newStock
-      });
-    }
-
-    console.log('🔄 [WAREHOUSE SYNC] Enhanced stock calculation:', {
-      itemId,
-      itemName,
-      oldStock,
-      qty,
-      newStock,
-      oldWac: oldWac.toFixed(4),
-      unitPrice: unitPrice.toFixed(4),
-      newWac: newWac.toFixed(4),
-      existing: existing?.id,
-      matchType: existing?.id === itemId ? 'ID_MATCH' : existing ? 'NAME_MATCH' : 'NEW_ITEM',
-      wacWarnings: wacResult.validationWarnings
-    });
-
-    if (existing) {
-      // ✅ UPDATE existing item (whether matched by ID or name)
-      console.log('🔄 [WAREHOUSE SYNC] Updating existing item:', {
-        existingId: existing.id,
-        existingName: existing.nama,
-        matchedBy: existing.id === itemId ? 'ID' : 'NAME',
-      });
-
-      // ✅ ENHANCED: Validate WAC calculation for correctness
-      const wacValidation = validateWacCalculation(oldStock, oldWac, qty, unitPrice, newWac, itemName);
-      
-      // Log WAC warnings if any
-      if (wacResult.validationWarnings.length > 0) {
-        logger.warn(`⚠️ [WAREHOUSE SYNC] WAC calculation warnings for ${itemName}:`, wacResult.validationWarnings);
-      }
-      
-      if (!wacValidation.isValid) {
-        logger.error(`❌ [WAREHOUSE SYNC] WAC validation failed for ${itemName}:`, wacValidation.warnings);
-      }
-      
-      const updateData: any = {
-        stok: newStock,
-        harga_rata_rata: newWac,
-        harga_satuan: unitPrice,
-        updated_at: new Date().toISOString(),
-      };
-
-      // ✅ OPTIONAL: Update supplier info if it's more recent
-      if ((purchase as any).supplier && (purchase as any).supplier.trim()) {
-        // If existing has no supplier or purchase supplier is different, update it
-        if (!existing.supplier || existing.supplier.trim() === '') {
-          updateData.supplier = (purchase as any).supplier;
-          console.log('📝 [WAREHOUSE SYNC] Adding supplier info:', (purchase as any).supplier);
-        } else if (existing.supplier !== (purchase as any).supplier) {
-          // Keep a combined supplier list (optional enhancement)
-          const existingSuppliers = existing.supplier.split(',').map((s: string) => s.trim());
-          const newSupplier = (purchase as any).supplier.trim();
-          if (!existingSuppliers.includes(newSupplier)) {
-            updateData.supplier = [...existingSuppliers, newSupplier].join(', ');
-            console.log('📝 [WAREHOUSE SYNC] Adding new supplier to list:', updateData.supplier);
-          }
-        }
-      }
-
-      console.log('🔄 [WAREHOUSE SYNC] About to update warehouse item:', {
-        itemId: existing.id,
-        itemName: existing.nama,
-        updateData: {
-          stok: updateData.stok,
-          harga_rata_rata: updateData.harga_rata_rata,
-          harga_satuan: updateData.harga_satuan,
-          supplier: updateData.supplier
-        },
-        beforeUpdate: {
-          stok: existing.stok,
-          harga_rata_rata: existing.harga_rata_rata,
-          harga_satuan: existing.harga_satuan
-        }
-      });
-      
-      const { error: updateError } = await supabase
-        .from('bahan_baku')
-        .update(updateData)
-        .eq('id', existing.id)
-        .eq('user_id', purchase.userId);
-
-      if (updateError) {
-        console.error('❌ [WAREHOUSE SYNC] Error updating item:', updateError);
-        logger.error(`Failed to update warehouse item ${itemName}:`, updateError);
-      } else {
-        console.log('✅ [WAREHOUSE SYNC] Successfully updated item:', {
-          id: existing.id,
-          name: existing.nama,
-          oldStock,
-          newStock,
-          oldWac: toNumber(oldWac).toFixed(4),
-          newWac: toNumber(newWac).toFixed(4),
-          priceUsed: unitPrice.toFixed(4),
-          wacValid: wacValidation.isValid
-        });
-        
-        // ✅ OPTIONAL: Verify the update was successful by reading back the data
-        if (process.env.NODE_ENV === 'development') {
-          setTimeout(async () => {
-            try {
-              const { data: verifyData, error: verifyError } = await supabase
-                .from('bahan_baku')
-                .select('stok, harga_rata_rata, harga_satuan')
-                .eq('id', existing.id)
-                .single();
-              
-              if (!verifyError && verifyData) {
-                const actualStock = toNumber(verifyData.stok);
-                const actualWac = toNumber(verifyData.harga_rata_rata);
-                
-                if (Math.abs(actualStock - newStock) > 0.001 || Math.abs(actualWac - newWac) > 0.001) {
-                  logger.warn(`⚠️ [WAREHOUSE SYNC] Post-update verification mismatch for ${itemName}:`, {
-                    expectedStock: newStock,
-                    actualStock,
-                    expectedWac: newWac.toFixed(4),
-                    actualWac: actualWac.toFixed(4)
-                  });
-                }
-              }
-            } catch (e) {
-              // Verification failed, but update may have succeeded
-              logger.debug('Post-update verification failed (non-critical):', e);
-            }
-          }, 100); // Small delay to allow DB to settle
-        }
-      }
-    } else {
-      // ✅ CREATE new item
-      console.log('🔄 [WAREHOUSE SYNC] Creating new item:', itemName);
-
-      // ✅ ENHANCED: For new items, WAC equals unit price (no existing stock to average)
-      const initialWac = unitPrice > 0 ? unitPrice : 0;
-      
-      const insertData = {
-        id: itemId || crypto.randomUUID(), // Use provided ID or generate new one
-        user_id: purchase.userId,
-        nama: itemName,
-        kategori: (item as any).kategori ?? 'Lainnya',
-        stok: qty,
-        satuan: itemSatuanNorm || itemSatuan,
-        minimum: 0,
-        harga_satuan: unitPrice,
-        harga_rata_rata: initialWac,
-        supplier: (purchase as any).supplier ?? null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as any;
-
-      const { error: insertError } = await supabase
-        .from('bahan_baku')
-        .insert(insertData);
-
-      if (insertError) {
-        console.error('❌ [WAREHOUSE SYNC] Error creating item:', insertError);
-      } else {
-        console.log('✅ [WAREHOUSE SYNC] Successfully created item:', {
-          id: (insertData as any).id,
-          name: itemName,
-          stock: qty,
-          price: toNumber(unitPrice).toFixed(2),
-        });
-      }
-    }
-  }
-
-  console.log('✅ [WAREHOUSE SYNC] Completed applyPurchaseToWarehouse for purchase:', purchase.id);
-};
-
-/**
- * ✅ NEW: Debug utility to trace WAC calculation step by step
- */
-export const debugWacCalculation = (
-  itemName: string,
-  oldStock: number,
-  oldWac: number,
-  qty: number,
-  unitPrice: number
-): void => {
-  console.group(`🔍 [WAC DEBUG] ${itemName}`);
-  console.log('Input values:', {
-    oldStock: oldStock.toFixed(4),
-    oldWac: oldWac.toFixed(4),
-    quantity: qty.toFixed(4),
-    unitPrice: unitPrice.toFixed(4)
-  });
-  
-  const newStock = oldStock + qty;
-  const oldValue = oldStock * oldWac;
-  const addedValue = qty * unitPrice;
-  const totalValue = oldValue + addedValue;
-  const calculatedWac = newStock > 0 ? totalValue / newStock : unitPrice;
-  
-  console.log('Calculation steps:', {
-    newStock: newStock.toFixed(4),
-    oldValue: oldValue.toFixed(4),
-    addedValue: addedValue.toFixed(4),
-    totalValue: totalValue.toFixed(4),
-    calculatedWac: calculatedWac.toFixed(4)
-  });
-  
-  // Compare with enhanced calculation
-  const enhancedResult = calculateEnhancedWac(oldWac, oldStock, qty, unitPrice);
-  console.log('Enhanced result:', {
-    newWac: enhancedResult.newWac.toFixed(4),
-    newStock: enhancedResult.newStock.toFixed(4),
-    warnings: enhancedResult.validationWarnings
-  });
-  
-  // Validation
-  const validation = validateWacCalculation(oldStock, oldWac, qty, unitPrice, enhancedResult.newWac, itemName);
-  console.log('Validation:', validation);
-  
-  console.groupEnd();
-};
-
-/**
- * ✅ IMPROVED: Reverse a purchase from warehouse stock and WAC
- * Uses enhanced WAC calculation with better edge case handling
- */
-export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
-  if (!purchase || !Array.isArray(purchase.items)) {
-    logger.warn('⚠️ [WAREHOUSE SYNC] Invalid purchase data for reversal:', purchase?.id);
-    return;
-  }
-
-  logger.info('🔄 [WAREHOUSE SYNC] Starting reversePurchaseFromWarehouse for purchase:', purchase.id);
-
-  // Helper: derive unit price from any available fields  
-  const deriveUnitPrice = (it: any, qty: number): number => {
-    const toNum = (v: any) => (v == null || v === '' ? 0 : toNumber(v));
-    // ✅ FIXED: Database stores 'harga_per_satuan', frontend might use 'unitPrice'
-    const explicit = toNum(it.harga_per_satuan ?? it.unitPrice ?? it.harga_satuan);
-    if (explicit > 0) return explicit;
-    const subtotal = toNum(it.subtotal);
-    if (qty > 0 && subtotal > 0) return subtotal / qty;
-    return 0;
-  };
-
-  for (const item of purchase.items) {
-    // ✅ FIXED: Database stores 'bahan_baku_id', frontend might use 'bahanBakuId'
-    const itemId = (item as any).bahan_baku_id || (item as any).bahanBakuId || (item as any).id;
-    const itemName = (item as any).nama ?? '';
-    const itemSatuan = (item as any).satuan ?? '';
-    const itemSatuanNorm = normalizeUnit(itemSatuan);
-    // ✅ FIXED: Database stores 'jumlah', but frontend might use 'quantity'
-    const qty = toNumber((item as any).jumlah ?? (item as any).quantity ?? 0);
-    const unitPrice = deriveUnitPrice(item as any, qty);
-
-    if (qty <= 0) {
-      logger.warn('⚠️ [WAREHOUSE SYNC] Skipping invalid item in reversal:', { itemId, itemName, qty });
-      continue;
-    }
-
-    try {
-      // ✅ IMPROVED: Try to find by ID first, then by name for stock accumulation compatibility
-      let existing = null;
-      
-      if (itemId) {
-        const { data: exactMatch, error: fetchError } = await supabase
-          .from('bahan_baku')
-          .select('id, nama, satuan, stok, harga_rata_rata, harga_satuan')
-          .eq('id', itemId)
-          .eq('user_id', purchase.userId)
-          .maybeSingle();
-          
-        if (fetchError) {
-          logger.error('❌ [WAREHOUSE SYNC] Error fetching by ID for reversal:', fetchError);
-        } else if (exactMatch) {
-          existing = exactMatch;
-          logger.debug('✅ [WAREHOUSE SYNC] Found exact ID match for reversal:', existing);
-        }
-      }
-      
-      // If no ID match, try to find by name (for previously accumulated stock)
-      if (!existing && itemName.trim()) {
-        existing = await findExistingMaterialByName(itemName, itemSatuanNorm, purchase.userId);
-        if (existing) {
-          logger.debug('✅ [WAREHOUSE SYNC] Found name match for reversal:', existing);
-        }
-      }
-
-      if (!existing) {
-        logger.warn('⚠️ [WAREHOUSE SYNC] Item not found for reversal, skipping:', {
-          itemId,
-          itemName,
-          itemSatuan
-        });
-        continue;
-      }
-
-      const oldStock = existing.stok ?? 0;
-      const oldWac = existing.harga_rata_rata ?? existing.harga_satuan ?? 0;
-      
-      // ✅ IMPROVED: Use enhanced WAC calculation for reversal
-      const wacResult = calculateEnhancedWac(oldWac, oldStock, -qty, unitPrice);
-      
-      logger.debug('🔄 [WAREHOUSE SYNC] Reversal calculation:', {
-        itemId,
-        oldStock,
-        qty: -qty,
-        newStock: wacResult.newStock,
-        oldWac,
-        newWac: wacResult.newWac,
-        warnings: wacResult.validationWarnings
-      });
-
-      // Log warnings if any
-      if (wacResult.validationWarnings.length > 0) {
-        logger.warn('⚠️ [WAREHOUSE SYNC] WAC reversal warnings for item ' + itemId + ':', wacResult.validationWarnings);
-      }
-
-      const updateData: any = {
-        stok: wacResult.newStock,
-        harga_rata_rata: wacResult.newWac,
-        updated_at: new Date().toISOString()
-      };
-
-      // ✅ ENHANCED: Preserve price information when stock hits zero
-      if (wacResult.preservedPrice !== undefined) {
-        logger.info('🔄 [WAREHOUSE SYNC] Preserving price for zero stock item:', {
-          itemId,
-          preservedPrice: wacResult.preservedPrice
-        });
-        // Keep the preserved price in WAC even when stock is zero
-        updateData.harga_rata_rata = wacResult.preservedPrice;
-      }
-
-      const { error: updateError } = await supabase
-        .from('bahan_baku')
-        .update(updateData)
-        .eq('id', existing.id)
-        .eq('user_id', purchase.userId);
-      
-      if (updateError) {
-        logger.error('❌ [WAREHOUSE SYNC] Error updating item during reversal:', updateError);
-      } else {
-        logger.info('✅ [WAREHOUSE SYNC] Successfully reversed item:', itemId);
-      }
-    } catch (error) {
-      logger.error('❌ [WAREHOUSE SYNC] Unexpected error during item reversal:', error);
-    }
-  }
-  
-  logger.info('✅ [WAREHOUSE SYNC] Completed reversePurchaseFromWarehouse for purchase:', purchase.id);
-};
-
-export interface SyncResult {
-  itemId: string;
-  itemName: string;
-  oldWac?: number;
-  newWac?: number;
-  oldStock?: number;
-  newStock?: number;
-  status: 'success' | 'error' | 'skipped';
-  message: string;
-}
-
-export interface SyncSummary {
-  totalItems: number;
-  successful: number;
-  failed: number;
-  skipped: number;
-  results: SyncResult[];
-  duration: number;
-}
-
-export interface WarehouseConsistencyCheck {
-  itemId: string;
-  itemName: string;
-  issues: string[];
-  severity: 'low' | 'medium' | 'high';
-  suggestions: string[];
-}
-
 export class WarehouseSyncService {
-  private userId: string;
+  private config: WarehouseServiceConfig;
 
-  constructor(userId: string) {
-    this.userId = userId;
+  constructor(userId: string, options?: Partial<WarehouseServiceConfig>) {
+    this.config = {
+      userId,
+      enableLogging: true,
+      validateWac: true,
+      strictMode: false,
+      ...options
+    };
+  }
+
+  get userId(): string {
+    return this.config.userId;
+  }
+
+  /**
+   * Apply purchase to warehouse using the modular service
+   */
+  async applyPurchase(purchase: any): Promise<void> {
+    return applyPurchaseToWarehouse(purchase);
+  }
+
+  /**
+   * Reverse purchase from warehouse using the modular service
+   */
+  async reversePurchase(purchase: any): Promise<void> {
+    return reversePurchaseFromWarehouse(purchase);
   }
 
   /**
    * Manually recalculate WAC for all warehouse items
-   * This manually calculates warehouse consistency
    */
-  async recalculateAllWAC(): Promise<SyncSummary> {
+  async recalculateAllWAC(options?: WacRecalculationOptions): Promise<SyncSummary> {
     const startTime = Date.now();
     const results: SyncResult[] = [];
 
@@ -752,12 +82,7 @@ export class WarehouseSyncService {
       logger.info('Starting manual WAC recalculation for user:', this.userId);
 
       // Get all warehouse items
-      const { data: warehouseItems, error: warehouseError } = await supabase
-        .from('bahan_baku')
-        .select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at')
-        .eq('user_id', this.userId);
-
-      if (warehouseError) throw warehouseError;
+      const warehouseItems = await getAllMaterials(this.userId);
 
       // Get all completed purchases
       const { data: purchases, error: purchaseError } = await supabase
@@ -768,234 +93,118 @@ export class WarehouseSyncService {
 
       if (purchaseError) throw purchaseError;
 
-      // Process each warehouse item
-      for (const item of warehouseItems || []) {
+      // Process each warehouse item (or single item if specified)
+      const itemsToProcess = options?.itemId 
+        ? warehouseItems.filter(item => item.id === options.itemId)
+        : warehouseItems;
+
+      for (const item of itemsToProcess) {
         try {
-          const oldWac = item.harga_rata_rata || 0;
-          
-          // Calculate new WAC from purchase history
-          let totalQuantity = 0;
-          let totalValue = 0;
-
-          purchases?.forEach(purchase => {
-            if (purchase.items && Array.isArray(purchase.items)) {
-              purchase.items.forEach((purchaseItem: any) => {
-                // ✅ FLEXIBLE ID MATCHING - handle all possible ID field names
-                const itemId = purchaseItem.bahanBakuId || purchaseItem.bahan_baku_id || purchaseItem.id;
-                
-                if (itemId === item.id) {
-                  // ✅ STANDARDIZED FIELD MATCHING - use consistent field names
-                const qty = toNumber(purchaseItem.quantity || 0);
-                const price = toNumber(purchaseItem.unitPrice || 0);
-                  totalQuantity += qty;
-                  totalValue += qty * price;
-                }
-              });
-            }
-          });
-
-          const newWac = totalQuantity > 0 ? totalValue / totalQuantity : item.harga_satuan;
-
-          // Update the item with new WAC if it changed
-          if (Math.abs(newWac - oldWac) > 0.01) {
-            const { error: updateError } = await supabase
-              .from('bahan_baku')
-              .update({
-                harga_rata_rata: newWac,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', item.id)
-              .eq('user_id', this.userId);
-
-            if (updateError) throw updateError;
-
-            results.push({
-              itemId: item.id,
-              itemName: item.nama,
-              oldWac,
-              newWac: newWac ?? undefined,
-              status: 'success',
-              message: `WAC updated from ${oldWac} to ${newWac}`
-            });
-          } else {
-            results.push({
-              itemId: item.id,
-              itemName: item.nama,
-              oldWac,
-              newWac,
-              status: 'skipped',
-              message: 'WAC unchanged'
-            });
-          }
-        } catch (itemError) {
+          const result = await this.recalculateItemWAC(item, purchases || []);
+          results.push(result);
+        } catch (error) {
+          logger.error('Error processing item WAC:', error);
           results.push({
             itemId: item.id,
             itemName: item.nama,
             status: 'error',
-            message: itemError instanceof Error ? itemError.message : 'Unknown error'
+            message: error instanceof Error ? error.message : 'Unknown error'
           });
         }
       }
 
-      const duration = Date.now() - startTime;
-      const summary: SyncSummary = {
-        totalItems: results.length,
-        successful: results.filter(r => r.status === 'success').length,
-        failed: results.filter(r => r.status === 'error').length,
-        skipped: results.filter(r => r.status === 'skipped').length,
-        results,
-        duration
-      };
+      const successful = results.filter(r => r.status === 'success').length;
+      const failed = results.filter(r => r.status === 'error').length;
+      const skipped = results.filter(r => r.status === 'skipped').length;
 
-      logger.info('Manual WAC recalculation completed', summary);
-      return summary;
+      return {
+        totalItems: results.length,
+        successful,
+        failed,
+        skipped,
+        results,
+        duration: Date.now() - startTime
+      };
 
     } catch (error) {
-      logger.error('Error during WAC recalculation:', error);
-      
-      const duration = Date.now() - startTime;
-      return {
-        totalItems: 0,
-        successful: 0,
-        failed: 1,
-        skipped: 0,
-        results: [{
-          itemId: 'error',
-          itemName: 'System Error',
-          status: 'error',
-          message: error instanceof Error ? error.message : 'Unknown error occurred'
-        }],
-        duration
-      };
+      logger.error('Error in recalculateAllWAC:', error);
+      throw error;
     }
   }
 
   /**
-   * Check warehouse data consistency and identify potential issues
+   * Recalculate WAC for a single item
    */
-  async checkWarehouseConsistency(): Promise<WarehouseConsistencyCheck[]> {
-    const issues: WarehouseConsistencyCheck[] = [];
+  private async recalculateItemWAC(item: any, purchases: any[]): Promise<SyncResult> {
+    const oldWac = item.harga_rata_rata || 0;
+    
+    // Calculate new WAC from purchase history
+    let totalQuantity = 0;
+    let totalValue = 0;
 
-    try {
-      // Get all warehouse items
-      const { data: warehouseItems, error: warehouseError } = await supabase
+    purchases?.forEach(purchase => {
+      if (purchase.items && Array.isArray(purchase.items)) {
+        purchase.items.forEach((purchaseItem: any) => {
+          // Flexible ID matching - handle all possible ID field names
+          const itemId = purchaseItem.bahanBakuId || purchaseItem.bahan_baku_id || purchaseItem.id;
+          
+          if (itemId === item.id) {
+            // Standardized field matching - use consistent field names
+            const qty = toNumber(purchaseItem.quantity || 0);
+            const price = toNumber(purchaseItem.unitPrice || 0);
+            totalQuantity += qty;
+            totalValue += qty * price;
+          }
+        });
+      }
+    });
+
+    const newWac = totalQuantity > 0 ? totalValue / totalQuantity : item.harga_satuan;
+
+    // Update the item with new WAC if it changed significantly
+    if (Math.abs(newWac - oldWac) > 0.01) {
+      const { error: updateError } = await supabase
         .from('bahan_baku')
-        .select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at')
+        .update({ 
+          harga_rata_rata: newWac,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', item.id)
         .eq('user_id', this.userId);
 
-      if (warehouseError) throw warehouseError;
-
-      // Get all completed purchases
-      const { data: purchases, error: purchaseError } = await supabase
-        .from('purchases')
-        .select('id, items, total_nilai, status')
-        .eq('user_id', this.userId)
-        .eq('status', 'completed');
-
-      if (purchaseError) throw purchaseError;
-
-      // Check each warehouse item for consistency issues
-      for (const item of warehouseItems || []) {
-        const itemIssues: string[] = [];
-        const suggestions: string[] = [];
-        let severity: 'low' | 'medium' | 'high' = 'low';
-
-        // Check for negative stock
-        if (item.stok < 0) {
-          itemIssues.push('Stok negatif');
-          suggestions.push('Periksa transaksi yang menyebabkan stok negatif');
-          severity = 'high';
-        }
-
-        // Check for missing WAC when there should be purchase history
-        const itemPurchases = purchases?.filter(p => 
-          p.items && Array.isArray(p.items) && 
-          p.items.some((i: any) => i.bahan_baku_id === item.id)
-        ) || [];
-
-        if (itemPurchases.length > 0 && !item.harga_rata_rata) {
-          itemIssues.push('Tidak memiliki harga rata-rata meski ada riwayat pembelian');
-          suggestions.push('Jalankan recalculate WAC untuk item ini');
-          severity = 'medium';
-        }
-
-        // Check for significant difference between WAC and unit price
-        if (item.harga_rata_rata && item.harga_satuan) {
-          const priceDiff = Math.abs(item.harga_rata_rata - item.harga_satuan);
-          const percentDiff = priceDiff / item.harga_satuan;
-          
-          if (percentDiff > 1.0) { // > 100% difference
-
-            itemIssues.push(`Harga rata-rata sangat berbeda dari harga satuan (${(percentDiff * 100).toFixed(1)}%)`);
-            suggestions.push('Periksa data pembelian atau update harga satuan');
-            severity = 'medium';
-          }
-        }
-
-        // Check for items with stock but no minimum stock setting
-        if (item.stok > 0 && item.minimum === 0) {
-          itemIssues.push('Tidak memiliki minimum stock');
-          suggestions.push('Set minimum stock untuk kontrol inventory');
-          severity = 'low';
-        }
-
-        // Check for expired items
-        if (item.tanggal_kadaluwarsa) {
-          const expiryDate = new Date(item.tanggal_kadaluwarsa);
-          const now = new Date();
-          
-          if (expiryDate < now && item.stok > 0) {
-            itemIssues.push('Item sudah kadaluarsa tapi masih ada stock');
-            suggestions.push('Periksa dan buang stock yang kadaluarsa');
-            severity = 'high';
-          }
-        }
-
-        // Check for orphaned items (no purchase history but have stock)
-        if (item.stok > 0 && itemPurchases.length === 0) {
-          itemIssues.push('Memiliki stok tapi tidak ada riwayat pembelian');
-          suggestions.push('Periksa data manual atau buat adjustment entry');
-          severity = 'low';
-        }
-
-        if (itemIssues.length > 0) {
-          issues.push({
-            itemId: item.id,
-            itemName: item.nama,
-            issues: itemIssues,
-            severity,
-            suggestions
-          });
-        }
+      if (updateError) {
+        throw updateError;
       }
 
-      logger.info(`Warehouse consistency check completed. Found ${issues.length} items with issues.`);
-
-    } catch (error) {
-      logger.error('Error during consistency check:', error);
-      issues.push({
-        itemId: 'system-error',
-        itemName: 'System Error',
-        issues: ['Gagal melakukan consistency check'],
-        severity: 'high',
-        suggestions: ['Periksa koneksi database dan coba lagi']
-      });
+      return {
+        itemId: item.id,
+        itemName: item.nama,
+        oldWac,
+        newWac,
+        status: 'success',
+        message: `WAC updated from ${oldWac.toFixed(4)} to ${newWac.toFixed(4)}`
+      };
+    } else {
+      return {
+        itemId: item.id,
+        itemName: item.nama,
+        oldWac,
+        newWac,
+        status: 'skipped',
+        message: 'WAC unchanged (difference < 0.01)'
+      };
     }
-
-    return issues;
   }
 
   /**
-   * Fix specific warehouse item by recalculating its WAC
+   * Fix a single warehouse item by recalculating its WAC
    */
   async fixWarehouseItem(itemId: string): Promise<SyncResult> {
     try {
-      logger.info('Fixing warehouse item:', itemId);
-
-      // Get current item data
+      // Get current item
       const { data: currentItem, error: itemError } = await supabase
         .from('bahan_baku')
-        .select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at')
+        .select('id, nama, stok, harga_rata_rata, harga_satuan')
         .eq('id', itemId)
         .eq('user_id', this.userId)
         .single();
@@ -1022,51 +231,7 @@ export class WarehouseSyncService {
         throw purchaseError;
       }
 
-      let totalQuantity = 0;
-      let totalValue = 0;
-
-      // Process all purchases to find this item
-      purchases?.forEach(purchase => {
-        if (purchase.items && Array.isArray(purchase.items)) {
-          purchase.items.forEach((item: any) => {
-            // ✅ FLEXIBLE ID MATCHING - handle all possible ID field names
-            const purchaseItemId = item.bahanBakuId || item.bahan_baku_id || item.id;
-            
-            if (purchaseItemId === itemId) {
-              // ✅ STANDARDIZED FIELD MATCHING - use consistent field names
-              const qty = toNumber(item.quantity || 0);
-              const price = toNumber(item.unitPrice || 0);
-              totalQuantity += qty;
-              totalValue += qty * price;
-            }
-          });
-        }
-      });
-
-      const newWac = totalQuantity > 0 ? totalValue / totalQuantity : currentItem.harga_satuan;
-
-      // Update the item with new WAC
-      const { error: updateError } = await supabase
-        .from('bahan_baku')
-        .update({ 
-          harga_rata_rata: newWac,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', itemId)
-        .eq('user_id', this.userId);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      return {
-        itemId,
-        itemName: currentItem.nama,
-        oldWac: oldWac || undefined,
-        newWac,
-        status: 'success',
-        message: `WAC updated from ${oldWac || 0} to ${newWac}`
-      };
+      return this.recalculateItemWAC(currentItem, purchases || []);
 
     } catch (error) {
       logger.error('Error fixing warehouse item:', error);
@@ -1080,83 +245,17 @@ export class WarehouseSyncService {
   }
 
   /**
-   * Validate warehouse data integrity
+   * Validate warehouse data integrity using the modular service
    */
-  async validateWarehouseIntegrity(): Promise<{
-    isValid: boolean;
-    errors: string[];
-    warnings: string[];
-    recommendations: string[];
-  }> {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const recommendations: string[] = [];
+  async validateWarehouseIntegrity(): Promise<ValidationResult> {
+    return validateWarehouseIntegrity(this.userId);
+  }
 
-    try {
-      // Check for basic data integrity issues
-      const { data: warehouseData, error } = await supabase
-        .from('bahan_baku')
-        .select('id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, harga_rata_rata, supplier, tanggal_kadaluwarsa, created_at, updated_at')
-        .eq('user_id', this.userId);
-
-      if (error) {
-        errors.push(`Database error: ${error.message}`);
-        return { isValid: false, errors, warnings, recommendations };
-      }
-
-      if (!warehouseData || warehouseData.length === 0) {
-        warnings.push('Tidak ada data warehouse');
-        recommendations.push('Tambahkan bahan baku atau import data');
-        return { isValid: true, errors, warnings, recommendations };
-      }
-
-      // Check for duplicate names
-      const nameCount = new Map<string, number>();
-      warehouseData.forEach(item => {
-        const name = item.nama.toLowerCase().trim();
-        nameCount.set(name, (nameCount.get(name) || 0) + 1);
-      });
-
-      const duplicates = Array.from(nameCount.entries())
-        .filter(([name, count]) => count > 1)
-        .map(([name]) => name);
-
-      if (duplicates.length > 0) {
-        warnings.push(`Terdapat ${duplicates.length} nama bahan yang duplikat`);
-        recommendations.push('Gabungkan atau rename bahan yang duplikat');
-      }
-
-      // Check for items with unusual values
-      warehouseData.forEach(item => {
-        if (item.stok < 0) {
-          errors.push(`${item.nama}: Stok negatif (${item.stok})`);
-        }
-        
-        if (item.harga_satuan <= 0) {
-          warnings.push(`${item.nama}: Harga satuan tidak valid`);
-        }
-
-        if (item.harga_rata_rata && item.harga_rata_rata <= 0) {
-          warnings.push(`${item.nama}: WAC tidak valid`);
-        }
-      });
-
-      if (errors.length === 0) {
-        recommendations.push('Data warehouse dalam kondisi baik');
-      } else {
-        recommendations.push('Perbaiki error yang ditemukan sebelum melanjutkan');
-      }
-
-    } catch (error) {
-      errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      recommendations
-    };
+  /**
+   * Check warehouse consistency using the modular service
+   */
+  async checkWarehouseConsistency(): Promise<WarehouseConsistencyCheck[]> {
+    return checkWarehouseConsistency(this.userId);
   }
 
   /**
@@ -1165,7 +264,7 @@ export class WarehouseSyncService {
   async generateSyncReport(): Promise<{
     summary: SyncSummary;
     consistencyIssues: WarehouseConsistencyCheck[];
-    integrityReport: Awaited<ReturnType<WarehouseSyncService['validateWarehouseIntegrity']>>;
+    integrityReport: ValidationResult;
     timestamp: string;
   }> {
     const startTime = Date.now();
@@ -1194,13 +293,79 @@ export class WarehouseSyncService {
 
     return report;
   }
+
+  /**
+   * Get warehouse statistics
+   */
+  async getWarehouseStats(): Promise<{
+    totalItems: number;
+    lowStockItems: number;
+    negativeStockItems: number;
+    itemsWithoutWac: number;
+    totalValue: number;
+  }> {
+    try {
+      const materials = await getAllMaterials(this.userId);
+      
+      let totalItems = materials.length;
+      let lowStockItems = 0;
+      let negativeStockItems = 0;
+      let itemsWithoutWac = 0;
+      let totalValue = 0;
+
+      materials.forEach(item => {
+        // Low stock check
+        if (item.stok <= item.minimum) {
+          lowStockItems++;
+        }
+
+        // Negative stock check
+        if (item.stok < 0) {
+          negativeStockItems++;
+        }
+
+        // WAC check
+        if (!item.harga_rata_rata || item.harga_rata_rata <= 0) {
+          itemsWithoutWac++;
+        }
+
+        // Total value calculation
+        const itemValue = (item.harga_rata_rata || item.harga_satuan || 0) * item.stok;
+        if (itemValue > 0) {
+          totalValue += itemValue;
+        }
+      });
+
+      return {
+        totalItems,
+        lowStockItems,
+        negativeStockItems,
+        itemsWithoutWac,
+        totalValue
+      };
+    } catch (error) {
+      logger.error('Error getting warehouse stats:', error);
+      throw error;
+    }
+  }
 }
 
 /**
  * Factory function to create WarehouseSyncService instance
  */
-export const createWarehouseSyncService = (userId: string): WarehouseSyncService => {
-  return new WarehouseSyncService(userId);
+export const createWarehouseSyncService = (
+  userId: string, 
+  options?: Partial<WarehouseServiceConfig>
+): WarehouseSyncService => {
+  return new WarehouseSyncService(userId, options);
+};
+
+// Re-export the main functions for backward compatibility
+export { 
+  calculateNewWac,
+  calculateEnhancedWac,
+  applyPurchaseToWarehouse,
+  reversePurchaseFromWarehouse
 };
 
 export default WarehouseSyncService;

@@ -221,21 +221,21 @@ export const usePaymentStatus = () => {
           
           channelRef.current = supabase
             .channel(channelName)
+            // ✅ FIX: Use separate bindings to avoid server/client binding mismatch
             .on(
               'postgres_changes',
               { 
                 event: '*', 
                 schema: 'public', 
                 table: 'user_payments',
-                // ✅ SIMPLIFIED: user_id OR email only
-                filter: `or(user_id.eq.${user.id},email.eq.${user.email})`
+                filter: `user_id=eq.${user.id}`
               },
               (payload) => {
                 if (!mounted) return;
 
                 const record = payload.new || payload.old;
                 if (process.env.NODE_ENV === 'development') {
-                  logger.hook('usePaymentStatus', 'Payment change detected:', {
+                  logger.hook('usePaymentStatus', 'Payment change (by user_id) detected:', {
                     event: payload.eventType,
                     orderId: record?.order_id,
                     email: record?.email,
@@ -243,10 +243,11 @@ export const usePaymentStatus = () => {
                   });
                 }
                 
-                // ✅ OPTIMIZED: Use smart invalidation dengan background refetch
                 smartInvalidatePayment();
               }
             )
+            // Note: Realtime OR filters can cause binding mismatches. For unlinked payments by email,
+            // we rely on useUnlinkedPayments which already subscribes to user_id IS NULL and filters by email in handler.
             .subscribe((status, err) => {
               if (!mounted) return;
 
@@ -256,7 +257,6 @@ export const usePaymentStatus = () => {
                 }
               } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
                 logger.warn(`Payment realtime subscription ${status.toLowerCase()}:`, err);
-                // Don't treat these as hard errors, just log them
               } else if (status === 'SUBSCRIPTION_ERROR') {
                 logger.error('Realtime subscription failed:', err);
               }

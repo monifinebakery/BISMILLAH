@@ -1,8 +1,20 @@
 // src/components/invoice/utils/invoicePDF.ts
 // PDF generation utility for invoices using jsPDF and html2canvas
 
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// Lazy loaded to keep initial bundle light
+let _jsPDF: any | null = null;
+let _html2canvas: any | null = null;
+
+async function ensurePdfDeps() {
+  if (!_jsPDF) {
+    const mod = await import('jspdf');
+    _jsPDF = mod.default || mod.jsPDF || mod;
+  }
+  if (!_html2canvas) {
+    const mod = await import('html2canvas');
+    _html2canvas = (mod as any).default || (mod as any);
+  }
+}
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 import { logger } from '@/utils/logger';
 
@@ -54,8 +66,11 @@ export const generateInvoicePDF = async (
     // Prepare element for PDF generation with single-page optimization
     await prepareElementForSinglePagePDF(element);
     
+    // Ensure heavy deps are loaded only now
+    await ensurePdfDeps();
+
     // Generate high-quality canvas with optimized settings
-    const canvas = await html2canvas(element, {
+    const canvas = await _html2canvas(element, {
       scale: 2, // High DPI for better quality
       useCORS: true,
       allowTaint: false,
@@ -131,7 +146,7 @@ export const generateInvoicePDF = async (
     }
     
     // Create PDF
-    const pdf = new jsPDF({
+    const pdf = new _jsPDF({
       orientation: opts.orientation,
       unit: 'mm',
       format: opts.format
@@ -467,8 +482,11 @@ export const generateMultiPageInvoicePDF = async (
 
     await prepareElementForPDF(element);
     
+    // Ensure heavy deps are loaded only now
+    await ensurePdfDeps();
+
     // Generate canvas with proper dimensions
-    const canvas = await html2canvas(element, {
+    const canvas = await _html2canvas(element, {
       scale: 2,
       useCORS: true,
       allowTaint: false,
@@ -493,7 +511,7 @@ export const generateMultiPageInvoicePDF = async (
     const scaledWidth = contentWidth;
     const scaledHeight = scaledWidth / ratio;
     
-    const pdf = new jsPDF('portrait', 'mm', 'a4');
+    const pdf = new _jsPDF('portrait', 'mm', 'a4');
     
     if (scaledHeight <= contentHeight) {
       // Single page
@@ -575,8 +593,11 @@ export const generateSinglePageInvoicePDF = async (
     element.style.transformOrigin = 'top left';
     element.style.width = '117%'; // Compensate for scale
     
+    // Ensure heavy deps are loaded only now
+    await ensurePdfDeps();
+
     // Generate canvas with single-page optimized settings
-    const canvas = await html2canvas(element, {
+    const canvas = await _html2canvas(element, {
       scale: 1.5, // Slightly lower scale for better fit
       useCORS: true,
       allowTaint: false,
@@ -669,7 +690,7 @@ export const generateSinglePageInvoicePDF = async (
     }
     
     // Create PDF
-    const pdf = new jsPDF({
+    const pdf = new _jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4'

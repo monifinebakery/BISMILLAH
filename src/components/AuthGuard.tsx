@@ -84,23 +84,18 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isReady, isLoading, isMobile, isMobileOptimized]);
 
-  // ✅ IMMEDIATE REDIRECT CHECK on user change - optimized untuk mobile
+  // ✅ IMPROVED REDIRECT CHECK - more reliable for OTP flow
   useEffect(() => {
     if (isReady && !isLoading && user && location.pathname === '/auth') {
       console.log(`🚀 [AuthGuard] IMMEDIATE SPA REDIRECT triggered for user:`, user.email);
       console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
       
-      // ⚡ MOBILE: Lebih cepat redirect untuk mobile - 30ms vs 80ms
-      const delay = isMobile ? 30 : 80;
-      const t = setTimeout(() => {
-        if (location.pathname === '/auth') {
-          console.log(`🚀 [AuthGuard] Executing SPA redirect to / (mobile: ${isMobile})`);
-          navigate('/', { replace: true });
-        }
-      }, delay);
-      return () => clearTimeout(t);
+      // ✅ FIXED: Immediate redirect for successful OTP - no delay needed
+      // The session is already validated by AuthContext at this point
+      console.log(`🚀 [AuthGuard] Executing immediate SPA redirect to /`);
+      navigate('/', { replace: true });
     }
-  }, [user, isReady, isLoading, location.pathname, navigate, isMobile]);
+  }, [user, isReady, isLoading, location.pathname, navigate]);
 
   // ⚡ MOBILE-OPTIMIZED: Loading state dengan progressive improvement
   if (isLoading || !isReady) {

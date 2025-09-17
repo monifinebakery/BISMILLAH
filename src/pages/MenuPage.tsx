@@ -21,6 +21,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { performSignOut, performGlobalSignOut } from '@/lib/authUtils';
+import PWAInstallButton from '@/components/pwa/PWAInstallButton';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import {
   AlertDialog,
@@ -39,6 +41,7 @@ const MenuPage = () => {
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [logoutType, setLogoutType] = useState<'local' | 'global'>('local');
+  const isMobile = useIsMobile();
 
   const handleLogout = (type: 'local' | 'global' = 'local') => {
     setLogoutType(type);
@@ -178,6 +181,16 @@ const MenuPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Install CTA - only show on mobile */}
+      {isMobile && (
+        <div className="w-full px-4 pt-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-3 flex items-center justify-between">
+            <div className="text-sm text-gray-700">Install aplikasi untuk akses cepat</div>
+            <PWAInstallButton showNetworkStatus={false} />
+          </div>
+        </div>
+      )}
 
       {/* Menu List - Simplified */}
       <div className="w-full p-4 pb-20">

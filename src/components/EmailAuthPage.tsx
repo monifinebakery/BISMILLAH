@@ -95,6 +95,21 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setAuthState("idle");
   };
 
+  // ✅ NEW: Full reset function to completely restart the flow
+  const resetAll = () => {
+    if (!mountedRef.current) return;
+    setEmail("");
+    setOtp(["", "", "", "", "", ""]);
+    setError("");
+    setAuthState("idle");
+    setCooldownTime(0);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    logger.debug("EmailAuth: Full reset performed");
+  };
+
   // Validation
   const isValidEmail = (s: string) => s && s.includes("@") && s.length > 5;
 
@@ -173,6 +188,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
 
     try {
+      logger.debug("EmailAuth: Resending OTP...");
       const success = await sendEmailOtp(
         email,
         null,
@@ -189,14 +205,14 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         inputRefs.current[0]?.focus();
       } else {
         setAuthState("error");
-        setError("Gagal mengirim ulang kode OTP.");
+        setError("Gagal mengirim ulang kode OTP. Silakan coba lagi.");
         startCooldown(30);
       }
     } catch (e) {
       logger.error("Error resending OTP:", e);
       if (mountedRef.current) {
         setAuthState("error");
-        setError("Terjadi kesalahan saat mengirim ulang kode OTP.");
+        setError("Terjadi kesalahan saat mengirim ulang kode OTP. Silakan coba lagi.");
         startCooldown(30);
       }
     }
@@ -247,16 +263,35 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
       if (ok === true) {
         logger.debug("EmailAuth: OTP verification successful");
-        // Refresh session and let AuthContext handle redirect from /auth
-        await refreshUser();
         setAuthState("success");
         toast.success("Login berhasil! Mengarahkan ke dashboard...");
         onLoginSuccess?.();
-        // Give AuthContext a moment to receive onAuthStateChange, then trigger a safety check
+        
+        // ✅ FIXED: Simplified success flow - let Supabase onAuthStateChange handle everything
+        // The verifyEmailOtp already creates the session in Supabase
+        // AuthContext.onAuthStateChange will automatically detect the new session and redirect
+        logger.debug("EmailAuth: Waiting for AuthContext to detect session...");
+        
+        // ✅ Fallback safety check after reasonable delay for slow connections
         setTimeout(() => {
-          try { redirectCheck(); } catch {}
-        }, 150);
-        // Do not navigate immediately to avoid race where ProtectedRoute reads user=null and sends back to /auth
+          if (!mountedRef.current) return;
+          try {
+            // Only trigger redirect check if still on auth page after 2 seconds
+            if (window.location.pathname === '/auth') {
+              logger.warn("EmailAuth: Still on auth page after 2s, triggering manual refresh");
+              refreshUser().then(() => {
+                if (window.location.pathname === '/auth') {
+                  redirectCheck();
+                }
+              }).catch(err => {
+                logger.error("EmailAuth: Manual refresh failed:", err);
+              });
+            }
+          } catch (err) {
+            logger.error("EmailAuth: Fallback redirect check failed:", err);
+          }
+        }, 2000); // Increased to 2 seconds for slower connections
+        
         return;
       } else if (ok === "expired") {
         setAuthState("expired");
@@ -313,6 +348,20 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* ✅ Enhanced error display */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <p className="text-red-700 text-sm">{error}</p>
+              {(authState === "error" || authState === "expired") && (
+                <p className="text-red-600 text-xs mt-2">
+                  • Pastikan kode dimasukkan dengan benar<br/>
+                  • Kode mungkin sudah kadaluarsa (5 menit)<br/>
+                  • Jika masalah berlanjut, coba mulai dari awal
+                </p>
+              )}
+            </div>
+          )}
+
           {!isSent ? (
             // Email Input
             <div className="space-y-4">
@@ -409,7 +458,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 )}
               </Button>
 
-              <div className="text-center">
+              <div className="text-center space-y-2">
                 <Button
                   variant="link"
                   onClick={handleResendOtp}
@@ -418,6 +467,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                 >
                   {cooldownTime > 0 ? `Kirim ulang dalam ${cooldownTime}s` : "Kirim ulang kode"}
                 </Button>
+                
+                {/* ✅ NEW: Reset button for when users get stuck */}
+                {(authState === "error" || authState === "expired") && (
+                  <div>
+                    <Button
+                      variant="link"
+                      onClick={resetAll}
+                      className="text-gray-500 hover:text-gray-700 text-xs"
+                    >
+                      Mulai dari awal dengan email lain
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

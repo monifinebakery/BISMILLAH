@@ -4,6 +4,7 @@ import { QueryClientProvider, HydrationBoundary } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AppProviders } from "@/contexts/AppProviders";
 import { AppRouter } from "@/config/routes";
 import { queryClient } from "@/config/queryClient";
@@ -157,6 +158,9 @@ const App = () => {
             
             {/* Vercel Analytics - Web visitor tracking */}
             <Analytics />
+            
+            {/* Vercel Speed Insights - Performance monitoring */}
+            <SpeedInsights />
           </AppProviders>
         </CodeSplittingProvider>
       </TooltipProvider>

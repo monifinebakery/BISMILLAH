@@ -29,8 +29,13 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
           <h1 className="text-lg font-bold text-primary">HPP App</h1>
         </div>
         <div className="flex items-center space-x-2">
-          {/* PWA Install Button (mobile header) */}
-          <PWAInstallButton showNetworkStatus={false} />
+          {/* PWA Install Button (hide on iOS; tutorial is in Settings) */}
+          {(() => {
+            if (typeof navigator === 'undefined') return null;
+            const ua = navigator.userAgent || '';
+            const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1);
+            return !isIOS ? <PWAInstallButton showNetworkStatus={false} /> : null;
+          })()}
           {isPaid && <PaymentStatusIndicator />}
           <NotificationBell />
           <MobileExportButton />

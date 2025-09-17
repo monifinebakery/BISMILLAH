@@ -95,38 +95,9 @@ const InstallBanner: React.FC = () => {
     );
   }
 
-  // Show iOS instruction banner when no deferred prompt is available
+  // iOS instruction overlay disabled: tutorial is provided in Settings page
   if (isIOS && !isStandalone) {
-    return (
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        backgroundColor: '#fff',
-        padding: '12px 16px',
-        textAlign: 'center',
-        boxShadow: '0 -2px 8px rgba(0,0,0,0.08)',
-        borderTop: '1px solid #eee',
-        zIndex: 60
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 14 }}>
-            Untuk menginstal di iPhone, tekan tombol <strong>Share</strong> di Safari lalu pilih <strong>Add to Home Screen</strong>.
-          </span>
-          <button onClick={handleDismiss} aria-label="Tutup" style={{
-            marginLeft: 8,
-            padding: '6px 10px',
-            border: 'none',
-            background: 'transparent',
-            color: '#666',
-            cursor: 'pointer'
-          }}>
-            Mengerti
-          </button>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return null;

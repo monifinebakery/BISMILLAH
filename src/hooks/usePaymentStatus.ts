@@ -13,6 +13,7 @@ export interface PaymentStatus {
   user_id: string | null;
   order_id: string | null;
   pg_reference_id: string | null;
+  name: string | null; // ✅ Use 'name' from actual schema
   email: string | null;
   payment_status: string | null;
   is_paid: boolean;
@@ -23,7 +24,6 @@ export interface PaymentStatus {
   marketing_channel: string | null;
   campaign_id: string | null;
   currency: string | null;
-  customer_name: string | null;
 }
 
 export const usePaymentStatus = () => {
@@ -93,7 +93,6 @@ export const usePaymentStatus = () => {
           payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
           amount: null, // ✅ Not in schema, set null
           currency: 'IDR', // ✅ Default currency
-          customer_name: payment.name, // ✅ Use 'name' column from schema
           marketing_channel: null, // ✅ Not in schema, set null
           campaign_id: null // ✅ Not in schema, set null
         };
@@ -134,7 +133,6 @@ export const usePaymentStatus = () => {
           payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
           amount: null, // ✅ Not in schema, set null
           currency: 'IDR', // ✅ Default currency
-          customer_name: payment.name, // ✅ Use 'name' column from schema
           marketing_channel: null, // ✅ Not in schema, set null
           campaign_id: null // ✅ Not in schema, set null
         };
@@ -408,7 +406,7 @@ export const usePaymentStatus = () => {
     needsOrderLinking: finalNeedsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
-    userName: paymentStatus?.customer_name || null,
+    userName: paymentStatus?.name || null, // ✅ Use 'name' from schema
     hasValidPayment: finalIsPaid,
     hasValidLinkedPayment: bypassAuth ? true : hasValidLinkedPayment,
     isLinkedToCurrentUser: bypassAuth ? true : isLinkedToCurrentUser

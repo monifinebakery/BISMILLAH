@@ -141,7 +141,6 @@ export class PaymentPrefetchService {
         payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
         amount: null, // ✅ Not in schema
         currency: 'IDR', // ✅ Default currency
-        customer_name: payment.name, // ✅ Use 'name' column from schema
         marketing_channel: null, // ✅ Not in schema
         campaign_id: null // ✅ Not in schema
       };
@@ -167,7 +166,6 @@ export class PaymentPrefetchService {
         payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
         amount: null, // ✅ Not in schema
         currency: 'IDR', // ✅ Default currency
-        customer_name: payment.name, // ✅ Use 'name' column from schema
         marketing_channel: null, // ✅ Not in schema
         campaign_id: null // ✅ Not in schema
       };

@@ -125,7 +125,7 @@ export class PaymentPrefetchService {
     // Check for LINKED payments first
     const { data: linkedPayments, error: linkedError } = await supabase
       .from('user_payments')
-      .select('id,user_id,order_id,pg_reference_id,email,payment_status,is_paid,created_at,updated_at,payment_date,amount,currency,customer_name')
+      .select('id,user_id,name,email,order_id,pg_reference_id,payment_status,is_paid,created_at,updated_at') // ✅ Use actual schema columns
       .eq('user_id', user.id)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
@@ -138,14 +138,19 @@ export class PaymentPrefetchService {
         ...payment,
         created_at: safeParseDate(payment.created_at),
         updated_at: safeParseDate(payment.updated_at),
-        payment_date: safeParseDate(payment.payment_date),
+        payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
+        amount: null, // ✅ Not in schema
+        currency: 'IDR', // ✅ Default currency
+        customer_name: payment.name, // ✅ Use 'name' column from schema
+        marketing_channel: null, // ✅ Not in schema
+        campaign_id: null // ✅ Not in schema
       };
     }
 
     // Check for UNLINKED payments
     const { data: unlinkedPayments, error: unlinkedError } = await supabase
       .from('user_payments')
-      .select('id,user_id,order_id,pg_reference_id,email,payment_status,is_paid,created_at,updated_at,payment_date,amount,currency,customer_name')
+      .select('id,user_id,name,email,order_id,pg_reference_id,payment_status,is_paid,created_at,updated_at') // ✅ Use actual schema columns
       .is('user_id', null)
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
@@ -159,7 +164,12 @@ export class PaymentPrefetchService {
         ...payment,
         created_at: safeParseDate(payment.created_at),
         updated_at: safeParseDate(payment.updated_at),
-        payment_date: safeParseDate(payment.payment_date),
+        payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
+        amount: null, // ✅ Not in schema
+        currency: 'IDR', // ✅ Default currency
+        customer_name: payment.name, // ✅ Use 'name' column from schema
+        marketing_channel: null, // ✅ Not in schema
+        campaign_id: null // ✅ Not in schema
       };
     }
 

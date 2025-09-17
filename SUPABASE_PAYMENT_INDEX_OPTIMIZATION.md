@@ -9,6 +9,9 @@ Berdasarkan analisis query patterns di `usePaymentStatus.ts`, ada beberapa query
 2. **Unlinked Payment Query**: `WHERE user_id IS NULL AND is_paid = true AND payment_status = 'settled' AND email = ?`
 3. **Order by updated_at DESC LIMIT 1** - sorting operation
 
+### **Current Schema Columns:**
+- `id`, `user_id`, `name`, `email`, `order_id`, `pg_reference_id`, `payment_status`, `is_paid`, `created_at`, `updated_at`
+
 ---
 
 ## 🛠️ **Recommended Database Indexes**
@@ -46,12 +49,12 @@ CREATE INDEX CONCURRENTLY idx_user_payments_status
 ON user_payments (payment_status, is_paid, updated_at DESC);
 ```
 
-### **4. Email-based Lookup Index**
+### **4. Name-based Lookup Index**
 ```sql
--- Index khusus untuk email lookup (case insensitive)
-CREATE INDEX CONCURRENTLY idx_user_payments_email_ci 
-ON user_payments (LOWER(email), is_paid, payment_status) 
-WHERE email IS NOT NULL;
+-- Index untuk name lookup (customer identification)
+CREATE INDEX CONCURRENTLY idx_user_payments_name 
+ON user_payments (name, is_paid, payment_status) 
+WHERE name IS NOT NULL;
 ```
 
 ---

@@ -48,14 +48,14 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
       <TableCell>
         <div>
           <div className="font-medium">
-            {UserFriendlyDate.formatToLocalString(purchase.tanggal, {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric'
-            })}
+            {UserFriendlyDate.format(purchase.tanggal)}
           </div>
           <div className="text-xs text-gray-500">
-            {UserFriendlyDate.formatToLocalString(purchase.createdAt || purchase.tanggal)}
+            {UserFriendlyDate.formatToLocalString(purchase.createdAt || purchase.tanggal, {
+              day: 'numeric',
+              month: 'short',
+              year: '2-digit'
+            })}
           </div>
         </div>
       </TableCell>

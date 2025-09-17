@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableHeader, TableHead, TableCell, TableRow } from '@/components/ui/table';
 import { Search, Calendar, User, Package, Receipt, AlertTriangle, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 // 🚀 Import performance optimizations
 import {
@@ -476,7 +477,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                           </div>
                         </div>
                         <p className="text-sm text-gray-500">
-                          {new Date(purchase.tanggal).toLocaleDateString('id-ID')}
+                          {UserFriendlyDate.format(purchase.tanggal)}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
                           {purchase.items && purchase.items.length > 0 ? (

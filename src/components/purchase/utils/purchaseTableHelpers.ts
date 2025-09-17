@@ -2,6 +2,7 @@
 // Helper functions specifically for PurchaseTable component
 
 import { Purchase } from '../types/purchase.types';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 /**
  * Paginate array of purchases
@@ -99,7 +100,7 @@ export const formatTableCellData = (value: any, type: 'date' | 'currency' | 'tex
   switch (type) {
     case 'date':
       if (!value) return '-';
-      return new Date(value).toLocaleDateString('id-ID');
+      return UserFriendlyDate.format(value);
     case 'currency':
       if (!value || isNaN(value)) return 'Rp0';
       return new Intl.NumberFormat('id-ID', {

@@ -1,6 +1,7 @@
 // src/components/purchase/utils/purchaseHelpers.ts
 
 import { Purchase, PurchaseStats, PurchaseStatus } from '../types/purchase.types';
+import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 /**
  * Calculate purchase statistics from array of purchases
@@ -364,13 +365,13 @@ export const exportPurchasesToCSV = (
   const getSupplierName = createSupplierNameResolver(suppliers);
 
   const rows = purchases.map(purchase => [
-    new Date(purchase.tanggal).toLocaleDateString('id-ID'),
+    UserFriendlyDate.format(purchase.tanggal),
     getSupplierName(purchase.supplier),                    // ✅ FIXED: Show supplier name instead of ID
     ((((purchase as any).totalNilai ?? (purchase as any).total_nilai) as number) ?? 0).toString(),                 // ✅ aman null/undefined
     getStatusDisplayText(purchase.status),
     (purchase.items?.length ?? 0).toString(),              // ✅ aman
     getFormattedTotalQuantities(purchase),
-    new Date((purchase.createdAt ?? purchase.tanggal)).toLocaleDateString('id-ID') // ✅ fallback aman
+    UserFriendlyDate.format(purchase.createdAt ?? purchase.tanggal) // ✅ fallback aman
   ]);
 
   const csvContent = [headers, ...rows]

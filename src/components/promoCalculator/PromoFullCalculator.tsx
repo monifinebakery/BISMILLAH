@@ -55,9 +55,14 @@ const PromoFullCalculator = () => {
 
   // Render function for step content
   const renderStepContent = () => {
+    // Add null checks to prevent undefined errors
+    if (!formData || !handleInputChange || !handleSelectChange) {
+      return <div>Loading...</div>;
+    }
+    
     const stepProps = {
       formData,
-      stepErrors: stepErrors[currentStep] || [],
+      stepErrors: stepErrors?.[currentStep] || [],
       onInputChange: handleInputChange,
       onSelectChange: handleSelectChange,
     };
@@ -132,13 +137,15 @@ const PromoFullCalculator = () => {
         </div>
 
         {/* Wizard */}
-        <PromoWizard
-          steps={steps}
-          currentStep={currentStep}
-          completedSteps={completedSteps}
-          stepErrors={stepErrors}
-          onStepClick={goToStep}
-        />
+        {steps && (
+          <PromoWizard
+            steps={steps}
+            currentStep={currentStep}
+            completedSteps={completedSteps || []}
+            stepErrors={stepErrors || {}}
+            onStepClick={goToStep}
+          />
+        )}
 
         {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -154,19 +161,21 @@ const PromoFullCalculator = () => {
 
           {/* Navigation Panel */}
           <div className="lg:col-span-1">
-            <PromoNavigation
-              currentStep={currentStep}
-              totalSteps={steps.length}
-              completedSteps={completedSteps}
-              stepErrors={stepErrors}
-              isCalculating={isCalculating}
-              isSaving={isSaving}
-              calculationResult={calculationResult}
-              onPrevStep={prevStep}
-              onNextStep={nextStep}
-              onCalculate={() => calculate(formData)}
-              onSave={handleSave}
-            />
+            {steps && (
+              <PromoNavigation
+                currentStep={currentStep}
+                totalSteps={steps.length}
+                completedSteps={completedSteps || []}
+                stepErrors={stepErrors || {}}
+                isCalculating={isCalculating || false}
+                isSaving={isSaving || false}
+                calculationResult={calculationResult}
+                onPrevStep={prevStep}
+                onNextStep={nextStep}
+                onCalculate={() => calculate && formData && calculate(formData)}
+                onSave={handleSave}
+              />
+            )}
           </div>
         </div>
       </div>

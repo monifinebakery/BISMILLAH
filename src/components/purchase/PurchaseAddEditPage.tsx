@@ -3,12 +3,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  CalendarIcon, 
   Plus, 
   Trash2, 
   Package,
@@ -21,10 +21,7 @@ import {
   ArrowLeft,
   Home
 } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
-import { id as dateLocale } from 'date-fns/locale';
 
 import { PurchaseItem } from './types/purchase.types';
 import { usePurchaseForm } from './hooks/usePurchaseForm';
@@ -323,39 +320,20 @@ const PurchaseAddEditPage: React.FC = () => {
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">Tanggal *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={`h-11 w-full justify-start border-gray-200 text-left font-normal focus:border-orange-500 focus:ring-orange-500/20 ${!formData.tanggal && 'text-muted-foreground'}`}
-                      disabled={isSubmitting || isViewOnly}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.tanggal ? UserFriendlyDate.format(formData.tanggal) : 'Pilih tanggal'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-50" align="end" side="bottom">
-                    <Calendar
-                      mode="single"
-                      selected={UserFriendlyDate.forCalendar(formData.tanggal)}
-                      onSelect={(date) => {
-                        if (date) {
-                          const safeDate = UserFriendlyDate.safeParseToDate(date);
-                          updateFormField('tanggal', safeDate);
-                        }
-                      }}
-                      disabled={(date) => {
-                        const today = new Date();
-                        const fiveYearsAgo = new Date();
-                        fiveYearsAgo.setFullYear(today.getFullYear() - 5);
-                        // Allow past dates up to 5 years ago, no future dates beyond today
-                        return date > today || date < fiveYearsAgo;
-                      }}
-                      initialFocus
-                      locale={dateLocale}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  type="date"
+                  value={formData.tanggal ? UserFriendlyDate.toYMD(formData.tanggal) : ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const safeDate = UserFriendlyDate.safeParseToDate(e.target.value);
+                      updateFormField('tanggal', safeDate);
+                    }
+                  }}
+                  className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
+                  disabled={isSubmitting || isViewOnly}
+                  max={new Date().toISOString().split('T')[0]} // Prevent future dates
+                  min={new Date(new Date().getFullYear() - 5, 0, 1).toISOString().split('T')[0]} // 5 years ago minimum
+                />
                 {validation?.tanggal && (
                   <p className="text-xs text-red-500">{validation.tanggal}</p>
                 )}

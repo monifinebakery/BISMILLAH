@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { promoService } from '@/components/promoCalculator/services/promoService';
-import { usePromoCalculation } from './usePromoCalculation';
+import { usePromoCalculation } from './usePromoCalculation.ts';
 import type { 
   PromoFormData, 
   PromoValidationError, 

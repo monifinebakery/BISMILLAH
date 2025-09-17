@@ -49,42 +49,44 @@ export default defineConfig(({ mode }) => {
               includes: ["log", "debug", "info", "warn", "trace"],
             }),
           ]
-        : []),
+        : []
+      ),
       ...(env.VITE_ANALYZE === "true"
         ? [
-      visualizer({
-        filename: "dist/stats.html",
-        template: "treemap",
-        gzipSize: true,
-        brotliSize: true,
-        open: false,
-      }),
-    ]),
-  VitePWA({
-    registerType: 'autoUpdate',
-    devOptions: {
-      enabled: true
-    },
-    manifest: {
-      name: 'Bismillah App',
-      short_name: 'Bismillah',
-      description: 'My Awesome App description',
-      theme_color: '#ffffff',
-      icons: [
-        {
-          src: 'pwa-192x192.png',
-          sizes: '192x192',
-          type: 'image/png'
+            visualizer({
+              filename: "dist/stats.html",
+              template: "treemap",
+              gzipSize: true,
+              brotliSize: true,
+              open: false,
+            }),
+          ]
+        : []
+      ),
+      VitePWA({
+        registerType: 'autoUpdate',
+        devOptions: {
+          enabled: true
         },
-        {
-          src: 'pwa-512x512.png',
-          sizes: '512x512',
-          type: 'image/png'
+        manifest: {
+          name: 'Bismillah App',
+          short_name: 'Bismillah',
+          description: 'My Awesome App description',
+          theme_color: '#ffffff',
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png'
+            }
+          ]
         }
-      ]
-    }
-  })
-],
+      })
     ],
 
     // konsisten dengan netlify.toml (targetPort=5173) & preview 5500

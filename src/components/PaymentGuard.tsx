@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import MandatoryUpgradeModal from '@/components/MandatoryUpgradeModal';
 import PaymentVerificationLoader from '@/components/PaymentVerificationLoader';
@@ -9,7 +9,8 @@ interface PaymentGuardProps {
 }
 
 const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
-  const { paymentStatus, isLoading, isPaid, error } = usePaymentStatus();
+  const { paymentStatus, isLoading, isPaid, error, refetch } = usePaymentStatus();
+  const [timedOut, setTimedOut] = useState(false);
 
   // Error state
   if (error) {
@@ -48,15 +49,17 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
   }
 
   // Loading state - use unified modern loader
-  if (isLoading) {
+  if (isLoading && !timedOut) {
     logger.debug('PaymentGuard: Loading payment status...');
     return (
       <PaymentVerificationLoader 
         stage="checking"
         timeout={10000}
         onTimeout={() => {
-          logger.warn('Payment verification timeout');
-          // Could show timeout fallback or retry
+          logger.warn('PaymentGuard: Payment verification timeout - proceeding with fallback UI');
+          setTimedOut(true);
+          // Fire a background refetch to update status when available
+          setTimeout(() => refetch?.(), 500);
         }}
       />
     );

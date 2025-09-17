@@ -6,6 +6,7 @@ import NotificationBell from "@/components/NotificationBell";
 import BottomTabBar from "@/components/BottomTabBar";
 import MobileExportButton from "@/components/MobileExportButton";
 import { AppError } from "@/components/loaders";
+import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 
 interface MobileLayoutProps {
   isPaid: boolean;
@@ -28,6 +29,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
           <h1 className="text-lg font-bold text-primary">HPP App</h1>
         </div>
         <div className="flex items-center space-x-2">
+          {/* PWA Install Button (mobile header) */}
+          <PWAInstallButton showNetworkStatus={false} />
           {isPaid && <PaymentStatusIndicator />}
           <NotificationBell />
           <MobileExportButton />

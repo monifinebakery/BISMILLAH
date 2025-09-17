@@ -85,6 +85,70 @@ export default defineConfig(({ mode }) => {
               type: 'image/png'
             }
           ]
+        },
+        workbox: {
+          navigateFallback: '/index.html',
+          runtimeCaching: [
+            {
+              // Supabase REST GET requests
+              urlPattern: new RegExp('^https://[a-zA-Z0-9.-]+\\.supabase\\.co/rest/v1/.*'),
+              handler: 'NetworkFirst',
+              method: 'GET',
+              options: {
+                cacheName: 'supabase-rest-cache',
+                networkTimeoutSeconds: 3,
+                cacheableResponse: {
+                  statuses: [0, 200]
+                },
+                expiration: {
+                  maxEntries: 200,
+                  maxAgeSeconds: 60 * 60 * 24 * 3 // 3 days
+                }
+              }
+            },
+            {
+              // Supabase public storage assets
+              urlPattern: new RegExp('^https://[a-zA-Z0-9.-]+\\.supabase\\.co/storage/v1/object/public/.*'),
+              handler: 'CacheFirst',
+              method: 'GET',
+              options: {
+                cacheName: 'supabase-storage-cache',
+                cacheableResponse: {
+                  statuses: [0, 200]
+                },
+                expiration: {
+                  maxEntries: 300,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                }
+              }
+            },
+            {
+              // Images (any origin)
+              // Note: generateSW requires string or RegExp, not a function
+              urlPattern: new RegExp('\\.(?:png|jpg|jpeg|svg|gif|webp|avif)$'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'image-cache',
+                expiration: {
+                  maxEntries: 200,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                }
+              }
+            },
+            {
+              // Google Fonts (if used)
+              urlPattern: new RegExp('^https://fonts\\.(?:googleapis|gstatic)\\.com/.*'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-cache',
+                cacheableResponse: { statuses: [0, 200] },
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                }
+              }
+            }
+          ]
         }
       })
     ],

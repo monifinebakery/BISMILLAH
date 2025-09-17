@@ -117,7 +117,7 @@ const PromoFullCalculator = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+    <div className="min-h-screen bg-white">
       <div className="container mx-auto p-4 sm:p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

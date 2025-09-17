@@ -19,7 +19,7 @@ import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 // ✅ SAFE CONTEXT IMPORTS: Import contexts directly to check availability
 import FinancialContext from '@/components/financial/contexts/FinancialContext';
-// SupplierContext is not exported directly, we'll need to use a different approach
+import { SupplierContext } from '@/contexts/SupplierContext';
 import { ensureBahanBakuIdsForItems } from '@/components/warehouse/utils/warehouseItemUtils';
 import { PurchaseApiService } from '../services/purchaseApi';
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
@@ -127,15 +127,16 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [financialContext]);
   
-  // For suppliers, we'll use a simple state-based approach since context isn't directly accessible
-  // This will be populated by the component that provides supplier data
-  const [suppliers, setSuppliers] = React.useState<any[]>([]);
-  
-  // Effect to try to get supplier data when available
-  React.useEffect(() => {
-    // This is a fallback - in production the suppliers should be passed down or managed differently
-    logger.warn('PurchaseContext: Using fallback empty supplier list. Consider providing suppliers via props or proper context setup.');
-  }, []);
+  // ✅ Supplier context access with safe fallback (no hook rule violations)
+  const supplierContext = useContext(SupplierContext);
+  const suppliers = useMemo(() => {
+    if (supplierContext?.suppliers) {
+      logger.debug('PurchaseContext: SupplierContext available');
+      return supplierContext.suppliers;
+    }
+    logger.warn('PurchaseContext: SupplierContext not available, using fallback empty list');
+    return [];
+  }, [supplierContext]);
   
   const { addNotification } = useNotification();
   

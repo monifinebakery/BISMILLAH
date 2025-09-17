@@ -65,7 +65,7 @@ interface SupplierContextType {
 // CONTEXT SETUP
 // ===========================================
 
-const SupplierContext = createContext<SupplierContextType | undefined>(undefined);
+export const SupplierContext = createContext<SupplierContextType | undefined>(undefined);
 
 // ===========================================
 // HELPER FUNCTIONS

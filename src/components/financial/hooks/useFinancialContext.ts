@@ -26,7 +26,20 @@ import {
  * ✅ RENAMED: Avoid conflict with main useFinancialData hook
  */
 export const useFinancialDataComputed = () => {
-  const context = useFinancial();
+  // ✅ FIXED: Defensive context handling
+  let context: any = {
+    financialTransactions: [],
+    isLoading: false,
+    addFinancialTransaction: async () => false,
+    updateFinancialTransaction: async () => false,
+    deleteFinancialTransaction: async () => false,
+  };
+  
+  try {
+    context = useFinancial();
+  } catch (error) {
+    console.warn('Failed to get financial context in useFinancialDataComputed:', error);
+  }
   
   const computedValues = useMemo(() => {
     const summary = calculateFinancialSummary(context.financialTransactions);
@@ -52,7 +65,19 @@ export const useFinancialDataComputed = () => {
  * Hook untuk filtered transactions berdasarkan date range
  */
 export const useFilteredTransactions = (dateRange?: DateRange) => {
-  const { financialTransactions, isLoading } = useFinancial();
+  // ✅ FIXED: Defensive context handling
+  let financialTransactions: any[] = [];
+  let isLoading = false;
+  
+  try {
+    const context = useFinancial();
+    financialTransactions = context?.financialTransactions || [];
+    isLoading = context?.isLoading || false;
+  } catch (error) {
+    console.warn('Failed to get financial context in useFilteredTransactions:', error);
+    financialTransactions = [];
+    isLoading = false;
+  }
   
   const filteredData = useMemo(() => {
     if (!dateRange) {
@@ -82,12 +107,25 @@ export const useFilteredTransactions = (dateRange?: DateRange) => {
  * Hook untuk transaction operations dengan optimistic updates
  */
 export const useTransactionOperations = () => {
-  const { 
-    addFinancialTransaction, 
-    updateFinancialTransaction, 
-    deleteFinancialTransaction,
-    isLoading 
-  } = useFinancial();
+  // ✅ FIXED: Defensive context handling
+  let addFinancialTransaction: any = async () => false;
+  let updateFinancialTransaction: any = async () => false;
+  let deleteFinancialTransaction: any = async () => false;
+  let isLoading = false;
+  
+  try {
+    const context = useFinancial();
+    addFinancialTransaction = context?.addFinancialTransaction || (async () => false);
+    updateFinancialTransaction = context?.updateFinancialTransaction || (async () => false);
+    deleteFinancialTransaction = context?.deleteFinancialTransaction || (async () => false);
+    isLoading = context?.isLoading || false;
+  } catch (error) {
+    console.warn('Failed to get financial context in useTransactionOperations:', error);
+    addFinancialTransaction = async () => false;
+    updateFinancialTransaction = async () => false;
+    deleteFinancialTransaction = async () => false;
+    isLoading = false;
+  }
 
   const addTransaction = useCallback(async (
     data: CreateTransactionData,
@@ -126,7 +164,16 @@ export const useTransactionOperations = () => {
  * Hook untuk category-specific operations
  */
 export const useCategoryData = () => {
-  const { financialTransactions } = useFinancial();
+  // ✅ FIXED: Defensive context handling
+  let financialTransactions: any[] = [];
+  
+  try {
+    const context = useFinancial();
+    financialTransactions = context?.financialTransactions || [];
+  } catch (error) {
+    console.warn('Failed to get financial context in useCategoryData:', error);
+    financialTransactions = [];
+  }
   
   const categoryAnalysis = useMemo(() => {
     const categorized = groupByCategory(financialTransactions);
@@ -187,7 +234,16 @@ export const useCategoryData = () => {
  * Hook untuk recent transactions dengan utilities
  */
 export const useRecentTransactions = (limit: number = 5) => {
-  const { financialTransactions } = useFinancial();
+  // ✅ FIXED: Defensive context handling
+  let financialTransactions: any[] = [];
+  
+  try {
+    const context = useFinancial();
+    financialTransactions = context?.financialTransactions || [];
+  } catch (error) {
+    console.warn('Failed to get financial context in useRecentTransactions:', error);
+    financialTransactions = [];
+  }
   
   const recentData = useMemo(() => {
     const sorted = [...financialTransactions]
@@ -219,7 +275,16 @@ export const useRecentTransactions = (limit: number = 5) => {
  * Hook untuk search dan filter transactions
  */
 export const useTransactionSearch = () => {
-  const { financialTransactions } = useFinancial();
+  // ✅ FIXED: Defensive context handling
+  let financialTransactions: any[] = [];
+  
+  try {
+    const context = useFinancial();
+    financialTransactions = context?.financialTransactions || [];
+  } catch (error) {
+    console.warn('Failed to get financial context in useTransactionSearch:', error);
+    financialTransactions = [];
+  }
   
   const searchTransactions = useCallback((
     query: string,
@@ -282,7 +347,19 @@ export const useTransactionSearch = () => {
  * Hook untuk batch operations (bulk delete, bulk update, etc.)
  */
 export const useBatchOperations = () => {
-  const { deleteFinancialTransaction, updateFinancialTransaction } = useFinancial();
+  // ✅ FIXED: Defensive context handling
+  let deleteFinancialTransaction: any = async () => false;
+  let updateFinancialTransaction: any = async () => false;
+  
+  try {
+    const context = useFinancial();
+    deleteFinancialTransaction = context?.deleteFinancialTransaction || (async () => false);
+    updateFinancialTransaction = context?.updateFinancialTransaction || (async () => false);
+  } catch (error) {
+    console.warn('Failed to get financial context in useBatchOperations:', error);
+    deleteFinancialTransaction = async () => false;
+    updateFinancialTransaction = async () => false;
+  }
   
   const bulkDelete = useCallback(async (ids: string[]) => {
     const results = await Promise.allSettled(

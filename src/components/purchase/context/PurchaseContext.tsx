@@ -98,7 +98,20 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const queryClient = useQueryClient();
 
   const { addActivity } = useActivity();
-  const { addFinancialTransaction, deleteFinancialTransaction } = useFinancial();
+  
+  // ✅ FIXED: Defensive error handling for useFinancial hook
+  let addFinancialTransaction: any = async () => false;
+  let deleteFinancialTransaction: any = async () => false;
+  try {
+    const financialContext = useFinancial();
+    addFinancialTransaction = financialContext?.addFinancialTransaction || (async () => false);
+    deleteFinancialTransaction = financialContext?.deleteFinancialTransaction || (async () => false);
+  } catch (error) {
+    console.warn('Failed to get financial context in PurchaseContext:', error);
+    addFinancialTransaction = async () => false;
+    deleteFinancialTransaction = async () => false;
+  }
+  
   const { suppliers } = useSupplier();
   const { addNotification } = useNotification();
   

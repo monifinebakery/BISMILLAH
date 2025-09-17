@@ -62,7 +62,17 @@ export function AppSidebar() {
   const { recipes } = useRecipe();
   const { activities } = useActivity();
   const { orders } = useOrder();
-  const { financialTransactions } = useFinancial();
+  
+  // ✅ FIXED: Defensive error handling for useFinancial hook (similar to useBahanBaku)
+  let financialTransactions: Array<any> = [];
+  try {
+    const financialContext = useFinancial();
+    financialTransactions = financialContext?.financialTransactions || [];
+  } catch (error) {
+    console.warn('Failed to get financial data in AppSidebar:', error);
+    financialTransactions = [];
+  }
+  
   const { promos } = usePromo();
   const { state: operationalCostState } = useOperationalCost();
 

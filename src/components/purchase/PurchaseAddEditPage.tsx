@@ -563,61 +563,63 @@ const PurchaseAddEditPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
+        {/* Action Bar (Sticky) */}
         {!isViewOnly && (
-          <div className="flex flex-col sm:flex-row gap-3 pt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleResetForm}
-              disabled={isSubmitting || !isDirty}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50 h-11"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset
-            </Button>
-
-            <Button
-              type="button"
-              onClick={() => onSubmit()}
-              disabled={isSubmitting}
-              variant="outline"
-              className="h-11"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isEditing ? 'Simpan Perubahan' : 'Simpan Draft'}
-            </Button>
-
-            {/* Always show Complete button unless purchase is already completed */}
-            {(!purchase || purchase.status !== 'completed') && (
+          <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-4 py-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 type="button"
-                onClick={() => onSubmit('completed')}
-                disabled={isSubmitting || formData.items.length === 0 || !formData.supplier.trim()}
-                className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500 h-11 flex-1 sm:flex-none"
-                title={formData.items.length === 0 ? 'Tambahkan minimal 1 item' : !formData.supplier.trim() ? 'Pilih supplier terlebih dahulu' : 'Selesaikan pembelian dan update stok gudang'}
+                variant="outline"
+                onClick={handleResetForm}
+                disabled={isSubmitting || !isDirty}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 h-11"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Selesaikan & Update Gudang</span>
-                    <span className="sm:hidden">Selesaikan</span>
-                  </>
-                )}
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
               </Button>
-            )}
-            
-            {/* Debug info - remove this after testing */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="text-xs text-gray-500 mt-2">
-                Debug: purchase={purchase?.status || 'null'}, items={formData.items.length}, supplier={formData.supplier ? 'set' : 'empty'}
-              </div>
-            )}
+
+              <Button
+                type="button"
+                onClick={() => onSubmit()}
+                disabled={isSubmitting}
+                variant="outline"
+                className="h-11"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isEditing ? 'Simpan Perubahan' : 'Simpan Draft'}
+              </Button>
+
+              {/* Always show Complete button unless purchase is already completed */}
+              {(!purchase || purchase.status !== 'completed') && (
+                <Button
+                  type="button"
+                  onClick={() => onSubmit('completed')}
+                  disabled={isSubmitting || formData.items.length === 0 || !formData.supplier.trim()}
+                  className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500 h-11 flex-1 sm:flex-none"
+                  title={formData.items.length === 0 ? 'Tambahkan minimal 1 item' : !formData.supplier.trim() ? 'Pilih supplier terlebih dahulu' : 'Selesaikan pembelian dan update stok gudang'}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">Selesaikan & Update Gudang</span>
+                      <span className="sm:hidden">Selesaikan</span>
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Debug info - remove this after testing */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-gray-500 mt-2">
+                  Debug: purchase={purchase?.status || 'null'}, items={formData.items.length}, supplier={formData.supplier ? 'set' : 'empty'}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

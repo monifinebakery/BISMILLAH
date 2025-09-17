@@ -156,49 +156,48 @@ export class PurchaseApiService {
       return { data: transformPurchasesFromDB(data ?? []), error: null };
     } catch (err: any) {
       logger.error('Error fetching purchases:', err);
+      // Check if it's a 503 error and provide a more user-friendly message
+      if (err.message && err.message.includes('503')) {
+        toast.error('Layanan sedang tidak tersedia', {
+          description: 'Database sedang dalam perbaikan. Silakan coba beberapa saat lagi.'
+        });
+      }
       return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
   }
 
   /** Get purchases with pagination */
-  static async fetchPurchasesPaginated(
+  static async fetchPaginatedPurchases(
     userId: string,
-    page: number = 1,
-    limit: number = 10
-  ): Promise<{ data: Purchase[]; total: number; totalPages: number; error: string | null }> {
+    page: number,
+    limit: number,
+    searchQuery?: string
+  ): Promise<{ data: Purchase[] | null; error: string | null; totalCount: number }> {
     try {
-      const offset = (page - 1) * limit;
-
-      // Get total count
-      const { count, error: countError } = await supabase
+      let query = supabase
         .from('purchases')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
-
-      if (countError) throw new Error(countError.message);
-
-      // Get paginated data
-      const { data, error } = await supabase
-        .from('purchases')
-        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at', { count: 'exact' })
         .eq('user_id', userId)
-        .order('tanggal', { ascending: false })
-        .range(offset, offset + limit - 1);
+        .range((page - 1) * limit, page * limit - 1)
+        .order('tanggal', { ascending: false });
+
+      if (searchQuery) {
+        query = query.or(`supplier.ilike.%${searchQuery}%,catatan.ilike.%${searchQuery}%`);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw new Error(error.message);
-
-      const total = count || 0;
-      const totalPages = Math.ceil(total / limit) || 1;
-
-      return {
-        data: transformPurchasesFromDB(data ?? []),
-        total,
-        totalPages,
-        error: null,
-      };
+      return { data: transformPurchasesFromDB(data ?? []), error: null, totalCount: count || 0 };
     } catch (err: any) {
       logger.error('Error fetching paginated purchases:', err);
-      return { data: [], total: 0, totalPages: 0, error: err.message || 'Gagal memuat data pembelian' };
+      // Check if it's a 503 error and provide a more user-friendly message
+      if (err.message && err.message.includes('503')) {
+        toast.error('Layanan sedang tidak tersedia', {
+          description: 'Database sedang dalam perbaikan. Silakan coba beberapa saat lagi.'
+        });
+      }
+      return { data: null, error: err.message || 'Gagal memuat data pembelian', totalCount: 0 };
     }
   }
 
@@ -227,6 +226,12 @@ export class PurchaseApiService {
     } catch (err: any) {
       logger.error('❌ fetchPurchaseById catch:', { err, id, userId });
       logger.error('Error fetching purchase:', err);
+      // Check if it's a 503 error and provide a more user-friendly message
+      if (err.message && err.message.includes('503')) {
+        toast.error('Layanan sedang tidak tersedia', {
+          description: 'Database sedang dalam perbaikan. Silakan coba beberapa saat lagi.'
+        });
+      }
       return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
   }
@@ -682,6 +687,12 @@ export class PurchaseApiService {
       return { data: transformPurchasesFromDB(data ?? []), error: null };
     } catch (err: any) {
       logger.error('Error fetching purchases by date range:', err);
+      // Check if it's a 503 error and provide a more user-friendly message
+      if (err.message && err.message.includes('503')) {
+        toast.error('Layanan sedang tidak tersedia', {
+          description: 'Database sedang dalam perbaikan. Silakan coba beberapa saat lagi.'
+        });
+      }
       return { data: null, error: err.message || 'Gagal memuat data pembelian' };
     }
   }

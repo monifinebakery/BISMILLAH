@@ -27,7 +27,7 @@ export const PromoNavigation: React.FC<PromoNavigationProps> = ({
   onCalculate,
   onSave
 }) => {
-  const hasStepErrors = stepErrors[currentStep] && stepErrors[currentStep].length > 0;
+  const hasStepErrors = stepErrors?.[currentStep] && stepErrors[currentStep]?.length > 0;
   
   return (
     <Card className="sticky top-6">

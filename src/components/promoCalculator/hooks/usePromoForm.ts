@@ -62,36 +62,48 @@ export const usePromoForm = (id?: string) => {
     queryKey: PROMO_QUERY_KEYS.detail(id || ''),
     queryFn: async () => {
       if (!id) return null;
-      const promo = await promoService.getById(id);
-      return promo;
+      try {
+        const promo = await promoService.getById(id);
+        return promo;
+      } catch (error) {
+        console.error('Error fetching promo:', error);
+        return null;
+      }
     },
-    enabled: !!id
+    enabled: !!id,
+    retry: false,
+    refetchOnWindowFocus: false
   });
 
   // Effect untuk mengisi form ketika data promo berhasil di-fetch
   useEffect(() => {
-    if (promoQuery.data) {
+    if (promoQuery.data && typeof promoQuery.data === 'object') {
       const data = promoQuery.data;
-      setFormData({
-        namaPromo: data.nama_promo || '',
-        tipePromo: data.tipe_promo || 'discount',
-        status: data.status || 'draft',
-        deskripsi: data.deskripsi || '',
-        tanggalMulai: data.tanggal_mulai || '',
-        tanggalSelesai: data.tanggal_selesai || '',
-        hargaProduk: data.harga_produk?.toString() || '',
-        hpp: data.hpp?.toString() || '',
-        nilaiDiskon: data.nilai_diskon?.toString() || '',
-        resepUtama: data.resep_utama || '',
-        resepGratis: data.resep_gratis || '',
-        beli: data.beli?.toString() || '1',
-        gratis: data.gratis?.toString() || '1',
-        hargaNormal: data.harga_normal?.toString() || '',
-        hargaBundle: data.harga_bundle?.toString() || ''
-      });
-      // Jika ada hasil kalkulasi sebelumnya
-      if (data.calculationResult) {
-        setCalculationResult(data.calculationResult);
+      try {
+        setFormData({
+          namaPromo: data.namaPromo || data.nama_promo || '',
+          tipePromo: data.tipePromo || data.tipe_promo || 'discount',
+          status: data.status || 'draft',
+          deskripsi: data.deskripsi || '',
+          tanggalMulai: data.tanggalMulai || data.tanggal_mulai || '',
+          tanggalSelesai: data.tanggalSelesai || data.tanggal_selesai || '',
+          hargaProduk: data.hargaProduk?.toString() || data.harga_produk?.toString() || '',
+          hpp: data.hpp?.toString() || '',
+          nilaiDiskon: data.nilaiDiskon?.toString() || data.nilai_diskon?.toString() || '',
+          resepUtama: data.resepUtama || data.resep_utama || '',
+          resepGratis: data.resepGratis || data.resep_gratis || '',
+          beli: data.beli?.toString() || '1',
+          gratis: data.gratis?.toString() || '1',
+          hargaNormal: data.hargaNormal?.toString() || data.harga_normal?.toString() || '',
+          hargaBundle: data.hargaBundle?.toString() || data.harga_bundle?.toString() || ''
+        });
+        
+        // Jika ada hasil kalkulasi sebelumnya
+        if (data.calculationResult) {
+          setCalculationResult(data.calculationResult);
+        }
+      } catch (error) {
+        console.error('Error setting form data:', error);
       }
     }
   }, [promoQuery.data, setCalculationResult]);
@@ -205,7 +217,11 @@ export const usePromoForm = (id?: string) => {
 
   // Handler untuk perubahan input
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    if (!e || !e.target) return;
+    
     const { id, value } = e.target;
+    if (!id) return;
+    
     setFormData(prev => ({ ...prev, [id]: value }));
     
     // Clear errors untuk step saat ini ketika user mengubah input
@@ -216,7 +232,9 @@ export const usePromoForm = (id?: string) => {
       // Debounce calculation untuk performa
       setTimeout(() => {
         const newFormData = { ...formData, [id]: value };
-        autoCalculate(newFormData);
+        if (autoCalculate && typeof autoCalculate === 'function') {
+          autoCalculate(newFormData);
+        }
       }, 500);
     }
   }, [formData, currentStep, autoCalculate]);

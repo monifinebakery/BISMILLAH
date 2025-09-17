@@ -43,10 +43,10 @@ export const PromoWizard: React.FC<PromoWizardProps> = ({
       </div>
       <div className="mt-4 text-center">
         <h2 className="text-xl font-semibold text-gray-900">
-          {steps[currentStep - 1].title}
+          {steps?.[currentStep - 1]?.title || 'Step'}
         </h2>
         <p className="text-gray-600 mt-1">
-          {steps[currentStep - 1].description}
+          {steps?.[currentStep - 1]?.description || ''}
         </p>
         {stepErrors[currentStep] && stepErrors[currentStep].length > 0 && (
           <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">

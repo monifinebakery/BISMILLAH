@@ -3,33 +3,30 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Plus, AlertTriangle, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Building2, Plus, AlertTriangle } from 'lucide-react';
+// Dialog removed for create/edit flows; keeping only delete-specific dialog component elsewhere
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   useAssetQuery, 
   useAssetMutations, 
-  useAssetForm, 
   useAssetCalculations 
 } from './hooks';
-import { Asset, AssetCreateInput, AssetUpdateInput } from './types';
+import { Asset } from './types';
 import { 
   AssetStatistics, 
   AssetTable, 
   AssetCard, 
-  AssetForm,
-  AssetFormFields,
   AssetDeleteDialog 
 } from './components';
 
 export const AssetManagement: React.FC = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // State
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [deleteAsset, setDeleteAsset] = useState<{ id: string; name: string } | null>(null);
 
   // Hooks
@@ -41,50 +38,23 @@ export const AssetManagement: React.FC = () => {
   const { statistics } = useAssetCalculations({ assets });
 
   const { 
-    createAsset, 
-    updateAsset, 
     deleteAsset: performDelete,
     isLoading: isMutating 
   } = useAssetMutations({
     userId: user?.id || '',
     onSuccess: {
-      onCreate: () => {
-        setShowAddForm(false);
-        resetForm();
-      },
-      onUpdate: () => {
-        setShowAddForm(false);
-        setEditingAsset(null);
-        resetForm();
-      },
-      onDelete: () => {
-        setDeleteAsset(null);
-      }
+      onDelete: () => setDeleteAsset(null),
     }
-  });
-
-  const {
-    data: formData,
-    errors: formErrors,
-    canSubmit,
-    updateField,
-    resetForm,
-    validateForm,
-  } = useAssetForm({
-    mode: editingAsset ? 'edit' : 'create',
-    asset: editingAsset || undefined,
   });
 
   // Handlers
   const handleAddNew = () => {
-    setEditingAsset(null);
-    resetForm();
-    setShowAddForm(true);
+    // Navigate to full-page create form instead of opening dialog
+    navigate('/aset/tambah');
   };
 
   const handleEdit = (asset: Asset) => {
-    setEditingAsset(asset);
-    setShowAddForm(true);
+    navigate(`/aset/edit/${asset.id}`);
   };
 
   const handleDeleteRequest = (id: string, name: string) => {
@@ -101,47 +71,7 @@ export const AssetManagement: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = async () => {
-    if (!validateForm()) return;
-
-    try {
-      if (editingAsset) {
-        const updateData: AssetUpdateInput = {
-          nama: formData.nama,
-          kategori: formData.kategori as any,
-          nilaiAwal: formData.nilaiAwal as number,
-          nilaiSaatIni: formData.nilaiSaatIni as number,
-          tanggalPembelian: formData.tanggalPembelian!,
-          kondisi: formData.kondisi as any,
-          lokasi: formData.lokasi,
-          deskripsi: formData.deskripsi || undefined,
-          depresiasi: formData.depresiasi === null || formData.depresiasi === '' ? undefined : formData.depresiasi as number,
-        };
-        await updateAsset(editingAsset.id, updateData);
-      } else {
-        const createData: AssetCreateInput = {
-          nama: formData.nama,
-          kategori: formData.kategori as any,
-          nilaiAwal: formData.nilaiAwal as number,
-          nilaiSaatIni: formData.nilaiSaatIni as number,
-          tanggalPembelian: formData.tanggalPembelian!,
-          kondisi: formData.kondisi as any,
-          lokasi: formData.lokasi,
-          deskripsi: formData.deskripsi || undefined,
-          depresiasi: formData.depresiasi === null || formData.depresiasi === '' ? undefined : formData.depresiasi as number,
-        };
-        await createAsset(createData);
-      }
-    } catch (error) {
-      console.error('Form submission failed:', error);
-    }
-  };
-
-  const handleFormClose = () => {
-    setShowAddForm(false);
-    setEditingAsset(null);
-    resetForm();
-  };
+  // Removed local form submit/close; handled in full-page screens
 
   // Error state
   if (error && !user) {
@@ -206,69 +136,16 @@ export const AssetManagement: React.FC = () => {
           <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
               <CardTitle className="text-lg">Daftar Aset</CardTitle>
-              <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-                <DialogTrigger asChild>
-                  <Button
-                    className="bg-white text-orange-600 hover:bg-gray-100 w-full sm:w-auto text-sm py-2 px-3"
-                    onClick={handleAddNew}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Tambah Aset
-                  </Button>
-                </DialogTrigger>
-                <DialogContent centerMode="overlay" size="md+">
-                  <div className="dialog-panel dialog-panel-md-plus">
-                    <DialogHeader className="dialog-header border-b">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                          <Plus className="w-4 h-4 text-orange-600" />
-                        </div>
-                        <div>
-                          <DialogTitle className="text-xl text-gray-900">
-                            {editingAsset ? 'Edit Aset' : 'Tambah Aset Baru'}
-                          </DialogTitle>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {editingAsset ? 'Perbarui informasi aset' : 'Tambahkan aset baru ke dalam inventaris'}
-                          </p>
-                        </div>
-                      </div>
-                    </DialogHeader>
-                    
-                    <div className="dialog-body">
-                      <AssetFormFields
-                        formData={formData}
-                        errors={formErrors}
-                        onFieldChange={updateField}
-                        disabled={isMutating}
-                      />
-                    </div>
-                    
-                    <DialogFooter className="dialog-footer-pad">
-                      <Button
-                        variant="outline"
-                        onClick={handleFormClose}
-                        disabled={isMutating}
-                      >
-                        Batal
-                      </Button>
-                      <Button
-                        onClick={handleFormSubmit}
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
-                        disabled={!canSubmit || isMutating}
-                      >
-                        {isMutating ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Menyimpan...
-                          </>
-                        ) : (
-                          editingAsset ? 'Update' : 'Simpan'
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <div className="flex items-center gap-2">
+                <Button
+                  className="bg-white text-orange-600 hover:bg-gray-100 w-full sm:w-auto text-sm py-2 px-3"
+                  onClick={handleAddNew}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Aset
+                </Button>
+              </div>
+              {/* Edit dialog removed: edit now uses full page */}
             </div>
           </CardHeader>
           <CardContent className="p-4">

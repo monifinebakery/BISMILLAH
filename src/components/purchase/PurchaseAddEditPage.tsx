@@ -32,6 +32,7 @@ import { formatCurrency } from '@/utils/formatUtils';
 import { toast } from 'sonner';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { usePurchase } from './hooks/usePurchase';
+import { Skeleton, LoadingSkeleton } from '@/components/ui/skeleton';
 
 // Import extracted components
 import { NewItemForm } from './components/dialogs/NewItemForm';
@@ -215,13 +216,12 @@ const PurchaseAddEditPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            <p className="text-sm text-gray-600">Memuat data pembelian...</p>
-          </div>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="space-y-2">
+          <Skeleton variant="text" className="w-40 h-6" />
+          <Skeleton variant="text" className="w-64 h-4" />
         </div>
+        <LoadingSkeleton type="form" />
       </div>
     );
   }

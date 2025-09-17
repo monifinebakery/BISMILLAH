@@ -146,3 +146,19 @@ export function setupQueryPersistence(queryClient: QueryClient) {
     window.removeEventListener('beforeunload', handleBeforeUnload);
   };
 }
+
+// Clear persisted state (IndexedDB + localStorage fallback)
+export async function clearPersistedQueryState() {
+  try {
+    // Clear IDB
+    const db = await openDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.delete(STORAGE_KEY);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch {}
+  try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+}

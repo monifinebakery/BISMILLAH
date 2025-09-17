@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { LoadingSkeleton, Skeleton } from '@/components/ui/skeleton';
 
 const DeviceManagementPage: React.FC = () => {
   const { devices, currentDevice, loading, error, refreshDevices, updateDeviceName, removeDevice, removeAllOtherDevices, fetchDevicesPaginated } = useDevice();
@@ -202,10 +203,13 @@ const DeviceManagementPage: React.FC = () => {
 
   if (finalIsLoading && !isRefreshing) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Memuat daftar perangkat...</p>
+      <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+        <div>
+          <Skeleton variant="text" className="w-56 h-6" />
+          <Skeleton variant="text" className="w-72 h-4 mt-2" />
+        </div>
+        <div className="space-y-3">
+          <LoadingSkeleton type="list" />
         </div>
       </div>
     );

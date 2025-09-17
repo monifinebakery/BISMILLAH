@@ -21,6 +21,8 @@ import { ActivityProvider } from './ActivityContext';
 import { RecipeProvider } from './RecipeContext';
 import { SupplierProvider } from './SupplierContext';
 import { WarehouseProvider } from '@/components/warehouse/context/WarehouseContext';
+// ✅ CRITICAL: Import FinancialProvider directly instead of lazy loading
+import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
 
 // ⚡ LOW PRIORITY: Load last
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
@@ -50,20 +52,33 @@ interface AppProvidersProps {
 const LazyFinancialProvider: React.FC<{ enabled: boolean; children: ReactNode }> = ({ enabled, children }) => {
   const [ProviderComp, setProviderComp] = useState<React.ComponentType<any> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   useEffect(() => {
-    if (enabled && !ProviderComp && !isLoading) {
+    if (enabled && !ProviderComp && !isLoading && !hasError) {
       setIsLoading(true);
-      import('@/components/financial/contexts/FinancialContext').then(m => {
-        setProviderComp(() => (m as any).FinancialProvider);
-        setIsLoading(false);
-        logger.info('✅ LazyFinancialProvider: FinancialProvider loaded successfully');
-      }).catch(error => {
-        logger.error('❌ LazyFinancialProvider: Failed to load FinancialProvider:', error);
-        setIsLoading(false);
-      });
+      setHasError(false);
+      
+      // ✅ OPTIMIZED: Faster import with better error handling
+      import('@/components/financial/contexts/FinancialContext')
+        .then(m => {
+          if (m && (m as any).FinancialProvider) {
+            setProviderComp(() => (m as any).FinancialProvider);
+            logger.info('✅ LazyFinancialProvider: FinancialProvider loaded successfully');
+          } else {
+            logger.error('❌ LazyFinancialProvider: FinancialProvider not found in module');
+            setHasError(true);
+          }
+        })
+        .catch(error => {
+          logger.error('❌ LazyFinancialProvider: Failed to load FinancialProvider:', error);
+          setHasError(true);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
-  }, [enabled, ProviderComp, isLoading]);
+  }, [enabled, ProviderComp, isLoading, hasError]);
   
   // If not enabled, render children without provider
   if (!enabled) {
@@ -71,16 +86,19 @@ const LazyFinancialProvider: React.FC<{ enabled: boolean; children: ReactNode }>
     return <>{children}</>;
   }
   
-  // If provider is loaded, use it
-  if (ProviderComp) {
+  // If provider is loaded successfully, use it
+  if (ProviderComp && !hasError) {
     const Comp = ProviderComp as React.ComponentType<any>;
+    logger.debug('LazyFinancialProvider: Rendering with loaded FinancialProvider');
     return <Comp>{children}</Comp>;
   }
   
-  // ✅ FIXED: Instead of blocking with loading screen, render children without provider first
-  // This prevents useFinancial hooks from throwing "must be used within provider" errors
-  // by using fallback handling in components that use useFinancial
-  logger.debug('LazyFinancialProvider: Loading provider, rendering children without provider (components should handle gracefully)');
+  // ✅ IMPROVED: Better fallback handling
+  if (hasError) {
+    logger.warn('LazyFinancialProvider: Load failed, rendering children without provider (components should handle gracefully)');
+  } else {
+    logger.debug('LazyFinancialProvider: Still loading provider, rendering children without provider (components should handle gracefully)');
+  }
   
   return <>{children}</>;
 };
@@ -148,17 +166,11 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     };
   }, [isMobile]);
 
-  // ✅ FIXED: Financial provider - always load on both mobile and desktop with better logging
-  const FinancialProviderWrapper: React.FC<{ children: ReactNode }> = ({ children }) => {
-    logger.debug('FinancialProviderWrapper: Rendering with enabled=true');
-    return <LazyFinancialProvider enabled={true}>{children}</LazyFinancialProvider>;
-  };
-  
   // ✅ FIXED: Define providers for each stage with better logging
   const criticalProviders = [
     { component: NotificationProvider, name: 'Notification', priority: 'critical' as const },
     { component: UserSettingsProvider, name: 'UserSettings', priority: 'critical' as const },
-    { component: FinancialProviderWrapper, name: 'Financial', priority: 'critical' as const },
+    { component: FinancialProvider, name: 'Financial', priority: 'critical' as const }, // ✅ Direct import instead of lazy wrapper
   ];
   
   logger.debug('AppProviders: Critical providers configured:', {
@@ -167,14 +179,15 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     isMobile
   });
 
+  // ⚠️ IMPORTANT: Supplier must wrap Purchase to avoid fallback in PurchaseContext
   const highProviders = [
     { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
     { component: RecipeProvider, name: 'Recipe', priority: 'high' as const },
     { component: WarehouseProvider, name: 'Warehouse', priority: 'high' as const },
+    { component: SupplierProvider, name: 'Supplier', priority: 'high' as const }, // Moved up from medium
+    { component: PurchaseProvider, name: 'Purchase', priority: 'high' as const }, // Needs SupplierContext above
   ];
   const mediumProviders = [
-    { component: SupplierProvider, name: 'Supplier', priority: 'medium' as const },
-    { component: PurchaseProvider, name: 'Purchase', priority: 'medium' as const },
     { component: OrderProvider, name: 'Order', priority: 'medium' as const },
   ];
   // ✅ FIXED: Profit analysis provider - always load on both mobile and desktop

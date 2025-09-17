@@ -179,14 +179,15 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     isMobile
   });
 
+  // ⚠️ IMPORTANT: Supplier must wrap Purchase to avoid fallback in PurchaseContext
   const highProviders = [
     { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
     { component: RecipeProvider, name: 'Recipe', priority: 'high' as const },
     { component: WarehouseProvider, name: 'Warehouse', priority: 'high' as const },
-    { component: PurchaseProvider, name: 'Purchase', priority: 'high' as const }, // ✅ Back to high priority
+    { component: SupplierProvider, name: 'Supplier', priority: 'high' as const }, // Moved up from medium
+    { component: PurchaseProvider, name: 'Purchase', priority: 'high' as const }, // Needs SupplierContext above
   ];
   const mediumProviders = [
-    { component: SupplierProvider, name: 'Supplier', priority: 'medium' as const },
     { component: OrderProvider, name: 'Order', priority: 'medium' as const },
   ];
   // ✅ FIXED: Profit analysis provider - always load on both mobile and desktop

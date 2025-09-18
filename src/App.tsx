@@ -11,7 +11,7 @@ import { queryClient } from "@/config/queryClient";
 import { AppLoader } from "@/components/loaders";
 import { logger } from "@/utils/logger";
 import { CodeSplittingProvider, CodeSplittingLoadingIndicator } from "@/providers/CodeSplittingProvider";
-import { UpdateNotificationBanner } from "@/components/common/UpdateNotificationBanner";
+// Unified: Update banner is handled in AppLayout via useUpdateNotification
 import InstallBanner from '@/components/InstallBanner';
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
@@ -128,16 +128,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={dehydratedState ?? undefined}>
       <TooltipProvider>
-        {/* ✅ Auto-Update Banner - Shows when new version is available */}
-        <UpdateNotificationBanner 
-          isVisible={autoUpdate.updateNotification.isVisible}
-          updateInfo={autoUpdate.updateNotification.updateInfo}
-          onDismiss={autoUpdate.dismissUpdateNotification}
-          onRefresh={async () => {
-            // Custom refresh logic if needed
-            logger.info('🔄 User triggered app refresh for update...');
-          }}
-        />
+        {/* Auto-update: banner rendering handled inside AppLayout to avoid duplicates */}
         
         {/* ✅ Code Splitting Provider untuk optimasi loading */}
         <CodeSplittingProvider>

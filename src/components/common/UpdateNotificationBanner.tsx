@@ -242,6 +242,17 @@ export const useUpdateNotification = () => {
       // ignore storage access errors
     }
 
+    // Do not re-show the same commit banner repeatedly during the same session
+    try {
+      const lastShown = sessionStorage.getItem('update-banner-commit');
+      if (info.commitHash && lastShown === info.commitHash) {
+        return;
+      }
+      if (info.commitHash) {
+        sessionStorage.setItem('update-banner-commit', info.commitHash);
+      }
+    } catch {}
+
     setUpdateInfo(info);
     setUpdateAvailable(true);
     setIsVisible(true);

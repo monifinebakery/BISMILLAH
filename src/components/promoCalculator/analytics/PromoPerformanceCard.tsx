@@ -41,6 +41,8 @@ const PromoPerformanceCard = ({ promo }: any) => {
 
   const marginDiff = (promo.calculation_result?.promoMargin || 0) - (promo.calculation_result?.normalMargin || 0);
   const isMarginPositive = marginDiff >= 0;
+  const channel = promo?.data_promo?.channel || promo?.channel || 'lainnya';
+  const category = promo?.data_promo?.kategori || promo?.category || 'lainnya';
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -58,9 +60,18 @@ const PromoPerformanceCard = ({ promo }: any) => {
       </div>
 
       {/* Promo Name */}
-      <h4 className="font-semibold text-gray-900 mb-3 line-clamp-2">
+      <h4 className="font-semibold text-gray-900 mb-2 line-clamp-2">
         {promo.nama_promo}
       </h4>
+      {/* Channel & Category Badges */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        <span className="text-[10px] uppercase tracking-wide font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded">
+          {channel}
+        </span>
+        <span className="text-[10px] uppercase tracking-wide font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-1 rounded">
+          {category}
+        </span>
+      </div>
 
       {/* Metrics */}
       <div className="space-y-3">

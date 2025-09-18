@@ -22,9 +22,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   children
 }) => {
   return (
-    <div className="min-h-[100svh] flex flex-col bg-background">
+    <div className="min-h-[100svh] flex flex-col bg-white">
       {/* ✅ Mobile Header */}
-      <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+      <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4">
         <div className="flex-1">
           <h1 className="text-lg font-bold text-primary">HPP App</h1>
         </div>

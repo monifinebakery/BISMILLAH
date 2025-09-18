@@ -2,8 +2,8 @@ import React from 'react';
 import { Route } from 'react-router-dom';
 import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 
-const PromoCalculatorPage = React.lazy(() =>
-  import(/* webpackChunkName: "promo" */ '@/pages/PromoCalculatorPage')
+const PromoDashboardPage = React.lazy(() =>
+  import(/* webpackChunkName: "promo-dashboard" */ '@/pages/PromoDashboardPage')
 );
 
 const PromoList = React.lazy(() =>
@@ -22,11 +22,11 @@ const promoRoutes = (
       path="promo"
       element={
         <OptimizedRouteWrapper 
-          routeName="promo" 
+          routeName="promo-dashboard" 
           priority="low"
           preloadOnHover={false}
         >
-          <PromoCalculatorPage />
+          <PromoDashboardPage />
         </OptimizedRouteWrapper>
       }
     />

@@ -31,6 +31,7 @@ export { PromoNavigation } from './PromoNavigation';
 export { PromoBasicInfoStep } from './steps/PromoBasicInfoStep';
 export { PromoSettingsStep } from './steps/PromoSettingsStep';
 export { PromoStatusStep } from './steps/PromoStatusStep';
+export { PromoCalculationStep } from './steps/PromoCalculationStep';
 
 // ============================================
 // STATIC COMPONENT GROUPS - Removed dynamic imports

@@ -32,8 +32,8 @@ export const PromoCalculationDisplay: React.FC<PromoCalculationDisplayProps> = (
           <div className="text-center p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
             <p className="text-sm text-gray-600 mb-1">Margin Promo</p>
             <p className={`text-xl font-bold ${
-              calculationResult.promoMargin < 5 ? 'text-red-600' :
-              calculationResult.promoMargin >= 10 ? 'text-yellow-600' : 'text-green-600'
+              calculationResult.promoMargin >= 20 ? 'text-green-600' :
+              calculationResult.promoMargin >= 10 ? 'text-yellow-600' : 'text-red-600'
             }`}>
               {calculationResult.promoMargin.toFixed(1)}%
             </p>

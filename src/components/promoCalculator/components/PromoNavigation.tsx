@@ -59,7 +59,8 @@ export const PromoNavigation: React.FC<PromoNavigationProps> = ({
             </Button>
           )}
 
-          {currentStep === totalSteps && (
+          {/* Show calculate from step 3 onward for quicker feedback */}
+          {currentStep >= 3 && (
             <>
               <Button
                 onClick={onCalculate}
@@ -79,25 +80,27 @@ export const PromoNavigation: React.FC<PromoNavigationProps> = ({
                   </>
                 )}
               </Button>
-
-              <Button
-                onClick={onSave}
-                disabled={isSaving || !calculationResult || hasStepErrors}
-                className="w-full bg-orange-500 hover:bg-orange-600"
-              >
-                {isSaving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Simpan Promo
-                  </>
-                )}
-              </Button>
             </>
+          )}
+
+          {currentStep === totalSteps && (
+            <Button
+              onClick={onSave}
+              disabled={isSaving || !calculationResult || hasStepErrors}
+              className="w-full bg-orange-500 hover:bg-orange-600"
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Simpan Promo
+                </>
+              )}
+            </Button>
           )}
         </div>
 
@@ -122,8 +125,8 @@ export const PromoNavigation: React.FC<PromoNavigationProps> = ({
               <div>
                 {currentStep === 1 && "Isi informasi dasar promo seperti nama, tipe, dan periode berlaku."}
                 {currentStep === 2 && "Tentukan harga dan pengaturan spesifik sesuai tipe promo yang dipilih."}
-                {currentStep === 3 && "Pilih status promo dan review ringkasan sebelum menyimpan."}
-                {currentStep === 4 && "Pilih status promo dan review ringkasan sebelum menyimpan."}
+                {currentStep === 3 && "Hitung promo dan review hasil perhitungan."}
+                {currentStep === 4 && "Pilih status promo dan simpan."}
               </div>
             </div>
           </div>

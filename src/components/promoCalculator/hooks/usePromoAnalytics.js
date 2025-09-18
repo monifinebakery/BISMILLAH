@@ -10,7 +10,7 @@ export const usePromoAnalytics = () => {
   const refreshAnalytics = useCallback(async (dateRange) => {
     setIsLoading(true);
     try {
-      const data = await analyticsService.getAnalyticsData(dateRange);
+      const data = await analyticsService.getAnalytics(dateRange);
       setAnalyticsData(data);
     } catch (error) {
       console.error('Error refreshing analytics:', error);

@@ -208,6 +208,8 @@ export const usePromoForm = (id?: string) => {
         break;
       case 3:
         if (!calculationResult) errors.push('Kalkulasi promo belum dilakukan');
+        break;
+      case 4:
         if (!formData.status) errors.push('Status promo wajib dipilih');
         break;
     }

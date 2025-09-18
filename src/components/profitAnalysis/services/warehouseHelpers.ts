@@ -16,14 +16,14 @@ export { getCurrentUserId };
  */
 export async function fetchBahanMap(): Promise<Record<string, any>> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
     
     // Use direct Supabase query instead of warehouse API to avoid type issues
     const { data: items, error } = await supabase
       .from('bahan_baku')
       .select('id, nama, harga_rata_rata, harga_satuan, stok, satuan')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
       
     if (error) throw error;
     
@@ -57,14 +57,14 @@ export function getEffectiveUnitPrice(item: any): number {
  */
 export async function fetchPemakaianByPeriode(start: string, end: string): Promise<any[]> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
+    const userId = await getCurrentUserId();
+    if (!userId) return [];
     
     // Use type assertion to bypass TypeScript schema validation
     const { data, error } = await (supabase as any)
       .from('pemakaian_bahan')
       .select('bahan_baku_id, qty_base, tanggal, harga_efektif, hpp_value')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('tanggal', start)
       .lte('tanggal', end);
       

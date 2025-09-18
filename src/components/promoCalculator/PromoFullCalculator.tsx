@@ -6,7 +6,8 @@ import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { AlertCircle, ChevronRight, Home } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Refactored components and hooks
 import { usePromoForm } from './hooks/usePromoForm';
@@ -16,10 +17,23 @@ import {
   PromoNavigation,
   PromoBasicInfoStep,
   PromoSettingsStep,
-  PromoStatusStep
+  PromoStatusStep,
+  PromoCalculationStep
 } from './components';
+import { Card, CardContent } from '@/components/ui/card';
 
 const PromoFullCalculator = () => {
+  const [showCreatorHint, setShowCreatorHint] = React.useState<boolean>(false);
+  React.useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem('promoCreatorHintDismissed');
+      setShowCreatorHint(!dismissed);
+    } catch {}
+  }, []);
+  const dismissCreatorHint = () => {
+    try { localStorage.setItem('promoCreatorHintDismissed', '1'); } catch {}
+    setShowCreatorHint(false);
+  };
   const { id } = useParams();
   const {
     // Form state
@@ -44,7 +58,6 @@ const PromoFullCalculator = () => {
     // Save
     isSaving,
     handleSave,
-    handleGoBack,
     
     // Query states
     isLoading,
@@ -68,6 +81,14 @@ const PromoFullCalculator = () => {
       case 2:
         return <PromoSettingsStep {...stepProps} />;
       case 3:
+        return (
+          <PromoCalculationStep
+            formData={formData}
+            calculationResult={calculationResult}
+            isCalculating={isCalculating}
+            onCalculate={() => calculate && formData && calculate(formData)}
+          />
+        );
       case 4:
         return <PromoStatusStep {...stepProps} />;
       default:
@@ -120,11 +141,28 @@ const PromoFullCalculator = () => {
     <div className="min-h-screen bg-white">
       <div className="container mx-auto p-4 sm:p-6">
         {/* Header */}
+        {/* Breadcrumbs */}
+        <div className="mb-3">
+          <nav aria-label="Breadcrumb" className="text-sm text-gray-600">
+            <ol className="flex items-center gap-1">
+              <li>
+                <Link to="/promo" className="hover:text-gray-900 flex items-center gap-1">
+                  <Home className="h-4 w-4" />
+                  <span>Promo</span>
+                </Link>
+              </li>
+              <li>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </li>
+              <li className="text-gray-900 font-medium">
+                {isEditMode ? 'Edit Promo' : 'Buat Promo'}
+              </li>
+            </ol>
+          </nav>
+        </div>
+
+        {/* Title */}
         <div className="flex items-center justify-between mb-6">
-          <Button onClick={handleGoBack} variant="outline" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Kembali
-          </Button>
           <h1 className="text-2xl font-bold text-gray-900">
             {isEditMode ? 'Edit Promo' : 'Buat Promo Baru'}
           </h1>
@@ -142,6 +180,26 @@ const PromoFullCalculator = () => {
           />
         )}
 
+        {/* Guided Hint (one-time) */}
+        {showCreatorHint && currentStep === 1 && (
+          <Card className="mb-4 border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="text-sm text-blue-900">
+                <p className="font-semibold mb-2">Cara kerja wizard:</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Isi Informasi Dasar.</li>
+                  <li>Atur Pengaturan Promo (harga, diskon/BOGO/bundle).</li>
+                  <li>Hitung promo di langkah Kalkulasi.</li>
+                  <li>Pilih Status dan Simpan.</li>
+                </ol>
+                <div className="mt-3">
+                  <Button size="sm" variant="outline" onClick={dismissCreatorHint}>Mengerti</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form Section */}
@@ -149,7 +207,7 @@ const PromoFullCalculator = () => {
             {renderStepContent()}
 
             {/* Calculation Results */}
-            {calculationResult && (
+            {currentStep !== 3 && calculationResult && (
               <PromoCalculationDisplay calculationResult={calculationResult} />
             )}
           </div>

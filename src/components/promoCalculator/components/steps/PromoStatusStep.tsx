@@ -31,8 +31,12 @@ export const PromoStatusStep: React.FC<PromoStatusStepProps> = ({
             Status Promo <span className="text-red-500">*</span>
           </Label>
           <Select
-            value={formData.status}
-            onValueChange={(value) => onSelectChange('status', value)}
+            value={formData.status || ''}
+            onValueChange={(value) => {
+              if (typeof onSelectChange === 'function') {
+                onSelectChange('status', value);
+              }
+            }}
           >
             <SelectTrigger className="mt-1">
               <SelectValue placeholder="Pilih status" />

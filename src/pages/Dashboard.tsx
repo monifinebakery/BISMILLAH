@@ -203,7 +203,7 @@ const Dashboard = () => {
             </div>
 
             {/* 📊 Stats Grid with Trends */}
-            <Suspense fallback={<SectionLoader height="h-32" className="mb-6" />}>
+            <Suspense fallback={null}>
               <div className="mb-6">
                 <StatsGrid 
                   stats={stats}
@@ -213,7 +213,7 @@ const Dashboard = () => {
             </Suspense>
 
             {/* ⚡ Quick Actions */}
-            <Suspense fallback={<SectionLoader height="h-20" />}>
+            <Suspense fallback={null}>
               <QuickActions />
             </Suspense>
           </div>
@@ -224,7 +224,7 @@ const Dashboard = () => {
             {/* First Row: Best Selling + Recent Activities - iPad Responsive */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
               <div className="lg:col-span-2">
-                <Suspense fallback={<SectionLoader height="h-80" />}>
+                <Suspense fallback={null}>
                   <BestSellingProducts
                     products={bestSellingProducts}
                     pagination={pagination.products}
@@ -235,7 +235,7 @@ const Dashboard = () => {
               </div>
 
               <div className="lg:col-span-1">
-                <Suspense fallback={<SectionLoader height="h-80" />}>
+                <Suspense fallback={null}>
                   <RecentActivities
                     activities={recentActivities}
                     pagination={pagination.activities}
@@ -249,7 +249,7 @@ const Dashboard = () => {
             {/* Second Row: Critical Stock + Worst Selling - iPad Responsive */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div>
-                <Suspense fallback={<SectionLoader height="h-64" />}>
+                <Suspense fallback={null}>
                   <CriticalStock
                     items={criticalStock}
                     isLoading={isLoading}
@@ -258,7 +258,7 @@ const Dashboard = () => {
               </div>
 
               <div>
-                <Suspense fallback={<SectionLoader height="h-64" />}>
+                <Suspense fallback={null}>
                   <WorstSellingProducts
                     products={worstSellingProducts}
                     pagination={pagination.worstProducts}

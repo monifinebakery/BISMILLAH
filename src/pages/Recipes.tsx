@@ -19,13 +19,7 @@ import RecipeErrorBoundary from '@/components/recipe/components/shared/RecipeErr
 // Safe lazy component wrapper
 const SafeLazyWrapper: React.FC<{ children: React.ReactNode; loadingMessage?: string }> = ({ children, loadingMessage }) => {
   return (
-    <Suspense fallback={
-      <div className="space-y-4 p-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-6 w-32" />
-      </div>
-    }>
+    <Suspense fallback={null}>
       {children}
     </Suspense>
   );
@@ -44,19 +38,7 @@ const Recipes: React.FC = () => {
 
         {/* Main Navigation Container */}
         <RecipeErrorBoundary>
-          <Suspense fallback={
-            <div className="space-y-6 p-6">
-              <div className="space-y-4">
-                <Skeleton className="h-10 w-64" />
-                <Skeleton className="h-6 w-96" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Skeleton className="h-48 w-full" />
-                <Skeleton className="h-48 w-full" />
-                <Skeleton className="h-48 w-full" />
-              </div>
-            </div>
-          }>
+          <Suspense fallback={null}>
             <WarehouseProvider>
               <RecipeNavigationContainer />
             </WarehouseProvider>

@@ -410,13 +410,13 @@ const OrdersPage: React.FC = () => {
       <SafeSuspense 
         loadingMessage="" 
         size="lg"
-        fallback={<LoadingSkeleton type="page" />}
+        fallback={null}
       >
         {/* ✅ STATISTICS: Order statistics section */}
          <SafeSuspense 
            loadingMessage="" 
            size="md"
-           fallback={<LoadingSkeleton type="card" className="h-32" />}
+           fallback={null}
          >
            <OrderStatistics 
              orders={finalOrders} 
@@ -476,7 +476,7 @@ const OrdersPage: React.FC = () => {
            <SafeSuspense 
              loadingMessage="" 
              size="sm"
-             fallback={<LoadingSkeleton type="form" className="h-16" />}
+             fallback={null}
            >
              <BulkActions
                 selectedOrders={selectedOrders}

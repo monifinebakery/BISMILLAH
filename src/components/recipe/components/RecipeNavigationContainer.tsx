@@ -43,13 +43,7 @@ export const RECIPE_QUERY_KEYS = {
 // Safe lazy component wrapper using skeleton
 const LazyComponentWrapper: React.FC<{ children: React.ReactNode; loadingMessage?: string }> = ({ children, loadingMessage }) => {
   return (
-    <Suspense fallback={
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-6 w-32" />
-      </div>
-    }>
+    <Suspense fallback={null}>
       {children}
     </Suspense>
   );

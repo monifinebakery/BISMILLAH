@@ -295,7 +295,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       ) : (
         <>
           <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
-            <Suspense fallback={<TableSkeleton rows={8} columns={6} />}>
+            <Suspense fallback={null}>
               <PurchaseTable
                 onEdit={navigationActions.purchase.openEdit}
                 onStatusChange={setStatus}
@@ -313,7 +313,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Purchase dialog removed - using full page navigation */}
       
       {/* Import dialog */}
-      <SafeSuspense loadingMessage="" fallback={<LoadingSkeleton type="form" className="h-32" />}>
+      <SafeSuspense loadingMessage="" fallback={null}>
         {appState.dialogs.import.isOpen && (
           <PurchaseImportDialog
             isOpen={appState.dialogs.import.isOpen}

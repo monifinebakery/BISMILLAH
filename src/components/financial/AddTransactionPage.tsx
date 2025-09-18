@@ -361,7 +361,7 @@ const AddTransactionPage: React.FC = () => {
 
   // Navigation handlers
   const handleBack = () => {
-    navigate('/keuangan');
+    navigate('/laporan');
   };
 
   // Transaction submit handler
@@ -376,7 +376,7 @@ const AddTransactionPage: React.FC = () => {
       logger.info('Adding transaction', data);
       
       toast.success('Transaksi berhasil ditambahkan');
-      navigate('/keuangan');
+      navigate('/laporan');
     } catch (error: any) {
       logger.error('Failed to add transaction', error);
       toast.error('Gagal menambah transaksi');

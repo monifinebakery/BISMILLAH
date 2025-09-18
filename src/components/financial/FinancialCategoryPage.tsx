@@ -319,7 +319,7 @@ const FinancialCategoryPage: React.FC = () => {
 
   // Navigation handlers
   const handleBack = () => {
-    navigate('/keuangan');
+    navigate('/laporan');
   };
 
   // Category management handlers

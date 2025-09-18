@@ -163,7 +163,12 @@ const QuickSkeleton = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
 );
 
-const ChartSkeleton = () => null;
+const ChartSkeleton = () => (
+  <div className="min-h-[120px] flex items-center justify-center">
+    <div className="h-5 w-5 border-2 border-orange-500 border-t-transparent rounded-full motion-safe:animate-spin" />
+    <span className="sr-only">Memuat…</span>
+  </div>
+);
 
 // ✅ ENHANCED Summary Cards Component - With auto-refresh feedback
 const SummaryCards: React.FC<{
@@ -386,20 +391,20 @@ const FinancialReportPage: React.FC = () => {
   // ✅ NAVIGATION HANDLERS - Navigate to full pages instead of dialogs
   const handleAddTransaction = () => {
     logger.debug('Navigating to add transaction page');
-    navigate('/keuangan/tambah');
+    navigate('/laporan-keuangan/tambah');
   };
 
   const handleManageCategories = () => {
     logger.debug('Navigating to manage categories page');
-    navigate('/keuangan/kategori');
+    navigate('/laporan-keuangan/kategori');
   };
 
   const handleEditTransaction = (transaction: any) => {
     logger.debug('Navigating to edit transaction page', { transactionId: transaction?.id });
     if (transaction?.id) {
-      navigate(`/keuangan/edit/${transaction.id}`);
+      navigate(`/laporan-keuangan/edit/${transaction.id}`);
     } else {
-      navigate('/keuangan/tambah');
+      navigate('/laporan-keuangan/tambah');
     }
   };
 

@@ -29,7 +29,7 @@ const financialRoutes = (
       }
     />
     <Route
-      path="keuangan/kategori"
+      path="laporan-keuangan/kategori"
       element={
         <OptimizedRouteWrapper 
           routeName="financial-categories" 
@@ -41,10 +41,22 @@ const financialRoutes = (
       }
     />
     <Route
-      path="keuangan/tambah"
+      path="laporan-keuangan/tambah"
       element={
         <OptimizedRouteWrapper 
           routeName="financial-add-transaction" 
+          priority="low"
+          preloadOnHover={false}
+        >
+          <AddTransactionPage />
+        </OptimizedRouteWrapper>
+      }
+    />
+    <Route
+      path="laporan-keuangan/edit/:id"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="financial-edit-transaction" 
           priority="low"
           preloadOnHover={false}
         >

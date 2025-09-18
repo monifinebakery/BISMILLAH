@@ -571,6 +571,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    // Listen for manual refresh requests (e.g., after OTP verify)
+    const handleAuthRefreshRequest = () => {
+      if (!mounted) return;
+      logger.debug('AuthContext: Received auth-refresh-request event');
+      refreshUser();
+    };
+    window.addEventListener('auth-refresh-request', handleAuthRefreshRequest as any);
 
     initializeAuth();
 
@@ -605,6 +612,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         logger.context('AuthContext', 'Auth state updated, letting AuthGuard handle navigation');
 
+        // Clear OTP grace flag once authenticated
+        if (validUser) {
+          try { localStorage.removeItem('otpVerifiedAt'); } catch {}
+        }
+
         // 🔁 Redirect dari halaman auth jika user sudah terautentikasi (SPA)
         if (validUser && window.location.pathname === '/auth') {
           logger.info('AuthContext: Redirecting authenticated user from /auth to / (SPA)');
@@ -617,6 +629,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       mounted = false;
       logger.context('AuthContext', 'Cleaning up auth subscription');
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('auth-refresh-request', handleAuthRefreshRequest as any);
       subscription.unsubscribe();
     };
   }, []);

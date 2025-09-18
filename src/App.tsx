@@ -70,7 +70,9 @@ const App = () => {
     try {
       initializeRoutePreloaders();
       preloadCriticalRoutes();
-    } catch {}
+    } catch (e) {
+      logger.debug('Route preloading init skipped', e);
+    }
   }, [handleInitialSetup]);
 
   // ✅ Memoized error handler

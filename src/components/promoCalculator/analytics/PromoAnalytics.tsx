@@ -5,6 +5,7 @@ import { BarChart3, TrendingUp, DollarSign, Percent, Calendar, Filter, X, Gift, 
 import PromoPerformanceCard from './PromoPerformanceCard';
 import { usePromoAnalytics } from '../hooks/usePromoAnalytics';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { formatCurrency, formatCompactCurrency, CurrencyDisplay } from '@/lib/shared';
 
 const PromoAnalytics = () => {
   const isMobile = useIsMobile(768);
@@ -59,25 +60,6 @@ const PromoAnalytics = () => {
     refreshAnalytics(dateRange);
   }, [dateRange, refreshAnalytics]);
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const formatCompactCurrency = (value) => {
-    if (value >= 1000000000) {
-      return `Rp ${(value / 1000000000).toFixed(1)} miliar`;
-    } else if (value >= 1000000) {
-      return `Rp ${(value / 1000000).toFixed(1)} jt`;
-    } else if (value >= 1000) {
-      return `Rp ${(value / 1000).toFixed(1)} rb`;
-    }
-    return formatCurrency(value);
-  };
 
   const handleDateRangeApply = () => {
     setShowDateFilter(false);

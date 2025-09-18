@@ -339,17 +339,6 @@ export const StatCard: React.FC<StatCardProps> = ({
 
 // ==================== EXPORTS ====================
 
-export {
-  // Individual components
-  CurrencyDisplay,
-  PercentageDisplay,
-  StatusBadge,
-  DateDisplay,
-  TruncatedText,
-  ColorizedValue,
-  StatCard
-};
-
 // Grouped export for easy importing
 export const FormattedDisplayComponents = {
   Currency: CurrencyDisplay,

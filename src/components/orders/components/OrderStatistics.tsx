@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { TrendingUp, Package, DollarSign, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CurrencyDisplay, StatCard } from '@/lib/shared';
 import { formatCurrency } from '@/utils/formatters';
 import type { Order } from '../types';
 
@@ -18,6 +19,7 @@ interface StatisticCard {
     isPositive: boolean;
   };
   color: string;
+  useCompactCurrency?: boolean;
 }
 
 const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = false }) => {
@@ -67,17 +69,6 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
     };
   }, [orders]);
 
-  // Format currency for compact display with Indonesian abbreviations
-  const formatCompactCurrency = (amount: number) => {
-    if (amount >= 1000000000) {
-      return `Rp ${(amount / 1000000000).toFixed(amount >= 10000000000 ? 0 : 1).replace('.', ',')} miliar`;
-    } else if (amount >= 1000000) {
-      return `Rp ${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1).replace('.', ',')} jt`;
-    } else if (amount >= 1000) {
-      return `Rp ${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1).replace('.', ',')} rb`;
-    }
-    return formatCurrency(amount);
-  };
 
   const statisticCards: StatisticCard[] = [
     {
@@ -88,9 +79,10 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
     },
     {
       title: 'Total Pendapatan', 
-      value: formatCompactCurrency(statistics.totalRevenue),
+      value: statistics.totalRevenue,
       icon: <DollarSign className="h-6 w-6" />,
-      color: 'text-gray-600 bg-white border-gray-200'
+      color: 'text-gray-600 bg-white border-gray-200',
+      useCompactCurrency: true
     },
     {
       title: 'Pesanan Pending',
@@ -139,9 +131,17 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
                   {stat.title}
                 </p>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <p className="text-2xl font-bold text-gray-900">
-                    {stat.value}
-                  </p>
+                  {stat.useCompactCurrency && typeof stat.value === 'number' ? (
+                    <CurrencyDisplay 
+                      value={stat.value} 
+                      compact 
+                      className="text-2xl font-bold text-gray-900"
+                    />
+                  ) : (
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stat.value}
+                    </p>
+                  )}
                 </div>
               </div>
               

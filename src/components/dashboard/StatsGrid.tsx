@@ -23,6 +23,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
+import { CurrencyDisplay, PercentageDisplay, StatCard } from '@/lib/shared';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 

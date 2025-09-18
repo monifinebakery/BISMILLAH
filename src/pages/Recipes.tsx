@@ -61,7 +61,7 @@ const Recipes: React.FC = () => {
 
   return (
     <RecipeErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white shadow-lg mx-4 mt-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

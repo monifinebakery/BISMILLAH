@@ -4,8 +4,10 @@ export const analyticsService = {
   // ✅ Get promo analytics for date range
   getAnalytics: async (dateRange) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      // Use cached user ID to avoid repeated session checks
+      const { getCurrentUserId } = await import('@/utils/authHelpers');
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('User not authenticated');
 
       // This would be a more complex query in a real app
       // For now, we'll simulate analytics data
@@ -22,7 +24,7 @@ export const analyticsService = {
           created_at,
           updated_at
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -136,8 +138,9 @@ export const analyticsService = {
   // ✅ Get promo performance data
   getPromoPerformance: async (promoId, dateRange = {}) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { getCurrentUserId } = await import('@/utils/authHelpers');
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('promos')
@@ -153,7 +156,7 @@ export const analyticsService = {
           updated_at
         `)
         .eq('id', promoId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (error) throw error;

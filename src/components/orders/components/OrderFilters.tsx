@@ -125,22 +125,19 @@ const ItemsPerPageFilter: React.FC<{
   disabled?: boolean;
 }> = ({ value, onChange, disabled = false }) => {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-gray-700">
-        Item per Halaman
-      </label>
+    <div>
       <Select
         value={value.toString()}
         onValueChange={(val) => onChange(parseInt(val))}
         disabled={disabled}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Pilih jumlah item" />
+          <SelectValue placeholder="Jumlah item" />
         </SelectTrigger>
         <SelectContent>
           {TABLE_PAGE_SIZES.map((size) => (
             <SelectItem key={size} value={size.toString()}>
-              {size} item per halaman
+              {size}
             </SelectItem>
           ))}
         </SelectContent>
@@ -195,7 +192,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({ uiState, loading }) => {
               disabled={loading}
             />
           </div>
-          <div>
+          <div className="flex items-center">
             <ItemsPerPageFilter
               value={uiState.itemsPerPage}
               onChange={uiState.setItemsPerPage}

@@ -133,8 +133,20 @@ const accessPromise = getUserAccessStatus();
           !showOrderPopup &&
           !paymentLoading &&
           isUserValid) {
-        logger.info('PaymentContext: Auto-showing manual order popup');
-        window.setTimeout(() => setShowOrderPopup(true), 1500);
+        // Debounce auto-popup to avoid annoyance on tab switches
+        const now = Date.now();
+        let lastShown = 0;
+        try { lastShown = parseInt(localStorage.getItem('orderPopupLastShown') || '0', 10) || 0; } catch {}
+        const cooldownMs = 2 * 60 * 60 * 1000; // 2 hours
+        if (now - lastShown > cooldownMs) {
+          logger.info('PaymentContext: Auto-showing manual order popup (cooldown passed)');
+          window.setTimeout(() => {
+            setShowOrderPopup(true);
+            try { localStorage.setItem('orderPopupLastShown', String(Date.now())); } catch {}
+          }, 1500);
+        } else {
+          logger.debug('PaymentContext: Skipping auto popup (cooldown active)');
+        }
       }
       
     } catch (error) {

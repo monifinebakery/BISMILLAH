@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, RefreshCw, TrendingUp } from 'lucide-react';
+import { BarChart3, TrendingUp, Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -48,7 +48,7 @@ const ResponsiveDatePicker: React.FC<{
             "bg-white border border-gray-300 hover:bg-gray-50"
           )}
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
+          <CalendarIcon className="mr-2 h-4 w-4" />
           <span className="truncate">{formatDateRange(dateRange)}</span>
         </Button>
       </PopoverTrigger>
@@ -132,29 +132,10 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({
             </div>
           </div>
 
-          <div className="hidden md:flex gap-3">
-            <Button 
-              onClick={onRefresh}
-              className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </Button>
-
-            {/* Tombol Tambah Transaksi dihilangkan sesuai permintaan */}
-          </div>
+          <div className="hidden md:flex gap-3" />
         </div>
 
-        <div className="flex md:hidden flex-col gap-3 mt-6">
-          <Button
-            onClick={onRefresh}
-            className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh Data
-          </Button>
-          {/* Tombol Tambah Transaksi (mobile) dihilangkan */}
-        </div>
+        <div className="flex md:hidden flex-col gap-3 mt-6" />
 
         {(businessMetrics || period) && (
           <div className="mt-4 pt-4 border-t border-white border-opacity-20">
@@ -226,17 +207,7 @@ const ProfitHeader: React.FC<ProfitHeaderProps> = ({
               </div>
             )}
 
-            <div className="sm:ml-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30"
-                onClick={onRefresh}
-              >
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Refresh
-              </Button>
-            </div>
+            <div className="sm:ml-auto" />
           </div>
         </div>
       </div>

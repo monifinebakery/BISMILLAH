@@ -120,8 +120,10 @@ export const AppLayout = () => {
   };
   
   const renderOrderLinkButton = () => {
-    if (isPaid) return null;
-    
+    // Avoid flicker: only show when not loading and we have signals
+    const shouldShow = !isPaid && !isLoading && (needsOrderLinking || autoLinkCount > 0);
+    if (!shouldShow) return null;
+
     return (
       <button
         onClick={() => setShowAutoLinkPopup(true)}

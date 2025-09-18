@@ -63,8 +63,12 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
             </div>
           </Label>
           <Select
-            value={formData.tipePromo}
-            onValueChange={(value) => onSelectChange('tipePromo', value)}
+            value={formData.tipePromo || ''}
+            onValueChange={(value) => {
+              if (typeof onSelectChange === 'function') {
+                onSelectChange('tipePromo', value);
+              }
+            }}
           >
             <SelectTrigger className="mt-1">
               <SelectValue placeholder="Pilih tipe promo" />

@@ -13,7 +13,7 @@ import recipeRoutes from '@/routes/recipes';
 import LazyWarehousePage from '@/pages/Warehouse';
 import supplierRoutes from '@/routes/supplier';
 import LazyPurchasePage from '@/pages/Purchase';
-import LazyOrdersPage from '@/pages/Orders';
+import ordersRoutes from '@/routes/orders';
 import operationalCostRoutes from '@/routes/operational-costs';
 import invoiceRoutes from '@/routes/invoice';
 import financialRoutes from '@/routes/financial';
@@ -58,7 +58,8 @@ export const AppRouter: React.FC = () => (
       <Route path="/pembelian" element={<LazyPurchasePage />} />
       {/* Mount nested purchase routes including /purchase/add */}
       {purchaseRoutes}
-      <Route path="/pesanan" element={<LazyOrdersPage />} />
+      {/* Mount orders routes including /pesanan, /pesanan/add, /pesanan/edit/:id */}
+      {ordersRoutes}
       {operationalCostRoutes}
       {invoiceRoutes}
       {financialRoutes}

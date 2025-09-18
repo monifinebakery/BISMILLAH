@@ -22,6 +22,7 @@ import {
 } from '@/utils/safariUtils';
 import { clearPersistedQueryState } from '@/utils/queryPersistence';
 import { queryClient } from '@/config/queryClient';
+import { debugMobileAuth, startMobileAuthMonitoring } from '@/utils/mobileAuthDebug';
 
 // ✅ Menggunakan fungsi yang sama dari authUtils
 const detectDeviceCapabilities = () => {
@@ -54,56 +55,110 @@ const detectDeviceCapabilities = () => {
     capabilities.networkType = connection.effectiveType || 'unknown';
   }
 
-  const isSlowDevice = capabilities.userAgent.includes('Android 4') || 
-                      capabilities.userAgent.includes('iPhone OS 10') ||
-                      !capabilities.hasLocalStorage;
+  // 📱 MOBILE-UNIVERSAL: Smart slow device detection for all platforms
+  const isSlowDevice = 
+    // Old mobile OS versions (any platform)
+    capabilities.userAgent.includes('Android 4') ||
+    capabilities.userAgent.includes('Android 5') ||
+    capabilities.userAgent.includes('iPhone OS 10') ||
+    capabilities.userAgent.includes('iPhone OS 11') ||
+    capabilities.userAgent.includes('iPhone OS 12') || // Include iOS 12
+    
+    // Storage issues (any platform)
+    !capabilities.hasLocalStorage ||
+    
+    // Low memory devices (any platform)
+    (navigator.deviceMemory && navigator.deviceMemory < 2) ||
+    
+    // Old browsers (any platform)
+    (capabilities.userAgent.includes('Chrome/') && 
+     parseInt(capabilities.userAgent.match(/Chrome\/(\d+)/)?.[1] || '999') < 70) ||
+    
+    // WebView indicators (slower than native browsers)
+    capabilities.userAgent.includes('wv') ||
+    capabilities.userAgent.includes('Version/4.0');
+    
   capabilities.isSlowDevice = isSlowDevice;
+  
+  // Universal device classification logging
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(capabilities.userAgent);
+  if (isMobile) {
+    logger.debug('Mobile device classification:', {
+      deviceType: 'Mobile',
+      userAgent: capabilities.userAgent.substring(0, 80) + '...', // Truncated
+      isSlowDevice,
+      deviceMemory: (navigator as any).deviceMemory || 'unknown',
+      hasLocalStorage: capabilities.hasLocalStorage,
+      networkType: capabilities.networkType
+    });
+  }
 
   return capabilities;
 };
 
-// ✅ FIXED: Consistent timeout untuk mobile dan desktop - TIDAK ADA DISKRIMINASI
-const getAdaptiveTimeout = (baseTimeout = 12000) => { // ✅ SAME: Naikkan ke 12s untuk semua device
+// 📱 MOBILE OPTIMIZATION: Universal mobile-first approach
+const getAdaptiveTimeout = (baseTimeout = 15000) => {
   const capabilities = detectDeviceCapabilities();
-  const safariDetection = detectSafariIOS();
+  const userAgent = navigator.userAgent;
   
-// ✅ FIXED: Consistent timeout untuk mobile dan desktop - TIDAK ADA DISKRIMINASI
-  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const mobileMultiplier = 1.0; // ✅ SAME: Persis sama untuk mobile dan desktop
+  // Universal mobile detection
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
+  const isTablet = /iPad|Android.*Tablet|Windows.*Touch/i.test(userAgent);
+  const isDesktop = !isMobile && !isTablet;
   
-  // ✅ FIXED: Safari-specific timeout yang lebih reasonable - TIDAK ADA DISKRIMINASI
-  if (safariDetection.isSafariIOS) {
-    // ✅ SAME: Safari timeout yang reasonable - sama seperti device lain
-    const safariTimeout = getSafariTimeout(baseTimeout); // ✅ 100% dari base (tidak dipotong)
-    const optimizedTimeout = Math.min(safariTimeout, maxTimeout); // ✅ Sama dengan max timeout
-    logger.debug('Safari iOS: Using consistent timeout', { 
-      original: safariTimeout, 
-      optimized: optimizedTimeout,
-      isMobile 
+  let timeout = baseTimeout;
+  
+  // 📱 MOBILE-FIRST: All mobile devices get enhanced timeouts
+  if (isMobile) {
+    timeout *= 2.5; // Standard mobile multiplier
+    logger.debug('Mobile device detected: Using enhanced timeout', {
+      timeout,
+      userAgent: userAgent.substring(0, 50) + '...' // Truncated for logging
     });
-    return optimizedTimeout;
   }
   
-  let timeout = baseTimeout * mobileMultiplier;
-
-  // ✅ FIXED: Same multiplier untuk device lambat - TIDAK ADA DISKRIMINASI
-  if (capabilities.isSlowDevice) {
-    timeout *= 2; // ✅ SAME: 100% increase untuk semua device
-    logger.debug('AuthContext: Slow device detected, consistent timeout:', timeout);
+  // 💻 TABLET: Moderate enhancement
+  if (isTablet) {
+    timeout *= 2.0; // Slightly less than mobile phones
+    logger.debug('Tablet device detected: Using moderate timeout', timeout);
+  }
+  
+  // 🖥️ DESKTOP: Standard timeout (no enhancement needed)
+  if (isDesktop) {
+    timeout *= 1.0; // No change for desktop
+    logger.debug('Desktop device detected: Using standard timeout', timeout);
   }
 
-  // ✅ FIXED: Network-based timeout yang konsisten - TIDAK ADA DISKRIMINASI
+  // Network-based adjustments (universal for all devices)
   if (capabilities.networkType === 'slow-2g' || capabilities.networkType === '2g') {
-    timeout *= 3; // ✅ SAME: 200% increase untuk semua device
-    logger.debug('AuthContext: Slow network detected, consistent timeout:', timeout);
+    timeout *= 2;
+    logger.debug('Slow network detected, doubling timeout:', timeout);
   } else if (capabilities.networkType === '3g') {
-    timeout *= 1.5; // ✅ SAME: 50% increase untuk semua device
-    logger.debug('AuthContext: 3G network detected, consistent timeout:', timeout);
+    timeout *= 1.5;
+    logger.debug('3G network detected, increasing timeout:', timeout);
   }
   
-  // ✅ FIXED: Max timeout sama untuk mobile dan desktop - TIDAK ADA DISKRIMINASI
-  const maxTimeout = 30000; // ✅ SAME: 30s untuk semua device
-  return Math.min(timeout, maxTimeout);
+  // Device capability adjustments (universal)
+  if (capabilities.isSlowDevice) {
+    timeout *= 1.5;
+    logger.debug('Slow device detected, increasing timeout:', timeout);
+  }
+  
+  // Universal max timeout for all devices
+  const maxTimeout = 60000; // 60s max for everyone
+  const finalTimeout = Math.min(timeout, maxTimeout);
+  
+  logger.debug('Final adaptive timeout:', {
+    deviceType: isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop',
+    baseTimeout,
+    finalTimeout,
+    networkType: capabilities.networkType,
+    isMobile,
+    isTablet,
+    isDesktop
+  });
+  
+  return finalTimeout;
 };
 
 // ✅ User sanitization dengan validasi yang lebih ketat
@@ -422,6 +477,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       try {
         logger.context('AuthContext', 'Initializing auth...');
+        
+        // 📱 MOBILE DEBUG: Start monitoring and debug info collection
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
+        const isTablet = /iPad|Android.*Tablet|Windows.*Touch/i.test(navigator.userAgent);
+        const authMonitor = (isMobile || isTablet) ? startMobileAuthMonitoring() : null;
+        if (isMobile || isTablet) {
+          debugMobileAuth();
+          authMonitor?.checkpoint('auth-init-start');
+        }
         // ⚡ QUICK PATH: Try to get user fast to avoid long loaders on mobile
         try {
           const { data: quickUserResult } = await safeWithTimeout(
@@ -433,21 +497,107 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (mounted && quickUser) {
             const sanitized = sanitizeUser(quickUser);
             if (sanitized) {
+              authMonitor?.checkpoint('quick-user-success');
               setUser(sanitized);
               setIsLoading(false);
               setIsReady(true);
               logger.debug('AuthContext: Quick user detected, rendering immediately');
               try { localStorage.setItem('authStartupAt', String(Date.now())); } catch {}
+              authMonitor?.finish();
             }
           }
         } catch (e) {
           logger.debug('AuthContext: Quick user not available');
         }
         
-        const safariDetection = detectSafariIOS();
+        const userAgent = navigator.userAgent;
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
+        const isTablet = /iPad|Android.*Tablet|Windows.*Touch/i.test(userAgent);
          
-         // Use Safari-specific auth fallback if on Safari iOS
-         if (safariDetection.isSafariIOS) {
+         // 📱 MOBILE-UNIVERSAL: Use auth fallback for ALL mobile devices
+         if (isMobile || isTablet) {
+           const deviceType = isTablet ? 'Tablet' : 'Mobile';
+           logger.warn(`AuthContext: ${deviceType} device detected - using mobile auth fallback strategy`, {
+             deviceType,
+             isMobile,
+             isTablet,
+             userAgent: userAgent.substring(0, 100) + '...',
+             timestamp: new Date().toISOString()
+           });
+          
+          const primaryAuth = async () => {
+            const timeout = getAdaptiveTimeout(20000); // Mobile-optimized timeout
+            const { data: sessionResult, error } = await safeWithTimeout(
+              supabase.auth.getSession(),
+              timeout,
+              `${deviceType} primary auth timeout`
+            );
+            
+            if (error) throw error;
+            return sessionResult;
+          };
+          
+          const fallbackAuth = async () => {
+             logger.warn(`AuthContext: Using ${deviceType} direct auth fallback`);
+             // Add delay for all mobile devices (they need more time)
+             if (isMobile || isTablet) {
+               const delay = isTablet ? 800 : 1200; // Tablets need less delay than phones
+               await new Promise(resolve => setTimeout(resolve, delay));
+             }
+             const result = await supabase.auth.getSession();
+             if (result.error) throw result.error;
+             return result;
+           };
+          
+          try {
+            // Universal mobile timeout (no platform discrimination)
+            const timeoutMs = isMobile ? 45000 : isTablet ? 35000 : 25000;
+            const sessionResult = await safariAuthFallback(
+              primaryAuth,
+              fallbackAuth,
+              timeoutMs
+            );
+            
+            const { data: { session } } = sessionResult as any;
+            const { session: validSession, user: validUser } = validateSession(session);
+            
+            if (mounted) {
+              setSession(validSession);
+              setUser(validUser);
+              setIsLoading(false);
+              setIsReady(true);
+            }
+            
+            logger.success(`AuthContext: ${deviceType} auth fallback successful`, {
+               sessionExists: !!validSession,
+               userExists: !!validUser,
+               deviceType,
+               isMobile,
+               isTablet,
+               timestamp: new Date().toISOString()
+             });
+            return;
+          } catch (mobileError) {
+             logger.error(`AuthContext: ${deviceType} auth fallback failed:`, {
+               error: mobileError,
+               errorMessage: mobileError instanceof Error ? mobileError.message : 'Unknown error',
+               deviceType,
+               isMobile,
+               isTablet,
+               userAgent: userAgent.substring(0, 100) + '...',
+               timestamp: new Date().toISOString()
+             });
+             
+             if (mounted) {
+               setIsLoading(false);
+               setIsReady(true);
+             }
+             return;
+           }
+        }
+        
+        // Continue with standard flow for other browsers
+        if (false) { // Disable the old iOS-only check
            logger.warn('AuthContext: Safari iOS detected - using auth fallback strategy', {
              version: safariDetection.version,
              userAgent: safariDetection.userAgent,
@@ -575,6 +725,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (mounted) {
           setIsLoading(false);
           setIsReady(true);
+          authMonitor?.checkpoint('auth-init-complete');
+          authMonitor?.finish();
           logger.context('AuthContext', 'Auth initialization completed');
         }
       }

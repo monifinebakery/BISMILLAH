@@ -113,6 +113,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // 🚀 ANDROID FIX: Never cache auth requests - always go to network
+  if (isAuthRequest(url)) {
+    swLog('[SW] Auth request detected, bypassing cache:', url.pathname);
+    return; // Let browser handle directly
+  }
+  
   // Handle different types of requests
   if (isStaticAsset(url)) {
     event.respondWith(handleStaticAsset(request));
@@ -135,6 +141,20 @@ function isAPIRequest(url) {
   return url.pathname.startsWith('/api/') || 
          url.hostname.includes('supabase') ||
          API_ENDPOINTS.some(endpoint => url.pathname.startsWith(endpoint));
+}
+
+// 🚀 ANDROID FIX: Check if request is for authentication (should never be cached)
+function isAuthRequest(url) {
+  return url.pathname.includes('/auth') ||
+         url.pathname.includes('/login') ||
+         url.pathname.includes('/session') ||
+         url.pathname.includes('/user') ||
+         url.pathname.includes('/token') ||
+         url.pathname.includes('/verify') ||
+         url.hostname.includes('supabase') && (
+           url.pathname.includes('/auth/') ||
+           url.pathname.includes('/rest/v1/auth')
+         );
 }
 
 // Check if request is navigation

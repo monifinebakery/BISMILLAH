@@ -36,11 +36,23 @@ if (!SUPABASE_PUBLISHABLE_KEY) {
   );
 }
 
-// Resilient fetch with retries for transient errors (503/5xx/429)
+// 🚀 ANDROID FIX: Enhanced resilient fetch with Android-specific optimizations
 const resilientFetch: typeof fetch = async (input, init) => {
   const maxRetries = 4;
   let attempt = 0;
   let lastError: any;
+  
+  // Mobile-universal optimizations
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
+  if (isMobile && init) {
+    // Add mobile-specific headers to improve request handling
+    init.headers = {
+      ...init.headers,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    };
+  }
 
   const isRetriableStatus = (status: number) =>
     status === 429 || status === 502 || status === 503 || status === 504;
@@ -52,9 +64,15 @@ const resilientFetch: typeof fetch = async (input, init) => {
 
       // Respect Retry-After when present
       const retryAfter = res.headers.get("retry-after");
-      const retryMs = retryAfter
+      let retryMs = retryAfter
         ? Math.min(Number(retryAfter) * 1000, 4000)
         : Math.min(250 * Math.pow(2, attempt), 2000) + Math.random() * 150;
+      
+      // 📱 MOBILE FIX: Longer delays for all mobile devices
+      if (isMobile) {
+        retryMs *= 1.5; // 50% longer delay for mobile
+        retryMs = Math.min(retryMs, 6000); // Max 6 seconds for mobile
+      }
 
       if (import.meta.env.DEV) {
         console.warn(
@@ -70,7 +88,13 @@ const resilientFetch: typeof fetch = async (input, init) => {
       // Network or CORS error — retry with backoff
       lastError = err;
       if (attempt >= maxRetries) break;
-      const wait = Math.min(300 * Math.pow(2, attempt), 2500) + Math.random() * 200;
+      let wait = Math.min(300 * Math.pow(2, attempt), 2500) + Math.random() * 200;
+      
+      // 📱 MOBILE FIX: Longer backoff for all mobile device network errors
+      if (isMobile) {
+        wait *= 2; // Double the wait time for mobile
+        wait = Math.min(wait, 8000); // Max 8 seconds for mobile
+      }
       if (import.meta.env.DEV) {
         console.warn(
           `Supabase fetch network error, retry ${attempt + 1}/${maxRetries} after ${Math.round(

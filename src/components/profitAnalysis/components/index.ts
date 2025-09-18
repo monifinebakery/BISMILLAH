@@ -2,7 +2,7 @@
 // Index file untuk semua komponen analisis profit dalam Bahasa Indonesia
 
 // Komponen utama yang digunakan saat ini
-export { default as ImprovedProfitDashboard } from './ImprovedProfitDashboard';
+// Note: ImprovedProfitDashboard has been removed from static exports to avoid code splitting conflicts
 
 // New split components for better code splitting
 export { default as ProfitHeader } from './ProfitHeader';

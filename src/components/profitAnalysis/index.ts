@@ -50,7 +50,8 @@ export type {
 
 // ===== COMPONENTS =====
 // Ekspor hanya komponen utama yang digunakan
-export { default as ImprovedProfitDashboard } from './components/ImprovedProfitDashboard';
+// Note: ImprovedProfitDashboard is primarily used via dynamic import in routes
+// and has been removed from static exports to avoid code splitting conflicts
 
 // ===== API SERVICE =====
 export { default as profitAnalysisApi } from './services/profitAnalysisApi';

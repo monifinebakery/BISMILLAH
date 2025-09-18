@@ -16,6 +16,7 @@ import type { BahanBakuFrontend } from '../types';
 import { logger } from '@/utils/logger';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { toNumber } from '../utils/typeUtils';
+import { formatIDNumber } from '@/utils/numberLocale';
 
 interface WarehouseTableRowProps {
   item: BahanBakuFrontend;
@@ -144,7 +145,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                       {highlightText(item.nama, searchTerm)}
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      {highlightText(item.kategori, searchTerm)} • {item.stok}{' '}
+                      {highlightText(item.kategori, searchTerm)} • {formatIDNumber(item.stok)}{' '}
                       {item.satuan}
                     </p>
 
@@ -279,7 +280,7 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
               <div>
                 <span className="text-gray-500">Stok Minimum:</span>
                 <div className="font-medium text-gray-900">
-                  {item.minimum} {item.satuan}
+                  {formatIDNumber(item.minimum)} {item.satuan}
                 </div>
               </div>
               <div>
@@ -399,11 +400,11 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                 : 'text-gray-900'
             }`}
           >
-            {item.stok}
+            {formatIDNumber(item.stok)}
           </span>
           <span className="text-sm text-gray-500">{item.satuan}</span>
         </div>
-        <div className="text-xs text-gray-400">Min: {item.minimum}</div>
+        <div className="text-xs text-gray-400">Min: {formatIDNumber(item.minimum)}</div>
       </td>
 
       <td className="px-4 py-4">
@@ -470,4 +471,3 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
 };
 
 export default WarehouseTableRow;
-

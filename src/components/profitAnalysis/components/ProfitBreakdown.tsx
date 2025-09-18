@@ -3,6 +3,7 @@ import React from 'react';
 import { ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatCompactCurrency } from '@/lib/shared';
 
 interface BreakdownItem {
   name: string;
@@ -22,13 +23,9 @@ const BreakdownCategory: React.FC<BreakdownCategoryProps> = ({ title, items, tot
   const text = 'text-gray-800';
   const border = 'border-gray-200';
 
-  // Format currency in Indonesian format
+  // Use shared Indonesian formatter with 'rb', 'jt' instead of 'K', 'M'
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      notation: 'compact'
-    }).format(amount);
+    return formatCompactCurrency(amount);
   };
 
   return (
@@ -110,13 +107,9 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
       .slice(0, 3);
   }, [cogsData?.total]);
 
-  // Format currency in Indonesian format
+  // Use shared Indonesian formatter with 'rb', 'jt' instead of 'K', 'M'
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      notation: 'compact'
-    }).format(amount);
+    return formatCompactCurrency(amount);
   };
 
   return (
@@ -203,7 +196,7 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
                     ]}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#e5e7eb' }} />
-                      <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#e5e7eb' }} tickFormatter={(v)=> new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(Number(v)||0)} />
+                      <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#e5e7eb' }} tickFormatter={(v)=> formatCompactCurrency(Number(v)||0, { withCurrency: false })} />
                       <RTooltip content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const p = payload[0];
@@ -211,7 +204,7 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
                             <div className="rounded-md border border-gray-200 bg-white p-2 shadow-sm">
                               <div className="text-xs text-gray-500">{p?.payload?.name}</div>
                               <div className="text-sm font-semibold text-gray-900">
-                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Number(p?.value)||0)}
+                                {formatCompactCurrency(Number(p?.value)||0)}
                               </div>
                             </div>
                           );

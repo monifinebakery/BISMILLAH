@@ -12,19 +12,11 @@ interface MetricCardProps {
   iconColor: string;
 }
 
-// Format currency in Indonesian format
+import { formatCompactCurrency } from '@/lib/shared';
+
+// Use shared Indonesian formatter with 'rb', 'jt' instead of 'K', 'M'
 const formatCurrency = (amount: number) => {
-  if (amount >= 1000000) {
-    return `Rp ${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1).replace('.', ',')}M`;
-  } else if (amount >= 1000) {
-    return `Rp ${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1).replace('.', ',')}K`;
-  }
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+  return formatCompactCurrency(amount);
 };
 
 const MetricCard: React.FC<MetricCardProps> = ({ 

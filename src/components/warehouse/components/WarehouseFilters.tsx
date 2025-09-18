@@ -20,7 +20,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { toNumber } from '../utils/typeUtils';
 import { warehouseApi } from '../services/warehouseApi';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
 import type { FilterState } from '../types';
 // Kategori default sinkron dengan analisis profit
@@ -65,16 +65,14 @@ const fetchCategories = async (): Promise<string[]> => {
   }
 };
 
-const fetchSuppliers = async (): Promise<string[]> => {
+const fetchSuppliers = async (userId?: string): Promise<string[]> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
     // First, try to get actual supplier names from suppliers table
-    if (user?.id) {
+    if (userId) {
       const { data: suppliersData, error: suppliersError } = await supabase
         .from('suppliers')
         .select('id, nama')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('nama', { ascending: true });
       
       if (!suppliersError && suppliersData && suppliersData.length > 0) {
@@ -87,7 +85,7 @@ const fetchSuppliers = async (): Promise<string[]> => {
         
         // Get bahan baku items and map supplier IDs to names
         const service = await warehouseApi.createService('crud', {
-          userId: user.id,
+          userId,
           enableDebugLogs: import.meta.env.DEV
         });
         
@@ -113,7 +111,7 @@ const fetchSuppliers = async (): Promise<string[]> => {
     
     // Fallback to existing method if suppliers table is empty or unavailable
     const service = await warehouseApi.createService('crud', {
-      userId: user?.id,
+      userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
@@ -164,13 +162,14 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
   });
 
   // ✅ TAMBAH: useQuery for suppliers
+  const { user } = useAuth();
   const {
     data: queriedSuppliers = [],
     isLoading: suppliersLoading,
     refetch: refetchSuppliers,
   } = useQuery({
-    queryKey: filterQueryKeys.suppliers,
-    queryFn: fetchSuppliers,
+    queryKey: [...filterQueryKeys.suppliers, user?.id],
+    queryFn: () => fetchSuppliers(user?.id),
     staleTime: 10 * 60 * 1000, // 10 minutes - suppliers don't change often
     retry: 1,
   });

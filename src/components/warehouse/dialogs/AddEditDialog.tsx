@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { logger } from '@/utils/logger';
 import { toNumber } from '../utils/typeUtils';
@@ -105,10 +106,9 @@ const baseUnits = [
 ];
 
 // Helper function to fetch suppliers with ID and name for mapping
-const fetchSuppliersWithMapping = async (): Promise<{ id: string; nama: string }[]> => {
+const fetchSuppliersWithMapping = async (userId?: string): Promise<{ id: string; nama: string }[]> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) {
+    if (!userId) {
       logger.warn('No user found for fetching suppliers');
       return [];
     }
@@ -116,7 +116,7 @@ const fetchSuppliersWithMapping = async (): Promise<{ id: string; nama: string }
     const { data: suppliers, error } = await supabase
       .from('suppliers')
       .select('id, nama')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('nama');
       
     if (error) {
@@ -155,14 +155,14 @@ const resolveSupplierNameToId = (supplierName: string, suppliersList: { id: stri
   return supplier ? supplier.id : supplierName; // Fallback to name if not found
 };
 
-const fetchDialogData = async (type: 'categories' | 'suppliers'): Promise<string[]> => {
+const fetchDialogData = async (type: 'categories' | 'suppliers', userId?: string): Promise<string[]> => {
   try {
     if (type === 'categories') {
       return [...FNB_COGS_CATEGORIES];
     }
     
     // Fetch suppliers from suppliers table and return names only
-    const suppliers = await fetchSuppliersWithMapping();
+    const suppliers = await fetchSuppliersWithMapping(userId);
     return suppliers.map(s => s.nama).filter(Boolean);
   } catch (error) {
     logger.error(`Failed to fetch ${type}:`, error);
@@ -190,9 +190,10 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   const isEditMode = mode === 'edit' || !!item;
 
   // Query untuk daftar suppliers (nama saja untuk dropdown)
+  const { user } = useAuth();
   const { data: queriedSuppliers = [], isLoading: suppliersLoading, refetch: refetchSuppliers } = useQuery({
-    queryKey: ['dialog-suppliers'],
-    queryFn: () => fetchDialogData('suppliers'),
+    queryKey: ['dialog-suppliers', user?.id],
+    queryFn: () => fetchDialogData('suppliers', user?.id),
     enabled: isOpen,
     staleTime: 5 * 60 * 1000,
   });

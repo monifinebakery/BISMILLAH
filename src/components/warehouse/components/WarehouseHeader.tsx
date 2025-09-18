@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Package, AlertTriangle, RefreshCw, TrendingDown, Info, Zap, BarChart3, ShoppingCart, Star } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
@@ -24,12 +24,10 @@ const headerQueryKeys = {
   alerts: ['warehouse', 'header', 'alerts'] as const,
 };
 
-const fetchWarehouseStats = async () => {
+const fetchWarehouseStats = async (userId?: string) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
     const service = await warehouseApi.createService('crud', {
-      userId: user?.id,
+      userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
@@ -68,12 +66,10 @@ const fetchWarehouseStats = async () => {
   }
 };
 
-const fetchWarehouseAlerts = async () => {
+const fetchWarehouseAlerts = async (userId?: string) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
     const service = await warehouseApi.createService('alert', {
-      userId: user?.id,
+      userId,
       enableDebugLogs: import.meta.env.DEV
     });
     
@@ -96,14 +92,15 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   onRefresh
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     data: stats,
     isLoading: statsLoading,
     error: statsError,
     refetch: refetchStats
   } = useQuery({
-    queryKey: headerQueryKeys.stats,
-    queryFn: fetchWarehouseStats,
+    queryKey: [...headerQueryKeys.stats, user?.id],
+    queryFn: () => fetchWarehouseStats(user?.id),
     staleTime: 2 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
     retry: 1,
@@ -113,8 +110,8 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
     data: alerts,
     isLoading: alertsLoading,
   } = useQuery({
-    queryKey: headerQueryKeys.alerts,
-    queryFn: fetchWarehouseAlerts,
+    queryKey: [...headerQueryKeys.alerts, user?.id],
+    queryFn: () => fetchWarehouseAlerts(user?.id),
     staleTime: 1 * 60 * 1000,
     refetchInterval: 2 * 60 * 1000,
     retry: 1,

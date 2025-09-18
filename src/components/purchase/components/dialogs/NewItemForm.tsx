@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, ActionButtons } from '@/components/ui';
+import { Label } from '@/components/ui/label';
 import { Plus, Calculator, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/shared';

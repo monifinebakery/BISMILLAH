@@ -17,7 +17,7 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts';
-import { formatCurrency, formatLargeNumber } from '@/utils/formatUtils';
+import { formatCurrency, formatNumber, formatPercentage } from '@/lib/shared';
 // ✅ IMPROVED: Import UnifiedDateHandler for consistency
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization'; // Keep for transition

@@ -2,7 +2,7 @@
 import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { getFormattedTotalQuantities } from '../../utils/purchaseHelpers';
 import { Purchase } from '../../types/purchase.types';
 import { StatusDropdown } from './StatusDropdown';

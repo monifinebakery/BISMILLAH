@@ -16,7 +16,7 @@ import {
   Lightbulb,
   AlertCircle
 } from "lucide-react";
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { generateListKey } from '@/utils/keyUtils';
 import { safeNumber, safeMultiply, safeDivide } from '@/utils/safeMath';
 

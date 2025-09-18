@@ -17,6 +17,7 @@ export {
   formatCompactCurrency as compactCurrency,
   formatPercentage as percentage,
   formatDate as date,
+  formatTime as time,
   formatNumber as number
 } from './formatters';
 

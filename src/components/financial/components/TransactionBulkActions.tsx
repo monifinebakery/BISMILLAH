@@ -12,7 +12,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { toast } from 'sonner';
 
 interface FinancialTransaction {

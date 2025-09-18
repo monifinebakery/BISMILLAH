@@ -195,6 +195,55 @@ export const formatRelativeTime = (date: Date | string): string => {
   }
 };
 
+// ==================== TIME FORMATTING ====================
+
+/**
+ * Format waktu (jam dan menit) untuk tampilan Indonesia
+ * @param dateInput - Date object, string, atau null
+ */
+export const formatTime = (dateInput: Date | string | null | undefined): string => {
+  if (!dateInput) return '--:--';
+  
+  try {
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(date.getTime())) {
+      return '--:--';
+    }
+    
+    return date.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.warn('Time formatting error:', error);
+    return '--:--';
+  }
+};
+
+/**
+ * Format waktu dengan seconds untuk tampilan Indonesia
+ * @param dateInput - Date object, string, atau null
+ */
+export const formatTimeWithSeconds = (dateInput: Date | string | null | undefined): string => {
+  if (!dateInput) return '--:--:--';
+  
+  try {
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(date.getTime())) {
+      return '--:--:--';
+    }
+    
+    return date.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  } catch (error) {
+    console.warn('Time formatting error:', error);
+    return '--:--:--';
+  }
+};
+
 // ==================== TEXT FORMATTING ====================
 
 /**

@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import type { Order, UseOrderUIReturn, OrderStatus } from '../types';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';

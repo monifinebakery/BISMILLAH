@@ -3,7 +3,7 @@ import React from 'react';
 import { Trash2, Edit3, X, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { useOrderBulk } from '../hooks/useOrderBulk';
 import { getStatusText, getStatusColor } from '../constants';
 import BulkOperationsDialog from './dialogs/BulkOperationsDialog';

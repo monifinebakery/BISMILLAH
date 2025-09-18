@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { Purchase } from './types/purchase.types';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // Context imports
 import { usePurchase } from './hooks/usePurchase';
@@ -290,7 +291,11 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       ) : (
         <>
           <PurchaseTableProvider purchases={finalPurchases} suppliers={suppliers}>
-            <Suspense fallback={null}>
+            <Suspense fallback={
+              <div className="py-6 flex items-center justify-center">
+                <LoadingSpinner size="sm" />
+              </div>
+            }>
               <PurchaseTable
                 onEdit={navigationActions.purchase.openEdit}
                 onStatusChange={setStatus}
@@ -308,7 +313,13 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
       {/* Purchase dialog removed - using full page navigation */}
       
       {/* Import dialog */}
-      <SafeSuspense loadingMessage="" fallback={null}>
+      <SafeSuspense loadingMessage="" fallback={
+        <div className="dialog-overlay-center">
+          <div className="dialog-panel flex items-center justify-center p-6">
+            <LoadingSpinner size="md" showText text="Memuat dialog..." />
+          </div>
+        </div>
+      }>
         {appState.dialogs.import.isOpen && (
           <PurchaseImportDialog
             isOpen={appState.dialogs.import.isOpen}

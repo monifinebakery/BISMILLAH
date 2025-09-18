@@ -220,7 +220,7 @@ export async function checkAndAutoLinkPayments(): Promise<boolean> {
 
 // Development/Debug functions
 if (import.meta.env.DEV) {
-  // @ts-ignore
+  // @ts-expect-error -- debug helpers exposed intentionally during development
   window.__DEBUG_PAYMENT_LINKING__ = {
     findUnlinkedPayments,
     linkPaymentToUser,

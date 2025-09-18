@@ -3,6 +3,14 @@
 
 import { safePerformance } from '@/utils/browserApiSafeWrappers';
 
+type PerformanceWithMemory = Performance & {
+  memory: {
+    jsHeapSizeLimit: number;
+    totalJSHeapSize: number;
+    usedJSHeapSize: number;
+  };
+};
+
 export const PERFORMANCE_CONFIG = {
   // React Query Cache Configuration
   CACHE: {
@@ -297,7 +305,7 @@ export const createPerformanceMonitor = () => {
     
     checkMemoryUsage: () => {
       if ('memory' in performance) {
-        const memory = (performance as any).memory;
+        const memory = (performance as PerformanceWithMemory['memory']);
         const used = memory.usedJSHeapSize;
         const { WARNING, CRITICAL } = PERFORMANCE_CONFIG.MONITORING.MEMORY_THRESHOLDS;
         

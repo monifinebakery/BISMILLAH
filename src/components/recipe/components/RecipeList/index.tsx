@@ -232,33 +232,6 @@ const RecipeList: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 sm:p-6 space-y-6">
-        
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Manajemen Resep
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Kelola resep dan hitung HPP dengan mudah
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/resep/kategori')}
-              className="border-orange-200 text-orange-700 hover:bg-orange-50"
-            >
-              Kelola Kategori
-            </Button>
-            <Button
-              onClick={() => dialogHandlers.openForm()}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              + Tambah Resep
-            </Button>
-          </div>
-        </div>
 
         {/* Statistics Cards */}
         <RecipeStats stats={stats} />

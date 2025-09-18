@@ -35,53 +35,6 @@ const TransactionsTab = React.lazy(() => import('./report/TransactionsTab'));
 const UmkmTab = React.lazy(() => import('./report/UmkmTab'));
 
 // LEGACY DIALOGS - Lazy loaded with error handling
-  import('./components/FinancialCharts').catch((error) => {
-    logger.error('Failed to load FinancialCharts', error);
-    return {
-      default: () => (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
-            <h3 className="font-medium text-red-700 mb-1">Gagal Memuat Grafik</h3>
-            <p className="text-sm text-red-500">Terjadi kesalahan saat memuat komponen grafik keuangan.</p>
-          </CardContent>
-        </Card>
-      )
-    };
-  })
-);
-
-  import('./components/CategoryCharts').catch((error) => {
-    logger.error('Failed to load CategoryCharts', error);
-    return {
-      default: () => (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
-            <h3 className="font-medium text-red-700 mb-1">Gagal Memuat Grafik Kategori</h3>
-            <p className="text-sm text-red-500">Terjadi kesalahan saat memuat grafik distribusi kategori.</p>
-          </CardContent>
-        </Card>
-      )
-    };
-  })
-);
-
-  import('./components/TransactionTable').catch((error) => {
-    logger.error('Failed to load TransactionTable', error);
-    return {
-      default: () => (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
-            <h3 className="font-medium text-red-700 mb-1">Gagal Memuat Tabel</h3>
-            <p className="text-sm text-red-500">Terjadi kesalahan saat memuat tabel transaksi.</p>
-          </CardContent>
-        </Card>
-      )
-    };
-  })
-);
 
 const FinancialTransactionDialog = React.lazy(() => 
   import('./dialogs/FinancialTransactionDialog').catch((error) => {
@@ -104,53 +57,6 @@ const BulkActions = React.lazy(() =>
   })
 );
 
-  import('./components/DailyCashFlowTracker').catch((error) => {
-    logger.error('Failed to load DailyCashFlowTracker component:', error);
-    return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat cash flow tracker</div> };
-  })
-);
-
-  import('./components/ProfitLossSimple').catch((error) => {
-    logger.error('Failed to load ProfitLossSimple component:', error);
-    return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat profit loss</div> };
-  })
-);
-
-  import('./components/DailySummaryWidget').catch((error) => {
-    logger.error('Failed to load DailySummaryWidget component:', error);
-    return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat daily summary</div> };
-  })
-);
-
-  import('./components/UMKMExpenseCategories').catch((error) => {
-    logger.error('Failed to load UMKMExpenseCategories component:', error);
-    return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat kategori pengeluaran UMKM</div> };
-  })
-);
-
-  import('./components/SavingsGoalTracker').catch((error) => {
-    logger.error('Failed to load SavingsGoalTracker component:', error);
-    return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat savings goal tracker</div> };
-  })
-);
-
-  import('./components/DebtTracker').catch((error) => {
-    logger.error('Failed to load DebtTracker component:', error);
-    return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat debt tracker</div> };
-  })
-);
-
-  import('./components/ExpenseAlerts').catch((error) => {
-    logger.error('Failed to load ExpenseAlerts component:', error);
-    return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat expense alerts</div> };
-  })
-);
-
-  import('./components/SimpleBusinessReport').catch((error) => {
-    logger.error('Failed to load SimpleBusinessReport component:', error);
-    return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat laporan bisnis</div> };
-  })
-);
 
 // Loading components (fallback for tab chunks)
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (

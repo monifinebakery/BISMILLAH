@@ -22,7 +22,8 @@ import { RecipeProvider } from './RecipeContext';
 import { SupplierProvider } from './SupplierContext';
 import { WarehouseProvider } from '@/components/warehouse/context/WarehouseContext';
 // ✅ CRITICAL: Import FinancialProvider directly instead of lazy loading
-import { FinancialProvider } from '@/components/financial/contexts/FinancialContext';
+import { FinancialProvider, useFinancial } from '@/components/financial/contexts/FinancialContext';
+import { ProfitAnalysisProvider } from '@/components/profitAnalysis/contexts';
 
 // ⚡ LOW PRIORITY: Load last
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
@@ -59,24 +60,16 @@ const LazyFinancialProvider: React.FC<{ enabled: boolean; children: ReactNode }>
       setIsLoading(true);
       setHasError(false);
       
-      // ✅ OPTIMIZED: Faster import with better error handling
-      import('@/components/financial/contexts/FinancialContext')
-        .then(m => {
-          if (m && (m as any).FinancialProvider) {
-            setProviderComp(() => (m as any).FinancialProvider);
-            logger.info('✅ LazyFinancialProvider: FinancialProvider loaded successfully');
-          } else {
-            logger.error('❌ LazyFinancialProvider: FinancialProvider not found in module');
-            setHasError(true);
-          }
-        })
-        .catch(error => {
-          logger.error('❌ LazyFinancialProvider: Failed to load FinancialProvider:', error);
-          setHasError(true);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      // ✅ Use static import instead of dynamic import
+      try {
+        setProviderComp(() => FinancialProvider);
+        logger.info('✅ LazyFinancialProvider: FinancialProvider loaded successfully (static import)');
+      } catch (error) {
+        logger.error('❌ LazyFinancialProvider: Failed to load FinancialProvider:', error);
+        setHasError(true);
+      } finally {
+        setIsLoading(false);
+      }
     }
   }, [enabled, ProviderComp, isLoading, hasError]);
   
@@ -110,14 +103,15 @@ const LazyProfitAnalysisProvider: React.FC<{ enabled: boolean; children: ReactNo
   useEffect(() => {
     if (enabled && !ProviderComp && !isLoading) {
       setIsLoading(true);
-      import('@/components/profitAnalysis/contexts/ProfitAnalysisContext').then(m => {
-        setProviderComp(() => (m as any).ProfitAnalysisProvider);
+      // Use static import instead of dynamic import
+      try {
+        setProviderComp(() => ProfitAnalysisProvider);
         setIsLoading(false);
-        logger.info('✅ LazyProfitAnalysisProvider: ProfitAnalysisProvider loaded successfully');
-      }).catch(error => {
+        logger.info('✅ LazyProfitAnalysisProvider: ProfitAnalysisProvider loaded successfully (static import)');
+      } catch (error) {
         logger.error('❌ LazyProfitAnalysisProvider: Failed to load ProfitAnalysisProvider:', error);
         setIsLoading(false);
-      });
+      }
     }
   }, [enabled, ProviderComp, isLoading]);
   

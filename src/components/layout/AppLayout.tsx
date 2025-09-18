@@ -11,6 +11,7 @@ import { DesktopLayout } from "./DesktopLayout";
 import { AutoLinkingPopup } from "@/components/popups";
 import { UpdateNotificationBanner, useUpdateNotification } from '@/components/common/UpdateNotificationBanner';
 import { logger } from "@/utils/logger";
+import { supabase } from '@/integrations/supabase/client';
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
@@ -83,8 +84,7 @@ export const AppLayout = () => {
       const timer = setTimeout(async () => {
         try {
           if (!supabaseClient) {
-            const mod = await import('@/integrations/supabase/client');
-            setSupabaseClient(mod.supabase);
+            setSupabaseClient(supabase);
           }
           setShowAutoLinkPopup(true);
         } catch (e) {

@@ -14,10 +14,6 @@ import { logger } from '@/utils/logger';
 // 📊 ANALYTICS & REPORTING COMPONENTS (Bundle Size: ~150KB)
 export const ProfitAnalysisComponents = {
   // Komponen dashboard profit yang sangat berat
-  ProfitDashboard: React.lazy(() => 
-    import(/* webpackChunkName: "profit-dashboard" */ '@/components/profitAnalysis/components/ImprovedProfitDashboard')
-      .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat dashboard profit') }))
-  )
 };
 
 // 🛒 ORDER MANAGEMENT COMPONENTS (Bundle Size: ~120KB)
@@ -47,12 +43,6 @@ export const WarehouseComponents = {
   WarehouseTable: React.lazy(() => 
     import(/* webpackChunkName: "warehouse-table" */ '@/components/warehouse/components/WarehouseTable')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat tabel gudang') }))
-  ),
-  
-  // Context warehouse yang kompleks
-  WarehouseContext: React.lazy(() => 
-    import(/* webpackChunkName: "warehouse-context" */ '@/components/warehouse/context/WarehouseContext')
-      .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat konteks gudang') }))
   )
 };
 
@@ -154,14 +144,12 @@ export const preloadComponents = {
           
         case 'profit-analysis':
           await Promise.allSettled([
-            import('@/components/profitAnalysis/components/ImprovedProfitDashboard')
           ]);
           break;
           
         case 'warehouse':
           await Promise.allSettled([
-            import('@/components/warehouse/components/WarehouseTable'),
-            import('@/components/warehouse/context/WarehouseContext')
+            import('@/components/warehouse/components/WarehouseTable')
           ]);
           break;
       }

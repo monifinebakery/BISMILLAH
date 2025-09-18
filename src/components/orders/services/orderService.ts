@@ -1,9 +1,9 @@
+// src/components/orders/services/orderService.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { transformOrderFromDB, transformOrderToDB, toSafeISOString, validateOrderData } from '../utils';
-import { generateOrderNumber } from '@/utils/formatUtils'; // ✅ FIXED: Import order number generator
-import type { Order, NewOrder, OrderStatus } from '../types';
-import { to_snake_order, from_snake_order } from '../naming';
+import { toast } from 'sonner';
+import { orderEvents, emitOrderDeleted } from '../utils/orderEvents';
+import type { Order, OrderItem, CreateOrderData, UpdateOrderData } from '../types';
 
 // ✅ FIXED: Valid status values matching application values
 const VALID_ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'completed'];
@@ -480,7 +480,6 @@ export async function deleteOrder(userId: string, id: string): Promise<void> {
   
   // ✅ STEP 4: Emit event for immediate UI updates and financial report synchronization
   try {
-    const { emitOrderDeleted } = await import('../utils/orderEvents');
     emitOrderDeleted(id);
     logger.debug('✅ Order deletion event emitted for real-time updates');
   } catch (eventError) {
@@ -605,7 +604,6 @@ export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<v
   
   // ✅ STEP 4: Emit events for immediate UI updates and financial report synchronization
   try {
-    const { emitOrderDeleted } = await import('../utils/orderEvents');
     ids.forEach(id => emitOrderDeleted(id));
     logger.debug(`✅ Bulk order deletion events emitted for ${ids.length} orders`);
   } catch (eventError) {

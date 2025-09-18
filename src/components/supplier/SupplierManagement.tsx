@@ -8,6 +8,7 @@ import { useSupplier, supplierQueryKeys } from '@/contexts/SupplierContext';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 import SupplierTable from './SupplierTable';
 import SupplierDialog from './SupplierDialog';
@@ -28,8 +29,7 @@ const fetchSuppliersPaginated = async (
   limit: number;
   totalPages: number;
 }> => {
-  // Import supabase client
-  const { supabase } = await import('@/integrations/supabase/client');
+  // Use statically imported supabase client
   
   // Get total count
   const { count, error: countError } = await supabase

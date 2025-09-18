@@ -2,6 +2,7 @@
 // ✅ SIMPLIFIED VERSION - Only Financial Reports and Charts
 
 import React, { useState, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -319,6 +320,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // ✅ MAIN COMPONENT - SIMPLIFIED WITHOUT PROFIT MARGIN
 const FinancialReportPage: React.FC = () => {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   
   // ✅ SINGLE HOOK - All functionality consolidated with auto-refresh
@@ -381,9 +383,29 @@ const FinancialReportPage: React.FC = () => {
     });
   }, [isMobile]);
 
-  // ✅ DIALOG HANDLERS
+  // ✅ NAVIGATION HANDLERS - Navigate to full pages instead of dialogs
+  const handleAddTransaction = () => {
+    logger.debug('Navigating to add transaction page');
+    navigate('/keuangan/tambah');
+  };
+
+  const handleManageCategories = () => {
+    logger.debug('Navigating to manage categories page');
+    navigate('/keuangan/kategori');
+  };
+
+  const handleEditTransaction = (transaction: any) => {
+    logger.debug('Navigating to edit transaction page', { transactionId: transaction?.id });
+    if (transaction?.id) {
+      navigate(`/keuangan/edit/${transaction.id}`);
+    } else {
+      navigate('/keuangan/tambah');
+    }
+  };
+
+  // Keep legacy dialog handlers for components that still use them
   const openTransactionDialog = (transaction: any = null) => {
-    logger.debug('Opening transaction dialog', { editing: !!transaction });
+    logger.debug('Legacy: Opening transaction dialog', { editing: !!transaction });
     setDialogs(prev => ({
       ...prev,
       transaction: { isOpen: true, editing: transaction }
@@ -391,7 +413,7 @@ const FinancialReportPage: React.FC = () => {
   };
 
   const closeTransactionDialog = () => {
-    logger.debug('Closing transaction dialog');
+    logger.debug('Legacy: Closing transaction dialog');
     setDialogs(prev => ({
       ...prev,
       transaction: { isOpen: false, editing: null }
@@ -399,17 +421,38 @@ const FinancialReportPage: React.FC = () => {
   };
 
   const openCategoryDialog = () => {
-    logger.debug('Opening category dialog');
+    logger.debug('Legacy: Opening category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: true } }));
   };
 
   const closeCategoryDialog = () => {
-    logger.debug('Closing category dialog');
+    logger.debug('Legacy: Closing category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: false } }));
   };
 
-  // ✅ TRANSACTION HANDLERS
-  const handleAddTransaction = async (transactionData: any) => {
+  // ✅ DELETE TRANSACTION HANDLER - Keep this for table delete functionality
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      logger.info('Deleting transaction', { id });
+      const result = await deleteTransaction(id);
+      if (result.success) {
+        toast.success('Transaksi berhasil dihapus');
+        logger.info('Transaction deleted successfully', { id });
+        return true;
+      } else {
+        toast.error(result.error || 'Gagal menghapus transaksi');
+        logger.error('Failed to delete transaction', { id, error: result.error });
+        return false;
+      }
+    } catch (error: any) {
+      toast.error('Terjadi kesalahan');
+      logger.error('Exception while deleting transaction', error);
+      return false;
+    }
+  };
+
+  // Legacy transaction handlers for dialog components (if still needed)
+  const handleLegacyAddTransaction = async (transactionData: any) => {
     try {
       logger.info('Adding new transaction', { transactionData });
       const result = await addTransaction(transactionData);
@@ -430,7 +473,7 @@ const FinancialReportPage: React.FC = () => {
     }
   };
 
-  const handleUpdateTransaction = async (id: string, transactionData: any) => {
+  const handleLegacyUpdateTransaction = async (id: string, transactionData: any) => {
     try {
       logger.info('Updating transaction', { id, transactionData });
       const result = await updateTransaction(id, transactionData);
@@ -447,26 +490,6 @@ const FinancialReportPage: React.FC = () => {
     } catch (error: any) {
       toast.error('Terjadi kesalahan');
       logger.error('Exception while updating transaction', error);
-      return false;
-    }
-  };
-
-  const handleDeleteTransaction = async (id: string) => {
-    try {
-      logger.info('Deleting transaction', { id });
-      const result = await deleteTransaction(id);
-      if (result.success) {
-        toast.success('Transaksi berhasil dihapus');
-        logger.info('Transaction deleted successfully', { id });
-        return true;
-      } else {
-        toast.error(result.error || 'Gagal menghapus transaksi');
-        logger.error('Failed to delete transaction', { id, error: result.error });
-        return false;
-      }
-    } catch (error: any) {
-      toast.error('Terjadi kesalahan');
-      logger.error('Exception while deleting transaction', error);
       return false;
     }
   };
@@ -513,7 +536,7 @@ const FinancialReportPage: React.FC = () => {
 
             <div className="hidden md:flex flex-wrap items-center gap-3">
               <Button
-                onClick={() => openTransactionDialog()}
+                onClick={handleAddTransaction}
                 disabled={isLoading}
                 className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
               >
@@ -522,7 +545,7 @@ const FinancialReportPage: React.FC = () => {
               </Button>
 
               <Button
-                onClick={openCategoryDialog}
+                onClick={handleManageCategories}
                 className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
               >
                 <Settings className="h-4 w-4" />
@@ -543,7 +566,7 @@ const FinancialReportPage: React.FC = () => {
 
           <div className="flex md:hidden flex-col gap-3 mt-6">
             <Button
-              onClick={() => openTransactionDialog()}
+              onClick={handleAddTransaction}
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
             >
@@ -552,7 +575,7 @@ const FinancialReportPage: React.FC = () => {
             </Button>
 
             <Button
-              onClick={openCategoryDialog}
+              onClick={handleManageCategories}
               className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
             >
               <Settings className="h-4 w-4" />
@@ -647,8 +670,8 @@ const FinancialReportPage: React.FC = () => {
             <Suspense fallback={<ChartSkeleton />}>
               <TransactionTable
                 transactions={filteredTransactions}
-                onEditTransaction={openTransactionDialog}
-                onAddTransaction={() => openTransactionDialog()}
+                onEditTransaction={handleEditTransaction}
+                onAddTransaction={handleAddTransaction}
                 onDeleteTransaction={handleDeleteTransaction}
                 isLoading={isLoading}
                 selectedIds={transactionTable.selectedIds}
@@ -727,8 +750,8 @@ const FinancialReportPage: React.FC = () => {
           <FinancialTransactionDialog
             isOpen={dialogs.transaction.isOpen}
             onClose={closeTransactionDialog}
-            onAddTransaction={handleAddTransaction}
-            onUpdateTransaction={handleUpdateTransaction}
+            onAddTransaction={handleLegacyAddTransaction}
+            onUpdateTransaction={handleLegacyUpdateTransaction}
             categories={DEFAULT_FINANCIAL_CATEGORIES}
             transaction={dialogs.transaction.editing}
           />

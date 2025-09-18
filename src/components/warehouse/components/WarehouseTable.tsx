@@ -18,6 +18,7 @@ import { logger } from '@/utils/logger';
 import WarehouseTableRow from './WarehouseTableRow';
 import { useWarehouseSelection } from '../hooks/useWarehouseSelection';
 import { warehouseUtils } from '../services/warehouseUtils';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 
 interface WarehouseTableProps {
   items: BahanBakuFrontend[];
@@ -98,7 +99,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   };
 
   if (isLoading) {
-    const { LoadingStates } = require('@/components/ui/loading-spinner');
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <LoadingStates.Table />

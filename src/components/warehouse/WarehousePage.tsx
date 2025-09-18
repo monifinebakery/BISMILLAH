@@ -3,6 +3,7 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -617,10 +618,7 @@ const WarehousePageContent: React.FC = () => {
       {/* Main Content */}
       {context.loading ? (
         <div className="py-10">
-          {(() => {
-            const { LoadingStates } = require('@/components/ui/loading-spinner');
-            return <LoadingStates.Table />;
-          })()}
+          <LoadingStates.Table />
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">

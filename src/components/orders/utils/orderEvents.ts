@@ -2,6 +2,7 @@
  * Order Event System for Auto-Refresh
  * Provides cross-component communication for immediate UI updates
  */
+import { useEffect } from 'react';
 
 export type OrderEventType = 
   | 'order:created'
@@ -106,8 +107,6 @@ export const useOrderEvents = (
   handler: (data: OrderEventData) => void,
   deps: any[] = []
 ) => {
-  const { useEffect } = require('react');
-  
   useEffect(() => {
     const cleanup = orderEvents.on(event, handler);
     return cleanup;

@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 
 // Services and types
@@ -381,7 +382,6 @@ const RecipeNavigationContainer: React.FC = () => {
   // Loading state
   if (isLoading) {
     // Use shared lightweight loading spinner instead of heavy skeleton
-    const { LoadingStates } = require('@/components/ui/loading-spinner');
     return <LoadingStates.Page />;
   }
 

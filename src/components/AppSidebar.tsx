@@ -99,6 +99,7 @@ export function AppSidebar() {
       { title: "Pesanan", url: "/pesanan", icon: FileText },
     ]},
     { label: "Laporan & Analisis", items: [
+      { title: "Manajemen Keuangan", url: "/keuangan", icon: DollarSign },
       { title: "Laporan Keuangan", url: "/laporan", icon: TrendingUp },
       { title: "Analisis Profit", url: "/analisis-profit", icon: BarChart3 },
       { title: "Manajemen Aset", url: "/aset", icon: Building2 },

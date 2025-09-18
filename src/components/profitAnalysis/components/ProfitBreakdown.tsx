@@ -224,8 +224,8 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
                 </div>
               </div>
 
-              {/* Neutral quick KPI cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Compact 2x2 KPI cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg bg-white border border-gray-200">
                   <div className="text-xs text-gray-600 mb-1">Margin Kotor</div>
                   <div className="text-xl font-bold text-gray-900">

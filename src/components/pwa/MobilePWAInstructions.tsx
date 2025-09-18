@@ -46,20 +46,22 @@ export default function MobilePWAInstructions({ isOpen, onClose }: MobilePWAInst
     if (canInstall && deviceType === 'android' && browserType === 'chrome') {
       return (
         <div className="space-y-4">
-          <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
-            <Download className="w-6 h-6 text-green-600" />
+          <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border-2 border-green-200 shadow-sm">
+            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+              <Download className="w-6 h-6 text-white" />
+            </div>
             <div>
-              <p className="font-semibold text-green-800">Siap untuk diinstall!</p>
-              <p className="text-sm text-green-700">Chrome telah mendeteksi app ini dapat diinstall</p>
+              <p className="font-bold text-green-800 text-lg">Siap untuk diinstall! 🎉</p>
+              <p className="text-sm text-green-700 mt-1">Chrome telah mendeteksi app ini dapat diinstall</p>
             </div>
           </div>
           
           <button
             onClick={handleInstallClick}
-            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+            className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg"
           >
-            <Download className="w-5 h-5" />
-            Install Aplikasi
+            <Download className="w-6 h-6" />
+            Install Aplikasi Sekarang
           </button>
           
           <p className="text-xs text-gray-600 text-center">
@@ -191,46 +193,58 @@ export default function MobilePWAInstructions({ isOpen, onClose }: MobilePWAInst
   };
 
   return (
-    <div className="fixed inset-0 z-[9999]">
-      {/* Backdrop that respects safe areas */}
-      <div className="absolute inset-0 bg-black/50" style={{paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)'}} onClick={onClose} />
-      
-      {/* Hard-centered dialog with transform to avoid flex inconsistencies on mobile browsers */}
-      <div
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl w-[min(92vw,420px)] max-h-[min(90svh,720px)] h-auto overflow-y-auto shadow-2xl"
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+        onClick={onClose}
         style={{
+          paddingTop: 'env(safe-area-inset-top)', 
           paddingBottom: 'env(safe-area-inset-bottom)'
+        }} 
+      />
+      
+      {/* Centered dialog with improved mobile positioning */}
+      <div
+        className="relative bg-white rounded-2xl w-full max-w-md max-h-[min(90vh,90dvh)] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+        style={{
+          marginTop: 'env(safe-area-inset-top)',
+          marginBottom: 'env(safe-area-inset-bottom)'
         }}
       >
-        <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Install Aplikasi</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full"
-            aria-label="Tutup"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        
-        <div className="p-6">
-          <div className="mb-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center">
-              <Download className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Monifine</h3>
-            <p className="text-gray-600">Install aplikasi untuk akses cepat dan pengalaman yang lebih baik</p>
-          </div>
-          
-          {renderInstructions()}
-          
-          <div className="mt-6 pt-4 border-t">
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b bg-white">
+            <h2 className="text-lg font-semibold">Install Aplikasi</h2>
             <button
               onClick={onClose}
-              className="w-full py-2 px-4 text-gray-600 hover:text-gray-800 transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Tutup"
             >
-              Tutup
+              <X className="w-5 h-5" />
             </button>
+          </div>
+          
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+          <div className="mb-8 text-center">
+            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 rounded-3xl flex items-center justify-center shadow-xl border-4 border-white">
+              <Download className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2 text-gray-800">HPP by Monifine</h3>
+            <p className="text-gray-600 text-base leading-relaxed px-2">Install aplikasi untuk akses cepat dan pengalaman yang lebih baik</p>
+          </div>
+          
+            {renderInstructions()}
+            
+            <div className="mt-6 pt-4 border-t">
+              <button
+                onClick={onClose}
+                className="w-full py-2 px-4 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       </div>

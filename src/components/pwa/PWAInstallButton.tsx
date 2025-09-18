@@ -36,23 +36,27 @@ export default function PWAInstallButton({
   }, []);
 
   const handleInstall = async () => {
-    // On mobile, show instructions instead of trying direct install
-    if (isMobileDevice && !canInstall) {
-      setShowMobileInstructions(true);
-      return;
-    }
-
     setIsInstalling(true);
+    
     try {
-      const success = await install();
-      if (success) {
-        console.log('PWA installed successfully');
-      } else if (isMobileDevice) {
-        // If install failed on mobile, show instructions
+      // Try direct installation first if available
+      if (canInstall) {
+        const success = await install();
+        if (success) {
+          console.log('PWA installed successfully');
+          return;
+        }
+      }
+      
+      // If direct install not available or failed, show instructions on mobile
+      if (isMobileDevice) {
         setShowMobileInstructions(true);
+      } else {
+        console.log('Install not available on this device/browser');
       }
     } catch (error) {
       console.error('PWA installation failed:', error);
+      // Fallback to instructions on mobile
       if (isMobileDevice) {
         setShowMobileInstructions(true);
       }
@@ -104,30 +108,26 @@ export default function PWAInstallButton({
         </button>
       )}
 
-      {/* Install Button */}
-      {canInstall && !isInstalled && (
+      {/* Single Install Button - handles both direct install and fallback */}
+      {!isInstalled && (
         <button
           onClick={handleInstall}
           disabled={isInstalling}
-          className="flex items-center gap-2 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
-          title="Install aplikasi ke perangkat"
+          className={`flex items-center gap-2 px-3 py-1.5 text-white text-sm rounded-lg transition-colors disabled:opacity-50 ${
+            canInstall 
+              ? 'bg-green-500 hover:bg-green-600' 
+              : 'bg-orange-500 hover:bg-orange-600'
+          }`}
+          title={canInstall ? "Install aplikasi sekarang" : "Lihat cara install aplikasi"}
         >
-          <Download className={`w-4 h-4 ${isInstalling ? 'animate-pulse' : ''}`} />
+          {canInstall ? (
+            <Download className={`w-4 h-4 ${isInstalling ? 'animate-pulse' : ''}`} />
+          ) : (
+            <Smartphone className="w-4 h-4" />
+          )}
           <span className="hidden sm:inline">
             {isInstalling ? 'Installing...' : 'Install App'}
           </span>
-        </button>
-      )}
-
-      {/* Mobile Install Button (when install prompt not available) */}
-      {!canInstall && !isInstalled && isMobileDevice && (
-        <button
-          onClick={() => setShowMobileInstructions(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-lg transition-colors"
-          title="Lihat cara install aplikasi"
-        >
-          <Smartphone className="w-4 h-4" />
-          <span className="hidden sm:inline">Install App</span>
         </button>
       )}
 

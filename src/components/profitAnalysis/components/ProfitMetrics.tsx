@@ -103,7 +103,7 @@ const ProfitMetrics: React.FC<ProfitMetricsProps> = ({ businessMetrics }) => {
   const ratio = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100 : 0);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <MetricCard
         title="Omset Penjualan"
         value={revenue}
@@ -130,14 +130,6 @@ const ProfitMetrics: React.FC<ProfitMetricsProps> = ({ businessMetrics }) => {
         status={ratio(cogs, revenue) < 40 ? 'good' : 'warning'}
       />
       
-      <MetricCard
-        title="Belanja Bahan (Kas)"
-        value={purchaseSpending}
-        subtitle={`${formatPercentage(ratio(purchaseSpending, revenue))} dari omset`}
-        icon={DollarSign}
-        helpText="Total pembelian bahan pada periode"
-      />
-
       <MetricCard
         title="Biaya Operasional"
         value={opex}

@@ -154,6 +154,11 @@ const FollowUpTemplateManagerPage: React.FC = () => {
     toast.success('Pesan berhasil disalin ke clipboard');
   };
 
+  const handleCopyVariable = (variable: string) => {
+    navigator.clipboard.writeText(variable);
+    toast.success(`Variabel ${variable} berhasil disalin ke clipboard`);
+  };
+
   const handleResetTemplate = async () => {
     if (!selectedTemplate) return;
     
@@ -210,7 +215,7 @@ const FollowUpTemplateManagerPage: React.FC = () => {
                 <ArrowLeft className="h-4 w-4" />
                 Kembali
               </Button>
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
                 <MessageSquare className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -241,210 +246,281 @@ const FollowUpTemplateManagerPage: React.FC = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Template List - Left Panel */}
-          <div className="lg:col-span-1">
-            <Card className="h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <MessageSquare className="h-5 w-5" />
-                  Template WhatsApp
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {templates.map((template) => (
-                  <div
-                    key={template.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                      selectedTemplate?.id === template.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:bg-gray-50'
-                    }`}
-                    onClick={() => setSelectedTemplate(template)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-sm text-gray-900">
-                        {template.name}
-                      </h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditTemplate(template);
-                        }}
-                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                      {template.message.substring(0, 50)}...
-                    </p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+        <div className="max-w-7xl mx-auto">
+          <Tabs defaultValue="templates" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="templates" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">Template</span>
+              </TabsTrigger>
+              <TabsTrigger value="editor" className="flex items-center gap-2" disabled={!selectedTemplate}>
+                <Edit className="h-4 w-4" />
+                <span className="hidden sm:inline">Editor</span>
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="flex items-center gap-2" disabled={!selectedTemplate}>
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline">Preview</span>
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Variables Helper */}
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Info className="h-4 w-4" />
-                  Variabel Tersedia
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {availableVariables.map((variable) => (
-                  <div
-                    key={variable.key}
-                    className="flex items-start justify-between p-2 bg-gray-50 rounded text-xs"
-                  >
-                    <code className="font-mono text-blue-600 font-medium">
-                      {variable.key}
-                    </code>
-                  </div>
-                ))}
-                <p className="text-xs text-gray-500 mt-3">
-                  Gunakan variabel di atas untuk personalisasi pesan secara otomatis.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+            {/* Template List Tab */}
+            <TabsContent value="templates" className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="md:col-span-2 lg:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <MessageSquare className="h-5 w-5 text-orange-500" />
+                        Template WhatsApp
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {templates.map((template) => (
+                          <div
+                            key={template.id}
+                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md group ${
+                              selectedTemplate?.id === template.id
+                                ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-200'
+                                : 'border-gray-200 bg-white hover:bg-orange-50 hover:border-orange-300'
+                            }`}
+                            onClick={() => setSelectedTemplate(template)}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-medium text-sm text-gray-900">
+                                {template.name}
+                              </h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditTemplate(template);
+                                }}
+                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-orange-100"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-3">
+                              {template.message.substring(0, 80)}...
+                            </p>
+                            {selectedTemplate?.id === template.id && (
+                              <div className="flex items-center gap-1 mt-2">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                <span className="text-xs text-orange-600 font-medium">Terpilih</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
-          {/* Main Content - Right Panel */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Edit Form */}
-            {selectedTemplate && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Edit Template: {selectedTemplate.name}</span>
-                    {!isEditing && (
-                      <Button
-                        onClick={() => handleEditTemplate(selectedTemplate)}
-                        className="flex items-center gap-2"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isEditing ? (
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="template-message">Pesan Template</Label>
-                        <Textarea
-                          id="template-message"
-                          value={templateForm.message}
-                          onChange={(e) => setTemplateForm({ message: e.target.value })}
-                          className="min-h-[200px] mt-2"
-                          placeholder="Masukkan pesan template..."
+                {/* Variables Helper */}
+                <div className="md:col-span-2 lg:col-span-1">
+                  <Card className="h-fit">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Info className="h-4 w-4 text-orange-500" />
+                        Variabel Tersedia
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {availableVariables.map((variable) => (
+                        <div
+                          key={variable.key}
+                          className="flex flex-col p-3 bg-orange-50 rounded-lg border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
+                          onClick={() => handleCopyVariable(variable.key)}
+                          title={`Klik untuk menyalin ${variable.key}`}
+                        >
+                          <code className="font-mono text-orange-700 font-medium text-xs">
+                            {variable.key}
+                          </code>
+                          <span className="text-xs text-gray-600 mt-1">
+                            {variable.desc}
+                          </span>
+                        </div>
+                      ))}
+                      <p className="text-xs text-gray-500 mt-3 p-2 bg-gray-50 rounded">
+                        💡 Klik variabel untuk menyalin ke clipboard
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Editor Tab */}
+            <TabsContent value="editor" className="mt-6">
+              {selectedTemplate && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Edit className="h-5 w-5 text-orange-500" />
+                        Edit Template: {selectedTemplate.name}
+                      </span>
+                      {!isEditing && (
+                        <Button
+                          onClick={() => handleEditTemplate(selectedTemplate)}
+                          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Edit
+                        </Button>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isEditing ? (
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="template-message">Pesan Template</Label>
+                          <Textarea
+                            id="template-message"
+                            value={templateForm.message}
+                            onChange={(e) => setTemplateForm({ message: e.target.value })}
+                            className="min-h-[300px] mt-2"
+                            placeholder="Masukkan pesan template..."
+                          />
+                        </div>
+                        
+                        <ActionButtons
+                          onCancel={handleCancelEdit}
+                          onSave={handleSaveTemplate}
+                          cancelText="Batal"
+                          saveText="Simpan Template"
+                          isSaving={isSaving}
                         />
                       </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div>
+                          <Label>Pesan Template Saat Ini</Label>
+                          <div className="mt-2 p-4 bg-gray-50 rounded-lg border max-h-96 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-sm text-gray-700">
+                              {selectedTemplate.message}
+                            </pre>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleEditTemplate(selectedTemplate)}
+                            className="bg-orange-500 hover:bg-orange-600"
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Template
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={handleResetTemplate}
+                            disabled={isSaving}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Reset Default
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Preview Tab */}
+            <TabsContent value="preview" className="mt-6">
+              {selectedTemplate && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Eye className="h-5 w-5 text-orange-500" />
+                          Preview Pesan
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCopyMessage}
+                            className="flex items-center gap-2"
+                          >
+                            <Copy className="h-4 w-4" />
+                            Salin
+                          </Button>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Alert className="mb-4">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-sm">
+                          Preview menggunakan data pesanan contoh. Variabel akan diganti otomatis dengan data pesanan sebenarnya.
+                        </AlertDescription>
+                      </Alert>
                       
-                      <ActionButtons
-                        onCancel={handleCancelEdit}
-                        onSave={handleSaveTemplate}
-                        cancelText="Batal"
-                        saveText="Simpan Template"
-                        isSaving={isSaving}
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Pesan Template</Label>
-                        <div className="mt-2 p-4 bg-gray-50 rounded-lg border">
-                          <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
-                            {selectedTemplate.message}
-                          </pre>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <MessageSquare className="h-4 w-4 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-green-600 font-medium mb-2">
+                              WhatsApp Preview
+                            </p>
+                            <div className="bg-white p-4 rounded-lg shadow-sm">
+                              <pre className="whitespace-pre-wrap text-sm text-gray-800">
+                                {previewMessage}
+                              </pre>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                    </CardContent>
+                  </Card>
 
-            {/* Preview */}
-            {selectedTemplate && !isEditing && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Eye className="h-5 w-5" />
-                      Preview Pesan
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyMessage}
-                        className="flex items-center gap-2"
-                      >
-                        <Copy className="h-4 w-4" />
-                        Salin
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Alert className="mb-4">
-                    <Info className="h-4 w-4" />
-                    <AlertDescription className="text-sm">
-                      Preview menggunakan data pesanan contoh. Variabel akan diganti otomatis dengan data pesanan sebenarnya.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <MessageSquare className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs text-green-600 font-medium mb-2">
-                          WhatsApp Preview
-                        </p>
-                        <div className="bg-white p-3 rounded-lg shadow-sm">
-                          <pre className="whitespace-pre-wrap text-sm text-gray-800">
-                            {previewMessage}
-                          </pre>
+                  {/* Sample Data Info */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Info className="h-4 w-4 text-orange-500" />
+                        Data Contoh untuk Preview
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                          <div className="grid grid-cols-1 gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <strong>Pelanggan:</strong> 
+                              <span>{sampleOrder.customerName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <strong>No. Pesanan:</strong> 
+                              <span>{sampleOrder.orderNumber}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <strong>Total:</strong> 
+                              <span>{formatCurrency(sampleOrder.totalAmount)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <strong>Status:</strong> 
+                              <span className="capitalize">{sampleOrder.status}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                          💡 Data ini hanya untuk preview. Template akan menggunakan data pesanan sebenarnya saat dikirim.
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Sample Data Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Data Contoh untuk Preview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <strong>Pelanggan:</strong> {sampleOrder.customerName}
-                  </div>
-                  <div>
-                    <strong>No. Pesanan:</strong> {sampleOrder.orderNumber}
-                  </div>
-                  <div>
-                    <strong>Total:</strong> {formatCurrency(sampleOrder.totalAmount)}
-                  </div>
-                  <div>
-                    <strong>Status:</strong> {sampleOrder.status}
-                  </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

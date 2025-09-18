@@ -51,7 +51,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
         <Button
           onClick={handleOpenTemplateManager}
           variant="outline"
-          className="flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 border-blue-300 text-sm"
+          className="flex items-center justify-center gap-2 px-3 sm:px-6 py-2 sm:py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-orange-50 transition-all duration-200 border-orange-300 text-sm"
         >
           <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="hidden sm:inline">Kelola Template WhatsApp</span>

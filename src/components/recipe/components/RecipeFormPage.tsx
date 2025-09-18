@@ -450,7 +450,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+    <div className="min-h-screen bg-white">
       <div className="container mx-auto p-4 sm:p-6 space-y-6">
         
         {/* Header with Breadcrumb */}
@@ -479,7 +479,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
 
         {/* Main Form Card */}
         <Card className="bg-white/90 backdrop-blur-sm">
-          <CardHeader className="border-b bg-gradient-to-r from-orange-50 to-red-50">
+          <CardHeader className="border-b bg-white">
             {/* Step Progress */}
             <div className="flex items-center gap-2 sm:gap-4 mt-4 overflow-x-auto">
               {STEPS.map((step, index) => (

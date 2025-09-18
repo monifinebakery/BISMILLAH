@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
@@ -231,16 +232,14 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
           </div>
           
           <DialogFooter className="dialog-footer-pad pt-4">
-            <Button variant="outline" onClick={onClose}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleSendWhatsapp}
-              className="bg-green-600 hover:bg-green-700 text-white"
+            <ActionButtons
+              onCancel={onClose}
+              onSave={handleSendWhatsapp}
+              cancelText="Batal"
+              saveText="Follow-up Sekarang"
+              isSaving={false}
               disabled={!processedPhoneNumber || message.trim() === ''}
-            >
-              Follow-up Sekarang
-            </Button>
+            />
           </DialogFooter>
         </div>
       </DialogContent>

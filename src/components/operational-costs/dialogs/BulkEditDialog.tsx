@@ -8,6 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ActionButtons } from '@/components/ui/action-buttons';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -165,22 +166,13 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
           </div>
           
           <DialogFooter className="dialog-footer">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={isProcessing}
-              className="w-full sm:w-auto"
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              disabled={isProcessing}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
-            >
-              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Edit {selectedCount} Biaya
-            </Button>
+            <ActionButtons
+              onCancel={onClose}
+              onSave={handleConfirm}
+              cancelText="Batal"
+              saveText={`Edit ${selectedCount} Biaya`}
+              isSaving={isProcessing}
+            />
           </DialogFooter>
       </DialogContent>
     </Dialog>

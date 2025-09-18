@@ -5,6 +5,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,11 +138,11 @@ const CategoryManagerDialog: React.FC<CategoryManagerDialogProps> = ({
             </div>
 
             <DialogFooter className="dialog-footer">
-              <div className="dialog-responsive-buttons">
-                <Button variant="outline" onClick={() => onOpenChange(false)} className="input-mobile-safe">
-                  <span className="text-overflow-safe">Tutup</span>
-                </Button>
-              </div>
+              <ActionButtons
+                onCancel={() => onOpenChange(false)}
+                cancelText="Tutup"
+                showSaveButton={false}
+              />
             </DialogFooter>
           </div>
         </DialogContent>

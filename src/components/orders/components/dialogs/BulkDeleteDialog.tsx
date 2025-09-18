@@ -10,6 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import { formatCurrency } from '@/utils/formatUtils';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
@@ -129,24 +130,14 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
           </div>
 
           <DialogFooter className="dialog-footer-pad">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={loading}
-              className="min-w-[100px]"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Batal
-            </Button>
-            <Button
+            <ActionButtons
+              onCancel={onClose}
+              onDelete={handleConfirm}
+              cancelText="Batal"
+              deleteText="Ya, Hapus Semua"
+              isDeleting={loading}
               variant="destructive"
-              onClick={handleConfirm}
-              disabled={loading}
-              className="min-w-[120px]"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {loading ? 'Menghapus...' : 'Ya, Hapus Semua'}
-            </Button>
+            />
           </DialogFooter>
       </DialogContent>
     </Dialog>

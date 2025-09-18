@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -341,27 +342,19 @@ const CategoryManagementDialog: React.FC<CategoryManagementDialogProps> = ({
           </div>
           
           <DialogFooter className="dialog-footer">
-            <div className="dialog-responsive-buttons">
-              <Button 
-                variant="outline" 
-                onClick={() => onClose()}
-                className="input-mobile-safe"
-              >
-                <span className="text-overflow-safe">Batal</span>
-              </Button>
-              <Button 
-                onClick={() => {
-                  // Apply any pending changes
-                  if (refreshSettings) {
-                    refreshSettings();
-                  }
-                  onClose();
-                }}
-                className="bg-green-600 hover:bg-green-700 input-mobile-safe"
-              >
-                <span className="text-overflow-safe">Simpan</span>
-              </Button>
-            </div>
+            <ActionButtons
+              onCancel={() => onClose()}
+              onSave={() => {
+                // Apply any pending changes
+                if (refreshSettings) {
+                  refreshSettings();
+                }
+                onClose();
+              }}
+              cancelText="Batal"
+              saveText="Simpan"
+              isSaving={false}
+            />
           </DialogFooter>
         </div>
       </DialogContent>

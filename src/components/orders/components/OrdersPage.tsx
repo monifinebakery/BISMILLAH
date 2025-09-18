@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import { Button } from '@/components/ui/button';
-import { LoadingSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -45,7 +44,7 @@ const OrderStatistics = React.lazy(() =>
 import type { Order, NewOrder, OrderStatus } from '../types';
 
 // ✅ SHARED COMPONENTS: Direct import
-import { PageLoading } from './shared/LoadingStates';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 import { logger } from '@/utils/logger';
 
 // ✅ DEBUG: Context debugger for development
@@ -384,7 +383,7 @@ const OrdersPage: React.FC = () => {
   // ✅ EARLY RETURN: Loading state
   if (finalIsLoading) {
     logger.component('OrdersPage', 'Rendering loading state');
-    return <PageLoading />;
+    return <LoadingStates.Page />;
   }
 
   return (

@@ -21,7 +21,7 @@ import {
   EmptyState,
   PurchaseHeader,
 } from './components';
-import { LoadingSkeleton, TableSkeleton } from '@/components/ui/skeleton';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 
 // Lazy loaded components
 const PurchaseTable = React.lazy(() => 
@@ -92,11 +92,6 @@ const initialAppState: AppState = {
     isDeleting: false // Track delete state
   }
 };
-
-// ✅ OPTIMIZED: Loading components
-const AppLoader = () => (
-  <LoadingSkeleton type="table" className="py-12" />
-);
 
 // QuickLoader removed - unused
 
@@ -259,7 +254,7 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   if (finalIsLoading) {
     return (
       <div className={`max-w-screen-xl mx-auto p-4 sm:p-8 ${className}`}>
-        <LoadingState />
+        <LoadingStates.Page />
       </div>
     );
   }

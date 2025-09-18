@@ -404,9 +404,10 @@ const OrderTable: React.FC<OrderTableProps> = ({
   };
 
   if (loading) {
+    const { LoadingStates } = require('@/components/ui/loading-spinner');
     return (
       <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden p-6">
-        <TableSkeleton rows={8} columns={6} />
+        <LoadingStates.Table />
       </div>
     );
   }

@@ -17,7 +17,7 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts';
-import { formatCurrency, formatNumber, formatPercentage } from '@/lib/shared';
+import { formatCurrency, formatNumber, formatPercentage, formatCompactCurrency } from '@/lib/shared';
 // ✅ IMPROVED: Import UnifiedDateHandler for consistency
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization'; // Keep for transition
@@ -257,7 +257,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
                   tick={{ fontSize: 12 }}
                 />
                 <YAxis 
-                  tickFormatter={(tick) => formatLargeNumber(tick)} 
+                  tickFormatter={(tick) => formatCompactCurrency(tick, { digits: 1 })} 
                   tick={{ fontSize: 12 }} 
                 />
                 <Tooltip content={<CustomTooltip />} />

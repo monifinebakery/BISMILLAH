@@ -137,7 +137,7 @@ const Dashboard = () => {
   // ⚠️ Error State
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md w-full text-center">
           <div className="text-red-500 text-4xl mb-4">⚠️</div>
           <h2 className="text-red-800 text-xl font-semibold mb-3">Terjadi Kesalahan</h2>
@@ -156,7 +156,7 @@ const Dashboard = () => {
   // 🔄 Loading state (progressive: don't block on settingsLoading)
   if (!dateRange || !dateRange.from || !dateRange.to) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Dashboard</h2>
@@ -168,7 +168,7 @@ const Dashboard = () => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+      <div className="min-h-screen bg-background">
         <div className="container-safe max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           
           {/* 🏠 Header Section */}

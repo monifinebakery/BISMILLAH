@@ -499,7 +499,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
             <CardTitle>Daftar Transaksi</CardTitle>
             {lastUpdated && (
               <div className="flex items-center gap-1 text-xs text-gray-500">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
                 Live
               </div>
             )}
@@ -513,12 +513,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
               disabled={isRefetching}
             >
               <RefreshCw className={cn("mr-2 h-4 w-4", isRefetching && "animate-spin")} />
-              {isRefetching ? (
-                <div className="flex items-center gap-1">
-                  <div className="h-3 w-3 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-3 w-12 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              ) : 'Refresh'}
+              {isRefetching ? 'Refreshing...' : 'Refresh'}
             </Button>
             {onAddTransaction && (
               <Button size="sm" onClick={onAddTransaction}>

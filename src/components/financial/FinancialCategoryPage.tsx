@@ -54,8 +54,9 @@ import {
 } from '@/components/ui/alert-dialog';
 
 // Loading components
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (
-  <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
+  <div className={cn("bg-gray-200 rounded", className)} />
 );
 
 // ✅ SIMPLIFIED Auth Guard Component

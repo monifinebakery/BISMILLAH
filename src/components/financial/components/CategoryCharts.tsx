@@ -45,15 +45,10 @@ const renderCustomizedLabel = ({
 };
 
 // ✅ IMPROVED: Safe loading skeleton untuk category charts yang tidak break UI
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 const CategoryLoadingSkeleton = () => (
   <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
-    <div className="text-center space-y-3">
-      <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-      <div className="space-y-1">
-        <div className="h-4 bg-gray-200 rounded w-24 mx-auto animate-pulse"></div>
-        <div className="h-3 bg-gray-200 rounded w-20 mx-auto animate-pulse"></div>
-      </div>
-    </div>
+    <LoadingSpinner size="md" />
   </div>
 );
 

@@ -35,8 +35,9 @@ import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 // Date input will use HTML5 date input
 
 // Loading components
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (
-  <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
+  <div className={cn("bg-gray-200 rounded", className)} />
 );
 
 // ✅ SIMPLIFIED Auth Guard Component

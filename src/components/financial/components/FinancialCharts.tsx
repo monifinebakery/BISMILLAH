@@ -51,15 +51,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 // ✅ IMPROVED: Safe loading skeleton untuk chart that won't break UI
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 const ChartLoadingSkeleton = () => {
   return (
     <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
       <div className="text-center space-y-4">
-        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded w-32 mx-auto animate-pulse"></div>
-          <div className="h-3 bg-gray-200 rounded w-24 mx-auto animate-pulse"></div>
-        </div>
+        <LoadingSpinner size="lg" />
       </div>
     </div>
   );
@@ -198,7 +195,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
               {/* ✅ TAMBAH: Real-time indicator */}
               {!isLoading && filteredTransactions.length > 0 && (
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
                   <span className="text-xs text-gray-500">Live</span>
                 </div>
               )}

@@ -446,7 +446,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-4 mb-8">
+    <div className="space-y-4 mb-8">
       {statsConfig.map((stat) => (
         <Card key={stat.key} className="border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">

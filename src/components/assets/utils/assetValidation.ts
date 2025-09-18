@@ -6,7 +6,7 @@ import { FORM_VALIDATION_RULES, ASSET_CATEGORIES, ASSET_CONDITIONS } from './ass
 /**
  * Validate individual form field
  */
-export const validateField = (field: keyof AssetFormData, value: any): string | undefined => {
+export const validateField = (field: keyof AssetFormData, value: unknown): string | undefined => {
   const rules = FORM_VALIDATION_RULES[field];
   
   switch (field) {

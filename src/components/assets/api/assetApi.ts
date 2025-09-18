@@ -178,8 +178,9 @@ export const deleteAsset = async (id: string, userId: string): Promise<void> => 
     
     console.log(`✅ Asset "${existingAsset.nama}" and related data deleted successfully`);
     
-  } catch (error: any) {
-    throw new Error(`Asset deletion failed: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Asset deletion failed: ${message}`);
   }
 };
 

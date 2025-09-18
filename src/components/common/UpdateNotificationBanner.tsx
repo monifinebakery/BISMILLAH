@@ -8,17 +8,19 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, X, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface UpdateInfo {
+  newVersion?: string;
+  currentVersion?: string;
+  commitHash?: string;
+  deploymentUrl?: string;
+  updateAvailable?: boolean;
+}
+
 interface UpdateNotificationBannerProps {
   isVisible?: boolean;
   onDismiss?: () => void;
   onRefresh?: () => void;
-  updateInfo?: {
-    newVersion?: string;
-    currentVersion?: string;
-    commitHash?: string;
-    deploymentUrl?: string;
-    updateAvailable?: boolean;
-  };
+  updateInfo?: UpdateInfo;
 }
 
 export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> = ({
@@ -36,7 +38,9 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
     
     try {
       // Mark update in progress to avoid banner reappearing before reload completes
-      try { localStorage.setItem('appUpdateRefreshing', '1'); } catch {}
+      try { localStorage.setItem('appUpdateRefreshing', '1'); } catch {
+        // ignore unavailability of localStorage (private mode or blocked)
+      }
 
       // Try to activate the new service worker first (if waiting)
       if ('serviceWorker' in navigator) {
@@ -45,11 +49,11 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
         if (waiting) {
           // Listen for controller change then reload
           const controllerChanged = new Promise<void>((resolve) => {
-            const onControllerChange = () => {
-              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange as any);
+            const onControllerChange = (_e: Event) => {
+              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
               resolve();
             };
-            navigator.serviceWorker.addEventListener('controllerchange', onControllerChange as any);
+            navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
           });
           waiting.postMessage({ type: 'SKIP_WAITING' });
           await Promise.race([
@@ -161,7 +165,7 @@ export const UpdateNotificationBanner: React.FC<UpdateNotificationBannerProps> =
 // Hook for managing update notifications
 export const useUpdateNotification = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<any>(null);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
 
@@ -203,8 +207,9 @@ export const useUpdateNotification = () => {
           return;
         }
 
-        const data = await response.json();
-        const deployment = data.deployments.find((d: any) => d.meta?.githubCommitSha === commitHash);
+        interface VercelDeployment { meta?: { githubCommitSha?: string }; url?: string; state?: string }
+        const data = (await response.json()) as { deployments: VercelDeployment[] };
+        const deployment = data.deployments.find((d) => d.meta?.githubCommitSha === commitHash);
 
         // Only show banner when deployment is READY, not during BUILDING or QUEUED
         if (deployment && deployment.state === 'READY') {
@@ -227,20 +232,22 @@ export const useUpdateNotification = () => {
   };
 
 
-  const showUpdateNotification = (info: any) => {
+  const showUpdateNotification = (info: UpdateInfo) => {
     // If a refresh is already in progress, don't show the banner again
     try {
       if (localStorage.getItem('appUpdateRefreshing') === '1') {
         return;
       }
-    } catch {}
+    } catch {
+      // ignore storage access errors
+    }
 
     setUpdateInfo(info);
     setUpdateAvailable(true);
     setIsVisible(true);
   };
 
-  const checkForUpdate = (info: any) => {
+  const checkForUpdate = (info: { commitHash: string } & Partial<UpdateInfo>) => {
     if (isPolling) return;
     // Guard: only poll when Vercel env is available
     if (!HAS_VERCEL_ENV) return;

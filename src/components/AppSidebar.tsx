@@ -27,6 +27,8 @@ import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/components/orders/context/OrderContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
+import type { BahanBakuFrontend } from "@/components/warehouse/types";
+import type { FinancialTransaction } from "@/components/financial/types/financial";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { usePromo } from "@/components/promoCalculator/context/PromoContext";
 import { useOperationalCost } from "@/components/operational-costs/context/OperationalCostContext";
@@ -48,7 +50,7 @@ export function AppSidebar() {
   const { isPaid } = usePaymentContext();
 
   // Use warehouse hook directly with defensive check
-  let bahanBaku: Array<any> = [];
+  let bahanBaku: BahanBakuFrontend[] = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -64,7 +66,7 @@ export function AppSidebar() {
   const { orders } = useOrder();
   
   // ✅ FIXED: Defensive error handling for useFinancial hook (similar to useBahanBaku)
-  let financialTransactions: Array<any> = [];
+  let financialTransactions: FinancialTransaction[] = [];
   try {
     const financialContext = useFinancial();
     financialTransactions = financialContext?.financialTransactions || [];

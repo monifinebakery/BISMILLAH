@@ -19,13 +19,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // ⚡ MOBILE DETECTION
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  // ✅ Development bypass authentication
+  // ✅ Development bypass authentication (must NOT short‑circuit before hooks)
   const isDevelopmentBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
-  
-  if (isDevelopmentBypass) {
-    console.log('🔧 [DEV] AuthGuard: Bypassing authentication check');
-    return <>{children}</>;
-  }
 
   // ✅ FORCE RE-RENDER on auth state changes
   useEffect(() => {
@@ -132,6 +127,12 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
   
+  // ✅ DEV BYPASS: Render children after hooks are called to satisfy Rules of Hooks
+  if (isDevelopmentBypass) {
+    console.log('🔧 [DEV] AuthGuard: Bypassing authentication check');
+    return <>{children}</>;
+  }
+
   // ⚡ MOBILE: Quick preview state untuk smoother transition
   if (user && showQuickPreview && !isMobileOptimized && isMobile) {
     console.log(`⚡ [AuthGuard #${renderCount}] Showing quick preview for mobile`);

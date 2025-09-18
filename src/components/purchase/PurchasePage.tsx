@@ -9,7 +9,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Purchase } from './types/purchase.types';
 
 // Context imports
-import { PurchaseProvider } from './context/PurchaseContext';
 import { usePurchase } from './hooks/usePurchase';
 import { PurchaseTableProvider } from './context/PurchaseTableContext';
 
@@ -341,12 +340,10 @@ const PurchasePageContent: React.FC<PurchasePageProps> = ({ className = '' }) =>
   );
 };
 
-// ✅ WRAPPER: Main component
+// ✅ Main component (provider supplied by AppProviders)
 const PurchasePage: React.FC<PurchasePageProps> = ({ className }) => {
   return (
-    <PurchaseProvider>
-      <PurchasePageContent className={className} />
-    </PurchaseProvider>
+    <PurchasePageContent className={className} />
   );
 };
 

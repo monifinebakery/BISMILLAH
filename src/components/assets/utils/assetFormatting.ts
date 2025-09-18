@@ -60,7 +60,7 @@ export const formatNumber = (value: number | null | undefined): string => {
 /**
  * Get safe input value for controlled components
  */
-export const getInputValue = (value: any): string => {
+export const getInputValue = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   return String(value);
 };

@@ -10,6 +10,8 @@ import { useRecipe } from "@/contexts/RecipeContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { useOrder } from "@/components/orders/context/OrderContext";
 import { useFinancial } from "@/components/financial/contexts/FinancialContext";
+import type { BahanBakuFrontend } from "@/components/warehouse/types";
+import type { FinancialTransaction } from "@/components/financial/types/financial";
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 
 // ✅ RESTORED: Import modular asset hooks (nested QueryClient fixed)
@@ -27,7 +29,7 @@ const MobileExportButton = () => {
   const { settings } = useUserSettings();
   
   // Add defensive check for useBahanBaku
-  let bahanBaku: Array<{ id: string; nama: string; jumlah: number; satuan: string; hargaSatuan: number }> = [];
+  let bahanBaku: BahanBakuFrontend[] = [];
   try {
     const warehouseContext = useBahanBaku();
     bahanBaku = warehouseContext?.bahanBaku || [];
@@ -43,7 +45,7 @@ const MobileExportButton = () => {
   const { orders } = useOrder();
   
   // ✅ FIXED: Defensive error handling for useFinancial hook (similar to useBahanBaku)
-  let financialTransactions: Array<any> = [];
+  let financialTransactions: FinancialTransaction[] = [];
   try {
     const financialContext = useFinancial();
     financialTransactions = financialContext?.financialTransactions || [];

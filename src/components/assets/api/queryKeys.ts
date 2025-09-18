@@ -6,7 +6,7 @@ export const assetQueryKeys = {
   
   // Lists
   lists: () => [...assetQueryKeys.all, 'list'] as const,
-  list: (filters?: Record<string, any>) => [...assetQueryKeys.lists(), { filters }] as const,
+  list: (filters?: Record<string, unknown>) => [...assetQueryKeys.lists(), { filters }] as const,
   
   // Details
   details: () => [...assetQueryKeys.all, 'detail'] as const,

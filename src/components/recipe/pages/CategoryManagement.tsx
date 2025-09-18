@@ -5,6 +5,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ArrowLeft, Tag, RefreshCcw } from 'lucide-react';
 
 // Components
@@ -59,59 +60,41 @@ const CategoryManagement: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 sm:p-6 space-y-6">
-        
+      <div className="mx-auto max-w-4xl p-4 sm:p-6 space-y-5">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleBack}
-              className="p-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Tag className="w-4 h-4 text-gray-600" />
-                </div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Kelola Kategori Resep
-                </h1>
-              </div>
-              <p className="text-gray-600 mt-1 ml-11">
-                Buat dan atur kategori sesuai kebutuhan Anda
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="flex items-center gap-2"
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleBack}
+            className="p-2"
+            aria-label="Kembali"
           >
-            <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Muat Ulang</span>
+            <ArrowLeft className="w-4 h-4" />
           </Button>
+          <div className="flex items-center gap-2">
+            <Tag className="w-5 h-5 text-gray-600" />
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+              Kelola Kategori Resep
+            </h1>
+          </div>
         </div>
 
-        {/* Statistics */}
+        {/* Statistics - responsive, simple */}
         <CategoryStatsCards
           totalRecipes={recipeStats.totalRecipes}
           categorizedRecipes={recipeStats.categorizedRecipes}
           totalCategories={categoryStats.length}
         />
 
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Content */}
+        <div className="grid gap-5 lg:grid-cols-2">
           {/* Add New Category */}
-          <Card className="border bg-white/90 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Tambah Kategori Baru</CardTitle>
+          <Card className="border bg-white">
+            <CardHeader className="py-3">
+              <CardTitle className="text-base">Tambah Kategori</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-2">
               <AddCategoryForm
                 isLoading={isLoading}
                 onAddCategory={handleAddCategory}
@@ -120,11 +103,21 @@ const CategoryManagement: React.FC = () => {
           </Card>
 
           {/* Categories List */}
-          <Card className="border bg-white/90 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Daftar Kategori</CardTitle>
+          <Card className="border bg-white">
+            <CardHeader className="py-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Daftar Kategori</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-2">
               <CategoryTable
                 categories={categoryStats}
                 isLoading={isLoading}
@@ -136,39 +129,33 @@ const CategoryManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      {categoryToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle className="text-lg">Konfirmasi Hapus</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Apakah Anda yakin ingin menghapus kategori "{categoryToDelete}"? 
-                Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <div className="flex gap-3 justify-end">
-                <Button 
-                  variant="outline" 
-                  onClick={closeDeleteConfirmation}
-                  disabled={isLoading}
-                >
-                  Batal
-                </Button>
-                <Button 
-                  variant="destructive"
-                  onClick={handleDeleteConfirm}
-                  disabled={isLoading}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Hapus
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Delete Confirmation Dialog - responsive */}
+      <Dialog open={!!categoryToDelete} onOpenChange={(open) => !open && closeDeleteConfirmation()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <p className="text-gray-600">
+            Apakah Anda yakin ingin menghapus kategori "{categoryToDelete}"? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={closeDeleteConfirmation}
+              disabled={isLoading}
+            >
+              Batal
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isLoading}
+            >
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

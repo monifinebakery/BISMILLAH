@@ -16,22 +16,64 @@ export interface RetryOptions {
   baseDelay?: number;
   maxDelay?: number;
   exponential?: boolean;
-  onRetry?: (attempt: number, error: any) => void;
+  onRetry?: (attempt: number, error: SupabaseErrorLike) => void;
+}
+
+interface SupabaseErrorLike extends SupabaseError {
+  status?: number;
 }
 
 export class SupabaseErrorHandler {
+  static normalizeError(error: unknown): SupabaseErrorLike {
+    if (!error) {
+      return { message: 'Unknown Supabase error' };
+    }
+
+    if (error instanceof Error) {
+      return { message: error.message };
+    }
+
+    if (typeof error === 'string') {
+      return { message: error };
+    }
+
+    if (typeof error === 'object') {
+      const candidate = error as Partial<SupabaseErrorLike> & { status?: unknown };
+      const message = typeof candidate.message === 'string'
+        ? candidate.message
+        : (() => {
+            try {
+              return JSON.stringify(candidate);
+            } catch {
+              return String(candidate);
+            }
+          })();
+
+      return {
+        message,
+        code: candidate.code,
+        details: candidate.details,
+        hint: candidate.hint,
+        status: typeof candidate.status === 'number' ? candidate.status : undefined
+      };
+    }
+
+    return { message: String(error) };
+  }
+
   /**
    * Check if an error is retriable (503, 429, network issues)
    */
-  static isRetriableError(error: any): boolean {
+  static isRetriableError(error: SupabaseErrorLike): boolean {
     if (!error) return false;
     
     // HTTP Status codes that should be retried
     const retriableCodes = [429, 502, 503, 504];
     
     // Check status code
-    if (error.status && retriableCodes.includes(error.status)) return true;
-    if (error.code && retriableCodes.includes(error.code)) return true;
+    if (typeof error.status === 'number' && retriableCodes.includes(error.status)) return true;
+    if (typeof error.code === 'number' && retriableCodes.includes(error.code)) return true;
+    if (typeof error.code === 'string' && retriableCodes.includes(Number(error.code))) return true;
     
     // Check error message
     const message = error.message?.toLowerCase() || '';
@@ -62,16 +104,17 @@ export class SupabaseErrorHandler {
       onRetry
     } = options;
 
-    let lastError: any;
-    
+    let lastError: unknown;
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
+        const normalizedError = this.normalizeError(error);
         lastError = error;
-        
+
         // If not retriable or last attempt, throw immediately
-        if (!this.isRetriableError(error) || attempt === maxRetries) {
+        if (!this.isRetriableError(normalizedError) || attempt === maxRetries) {
           throw error;
         }
 
@@ -84,12 +127,12 @@ export class SupabaseErrorHandler {
         const jitteredDelay = delay + Math.random() * 200;
 
         logger.warn(`🔄 Retrying Supabase operation (${attempt}/${maxRetries}) in ${Math.round(jitteredDelay)}ms`, {
-          error: error.message,
+          error: normalizedError.message,
           attempt,
           delay: jitteredDelay
         });
 
-        onRetry?.(attempt, error);
+        onRetry?.(attempt, normalizedError);
         await new Promise(resolve => setTimeout(resolve, jitteredDelay));
       }
     }
@@ -100,12 +143,12 @@ export class SupabaseErrorHandler {
   /**
    * Show appropriate user-friendly error message
    */
-  static handleError(error: any, context?: string): void {
-    if (!error) return;
+  static handleError(error: unknown, context?: string): void {
+    const normalizedError = this.normalizeError(error);
 
-    logger.error('Supabase error:', { error, context });
+    logger.error('Supabase error:', { error: normalizedError, context });
 
-    if (this.isRetriableError(error)) {
+    if (this.isRetriableError(normalizedError)) {
       toast.error('Koneksi database bermasalah', {
         description: 'Sedang mencoba menghubungkan kembali. Mohon tunggu sebentar...'
       });
@@ -113,23 +156,23 @@ export class SupabaseErrorHandler {
     }
 
     // Handle specific error types
-    const message = error.message?.toLowerCase() || '';
-    
-    if (message.includes('auth') || message.includes('unauthorized') || error.code === 401) {
+    const message = normalizedError.message?.toLowerCase() || '';
+
+    if (message.includes('auth') || message.includes('unauthorized') || normalizedError.code === 401) {
       toast.error('Sesi telah berakhir', {
         description: 'Silakan login ulang untuk melanjutkan.'
       });
       return;
     }
 
-    if (message.includes('permission') || message.includes('forbidden') || error.code === 403) {
+    if (message.includes('permission') || message.includes('forbidden') || normalizedError.code === 403) {
       toast.error('Akses ditolak', {
         description: 'Anda tidak memiliki permission untuk melakukan operasi ini.'
       });
       return;
     }
 
-    if (message.includes('not found') || error.code === 404) {
+    if (message.includes('not found') || normalizedError.code === 404) {
       toast.error('Data tidak ditemukan', {
         description: 'Item yang Anda cari mungkin sudah dihapus atau tidak tersedia.'
       });
@@ -146,17 +189,20 @@ export class SupabaseErrorHandler {
     // Generic error message
     const contextStr = context ? ` (${context})` : '';
     toast.error(`Terjadi kesalahan${contextStr}`, {
-      description: error.message || 'Mohon coba lagi atau hubungi admin jika masalah berlanjut.'
+      description: normalizedError.message || 'Mohon coba lagi atau hubungi admin jika masalah berlanjut.'
     });
   }
 
   /**
    * Create a wrapper for Supabase query with automatic error handling and retry
    */
-  static wrapQuery<T>(query: () => Promise<{ data: T | null; error: any }>, context?: string) {
+  static wrapQuery<T, E extends SupabaseErrorLike>(
+    query: () => Promise<{ data: T | null; error: E | null }>,
+    context?: string
+  ) {
     return this.withRetry(async () => {
       const { data, error } = await query();
-      
+
       if (error) {
         this.handleError(error, context);
         throw error;
@@ -175,7 +221,8 @@ export class SupabaseMonitor {
   private static lastResetTime = Date.now();
   private static readonly RESET_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-  static recordError(error: any, context?: string): void {
+  static recordError(error: unknown, context?: string): void {
+    const normalizedError = SupabaseErrorHandler.normalizeError(error);
     const now = Date.now();
     
     // Reset counters every 5 minutes
@@ -184,7 +231,7 @@ export class SupabaseMonitor {
       this.lastResetTime = now;
     }
 
-    const errorType = this.getErrorType(error);
+    const errorType = this.getErrorType(normalizedError);
     const current = this.errorCounts.get(errorType) || 0;
     this.errorCounts.set(errorType, current + 1);
 
@@ -193,7 +240,7 @@ export class SupabaseMonitor {
       logger.error(`🚨 High error rate detected for ${errorType}:`, {
         count: current + 1,
         context,
-        error: error.message
+        error: normalizedError.message
       });
 
       if (errorType === '503' && current === 5) {
@@ -204,9 +251,10 @@ export class SupabaseMonitor {
     }
   }
 
-  private static getErrorType(error: any): string {
-    if (error.status) return error.status.toString();
-    if (error.code) return error.code.toString();
+  private static getErrorType(error: SupabaseErrorLike): string {
+    if (typeof error.status === 'number') return error.status.toString();
+    if (typeof error.code === 'number') return error.code.toString();
+    if (typeof error.code === 'string') return error.code;
     if (error.message?.includes('503')) return '503';
     if (error.message?.includes('network')) return 'network';
     if (error.message?.includes('timeout')) return 'timeout';

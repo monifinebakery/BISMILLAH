@@ -468,7 +468,7 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
               </div>
               
               <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center ml-4 flex-shrink-0">
-                <div className="text-orange-600 w-6 h-6">
+                <div className="text-orange-600 w-6 h-6 flex items-center justify-center">
                   {stat.icon}
                 </div>
               </div>

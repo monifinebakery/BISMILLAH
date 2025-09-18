@@ -376,8 +376,8 @@ export const formatLargeNumber = (num: number | null | undefined, digits: number
     { value: 1, symbol: "" },
     { value: 1E3, symbol: " rb" },
     { value: 1E6, symbol: " jt" },
-    { value: 1E9, symbol: " M" },
-    { value: 1E12, symbol: " T" }
+    { value: 1E9, symbol: " miliar" },
+    { value: 1E12, symbol: " triliun" }
   ];
   const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
   let i;
@@ -418,9 +418,9 @@ export const isValidPhoneNumber = (phone: string): boolean => {
 export const formatCompactNumber = (num: number): string => {
   if (typeof num !== 'number' || isNaN(num)) return '0';
   if (num < 1000) return num.toString();
-  if (num < 1000000) return (num / 1000).toFixed(1) + 'K';
-  if (num < 1000000000) return (num / 1000000).toFixed(1) + 'M';
-  return (num / 1000000000).toFixed(1) + 'B';
+  if (num < 1000000) return (num / 1000).toFixed(1) + ' rb';
+  if (num < 1000000000) return (num / 1000000).toFixed(1) + ' jt';
+  return (num / 1000000000).toFixed(1) + ' miliar';
 };
 
 // Order utilities

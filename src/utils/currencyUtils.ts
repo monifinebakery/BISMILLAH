@@ -31,8 +31,8 @@ export const formatLargeNumber = (num: number | null | undefined, digits: number
     { value: 1, symbol: "" },
     { value: 1E3, symbol: " rb" }, // Ribu
     { value: 1E6, symbol: " jt" }, // Juta
-    { value: 1E9, symbol: " M" },  // Miliar
-    { value: 1E12, symbol: " T" }  // Triliun
+    { value: 1E9, symbol: " miliar" },  // Miliar
+    { value: 1E12, symbol: " triliun" }  // Triliun
   ];
   const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
   let i;

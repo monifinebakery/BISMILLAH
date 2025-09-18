@@ -11,7 +11,6 @@ import { DialogLoader } from './shared/LoadingStates';
 import { logger } from '@/utils/logger';
 
 // ✅ OPTIMIZED: Lazy loading sederhana untuk dialog
-const FollowUpTemplateManager = React.lazy(() => import('./dialogs/FollowUpTemplateManager'));
 const BulkDeleteDialog = React.lazy(() => import('./dialogs/BulkDeleteDialog'));
 const BulkEditDialog = React.lazy(() => import('./dialogs/BulkEditDialog'));
 const OrderDetailDialog = React.lazy(() => import('./dialogs/OrderDetailDialog'));
@@ -20,11 +19,6 @@ const OrderDetailDialog = React.lazy(() => import('./dialogs/OrderDetailDialog')
 
 // ✅ INTERFACES: Props interface
 interface OrderDialogsProps {
-  // Template manager
-  showTemplateManager: boolean;
-  selectedOrderForTemplate: Order | null;
-  onCloseTemplateManager: () => void;
-
   // Detail dialog
   showDetailDialog?: boolean;
   detailOrder?: Order | null;
@@ -42,11 +36,6 @@ interface OrderDialogsProps {
 }
 
 const OrderDialogs: React.FC<OrderDialogsProps> = ({
-  // Template manager props
-  showTemplateManager,
-  selectedOrderForTemplate,
-  onCloseTemplateManager,
-
   // Detail dialog props
   showDetailDialog = false,
   detailOrder = null,
@@ -62,33 +51,6 @@ const OrderDialogs: React.FC<OrderDialogsProps> = ({
   onCloseBulkDelete,
   onCloseBulkEdit
 }) => {
-  // ✅ MEMOIZED: WhatsApp handler for template manager
-  const handleSendWhatsApp = useMemo(() => 
-    (message: string, order: Order) => {
-      logger.context('OrderDialogs', 'Sending WhatsApp:', { message, order });
-      
-      const phone = (order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['teleponPelanggan'];
-      if (!phone) {
-        logger.warn('No phone number available for WhatsApp');
-        return;
-      }
-      
-      try {
-        // Format phone number
-        const cleanPhoneNumber = String(phone).replace(/\D/g, '');
-        
-        // Create WhatsApp URL
-        const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(message)}`;
-        
-        // Open WhatsApp
-        window.open(whatsappUrl, '_blank');
-        
-        logger.context('OrderDialogs', 'WhatsApp opened successfully');
-      } catch (error) {
-        logger.error('Error opening WhatsApp:', error);
-      }
-    }, []
-  );
 
   // ✅ MEMOIZED: Bulk operation handlers
   const bulkHandlers = useMemo(() => ({
@@ -109,18 +71,6 @@ const OrderDialogs: React.FC<OrderDialogsProps> = ({
 
   return (
     <>
-      {/* ✅ TEMPLATE MANAGER DIALOG: WhatsApp templates */}
-      {showTemplateManager && (
-        <Suspense fallback={<DialogLoader message="Memuat template manager..." />}>
-          <FollowUpTemplateManager
-            isOpen={showTemplateManager}
-            onClose={onCloseTemplateManager}
-            order={selectedOrderForTemplate}
-            onSendWhatsApp={handleSendWhatsApp}
-          />
-        </Suspense>
-      )}
-
       {/* ✅ ORDER DETAIL DIALOG: Informasi detail pesanan */}
       {showDetailDialog && detailOrder && (
         <Suspense fallback={<DialogLoader message="Memuat detail pesanan..." />}>

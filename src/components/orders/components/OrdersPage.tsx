@@ -100,22 +100,18 @@ const OrderDialogs = React.lazy(() =>
 interface OrdersPageState {
   dialogs: {
     orderForm: boolean;
-    templateManager: boolean;
     detail: boolean;
   };
   editingOrder: Order | null;
-  selectedOrderForTemplate: Order | null;
   viewingOrder: Order | null;
 }
 
 const initialState: OrdersPageState = {
   dialogs: {
     orderForm: false,
-    templateManager: false,
     detail: false
   },
   editingOrder: null,
-  selectedOrderForTemplate: null,
   viewingOrder: null
 };
 
@@ -242,23 +238,6 @@ const OrdersPage: React.FC = () => {
       }));
     },
 
-    openTemplateManager: () => {
-      logger.component('OrdersPage', 'Opening template manager');
-      setPageState(prev => ({
-        ...prev,
-        dialogs: { ...prev.dialogs, templateManager: true },
-        selectedOrderForTemplate: null
-      }));
-    },
-
-    closeTemplateManager: () => {
-      logger.component('OrdersPage', 'Closing template manager');
-      setPageState(prev => ({
-        ...prev,
-        dialogs: { ...prev.dialogs, templateManager: false },
-        selectedOrderForTemplate: null
-      }));
-    },
 
     openDetail: (order: Order) => {
       logger.component('OrdersPage', 'Opening order detail dialog', { orderId: order.id, nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan'] });
@@ -318,12 +297,6 @@ const OrdersPage: React.FC = () => {
       });
 
       toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
-
-      // Set selected order for template manager
-      setPageState(prev => ({
-        ...prev,
-        selectedOrderForTemplate: order
-      }));
     },
     [getWhatsappUrl]
   );
@@ -395,10 +368,6 @@ const OrdersPage: React.FC = () => {
       
       {/* ✅ Extracted: Header */}
       <OrderHeader
-        onOpenTemplateManager={() => {
-          logger.component('OrdersPage', 'Template manager button clicked');
-          dialogHandlers.openTemplateManager();
-        }}
         onNewOrder={() => {
           logger.component('OrdersPage', 'New order button clicked from header');
           businessHandlers.newOrder();
@@ -523,11 +492,8 @@ const OrdersPage: React.FC = () => {
         />
         
         <OrderDialogs
-          showTemplateManager={pageState.dialogs.templateManager}
-          selectedOrderForTemplate={pageState.selectedOrderForTemplate}
           showDetailDialog={pageState.dialogs.detail}
           detailOrder={pageState.viewingOrder}
-          onCloseTemplateManager={dialogHandlers.closeTemplateManager}
           onCloseDetail={dialogHandlers.closeDetail}
         />
       </SafeSuspense>

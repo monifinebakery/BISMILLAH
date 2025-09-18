@@ -14,12 +14,13 @@ import {
   useAssetCalculations 
 } from './hooks';
 import { Asset } from './types';
-import { 
-  AssetStatistics, 
-  AssetTable, 
-  AssetCard, 
+import {
+  AssetStatistics,
+  AssetCard,
+  AssetTable,
   AssetDeleteDialog 
 } from './components';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 
 export const AssetManagement: React.FC = () => {
   const isMobile = useIsMobile();
@@ -88,7 +89,6 @@ export const AssetManagement: React.FC = () => {
 
   // Loading state
   if (isLoading) {
-    const { LoadingStates } = require('@/components/ui/loading-spinner');
     return (
       <div className="w-full min-h-screen bg-white p-6">
         <LoadingStates.Page />

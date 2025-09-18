@@ -15,6 +15,10 @@ const OrdersViewPage = React.lazy(() =>
   import(/* webpackChunkName: "orders-view" */ '@/components/orders/components/OrdersViewPage')
 );
 
+const FollowUpTemplateManagerPage = React.lazy(() =>
+  import(/* webpackChunkName: "orders-templates" */ '@/components/orders/pages/FollowUpTemplateManagerPage')
+);
+
 const ordersRoutes = (
   <>
     {/* Orders List Page */}
@@ -69,6 +73,20 @@ const ordersRoutes = (
           preloadOnHover={true}
         >
           <OrdersViewPage />
+        </OptimizedRouteWrapper>
+      }
+    />
+    
+    {/* Template Manager Page */}
+    <Route
+      path="pesanan/template"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="orders-templates" 
+          priority="medium"
+          preloadOnHover={true}
+        >
+          <FollowUpTemplateManagerPage />
         </OptimizedRouteWrapper>
       }
     />

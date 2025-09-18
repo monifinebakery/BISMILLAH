@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Building2, Plus, Square, CheckSquare } from 'lucide-react';
 import { Asset } from '../types';
 import { formatCurrency, formatDateForDisplay } from '../utils';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 import { AssetConditionBadge } from './AssetConditionBadge';
 import { AssetCategoryBadge } from './AssetCategoryBadge';
 import { AssetActions } from './AssetActions';
@@ -59,7 +60,6 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   };
 
   if (isLoading) {
-    const { LoadingStates } = require('@/components/ui/loading-spinner');
     return (
       <div className="py-10">
         <LoadingStates.Table />

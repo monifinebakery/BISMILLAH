@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { FormField } from '@/components/ui/form-field';
+import { DollarSign, Calendar, MapPin, FileText, Package } from 'lucide-react';
 import { AssetFormData, AssetFormErrors, AssetCategory, AssetCondition } from '../types';
 import {
   ASSET_CATEGORIES,
@@ -144,25 +146,18 @@ const getPlaceholderByCategory = (category: string): string => {
 };
 
 const AssetNameField: React.FC<NameFieldProps> = ({ value, error, onChange, disabled, category }) => (
-  <div>
-    <Label htmlFor="nama" className="text-gray-700">
-      Nama Aset *
-    </Label>
-    <Input
-      id="nama"
-      value={getInputValue(value)}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={getPlaceholderByCategory(category || '')}
-      className={`border-orange-200 focus:border-orange-400 ${
-        error ? 'border-red-500' : ''
-      }`}
-      disabled={disabled}
-    />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    <p className="text-xs text-gray-500 mt-1">
-      Tulis nama spesifik beserta merk/model jika ada
-    </p>
-  </div>
+  <FormField
+    label="Nama Aset"
+    type="text"
+    value={getInputValue(value)}
+    onChange={(e) => onChange(e.target.value)}
+    placeholder={getPlaceholderByCategory(category || '')}
+    disabled={disabled}
+    error={error}
+    required
+    icon={Package}
+    helpText="Tulis nama spesifik beserta merk/model jika ada"
+  />
 );
 
 const AssetCategoryField: React.FC<FieldProps> = ({ value, error, onChange, disabled }) => (
@@ -212,44 +207,32 @@ const AssetValueField: React.FC<ValueFieldProps> = ({
   placeholder,
   helpText 
 }) => (
-  <div>
-    <Label htmlFor={id} className="text-gray-700">
-      {label}
-    </Label>
-    <Input
-      id={id}
-      type="number"
-      value={getInputValue(value)}
-      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : '')}
-      placeholder={placeholder}
-      className={`border-orange-200 focus:border-orange-400 ${
-        error ? 'border-red-500' : ''
-      }`}
-      min="0"
-      disabled={disabled}
-    />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    {helpText && <p className="text-xs text-gray-500 mt-1">{helpText}</p>}
-  </div>
+  <FormField
+    label={label}
+    type="number"
+    value={getInputValue(value)}
+    onChange={(e) => onChange(e.target.value ? Number(e.target.value) : '')}
+    placeholder={placeholder}
+    disabled={disabled}
+    error={error}
+    min="0"
+    icon={DollarSign}
+    helpText={helpText}
+    required={label.includes('*')}
+  />
 );
 
 const AssetDateField: React.FC<FieldProps> = ({ value, error, onChange, disabled }) => (
-  <div>
-    <Label htmlFor="tanggalPembelian" className="text-gray-700">
-      Tanggal Pembelian *
-    </Label>
-    <Input
-      id="tanggalPembelian"
-      type="date"
-      value={formatDateToYYYYMMDD(value)}
-      onChange={(e) => onChange(safeParseDate(e.target.value))}
-      className={`border-orange-200 focus:border-orange-400 ${
-        error ? 'border-red-500' : ''
-      }`}
-      disabled={disabled}
-    />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-  </div>
+  <FormField
+    label="Tanggal Pembelian"
+    type="date"
+    value={formatDateToYYYYMMDD(value)}
+    onChange={(e) => onChange(safeParseDate(e.target.value))}
+    disabled={disabled}
+    error={error}
+    required
+    icon={Calendar}
+  />
 );
 
 const AssetDepreciationField: React.FC<FieldProps> = ({ value, error, onChange, disabled }) => (
@@ -324,43 +307,30 @@ const AssetConditionField: React.FC<FieldProps> = ({ value, error, onChange, dis
 );
 
 const AssetLocationField: React.FC<FieldProps> = ({ value, error, onChange, disabled }) => (
-  <div>
-    <Label htmlFor="lokasi" className="text-gray-700">
-      Lokasi *
-    </Label>
-    <Input
-      id="lokasi"
-      value={getInputValue(value)}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="Masukkan lokasi aset"
-      className={`border-orange-200 focus:border-orange-400 ${
-        error ? 'border-red-500' : ''
-      }`}
-      disabled={disabled}
-    />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-  </div>
+  <FormField
+    label="Lokasi"
+    type="text"
+    value={getInputValue(value)}
+    onChange={(e) => onChange(e.target.value)}
+    placeholder="Masukkan lokasi aset"
+    disabled={disabled}
+    error={error}
+    required
+    icon={MapPin}
+  />
 );
 
 const AssetDescriptionField: React.FC<FieldProps> = ({ value, error, onChange, disabled }) => (
-  <div>
-    <Label htmlFor="deskripsi" className="text-gray-700">
-      Deskripsi
-    </Label>
-    <Textarea
-      id="deskripsi"
-      value={getInputValue(value)}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="Masukkan deskripsi aset"
-      rows={3}
-      className={`border-orange-200 focus:border-orange-400 ${
-        error ? 'border-red-500' : ''
-      }`}
-      disabled={disabled}
-    />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    <p className="text-xs text-gray-500 mt-1">
-      Opsional: Deskripsi detail tentang aset
-    </p>
-  </div>
+  <FormField
+    label="Deskripsi"
+    type="textarea"
+    value={getInputValue(value)}
+    onChange={(e) => onChange(e.target.value)}
+    placeholder="Masukkan deskripsi aset"
+    rows={3}
+    disabled={disabled}
+    error={error}
+    icon={FileText}
+    helpText="Opsional: Deskripsi detail tentang aset"
+  />
 );

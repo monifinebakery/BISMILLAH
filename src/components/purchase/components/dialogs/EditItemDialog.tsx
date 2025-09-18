@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Edit3, Save, X } from 'lucide-react';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
 import { SafeNumericInput } from './SafeNumericInput';
@@ -185,24 +186,23 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
           </div>
 
           <DialogFooter className="dialog-footer">
-            <div className="flex gap-3 w-full">
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                className="flex-1"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Batal
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={kuantitasNum <= 0 || harga_satuan_num <= 0}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Simpan
-              </Button>
-            </div>
+            <ActionButtons
+              actions={[
+                {
+                  type: 'secondary',
+                  label: 'Batal',
+                  icon: X,
+                  onClick: handleCancel,
+                },
+                {
+                  type: 'primary',
+                  label: 'Simpan',
+                  icon: Save,
+                  onClick: handleSave,
+                  disabled: kuantitasNum <= 0 || harga_satuan_num <= 0,
+                },
+              ]}
+            />
           </DialogFooter>
         </div>
       </DialogContent>

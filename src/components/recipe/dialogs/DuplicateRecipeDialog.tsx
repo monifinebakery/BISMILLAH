@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import { 
   Copy, 
   X, 
@@ -262,31 +263,25 @@ const DuplicateRecipeDialog: React.FC<DuplicateRecipeDialogProps> = ({
           </div>
 
           <DialogFooter className="dialog-footer">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="w-full sm:w-auto"
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              disabled={!isValid || isLoading}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                  Menduplikasi...
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Duplikasi
-                </>
-              )}
-            </Button>
+            <ActionButtons
+              actions={[
+                {
+                  type: 'secondary',
+                  label: 'Batal',
+                  onClick: () => onOpenChange(false),
+                  disabled: isLoading,
+                },
+                {
+                  type: 'primary',
+                  label: 'Duplikasi',
+                  icon: Copy,
+                  onClick: handleConfirm,
+                  disabled: !isValid || isLoading,
+                },
+              ]}
+              isLoading={isLoading}
+              loadingText="Menduplikasi..."
+            />
           </DialogFooter>
         </div>
       </DialogContent>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { formatCurrency } from '@/utils/formatUtils'; // ✅ Fallback import
 import type { BahanBakuFrontend } from '../types';
@@ -447,45 +448,25 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
           </div>
 
           <DialogFooter className="dialog-footer-pad">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isProcessing}
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={isProcessing}
-              className={`flex items-center gap-2 ${
-                isEditMode 
-                  ? 'bg-blue-600 hover:bg-blue-700' 
-                  : 'bg-red-600 hover:bg-red-700'
-              }`}
-            >
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  {isEditMode ? 'Menyimpan...' : 'Menghapus...'}
-                </>
-              ) : (
-                <>
-                  {isEditMode ? (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Simpan Perubahan
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      Hapus {selectedCount} Item
-                    </>
-                  )}
-                </>
-              )}
-            </Button>
+            <ActionButtons
+              actions={[
+                {
+                  type: 'secondary',
+                  label: 'Batal',
+                  onClick: onClose,
+                  disabled: isProcessing,
+                },
+                {
+                  type: isEditMode ? 'primary' : 'danger',
+                  label: isEditMode ? 'Simpan Perubahan' : `Hapus ${selectedCount} Item`,
+                  icon: isEditMode ? Save : Trash2,
+                  onClick: handleSubmit,
+                  disabled: isProcessing,
+                },
+              ]}
+              isLoading={isProcessing}
+              loadingText={isEditMode ? 'Menyimpan...' : 'Menghapus...'}
+            />
           </DialogFooter>
       </DialogContent>
     </Dialog>

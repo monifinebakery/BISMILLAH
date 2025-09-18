@@ -12,6 +12,7 @@ import {
   RefreshCw,
   AlertTriangle,
 } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { BahanBakuFrontend, SortConfig } from '../types';
 import { logger } from '@/utils/logger';
 import WarehouseTableRow from './WarehouseTableRow';
@@ -108,43 +109,29 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   if (!isLoading && items.length === 0) {
     logger.component('WarehouseTable', 'Displaying empty state', { hasSearchTerm: !!searchTerm });
     return (
-      <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center">
-        <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mb-4" />
-        <h3 className="text-base md:text-lg font-semibold text-gray-600 mb-2">
-          {searchTerm ? 'Tidak ada hasil ditemukan' : 'Belum ada pembelian bahan baku'}
-        </h3>
-        <p className="text-sm md:text-base text-gray-500 mb-6 max-w-md px-4">
-          {searchTerm
-            ? 'Coba ubah kata kunci pencarian atau filter yang digunakan.'
-            : 'Tambahkan pembelian bahan baku pertama untuk mulai mengelola stok.'}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          {!searchTerm && (
-            <Button onClick={emptyStateAction} className="flex items-center gap-2">
-              <Package className="w-4 h-4" />
-              Tambah Pembelian
-            </Button>
-          )}
-          {onRefresh && (
-            <Button
-              variant="outline"
-              onClick={selectionState.handleRefresh}
-              disabled={selectionState.isRefreshing}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
-              {selectionState.isRefreshing ? (
-              <Skeleton className="h-4 w-20" />
-            ) : 'Refresh Data'}
-            </Button>
-          )}
-        </div>
-        {lastUpdated && (
-          <p className="text-xs text-gray-400 mt-4">
-            Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
-          </p>
-        )}
-      </div>
+      <EmptyState
+        icon={Package}
+        title={searchTerm ? 'Tidak ada hasil ditemukan' : 'Belum ada pembelian bahan baku'}
+        description={searchTerm
+          ? 'Coba ubah kata kunci pencarian atau filter yang digunakan.'
+          : 'Tambahkan pembelian bahan baku pertama untuk mulai mengelola stok.'}
+        actions={[
+          ...((!searchTerm) ? [{
+            label: 'Tambah Pembelian',
+            onClick: emptyStateAction,
+            icon: Package,
+            variant: 'default' as const,
+          }] : []),
+          ...(onRefresh ? [{
+            label: selectionState.isRefreshing ? 'Refreshing...' : 'Refresh Data',
+            onClick: selectionState.handleRefresh,
+            icon: RefreshCw,
+            variant: 'outline' as const,
+            disabled: selectionState.isRefreshing,
+          }] : []),
+        ]}
+        showLastUpdated={lastUpdated}
+      />
     );
   }
 

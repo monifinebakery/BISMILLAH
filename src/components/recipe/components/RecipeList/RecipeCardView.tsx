@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,21 +81,26 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
     );
   };
 
-  // Profitability badge
+  // Profitability badge - using StatusBadge
   const getProfitabilityBadge = (marginPersen: number) => {
     const level = getProfitabilityLevel(marginPersen);
-    const config = {
-      high: { color: 'bg-green-100 text-green-800', icon: TrendingUp, label: 'Tinggi' },
-      medium: { color: 'bg-yellow-100 text-yellow-800', icon: Minus, label: 'Sedang' },
-      low: { color: 'bg-red-100 text-red-800', icon: TrendingDown, label: 'Rendah' },
-    } as const;
-
-    const { color, icon: Icon, label } = config[level];
+    const statusMap = {
+      high: 'success' as const,
+      medium: 'warning' as const, 
+      low: 'danger' as const,
+    };
+    const labelMap = {
+      high: 'Tinggi',
+      medium: 'Sedang',
+      low: 'Rendah',
+    };
+    
     return (
-      <Badge variant="secondary" className={`${color} flex items-center gap-1`}>
-        <Icon className="h-3 w-3" />
-        {label}
-      </Badge>
+      <StatusBadge
+        status={statusMap[level]}
+        label={labelMap[level]}
+        size="sm"
+      />
     );
   };
 
@@ -325,10 +332,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
       {/* Loading overlay */}
       {isLoading && (
         <div className="pointer-events-none fixed inset-0 flex items-center justify-center bg-white/80 z-50">
-          <div className="flex items-center gap-2 text-gray-600">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
-            Memproses...
-          </div>
+          <LoadingStates type="spinner" text="Memproses..." size="sm" />
         </div>
       )}
     </div>

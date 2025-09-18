@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FormField } from '@/components/ui/form-field';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import { 
   Info, 
   Lightbulb, 
@@ -259,23 +261,17 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           <div className="flex-1 overflow-y-auto p-6">
             <form id="cost-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Nama Biaya */}
-          <div className="space-y-2">
-            <Label htmlFor="nama_biaya" className="text-sm font-medium">
-              Nama Biaya <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="nama_biaya"
-              type="text"
-              placeholder="Contoh: Sewa Tempat, Listrik Toko, Marketing Digital..."
-              value={formData.nama_biaya}
-              onChange={(e) => handleCostNameChange(e.target.value)}
-              className={errors.nama_biaya ? 'border-red-500' : ''}
-              disabled={isSubmitting}
-              autoFocus
-            />
-            {errors.nama_biaya && (
-              <p className="text-sm text-red-600">{errors.nama_biaya}</p>
-            )}
+          <FormField
+            label="Nama Biaya"
+            type="text"
+            placeholder="Contoh: Sewa Tempat, Listrik Toko, Marketing Digital..."
+            value={formData.nama_biaya}
+            onChange={(e) => handleCostNameChange(e.target.value)}
+            error={errors.nama_biaya}
+            disabled={isSubmitting}
+            required
+            autoFocus
+          />
             
             {/* ✅ NEW: Smart Suggestion Display */}
             {showSmartSuggestion && smartSuggestion && (
@@ -326,39 +322,25 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
                 </div>
               </div>
             )}
-          </div>
 
           {/* Jumlah per Bulan */}
-          <div className="space-y-2">
-            <Label htmlFor="jumlah_per_bulan" className="text-sm font-medium">
-              Jumlah per Bulan <span className="text-red-500">*</span>
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                Rp
-              </span>
-              <Input
-                id="jumlah_per_bulan"
-                type="number"
-                min="0"
-                placeholder="0"
-                value={formData.jumlah_per_bulan || ''}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value) || 0;
-                  setFormData(prev => ({ ...prev, jumlah_per_bulan: value }));
-                  setHasUserEditedAmount(true); // Mark as manually edited
-                }}
-                className={`pl-8 ${errors.jumlah_per_bulan ? 'border-red-500' : ''}`}
-                disabled={isSubmitting}
-              />
-            </div>
-            {errors.jumlah_per_bulan && (
-              <p className="text-sm text-red-600">{errors.jumlah_per_bulan}</p>
-            )}
-            <p className="text-xs text-gray-500">
-              Masukkan jumlah biaya yang dikeluarkan per bulan
-            </p>
-          </div>
+          <FormField
+            label="Jumlah per Bulan"
+            type="number"
+            min="0"
+            placeholder="0"
+            value={formData.jumlah_per_bulan || ''}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value) || 0;
+              setFormData(prev => ({ ...prev, jumlah_per_bulan: value }));
+              setHasUserEditedAmount(true); // Mark as manually edited
+            }}
+            error={errors.jumlah_per_bulan}
+            disabled={isSubmitting}
+            required
+            prefix="Rp"
+            helpText="Masukkan jumlah biaya yang dikeluarkan per bulan"
+          />
 
           {/* Jenis */}
           <div className="space-y-2">
@@ -489,22 +471,15 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           )}
 
           {/* Deskripsi (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="deskripsi" className="text-sm font-medium">
-              Deskripsi <span className="text-gray-400">(Opsional)</span>
-            </Label>
-            <Input
-              id="deskripsi"
-              type="text"
-              placeholder="Tambahkan catatan atau keterangan..."
-              value={formData.deskripsi || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, deskripsi: e.target.value }))}
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-gray-500">
-              Keterangan tambahan untuk biaya ini
-            </p>
-          </div>
+          <FormField
+            label="Deskripsi (Opsional)"
+            type="text"
+            placeholder="Tambahkan catatan atau keterangan..."
+            value={formData.deskripsi || ''}
+            onChange={(e) => setFormData(prev => ({ ...prev, deskripsi: e.target.value }))}
+            disabled={isSubmitting}
+            helpText="Keterangan tambahan untuk biaya ini"
+          />
 
           {/* Info about cost classification */}
           <div className="space-y-2">
@@ -540,30 +515,25 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
           </div>
           
           <DialogFooter className="p-6 pt-4 border-t border-gray-200">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="w-full sm:w-auto order-2 sm:order-1"
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || isLoading}
-              className="w-full sm:w-auto order-1 sm:order-2 bg-orange-600 hover:bg-orange-700"
-              form="cost-form"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                  {cost ? 'Menyimpan...' : 'Menambah...'}
-                </>
-              ) : (
-                cost ? 'Simpan Perubahan' : 'Tambah Biaya'
-              )}
-            </Button>
+            <ActionButtons
+              actions={[
+                {
+                  type: 'secondary',
+                  label: 'Batal',
+                  onClick: handleClose,
+                  disabled: isSubmitting,
+                },
+                {
+                  type: 'primary',
+                  label: cost ? 'Simpan Perubahan' : 'Tambah Biaya',
+                  disabled: isSubmitting || isLoading,
+                  htmlType: 'submit',
+                  form: 'cost-form',
+                },
+              ]}
+              isLoading={isSubmitting}
+              loadingText={cost ? 'Menyimpan...' : 'Menambah...'}
+            />
           </DialogFooter>
       </DialogContent>
     </Dialog>

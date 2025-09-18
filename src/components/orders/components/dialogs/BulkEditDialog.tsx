@@ -10,6 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import {
   Select,
   SelectContent,
@@ -200,23 +201,26 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
           </div>
 
           <DialogFooter className="dialog-footer-pad">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={loading}
-              className="min-w-[100px]"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Batal
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              disabled={loading || !newStatus}
-              className="min-w-[120px]"
-            >
-              <Check className="h-4 w-4 mr-2" />
-              {loading ? 'Menyimpan...' : 'Update Status'}
-            </Button>
+            <ActionButtons
+              actions={[
+                {
+                  type: 'secondary',
+                  label: 'Batal',
+                  icon: X,
+                  onClick: handleClose,
+                  disabled: loading,
+                },
+                {
+                  type: 'primary',
+                  label: 'Update Status',
+                  icon: Check,
+                  onClick: handleConfirm,
+                  disabled: loading || !newStatus,
+                },
+              ]}
+              isLoading={loading}
+              loadingText="Menyimpan..."
+            />
           </DialogFooter>
       </DialogContent>
     </Dialog>

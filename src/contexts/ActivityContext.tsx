@@ -398,12 +398,7 @@ export const ActivityProvider: React.FC<{ children: ReactNode }> = ({ children }
       return;
     }
 
-    try {
-      await addMutation.mutateAsync(activityData);
-    } catch (error) {
-      // Error already handled in mutation
-      throw error;
-    }
+    await addMutation.mutateAsync(activityData);
   }, [userId, addMutation]);
 
   const refreshActivities = useCallback(async () => {

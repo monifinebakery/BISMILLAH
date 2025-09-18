@@ -121,9 +121,13 @@ async function persistNow(queryClient: QueryClient) {
     const payload: PersistedState = { ts: Date.now(), data: dehydrated };
     await idbSet(STORAGE_KEY, payload);
     // Keep legacy localStorage as a tiny fallback (optional)
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch {}
-  } catch {
-    // best-effort
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (storageError) {
+      console.warn('queryPersistence: failed to persist cache to localStorage', storageError);
+    }
+  } catch (error) {
+    console.warn('queryPersistence: failed to persist cache to IndexedDB', error);
   }
 }
 
@@ -159,6 +163,12 @@ export async function clearPersistedQueryState() {
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
-  } catch {}
-  try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+  } catch (error) {
+    console.warn('queryPersistence: failed to remove cached state from IndexedDB', error);
+  }
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch (storageError) {
+    console.warn('queryPersistence: failed to remove cached state from localStorage', storageError);
+  }
 }

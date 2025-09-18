@@ -154,8 +154,8 @@ const getDeviceInfo = (): Partial<Device> => {
     os = version ? `macOS 10.${version}` : 'macOS';
   } else if (/macintosh|mac os x/i.test(userAgent)) {
     os = 'macOS';
-  } else if (/android ([0-9\.]+)/i.test(userAgent)) {
-    const version = userAgent.match(/android ([0-9\.]+)/i)?.[1];
+  } else if (/android ([0-9.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/android ([0-9.]+)/i)?.[1];
     os = `Android ${version || ''}`;
   } else if (/android/i.test(userAgent)) {
     os = 'Android';
@@ -171,22 +171,22 @@ const getDeviceInfo = (): Partial<Device> => {
   }
 
   // Enhanced browser detection with version
-  if (/edg\/([0-9\.]+)/i.test(userAgent)) {
-    const version = userAgent.match(/edg\/([0-9\.]+)/i)?.[1];
+  if (/edg\/([0-9.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/edg\/([0-9.]+)/i)?.[1];
     browser = `Edge ${version?.split('.')[0] || ''}`;
-  } else if (/chrome\/([0-9\.]+)/i.test(userAgent)) {
-    const version = userAgent.match(/chrome\/([0-9\.]+)/i)?.[1];
+  } else if (/chrome\/([0-9.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/chrome\/([0-9.]+)/i)?.[1];
     browser = `Chrome ${version?.split('.')[0] || ''}`;
-  } else if (/firefox\/([0-9\.]+)/i.test(userAgent)) {
-    const version = userAgent.match(/firefox\/([0-9\.]+)/i)?.[1];
+  } else if (/firefox\/([0-9.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/firefox\/([0-9.]+)/i)?.[1];
     browser = `Firefox ${version?.split('.')[0] || ''}`;
-  } else if (/version\/([0-9\.]+).*safari/i.test(userAgent)) {
-    const version = userAgent.match(/version\/([0-9\.]+)/i)?.[1];
+  } else if (/version\/([0-9.]+).*safari/i.test(userAgent)) {
+    const version = userAgent.match(/version\/([0-9.]+)/i)?.[1];
     browser = `Safari ${version?.split('.')[0] || ''}`;
   } else if (/safari/i.test(userAgent)) {
     browser = 'Safari';
-  } else if (/opera|opr\/([0-9\.]+)/i.test(userAgent)) {
-    const version = userAgent.match(/(?:opera|opr)\/([0-9\.]+)/i)?.[1];
+  } else if (/opera|opr\/([0-9.]+)/i.test(userAgent)) {
+    const version = userAgent.match(/(?:opera|opr)\/([0-9.]+)/i)?.[1];
     browser = `Opera ${version?.split('.')[0] || ''}`;
   }
 

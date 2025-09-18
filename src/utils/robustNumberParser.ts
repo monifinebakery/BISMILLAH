@@ -21,7 +21,7 @@ export const parseRobustNumber = (value: any, defaultValue: number = 0): number 
   if (str === '') return defaultValue;
 
   // Remove all non-numeric characters except dot, comma, and minus
-  let cleaned = str.replace(/[^\d.,\-]/g, '');
+  let cleaned = str.replace(/[^\d.,-]/g, '');
   
   if (cleaned === '' || cleaned === '-') return defaultValue;
 

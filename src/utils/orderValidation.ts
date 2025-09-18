@@ -37,7 +37,7 @@ export const ORDER_VALIDATION_RULES = {
     required: true,
     minLength: 3,
     maxLength: 50,
-    pattern: /^[A-Z0-9\-]+$/
+    pattern: /^[A-Z0-9-]+$/
   },
   ITEMS: {
     minItems: 1,

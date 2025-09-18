@@ -400,7 +400,7 @@ export const sanitizeInput = (input: string): string => {
 
 export const sanitizePhoneNumber = (phone: string): string => {
   if (!phone) return '';
-  return phone.replace(/[^\d\+\-\(\)\s]/g, '').trim();
+  return phone.replace(/[^\d+()\s-]/g, '').trim();
 };
 
 export const isValidEmail = (email: string): boolean => {

@@ -77,12 +77,12 @@ export function parsePeriod(period: string): PeriodInfo {
                   parts[1] >= 1 && parts[1] <= 12
         };
         
-      case 'daily':
+      case 'daily': {
         const date = new Date(parts[0], parts[1] - 1, parts[2]);
-        const isValidDate = date.getFullYear() === parts[0] && 
-                           date.getMonth() === parts[1] - 1 && 
+        const isValidDate = date.getFullYear() === parts[0] &&
+                           date.getMonth() === parts[1] - 1 &&
                            date.getDate() === parts[2];
-        
+
         return {
           period,
           format,
@@ -91,6 +91,7 @@ export function parsePeriod(period: string): PeriodInfo {
           day: parts[2],
           isValid: isValidDate && parts[0] >= 2000 && parts[0] <= 2100
         };
+      }
         
       default:
         return {
@@ -263,21 +264,23 @@ export function formatPeriodForDisplay(period: string): string {
       case 'yearly':
         return `Tahun ${periodInfo.year}`;
         
-      case 'monthly':
+      case 'monthly': {
         const monthNames = [
           'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
           'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
         ];
         const monthName = monthNames[(periodInfo.month || 1) - 1];
         return `${monthName} ${periodInfo.year}`;
+      }
         
-      case 'daily':
+      case 'daily': {
         const date = new Date(periodInfo.year, (periodInfo.month || 1) - 1, periodInfo.day || 1);
         return date.toLocaleDateString('id-ID', {
           year: 'numeric',
           month: 'long',
           day: 'numeric'
         });
+      }
         
       default:
         return period;

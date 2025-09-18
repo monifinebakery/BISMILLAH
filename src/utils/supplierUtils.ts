@@ -70,7 +70,7 @@ export const validateSupplierForm = (formData: SupplierFormData): SupplierValida
   }
 
   // Phone validation (optional)
-  if (formData.telepon.trim() && !/^[\d\s\-\+\(\)]+$/.test(formData.telepon)) {
+  if (formData.telepon.trim() && !/^[\d\s()+-]+$/.test(formData.telepon)) {
     errors.push({
       code: 'INVALID_FORMAT',
       message: 'Format nomor telepon tidak valid',
@@ -336,7 +336,7 @@ export const SUPPLIER_CONSTANTS = {
   SEARCH_DEBOUNCE_MS: 300,
   
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  PHONE_REGEX: /^[\d\s\-\+\(\)]+$/,
+  PHONE_REGEX: /^[\d\s()+-]+$/,
   
   SORT_OPTIONS: [
     { value: 'nama', label: 'Nama Supplier' },

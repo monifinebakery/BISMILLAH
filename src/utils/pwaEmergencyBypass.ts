@@ -212,12 +212,12 @@ export async function emergencyRecovery(): Promise<void> {
 
 // Development/Debug functions
 if (import.meta.env.DEV) {
-  // @ts-ignore
+  // @ts-expect-error -- expose emergency utilities for manual debugging in development
   window.PWA_EMERGENCY_BYPASS = forceBypassAuth;
-  // @ts-ignore
+  // @ts-expect-error -- expose emergency utilities for manual debugging in development
   window.PWA_EMERGENCY_RECOVERY = emergencyRecovery;
-  // @ts-ignore
+  // @ts-expect-error -- expose emergency utilities for manual debugging in development
   window.PWA_CLEAR_AUTH = clearAllAuthData;
-  // @ts-ignore
+  // @ts-expect-error -- expose emergency utilities for manual debugging in development
   window.PWA_CHECK_STUCK = detectPWAStuckState;
 }

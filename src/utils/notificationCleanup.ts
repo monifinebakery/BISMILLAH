@@ -83,7 +83,7 @@ export const cleanupDuplicateNotifications = async (
     // Filter groups yang memiliki duplikat (count > 1)
     const duplicateGroups: NotificationGroup[] = [];
     let totalDuplicatesFound = 0;
-    let duplicateIdsToDelete: string[] = [];
+    const duplicateIdsToDelete: string[] = [];
     
     groups.forEach(group => {
       if (group.count > 1) {

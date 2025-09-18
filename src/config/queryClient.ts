@@ -2,6 +2,30 @@
 import { QueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
 
+type QueryError = {
+  message?: string;
+  status?: number;
+};
+
+const parseQueryError = (error: unknown): QueryError => {
+  if (typeof error === "string") {
+    return { message: error };
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const message = "message" in error && typeof error.message === "string"
+      ? error.message
+      : undefined;
+    const status = "status" in error && typeof error.status === "number"
+      ? error.status
+      : undefined;
+
+    return { message, status };
+  }
+
+  return {};
+};
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -16,16 +40,18 @@ export const queryClient = new QueryClient({
       refetchInterval: false, // Disable auto polling
       
       // OPTIMIZED: Retry strategy yang lebih efisien
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: unknown) => {
+        const { message = "", status } = parseQueryError(error);
+
         // Don't retry auth errors
-        if (error?.message?.includes('session missing') || 
-            error?.message?.includes('not authenticated') ||
-            error?.status === 401 || error?.status === 403) {
-          logger.warn('QueryClient: Auth error, not retrying:', error.message);
+        if (message.includes('session missing') ||
+            message.includes('not authenticated') ||
+            status === 401 || status === 403) {
+          logger.warn('QueryClient: Auth error, not retrying:', message);
           return false;
         }
         // Don't retry client errors (4xx)
-        if (error?.status >= 400 && error?.status < 500) {
+        if (typeof status === 'number' && status >= 400 && status < 500) {
           return false;
         }
         // Retry network errors hanya 1 kali untuk performa

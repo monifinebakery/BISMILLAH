@@ -92,7 +92,6 @@ export class OptimizedQueryBuilder {
   ) {
     const { userId, limit, orderBy, filters } = options;
     
-    let query = `${selectFields}`;
     const conditions: string[] = [];
     
     if (userId) {

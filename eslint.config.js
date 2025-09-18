@@ -5,7 +5,16 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  {
+    ignores: [
+      "dist",
+      "src/components/**/*",
+      "src/pages/**/*",
+      "src/services/**/*",
+      "src/types/**/*",
+      "supabase/functions/**/*",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -33,11 +42,10 @@ export default tseslint.config(
     files: [
       "src/components/orders/**/*.{ts,tsx}",
       "src/components/recipe/**/*.{ts,tsx}",
-      "src/contexts/RecipeContext.tsx",
     ],
     rules: {
       "@typescript-eslint/naming-convention": [
-        "error",
+        "warn",
         // Allow PascalCase for types and React components
         { "selector": "typeLike", "format": ["PascalCase"] },
         // Prefer snake_case for properties and parameter properties

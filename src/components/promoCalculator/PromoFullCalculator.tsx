@@ -6,7 +6,8 @@ import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { AlertCircle, ChevronRight, Home } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Refactored components and hooks
 import { usePromoForm } from './hooks/usePromoForm';
@@ -57,7 +58,6 @@ const PromoFullCalculator = () => {
     // Save
     isSaving,
     handleSave,
-    handleGoBack,
     
     // Query states
     isLoading,
@@ -141,11 +141,28 @@ const PromoFullCalculator = () => {
     <div className="min-h-screen bg-white">
       <div className="container mx-auto p-4 sm:p-6">
         {/* Header */}
+        {/* Breadcrumbs */}
+        <div className="mb-3">
+          <nav aria-label="Breadcrumb" className="text-sm text-gray-600">
+            <ol className="flex items-center gap-1">
+              <li>
+                <Link to="/promo" className="hover:text-gray-900 flex items-center gap-1">
+                  <Home className="h-4 w-4" />
+                  <span>Promo</span>
+                </Link>
+              </li>
+              <li>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </li>
+              <li className="text-gray-900 font-medium">
+                {isEditMode ? 'Edit Promo' : 'Buat Promo'}
+              </li>
+            </ol>
+          </nav>
+        </div>
+
+        {/* Title */}
         <div className="flex items-center justify-between mb-6">
-          <Button onClick={handleGoBack} variant="outline" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Kembali
-          </Button>
           <h1 className="text-2xl font-bold text-gray-900">
             {isEditMode ? 'Edit Promo' : 'Buat Promo Baru'}
           </h1>

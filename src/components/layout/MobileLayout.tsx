@@ -22,9 +22,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   children
 }) => {
   return (
-    <div className="min-h-[100svh] flex flex-col bg-white">
-      {/* ✅ Mobile Header */}
-      <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4">
+    <div className="h-[100svh] flex flex-col bg-white overflow-hidden">
+      {/* 📱 Mobile Header */}
+      <header className="flex-none h-12 flex items-center gap-4 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 z-40">
         <div className="flex-1">
           <h1 className="text-lg font-bold text-primary">HPP App</h1>
         </div>
@@ -44,17 +44,17 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
         </div>
       </header>
 
-      {/* ✅ Main Content */}
-      <main className="flex-1 overflow-auto p-2 sm:p-4 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+      {/* 📱 Main Content - Constrained height with proper scrolling */}
+      <main className="flex-1 overflow-y-auto p-2 sm:p-4 pb-4">
         <ErrorBoundary fallback={<AppError />}>
           {children}
         </ErrorBoundary>
       </main>
 
-      {/* ✅ Bottom Navigation */}
+      {/* 📱 Bottom Navigation - Fixed at bottom */}
       <BottomTabBar />
 
-      {/* ✅ Floating Payment Indicator */}
+      {/* 📱 Floating Payment Indicator */}
       {!isPaid && (
         <div className="fixed bottom-20 right-4 z-50">
           <PaymentStatusIndicator size="lg" />

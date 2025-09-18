@@ -543,67 +543,85 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
             </div>
           </CardContent>
 
-          {/* Footer with Navigation */}
-          <div className="border-t bg-gray-50 px-6 py-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              {/* Left side - HPP Preview (on cost step) */}
-              <div className="flex-1 min-w-0">
-                {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calculator className="h-4 w-4 text-orange-600 flex-shrink-0" />
-                    <span className="text-gray-600">HPP per porsi:</span>
-                    <Badge variant="outline" className="text-orange-700 border-orange-300 flex-shrink-0">
-                      Rp {(formData.hppPerPorsi || 0).toLocaleString()}
-                    </Badge>
-                    {isCalculating && (
-                      <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full flex-shrink-0" />
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Navigation buttons */}
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={isFirstStep ? handleBack : handlePrevious}
-                  disabled={isLoading}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  {isFirstStep ? 'Kembali' : 'Sebelumnya'}
-                </Button>
-                {isLastStep ? (
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={isLoading || isCalculating}
-                    className="bg-orange-500 hover:bg-orange-600"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        {isEditMode ? 'Simpan Perubahan' : 'Simpan Resep'}
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleNext}
-                    disabled={isLoading}
-                    className="bg-orange-500 hover:bg-orange-600"
-                  >
-                    Selanjutnya
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
         </Card>
+        
+        {/* Sticky Footer with Navigation - Mobile Optimized */}
+        <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-4 py-3 mt-6 sm:static sm:bg-gray-50 sm:backdrop-blur-none sm:border-t-0 sm:px-6 sm:py-4 sm:mt-0 sm:border-t">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            {/* Left side - HPP Preview (on cost step) */}
+            <div className="flex-1 min-w-0 hidden sm:block">
+              {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Calculator className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                  <span className="text-gray-600">HPP per porsi:</span>
+                  <Badge variant="outline" className="text-orange-700 border-orange-300 flex-shrink-0">
+                    Rp {(formData.hppPerPorsi || 0).toLocaleString()}
+                  </Badge>
+                  {isCalculating && (
+                    <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full flex-shrink-0" />
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Navigation buttons - Full width on mobile */}
+            <div className="flex gap-3 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={isFirstStep ? handleBack : handlePrevious}
+                disabled={isLoading}
+                className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[auto]"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                <span className="truncate">{isFirstStep ? 'Kembali' : 'Sebelumnya'}</span>
+              </Button>
+              {isLastStep ? (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isLoading || isCalculating}
+                  className="bg-orange-500 hover:bg-orange-600 flex-1 sm:flex-none min-h-[44px] sm:min-h-[auto]"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2 flex-shrink-0" />
+                      <span className="truncate">Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">{isEditMode ? 'Simpan Perubahan' : 'Simpan Resep'}</span>
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleNext}
+                  disabled={isLoading}
+                  className="bg-orange-500 hover:bg-orange-600 flex-1 sm:flex-none min-h-[44px] sm:min-h-[auto]"
+                >
+                  <span className="truncate">Selanjutnya</span>
+                  <ChevronRight className="h-4 w-4 ml-1 flex-shrink-0" />
+                </Button>
+              )}
+            </div>
+            
+            {/* Mobile HPP Preview - Bottom on mobile */}
+            {currentStep === 'costs' && (formData.hppPerPorsi || 0) > 0 && (
+              <div className="w-full sm:hidden mt-3 pt-3 border-t border-gray-200">
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  <Calculator className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                  <span className="text-gray-600">HPP per porsi:</span>
+                  <Badge variant="outline" className="text-orange-700 border-orange-300 flex-shrink-0">
+                    Rp {(formData.hppPerPorsi || 0).toLocaleString()}
+                  </Badge>
+                  {isCalculating && (
+                    <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full flex-shrink-0" />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

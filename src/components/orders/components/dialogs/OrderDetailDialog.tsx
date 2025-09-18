@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency, formatDate } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { getStatusText } from '../../constants';
 import type { Order } from '../../types';

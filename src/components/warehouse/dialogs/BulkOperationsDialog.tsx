@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { ActionButtons } from '@/components/ui/action-buttons';
 import { warehouseUtils } from '../services/warehouseUtils';
-import { formatCurrency } from '@/utils/formatUtils'; // ✅ Fallback import
+import { formatCurrency } from '@/lib/shared';
 import type { BahanBakuFrontend } from '../types';
 import { toNumber } from '../utils/typeUtils';
 

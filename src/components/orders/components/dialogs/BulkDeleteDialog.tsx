@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { ActionButtons } from '@/components/ui/action-buttons';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
 import type { Order } from '../../types';

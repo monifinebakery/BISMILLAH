@@ -10,7 +10,7 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 
 // ✅ ENHANCED: Props untuk useQuery support dengan auto-refresh
 interface CategoryChartsProps {

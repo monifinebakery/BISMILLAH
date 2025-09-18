@@ -1,7 +1,7 @@
 // src/components/purchase/utils/purchaseBroadcast.ts
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import type { Purchase } from '../types/purchase.types';
 
 interface ActivityFn {

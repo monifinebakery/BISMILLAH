@@ -66,8 +66,8 @@ export const LoadingState: React.FC = () => {
                 <Skeleton className="h-4 w-8" />
               </div>
 
-              {/* Table Rows */}
-              {[...Array(5)].map((_, i) => (
+              {/* Table Rows (lite) */}
+              {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex gap-4 p-4 border-b">
                   <div className="flex items-center gap-3 flex-1">
                     <Skeleton className="w-8 h-8 rounded-lg" />
@@ -82,7 +82,6 @@ export const LoadingState: React.FC = () => {
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-8 w-8 rounded" />
                 </div>
               ))}
             </div>

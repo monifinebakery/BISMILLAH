@@ -24,8 +24,8 @@ function Skeleton({
   };
   
   const animationClasses = {
-    pulse: 'animate-pulse',
-    wave: 'animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200',
+    pulse: 'motion-safe:animate-pulse',
+    wave: 'motion-safe:animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200',
     none: ''
   };
   
@@ -78,19 +78,19 @@ const TableSkeleton: React.FC<{
   rows?: number; 
   columns?: number; 
   className?: string 
-}> = ({ rows = 5, columns = 4, className }) => (
-  <div className={cn('space-y-3', className)}>
+}> = ({ rows = 4, columns = 4, className }) => (
+  <div className={cn('space-y-3 motion-safe:animate-pulse', className)}>
     {/* Header */}
     <div className="flex space-x-4">
       {Array.from({ length: columns }).map((_, i) => (
-        <Skeleton key={i} variant="text" className="flex-1" />
+        <div key={i} className="flex-1 h-4 bg-muted rounded" />
       ))}
     </div>
     {/* Rows */}
     {Array.from({ length: rows }).map((_, rowIndex) => (
       <div key={rowIndex} className="flex space-x-4">
         {Array.from({ length: columns }).map((_, colIndex) => (
-          <Skeleton key={colIndex} variant="text" className="flex-1" />
+          <div key={colIndex} className="flex-1 h-4 bg-muted rounded" />
         ))}
       </div>
     ))}
@@ -106,9 +106,9 @@ const LoadingSkeleton: React.FC<{
       return (
         <div className={cn('space-y-6 p-6', className)}>
           <Skeleton variant="text" className="w-1/3 h-8" />
-          <TextSkeleton lines={3} />
+          <TextSkeleton lines={2} />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 3 }).map((_, i) => (
               <CardSkeleton key={i} />
             ))}
           </div>
@@ -124,7 +124,7 @@ const LoadingSkeleton: React.FC<{
     case 'form':
       return (
         <div className={cn('space-y-4', className)}>
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="space-y-2">
               <Skeleton variant="text" className="w-1/4" />
               <Skeleton variant="rounded" className="w-full h-10" />
@@ -140,7 +140,7 @@ const LoadingSkeleton: React.FC<{
     case 'list':
       return (
         <div className={cn('space-y-3', className)}>
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center space-x-3 p-3 border rounded">
               <Skeleton variant="circular" width={32} height={32} />
               <div className="flex-1 space-y-1">

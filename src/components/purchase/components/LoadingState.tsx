@@ -59,9 +59,9 @@ const LoadingState: React.FC<LoadingStateProps> = ({ className = '' }) => {
           </div>
         </div>
 
-        {/* Table rows */}
+        {/* Table rows (lite) */}
         <div className="divide-y">
-          {Array.from({ length: 8 }).map((_, index) => (
+          {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="p-4">
               <div className="flex items-center gap-4">
                 <Skeleton className="h-4 w-4" />
@@ -70,18 +70,15 @@ const LoadingState: React.FC<LoadingStateProps> = ({ className = '' }) => {
                     <div className="flex items-center gap-4">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-20" />
                     </div>
                     <div className="flex items-center gap-4">
                       <Skeleton className="h-4 w-28" />
                       <Skeleton className="h-6 w-16 rounded-full" />
-                      <Skeleton className="h-8 w-8 rounded" />
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Skeleton className="h-3 w-16" />
                     <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-3 w-12" />
                   </div>
                 </div>
               </div>

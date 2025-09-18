@@ -202,15 +202,10 @@ const DeviceManagementPage: React.FC = () => {
   }, []);
 
   if (finalIsLoading && !isRefreshing) {
+    const { LoadingStates } = require('@/components/ui/loading-spinner');
     return (
-      <div className="space-y-4 md:space-y-6 p-4 md:p-0">
-        <div>
-          <Skeleton variant="text" className="w-56 h-6" />
-          <Skeleton variant="text" className="w-72 h-4 mt-2" />
-        </div>
-        <div className="space-y-3">
-          <LoadingSkeleton type="list" />
-        </div>
+      <div className="p-6">
+        <LoadingStates.Page />
       </div>
     );
   }

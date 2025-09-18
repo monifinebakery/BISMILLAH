@@ -59,38 +59,11 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   };
 
   if (isLoading) {
+    const { LoadingStates } = require('@/components/ui/loading-spinner');
     return (
-      <ScrollArea className="w-full">
-        <div className="min-w-[800px]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]"></TableHead>
-                <TableHead className="w-[180px] text-gray-700">Nama Aset</TableHead>
-                <TableHead className="text-gray-700">Kategori</TableHead>
-                <TableHead className="text-gray-700">Nilai Awal</TableHead>
-                <TableHead className="text-gray-700">Nilai Sekarang</TableHead>
-                <TableHead className="text-gray-700">Depresiasi (%)</TableHead>
-                <TableHead className="text-gray-700">Kondisi</TableHead>
-                <TableHead className="text-gray-700">Lokasi</TableHead>
-                <TableHead className="text-gray-700">Tanggal Pembelian</TableHead>
-                <TableHead className="text-right text-gray-700">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <TableRow key={i}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((j) => (
-                    <TableCell key={j}>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </ScrollArea>
+      <div className="py-10">
+        <LoadingStates.Table />
+      </div>
     );
   }
 

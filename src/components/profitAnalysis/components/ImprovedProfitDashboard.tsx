@@ -20,13 +20,9 @@ const ProfitTips = React.lazy(() => import('./ProfitTips'));
 const QuickInsights = React.lazy(() => import('./QuickInsights'));
 
 // Loading fallback components
+import { LoadingStates } from '@/components/ui/loading-spinner';
 const LoadingSkeleton = () => (
-  <div className="flex items-center justify-center h-64">
-    <div className="text-center">
-      <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
-      <p>Sedang menghitung profit...</p>
-    </div>
-  </div>
+  <LoadingStates.Card />
 );
 
 const ErrorFallback = ({ error }: { error: string }) => (

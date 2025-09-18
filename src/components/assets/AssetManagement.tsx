@@ -88,18 +88,10 @@ export const AssetManagement: React.FC = () => {
 
   // Loading state
   if (isLoading) {
+    const { LoadingStates } = require('@/components/ui/loading-spinner');
     return (
-      <div className="w-full min-h-screen bg-white p-4">
-        <div className="space-y-6">
-          <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="h-24 bg-gray-200 rounded animate-pulse" />
-            <div className="h-24 bg-gray-200 rounded animate-pulse" />
-            <div className="h-24 bg-gray-200 rounded animate-pulse" />
-            <div className="h-24 bg-gray-200 rounded animate-pulse" />
-          </div>
-          <div className="h-64 bg-gray-200 rounded animate-pulse" />
-        </div>
+      <div className="w-full min-h-screen bg-white p-6">
+        <LoadingStates.Page />
       </div>
     );
   }

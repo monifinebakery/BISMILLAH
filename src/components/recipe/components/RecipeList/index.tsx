@@ -211,7 +211,7 @@ const RecipeList: React.FC = () => {
   // ✅ EARLY RETURNS: Optimized rendering
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-8 text-center max-w-md">
           <h2 className="text-xl font-semibold mb-4">Akses Terbatas</h2>
           <p className="text-gray-600">Silakan login untuk mengelola resep Anda.</p>
@@ -228,7 +228,7 @@ const RecipeList: React.FC = () => {
   const isGlobalEmpty = recipes.length === 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 sm:p-6 space-y-6">
         
         {/* Header */}

@@ -266,32 +266,21 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setAuthState("success");
         toast.success("Login berhasil! Mengarahkan ke dashboard...");
         onLoginSuccess?.();
-        
-        // ✅ FIXED: Simplified success flow - let Supabase onAuthStateChange handle everything
-        // The verifyEmailOtp already creates the session in Supabase
-        // AuthContext.onAuthStateChange will automatically detect the new session and redirect
-        logger.debug("EmailAuth: Waiting for AuthContext to detect session...");
-        
-        // ✅ Fallback safety check after reasonable delay for slow connections
-        setTimeout(() => {
-          if (!mountedRef.current) return;
-          try {
-            // Only trigger redirect check if still on auth page after 2 seconds
-            if (window.location.pathname === '/auth') {
-              logger.warn("EmailAuth: Still on auth page after 2s, triggering manual refresh");
-              refreshUser().then(() => {
-                if (window.location.pathname === '/auth') {
-                  redirectCheck();
-                }
-              }).catch(err => {
-                logger.error("EmailAuth: Manual refresh failed:", err);
-              });
-            }
-          } catch (err) {
-            logger.error("EmailAuth: Fallback redirect check failed:", err);
-          }
-        }, 2000); // Increased to 2 seconds for slower connections
-        
+        // ✅ NEW: Mark recent OTP success to give AuthGuard a grace period on mobile
+        try { localStorage.setItem('otpVerifiedAt', String(Date.now())); } catch {}
+
+        // ✅ Immediate SPA navigation to dashboard to reduce perceived delay
+        try {
+          navigate(redirectUrl, { replace: true });
+        } catch (e) {
+          logger.warn('EmailAuth: navigate failed, using fallback redirectCheck');
+          // Fallback: allow AuthContext + AuthGuard to handle redirect
+          setTimeout(() => {
+            if (!mountedRef.current) return;
+            redirectCheck();
+          }, 500);
+        }
+
         return;
       } else if (ok === "expired") {
         setAuthState("expired");

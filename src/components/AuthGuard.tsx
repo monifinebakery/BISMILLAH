@@ -146,8 +146,31 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  // ✅ ENHANCED: Redirect logic with detailed logging
+  // ✅ ENHANCED: Redirect logic with mobile-friendly grace period after OTP
   if (!user) {
+    let recentlyVerified = false;
+    try {
+      const ts = parseInt(localStorage.getItem('otpVerifiedAt') || '0', 10) || 0;
+      recentlyVerified = ts > 0 && (Date.now() - ts) < 15000; // 15s grace
+    } catch {}
+
+    if (recentlyVerified) {
+      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP just verified)`);
+      // Optional: trigger a background refresh to speed up
+      // Don't block hooks rules; use a microtask
+      Promise.resolve().then(() => {
+        try { window.dispatchEvent(new Event('auth-refresh-request')); } catch {}
+      });
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-sm text-gray-600">Menyiapkan sesi...</p>
+          </div>
+        </div>
+      );
+    }
+
     console.log(`🔒 [AuthGuard #${renderCount}] No user found, redirecting to /auth`);
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }

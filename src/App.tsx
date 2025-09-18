@@ -8,9 +8,8 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AppProviders } from "@/contexts/AppProviders";
 import { AppRouter } from "@/config/routes";
 import { queryClient } from "@/config/queryClient";
-import { AppLoader } from "@/components/loaders";
 import { logger } from "@/utils/logger";
-import { CodeSplittingProvider, CodeSplittingLoadingIndicator } from "@/providers/CodeSplittingProvider";
+import { CodeSplittingProvider } from "@/providers/CodeSplittingProvider";
 // Unified: Update banner is handled in AppLayout via useUpdateNotification
 import InstallBanner from '@/components/InstallBanner';
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
@@ -134,12 +133,9 @@ const App = () => {
         <CodeSplittingProvider>
           {/* ✅ AppProviders already includes AuthProvider and PaymentProvider in correct order */}
           <AppProviders>
-            <Suspense fallback={<AppLoader />}>
+            <Suspense fallback={null}>
               <AppRouter />
             </Suspense>
-
-            {/* ✅ Code Splitting Loading Indicator */}
-            <CodeSplittingLoadingIndicator show={import.meta.env.DEV} />
 
             {/* ✅ Dev tools only in development */}
             {import.meta.env.DEV && (

@@ -1,7 +1,7 @@
 import React from 'react';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
-import { AppLoader, AppError } from '@/components/loaders';
+import { AppError } from '@/components/loaders';
 
 interface RouteWrapperProps {
   children: React.ReactNode;

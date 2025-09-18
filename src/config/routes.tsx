@@ -23,7 +23,6 @@ import purchaseRoutes from '@/routes/purchase';
 
 import settingsRoutes from '@/routes/settings';
 import deviceRoutes from '@/routes/devices';
-import menuRoutes from '@/routes/menu';
 import paymentRoutes from '@/routes/payment';
 import promoRoutes from '@/routes/promo';
 import preloadingRoutes from '@/routes/preloading';
@@ -68,7 +67,6 @@ export const AppRouter: React.FC = () => (
 
       {settingsRoutes}
       {deviceRoutes}
-      {menuRoutes}
       {paymentRoutes}
       {promoRoutes}
       {preloadingRoutes}

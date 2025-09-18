@@ -39,6 +39,8 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { useProfitAnalysis } from "@/components/profitAnalysis";
 import { exportAllDataToExcel } from "@/utils/exportUtils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -48,6 +50,16 @@ export function AppSidebar() {
   const { user } = useAuth();
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
+  const isMobile = useIsMobile();
+  let isIOS = false;
+  try {
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1);
+    }
+  } catch (e) {
+    isIOS = false;
+  }
 
   // Use warehouse hook directly with defensive check
   let bahanBaku: BahanBakuFrontend[] = [];
@@ -208,6 +220,14 @@ export function AppSidebar() {
       {/* Footer */}
       <SidebarFooter className="p-2 border-t mt-auto">
         <SidebarMenu className="space-y-1 flex flex-col w-full">
+          {/* Mobile-only: PWA Install Button (hidden on iOS) */}
+          {isMobile && !isIOS && (
+            <SidebarMenuItem className="w-full">
+              <div className="px-2">
+                <PWAInstallButton showNetworkStatus={false} />
+              </div>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem className="w-full">
             {renderActionButton(() => handleExportAllData('xlsx'), Download, (assetsLoading || profitLoading) ? "Memuat..." : "Export Semua Data")}
           </SidebarMenuItem>

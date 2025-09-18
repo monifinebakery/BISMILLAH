@@ -510,10 +510,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           logger.debug('AuthContext: Quick user not available');
         }
         
-        const userAgent = navigator.userAgent;
-        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
-        const isTablet = /iPad|Android.*Tablet|Windows.*Touch/i.test(userAgent);
-         
          // 📱 MOBILE-UNIVERSAL: Use auth fallback for ALL mobile devices
          if (isMobile || isTablet) {
            const deviceType = isTablet ? 'Tablet' : 'Mobile';
@@ -521,7 +517,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
              deviceType,
              isMobile,
              isTablet,
-             userAgent: userAgent.substring(0, 100) + '...',
+             userAgent: navigator.userAgent.substring(0, 100) + '...',
              timestamp: new Date().toISOString()
            });
           
@@ -584,7 +580,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                deviceType,
                isMobile,
                isTablet,
-               userAgent: userAgent.substring(0, 100) + '...',
+               userAgent: navigator.userAgent.substring(0, 100) + '...',
                timestamp: new Date().toISOString()
              });
              

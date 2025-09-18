@@ -475,13 +475,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
+      // Hoist monitor so it's visible in finally
+      let authMonitor: ReturnType<typeof startMobileAuthMonitoring> | null = null;
       try {
         logger.context('AuthContext', 'Initializing auth...');
         
         // 📱 MOBILE DEBUG: Start monitoring and debug info collection
         const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
         const isTablet = /iPad|Android.*Tablet|Windows.*Touch/i.test(navigator.userAgent);
-        const authMonitor = (isMobile || isTablet) ? startMobileAuthMonitoring() : null;
+        authMonitor = (isMobile || isTablet) ? startMobileAuthMonitoring() : null;
         if (isMobile || isTablet) {
           debugMobileAuth();
           authMonitor?.checkpoint('auth-init-start');
@@ -721,8 +723,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (mounted) {
           setIsLoading(false);
           setIsReady(true);
-          authMonitor?.checkpoint('auth-init-complete');
-          authMonitor?.finish();
+          try {
+            authMonitor?.checkpoint('auth-init-complete');
+            authMonitor?.finish();
+          } catch (e) {
+            logger.debug('AuthContext: authMonitor finalize skipped:', e);
+          }
           logger.context('AuthContext', 'Auth initialization completed');
         }
       }

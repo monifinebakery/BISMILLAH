@@ -191,13 +191,18 @@ export default function MobilePWAInstructions({ isOpen, onClose }: MobilePWAInst
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4">
+      {/* Backdrop that respects safe areas */}
+      <div className="absolute inset-0 bg-black/50" style={{paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)'}} onClick={onClose} />
+      
+      {/* Centered dialog; on very small screens it behaves like a bottom sheet but stays centered within safe areas */}
+      <div className="relative bg-white rounded-2xl w-[min(100vw,420px)] max-h-[min(90vh,720px)] h-auto overflow-y-auto shadow-xl m-4">
         <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Install Aplikasi</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full"
+            aria-label="Tutup"
           >
             <X className="w-5 h-5" />
           </button>

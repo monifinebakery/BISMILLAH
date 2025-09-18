@@ -112,16 +112,7 @@ const ProductItem: React.FC<{
   isLoading?: boolean;
 }> = ({ product, rank, sortConfig, isLoading = false }) => {
   if (isLoading) {
-    return (
-      <div className="p-3 sm:p-4 flex items-center">
-        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 animate-pulse mr-3 sm:mr-4"></div>
-        <div className="flex-1 space-y-2">
-          <div className="h-3 sm:h-4 bg-gray-200 animate-pulse rounded w-3/4"></div>
-          <div className="h-2 sm:h-3 bg-gray-200 animate-pulse rounded w-1/2"></div>
-        </div>
-        <div className="w-16 sm:w-20 h-6 sm:h-8 bg-gray-200 animate-pulse rounded"></div>
-      </div>
-    );
+    return null;
   }
 
   // Rank badge styling

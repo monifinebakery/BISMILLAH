@@ -162,11 +162,7 @@ const QuickSkeleton = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
 );
 
-const ChartSkeleton = () => (
-  <div className="flex items-center justify-center h-48 md:h-64 bg-white rounded-lg border">
-    <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
-  </div>
-);
+const ChartSkeleton = () => null;
 
 // ✅ ENHANCED Summary Cards Component - With auto-refresh feedback
 const SummaryCards: React.FC<{
@@ -612,7 +608,7 @@ const FinancialReportPage: React.FC = () => {
 
           {/* ✅ CHARTS TAB - Financial charts and category charts */}
           <TabsContent value="charts" className="space-y-6">
-            <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
               <FinancialCharts 
                 filteredTransactions={filteredTransactions}
                 dateRange={dateRange}
@@ -623,12 +619,7 @@ const FinancialReportPage: React.FC = () => {
               />
             </Suspense>
 
-            <Suspense fallback={
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartSkeleton />
-                <ChartSkeleton />
-              </div>
-            }>
+<Suspense fallback={null}>
               <CategoryCharts 
                 filteredTransactions={filteredTransactions}
                 isLoading={isLoading}
@@ -672,7 +663,7 @@ const FinancialReportPage: React.FC = () => {
           {/* ✅ UMKM FEATURES TAB - Optimized Layout */}
           <TabsContent value="umkm" className="space-y-4">
             {/* Daily Summary Widget - Full Width */}
-            <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
               <DailySummaryWidget 
                 transactions={filteredTransactions}
               />
@@ -681,40 +672,40 @@ const FinancialReportPage: React.FC = () => {
             {/* Main Grid - 3 Columns on Large Screens, 2 on Medium, 1 on Small */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {/* Daily Cash Flow Tracker */}
-              <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
                 <DailyCashFlowTracker 
                   transactions={filteredTransactions}
                 />
               </Suspense>
 
               {/* Simple Profit Loss */}
-              <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
                 <ProfitLossSimple 
                   transactions={filteredTransactions}
                 />
               </Suspense>
 
               {/* UMKM Expense Categories */}
-              <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
                 <UMKMExpenseCategories 
                   transactions={filteredTransactions}
                 />
               </Suspense>
 
               {/* Savings Goal Tracker */}
-              <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
                 <SavingsGoalTracker 
                   transactions={filteredTransactions}
                 />
               </Suspense>
 
               {/* Debt Tracker */}
-              <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
                 <DebtTracker />
               </Suspense>
 
               {/* Expense Alerts */}
-              <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
                 <ExpenseAlerts 
                   transactions={filteredTransactions}
                 />
@@ -722,7 +713,7 @@ const FinancialReportPage: React.FC = () => {
             </div>
 
             {/* Simple Business Report - Full Width at Bottom */}
-            <Suspense fallback={<ChartSkeleton />}>
+<Suspense fallback={null}>
               <SimpleBusinessReport 
                 transactions={filteredTransactions}
               />

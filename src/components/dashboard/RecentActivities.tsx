@@ -83,22 +83,7 @@ const ActivityRow: React.FC<{
   };
 
   if (isLoading) {
-    return (
-      <TableRow>
-        <TableCell>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 animate-pulse rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 animate-pulse rounded w-1/2"></div>
-          </div>
-        </TableCell>
-        <TableCell>
-          <div className="h-3 bg-gray-200 animate-pulse rounded w-20"></div>
-        </TableCell>
-        <TableCell>
-          <div className="h-3 bg-gray-200 animate-pulse rounded w-16 ml-auto"></div>
-        </TableCell>
-      </TableRow>
-    );
+    return null;
   }
 
   // 💰 Determine if this is a financial activity

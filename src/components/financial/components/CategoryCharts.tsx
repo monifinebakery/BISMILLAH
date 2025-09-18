@@ -156,29 +156,7 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
     type: 'income' | 'expense';
   }> = ({ title, data, type }) => {
     if (isLoading) {
-      return (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              {title}
-              {onRefresh && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onRefresh}
-                  disabled={isLoading}
-                  className="h-6 w-6 p-0"
-                >
-                  <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
-                </Button>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CategoryLoadingSkeleton />
-          </CardContent>
-        </Card>
-      );
+      return null;
     }
 
     if (data.length === 0) {

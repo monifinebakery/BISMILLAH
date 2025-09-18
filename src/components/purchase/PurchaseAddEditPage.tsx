@@ -214,7 +214,7 @@ const PurchaseAddEditPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        <LoadingStates type="form" text="Memuat data pembelian..." />
+        <LoadingStates.Form text="Memuat data pembelian..." />
       </div>
     );
   }

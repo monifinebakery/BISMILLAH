@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { LoadingStates } from '@/components/ui/loading-spinner';
+import { LoadingStates, LoadingSpinner } from '@/components/ui/loading-spinner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -332,7 +332,7 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
       {/* Loading overlay */}
       {isLoading && (
         <div className="pointer-events-none fixed inset-0 flex items-center justify-center bg-white/80 z-50">
-          <LoadingStates type="spinner" text="Memproses..." size="sm" />
+          <LoadingSpinner size="sm" showText text="Memproses..." />
         </div>
       )}
     </div>

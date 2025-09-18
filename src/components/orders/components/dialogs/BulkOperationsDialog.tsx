@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
-import { formatCurrency, formatDate } from '@/utils/formatUtils';
+import { formatCurrency, formatDate } from '@/lib/shared';
 import { getStatusText, getStatusColor } from '../../constants';
 import type { Order, OrderStatus } from '../../types';
 

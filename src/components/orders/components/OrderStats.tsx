@@ -19,7 +19,7 @@ import {
   Minus,
   Calendar
 } from "lucide-react";
-import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
+import { formatCurrency, formatPercentage } from '@/lib/shared';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 
@@ -84,7 +84,7 @@ const TrendIndicator: React.FC<{
     }
   };
 
-  const formatPercentage = (percentage: number) => {
+  const formatTrendPercentage = (percentage: number) => {
     const sign = trend.type === 'up' ? '+' : trend.type === 'down' ? '-' : '';
     return `${sign}${Math.abs(percentage).toFixed(1)}%`;
   };
@@ -92,7 +92,7 @@ const TrendIndicator: React.FC<{
   return (
     <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium ${getTrendColor()} ${className}`}>
       {getTrendIcon()}
-      <span>{formatPercentage(trend.percentage)}</span>
+      <span>{formatTrendPercentage(trend.percentage)}</span>
     </div>
   );
 };

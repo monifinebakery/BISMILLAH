@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, ArrowUp, ArrowDown, Wallet, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatCurrency, formatTime } from '@/lib/shared';
 
 // ==============================================
 // TYPES
@@ -73,23 +74,7 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
     };
   }, [transactions]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
-  const formatTime = (dateInput: Date | string | null) => {
-    if (!dateInput) return '--:--';
-    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
-    return date.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  // Using shared formatters
 
   const getSaldoStatus = () => {
     if (todayData.saldo > 0) {

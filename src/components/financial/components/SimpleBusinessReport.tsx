@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Calendar, Target, Lightbulb, BarChart3, DollarSign, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatPercentage } from '@/utils/formatUtils';
+import { formatCurrency, formatPercentage } from '@/lib/shared';
 
 // ==============================================
 // TYPES
@@ -29,15 +29,7 @@ interface SimpleBusinessReportProps {
 // ==============================================
 
 const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transactions, className }) => {
-  // Helper function untuk format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  // Using shared formatters
 
   // Analisis bisnis komprehensif
   const businessAnalysis = useMemo(() => {
@@ -214,7 +206,7 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
     };
   }, [transactions]);
 
-  const formatPercentage = (value: number) => {
+  const formatTrendPercentage = (value: number) => {
     const sign = value > 0 ? '+' : '';
     return `${sign}${value.toFixed(1)}%`;
   };
@@ -278,7 +270,7 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
                 "text-xs font-medium",
                 businessAnalysis.changes.income > 0 ? "text-orange-600" : "text-orange-500"
               )}>
-                {formatPercentage(businessAnalysis.changes.income)}
+                {formatTrendPercentage(businessAnalysis.changes.income)}
               </span>
               <span className="text-xs text-orange-500">vs bulan lalu</span>
             </div>
@@ -302,7 +294,7 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
                 "text-xs font-medium",
                 businessAnalysis.changes.expense > 0 ? "text-orange-500" : "text-orange-600"
               )}>
-                {formatPercentage(businessAnalysis.changes.expense)}
+                {formatTrendPercentage(businessAnalysis.changes.expense)}
               </span>
               <span className="text-xs text-orange-500">vs bulan lalu</span>
             </div>
@@ -325,7 +317,7 @@ const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transaction
                 <TrendingDown className="h-3 w-3 text-orange-500" />
               )}
               <span className="text-xs font-medium text-orange-600">
-                {formatPercentage(businessAnalysis.changes.profit)}
+                {formatTrendPercentage(businessAnalysis.changes.profit)}
               </span>
               <span className="text-xs text-orange-500">vs bulan lalu</span>
             </div>

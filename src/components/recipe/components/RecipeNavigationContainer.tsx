@@ -2,6 +2,7 @@
 // Container component that manages navigation states for recipe management
 
 import React, { useState, Suspense, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -150,6 +151,7 @@ interface NavigationState {
 }
 
 const RecipeNavigationContainer: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   // Navigation state
@@ -470,17 +472,17 @@ const RecipeNavigationContainer: React.FC = () => {
           </div>
           <div className="flex gap-3 flex-wrap">
             <Button
-              onClick={() => setNavigationState(prev => ({ ...prev, dialogType: 'category' }))}
+              onClick={() => navigate('/resep/kategori')}
               disabled={isProcessing}
               variant="outline"
-              className="border-orange-200 text-orange-700 hover:bg-orange-50"
+              className="border-gray-200 text-gray-700 hover:bg-gray-50"
             >
               Kelola Kategori
             </Button>
             <Button
               onClick={handleAddRecipe}
               disabled={isProcessing}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="bg-gray-900 hover:bg-gray-800 text-white"
             >
               + Tambah Resep
             </Button>

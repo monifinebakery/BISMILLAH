@@ -74,8 +74,8 @@ const CategoryManagement: React.FC = () => {
             </Button>
             <div>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Tag className="w-4 h-4 text-orange-600" />
+                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <Tag className="w-4 h-4 text-gray-600" />
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900">
                   Kelola Kategori Resep

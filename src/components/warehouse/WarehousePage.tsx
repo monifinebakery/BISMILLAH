@@ -616,7 +616,12 @@ const WarehousePageContent: React.FC = () => {
 
       {/* Main Content */}
       {context.loading ? (
-        <TableSkeleton />
+        <div className="py-10">
+          {(() => {
+            const { LoadingStates } = require('@/components/ui/loading-spinner');
+            return <LoadingStates.Table />;
+          })()}
+        </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
           
@@ -635,7 +640,7 @@ const WarehousePageContent: React.FC = () => {
             activeFiltersCount={core.filters?.activeCount || 0}
           />
 
-          <Suspense fallback={<TableSkeleton />}>
+          <Suspense fallback={null}>
             <WarehouseTable
               items={core.pagination?.currentItems || []}
               isLoading={context.loading}

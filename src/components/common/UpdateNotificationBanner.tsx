@@ -169,17 +169,19 @@ export const useUpdateNotification = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
 
-  const VERCEL_TOKEN = import.meta.env.VITE_VERCEL_TOKEN;
-  const VERCEL_PROJECT_ID = import.meta.env.VITE_VERCEL_PROJECT_ID;
-  const HAS_VERCEL_ENV = Boolean(VERCEL_TOKEN && VERCEL_PROJECT_ID);
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const DEPLOYMENT_STATUS_ENDPOINT = SUPABASE_URL
+    ? `${SUPABASE_URL}/functions/v1/vercel-deployments`
+    : null;
+  const HAS_DEPLOYMENT_ENDPOINT = Boolean(DEPLOYMENT_STATUS_ENDPOINT);
 
   const pollDeploymentStatus = async (commitHash: string, timeout = 5 * 60 * 1000) => {
     // If env vars are not available (e.g., local dev or preview without secrets),
     // silently skip polling and do nothing.
-    if (!HAS_VERCEL_ENV) {
+    if (!HAS_DEPLOYMENT_ENDPOINT) {
       if (import.meta.env.DEV) {
         // Keep logs only in dev to avoid noisy console in production
-        console.info('[update] Skipping Vercel polling: env not set');
+        console.info('[update] Skipping deployment polling: endpoint not set');
       }
       return;
     }
@@ -195,10 +197,11 @@ export const useUpdateNotification = () => {
       }
 
       try {
-        const response = await fetch(`https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&limit=5`, {
+        const params = new URLSearchParams({ commit: commitHash, limit: '5' });
+        const response = await fetch(`${DEPLOYMENT_STATUS_ENDPOINT}?${params.toString()}`, {
           headers: {
-            Authorization: `Bearer ${VERCEL_TOKEN}`,
-          },
+            'Accept': 'application/json'
+          }
         });
 
         if (!response.ok) {
@@ -207,15 +210,29 @@ export const useUpdateNotification = () => {
           return;
         }
 
-        interface VercelDeployment { meta?: { githubCommitSha?: string }; url?: string; state?: string }
-        const data = (await response.json()) as { deployments: VercelDeployment[] };
-        const deployment = data.deployments.find((d) => d.meta?.githubCommitSha === commitHash);
+        interface DeploymentInfo {
+          commitSha?: string | null;
+          url?: string;
+          state?: string;
+          readyState?: string;
+        }
+        const data = (await response.json()) as { deployments: DeploymentInfo[] };
+        const deployment = data.deployments.find((d) => {
+          const commit = d.commitSha ?? '';
+          if (!commit) return false;
+          return (
+            commit === commitHash ||
+            commit.startsWith(commitHash) ||
+            commit.slice(0, 8) === commitHash.slice(0, 8)
+          );
+        });
 
         // Only show banner when deployment is READY, not during BUILDING or QUEUED
-        if (deployment && deployment.state === 'READY') {
+        const state = deployment?.readyState || deployment?.state;
+        if (deployment && state === 'READY') {
           showUpdateNotification({ newVersion: commitHash, deploymentUrl: deployment.url });
           setIsPolling(false);
-        } else if (deployment && (deployment.state === 'BUILDING' || deployment.state === 'QUEUED')) {
+        } else if (deployment && (state === 'BUILDING' || state === 'QUEUED')) {
           // Continue polling every 15 seconds while building
           setTimeout(checkStatus, 15000);
         } else {
@@ -260,8 +277,8 @@ export const useUpdateNotification = () => {
 
   const checkForUpdate = (info: { commitHash: string } & Partial<UpdateInfo>) => {
     if (isPolling) return;
-    // Guard: only poll when Vercel env is available
-    if (!HAS_VERCEL_ENV) return;
+    // Guard: only poll when deployment status endpoint is available
+    if (!HAS_DEPLOYMENT_ENDPOINT) return;
     pollDeploymentStatus(info.commitHash);
   };
 

@@ -32,10 +32,10 @@ class UpdateService {
   private readonly REPO_NAME = 'BISMILLAH';
   private readonly BRANCH = 'main';
   
-  // Vercel API endpoints  
-  private readonly VERCEL_API_BASE = 'https://api.vercel.com';
-  private readonly VERCEL_TEAM_ID = import.meta.env.VITE_VERCEL_TEAM_ID;
-  private readonly VERCEL_PROJECT_ID = import.meta.env.VITE_VERCEL_PROJECT_ID;
+  // Supabase Edge Function for deployment status
+  private readonly DEPLOYMENT_STATUS_ENDPOINT = import.meta.env.VITE_SUPABASE_URL
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vercel-deployments`
+    : undefined;
 
   constructor() {
     this.currentVersion = this.getCurrentVersion();
@@ -81,25 +81,20 @@ class UpdateService {
   // Check Vercel deployment status
   private async checkDeploymentStatus(commitSha: string): Promise<boolean> {
     try {
-      // If no Vercel config, assume deployment is ready (fallback)
-      if (!this.VERCEL_PROJECT_ID) {
-        logger.debug('🟡 No Vercel config found, assuming deployment ready');
+      // If no deployment endpoint, assume deployment is ready (fallback)
+      if (!this.DEPLOYMENT_STATUS_ENDPOINT) {
+        logger.debug('🟡 No deployment status endpoint configured, assuming deployment ready');
         return true;
       }
-      
-      const url = `${this.VERCEL_API_BASE}/v6/deployments`;
+
       const params = new URLSearchParams({
-        projectId: this.VERCEL_PROJECT_ID,
-        gitCommitSha: commitSha,
+        commit: commitSha,
         limit: '1'
       });
-      
-      const response = await fetch(`${url}?${params}`, {
+
+      const response = await fetch(`${this.DEPLOYMENT_STATUS_ENDPOINT}?${params.toString()}`, {
         headers: {
-          'Accept': 'application/json',
-          ...(import.meta.env.VITE_VERCEL_TOKEN && {
-            'Authorization': `Bearer ${import.meta.env.VITE_VERCEL_TOKEN}`
-          })
+          'Accept': 'application/json'
         }
       });
 
@@ -110,17 +105,18 @@ class UpdateService {
 
       const data = await response.json();
       const deployment = data.deployments?.[0];
-      
+
       if (!deployment) {
         logger.debug('🟡 No deployment found for commit, assuming ready');
         return true;
       }
 
-      const isReady = deployment.readyState === 'READY';
-      
+      const state = deployment.readyState ?? deployment.state;
+      const isReady = state === 'READY';
+
       logger.info('🌐 Deployment status check:', {
         commitSha: commitSha.slice(0, 8),
-        status: deployment.readyState,
+        status: state,
         isReady,
         url: deployment.url
       });

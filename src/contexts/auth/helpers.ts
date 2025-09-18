@@ -5,7 +5,7 @@ import type { Session, User } from '@supabase/supabase-js';
 
 type NetworkErrorPredicate = (message: string) => boolean;
 
-const MAX_TIMEOUT = 30000;
+const MAX_TIMEOUT = 60000;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NETWORK_ERROR_MATCHERS: ReadonlyArray<NetworkErrorPredicate> = [
   (message) => message.includes('network'),

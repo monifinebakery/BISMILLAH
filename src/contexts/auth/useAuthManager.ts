@@ -170,28 +170,90 @@ const useAuthLifecycle = ({
           }
         }
 
-        const adaptiveTimeout = getAdaptiveTimeout(12000);
-        const { data: sessionResult, error: sessionError } = await safeWithTimeout(
-          () => supabase.auth.getSession(),
-          {
-            timeoutMs: adaptiveTimeout,
-            timeoutMessage: 'AuthContext initialization timeout',
-          }
-        );
+        const MAX_SESSION_ATTEMPTS = 3;
+        const BASE_RETRY_DELAY_MS = 1500;
 
-        if (sessionError || !sessionResult) {
-          logger.error('AuthContext: Session fetch failed', sessionError);
+        const fetchSessionWithRetry = async (): Promise<{
+          result: GetSessionResult | null;
+          error: Error | null;
+          attempts: number;
+        }> => {
+          let lastError: Error | null = null;
+
+          for (let attempt = 0; attempt < MAX_SESSION_ATTEMPTS && mounted; attempt++) {
+            const adaptiveTimeout = getAdaptiveTimeout(15000);
+            const { data, error } = await safeWithTimeout(
+              () => supabase.auth.getSession(),
+              {
+                timeoutMs: adaptiveTimeout,
+                timeoutMessage: 'AuthContext initialization timeout',
+                retryCount: attempt,
+              }
+            );
+
+            if (data && !error) {
+              return { result: data as GetSessionResult, error: null, attempts: attempt + 1 };
+            }
+
+            lastError = error ?? new Error('Unknown session fetch error');
+
+            logger.warn('AuthContext: Session fetch attempt failed', {
+              attempt,
+              remainingAttempts: MAX_SESSION_ATTEMPTS - attempt - 1,
+              error: lastError.message,
+            });
+
+            if (!mounted || attempt >= MAX_SESSION_ATTEMPTS - 1) {
+              break;
+            }
+
+            const refreshed = await refreshSessionSafely();
+            if (refreshed) {
+              logger.debug('AuthContext: refreshSessionSafely succeeded before retry', {
+                attempt,
+              });
+            }
+
+            const backoff = Math.min(5000, BASE_RETRY_DELAY_MS * (attempt + 1));
+            await new Promise((resolve) => setTimeout(resolve, backoff));
+          }
+
+          return { result: null, error: lastError, attempts: MAX_SESSION_ATTEMPTS };
+        };
+
+        const {
+          result: sessionResult,
+          error: sessionFetchError,
+          attempts: sessionAttempts,
+        } = await fetchSessionWithRetry();
+
+        if (!sessionResult) {
+          logger.error('AuthContext: Unable to establish session after retries', {
+            attempts: sessionAttempts,
+            error: sessionFetchError?.message || 'unknown',
+          });
 
           if (mounted) {
-            setIsLoading(false);
-            setIsReady(true);
+            setSession(null);
+            setUser(null);
           }
           return;
         }
 
         const {
           data: { session: rawSession },
-        } = sessionResult as GetSessionResult;
+          error: sessionError,
+        } = sessionResult;
+
+        if (sessionError) {
+          logger.error('AuthContext: Session returned error during initialization', sessionError);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+          }
+          return;
+        }
+
         const { session: validSession, user: validUser } = validateSession(rawSession);
 
         logger.context('AuthContext', 'Auth initialization result', {
@@ -200,7 +262,7 @@ const useAuthLifecycle = ({
           userId: validUser?.id || 'none',
           originalSessionValid: !!rawSession,
           wasUserSanitized: !!rawSession?.user && !validUser,
-          adaptiveTimeout,
+          sessionAttempts,
         });
 
         if (mounted) {

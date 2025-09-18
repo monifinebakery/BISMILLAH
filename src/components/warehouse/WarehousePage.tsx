@@ -509,9 +509,21 @@ const WarehousePageContent: React.FC = () => {
     };
   }, []);
 
-  // ✅ UPDATE: Enhanced handlers dengan mutations
+  // ✅ UPDATE: Enhanced handlers dengan mutations and full-page navigation
   const enhancedHandlers = {
     ...core.handlers,
+    
+    // ✅ UPDATED: Navigate to add page instead of opening dialog
+    add: () => {
+      logger.info('Navigate to add warehouse item');
+      navigate('/gudang/add');
+    },
+    
+    // ✅ UPDATED: Navigate to edit page instead of opening dialog
+    edit: (item: BahanBakuFrontend) => {
+      logger.info('Navigate to edit warehouse item', { id: item.id, nama: item.nama });
+      navigate(`/gudang/edit/${item.id}`);
+    },
     
     create: async (item: Partial<BahanBakuFrontend>) => {
       try {
@@ -582,8 +594,10 @@ const WarehousePageContent: React.FC = () => {
     );
   }
 
-  // OPTIMIZED: Simplified dialog detection
-  const hasDialogsOpen = Object.values(core.dialogs?.states || {}).some(Boolean) || !!core.dialogs?.editingItem;
+  // OPTIMIZED: Simplified dialog detection (exclude add/edit since they're now full-page)
+  const hasDialogsOpen = Object.entries(core.dialogs?.states || {})
+    .filter(([dialogName]) => !['addItem', 'editItem'].includes(dialogName))
+    .some(([, isOpen]) => isOpen);
 
   return (
     <div className="w-full p-4 sm:p-8" aria-live="polite">
@@ -646,7 +660,7 @@ const WarehousePageContent: React.FC = () => {
               searchTerm={core.filters?.searchTerm || ''}
               sortConfig={core.filters?.sortConfig}
               onSort={core.handlers?.sort}
-              onEdit={core.handlers?.edit}
+              onEdit={enhancedHandlers.edit}
               onDelete={enhancedHandlers.delete}
               emptyStateAction={() => navigate('/pembelian')}
               onRefresh={async () => {

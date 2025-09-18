@@ -187,11 +187,19 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
             )}
 
             <Button
-              onClick={() => navigate('/pembelian')}
+              onClick={() => navigate('/gudang/add')}
               className="flex items-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-2 rounded-lg transition-all"
             >
               <Plus className="h-4 w-4" />
-              Tambah via Pembelian
+              Tambah Item
+            </Button>
+            
+            <Button
+              onClick={() => navigate('/pembelian')}
+              className="flex items-center gap-2 bg-white bg-opacity-10 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-20 font-medium px-4 py-2 rounded-lg transition-all backdrop-blur-sm"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              via Pembelian
             </Button>
           </div>
         </div>
@@ -208,10 +216,17 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
             </Button>
           )}
           <Button
-            onClick={() => navigate('/pembelian')}
+            onClick={() => navigate('/gudang/add')}
             className="w-full flex items-center justify-center gap-2 bg-white text-orange-600 font-semibold border hover:bg-gray-100 px-4 py-3 rounded-lg transition-all"
           >
             <Plus className="h-4 w-4" />
+            Tambah Item Gudang
+          </Button>
+          <Button
+            onClick={() => navigate('/pembelian')}
+            className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 font-medium px-4 py-3 rounded-lg transition-all backdrop-blur-sm"
+          >
+            <ShoppingCart className="h-4 w-4" />
             Tambah via Pembelian
           </Button>
         </div>

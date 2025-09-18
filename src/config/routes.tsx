@@ -10,7 +10,7 @@ import { logger } from '@/utils/logger';
 
 import dashboardRoutes from '@/routes/dashboard';
 import recipeRoutes from '@/routes/recipes';
-import LazyWarehousePage from '@/pages/Warehouse';
+import warehouseRoutes from '@/routes/warehouse';
 import supplierRoutes from '@/routes/supplier';
 import LazyPurchasePage from '@/pages/Purchase';
 import ordersRoutes from '@/routes/orders';
@@ -52,7 +52,7 @@ export const AppRouter: React.FC = () => (
     >
       {dashboardRoutes}
       {recipeRoutes}
-<Route path="/gudang" element={<LazyWarehousePage />} />
+      {warehouseRoutes}
       {supplierRoutes}
       {/* Back-compat and new purchase routes */}
       <Route path="/pembelian" element={<LazyPurchasePage />} />

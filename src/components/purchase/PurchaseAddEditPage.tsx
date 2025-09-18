@@ -268,9 +268,9 @@ const PurchaseAddEditPage: React.FC = () => {
                   <ShoppingCart className="w-4 h-4 text-orange-600" />
                 </div>
                 {isEditing ? 'Edit Pembelian' : 'Tambah Pembelian'}
-                {purchase && (
+                {purchase && purchase.status && (
                   <StatusBadge
-                    status={purchase.status}
+                    status={String(purchase.status)}
                     className="ml-2"
                   />
                 )}

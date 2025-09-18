@@ -640,7 +640,7 @@ const WarehousePageContent: React.FC = () => {
             activeFiltersCount={core.filters?.activeCount || 0}
           />
 
-          <Suspense fallback={null}>
+          <Suspense fallback={<LoadingSpinner />}>
             <WarehouseTable
               items={core.pagination?.currentItems || []}
               isLoading={context.loading}

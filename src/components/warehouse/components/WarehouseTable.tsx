@@ -135,36 +135,6 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     );
   }
 
-  if (isLoading) {
-    logger.component('WarehouseTable', 'Displaying loading state', { lastUpdated: lastUpdated?.toISOString() });
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-8 w-20" />
-          </div>
-          <div className="space-y-3">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex items-center space-x-4 p-3 border border-gray-100 rounded">
-                <Skeleton className="h-4 w-4" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-3 w-3/4" />
-                </div>
-                <Skeleton className="h-6 w-16" />
-              </div>
-            ))}
-          </div>
-          {lastUpdated && (
-            <p className="text-xs text-gray-400 mt-4">
-              Data terakhir: {lastUpdated.toLocaleTimeString('id-ID')}
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   logger.component('WarehouseTable', 'Rendering table with items:', {
     count: items.length,

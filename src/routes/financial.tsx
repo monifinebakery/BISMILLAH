@@ -6,10 +6,6 @@ const FinancialReportPage = React.lazy(() =>
   import(/* webpackChunkName: "financial" */ '@/components/financial/FinancialReportPage')
 );
 
-const FinancialManagementPage = React.lazy(() =>
-  import(/* webpackChunkName: "financial" */ '@/components/financial/FinancialManagementPage')
-);
-
 const FinancialCategoryPage = React.lazy(() =>
   import(/* webpackChunkName: "financial" */ '@/components/financial/FinancialCategoryPage')
 );
@@ -29,18 +25,6 @@ const financialRoutes = (
           preloadOnHover={false}
         >
           <FinancialReportPage />
-        </OptimizedRouteWrapper>
-      }
-    />
-    <Route
-      path="keuangan"
-      element={
-        <OptimizedRouteWrapper 
-          routeName="financial-management" 
-          priority="medium"
-          preloadOnHover={true}
-        >
-          <FinancialManagementPage />
         </OptimizedRouteWrapper>
       }
     />

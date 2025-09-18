@@ -29,8 +29,12 @@ import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { useTransactionTable } from './hooks/useTransactionTable';
 
-// LAZY LOADED COMPONENTS - Consistent approach with proper error handling
-const FinancialCharts = React.lazy(() => 
+// LAZY LOADED TABS - Code-split large tab sections
+const ChartsTab = React.lazy(() => import('./report/ChartsTab'));
+const TransactionsTab = React.lazy(() => import('./report/TransactionsTab'));
+const UmkmTab = React.lazy(() => import('./report/UmkmTab'));
+
+// LEGACY DIALOGS - Lazy loaded with error handling
   import('./components/FinancialCharts').catch((error) => {
     logger.error('Failed to load FinancialCharts', error);
     return {
@@ -47,7 +51,6 @@ const FinancialCharts = React.lazy(() =>
   })
 );
 
-const CategoryCharts = React.lazy(() => 
   import('./components/CategoryCharts').catch((error) => {
     logger.error('Failed to load CategoryCharts', error);
     return {
@@ -64,7 +67,6 @@ const CategoryCharts = React.lazy(() =>
   })
 );
 
-const TransactionTable = React.lazy(() => 
   import('./components/TransactionTable').catch((error) => {
     logger.error('Failed to load TransactionTable', error);
     return {
@@ -102,63 +104,55 @@ const BulkActions = React.lazy(() =>
   })
 );
 
-const DailyCashFlowTracker = React.lazy(() => 
   import('./components/DailyCashFlowTracker').catch((error) => {
     logger.error('Failed to load DailyCashFlowTracker component:', error);
     return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat cash flow tracker</div> };
   })
 );
 
-const ProfitLossSimple = React.lazy(() => 
   import('./components/ProfitLossSimple').catch((error) => {
     logger.error('Failed to load ProfitLossSimple component:', error);
     return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat profit loss</div> };
   })
 );
 
-const DailySummaryWidget = React.lazy(() => 
   import('./components/DailySummaryWidget').catch((error) => {
     logger.error('Failed to load DailySummaryWidget component:', error);
     return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat daily summary</div> };
   })
 );
 
-const UMKMExpenseCategories = React.lazy(() => 
   import('./components/UMKMExpenseCategories').catch((error) => {
     logger.error('Failed to load UMKMExpenseCategories component:', error);
     return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat kategori pengeluaran UMKM</div> };
   })
 );
 
-const SavingsGoalTracker = React.lazy(() => 
   import('./components/SavingsGoalTracker').catch((error) => {
     logger.error('Failed to load SavingsGoalTracker component:', error);
     return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat savings goal tracker</div> };
   })
 );
 
-const DebtTracker = React.lazy(() => 
   import('./components/DebtTracker').catch((error) => {
     logger.error('Failed to load DebtTracker component:', error);
     return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat debt tracker</div> };
   })
 );
 
-const ExpenseAlerts = React.lazy(() => 
   import('./components/ExpenseAlerts').catch((error) => {
     logger.error('Failed to load ExpenseAlerts component:', error);
     return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat expense alerts</div> };
   })
 );
 
-const SimpleBusinessReport = React.lazy(() => 
   import('./components/SimpleBusinessReport').catch((error) => {
     logger.error('Failed to load SimpleBusinessReport component:', error);
     return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat laporan bisnis</div> };
   })
 );
 
-// Loading components
+// Loading components (fallback for tab chunks)
 const QuickSkeleton = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
 );
@@ -634,117 +628,45 @@ const FinancialReportPage: React.FC = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* ✅ CHARTS TAB - Financial charts and category charts */}
+{/* ✅ CHARTS TAB - Code-split */}
           <TabsContent value="charts" className="space-y-6">
-<Suspense fallback={<ChartSkeleton />}>
-              <FinancialCharts 
+            <Suspense fallback={<ChartSkeleton />}>
+              <ChartsTab 
                 filteredTransactions={filteredTransactions}
-                dateRange={dateRange}
+                dateRange={dateRange as any}
                 isLoading={isLoading}
                 isRefreshing={isRefreshing}
                 onRefresh={refresh}
-                lastUpdated={lastRefresh}
-              />
-            </Suspense>
-
-<Suspense fallback={<ChartSkeleton />}>
-              <CategoryCharts 
-                filteredTransactions={filteredTransactions}
-                isLoading={isLoading}
-                isRefreshing={isRefreshing}
-                onRefresh={refresh}
-                lastUpdated={lastRefresh}
+                lastUpdated={lastRefresh as any}
               />
             </Suspense>
           </TabsContent>
 
-          {/* ✅ TRANSACTIONS TAB */}
+{/* ✅ TRANSACTIONS TAB - Code-split */}
           <TabsContent value="transactions" className="space-y-6">
-            {transactionTable.isSelectionMode && (
-              <SafeSuspense loadingMessage="Memuat bulk actions...">
-                <BulkActions
-                  selectedTransactions={transactionTable.selectedTransactions}
-                  selectedIds={transactionTable.selectedIds}
-                  onClearSelection={transactionTable.exitSelectionMode}
-                  onSelectAll={transactionTable.handleSelectAll}
-                  isAllSelected={transactionTable.isAllSelected}
-                  totalCount={filteredTransactions.length}
-                />
-              </SafeSuspense>
-            )}
             <Suspense fallback={<ChartSkeleton />}>
-              <TransactionTable
-                transactions={filteredTransactions}
+              <TransactionsTab
+                filteredTransactions={filteredTransactions}
+                isLoading={isLoading}
+                isSelectionMode={transactionTable.isSelectionMode}
+                selectedTransactions={transactionTable.selectedTransactions}
+                selectedIds={transactionTable.selectedIds}
+                onClearSelection={transactionTable.exitSelectionMode}
+                onSelectAll={transactionTable.handleSelectAll}
+                isAllSelected={transactionTable.isAllSelected}
+                onSelectionChange={transactionTable.handleSelectionChange}
                 onEditTransaction={handleEditTransaction}
                 onAddTransaction={handleAddTransaction}
                 onDeleteTransaction={handleDeleteTransaction}
-                isLoading={isLoading}
-                selectedIds={transactionTable.selectedIds}
-                onSelectionChange={transactionTable.handleSelectionChange}
-                isSelectionMode={transactionTable.isSelectionMode}
-                onSelectAll={transactionTable.handleSelectAll}
-                isAllSelected={transactionTable.isAllSelected}
+                dateRange={dateRange as any}
               />
             </Suspense>
           </TabsContent>
 
-          {/* ✅ UMKM FEATURES TAB - Optimized Layout */}
+{/* ✅ UMKM FEATURES TAB - Code-split */}
           <TabsContent value="umkm" className="space-y-4">
-            {/* Daily Summary Widget - Full Width */}
-<Suspense fallback={<ChartSkeleton />}>
-              <DailySummaryWidget 
-                transactions={filteredTransactions}
-              />
-            </Suspense>
-
-            {/* Main Grid - 3 Columns on Large Screens, 2 on Medium, 1 on Small */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {/* Daily Cash Flow Tracker */}
-<Suspense fallback={<ChartSkeleton />}>
-                <DailyCashFlowTracker 
-                  transactions={filteredTransactions}
-                />
-              </Suspense>
-
-              {/* Simple Profit Loss */}
-<Suspense fallback={<ChartSkeleton />}>
-                <ProfitLossSimple 
-                  transactions={filteredTransactions}
-                />
-              </Suspense>
-
-              {/* UMKM Expense Categories */}
-<Suspense fallback={<ChartSkeleton />}>
-                <UMKMExpenseCategories 
-                  transactions={filteredTransactions}
-                />
-              </Suspense>
-
-              {/* Savings Goal Tracker */}
-<Suspense fallback={<ChartSkeleton />}>
-                <SavingsGoalTracker 
-                  transactions={filteredTransactions}
-                />
-              </Suspense>
-
-              {/* Debt Tracker */}
-<Suspense fallback={<ChartSkeleton />}>
-                <DebtTracker />
-              </Suspense>
-
-              {/* Expense Alerts */}
-<Suspense fallback={<ChartSkeleton />}>
-                <ExpenseAlerts 
-                  transactions={filteredTransactions}
-                />
-              </Suspense>
-            </div>
-
-            {/* Simple Business Report - Full Width at Bottom */}
-<Suspense fallback={<ChartSkeleton />}>
-              <SimpleBusinessReport 
-                transactions={filteredTransactions}
-              />
+            <Suspense fallback={<ChartSkeleton />}>
+              <UmkmTab transactions={filteredTransactions} />
             </Suspense>
           </TabsContent>
           </Tabs>

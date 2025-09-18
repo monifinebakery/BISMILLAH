@@ -422,6 +422,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       try {
         logger.context('AuthContext', 'Initializing auth...');
+        // ⚡ QUICK PATH: Try to get user fast to avoid long loaders on mobile
+        try {
+          const { data: quickUserResult } = await safeWithTimeout(
+            supabase.auth.getUser(),
+            1500,
+            'AuthContext quick user timeout'
+          );
+          const quickUser = (quickUserResult as any)?.data?.user ?? (quickUserResult as any)?.user;
+          if (mounted && quickUser) {
+            const sanitized = sanitizeUser(quickUser);
+            if (sanitized) {
+              setUser(sanitized);
+              setIsLoading(false);
+              setIsReady(true);
+              logger.debug('AuthContext: Quick user detected, rendering immediately');
+            }
+          }
+        } catch (e) {
+          logger.debug('AuthContext: Quick user not available');
+        }
         
         const safariDetection = detectSafariIOS();
          

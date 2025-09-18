@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // ✅ CONSOLIDATED: Order context and hooks
 import { useOrder } from '../context/OrderContext';
@@ -361,6 +362,12 @@ const OrdersPage: React.FC = () => {
     return <LoadingStates.Page />;
   }
 
+  const SmallFallback = (
+    <div className="py-4 flex items-center justify-center">
+      <LoadingSpinner size="sm" />
+    </div>
+  );
+
   return (
     <div className="w-full max-w-full px-2 sm:px-4 py-4 overflow-hidden">
       {/* ✅ DEBUG: Context debugger - only in development */}
@@ -380,13 +387,13 @@ const OrdersPage: React.FC = () => {
       <SafeSuspense 
         loadingMessage="" 
         size="lg"
-        fallback={null}
+        fallback={SmallFallback}
       >
         {/* ✅ STATISTICS: Order statistics section */}
          <SafeSuspense 
            loadingMessage="" 
            size="md"
-           fallback={null}
+           fallback={SmallFallback}
          >
            <OrderStatistics 
              orders={finalOrders} 
@@ -446,7 +453,7 @@ const OrdersPage: React.FC = () => {
            <SafeSuspense 
              loadingMessage="" 
              size="sm"
-             fallback={null}
+             fallback={SmallFallback}
            >
              <BulkActions
                 selectedOrders={selectedOrders}

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Activity as ActivityIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatCurrency } from '@/utils/formatUtils';
+import { CurrencyDisplay } from '@/lib/shared';
 import { generateListKey } from '@/utils/keyUtils';
 import { formatDateTime } from '@/utils/unifiedDateUtils';
 import type { Activity } from '@/types/activity';
@@ -122,9 +122,11 @@ const ActivityRow: React.FC<{
       {/* 💰 Amount */}
       <TableCell className="text-right">
         {isFinancial && amount !== 0 && (
-          <p className={`text-sm font-medium ${amountColor}`}>
-            {formatCurrency(amount)}
-          </p>
+          <CurrencyDisplay
+            amount={amount}
+            size="sm"
+            className={`font-medium ${amountColor}`}
+          />
         )}
       </TableCell>
     </TableRow>

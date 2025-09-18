@@ -34,6 +34,7 @@ import {
 import { formatCurrency, formatPercentage, getProfitabilityLevel } from '../../services/recipeUtils';
 import type { Recipe, RecipeSortField } from '../../types';
 import { LoadingStates } from '@/components/ui/loading-spinner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface RecipeTableProps {
   recipes: Recipe[];
@@ -69,6 +70,7 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
   onSelectAll,
   isAllSelected = false,
 }) => {
+  const isMobile = (typeof window !== 'undefined') ? undefined : undefined;
   // Sort icon
   const getSortIcon = (field: RecipeSortField) => {
     if (sortBy !== field) return <ArrowUpDown className="h-4 w-4 text-gray-400" />;
@@ -310,7 +312,16 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
       {/* Loading overlay */}
       {isLoading && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/80">
-          <LoadingStates.Table />
+          {/* On mobile, keep loading UI minimal */}
+          {(() => {
+            try {
+              const { useIsMobile: useMobile } = require('@/hooks/use-mobile');
+              const mobile = useMobile?.() ?? false;
+              return mobile ? null : <LoadingStates.Table />;
+            } catch {
+              return <LoadingStates.Table />;
+            }
+          })()}
         </div>
       )}
     </div>

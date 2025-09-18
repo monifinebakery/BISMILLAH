@@ -334,6 +334,8 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
       ? () => fetchWarehouseItemsPaginated(page, limit)
       : fetchWarehouseItems,
     staleTime: 2 * 60 * 1000, // 2 minutes cache for performance
+    keepPreviousData: true,
+    placeholderData: (prev) => prev,
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) {
         return false;

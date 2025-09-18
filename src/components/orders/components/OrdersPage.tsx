@@ -165,6 +165,8 @@ const OrdersPage: React.FC = () => {
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up

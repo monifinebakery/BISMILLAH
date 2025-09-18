@@ -63,6 +63,8 @@ const DeviceManagementPage: React.FC = () => {
     },
     enabled: !!user?.id,
     staleTime: 30000,
+    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
   
   // ✅ DETERMINE FINAL DATA

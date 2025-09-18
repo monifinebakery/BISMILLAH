@@ -10,6 +10,7 @@ import { AppRouter } from "@/config/routes";
 import { queryClient } from "@/config/queryClient";
 import { logger } from "@/utils/logger";
 import { CodeSplittingProvider } from "@/providers/CodeSplittingProvider";
+import { initializeRoutePreloaders, preloadCriticalRoutes } from "@/utils/route-preloader";
 // Unified: Update banner is handled in AppLayout via useUpdateNotification
 import InstallBanner from '@/components/InstallBanner';
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
@@ -65,6 +66,11 @@ const App = () => {
   // ✅ SIMPLIFIED: Remove auth redirect logic (now handled in AuthContext)
   useEffect(() => {
     handleInitialSetup();
+    // Preload route chunks early to reduce lazy-load lag, especially on mobile
+    try {
+      initializeRoutePreloaders();
+      preloadCriticalRoutes();
+    } catch {}
   }, [handleInitialSetup]);
 
   // ✅ Memoized error handler

@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 import { orderEvents, emitOrderDeleted } from '../utils/orderEvents';
-import type { Order, OrderItem, CreateOrderData, UpdateOrderData } from '../types';
+import { transformOrderFromDB, transformOrderToDB } from '../utils';
+import type { Order, OrderItem, CreateOrderData, UpdateOrderData, OrderStatus } from '../types';
 
 // ✅ FIXED: Valid status values matching application values
 const VALID_ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'completed'];

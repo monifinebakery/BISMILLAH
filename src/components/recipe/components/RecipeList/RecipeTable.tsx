@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatPercentage, getProfitabilityLevel } from '../../services/recipeUtils';
 import type { Recipe, RecipeSortField } from '../../types';
-import { LoadingSkeleton } from '@/components/ui/skeleton';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 
 interface RecipeTableProps {
   recipes: Recipe[];
@@ -310,7 +310,7 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
       {/* Loading overlay */}
       {isLoading && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/80">
-          <LoadingSkeleton type="table" className="h-32" />
+          <LoadingStates.Table />
         </div>
       )}
     </div>

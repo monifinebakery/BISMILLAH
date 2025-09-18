@@ -380,7 +380,9 @@ const RecipeNavigationContainer: React.FC = () => {
 
   // Loading state
   if (isLoading) {
-    return <LoadingState />;
+    // Use shared lightweight loading spinner instead of heavy skeleton
+    const { LoadingStates } = require('@/components/ui/loading-spinner');
+    return <LoadingStates.Page />;
   }
 
   // Error state

@@ -26,15 +26,47 @@ export const analyticsService = {
 
       if (error) throw error;
 
-      // Calculate analytics from promo data
-      const summary = {
-        totalPromos: promos.length,
-        activePromos: promos.filter(p => p.status === 'aktif').length,
-        averageHpp: 0,
-        averageMargin: 0
+      // Date range helpers
+      const start = dateRange?.start ? new Date(dateRange.start) : null;
+      const end = dateRange?.end ? new Date(dateRange.end) : null;
+      const inRange = (dateStr) => {
+        if (!start || !end) return true;
+        const d = new Date(dateStr);
+        return d >= start && d <= end;
       };
 
-      const hppAnalysis = promos.map(promo => ({
+      // Build detailed metrics
+      const detailed = promos.map(promo => {
+        const calc = promo.calculation_result || {};
+        const dataPromo = promo.data_promo || {};
+        return {
+          id: promo.id,
+          namaPromo: promo.nama_promo,
+          tipePromo: promo.tipe_promo,
+          status: promo.status,
+          createdAt: promo.created_at,
+          margin: Number(calc.promoMargin || 0),
+          profit: Number(calc.profit || 0),
+          savings: Number(calc.savings || 0),
+          hpp: Number(calc.hpp || 0),
+          finalPrice: Number(calc.finalPrice || 0),
+          channel: dataPromo.channel || 'lainnya',
+          category: dataPromo.kategori || 'lainnya',
+        };
+      });
+
+      // Calculate analytics from detailed data
+      const summary = {
+        totalPromos: detailed.length,
+        activePromos: detailed.filter(p => p.status === 'aktif').length,
+        averageHpp: detailed.length ? detailed.reduce((s, d) => s + (d.hpp || 0), 0) / detailed.length : 0,
+        averageMargin: detailed.length ? detailed.reduce((s, d) => s + (d.margin || 0), 0) / detailed.length : 0,
+        totalDiscountThisMonth: detailed
+          .filter(p => inRange(p.createdAt))
+          .reduce((s, d) => s + (d.savings || 0), 0)
+      };
+
+      const hppAnalysis = detailed.map(promo => ({
         name: promo.nama_promo,
         hpp: promo.calculation_result?.hpp || 0,
         harga: promo.calculation_result?.finalPrice || 0,
@@ -47,20 +79,39 @@ export const analyticsService = {
         margin: promo.calculation_result?.promoMargin || 0
       }));
 
-      const promoPerformance = promos.map(promo => ({
-        id: promo.id,
-        namaPromo: promo.nama_promo,
-        tipePromo: promo.tipe_promo,
-        performance: 'baik', // This would be calculated based on actual usage data
-        usage: Math.floor(Math.random() * 100), // Simulated
-        roi: Math.floor(Math.random() * 200) // Simulated
+      // Raw rows for card rendering
+      const promoPerformanceRows = promos.map(p => ({ ...p }));
+
+      // Simplified list for filtering/highlights
+      const promoPerformance = detailed.map(item => ({
+        id: item.id,
+        namaPromo: item.namaPromo,
+        tipePromo: item.tipePromo,
+        performance: item.margin >= 20 ? 'sangat baik' : item.margin >= 10 ? 'baik' : 'perlu perbaikan',
+        usage: Math.floor(Math.random() * 100),
+        roi: Math.floor(Math.random() * 200),
+        margin: item.margin,
+        profit: item.profit,
+        channel: item.channel,
+        category: item.category
       }));
+
+      const topPromos = [...promoPerformance]
+        .sort((a, b) => (b.margin || 0) - (a.margin || 0))
+        .slice(0, 3);
+
+      const needsImprovementPromos = [...promoPerformance]
+        .sort((a, b) => (a.profit || 0) - (b.profit || 0))
+        .slice(0, 3);
 
       return {
         summary,
         hppAnalysis,
         profitTrend,
-        promoPerformance
+        promoPerformance,
+        promoPerformanceRows,
+        topPromos,
+        needsImprovementPromos
       };
     } catch (error) {
       console.error('Error getting analytics:', error);

@@ -33,6 +33,8 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
               <Input
                 id="hargaProduk"
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={formData.hargaProduk}
                 onChange={onInputChange}
                 placeholder="50000"
@@ -61,6 +63,8 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
               <Input
                 id="hpp"
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={formData.hpp}
                 onChange={onInputChange}
                 placeholder="30000"
@@ -90,6 +94,8 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
               <Input
                 id="nilaiDiskon"
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={formData.nilaiDiskon}
                 onChange={onInputChange}
                 placeholder="25"
@@ -124,6 +130,8 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                   <Input
                     id="beli"
                     type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={formData.beli}
                     onChange={onInputChange}
                     placeholder="2"
@@ -149,6 +157,8 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                   <Input
                     id="gratis"
                     type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={formData.gratis}
                     onChange={onInputChange}
                     placeholder="1"
@@ -183,6 +193,8 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 <Input
                   id="hargaNormal"
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={formData.hargaNormal}
                   onChange={onInputChange}
                   placeholder="100000"
@@ -207,6 +219,8 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 <Input
                   id="hargaBundle"
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={formData.hargaBundle}
                   onChange={onInputChange}
                   placeholder="80000"

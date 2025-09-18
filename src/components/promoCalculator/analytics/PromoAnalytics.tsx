@@ -1,7 +1,7 @@
 // 🎯 Chart untuk analisis promo - Mobile Responsive
 
-import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, DollarSign, Percent, Calendar, Filter, X } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { BarChart3, TrendingUp, DollarSign, Percent, Calendar, Filter, X, Gift, Award, AlertTriangle } from 'lucide-react';
 import PromoPerformanceCard from './PromoPerformanceCard';
 import { usePromoAnalytics } from '../hooks/usePromoAnalytics';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -15,11 +15,45 @@ const PromoAnalytics = () => {
     end: new Date().toISOString().split('T')[0] // today
   });
   
-  const {
-    analyticsData,
-    isLoading,
-    refreshAnalytics
-  } = usePromoAnalytics();
+  const { analyticsData, isLoading, refreshAnalytics } = usePromoAnalytics();
+
+  // Filters: channel and category
+  const [selectedChannel, setSelectedChannel] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const baseRows = useMemo(() =>
+    analyticsData?.promoPerformanceRows || analyticsData?.promoPerformance || [],
+  [analyticsData]);
+
+  const getRowChannel = (row: any) => (row?.data_promo?.channel || row?.channel || 'lainnya');
+  const getRowCategory = (row: any) => (row?.data_promo?.kategori || row?.category || 'lainnya');
+
+  // Preset filters for better UX
+  const presetChannels = ['WhatsApp', 'Instagram', 'Tokopedia', 'Shopee', 'Offline'];
+  const presetCategories = ['Makanan', 'Minuman', 'Snack', 'Paket', 'Lainnya'];
+
+  const channels = useMemo(() => {
+    const dynamic = Array.from(new Set(baseRows.map(getRowChannel)));
+    const merged = Array.from(new Set([...presetChannels, ...dynamic]));
+    return ['all', ...merged];
+  }, [baseRows]);
+
+  const categories = useMemo(() => {
+    const dynamic = Array.from(new Set(baseRows.map(getRowCategory)));
+    const merged = Array.from(new Set([...presetCategories, ...dynamic]));
+    return ['all', ...merged];
+  }, [baseRows]);
+
+  const filteredPromos = useMemo(() => {
+    let rows = baseRows;
+    if (selectedChannel !== 'all') {
+      rows = rows.filter(r => getRowChannel(r) === selectedChannel);
+    }
+    if (selectedCategory !== 'all') {
+      rows = rows.filter(r => getRowCategory(r) === selectedCategory);
+    }
+    return rows;
+  }, [baseRows, selectedChannel, selectedCategory]);
 
   useEffect(() => {
     refreshAnalytics(dateRange);
@@ -149,7 +183,7 @@ const PromoAnalytics = () => {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
         <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
@@ -159,6 +193,24 @@ const PromoAnalytics = () => {
               <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Promo</p>
               <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 {analyticsData?.summary?.totalPromos || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Total Diskon Bulan Ini */}
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
+              <Gift className="h-4 w-4 sm:h-6 sm:w-6 text-orange-600" />
+            </div>
+            <div className="ml-3 sm:ml-4 min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Diskon (Periode)</p>
+              <p className="text-sm sm:text-xl font-bold text-gray-900">
+                {isMobile 
+                  ? formatCompactCurrency(analyticsData?.summary?.totalDiscountThisMonth || 0)
+                  : formatCurrency(analyticsData?.summary?.totalDiscountThisMonth || 0)
+                }
               </p>
             </div>
           </div>
@@ -210,18 +262,92 @@ const PromoAnalytics = () => {
         </div>
       </div>
 
+      {/* Highlights: Top & Need Improvement */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Award className="h-5 w-5 text-green-600" />
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Promo Terbaik (Margin)</h3>
+          </div>
+          <div className="space-y-3">
+            {(analyticsData?.topPromos || [])
+              .map(item => (
+                <div key={item.id} className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{item.namaPromo}</p>
+                    <p className="text-xs text-gray-500">{item.tipePromo?.toUpperCase()} • {(item.channel || 'lainnya')}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-green-600">{(item.margin || 0).toFixed(1)}%</p>
+                  </div>
+                </div>
+              ))}
+            {(!analyticsData?.topPromos || analyticsData.topPromos.length === 0) && (
+              <p className="text-sm text-gray-500">Belum ada data promo</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Perlu Perbaikan (Profit)</h3>
+          </div>
+          <div className="space-y-3">
+            {(analyticsData?.needsImprovementPromos || [])
+              .map(item => (
+                <div key={item.id} className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{item.namaPromo}</p>
+                    <p className="text-xs text-gray-500">{item.tipePromo?.toUpperCase()} • {(item.category || 'lainnya')}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${item.profit >= 0 ? 'text-gray-700' : 'text-red-600'}`}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.profit || 0)}</p>
+                  </div>
+                </div>
+              ))}
+            {(!analyticsData?.needsImprovementPromos || analyticsData.needsImprovementPromos.length === 0) && (
+              <p className="text-sm text-gray-500">Belum ada data promo</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Performa Per Promo</h3>
+          <div className="flex gap-3">
+            <select
+              value={selectedChannel}
+              onChange={(e) => setSelectedChannel(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              {channels.map(ch => (
+                <option key={ch} value={ch}>{ch === 'all' ? 'Semua Channel' : ch}</option>
+              ))}
+            </select>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat === 'all' ? 'Semua Kategori' : cat}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Performance Cards */}
       <div>
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
-          Performa Per Promo
-        </h3>
-        
         {/* Mobile: Show as list, Desktop: Show as grid */}
         <div className={isMobile 
           ? "space-y-4" 
           : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         }>
-          {(analyticsData?.promoPerformance || []).map(promo => (
+          {filteredPromos.map(promo => (
             <PromoPerformanceCard 
               key={promo.id} 
               promo={promo}
@@ -230,13 +356,11 @@ const PromoAnalytics = () => {
           ))}
         </div>
         
-        {(!analyticsData?.promoPerformance || analyticsData.promoPerformance.length === 0) && (
+        {(filteredPromos.length === 0) && (
           <div className="text-center py-8 sm:py-12 text-gray-500">
             <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 text-gray-300" />
-            <p className="text-sm sm:text-base">Belum ada data performa promo</p>
-            <p className="text-xs sm:text-sm text-gray-400 mt-1">
-              Buat promo pertama untuk melihat analytics
-            </p>
+            <p className="text-sm sm:text-base">Data tidak ditemukan untuk filter terpilih</p>
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">Ubah filter untuk melihat data</p>
           </div>
         )}
       </div>
@@ -245,4 +369,3 @@ const PromoAnalytics = () => {
 };
 
 export default PromoAnalytics;
-

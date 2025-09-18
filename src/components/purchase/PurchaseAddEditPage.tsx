@@ -563,12 +563,6 @@ const PurchaseAddEditPage: React.FC = () => {
               loadingText="Menyimpan..."
             />
 
-            {/* Debug info - remove this after testing */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="text-xs text-gray-500 mt-2">
-                Debug: purchase={purchase?.status || 'null'}, items={formData.items.length}, supplier={formData.supplier ? 'set' : 'empty'}
-              </div>
-            )}
           </div>
         )}
       </div>

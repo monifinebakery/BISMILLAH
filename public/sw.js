@@ -30,7 +30,7 @@ const ASSETS_CACHE = 'hpp-assets-' + CACHE_VERSION;
 // Files to cache immediately
 const STATIC_ASSETS = [
   '/',
-  '/index.html',
+  // '/index.html', // do not precache HTML to avoid version mismatch
   '/manifest.json',
   '/favicon.ico',
   '/pwa-192.png',
@@ -115,6 +115,10 @@ self.addEventListener('fetch', (event) => {
   
   // Handle different types of requests
   if (isStaticAsset(url)) {
+    // Only handle same-origin assets; let browser/CDN handle cross-origin
+    if (url.origin !== self.location.origin) {
+      return; // fall back to network
+    }
     event.respondWith(handleStaticAsset(request));
   } else if (isAPIRequest(url)) {
     event.respondWith(handleAPIRequest(request));
@@ -176,10 +180,17 @@ async function handleStaticAsset(request) {
     const networkResponse = await fetch(request);
     
     if (networkResponse.ok) {
-      const cacheName = isCriticalAsset ? ASSETS_CACHE : STATIC_CACHE;
-      const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
-      swLog('[SW] Cached asset:', url.pathname);
+      const ct = networkResponse.headers.get('content-type') || '';
+      // Avoid caching HTML responses for JS/CSS requests (prevents MIME errors)
+      const isJsOrCss = /\.(js|css)$/.test(url.pathname);
+      if (!(isJsOrCss && ct.includes('text/html'))) {
+        const cacheName = isCriticalAsset ? ASSETS_CACHE : STATIC_CACHE;
+        const cache = await caches.open(cacheName);
+        cache.put(request, networkResponse.clone());
+        swLog('[SW] Cached asset:', url.pathname);
+      } else {
+        swLog('[SW] Skipping cache for asset with HTML response:', url.pathname);
+      }
     }
     
     return networkResponse;
@@ -262,6 +273,7 @@ async function handleNavigation(request) {
   } catch (error) {
     console.log('[SW] Navigation failed, serving cached index.html');
     
+    // Do not serve cached index.html if unavailable; return 503 to avoid HTML-as-JS issues
     const cachedResponse = await caches.match('/index.html');
     if (cachedResponse) {
       return cachedResponse;

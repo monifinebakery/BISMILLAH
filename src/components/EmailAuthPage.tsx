@@ -58,6 +58,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     authState?: AuthState;
     cooldownTime?: number;
     cooldownStartTime?: number;
+    otpRequestTime?: number;
   }) => {
     if (!isMobile) return; // Only persist on mobile
     try {
@@ -167,7 +168,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       
       // Show notification that state was restored
       if (stored.authState === 'sent') {
-        toast.info('Status login dipulihkan. Silakan masukkan kode OTP.');
+        // 🕐 Show timing info when state is restored
+        let timingInfo = '';
+        if (stored.otpRequestTime) {
+          const otpAge = Date.now() - stored.otpRequestTime;
+          const ageInMinutes = Math.floor(otpAge / (1000 * 60));
+          const remainingMinutes = Math.max(0, 5 - ageInMinutes);
+          if (remainingMinutes > 0) {
+            timingInfo = ` (${remainingMinutes} menit tersisa)`;
+          } else {
+            timingInfo = ' (mungkin sudah kadaluarsa)';
+          }
+        }
+        toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`);
       }
     }
   }, []); // Only run on mount
@@ -305,11 +318,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setAuthState("sent");
         startCooldown(60);
         // 📱 Save mobile state after successful OTP send
+        const now = Date.now();
         saveAuthState({
           email,
           authState: "sent",
           cooldownTime: 60,
-          cooldownStartTime: Date.now()
+          cooldownStartTime: now,
+          otpRequestTime: now
+        });
+        
+        console.log('🕐 [DEBUG] OTP sent and state saved:', {
+          email,
+          timestamp: new Date(now).toISOString(),
+          localTime: new Date(now).toLocaleString('id-ID')
         });
         toast.success("Kode OTP telah dikirim ke email Anda.");
         setTimeout(() => inputRefs.current[0]?.focus(), 120);
@@ -355,11 +376,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setAuthState("sent");
         startCooldown(60);
         // 📱 Save mobile state after successful resend
+        const now = Date.now();
         saveAuthState({
           email,
           authState: "sent",
           cooldownTime: 60,
-          cooldownStartTime: Date.now()
+          cooldownStartTime: now,
+          otpRequestTime: now
+        });
+        
+        console.log('🕐 [DEBUG] OTP resent and state saved:', {
+          email,
+          timestamp: new Date(now).toISOString(),
+          localTime: new Date(now).toLocaleString('id-ID')
         });
         toast.success("Kode OTP baru telah dikirim.");
         inputRefs.current[0]?.focus();
@@ -410,6 +439,35 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     if (code.length !== 6) {
       setError("Kode OTP harus 6 digit");
       return;
+    }
+
+    // 🕐 Debug OTP age for timing analysis
+    const stored = loadAuthState();
+    if (stored?.otpRequestTime) {
+      const otpAge = Date.now() - stored.otpRequestTime;
+      const ageInMinutes = Math.floor(otpAge / (1000 * 60));
+      const ageInSeconds = Math.floor(otpAge / 1000);
+      
+      console.log('🕐 [DEBUG] OTP Age Check:', {
+        otpRequestTime: new Date(stored.otpRequestTime).toISOString(),
+        otpRequestLocal: new Date(stored.otpRequestTime).toLocaleString('id-ID'),
+        currentTime: new Date().toISOString(),
+        currentLocal: new Date().toLocaleString('id-ID'),
+        ageMs: otpAge,
+        ageSeconds: ageInSeconds,
+        ageMinutes: ageInMinutes,
+        isWithin5Minutes: ageInMinutes < 5,
+        email: stored.email,
+        code: code.substring(0, 2) + '****' // Partially masked for security
+      });
+      
+      // Warn if OTP might be getting old
+      if (ageInMinutes >= 4) {
+        logger.warn('🕐 OTP is getting close to expiry:', {
+          ageMinutes,
+          remainingMinutes: 5 - ageInMinutes
+        });
+      }
     }
 
     setAuthState("verifying");

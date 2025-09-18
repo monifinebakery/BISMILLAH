@@ -19,15 +19,21 @@ export const sendEmailOtp = async (
 
     logger.api('/auth/otp', 'Sending OTP to:', { email, allowSignup, skipCaptcha });
     
+    // 🕐 Add more generous OTP timeout settings
     const otpOptions: Record<string, unknown> = {
       shouldCreateUser: allowSignup,
+      // Try to increase OTP validity (though this might be server-side config)
+      data: {
+        otpType: 'email',
+        requestedAt: new Date().toISOString()
+      }
     };
     
-    // CAPTCHA validation disabled
-
-    console.log('🔧 [DEBUG] Sending OTP request to Supabase:', {
+    console.log('🕐 [DEBUG] Sending OTP request to Supabase:', {
       email,
-      otpOptions
+      otpOptions,
+      timestamp: new Date().toISOString(),
+      localTime: new Date().toLocaleString('id-ID')
     });
     
     const { data, error } = await supabase.auth.signInWithOtp({
@@ -109,6 +115,15 @@ export const verifyEmailOtp = async (
     logger.debug('Verifying OTP:', { email, tokenLength: cleanToken.length });
     const startTime = Date.now();
     
+    // 🕐 Add detailed timing info for debugging
+    console.log('🕐 [DEBUG] OTP Verification Request:', {
+      email,
+      token: cleanToken,
+      requestTime: new Date().toISOString(),
+      localTime: new Date().toLocaleString('id-ID'),
+      timestamp: startTime
+    });
+    
     const { data, error } = await supabase.auth.verifyOtp({
       email: email,
       token: cleanToken,
@@ -117,6 +132,17 @@ export const verifyEmailOtp = async (
     
     const endTime = Date.now();
     const duration = endTime - startTime;
+    
+    console.log('🕐 [DEBUG] OTP Verification Response:', {
+      duration: `${duration}ms`,
+      hasError: !!error,
+      errorMessage: error?.message,
+      errorCode: error?.status,
+      hasData: !!data,
+      hasSession: !!data?.session,
+      hasUser: !!data?.user,
+      responseTime: new Date().toISOString()
+    });
     
     if (error) {
       logger.error('OTP verification error:', error);

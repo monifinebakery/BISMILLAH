@@ -67,57 +67,57 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
     };
   }, [orders]);
 
+  // Format currency for compact display
+  const formatCompactCurrency = (amount: number) => {
+    if (amount >= 1000000) {
+      return `Rp ${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1).replace('.', ',')}M`;
+    } else if (amount >= 1000) {
+      return `Rp ${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1).replace('.', ',')}K`;
+    }
+    return formatCurrency(amount);
+  };
+
   const statisticCards: StatisticCard[] = [
     {
       title: 'Total Pesanan',
       value: statistics.totalOrders,
-      icon: <Package className="h-5 w-5" />,
-      color: 'text-gray-600 bg-white/80 border-gray-200'
+      icon: <Package className="h-6 w-6" />,
+      color: 'text-gray-600 bg-white border-gray-200'
     },
     {
-      title: 'Total Pendapatan',
-      value: formatCurrency(statistics.totalRevenue),
-      icon: <DollarSign className="h-5 w-5" />,
-      color: 'text-gray-600 bg-white/80 border-gray-200'
+      title: 'Total Pendapatan', 
+      value: formatCompactCurrency(statistics.totalRevenue),
+      icon: <DollarSign className="h-6 w-6" />,
+      color: 'text-gray-600 bg-white border-gray-200'
     },
     {
       title: 'Pesanan Pending',
       value: statistics.pendingOrders,
-      icon: <Clock className="h-5 w-5" />,
-      color: 'text-gray-600 bg-white/80 border-gray-200'
+      icon: <Clock className="h-6 w-6" />,
+      color: 'text-gray-600 bg-white border-gray-200'
     },
     {
       title: 'Pesanan Selesai',
       value: statistics.completedOrders,
-      icon: <CheckCircle className="h-5 w-5" />,
-      color: 'text-gray-600 bg-white/80 border-gray-200'
-    },
-    {
-      title: 'Rata-rata Nilai Pesanan',
-      value: formatCurrency(statistics.averageOrderValue),
-      icon: <TrendingUp className="h-5 w-5" />,
-      color: 'text-gray-600 bg-white/80 border-gray-200'
-    },
-    {
-      title: 'Tingkat Penyelesaian',
-      value: `${statistics.completionRate.toFixed(1)}%`,
-      icon: <AlertCircle className="h-5 w-5" />,
-      color: 'text-gray-600 bg-white/80 border-gray-200'
+      icon: <CheckCircle className="h-6 w-6" />,
+      color: 'text-gray-600 bg-white border-gray-200'
     }
   ];
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <Card key={index} className="animate-pulse">
-            <CardHeader className="pb-2">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </CardHeader>
-            <CardContent>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index} className="border border-gray-200 bg-white animate-pulse">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div className="h-6 bg-gray-200 rounded w-16"></div>
+                </div>
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center ml-4">
+                  <div className="w-6 h-6 bg-gray-200 rounded"></div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -127,21 +127,24 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
+    <div className="grid grid-cols-2 gap-4 mb-6">
       {statisticCards.map((stat, index) => (
-        <Card key={index} className={`border transition-all duration-200 hover:shadow-md ${stat.color}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 leading-tight">
-              {stat.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-1">
+        <Card key={index} className={`border shadow-sm hover:shadow-md transition-shadow ${stat.color}`}>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
-                {stat.value}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-2">
+                  {stat.title}
+                </p>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <p className="text-2xl font-bold text-gray-900">
+                    {stat.value}
+                  </p>
+                </div>
               </div>
-              <div className={`p-1.5 sm:p-2 rounded-lg ${stat.color}`}>
-                <div className="h-4 w-4 sm:h-5 sm:w-5">
+              
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center ml-4 flex-shrink-0">
+                <div className="text-orange-600">
                   {stat.icon}
                 </div>
               </div>

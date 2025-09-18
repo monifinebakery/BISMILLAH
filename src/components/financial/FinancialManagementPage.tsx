@@ -444,7 +444,7 @@ const FinancialManagementPage: React.FC = () => {
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={openCategoryDialog}
+                  onClick={() => navigate('/keuangan/kategori')}
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-2"
@@ -454,7 +454,7 @@ const FinancialManagementPage: React.FC = () => {
                 </Button>
                 
                 <Button
-                  onClick={openTransactionDialog}
+                  onClick={() => navigate('/keuangan/tambah')}
                   size="sm"
                   className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600"
                 >

@@ -446,22 +446,35 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
   ];
 
   return (
-    <div className="stats-grid-responsive mb-8">
+    <div className="grid grid-cols-2 gap-4 mb-8">
       {statsConfig.map((stat) => (
-        <StatCard
-          key={stat.key}
-          icon={stat.icon}
-          label={stat.label}
-          shortLabel={stat.shortLabel}
-          value={stat.value}
-          description={stat.description}
-          iconColor={stat.iconColor}
-          valueColor={stat.valueColor}
-          isLoading={isLoading}
-          tooltip={stat.tooltip}
-          trend={stat.trend}
-          syncStatus={stat.syncStatus}
-        />
+        <Card key={stat.key} className="border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-2">
+                  {stat.shortLabel || stat.label}
+                </p>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <p className={`text-2xl font-bold ${stat.valueColor}`}>
+                    {isLoading ? '-' : stat.value}
+                  </p>
+                </div>
+                {stat.description && (
+                  <p className="text-xs text-gray-500">
+                    {stat.description}
+                  </p>
+                )}
+              </div>
+              
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center ml-4 flex-shrink-0">
+                <div className="text-orange-600 w-6 h-6">
+                  {stat.icon}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );

@@ -63,10 +63,10 @@ const QuickSkeleton = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
 );
 
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 const ChartSkeleton = () => (
   <div className="min-h-[120px] flex items-center justify-center">
-    <div className="h-5 w-5 border-2 border-orange-500 border-t-transparent rounded-full motion-safe:animate-spin" />
-    <span className="sr-only">Memuat…</span>
+    <LoadingSpinner size="sm" />
   </div>
 );
 

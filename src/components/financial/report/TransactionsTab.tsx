@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const BulkActions = React.lazy(() => 
   import('../components/BulkActions').catch(() => ({ default: () => null }))
@@ -11,13 +12,6 @@ const TransactionTable = React.lazy(() =>
     console.error('Failed to load TransactionTable', error);
     return { default: () => null };
   })
-);
-
-const FallbackSpinner = () => (
-  <div className="min-h-[120px] flex items-center justify-center">
-    <div className="h-5 w-5 border-2 border-orange-500 border-t-transparent rounded-full motion-safe:animate-spin" />
-    <span className="sr-only">Memuat…</span>
-  </div>
 );
 
 interface TransactionsTabProps {
@@ -53,6 +47,12 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({
   onDeleteTransaction,
   dateRange
 }) => {
+  const Fallback = (
+    <div className="min-h-[120px] flex items-center justify-center">
+      <LoadingSpinner size="sm" />
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {isSelectionMode && (
@@ -68,7 +68,7 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({
         </SafeSuspense>
       )}
 
-      <Suspense fallback={<FallbackSpinner />}>
+      <Suspense fallback={Fallback}>
         <TransactionTable
           transactions={filteredTransactions}
           onEditTransaction={onEditTransaction}

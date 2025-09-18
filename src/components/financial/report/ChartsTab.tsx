@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const FinancialCharts = React.lazy(() => 
   import('../components/FinancialCharts').catch((error) => {
@@ -36,13 +37,6 @@ const CategoryCharts = React.lazy(() =>
   })
 );
 
-const FallbackSpinner = () => (
-  <div className="min-h-[120px] flex items-center justify-center">
-    <div className="h-5 w-5 border-2 border-orange-500 border-t-transparent rounded-full motion-safe:animate-spin" />
-    <span className="sr-only">Memuat…</span>
-  </div>
-);
-
 interface ChartsTabProps {
   filteredTransactions: any[];
   dateRange: { from: Date; to?: Date } | undefined;
@@ -60,9 +54,15 @@ const ChartsTab: React.FC<ChartsTabProps> = ({
   onRefresh,
   lastUpdated
 }) => {
+  const Fallback = (
+    <div className="min-h-[120px] flex items-center justify-center">
+      <LoadingSpinner size="sm" />
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      <Suspense fallback={<FallbackSpinner />}>
+      <Suspense fallback={Fallback}>
         <FinancialCharts 
           filteredTransactions={filteredTransactions}
           dateRange={dateRange as any}
@@ -73,7 +73,7 @@ const ChartsTab: React.FC<ChartsTabProps> = ({
         />
       </Suspense>
 
-      <Suspense fallback={<FallbackSpinner />}>
+      <Suspense fallback={Fallback}>
         <CategoryCharts 
           filteredTransactions={filteredTransactions}
           isLoading={isLoading}

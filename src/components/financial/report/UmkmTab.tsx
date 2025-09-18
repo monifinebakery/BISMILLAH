@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const DailySummaryWidget = React.lazy(() => 
   import('../components/DailySummaryWidget').catch(() => ({ default: () => null }))
@@ -22,41 +23,40 @@ const ExpenseAlerts = React.lazy(() =>
   import('../components/ExpenseAlerts').catch(() => ({ default: () => null }))
 );
 
-const FallbackSpinner = () => (
-  <div className="min-h-[120px] flex items-center justify-center">
-    <div className="h-5 w-5 border-2 border-orange-500 border-t-transparent rounded-full motion-safe:animate-spin" />
-    <span className="sr-only">Memuat…</span>
-  </div>
-);
-
 interface UmkmTabProps {
   transactions: any[];
 }
 
 const UmkmTab: React.FC<UmkmTabProps> = ({ transactions }) => {
+  const Fallback = (
+    <div className="min-h-[120px] flex items-center justify-center">
+      <LoadingSpinner size="sm" />
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      <Suspense fallback={<FallbackSpinner />}>
+      <Suspense fallback={Fallback}>
         <DailySummaryWidget transactions={transactions} />
       </Suspense>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        <Suspense fallback={<FallbackSpinner />}>
+        <Suspense fallback={Fallback}>
           <DailyCashFlowTracker transactions={transactions} />
         </Suspense>
-        <Suspense fallback={<FallbackSpinner />}>
+        <Suspense fallback={Fallback}>
           <ProfitLossSimple transactions={transactions} />
         </Suspense>
-        <Suspense fallback={<FallbackSpinner />}>
+        <Suspense fallback={Fallback}>
           <UMKMExpenseCategories transactions={transactions} />
         </Suspense>
-        <Suspense fallback={<FallbackSpinner />}>
+        <Suspense fallback={Fallback}>
           <SavingsGoalTracker transactions={transactions} />
         </Suspense>
-        <Suspense fallback={<FallbackSpinner />}>
+        <Suspense fallback={Fallback}>
           <DebtTracker />
         </Suspense>
-        <Suspense fallback={<FallbackSpinner />}>
+        <Suspense fallback={Fallback}>
           <ExpenseAlerts transactions={transactions} />
         </Suspense>
       </div>

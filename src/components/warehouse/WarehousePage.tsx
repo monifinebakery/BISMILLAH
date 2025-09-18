@@ -39,25 +39,23 @@ const warehouseQueryKeys = {
 
 // ✅ TAMBAH: Import existing warehouse service
 import { warehouseApi } from './services/warehouseApi';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { warehouseUtils } from './services/warehouseUtils';
 
 // ✅ TAMBAH: API functions menggunakan existing service
 let crudService: any = null;
 
-const getCrudService = async () => {
-  // Always refresh user to avoid stale/undefined userId
-  const { data: { user } } = await supabase.auth.getUser();
-
+const getCrudService = async (userId?: string) => {
   // If no user yet, do not create a service to avoid RLS errors
-  if (!user) {
+  if (!userId) {
     return null;
   }
 
   // Re-create service when user changes
-  if (!crudService || crudService?.config?.userId !== user.id) {
+  if (!crudService || crudService?.config?.userId !== userId) {
     crudService = await warehouseApi.createService('crud', {
-      userId: user.id,
+      userId,
       onError: (error: string) => {
         logger.error('Warehouse API Error:', error);
       },
@@ -67,15 +65,15 @@ const getCrudService = async () => {
   return crudService;
 };
 
-const fetchWarehouseItems = async (): Promise<BahanBakuFrontend[]> => {
+const fetchWarehouseItems = async (userId?: string): Promise<BahanBakuFrontend[]> => {
   // If auth not ready or no user yet, return empty data without erroring
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  if (!userId) {
     logger.warn('Warehouse: No authenticated user, returning empty items');
     return [];
   }
   try {
-    const service = await getCrudService();
+    const service = await getCrudService(userId);
+    if (!service) return [];
     const items = await service.fetchBahanBaku();
     
     // Ensure numeric fields are properly typed
@@ -94,7 +92,7 @@ const fetchWarehouseItems = async (): Promise<BahanBakuFrontend[]> => {
 };
 
 // 🎯 NEW: Fetch warehouse items with pagination
-const fetchWarehouseItemsPaginated = async (page: number = 1, limit: number = 10): Promise<{
+const fetchWarehouseItemsPaginated = async (page: number = 1, limit: number = 10, userId?: string): Promise<{
   data: BahanBakuFrontend[];
   total: number;
   page: number;
@@ -102,14 +100,13 @@ const fetchWarehouseItemsPaginated = async (page: number = 1, limit: number = 10
   totalPages: number;
 }> => {
   // If auth not ready or no user yet, return empty data without erroring
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  if (!userId) {
     logger.warn('Warehouse (paginated): No authenticated user, returning empty items');
     return { data: [], total: 0, page, limit, totalPages: 0 };
   }
 
   try {
-    const service = await getCrudService();
+    const service = await getCrudService(userId);
     if (!service) {
       return { data: [], total: 0, page, limit, totalPages: 0 };
     }
@@ -135,9 +132,9 @@ const fetchWarehouseItemsPaginated = async (page: number = 1, limit: number = 10
   }
 };
 
-const createWarehouseItem = async (item: Partial<BahanBakuFrontend>): Promise<BahanBakuFrontend> => {
+const createWarehouseItem = async (item: Partial<BahanBakuFrontend>, userId?: string): Promise<BahanBakuFrontend> => {
   try {
-    const service = await getCrudService();
+    const service = await getCrudService(userId);
     
     // Remove fields that shouldn't be in create
     const { id, createdAt, updatedAt, userId, ...createData } = item;
@@ -160,11 +157,11 @@ const createWarehouseItem = async (item: Partial<BahanBakuFrontend>): Promise<Ba
   }
 };
 
-const updateWarehouseItem = async ({ id, item }: { id: string; item: Partial<BahanBakuFrontend> }): Promise<BahanBakuFrontend> => {
+const updateWarehouseItem = async ({ id, item, userId }: { id: string; item: Partial<BahanBakuFrontend>; userId?: string }): Promise<BahanBakuFrontend> => {
   try {
     logger.info('updateWarehouseItem called', { id, item });
     
-    const service = await getCrudService();
+    const service = await getCrudService(userId);
     
     const success = await service.updateBahanBaku(id, item);
     if (!success) {
@@ -186,9 +183,9 @@ const updateWarehouseItem = async ({ id, item }: { id: string; item: Partial<Bah
   }
 };
 
-const deleteWarehouseItem = async (id: string): Promise<void> => {
+const deleteWarehouseItem = async (id: string, userId?: string): Promise<void> => {
   try {
-    const service = await getCrudService();
+    const service = await getCrudService(userId);
 
     const success = await service.deleteBahanBaku(id);
     if (!success) {
@@ -200,9 +197,9 @@ const deleteWarehouseItem = async (id: string): Promise<void> => {
   }
 };
 
-const bulkDeleteWarehouseItems = async (ids: string[]): Promise<boolean> => {
+const bulkDeleteWarehouseItems = async (ids: string[], userId?: string): Promise<boolean> => {
   try {
-    const service = await getCrudService();
+    const service = await getCrudService(userId);
 
     const success = await service.bulkDeleteBahanBaku(ids);
     if (!success) {
@@ -315,7 +312,7 @@ const isPaginatedWarehouseResponse = (data: any): data is PaginatedWarehouseResp
   return data && typeof data === 'object' && 'data' in data && 'total' in data;
 };
 
-const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: boolean = false) => {
+const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: boolean = false, userId?: string) => {
   const queryClient = useQueryClient();
   
   // ✅ FIXED: State untuk track USER ACTIONS (bukan data changes)
@@ -329,10 +326,10 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
     refetch,
     dataUpdatedAt,
   } = useQuery<BahanBakuFrontend[] | PaginatedWarehouseResponse>({
-    queryKey: usePagination ? [...warehouseQueryKeys.list(), 'paginated', page, limit] : warehouseQueryKeys.list(),
+    queryKey: usePagination ? [...warehouseQueryKeys.list(), 'paginated', page, limit, userId] : [...warehouseQueryKeys.list(), userId],
     queryFn: usePagination 
-      ? () => fetchWarehouseItemsPaginated(page, limit)
-      : fetchWarehouseItems,
+      ? () => fetchWarehouseItemsPaginated(page, limit, userId)
+      : () => fetchWarehouseItems(userId),
     staleTime: 2 * 60 * 1000, // 2 minutes cache for performance
     keepPreviousData: true,
     placeholderData: (prev) => prev,
@@ -367,7 +364,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
 
   // Mutations dengan explicit timestamp update
   const createMutation = useMutation({
-    mutationFn: createWarehouseItem,
+    mutationFn: (item: Partial<BahanBakuFrontend>) => createWarehouseItem(item, user?.id),
     onSuccess: (newItem) => {
       // ✅ FIXED: Update timestamp saat user berhasil tambah item
       setLastUserAction(new Date());
@@ -382,7 +379,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
   });
 
   const updateMutation = useMutation({
-    mutationFn: updateWarehouseItem,
+    mutationFn: ({ id, item }: { id: string; item: Partial<BahanBakuFrontend> }) => updateWarehouseItem({ id, item, userId: user?.id }),
     onSuccess: (updatedItem) => {
       // ✅ FIXED: Update timestamp saat user berhasil edit item
       setLastUserAction(new Date());
@@ -397,7 +394,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteWarehouseItem,
+    mutationFn: (id: string) => deleteWarehouseItem(id, user?.id),
     onSuccess: () => {
       // ✅ FIXED: Update timestamp saat user berhasil hapus item
       setLastUserAction(new Date());
@@ -448,7 +445,8 @@ const WarehousePageContent: React.FC = () => {
   const [useLazyLoading] = useState(true);
 
   // ✅ TAMBAH: Use warehouse data hook with pagination support
-  const warehouseData = useWarehouseData(currentPage, itemsPerPage, useLazyLoading);
+  const { user } = useAuth();
+  const warehouseData = useWarehouseData(currentPage, itemsPerPage, useLazyLoading, user?.id);
   const lowStockCountRef = useRef(0);
 
   // ✅ FIXED: Create context-like object with all required CRUD functions
@@ -481,7 +479,7 @@ const WarehousePageContent: React.FC = () => {
     },
     bulkDeleteBahanBaku: async (ids: string[]) => {
       try {
-        await bulkDeleteWarehouseItems(ids);
+        await bulkDeleteWarehouseItems(ids, user?.id);
         return true;
       } catch (error) {
         logger.error('Context bulkDeleteBahanBaku error:', error);

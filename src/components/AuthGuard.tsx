@@ -93,7 +93,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   }, [user, isReady, isLoading, location.pathname, navigate]);
 
   // ⚡ MOBILE-OPTIMIZED: Loading state dengan progressive improvement
-  if (isLoading || !isReady) {
+  if ((isLoading || !isReady) && !user) {
     console.log(`🔄 [AuthGuard #${renderCount}] Loading state:`, { isLoading, isReady, isMobile });
     
     return (

@@ -1,6 +1,7 @@
 // src/components/recipe/components/RecipeList/index.tsx - Optimized Dependencies (14 → 8)
 
 import React, { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -53,6 +54,7 @@ const initialDialogStates: DialogStates = {
 
 const RecipeList: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // ✅ CONSOLIDATED: Core state
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -244,7 +246,7 @@ const RecipeList: React.FC = () => {
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={dialogHandlers.openCategory}
+              onClick={() => navigate('/resep/kategori')}
               className="border-orange-200 text-orange-700 hover:bg-orange-50"
             >
               Kelola Kategori

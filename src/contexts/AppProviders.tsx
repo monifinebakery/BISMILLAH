@@ -164,7 +164,8 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
       logger.debug('AppProviders: Cleaning up stage timers');
       stageTimers.forEach(clearTimeout);
     };
-  }, [isMobile]);
+    // Do not re-run on isMobile changes to avoid skeleton flicker on mobile address bar resize
+  }, []);
 
   // ✅ FIXED: Define providers for each stage with better logging
   const criticalProviders = [

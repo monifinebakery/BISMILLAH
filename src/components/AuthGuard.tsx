@@ -18,6 +18,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   
   // ⚡ MOBILE DETECTION
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  let authStartupAt = 0;
+  try { authStartupAt = parseInt(localStorage.getItem('authStartupAt') || '0', 10) || 0; } catch {}
 
   // ✅ Development bypass authentication (must NOT short‑circuit before hooks)
   const isDevelopmentBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
@@ -146,7 +149,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  // ✅ ENHANCED: Redirect logic with mobile-friendly grace period after OTP
+  // ✅ ENHANCED: Redirect logic with mobile-friendly grace period after OTP and startup
   if (!user) {
     let recentlyVerified = false;
     try {
@@ -154,7 +157,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       recentlyVerified = ts > 0 && (Date.now() - ts) < 15000; // 15s grace
     } catch {}
 
-    if (recentlyVerified) {
+    // Also provide a short grace period right after app startup (helps Android)
+    const startupGrace = authStartupAt > 0 && (Date.now() - authStartupAt) < 7000;
+
+    if (recentlyVerified || startupGrace) {
       console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP just verified)`);
       // Optional: trigger a background refresh to speed up
       // Don't block hooks rules; use a microtask

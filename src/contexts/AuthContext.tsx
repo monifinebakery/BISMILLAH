@@ -426,7 +426,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
           const { data: quickUserResult } = await safeWithTimeout(
             supabase.auth.getUser(),
-            1500,
+            3000,
             'AuthContext quick user timeout'
           );
           const quickUser = (quickUserResult as any)?.data?.user ?? (quickUserResult as any)?.user;
@@ -437,6 +437,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setIsLoading(false);
               setIsReady(true);
               logger.debug('AuthContext: Quick user detected, rendering immediately');
+              try { localStorage.setItem('authStartupAt', String(Date.now())); } catch {}
             }
           }
         } catch (e) {

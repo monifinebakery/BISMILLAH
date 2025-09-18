@@ -1,20 +1,19 @@
 // src/components/layout/AppLayout.tsx - SIMPLIFIED: Only AutoLinkingPopup
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePaymentContext } from "@/contexts/PaymentContext";
 import { useAppLayout } from "@/hooks/useAppLayout";
 import { MobileLayout } from "./MobileLayout";
 import { DesktopLayout } from "./DesktopLayout";
-import { AppLoader } from "@/components/loaders";
+// AppLoader not needed; PaymentGuard handles initial loading UX
 import { AutoLinkingPopup } from "@/components/popups";
 import { UpdateNotificationBanner, useUpdateNotification } from '@/components/common/UpdateNotificationBanner';
 import { logger } from "@/utils/logger";
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
-  const [forceReady, setForceReady] = useState(false);
   const { 
     updateAvailable,
     updateInfo,
@@ -57,10 +56,7 @@ export const AppLayout = () => {
   }, []);
 
   // ... (rest of the component remains the same)
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const lastLogRef = useRef<number>(0);
-  
-  const { 
+  const {
     isPaid, 
     isLoading,
     refetchPayment,
@@ -106,46 +102,7 @@ export const AppLayout = () => {
     setShowAutoLinkPopup(false);
   };
   
-  useEffect(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    if (isLoading && !forceReady) {
-      logger.debug('AppLayout: Starting 10 second timeout for loading state');
-      
-      timeoutRef.current = setTimeout(() => {
-        logger.warn('AppLayout: Forcing ready after 10 seconds timeout');
-        setForceReady(true);
-      }, 10000);
-    }
-    
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [isLoading, forceReady]);
-  
-  useEffect(() => {
-    const now = Date.now();
-    
-    if (now - lastLogRef.current > 2000) {
-      lastLogRef.current = now;
-      
-      logger.debug('AppLayout: State update', {
-        isLoading,
-        forceReady,
-        isPaid,
-        unlinkedCount: unlinkedPayments.length,
-        needsOrderLinking
-      });
-    }
-  }, [isLoading, forceReady, isPaid, unlinkedPayments.length, needsOrderLinking]);
-  
-  if (isLoading && !forceReady) {
-    return <AppLoader title="Mengecek status pembayaran..." />;
-  }
+  // Removed AppLayout-level loader to avoid flicker; rely on PaymentGuard for initial gating.
   
   const renderAutoLinkIndicator = () => {
     if (autoLinkCount === 0) return null;

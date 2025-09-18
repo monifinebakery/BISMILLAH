@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import MandatoryUpgradeModal from '@/components/MandatoryUpgradeModal';
 import PaymentVerificationLoader from '@/components/PaymentVerificationLoader';
@@ -11,6 +11,14 @@ interface PaymentGuardProps {
 const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
   const { paymentStatus, isLoading, isPaid, error, refetch } = usePaymentStatus();
   const [timedOut, setTimedOut] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+  // After the first check completes (or we timeout), avoid blocking loaders on subsequent refetches
+  useEffect(() => {
+    if (!isLoading || timedOut) {
+      setInitialCheckDone(true);
+    }
+  }, [isLoading, timedOut]);
 
   // Error state
   if (error) {
@@ -49,7 +57,7 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
   }
 
   // Loading state - use unified modern loader
-  if (isLoading && !timedOut) {
+  if (!initialCheckDone && isLoading && !timedOut) {
     logger.debug('PaymentGuard: Loading payment status...');
     return (
       <PaymentVerificationLoader 

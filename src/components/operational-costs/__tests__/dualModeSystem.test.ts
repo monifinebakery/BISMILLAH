@@ -2,25 +2,6 @@
 // 🧪 Comprehensive Dual-Mode System Tests (Revision 9)
 // Tests using example data to verify all calculations work correctly
 
-// Type definitions for test runner
-declare global {
-  function describe(name: string, fn: () => void): void;
-  function it(name: string, fn: () => void): void;
-  namespace jest {
-    interface Matchers<R> {
-      toBe(expected: any): R;
-      toBeCloseTo(expected: number, precision?: number): R;
-      toBeDefined(): R;
-      toHaveProperty(property: string): R;
-      toBeGreaterThan(expected: number): R;
-      toHaveLength(expected: number): R;
-      toContain(expected: any): R;
-      toThrow(expected?: string | RegExp): R;
-    }
-  }
-  function expect<T>(actual: T): jest.Matchers<T>;
-}
-
 // Testing functions are available globally
 import {
   calculateDualModeCosts,

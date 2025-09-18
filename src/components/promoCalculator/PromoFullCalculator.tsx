@@ -20,18 +20,22 @@ import {
   PromoStatusStep,
   PromoCalculationStep
 } from './components';
-import { Card, CardContent } from '@/components/ui/card';
-
 const PromoFullCalculator = () => {
   const [showCreatorHint, setShowCreatorHint] = React.useState<boolean>(false);
   React.useEffect(() => {
     try {
       const dismissed = localStorage.getItem('promoCreatorHintDismissed');
       setShowCreatorHint(!dismissed);
-    } catch {}
+    } catch (error) {
+      console.warn('PromoFullCalculator: failed to read promoCreatorHintDismissed flag', error);
+    }
   }, []);
   const dismissCreatorHint = () => {
-    try { localStorage.setItem('promoCreatorHintDismissed', '1'); } catch {}
+    try {
+      localStorage.setItem('promoCreatorHintDismissed', '1');
+    } catch (error) {
+      console.warn('PromoFullCalculator: failed to persist promoCreatorHintDismissed flag', error);
+    }
     setShowCreatorHint(false);
   };
   const { id } = useParams();

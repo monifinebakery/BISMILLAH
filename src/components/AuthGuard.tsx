@@ -152,14 +152,20 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     try {
       const ts = parseInt(localStorage.getItem('otpVerifiedAt') || '0', 10) || 0;
       recentlyVerified = ts > 0 && (Date.now() - ts) < 15000; // 15s grace
-    } catch {}
+    } catch (error) {
+      console.warn('[AuthGuard] Failed to read otpVerifiedAt from storage', error);
+    }
 
     if (recentlyVerified) {
       console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP just verified)`);
       // Optional: trigger a background refresh to speed up
       // Don't block hooks rules; use a microtask
       Promise.resolve().then(() => {
-        try { window.dispatchEvent(new Event('auth-refresh-request')); } catch {}
+        try {
+          window.dispatchEvent(new Event('auth-refresh-request'));
+        } catch (error) {
+          console.warn('[AuthGuard] Failed to dispatch auth refresh event', error);
+        }
       });
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">

@@ -30,7 +30,18 @@ interface UseCostCalculationReturn {
 
 export const useCostCalculation = (data: CostCalculationData): UseCostCalculationReturn => {
   // 🐛 DEBUG: Log input data
-  // Ganti camelCase ke snake_case\nlogger.debug('useCostCalculation INPUT DEBUG', {\n  fullData: data,\n  margin_keuntungan_persen: data.margin_keuntungan_persen,\n  marginType: typeof data.margin_keuntungan_persen,\n  jumlah_porsi: data.jumlah_porsi,\n  bahan_resep_length: data.bahan_resep?.length,\n  biaya_tenaga_kerja: data.biaya_tenaga_kerja,\n  biaya_overhead: data.biaya_overhead\n});\n\n// Calculate cost breakdown
+  // Ganti camelCase ke snake_case
+logger.debug('useCostCalculation INPUT DEBUG', {
+  fullData: data,
+  margin_keuntungan_persen: data.margin_keuntungan_persen,
+  marginType: typeof data.margin_keuntungan_persen,
+  jumlah_porsi: data.jumlah_porsi,
+  bahan_resep_length: data.bahan_resep?.length,
+  biaya_tenaga_kerja: data.biaya_tenaga_kerja,
+  biaya_overhead: data.biaya_overhead
+});
+
+// Calculate cost breakdown
   const costBreakdown = useMemo(() => {
     logger.debug('Recalculating costBreakdown...');
     const result = calculateCostBreakdown(data);

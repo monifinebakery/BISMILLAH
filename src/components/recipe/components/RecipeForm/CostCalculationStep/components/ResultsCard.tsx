@@ -46,7 +46,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
             {/* ✅ NEW: Show total production info */}
             {showPerPcsData && (
               <Badge className="bg-purple-100 text-purple-800 border-purple-300">
-                {jumlah_porsi} porsi × {jumlah_pcs_per_porsi} pcs = {totalPieces} pcs
+                {jumlah_porsi} porsi x {jumlah_pcs_per_porsi} pcs = {totalPieces} pcs
               </Badge>
             )}
           </CardTitle>
@@ -235,7 +235,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
                 </div>
                 {showPerPcsData && (
                   <div className="text-gray-500">
-                    = {formatCurrency(profitAnalysis.sellingPricePerPiece)} × {totalPieces} pcs
+                    = {formatCurrency(profitAnalysis.sellingPricePerPiece)} x {totalPieces} pcs
                   </div>
                 )}
               </div>

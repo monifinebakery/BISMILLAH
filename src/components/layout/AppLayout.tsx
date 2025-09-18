@@ -30,7 +30,9 @@ export const AppLayout = () => {
         // If a refresh is already in progress, skip showing update banner
         try {
           if (localStorage.getItem('appUpdateRefreshing') === '1') return;
-        } catch {}
+        } catch (error) {
+          console.warn('AppLayout: unable to read appUpdateRefreshing flag', error);
+        }
 
         const response = await fetch('/version.json?t=' + new Date().getTime(), { cache: 'no-store' });
         const data = await response.json();
@@ -53,7 +55,11 @@ export const AppLayout = () => {
 
   // After full load, clear the in-progress flag so future updates can show
   useEffect(() => {
-    try { localStorage.removeItem('appUpdateRefreshing'); } catch {}
+    try {
+      localStorage.removeItem('appUpdateRefreshing');
+    } catch (error) {
+      console.warn('AppLayout: unable to clear appUpdateRefreshing flag', error);
+    }
   }, []);
 
   // ... (rest of the component remains the same)

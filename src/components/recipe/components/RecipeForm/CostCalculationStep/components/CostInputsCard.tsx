@@ -46,7 +46,15 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
   });
 
   // ✅ Calculate per-piece costs for display - handle string values
-  const jumlah_porsi = typeof data.jumlah_porsi === 'string' \n    ? (data.jumlah_porsi === '' ? 1 : parseInt(data.jumlah_porsi)) || 1\n    : data.jumlah_porsi || 1;\n  const jumlah_pcs_per_porsi = typeof data.jumlah_pcs_per_porsi === 'string'\n    ? (data.jumlah_pcs_per_porsi === '' ? 1 : parseInt(data.jumlah_pcs_per_porsi)) || 1  \n    : (data.jumlah_pcs_per_porsi || 1);\n  const totalPieces = jumlah_porsi * jumlah_pcs_per_porsi;\n  const ingredientCostPerPiece = totalPieces > 0 ? ingredientCost / totalPieces : 0;\n
+  const jumlah_porsi = typeof data.jumlah_porsi === 'string'
+    ? (data.jumlah_porsi === '' ? 1 : parseInt(data.jumlah_porsi, 10)) || 1
+    : data.jumlah_porsi || 1;
+  const jumlah_pcs_per_porsi = typeof data.jumlah_pcs_per_porsi === 'string'
+    ? (data.jumlah_pcs_per_porsi === '' ? 1 : parseInt(data.jumlah_pcs_per_porsi, 10)) || 1
+    : data.jumlah_pcs_per_porsi || 1;
+  const totalPieces = jumlah_porsi * jumlah_pcs_per_porsi;
+  const ingredientCostPerPiece = totalPieces > 0 ? ingredientCost / totalPieces : 0;
+
 
   return (
     <div className="xl:col-span-2 space-y-6">
@@ -87,7 +95,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
               {/* ✅ Show total pieces info */}
               {jumlah_pcs_per_porsi > 1 && (
                 <div className="mt-1 text-xs">
-                  Total: {jumlah_porsi} porsi × {jumlah_pcs_per_porsi} pcs = {totalPieces} pcs
+                  Total: {jumlah_porsi} porsi x {jumlah_pcs_per_porsi} pcs = {totalPieces} pcs
                 </div>
               )}
             </div>
@@ -354,7 +362,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
 
             <p className="text-xs text-gray-500">
               {overheadManagement.isUsingAutoOverhead 
-                ? `Dihitung dari biaya operasional per unit × ${data.jumlahPorsi} porsi`
+                ? `Dihitung dari biaya operasional per unit x ${data.jumlahPorsi} porsi`
                 : "Listrik, gas, sewa tempat, dll. untuk batch ini"
               }
               {/* ✅ Show per-piece context */}

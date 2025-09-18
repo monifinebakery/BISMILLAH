@@ -28,7 +28,11 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
 
   function markInitialDone() {
     __paymentInitialCheckDone = true;
-    try { window.sessionStorage.setItem('payment-initial-check-done', '1'); } catch {}
+    try {
+      window.sessionStorage.setItem('payment-initial-check-done', '1');
+    } catch (error) {
+      logger.warn('PaymentGuard: Failed to persist initial check flag', error);
+    }
     setInitialCheckDone(true);
   }
 

@@ -12,7 +12,40 @@ import { safePerformance } from '@/utils/browserApiSafeWrappers';
 export const calculateIngredientCost = (bahan_resep: any[]): number => {
   logger.perf('calculateIngredientCost', 0); // Start performance tracking
   const startTime = safePerformance.now();
-  \n  if (!bahan_resep || bahan_resep.length === 0) {\n    logger.debug('No ingredients provided for cost calculation');\n    return 0;\n  }\n  \n  logger.debug('Calculating ingredient cost', { ingredientCount: bahan_resep.length });\n  \n  const totalCost = bahan_resep.reduce((total, bahan, index) => {\n    // Handle different possible property names from original code\n    const jumlah = Number(bahan.jumlah || bahan.quantity || 0);\n    const harga = Number(bahan.hargaPerSatuan || bahan.hargaSatuan || bahan.price || bahan.unitPrice || 0);\n    const subtotal = jumlah * harga;\n    \n    logger.debug('Ingredient calculation', { \n      index,\n      nama: bahan.namaBahan || bahan.name, \n      jumlah, \n      harga, \n      subtotal\n    });\n    \n    return total + subtotal;\n  }, 0);\n\n  const duration = safePerformance.now() - startTime;\n  logger.perf('calculateIngredientCost', duration, { \n    totalCost, \n    ingredientCount: bahan_resep.length \n  });\n  \n  return totalCost;\n};\n
+  
+  if (!bahan_resep || bahan_resep.length === 0) {
+    logger.debug('No ingredients provided for cost calculation');
+    return 0;
+  }
+  
+  logger.debug('Calculating ingredient cost', { ingredientCount: bahan_resep.length });
+  
+  const totalCost = bahan_resep.reduce((total, bahan, index) => {
+    // Handle different possible property names from original code
+    const jumlah = Number(bahan.jumlah || bahan.quantity || 0);
+    const harga = Number(bahan.hargaPerSatuan || bahan.hargaSatuan || bahan.price || bahan.unitPrice || 0);
+    const subtotal = jumlah * harga;
+    
+    logger.debug('Ingredient calculation', { 
+      index,
+      nama: bahan.namaBahan || bahan.name, 
+      jumlah, 
+      harga, 
+      subtotal
+    });
+    
+    return total + subtotal;
+  }, 0);
+
+  const duration = safePerformance.now() - startTime;
+  logger.perf('calculateIngredientCost', duration, { 
+    totalCost, 
+    ingredientCount: bahan_resep.length 
+  });
+  
+  return totalCost;
+};
+
 
 /**
  * Calculate complete cost breakdown
@@ -52,7 +85,60 @@ export const calculateProfitAnalysis = (
   data: CostCalculationData
 ): ProfitAnalysis => {
   const startTime = safePerformance.now();
-  logger.debug('Starting profit analysis calculation', { \n    costBreakdown, \n    marginPercent: data.margin_keuntungan_persen \n  });\n  \n  const marginPercent = data.margin_keuntungan_persen || 0;\n  \n  // ✅ FIXED: Calculate margin per portion, not from total\n  const marginPerPortion = costBreakdown.costPerPortion * marginPercent / 100;\n  const marginAmount = marginPerPortion * data.jumlah_porsi; // Total margin for all portions\n  \n  // ✅ FIXED: Simple addition, no division needed\n  const sellingPricePerPortion = costBreakdown.costPerPortion + marginPerPortion;\n  const sellingPricePerPiece = costBreakdown.costPerPiece + (marginPerPortion / (data.jumlah_pcs_per_porsi || 1));\n  \n  const profitPerPortion = marginPerPortion; // This is the profit\n  const profitPerPiece = marginPerPortion / (data.jumlah_pcs_per_porsi || 1);\n  \n  const profitabilityLevel: ProfitAnalysis['profitabilityLevel'] = \n    marginPercent >= 30 ? 'high' : \n    marginPercent >= 15 ? 'medium' : 'low';\n\n  const analysis: ProfitAnalysis = {\n    marginAmount,\n    sellingPricePerPortion,\n    sellingPricePerPiece,\n    profitPerPortion,\n    profitPerPiece,\n    profitabilityLevel,\n  };\n\n  const duration = safePerformance.now() - startTime;\n  logger.perf('calculateProfitAnalysis', duration, analysis);\n  \n  // Debug logging to help track the issue\n  logger.debug('Profit analysis calculation details:', {\n    costPerPortion: costBreakdown.costPerPortion,\n    marginPercent,\n    marginPerPortion,\n    marginAmount,\n    sellingPricePerPortion,\n    profitPerPortion\n  });\n  \n  if (profitabilityLevel === 'low') {\n    logger.warn('Low profitability detected', { \n      marginPercent, \n      profitabilityLevel,\n      totalCost: costBreakdown.totalProductionCost \n    });\n  }\n  \n  return analysis;\n};
+  logger.debug('Starting profit analysis calculation', { 
+    costBreakdown, 
+    marginPercent: data.margin_keuntungan_persen 
+  });
+  
+  const marginPercent = data.margin_keuntungan_persen || 0;
+  
+  // ✅ FIXED: Calculate margin per portion, not from total
+  const marginPerPortion = costBreakdown.costPerPortion * marginPercent / 100;
+  const marginAmount = marginPerPortion * data.jumlah_porsi; // Total margin for all portions
+  
+  // ✅ FIXED: Simple addition, no division needed
+  const sellingPricePerPortion = costBreakdown.costPerPortion + marginPerPortion;
+  const sellingPricePerPiece = costBreakdown.costPerPiece + (marginPerPortion / (data.jumlah_pcs_per_porsi || 1));
+  
+  const profitPerPortion = marginPerPortion; // This is the profit
+  const profitPerPiece = marginPerPortion / (data.jumlah_pcs_per_porsi || 1);
+  
+  const profitabilityLevel: ProfitAnalysis['profitabilityLevel'] = 
+    marginPercent >= 30 ? 'high' : 
+    marginPercent >= 15 ? 'medium' : 'low';
+
+  const analysis: ProfitAnalysis = {
+    marginAmount,
+    sellingPricePerPortion,
+    sellingPricePerPiece,
+    profitPerPortion,
+    profitPerPiece,
+    profitabilityLevel,
+  };
+
+  const duration = safePerformance.now() - startTime;
+  logger.perf('calculateProfitAnalysis', duration, analysis);
+  
+  // Debug logging to help track the issue
+  logger.debug('Profit analysis calculation details:', {
+    costPerPortion: costBreakdown.costPerPortion,
+    marginPercent,
+    marginPerPortion,
+    marginAmount,
+    sellingPricePerPortion,
+    profitPerPortion
+  });
+  
+  if (profitabilityLevel === 'low') {
+    logger.warn('Low profitability detected', { 
+      marginPercent, 
+      profitabilityLevel,
+      totalCost: costBreakdown.totalProductionCost 
+    });
+  }
+  
+  return analysis;
+};
 
 /**
  * Calculate break-even point
@@ -137,16 +223,26 @@ export const validateCostData = (data: CostCalculationData) => {
 
   if (data.biaya_tenaga_kerja !== undefined && data.biaya_tenaga_kerja < 0) {
     errors.biaya_tenaga_kerja = 'Biaya tenaga kerja tidak boleh negatif';
-    logger.warn('Validation error: negative labor cost', { biaya_tenaga_kerja: data.biaya_tenaga_kerja });\n  }\n
+    logger.warn('Validation error: negative labor cost', { biaya_tenaga_kerja: data.biaya_tenaga_kerja });
+  }
+
 
   if (data.biaya_overhead !== undefined && data.biaya_overhead < 0) {
     errors.biaya_overhead = 'Biaya overhead tidak boleh negatif';
-    logger.warn('Validation error: negative overhead cost', { biaya_overhead: data.biaya_overhead });\n  }\n
+    logger.warn('Validation error: negative overhead cost', { biaya_overhead: data.biaya_overhead });
+  }
+
 
   if (data.margin_keuntungan_persen !== undefined) {
     if (data.margin_keuntungan_persen < 0) {
       errors.margin_keuntungan_persen = 'Margin keuntungan tidak boleh negatif';
-      logger.warn('Validation error: negative profit margin', { margin_keuntungan_persen: data.margin_keuntungan_persen });\n    } else if (data.margin_keuntungan_persen > 1000) {\n      errors.margin_keuntungan_persen = 'Margin keuntungan tidak boleh lebih dari 1000%';\n      logger.warn('Validation error: excessive profit margin', { margin_keuntungan_persen: data.margin_keuntungan_persen });\n    }\n  }\n
+      logger.warn('Validation error: negative profit margin', { margin_keuntungan_persen: data.margin_keuntungan_persen });
+    } else if (data.margin_keuntungan_persen > 1000) {
+      errors.margin_keuntungan_persen = 'Margin keuntungan tidak boleh lebih dari 1000%';
+      logger.warn('Validation error: excessive profit margin', { margin_keuntungan_persen: data.margin_keuntungan_persen });
+    }
+  }
+
 
   if (Object.keys(errors).length > 0) {
     logger.error('Cost data validation failed', { errors, data });

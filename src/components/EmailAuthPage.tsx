@@ -267,7 +267,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         toast.success("Login berhasil! Mengarahkan ke dashboard...");
         onLoginSuccess?.();
         // ✅ NEW: Mark recent OTP success to give AuthGuard a grace period on mobile
-        try { localStorage.setItem('otpVerifiedAt', String(Date.now())); } catch {}
+        try {
+          localStorage.setItem('otpVerifiedAt', String(Date.now()));
+        } catch (error) {
+          logger.warn('EmailAuth: Failed to store otpVerifiedAt timestamp', error);
+        }
 
         // ✅ Immediate SPA navigation to dashboard to reduce perceived delay
         try {

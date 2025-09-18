@@ -255,8 +255,8 @@ export const useUpdateNotification = () => {
       if (localStorage.getItem('appUpdateRefreshing') === '1') {
         return;
       }
-    } catch {
-      // ignore storage access errors
+    } catch (error) {
+      console.warn('UpdateNotificationBanner: unable to read refresh flag', error);
     }
 
     // Do not re-show the same commit banner repeatedly during the same session
@@ -268,7 +268,9 @@ export const useUpdateNotification = () => {
       if (info.commitHash) {
         sessionStorage.setItem('update-banner-commit', info.commitHash);
       }
-    } catch {}
+    } catch (error) {
+      console.warn('UpdateNotificationBanner: unable to persist banner state', error);
+    }
 
     setUpdateInfo(info);
     setUpdateAvailable(true);

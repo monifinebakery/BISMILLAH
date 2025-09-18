@@ -51,8 +51,7 @@ export default tseslint.config(
         // Prefer snake_case for properties and parameter properties
         { "selector": "property", "format": ["snake_case"], "leadingUnderscore": "allow" },
         { "selector": "parameterProperty", "format": ["snake_case"], "leadingUnderscore": "allow" },
-        // Allow constants either SNAKE or UPPER for now
-        { "selector": "variable", "modifiers": ["const"], "format": ["snake_case", "UPPER_CASE"], "leadingUnderscore": "allow" },
+        // Keep component/hook names idiomatic while still preferring snake_case for plain data constants
         // Keep functions flexible (don’t break hooks/components)
         { "selector": "function", "format": ["camelCase", "snake_case", "PascalCase"] }
       ],

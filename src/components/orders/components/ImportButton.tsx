@@ -63,6 +63,8 @@ const ImportButton: React.FC = () => {
           // Note: This will only sync completed orders, pending orders will sync when status changes
           const { bulkSyncOrdersToFinancial } = await import('@/utils/orderFinancialSync');
           // Background sync - don't wait for it or show errors to user
+          // Execute sync in background without blocking UI
+          bulkSyncOrdersToFinancial();
         } catch (syncError) {
           console.error('Error in post-import financial sync:', syncError);
           // Silent error - user doesn't need to know about financial sync issues

@@ -13,11 +13,17 @@ const PromoDashboardPage: React.FC = () => {
     try {
       const dismissed = localStorage.getItem('promoDashboardHintDismissed');
       setShowHint(!dismissed);
-    } catch {}
+    } catch (error) {
+      console.warn('PromoDashboardPage: failed to read promoDashboardHintDismissed flag', error);
+    }
   }, []);
 
   const dismissHint = () => {
-    try { localStorage.setItem('promoDashboardHintDismissed', '1'); } catch {}
+    try {
+      localStorage.setItem('promoDashboardHintDismissed', '1');
+    } catch (error) {
+      console.warn('PromoDashboardPage: failed to persist promoDashboardHintDismissed flag', error);
+    }
     setShowHint(false);
   };
 

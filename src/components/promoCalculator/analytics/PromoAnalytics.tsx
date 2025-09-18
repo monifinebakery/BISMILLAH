@@ -69,10 +69,12 @@ const PromoAnalytics = () => {
   };
 
   const formatCompactCurrency = (value) => {
-    if (value >= 1000000) {
-      return `Rp ${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000000000) {
+      return `Rp ${(value / 1000000000).toFixed(1)} miliar`;
+    } else if (value >= 1000000) {
+      return `Rp ${(value / 1000000).toFixed(1)} jt`;
     } else if (value >= 1000) {
-      return `Rp ${(value / 1000).toFixed(1)}K`;
+      return `Rp ${(value / 1000).toFixed(1)} rb`;
     }
     return formatCurrency(value);
   };

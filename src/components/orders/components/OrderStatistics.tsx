@@ -67,12 +67,14 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
     };
   }, [orders]);
 
-  // Format currency for compact display
+  // Format currency for compact display with Indonesian abbreviations
   const formatCompactCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `Rp ${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1).replace('.', ',')}M`;
+    if (amount >= 1000000000) {
+      return `Rp ${(amount / 1000000000).toFixed(amount >= 10000000000 ? 0 : 1).replace('.', ',')} miliar`;
+    } else if (amount >= 1000000) {
+      return `Rp ${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1).replace('.', ',')} jt`;
     } else if (amount >= 1000) {
-      return `Rp ${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1).replace('.', ',')}K`;
+      return `Rp ${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1).replace('.', ',')} rb`;
     }
     return formatCurrency(amount);
   };

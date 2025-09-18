@@ -18,6 +18,7 @@ import {
   useEnhancedOptimistic 
 } from '@/utils/performance/reactQueryAdvanced';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -361,7 +362,8 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
   isAllSelected = false,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const isMobile = useIsMobile();
+  const [itemsPerPage, setItemsPerPage] = useState(() => (isMobile ? 5 : 10));
   const [useLazyLoading] = useState(true);
 
   // ✅ Definisikan user TERLEBIH DAHULU sebelum digunakan

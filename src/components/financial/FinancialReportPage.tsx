@@ -636,7 +636,7 @@ const FinancialReportPage: React.FC = () => {
 
           {/* ✅ CHARTS TAB - Financial charts and category charts */}
           <TabsContent value="charts" className="space-y-6">
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
               <FinancialCharts 
                 filteredTransactions={filteredTransactions}
                 dateRange={dateRange}
@@ -647,7 +647,7 @@ const FinancialReportPage: React.FC = () => {
               />
             </Suspense>
 
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
               <CategoryCharts 
                 filteredTransactions={filteredTransactions}
                 isLoading={isLoading}
@@ -691,7 +691,7 @@ const FinancialReportPage: React.FC = () => {
           {/* ✅ UMKM FEATURES TAB - Optimized Layout */}
           <TabsContent value="umkm" className="space-y-4">
             {/* Daily Summary Widget - Full Width */}
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
               <DailySummaryWidget 
                 transactions={filteredTransactions}
               />
@@ -700,40 +700,40 @@ const FinancialReportPage: React.FC = () => {
             {/* Main Grid - 3 Columns on Large Screens, 2 on Medium, 1 on Small */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {/* Daily Cash Flow Tracker */}
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
                 <DailyCashFlowTracker 
                   transactions={filteredTransactions}
                 />
               </Suspense>
 
               {/* Simple Profit Loss */}
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
                 <ProfitLossSimple 
                   transactions={filteredTransactions}
                 />
               </Suspense>
 
               {/* UMKM Expense Categories */}
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
                 <UMKMExpenseCategories 
                   transactions={filteredTransactions}
                 />
               </Suspense>
 
               {/* Savings Goal Tracker */}
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
                 <SavingsGoalTracker 
                   transactions={filteredTransactions}
                 />
               </Suspense>
 
               {/* Debt Tracker */}
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
                 <DebtTracker />
               </Suspense>
 
               {/* Expense Alerts */}
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
                 <ExpenseAlerts 
                   transactions={filteredTransactions}
                 />
@@ -741,7 +741,7 @@ const FinancialReportPage: React.FC = () => {
             </div>
 
             {/* Simple Business Report - Full Width at Bottom */}
-<Suspense fallback={null}>
+<Suspense fallback={<ChartSkeleton />}>
               <SimpleBusinessReport 
                 transactions={filteredTransactions}
               />

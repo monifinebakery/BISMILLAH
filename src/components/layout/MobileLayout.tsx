@@ -22,7 +22,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   children
 }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-[100svh] flex flex-col bg-background">
       {/* ✅ Mobile Header */}
       <header className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
         <div className="flex-1">

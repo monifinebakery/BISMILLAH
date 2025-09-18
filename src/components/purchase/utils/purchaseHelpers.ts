@@ -1,6 +1,7 @@
 // src/components/purchase/utils/purchaseHelpers.ts
 
 import { Purchase, PurchaseStats, PurchaseStatus } from '../types/purchase.types';
+import { formatIDNumber } from '@/utils/numberLocale';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 /**
@@ -163,7 +164,7 @@ export const getFormattedTotalQuantities = (purchase: Purchase): string => {
 
   // Format: "Total 2 kg" or "Total 2 kg, 1.5 liter"
   const quantities = Object.entries(quantitiesBySatuan)
-    .map(([satuan, total]) => `${total} ${satuan}`)
+    .map(([satuan, total]) => `${formatIDNumber(total)} ${satuan}`)
     .join(', ');
 
   return `Total ${quantities}`;

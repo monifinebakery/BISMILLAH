@@ -263,9 +263,9 @@ const MenuPage = () => {
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="flex-1">Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLogout} className="flex-1">
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLogout}>
               Keluar
             </AlertDialogAction>
           </AlertDialogFooter>

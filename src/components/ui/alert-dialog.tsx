@@ -36,9 +36,21 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Center reliably and float above any UI (navbars, sidebars, sheets, etc.)
-        // On mobile: take nearly full width with safe margins; on larger screens: cap width
-        "fixed left-1/2 top-1/2 z-[9999] grid w-full sm:w-auto max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background py-4 sm:py-6 px-4 sm:px-6 lg:px-8 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-xl max-h-[75vh] sm:max-h-[70vh] overflow-y-auto overflow-x-hidden shadow-xl",
+        // 📱 Enhanced mobile-first centering and positioning
+        // Perfect center on all devices with proper mobile margins
+        "fixed left-1/2 top-1/2 z-[9999] grid w-full sm:w-auto",
+        // 📱 Mobile: Full width with safe margins, Desktop: Constrained width
+        "max-w-[calc(100vw-1rem)] mx-2 sm:mx-0 sm:max-w-lg", 
+        // 🎯 Perfect centering transform
+        "-translate-x-1/2 -translate-y-1/2",
+        // 🎨 Spacing and styling
+        "gap-4 border bg-background py-4 sm:py-6 px-4 sm:px-6 lg:px-8",
+        // ✨ Animation and visual effects
+        "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0", 
+        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        // 📱 Mobile-optimized height and scrolling
+        "rounded-xl max-h-[85vh] sm:max-h-[70vh] overflow-y-auto overflow-x-hidden shadow-xl",
         className
       )}
       {...props}
@@ -67,7 +79,8 @@ const AlertDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse gap-2 sm:flex-row sm:justify-center sm:gap-3",
+      // 📱 Mobile-first: Full-width stacked buttons, Desktop: Row layout
+      "flex flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3",
       className
     )}
     {...props}
@@ -106,7 +119,12 @@ const AlertDialogAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
-    className={cn(buttonVariants(), className)}
+    className={cn(
+      buttonVariants(), 
+      // 📱 Mobile-friendly button sizing
+      "w-full sm:w-auto min-h-[44px]", 
+      className
+    )}
     {...props}
   />
 ))
@@ -120,7 +138,8 @@ const AlertDialogCancel = React.forwardRef<
     ref={ref}
     className={cn(
       buttonVariants({ variant: "outline" }),
-      "mt-2 sm:mt-0",
+      // 📱 Mobile-friendly button sizing and spacing
+      "w-full sm:w-auto min-h-[44px] mt-0",
       className
     )}
     {...props}

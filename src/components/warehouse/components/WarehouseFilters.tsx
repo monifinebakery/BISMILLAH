@@ -25,6 +25,8 @@ import { logger } from '@/utils/logger';
 import type { FilterState } from '../types';
 // Kategori default sinkron dengan analisis profit
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
+// ✅ FIX: Import supabase client for direct supplier lookup
+import { supabase } from '@/integrations/supabase/client';
 
 // Define DateRange interface locally
 interface DateRange {

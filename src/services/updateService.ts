@@ -32,8 +32,10 @@ class UpdateService {
   private readonly REPO_NAME = 'BISMILLAH';
   private readonly BRANCH = 'main';
   
-  // Supabase Edge Function for deployment status
-  private readonly DEPLOYMENT_STATUS_ENDPOINT = import.meta.env.VITE_SUPABASE_URL
+  // Feature flag: enable/disable polling Supabase Edge Function
+  private readonly ENABLE_DEPLOYMENT_POLLING = Boolean(import.meta.env.VITE_ENABLE_DEPLOYMENT_POLLING);
+  // Supabase Edge Function for deployment status (only when enabled)
+  private readonly DEPLOYMENT_STATUS_ENDPOINT = (import.meta.env.VITE_SUPABASE_URL && this.ENABLE_DEPLOYMENT_POLLING)
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vercel-deployments`
     : undefined;
 
@@ -81,9 +83,9 @@ class UpdateService {
   // Check Vercel deployment status
   private async checkDeploymentStatus(commitSha: string): Promise<boolean> {
     try {
-      // If no deployment endpoint, assume deployment is ready (fallback)
-      if (!this.DEPLOYMENT_STATUS_ENDPOINT) {
-        logger.debug('🟡 No deployment status endpoint configured, assuming deployment ready');
+      // If polling disabled or no endpoint, assume deployment is ready (fallback)
+      if (!this.ENABLE_DEPLOYMENT_POLLING || !this.DEPLOYMENT_STATUS_ENDPOINT) {
+        logger.debug('🟡 Deployment status polling disabled, assuming deployment ready');
         return true;
       }
 

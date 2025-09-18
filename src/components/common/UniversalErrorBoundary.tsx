@@ -213,7 +213,8 @@ export const SafeSuspense: React.FC<SafeSuspenseProps> = ({
   size = 'md',
   minimal = false
 }) => {
-  const defaultFallback = fallback || <UniversalLoader size={size} />;
+  // Default to no visual fallback to avoid long-lived skeletons
+  const defaultFallback = fallback ?? null;
 
   return (
     <UniversalErrorBoundary fallback={errorFallback} minimal={minimal}>

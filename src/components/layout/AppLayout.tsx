@@ -20,7 +20,8 @@ export const AppLayout = () => {
     updateInfo,
     isVisible,
     checkForUpdate,
-    dismissUpdateNotification 
+    dismissUpdateNotification,
+    showUpdateNotification,
   } = useUpdateNotification();
   
   // Check for new version periodically
@@ -40,7 +41,8 @@ export const AppLayout = () => {
         const currentCommit = import.meta.env.VITE_COMMIT_HASH;
 
         if (latestCommit && currentCommit && latestCommit !== currentCommit) {
-          checkForUpdate({ commitHash: latestCommit });
+          // Show update banner immediately without polling Supabase endpoint
+          showUpdateNotification({ commitHash: latestCommit });
         }
       } catch (error) {
         console.warn('Failed to check for new version:', error);

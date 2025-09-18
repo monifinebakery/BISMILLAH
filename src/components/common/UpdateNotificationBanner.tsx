@@ -170,10 +170,11 @@ export const useUpdateNotification = () => {
   const [isPolling, setIsPolling] = useState(false);
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const DEPLOYMENT_STATUS_ENDPOINT = SUPABASE_URL
+  const ENABLE_DEPLOYMENT_POLLING = Boolean(import.meta.env.VITE_ENABLE_DEPLOYMENT_POLLING);
+  const DEPLOYMENT_STATUS_ENDPOINT = SUPABASE_URL && ENABLE_DEPLOYMENT_POLLING
     ? `${SUPABASE_URL}/functions/v1/vercel-deployments`
     : null;
-  const HAS_DEPLOYMENT_ENDPOINT = Boolean(DEPLOYMENT_STATUS_ENDPOINT);
+  const HAS_DEPLOYMENT_ENDPOINT = Boolean(DEPLOYMENT_STATUS_ENDPOINT) && ENABLE_DEPLOYMENT_POLLING;
 
   const pollDeploymentStatus = async (commitHash: string, timeout = 5 * 60 * 1000) => {
     // If env vars are not available (e.g., local dev or preview without secrets),
@@ -279,8 +280,12 @@ export const useUpdateNotification = () => {
 
   const checkForUpdate = (info: { commitHash: string } & Partial<UpdateInfo>) => {
     if (isPolling) return;
-    // Guard: only poll when deployment status endpoint is available
-    if (!HAS_DEPLOYMENT_ENDPOINT) return;
+    // Only poll when explicitly enabled via env flag and endpoint is available
+    if (!HAS_DEPLOYMENT_ENDPOINT) {
+      // Fallback: directly show update notification without polling
+      showUpdateNotification(info);
+      return;
+    }
     pollDeploymentStatus(info.commitHash);
   };
 

@@ -23,6 +23,7 @@ import {
 import { clearPersistedQueryState } from '@/utils/queryPersistence';
 import { queryClient } from '@/config/queryClient';
 import { debugMobileAuth, startMobileAuthMonitoring } from '@/utils/mobileAuthDebug';
+import { useStableFlag } from '@/hooks/useStableFlag';
 
 // ✅ Menggunakan fungsi yang sama dari authUtils
 const detectDeviceCapabilities = () => {
@@ -855,11 +856,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [session, user, isLoading, isReady]);
 
+  // Stabilize loading to avoid flicker: show loading when either loading or not ready,
+  // but ensure minimum ON/OFF durations so UI doesn't flash.
+  const stableLoading = useStableFlag(isLoading || !isReady, 320, 140);
+
   const contextValue: AuthContextType = { 
     session, 
     user, 
-    isLoading, 
-    isReady,
+    isLoading: stableLoading, 
+    isReady: !stableLoading && isReady,
     refreshUser,
     triggerRedirectCheck,
     validateSession: validateSessionWrapper,

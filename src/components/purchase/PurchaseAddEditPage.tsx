@@ -533,38 +533,43 @@ const PurchaseAddEditPage: React.FC = () => {
         {/* Action Bar (Sticky) */}
         {!isViewOnly && (
           <div className="sticky bottom-0 sm:bottom-0 md:bottom-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-4 py-3 mt-6 mb-16 sm:mb-0">
-            <ActionButtons
-              actions={[
-                {
-                  type: 'secondary',
-                  label: 'Reset',
-                  icon: RotateCcw,
-                  onClick: handleResetForm,
-                  disabled: isSubmitting || !isDirty,
-                },
-                {
-                  type: 'secondary',
-                  label: isEditing ? 'Simpan Perubahan' : 'Simpan Draft',
-                  icon: Save,
-                  onClick: () => onSubmit(),
-                  disabled: isSubmitting,
-                },
-                ...((!purchase || purchase.status !== 'completed') ? [{
-                  type: 'primary' as const,
-                  label: 'Selesaikan & Update Gudang',
-                  shortLabel: 'Selesaikan',
-                  icon: CheckCircle2,
-                  onClick: () => onSubmit('completed'),
-                  disabled: isSubmitting || formData.items.length === 0 || !formData.supplier.trim(),
-                  className: 'flex-1 sm:flex-none',
-                }] : []),
-              ]}
-              isLoading={isSubmitting}
-              loadingText="Menyimpan..."
-            />
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResetForm}
+                disabled={isSubmitting || !isDirty}
+                className="min-h-[44px]"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
 
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onSubmit()}
+                disabled={isSubmitting}
+                className="min-h-[44px]"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isEditing ? 'Simpan Perubahan' : 'Simpan Draft'}
+              </Button>
+
+              {(!purchase || purchase.status !== 'completed') && (
+                <Button
+                  type="button"
+                  onClick={() => onSubmit('completed')}
+                  disabled={isSubmitting || formData.items.length === 0 || !formData.supplier.trim()}
+                  className="bg-orange-500 hover:bg-orange-600 text-white min-h-[44px] flex-1 sm:flex-none"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  <span className="truncate sm:hidden">Selesaikan</span>
+                  <span className="hidden sm:inline">Selesaikan & Update Gudang</span>
+                </Button>
+              )}
+            </div>
           </div>
-        )}
       </div>
     </div>
   );

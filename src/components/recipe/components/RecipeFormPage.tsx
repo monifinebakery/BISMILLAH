@@ -546,7 +546,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
         </Card>
         
         {/* Sticky Footer with Navigation - Mobile Optimized */}
-        <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-4 py-3 mt-6 sm:static sm:bg-gray-50 sm:backdrop-blur-none sm:border-t-0 sm:px-6 sm:py-4 sm:mt-0 sm:border-t">
+        <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-4 py-3 mt-6 mb-16 sm:mb-0 sm:static sm:bg-gray-50 sm:backdrop-blur-none sm:border-t-0 sm:px-6 sm:py-4 sm:mt-0 sm:border-t">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             {/* Left side - HPP Preview (on cost step) */}
             <div className="flex-1 min-w-0 hidden sm:block">

@@ -282,8 +282,8 @@ const WarehouseAddEditPage: React.FC<WarehouseAddEditPageProps> = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 pb-20 sm:pb-8">
+      {/* Header with Breadcrumb */}
         {/* Header with Breadcrumb */}
         <div className="mb-6">
           <Breadcrumb>

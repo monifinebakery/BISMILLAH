@@ -45,7 +45,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
       </header>
 
       {/* 📱 Main Content - Constrained height with proper scrolling */}
-      <main className="flex-1 overflow-y-auto p-2 sm:p-4 pb-4">
+      <main className="flex-1 overflow-y-auto p-2 sm:p-4 pb-20">
         <ErrorBoundary fallback={<AppError />}>
           {children}
         </ErrorBoundary>

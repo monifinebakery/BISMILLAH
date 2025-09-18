@@ -45,5 +45,6 @@ export const OPERATIONAL_COST_ADVANCED = {
   constants: () => import('./constants'),
   utils: () => import('./utils'),
   services: () => import('./services'),
-  dialogs: () => import('./dialogs')
+  dialogs: () => import('./dialogs'),
+  features: () => import('./features')
 } as const;

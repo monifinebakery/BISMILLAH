@@ -182,17 +182,6 @@ export const safariAuthFallback = async <T>(
  * Preload critical resources for Safari iOS
  */
 const preloadCriticalResources = () => {
-  // ✅ Preload modules menggunakan import.meta.glob agar URL di-resolve oleh Vite
-  const modules = import.meta.glob([
-    '../App.tsx',
-    '../contexts/AuthContext.tsx'
-  ]);
-
-  Object.values(modules).forEach(loader => {
-    // Jalankan dynamic import untuk memicu preloading tanpa hardcode path .tsx
-    loader();
-  });
-
   // ✅ Preload stylesheet Safari tanpa memicu MIME error
   const safariCss = new URL('../styles/safari-optimizations.css', import.meta.url).href;
   const styleLink = document.createElement('link');

@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { X, Plus, Trash2, User, Phone, Mail, MapPin, FileText, Calculator, ChefHat, Search, Calendar, Info, AlertCircle, Zap, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { FormField, ActionButtons, StatusBadge, LoadingStates } from '@/components/ui';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -420,86 +419,71 @@ const OrdersAddEditPage: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="namaPelanggan">Nama Pelanggan *</Label>
-                <Input
-                  id="namaPelanggan"
-                  value={formData.namaPelanggan}
-                  onChange={(e) => updateField('namaPelanggan', e.target.value)}
-                  placeholder="Masukkan nama pelanggan"
-                  required
-                  className="mt-1"
-                />
-              </div>
+              <FormField
+                type="text"
+                name="namaPelanggan"
+                label="Nama Pelanggan"
+                value={formData.namaPelanggan}
+                onChange={(e) => updateField('namaPelanggan', e.target.value)}
+                placeholder="Masukkan nama pelanggan"
+                icon={User}
+                required
+              />
               
-              <div>
-                <Label htmlFor="teleponPelanggan">Telepon</Label>
-                <Input
-                  id="teleponPelanggan"
-                  value={formData.teleponPelanggan}
-                  onChange={(e) => updateField('teleponPelanggan', e.target.value)}
-                  placeholder="Masukkan nomor telepon"
-                  className="mt-1"
-                />
-              </div>
+              <FormField
+                type="text"
+                name="teleponPelanggan"
+                label="Telepon"
+                value={formData.teleponPelanggan}
+                onChange={(e) => updateField('teleponPelanggan', e.target.value)}
+                placeholder="Masukkan nomor telepon"
+                icon={Phone}
+              />
               
-              <div>
-                <Label htmlFor="emailPelanggan">Email</Label>
-                <Input
-                  id="emailPelanggan"
-                  type="email"
-                  value={formData.emailPelanggan}
-                  onChange={(e) => updateField('emailPelanggan', e.target.value)}
-                  placeholder="Masukkan email pelanggan"
-                  className="mt-1"
-                />
-              </div>
+              <FormField
+                type="email"
+                name="emailPelanggan"
+                label="Email"
+                value={formData.emailPelanggan}
+                onChange={(e) => updateField('emailPelanggan', e.target.value)}
+                placeholder="Masukkan email pelanggan"
+                icon={Mail}
+              />
               
-              <div>
-                <Label htmlFor="tanggal">Tanggal Pesanan *</Label>
-                <div className="relative mt-1">
-                  <Input
-                    id="tanggal"
-                    type="date"
-                    value={formData.tanggal}
-                    onChange={(e) => updateField('tanggal', e.target.value)}
-                    className="pl-10"
-                  />
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                </div>
-              </div>
+              <FormField
+                type="date"
+                name="tanggal"
+                label="Tanggal Pesanan"
+                value={formData.tanggal}
+                onChange={(e) => updateField('tanggal', e.target.value)}
+                icon={Calendar}
+                required
+              />
               
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => updateField('status', value)}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ORDER_STATUSES.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {getStatusText(status)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="alamatPengiriman">Alamat Pengiriman</Label>
-              <Textarea
-                id="alamatPengiriman"
-                value={formData.alamatPengiriman}
-                onChange={(e) => updateField('alamatPengiriman', e.target.value)}
-                placeholder="Masukkan alamat lengkap pengiriman"
-                rows={3}
-                className="mt-1"
+              <FormField
+                type="select"
+                name="status"
+                label="Status"
+                value={formData.status}
+                onChange={(value) => updateField('status', value)}
+                options={ORDER_STATUSES.map(status => ({
+                  value: status,
+                  label: getStatusText(status)
+                }))}
+                placeholder="Pilih status pesanan"
               />
             </div>
+            
+            <FormField
+              type="textarea"
+              name="alamatPengiriman"
+              label="Alamat Pengiriman"
+              value={formData.alamatPengiriman}
+              onChange={(e) => updateField('alamatPengiriman', e.target.value)}
+              placeholder="Masukkan alamat lengkap pengiriman"
+              rows={3}
+              icon={MapPin}
+            />
           </CardContent>
         </Card>
 
@@ -574,43 +558,29 @@ const OrdersAddEditPage: React.FC = () => {
         {/* Notes Card */}
         <Card className="border-gray-200">
           <CardContent className="p-6">
-            <div>
-              <Label htmlFor="catatan">Catatan Tambahan</Label>
-              <Textarea
-                id="catatan"
-                value={formData.catatan}
-                onChange={(e) => updateField('catatan', e.target.value)}
-                placeholder="Catatan atau instruksi khusus untuk pesanan ini"
-                rows={3}
-                className="mt-1"
-              />
-            </div>
+            <FormField
+              type="textarea"
+              name="catatan"
+              label="Catatan Tambahan"
+              value={formData.catatan}
+              onChange={(e) => updateField('catatan', e.target.value)}
+              placeholder="Catatan atau instruksi khusus untuk pesanan ini"
+              rows={3}
+              icon={FileText}
+              helpText="Opsional: Tambahkan catatan atau instruksi khusus"
+            />
           </CardContent>
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCancel}
-            disabled={loading}
-            className="border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            Batal
-          </Button>
-          
-          <Button
-            type="submit"
-            disabled={loading || formData.items.length === 0}
-            className="bg-orange-500 hover:bg-orange-600 flex-1 sm:flex-none"
-          >
-            {loading 
-              ? 'Menyimpan...' 
-              : (isEditMode ? 'Update Pesanan' : 'Buat Pesanan')
-            }
-          </Button>
-        </div>
+        <ActionButtons
+          onCancel={handleCancel}
+          onSubmit={() => {}} // Form submission handled by form element
+          submitText={loading ? 'Menyimpan...' : (isEditMode ? 'Update Pesanan' : 'Buat Pesanan')}
+          isLoading={loading}
+          disabled={loading || formData.items.length === 0}
+          className="pt-6"
+        />
       </form>
     </div>
   );

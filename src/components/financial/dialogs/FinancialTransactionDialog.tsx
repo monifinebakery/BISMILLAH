@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
+import { FormField } from '@/components/ui/form-field';
+import { ActionButtons } from '@/components/ui/action-buttons';
 import { toast } from 'sonner';
 // ✅ UPDATED: Import unified date handler for consistency
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
@@ -233,22 +235,17 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="amount" className="text-sm font-medium text-overflow-safe">
-                      Jumlah (Rp)
-                    </Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.amount || ''}
-                      onChange={(e) => handleFieldChange('amount', parseFloat(e.target.value) || 0)}
-                      placeholder="Masukkan jumlah"
-                      className="text-right input-mobile-safe"
-                      required
-                    />
-                  </div>
+                  <FormField
+                    label="Jumlah (Rp)"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.amount || ''}
+                    onChange={(e) => handleFieldChange('amount', parseFloat(e.target.value) || 0)}
+                    placeholder="Masukkan jumlah"
+                    className="text-right"
+                    required
+                  />
                 </div>
 
                 {/* Category */}
@@ -291,97 +288,77 @@ const FinancialTransactionDialog: React.FC<FinancialTransactionDialogProps> = ({
                 </div>
 
                 {/* Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-overflow-safe">
-                    Deskripsi
-                  </Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => handleFieldChange('description', e.target.value)}
-                    placeholder="Contoh: Beli tepung terigu untuk produksi"
-                    className="input-mobile-safe"
-                    required
-                  />
-                </div>
+                <FormField
+                  label="Deskripsi"
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  placeholder="Contoh: Beli tepung terigu untuk produksi"
+                  required
+                />
 
                 {/* Date and Time Row */}
                 <div className="dialog-responsive-grid">
-                  <div className="space-y-2">
-                    <Label htmlFor="date" className="text-sm font-medium text-overflow-safe">
-                      Tanggal
-                    </Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formatDateToYYYYMMDD(formData.date)}
-                      onChange={(e) => {
-                        const newDate = new Date(e.target.value);
-                        // Preserve existing time when changing date
-                        const currentTime = formData.date;
-                        if (currentTime) {
-                          newDate.setHours(currentTime.getHours());
-                          newDate.setMinutes(currentTime.getMinutes());
-                        }
-                        handleFieldChange('date', newDate);
-                      }}
-                      className="input-mobile-safe"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="time" className="text-sm font-medium text-overflow-safe">
-                      Waktu (opsional)
-                    </Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={formData.date ? 
-                        `${String(formData.date.getHours()).padStart(2, '0')}:${String(formData.date.getMinutes()).padStart(2, '0')}` 
-                        : ''
+                  <FormField
+                    label="Tanggal"
+                    type="date"
+                    value={formatDateToYYYYMMDD(formData.date)}
+                    onChange={(e) => {
+                      const newDate = new Date(e.target.value);
+                      // Preserve existing time when changing date
+                      const currentTime = formData.date;
+                      if (currentTime) {
+                        newDate.setHours(currentTime.getHours());
+                        newDate.setMinutes(currentTime.getMinutes());
                       }
-                      onChange={(e) => {
-                        const [hours, minutes] = e.target.value.split(':').map(Number);
-                        const newDate = new Date(formData.date);
-                        newDate.setHours(hours || 0);
-                        newDate.setMinutes(minutes || 0);
-                        newDate.setSeconds(0);
-                        handleFieldChange('date', newDate);
-                      }}
-                      placeholder="HH:MM"
-                      className="input-mobile-safe"
-                    />
-                    <p className="text-xs text-gray-500 mt-1 text-overflow-safe">
-                      Kosongkan untuk waktu saat ini
-                    </p>
-                  </div>
+                      handleFieldChange('date', newDate);
+                    }}
+                    required
+                  />
+                  
+                  <FormField
+                    label="Waktu (opsional)"
+                    type="time"
+                    value={formData.date ? 
+                      `${String(formData.date.getHours()).padStart(2, '0')}:${String(formData.date.getMinutes()).padStart(2, '0')}` 
+                      : ''
+                    }
+                    onChange={(e) => {
+                      const [hours, minutes] = e.target.value.split(':').map(Number);
+                      const newDate = new Date(formData.date);
+                      newDate.setHours(hours || 0);
+                      newDate.setMinutes(minutes || 0);
+                      newDate.setSeconds(0);
+                      handleFieldChange('date', newDate);
+                    }}
+                    placeholder="HH:MM"
+                    helpText="Kosongkan untuk waktu saat ini"
+                  />
                 </div>
               </div>
             </div>
 
             {/* Footer */}
             <DialogFooter className="dialog-footer">
-              <div className="dialog-responsive-buttons">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onClose}
-                  disabled={isSubmitting}
-                  className="input-mobile-safe"
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="input-mobile-safe"
-                >
-                  <span className="text-overflow-safe">
-                    {isSubmitting ? 'Menyimpan...' : (transaction ? 'Perbarui' : 'Simpan')}
-                  </span>
-                </Button>
-              </div>
+              <ActionButtons
+                actions={[
+                  {
+                    type: 'secondary',
+                    label: 'Batal',
+                    onClick: onClose,
+                    disabled: isSubmitting,
+                  },
+                  {
+                    type: 'primary',
+                    label: transaction ? 'Perbarui' : 'Simpan',
+                    onClick: handleSubmit,
+                    disabled: isSubmitting,
+                    htmlType: 'submit',
+                  },
+                ]}
+                isLoading={isSubmitting}
+                loadingText="Menyimpan..."
+              />
             </DialogFooter>
           </form>
         </div>

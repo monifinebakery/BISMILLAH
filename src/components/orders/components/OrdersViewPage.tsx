@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Home, FileText, User, Phone, Mail, MapPin, Calendar, Edit2, Package, Calculator, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge, LoadingStates, EmptyState } from '@/components/ui';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
@@ -80,12 +80,7 @@ const OrdersViewPage: React.FC = () => {
   if (ordersLoading) {
     return (
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            <p className="text-sm text-gray-600">Memuat data pesanan...</p>
-          </div>
-        </div>
+        <LoadingStates.Page text="Memuat data pesanan..." />
       </div>
     );
   }
@@ -94,34 +89,20 @@ const OrdersViewPage: React.FC = () => {
   if (!order) {
     return (
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="text-center py-12">
-          <div className="text-red-500 text-6xl mb-4">📋</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pesanan Tidak Ditemukan</h2>
-          <p className="text-gray-600 mb-6">Pesanan yang Anda cari tidak dapat ditemukan atau telah dihapus.</p>
-          <Button onClick={handleBack} className="bg-orange-500 hover:bg-orange-600">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Kembali ke Daftar Pesanan
-          </Button>
-        </div>
+        <EmptyState
+          title="Pesanan Tidak Ditemukan"
+          description="Pesanan yang Anda cari tidak dapat ditemukan atau telah dihapus."
+          actionText="Kembali ke Daftar Pesanan"
+          onAction={handleBack}
+          customIllustration={
+            <div className="text-red-500 text-6xl mb-4">📋</div>
+          }
+        />
       </div>
     );
   }
 
-  // Get status styling
-  const getStatusStyling = (status: Order['status']) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  // Status badge will auto-detect colors based on status text
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -173,9 +154,10 @@ const OrdersViewPage: React.FC = () => {
                   <FileText className="w-4 h-4 text-orange-600" />
                 </div>
                 Detail Pesanan #{order.nomorPesanan}
-                <Badge className={`text-xs ${getStatusStyling(order.status)}`}>
-                  {getStatusText(order.status)}
-                </Badge>
+                <StatusBadge 
+                  status={getStatusText(order.status)} 
+                  size="sm"
+                />
               </h1>
               <p className="text-gray-600 mt-1">
                 Informasi lengkap tentang pesanan dari {order.namaPelanggan}

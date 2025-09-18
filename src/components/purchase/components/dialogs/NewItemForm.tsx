@@ -3,10 +3,7 @@
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FormField, ActionButtons } from '@/components/ui';
 import { Plus, Calculator, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatUtils';
@@ -168,24 +165,27 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                 className="w-full"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Satuan *</Label>
-              <Select
-                value={formData.satuan}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, satuan: value }))}
-              >
-                <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20">
-                  <SelectValue placeholder="Pilih satuan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {['gram', 'kilogram', 'miligram', 'liter', 'milliliter', 'pcs', 'buah', 'biji', 'butir', 'lembar'].map((u) => (
-                    <SelectItem key={u} value={u} className="focus:bg-orange-50">
-                      {u}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <FormField
+              type="select"
+              name="satuan"
+              label="Satuan"
+              value={formData.satuan}
+              onChange={(value) => setFormData(prev => ({ ...prev, satuan: value }))}
+              options={[
+                { value: 'gram', label: 'gram' },
+                { value: 'kilogram', label: 'kilogram' },
+                { value: 'miligram', label: 'miligram' },
+                { value: 'liter', label: 'liter' },
+                { value: 'milliliter', label: 'milliliter' },
+                { value: 'pcs', label: 'pcs' },
+                { value: 'buah', label: 'buah' },
+                { value: 'biji', label: 'biji' },
+                { value: 'butir', label: 'butir' },
+                { value: 'lembar', label: 'lembar' }
+              ]}
+              placeholder="Pilih satuan"
+              required
+            />
           </div>
         </div>
 
@@ -264,30 +264,26 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
         )}
 
         {/* Keterangan */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-gray-700">Keterangan</Label>
-          <Textarea
-            value={formData.keterangan}
-            onChange={(e) => setFormData(prev => ({ ...prev, keterangan: e.target.value }))}
-            placeholder="Keterangan tambahan (opsional)"
-            rows={2}
-            className="border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-          />
-        </div>
+        <FormField
+          type="textarea"
+          name="keterangan"
+          label="Keterangan"
+          value={formData.keterangan}
+          onChange={(e) => setFormData(prev => ({ ...prev, keterangan: e.target.value }))}
+          placeholder="Keterangan tambahan (opsional)"
+          rows={2}
+        />
 
         {/* Submit */}
-        <div className="space-y-2">
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah ke Daftar
-          </Button>
-        </div>
-        <p className="mt-2 text-xs text-gray-500">HPP dihitung otomatis saat disimpan.</p>
+        <ActionButtons
+          onSubmit={handleSubmit}
+          submitText="Tambah ke Daftar"
+          disabled={!canSubmit}
+          showCancel={false}
+          className="space-y-2"
+          submitClassName="w-full h-11"
+        />
+        <p className="mt-2 text-xs text-gray-500 text-center">HPP dihitung otomatis saat disimpan.</p>
       </CardContent>
     </Card>
   );

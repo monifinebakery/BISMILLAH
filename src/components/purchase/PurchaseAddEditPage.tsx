@@ -8,6 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { FormField } from '@/components/ui/form-field';
+import { ActionButtons } from '@/components/ui/action-buttons';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingStates } from '@/components/ui/loading-spinner';
 import { 
   Plus, 
   Trash2, 
@@ -197,11 +202,6 @@ const PurchaseAddEditPage: React.FC = () => {
   const canEdit = !purchase || purchase.status !== 'cancelled';
   const isViewOnly = !canEdit;
 
-  const statusClassMap = {
-    pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    completed: 'bg-green-100 text-green-800 border-green-200',
-    cancelled: 'bg-red-100 text-red-800 border-red-200',
-  };
 
   // Breadcrumb items
   const breadcrumbItems = [
@@ -214,11 +214,7 @@ const PurchaseAddEditPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        <div className="space-y-2">
-          <Skeleton variant="text" className="w-40 h-6" />
-          <Skeleton variant="text" className="w-64 h-4" />
-        </div>
-        <LoadingSkeleton type="form" />
+        <LoadingStates type="form" text="Memuat data pembelian..." />
       </div>
     );
   }
@@ -273,10 +269,10 @@ const PurchaseAddEditPage: React.FC = () => {
                 </div>
                 {isEditing ? 'Edit Pembelian' : 'Tambah Pembelian'}
                 {purchase && (
-                  <Badge className={`${statusClassMap[purchase.status]} ml-2 text-xs`}>
-                    {purchase.status === 'pending' ? 'Menunggu' :
-                     purchase.status === 'completed' ? 'Selesai' : 'Dibatalkan'}
-                  </Badge>
+                  <StatusBadge
+                    status={purchase.status}
+                    className="ml-2"
+                  />
                 )}
               </h1>
               <p className="text-gray-600 mt-1">
@@ -289,7 +285,7 @@ const PurchaseAddEditPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
+            <div className="space-y-6">
         {/* Header Form - Supplier dan Tanggal */}
         <Card className="border-gray-200">
           <CardHeader className="pb-4">
@@ -318,40 +314,35 @@ const PurchaseAddEditPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Tanggal *</Label>
-                <Input
-                  type="date"
-                  value={formData.tanggal ? UserFriendlyDate.toYMD(formData.tanggal) : ''}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const safeDate = UserFriendlyDate.safeParseToDate(e.target.value);
-                      updateFormField('tanggal', safeDate);
-                    }
-                  }}
-                  className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500/20"
-                  disabled={isSubmitting || isViewOnly}
-                  max={new Date().toISOString().split('T')[0]} // Prevent future dates
-                  min={new Date(new Date().getFullYear() - 5, 0, 1).toISOString().split('T')[0]} // 5 years ago minimum
-                />
-                {validation?.tanggal && (
-                  <p className="text-xs text-red-500">{validation.tanggal}</p>
-                )}
-              </div>
+              <FormField
+                label="Tanggal"
+                type="date"
+                value={formData.tanggal ? UserFriendlyDate.toYMD(formData.tanggal) : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const safeDate = UserFriendlyDate.safeParseToDate(e.target.value);
+                    updateFormField('tanggal', safeDate);
+                  }
+                }}
+                disabled={isSubmitting || isViewOnly}
+                error={validation?.tanggal}
+                required
+                icon={Calculator}
+                max={new Date().toISOString().split('T')[0]}
+                min={new Date(new Date().getFullYear() - 5, 0, 1).toISOString().split('T')[0]}
+              />
             </div>
 
             {/* Keterangan */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Keterangan</Label>
-              <Textarea
-                value={formData.keterangan}
-                onChange={(e) => updateFormField('keterangan', e.target.value)}
-                placeholder="Catatan tambahan tentang pembelian ini (opsional)"
-                rows={3}
-                className="border-gray-200 focus:border-orange-500 focus:ring-orange-500/20 resize-none"
-                disabled={isSubmitting || isViewOnly}
-              />
-            </div>
+            <FormField
+              label="Keterangan"
+              type="textarea"
+              value={formData.keterangan}
+              onChange={(e) => updateFormField('keterangan', e.target.value)}
+              placeholder="Catatan tambahan tentang pembelian ini (opsional)"
+              disabled={isSubmitting || isViewOnly}
+              rows={3}
+            />
           </CardContent>
         </Card>
 
@@ -508,13 +499,11 @@ const PurchaseAddEditPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 border border-dashed border-gray-200 rounded-lg">
-                <Package className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Belum ada item</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Tambah item pembelian menggunakan form di atas.
-                </p>
-              </div>
+              <EmptyState
+                icon={Package}
+                title="Belum ada item"
+                description="Tambah item pembelian menggunakan form di atas."
+              />
             )}
           </CardContent>
         </Card>
@@ -544,60 +533,42 @@ const PurchaseAddEditPage: React.FC = () => {
         {/* Action Bar (Sticky) */}
         {!isViewOnly && (
           <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-4 py-3 mt-6">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleResetForm}
-                disabled={isSubmitting || !isDirty}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 h-11"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset
-              </Button>
+            <ActionButtons
+              actions={[
+                {
+                  type: 'secondary',
+                  label: 'Reset',
+                  icon: RotateCcw,
+                  onClick: handleResetForm,
+                  disabled: isSubmitting || !isDirty,
+                },
+                {
+                  type: 'secondary',
+                  label: isEditing ? 'Simpan Perubahan' : 'Simpan Draft',
+                  icon: Save,
+                  onClick: () => onSubmit(),
+                  disabled: isSubmitting,
+                },
+                ...((!purchase || purchase.status !== 'completed') ? [{
+                  type: 'primary' as const,
+                  label: 'Selesaikan & Update Gudang',
+                  shortLabel: 'Selesaikan',
+                  icon: CheckCircle2,
+                  onClick: () => onSubmit('completed'),
+                  disabled: isSubmitting || formData.items.length === 0 || !formData.supplier.trim(),
+                  className: 'flex-1 sm:flex-none',
+                }] : []),
+              ]}
+              isLoading={isSubmitting}
+              loadingText="Menyimpan..."
+            />
 
-              <Button
-                type="button"
-                onClick={() => onSubmit()}
-                disabled={isSubmitting}
-                variant="outline"
-                className="h-11"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isEditing ? 'Simpan Perubahan' : 'Simpan Draft'}
-              </Button>
-
-              {/* Always show Complete button unless purchase is already completed */}
-              {(!purchase || purchase.status !== 'completed') && (
-                <Button
-                  type="button"
-                  onClick={() => onSubmit('completed')}
-                  disabled={isSubmitting || formData.items.length === 0 || !formData.supplier.trim()}
-                  className="bg-green-600 hover:bg-green-700 text-white border-0 disabled:bg-gray-300 disabled:text-gray-500 h-11 flex-1 sm:flex-none"
-                  title={formData.items.length === 0 ? 'Tambahkan minimal 1 item' : !formData.supplier.trim() ? 'Pilih supplier terlebih dahulu' : 'Selesaikan pembelian dan update stok gudang'}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      Menyimpan...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Selesaikan & Update Gudang</span>
-                      <span className="sm:hidden">Selesaikan</span>
-                    </>
-                  )}
-                </Button>
-              )}
-
-              {/* Debug info - remove this after testing */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="text-xs text-gray-500 mt-2">
-                  Debug: purchase={purchase?.status || 'null'}, items={formData.items.length}, supplier={formData.supplier ? 'set' : 'empty'}
-                </div>
-              )}
-            </div>
+            {/* Debug info - remove this after testing */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-gray-500 mt-2">
+                Debug: purchase={purchase?.status || 'null'}, items={formData.items.length}, supplier={formData.supplier ? 'set' : 'empty'}
+              </div>
+            )}
           </div>
         )}
       </div>

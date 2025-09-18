@@ -8,6 +8,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui';
 import { CheckCircle2, Clock, XCircle, ChevronDown } from 'lucide-react';
 import { getStatusDisplayText } from '../../utils/purchaseHelpers';
 import { Purchase, PurchaseStatus } from '../../types/purchase.types';
@@ -93,22 +94,15 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
 
   return (
     <div className="flex items-center justify-between gap-1">
-      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        purchase.status === 'completed' 
-          ? 'bg-green-100 text-green-800' 
-          : purchase.status === 'pending' 
-            ? 'bg-yellow-100 text-yellow-800' 
-            : 'bg-red-100 text-red-800'
-      }`}>
-        {purchase.status === 'completed' ? (
-          <CheckCircle2 className="h-3 w-3 mr-1" />
-        ) : purchase.status === 'pending' ? (
-          <Clock className="h-3 w-3 mr-1" />
-        ) : (
-          <XCircle className="h-3 w-3 mr-1" />
-        )}
-        {getStatusDisplayText(purchase.status)}
-      </div>
+      <StatusBadge 
+        status={getStatusDisplayText(purchase.status)}
+        icon={
+          purchase.status === 'completed' ? CheckCircle2 :
+          purchase.status === 'pending' ? Clock :
+          XCircle
+        }
+        size="sm"
+      />
       
       <div className="flex items-center gap-1">
         {/* Quick Complete button for pending purchases */}

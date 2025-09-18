@@ -1,8 +1,6 @@
 import React, { useState, useEffect, ErrorBoundary } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { FormField, ActionButtons, LoadingStates } from '@/components/ui';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { X, Plus, Edit2, Save, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -393,39 +391,31 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                   <div>
                     <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 text-overflow-safe">Informasi Dasar</h3>
                     <div className="space-y-3 sm:space-y-4">
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">Nama Bahan Baku *</label>
-                        <Input
-                          value={formData.nama}
-                          onChange={(e) => handleFieldChange('nama', e.target.value)}
-                          placeholder="Nama bahan baku"
-                          disabled={isSubmitting}
-                          required
-                          className="text-sm input-mobile-safe"
-                        />
-                      </div>
+                      <FormField
+                        type="text"
+                        name="nama"
+                        label="Nama Bahan Baku"
+                        value={formData.nama}
+                        onChange={(e) => handleFieldChange('nama', e.target.value)}
+                        placeholder="Nama bahan baku"
+                        disabled={isSubmitting}
+                        required
+                      />
 
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
-                          Kategori *
-                        </label>
-                        <Select
-                          value={formData.kategori}
-                          onValueChange={(value) => handleFieldChange('kategori', value)}
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="text-sm input-mobile-safe">
-                            <SelectValue placeholder="Pilih kategori" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableCategories.map((category) => (
-                              <SelectItem key={category} value={category} className="focus:bg-orange-50">
-                                <span className="text-overflow-safe">{category}</span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <FormField
+                        type="select"
+                        name="kategori"
+                        label="Kategori"
+                        value={formData.kategori}
+                        onChange={(value) => handleFieldChange('kategori', value)}
+                        options={availableCategories.map(category => ({
+                          value: category,
+                          label: category
+                        }))}
+                        placeholder="Pilih kategori"
+                        disabled={isSubmitting}
+                        required
+                      />
 
                       <div className="relative">
                         <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
@@ -511,17 +501,15 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         </Select>
                       </div>
 
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">Tanggal Kadaluarsa</label>
-                        <Input
-                          type="date"
-                          value={formData.expiry}
-                          onChange={(e) => handleFieldChange('expiry', e.target.value)}
-                          disabled={isSubmitting}
-                          min={new Date().toISOString().split('T')[0]}
-                          className="text-sm input-mobile-safe"
-                        />
-                      </div>
+                      <FormField
+                        type="date"
+                        name="expiry"
+                        label="Tanggal Kadaluarsa"
+                        value={formData.expiry}
+                        onChange={(e) => handleFieldChange('expiry', e.target.value)}
+                        disabled={isSubmitting}
+                        helpText="Tanggal kadaluarsa bahan baku (opsional)"
+                      />
                     </div>
                   </div>
                 </div>
@@ -531,34 +519,29 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                   <div>
                     <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 text-overflow-safe">Informasi Stok</h3>
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
-                          Stok Saat Ini * <span className="text-xs text-gray-500">({formData.satuan || 'satuan'})</span>
-                        </label>
-                        <Input
-                          type="number"
-                          value={formData.stok}
-                          onChange={(e) => handleFieldChange('stok', toNumber(e.target.value))}
-                          min="0"
-                          disabled={isSubmitting}
-                          required
-                          className="text-sm input-mobile-safe"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 text-overflow-safe">
-                          Minimum Stok * <span className="text-xs text-gray-500">({formData.satuan || 'satuan'})</span>
-                        </label>
-                        <Input
-                          type="number"
-                          value={formData.minimum}
-                          onChange={(e) => handleFieldChange('minimum', toNumber(e.target.value))}
-                          min="0"
-                          disabled={isSubmitting}
-                          required
-                          className="text-sm input-mobile-safe"
-                        />
-                      </div>
+                      <FormField
+                        type="number"
+                        name="stok"
+                        label={`Stok Saat Ini (${formData.satuan || 'satuan'})`}
+                        value={formData.stok}
+                        onChange={(e) => handleFieldChange('stok', toNumber(e.target.value))}
+                        min={0}
+                        disabled={isSubmitting}
+                        required
+                        mobileOptimized
+                      />
+                      <FormField
+                        type="number"
+                        name="minimum"
+                        label={`Minimum Stok (${formData.satuan || 'satuan'})`}
+                        value={formData.minimum}
+                        onChange={(e) => handleFieldChange('minimum', toNumber(e.target.value))}
+                        min={0}
+                        disabled={isSubmitting}
+                        required
+                        mobileOptimized
+                        helpText="Batas minimum stok untuk peringatan"
+                      />
                     </div>
                   </div>
 
@@ -618,36 +601,23 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
             </form>
           </div>
 
-          <DialogFooter className="dialog-footer">
-            <div className="dialog-responsive-buttons">
-              <Button 
-                variant="outline" 
-                onClick={onClose} 
-                disabled={isSubmitting}
-                className="text-xs sm:text-sm input-mobile-safe"
-              >
-                <span className="text-overflow-safe">Batal</span>
-              </Button>
-              <Button 
+          <div className="p-4 border-t bg-gray-50">
+            <ActionButtons
+              onCancel={onClose}
+              submitText={isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Simpan Perubahan' : 'Tambah Item')}
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
+            >
+              <button 
                 type="submit" 
                 form="warehouse-form"
-                disabled={isSubmitting} 
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm input-mobile-safe"
+                disabled={isSubmitting}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md disabled:opacity-50"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full flex-shrink-0" />
-                    <span className="text-overflow-safe">Menyimpan...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                    <span className="text-overflow-safe">{isEditMode ? 'Simpan Perubahan' : 'Tambah Item'}</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          </DialogFooter>
+                {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Simpan Perubahan' : 'Tambah Item')}
+              </button>
+            </ActionButtons>
+          </div>
         </div>
       </DialogContent>
       </Dialog>

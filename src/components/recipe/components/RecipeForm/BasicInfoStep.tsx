@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { FormField } from '@/components/ui/form-field';
 import {
   Select,
   SelectContent,
@@ -156,98 +157,68 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         <div className="space-y-6">
           
           {/* Recipe Name */}
-          <div className="space-y-2">
-            <Label htmlFor="namaResep" className="text-sm font-medium text-gray-700">
-              Nama Resep *
-            </Label>
-            <div className="relative">
-              <ChefHat className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                id="namaResep"
-                type="text"
-                value={data.namaResep}
-                onChange={(e) => onUpdate('namaResep', e.target.value)}
-                placeholder="Masukkan nama resep yang menarik"
-                className={`pl-10 ${errors.namaResep ? 'border-red-300 focus:border-red-500' : ''}`}
-                disabled={isLoading}
-              />
-            </div>
-            {errors.namaResep && (
-              <p className="text-sm text-red-600">{errors.namaResep}</p>
-            )}
-            <p className="text-xs text-gray-500">
-              Gunakan nama yang mudah diingat dan menggambarkan resep
-            </p>
-          </div>
+          <FormField
+            label="Nama Resep"
+            type="text"
+            value={data.namaResep}
+            onChange={(e) => onUpdate('namaResep', e.target.value)}
+            placeholder="Masukkan nama resep yang menarik"
+            disabled={isLoading}
+            error={errors.namaResep}
+            required
+            icon={ChefHat}
+            helpText="Gunakan nama yang mudah diingat dan menggambarkan resep"
+          />
 
           {/* Portions and Pieces */}
           <div className="grid grid-cols-2 gap-4">
             
             {/* Jumlah Porsi */}
-            <div className="space-y-2">
-              <Label htmlFor="jumlahPorsi" className="text-sm font-medium text-gray-700">
-                Jumlah Porsi *
-              </Label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="jumlahPorsi"
-                  type="number"
-                  min="1"
-                  value={data.jumlahPorsi || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '') {
-                      onUpdate('jumlahPorsi', '');
-                    } else {
-                      const numValue = parseInt(value);
-                      if (!isNaN(numValue) && numValue > 0) {
-                        onUpdate('jumlahPorsi', numValue);
-                      }
-                    }
-                  }}
-                  placeholder="1"
-                  className={`pl-10 ${errors.jumlahPorsi ? 'border-red-300 focus:border-red-500' : ''}`}
-                  disabled={isLoading}
-                />
-              </div>
-              {errors.jumlahPorsi && (
-                <p className="text-sm text-red-600">{errors.jumlahPorsi}</p>
-              )}
-            </div>
+            <FormField
+              label="Jumlah Porsi"
+              type="number"
+              min="1"
+              value={data.jumlahPorsi || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '') {
+                  onUpdate('jumlahPorsi', '');
+                } else {
+                  const numValue = parseInt(value);
+                  if (!isNaN(numValue) && numValue > 0) {
+                    onUpdate('jumlahPorsi', numValue);
+                  }
+                }
+              }}
+              placeholder="1"
+              disabled={isLoading}
+              error={errors.jumlahPorsi}
+              required
+              icon={Users}
+            />
 
             {/* Pieces per Portion */}
-            <div className="space-y-2">
-              <Label htmlFor="jumlahPcsPerPorsi" className="text-sm font-medium text-gray-700">
-                Pcs per Porsi
-              </Label>
-              <Input
-                id="jumlahPcsPerPorsi"
-                type="number"
-                min="1"
-                value={data.jumlahPcsPerPorsi || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '') {
-                    onUpdate('jumlahPcsPerPorsi', '');
-                  } else {
-                    const numValue = parseInt(value);
-                    if (!isNaN(numValue) && numValue > 0) {
-                      onUpdate('jumlahPcsPerPorsi', numValue);
-                    }
+            <FormField
+              label="Pcs per Porsi"
+              type="number"
+              min="1"
+              value={data.jumlahPcsPerPorsi || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '') {
+                  onUpdate('jumlahPcsPerPorsi', '');
+                } else {
+                  const numValue = parseInt(value);
+                  if (!isNaN(numValue) && numValue > 0) {
+                    onUpdate('jumlahPcsPerPorsi', numValue);
                   }
-                }}
-                placeholder="1"
-                className={errors.jumlahPcsPerPorsi ? 'border-red-300 focus:border-red-500' : ''}
-                disabled={isLoading}
-              />
-              {errors.jumlahPcsPerPorsi && (
-                <p className="text-sm text-red-600">{errors.jumlahPcsPerPorsi}</p>
-              )}
-              <p className="text-xs text-gray-500">
-                Berapa potongan per porsi (misal: 1 porsi = 6 pcs donat)
-              </p>
-            </div>
+                }
+              }}
+              placeholder="1"
+              disabled={isLoading}
+              error={errors.jumlahPcsPerPorsi}
+              helpText="Berapa potongan per porsi (misal: 1 porsi = 6 pcs donat)"
+            />
           </div>
 
           {/* Category Selection */}
@@ -326,25 +297,17 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         <div className="space-y-6">
           
           {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="deskripsi" className="text-sm font-medium text-gray-700">
-              Deskripsi Resep
-            </Label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Textarea
-                id="deskripsi"
-                value={data.deskripsi || ''}
-                onChange={(e) => onUpdate('deskripsi', e.target.value)}
-                placeholder="Ceritakan tentang resep ini... karakteristik rasa, tekstur, atau keunikan lainnya"
-                className="pl-10 min-h-[120px] resize-none"
-                disabled={isLoading}
-              />
-            </div>
-            <p className="text-xs text-gray-500">
-              Deskripsi akan membantu Anda mengingat detail resep
-            </p>
-          </div>
+          <FormField
+            label="Deskripsi Resep"
+            type="textarea"
+            value={data.deskripsi || ''}
+            onChange={(e) => onUpdate('deskripsi', e.target.value)}
+            placeholder="Ceritakan tentang resep ini... karakteristik rasa, tekstur, atau keunikan lainnya"
+            disabled={isLoading}
+            icon={FileText}
+            rows={5}
+            helpText="Deskripsi akan membantu Anda mengingat detail resep"
+          />
 
           {/* Image Upload */}
           <div className="space-y-2">

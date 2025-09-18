@@ -3,7 +3,6 @@ import React, { Suspense, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { Skeleton, LoadingSkeleton } from '@/components/ui/skeleton';
 import {
   useOrderQuery,
   useInvoiceForm,
@@ -20,16 +19,14 @@ const InvoiceTemplate = React.lazy(() =>
     .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat template invoice') }))
 );
 
-// Loading Component - with skeleton
+// Loading Component - lightweight spinner
 const InvoiceLoading: React.FC<{ orderId?: string }> = ({ orderId }) => (
-  <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6 w-full">
-    <div className="w-full max-w-4xl space-y-6">
-      <div className="space-y-2">
-        <Skeleton variant="text" className="w-64 h-6" />
-        {orderId && <Skeleton variant="text" className="w-40 h-4" />}
-      </div>
-      <LoadingSkeleton type="card" />
-      <LoadingSkeleton type="form" />
+  <div className="min-h-screen flex items-center justify-center p-6 w-full">
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full motion-safe:animate-spin" />
+      <p className="text-sm text-gray-600">
+        {orderId ? `Memuat pesanan #${orderId}…` : 'Memuat invoice…'}
+      </p>
     </div>
   </div>
 );

@@ -29,7 +29,7 @@ import {
 } from '@/services/notificationApi';
 
 // Cleanup utilities
-import { cleanupExpiredNotifications } from '@/utils/notificationCleanup';
+import { cleanupExpiredNotifications as cleanupExpiredNotificationsFromServer } from '@/utils/notificationCleanup';
 
 // Auth context
 import { useAuth } from '@/contexts/AuthContext';
@@ -317,30 +317,40 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const recentNotificationsRef = useRef<Map<string, number>>(new Map());
   const DUPLICATE_THRESHOLD = 10 * 60 * 1000; // 10 minutes - Extended to reduce duplicates
 
-  const generateNotificationKey = useCallback((data: CreateNotificationData): string => {
-    // Enhanced key generation to prevent cross-context duplicates
-    return [
-      userId || 'anonymous',
-      data.title.toLowerCase().trim(),
-      data.related_type || '',
-      data.related_id || '',
-      data.message.substring(0, 50) // Include message snippet for better uniqueness
-    ].join('|');
-  }, [userId]);
+  const generateNotificationKey = useCallback(
+    (data: Partial<CreateNotificationData> & { id?: string }): string | null => {
+      const normalizedTitle = (data.title ?? '').toLowerCase().trim();
+      const normalizedMessage = (data.message ?? '').substring(0, 50);
 
-  const cleanupExpiredNotifications = useCallback(() => {
+      if (!normalizedTitle && !normalizedMessage && !data.id) {
+        return null;
+      }
+
+      return [
+        userId || 'anonymous',
+        normalizedTitle,
+        data.related_type || '',
+        data.related_id || '',
+        normalizedMessage,
+        data.id || ''
+      ].join('|');
+    },
+    [userId]
+  );
+
+  const cleanupRecentNotificationCache = useCallback(() => {
     const now = Date.now();
     recentNotificationsRef.current.forEach((timestamp, key) => {
       if (now - timestamp > DUPLICATE_THRESHOLD) {
         recentNotificationsRef.current.delete(key);
       }
     });
-  }, []);
+  }, [DUPLICATE_THRESHOLD]);
 
   useEffect(() => {
-    const interval = setInterval(cleanupExpiredNotifications, DUPLICATE_THRESHOLD);
+    const interval = setInterval(cleanupRecentNotificationCache, DUPLICATE_THRESHOLD);
     return () => clearInterval(interval);
-  }, [cleanupExpiredNotifications, DUPLICATE_THRESHOLD]);
+  }, [cleanupRecentNotificationCache, DUPLICATE_THRESHOLD]);
 
   // ✅ AUTO-CLEANUP: Clean expired notifications every hour
   useEffect(() => {
@@ -348,7 +358,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     const autoCleanupExpired = async () => {
       try {
-        const removed = await cleanupExpiredNotifications(userId);
+        const removed = await cleanupExpiredNotificationsFromServer(userId);
         if (removed > 0) {
           logger.info(`🗑️ Auto-cleanup: removed ${removed} expired notifications`);
           // Refresh notification list if any were removed
@@ -366,7 +376,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const cleanupInterval = setInterval(autoCleanupExpired, 60 * 60 * 1000); // 1 hour
 
     return () => clearInterval(cleanupInterval);
-  }, [userId, queryClient]);
+  }, [userId, queryClient, cleanupExpiredNotificationsFromServer]);
 
   // ===========================================
   // ✅ COMPUTED VALUES
@@ -416,10 +426,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         // Show toast for new notifications (but not for local actions to prevent duplicates)
         if (payload.eventType === 'INSERT' && payload.new) {
           const newNotification = payload.new as any;
-          
+          const notificationKey = generateNotificationKey(newNotification);
+
           // ✅ FIXED: Check if notification was created from current session to avoid duplicate toast
           const isLocalAction = newNotification.metadata?.source === 'local' ||
-                               recentNotificationsRef.current.has(generateNotificationKey(newNotification));
+                               (!!notificationKey && recentNotificationsRef.current.has(notificationKey));
           
           // ✅ ADDITIONAL FILTER: Skip WAC-related notifications if they're too frequent
           const isWACNotification = newNotification.title?.toLowerCase().includes('wac') || 
@@ -427,6 +438,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                                    newNotification.message?.toLowerCase().includes('rata-rata');
           
           if (!isLocalAction && !isWACNotification && settings?.push_notifications !== false) {
+            const now = Date.now();
+
+            if (notificationKey) {
+              const lastShown = recentNotificationsRef.current.get(notificationKey);
+              if (lastShown && (now - lastShown) < DUPLICATE_THRESHOLD) {
+                logger.debug('Notification toast deduplicated from real-time event', { notificationKey });
+                return;
+              }
+
+              recentNotificationsRef.current.set(notificationKey, now);
+            }
+
             toast.info(newNotification.title, {
               description: newNotification.message,
               duration: newNotification.priority >= 4 ? 8000 : 4000
@@ -443,7 +466,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
       supabase.removeChannel(channel);
     };
-  }, [userId, queryClient, settings?.push_notifications]);
+  }, [userId, queryClient, settings?.push_notifications, generateNotificationKey]);
 
   // ===========================================
   // ✅ CONTEXT FUNCTIONS
@@ -455,22 +478,26 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const notificationKey = generateNotificationKey(data);
     const now = Date.now();
 
-    cleanupExpiredNotifications();
+    cleanupRecentNotificationCache();
 
-    const lastSent = recentNotificationsRef.current.get(notificationKey);
-    if (lastSent && (now - lastSent) < DUPLICATE_THRESHOLD) {
-      logger.debug(`Duplicate notification prevented: ${data.title}`);
-      return false;
+    if (notificationKey) {
+      const lastSent = recentNotificationsRef.current.get(notificationKey);
+      if (lastSent && (now - lastSent) < DUPLICATE_THRESHOLD) {
+        logger.debug(`Duplicate notification prevented: ${data.title}`);
+        return false;
+      }
     }
 
     try {
       await addMutation.mutateAsync(data);
-      recentNotificationsRef.current.set(notificationKey, now);
+      if (notificationKey) {
+        recentNotificationsRef.current.set(notificationKey, now);
+      }
       return true;
     } catch (error) {
       return false;
     }
-  }, [userId, addMutation, generateNotificationKey, cleanupExpiredNotifications]);
+  }, [userId, addMutation, generateNotificationKey, cleanupRecentNotificationCache]);
 
   const markAsReadFn = useCallback(async (notificationId: string): Promise<boolean> => {
     try {

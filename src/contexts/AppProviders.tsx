@@ -200,31 +200,24 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   ];
 
   const LoadingIndicator: React.FC<{ stage: number; total: number; message: string }> = ({ stage, total, message }) => {
-    // Show full dashboard skeleton for the final loading stages to improve perceived performance.
-    if (stage >= 2) {
-      return (
-        <div className="min-h-screen bg-gray-50 p-6 animate-pulse">
-          <div className="max-w-5xl mx-auto space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-40" />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-20 bg-gray-200 rounded" />
-              ))}
-            </div>
+    const clampedStage = Math.min(stage, total);
+
+    return (
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3 text-center" aria-live="polite" aria-busy="true">
+          <div className="relative">
+            <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 rounded-full border border-orange-100 animate-ping" aria-hidden="true" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-gray-700">{message}</h2>
+            <p className="text-sm text-gray-500 tracking-wide">
+              ({clampedStage}/{total})
+            </p>
           </div>
         </div>
-      )
-    }
-    // Show a simpler, centered indicator for the initial auth check.
-    return (
-      <div className={`min-h-screen flex items-center justify-center bg-gray-50`}>
-        <div className="text-center">
-          <div className={`w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}></div>
-          <h2 className={`text-lg font-semibold text-gray-700`}>{message}</h2>
-          <p className="text-sm text-gray-500 mt-1">({stage}/{total})</p>
-        </div>
       </div>
-    )
+    );
   };
   
   const renderProviders = (providers: any[], content: ReactNode): ReactNode => {

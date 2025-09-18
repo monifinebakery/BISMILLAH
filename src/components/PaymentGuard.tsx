@@ -18,6 +18,11 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
     () => __paymentInitialCheckDone || safeReadInitialFlag()
   );
 
+  // Basic mobile detection (same approach as AuthGuard)
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    typeof navigator !== 'undefined' ? navigator.userAgent : ''
+  );
+
   function safeReadInitialFlag(): boolean {
     try {
       return window.sessionStorage.getItem('payment-initial-check-done') === '1';
@@ -77,20 +82,27 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
     );
   }
 
-  // Loading state - use unified modern loader
+  // Loading state - prefer non-blocking on mobile to avoid slow perceived skeletons
   if (!initialCheckDone && isLoading && !timedOut) {
-    logger.debug('PaymentGuard: Loading payment status...');
+    logger.debug('PaymentGuard: Loading payment status...', { isMobile });
+
+    if (isMobile) {
+      // Non-blocking on mobile: render children immediately, run background refetch
+      if (!initialCheckDone) markInitialDone();
+      setTimeout(() => refetch?.(), 0);
+      return <>{children}</>;
+    }
+
+    // Desktop: keep a shorter blocking loader
     return (
-      <PaymentVerificationLoader 
+      <PaymentVerificationLoader
         stage="checking"
-        timeout={6000}
+        timeout={3000}
         onTimeout={() => {
           logger.debug('PaymentGuard: Payment verification timeout - proceeding with fallback UI');
           setTimedOut(true);
-          // Mark done to avoid showing blocking loader again on remounts
           if (!initialCheckDone) markInitialDone();
-          // Fire a background refetch to update status when available
-          setTimeout(() => refetch?.(), 500);
+          setTimeout(() => refetch?.(), 300);
         }}
       />
     );

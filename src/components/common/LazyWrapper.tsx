@@ -29,14 +29,14 @@ export function withLazyLoading<P extends object>(
     
     return (
       <Suspense fallback={customFallback || fallback || <DefaultLoader className={className} />}>
-        <LazyComponent {...componentProps as any} />
+        <LazyComponent {...(componentProps as P)} />
       </Suspense>
     );
   };
 }
 
 // Utility untuk preload komponen
-export function preloadComponent(importFunc: () => Promise<{ default: ComponentType<any> }>) {
+export function preloadComponent<P extends object>(importFunc: () => Promise<{ default: ComponentType<P> }>) {
   return importFunc();
 }
 

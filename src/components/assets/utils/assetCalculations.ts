@@ -58,11 +58,11 @@ export const calculateAssetStatistics = (assets: Asset[]): AssetStatistics => {
   };
 
   validAssets.forEach(asset => {
-    if (asset.kategori && assetsByCategory.hasOwnProperty(asset.kategori)) {
+    if (asset.kategori && Object.prototype.hasOwnProperty.call(assetsByCategory, asset.kategori)) {
       assetsByCategory[asset.kategori]++;
     }
     
-    if (asset.kondisi && assetsByCondition.hasOwnProperty(asset.kondisi)) {
+    if (asset.kondisi && Object.prototype.hasOwnProperty.call(assetsByCondition, asset.kondisi)) {
       assetsByCondition[asset.kondisi]++;
     }
   });

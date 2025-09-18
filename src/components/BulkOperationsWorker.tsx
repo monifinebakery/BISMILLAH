@@ -22,11 +22,22 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+interface SampleRecord {
+  id: number;
+  nama_produk: string;
+  kategori: string;
+  harga: number;
+  stok: number;
+  supplier: string;
+  tanggal_dibuat: string; // ISO string
+  status: 'aktif' | 'nonaktif';
+}
+
 interface ImportResult {
   success: boolean;
   processed: number;
   errors: string[];
-  data?: any[];
+  data?: SampleRecord[];
   duration?: number;
 }
 
@@ -43,7 +54,7 @@ const BulkOperationsWorker: React.FC = () => {
   const [jsonData, setJsonData] = useState<string>('');
   const [exportFormat, setExportFormat] = useState<'csv' | 'json' | 'excel'>('csv');
   const [batchSize, setBatchSize] = useState(100);
-  const [sampleData, setSampleData] = useState<any[]>([]);
+  const [sampleData, setSampleData] = useState<SampleRecord[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {

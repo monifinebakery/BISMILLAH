@@ -114,7 +114,8 @@ const App = () => {
   }, [handleQueryError]);
 
   // Load dehydrated state from IndexedDB (async) once
-  const [dehydratedState, setDehydratedState] = React.useState<any>(null);
+  // Use precise type for React Query hydration state
+  const [dehydratedState, setDehydratedState] = React.useState<import('@tanstack/react-query').DehydratedState | null>(null);
   React.useEffect(() => {
     let mounted = true;
     loadPersistedQueryState().then((state) => {
@@ -125,7 +126,7 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <HydrationBoundary state={dehydratedState as any}>
+      <HydrationBoundary state={dehydratedState ?? undefined}>
       <TooltipProvider>
         {/* ✅ Auto-Update Banner - Shows when new version is available */}
         <UpdateNotificationBanner 

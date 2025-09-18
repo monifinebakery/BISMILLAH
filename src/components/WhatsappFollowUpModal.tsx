@@ -25,7 +25,7 @@ interface WhatsappFollowUpModalProps {
     order_number?: string;
     customer_name?: string;
     customer_phone?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   // ✅ FIXED: Remove dependency on legacy getWhatsappTemplateByStatus
   // getWhatsappTemplateByStatus: (status: string, orderData: any) => string;
@@ -47,8 +47,10 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
   const { settings } = useUserSettings();
 
   // ✅ FIXED: Generate template using the same system as FollowUpTemplateManager
+  type OrderLike = NonNullable<WhatsappFollowUpModalProps['order']>;
+
   const generateWhatsAppTemplate = useMemo(() => {
-    return (status: string, orderData: any): string => {
+    return (status: string, orderData: OrderLike): string => {
       try {
         logger.debug('WhatsappFollowUpModal: Generating template for status:', status);
         
@@ -89,10 +91,9 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
   // useMemo ensures this logic only runs when phone number changes.
   const processedPhoneNumber = useMemo(() => {
     // Try multiple possible phone field names for compatibility
-    const phoneNumber = order?.customerPhone || 
-                       (order as any)?.customer_phone || 
-                       (order as any)?.teleponPelanggan || 
-                       (order as any)?.telepon_pelanggan;
+    const phoneNumber = order?.customerPhone 
+                     ?? order?.customer_phone 
+                     ?? order?.telepon_pelanggan;
     
     // Return empty string if there's no order or phone number
     if (!phoneNumber) {
@@ -123,7 +124,7 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
     }
 
     return number;
-  }, [order?.customerPhone, (order as any)?.customer_phone, (order as any)?.telefonPelanggan, (order as any)?.telepon_pelanggan]); // Dependency array ensures this only re-runs when the phone number changes
+  }, [order?.customerPhone, order?.customer_phone, order?.telepon_pelanggan]); // Re-run when the phone fields change
 
   // Function to handle sending the WhatsApp message
   const handleSendWhatsapp = () => {

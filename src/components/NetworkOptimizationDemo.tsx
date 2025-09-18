@@ -101,7 +101,11 @@ const NetworkOptimizationDemo: React.FC = () => {
     ));
   };
 
-  const executeRequest = async (url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', data?: any) => {
+  const executeRequest = async (
+    url: string,
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    data?: unknown
+  ) => {
     const request = addTestRequest(url, method);
     updateTestRequest(request.id, { status: 'loading' });
     addLog(`Memulai ${method} request ke ${url}`);
@@ -133,13 +137,14 @@ const NetworkOptimizationDemo: React.FC = () => {
       });
       addLog(`${method} request berhasil dalam ${endTime - startTime}ms`, 'success');
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       updateTestRequest(request.id, { 
         status: 'error', 
-        error: error.message,
+        error: message,
         endTime: Date.now()
       });
-      addLog(`${method} request gagal: ${error.message}`, 'error');
+      addLog(`${method} request gagal: ${message}`, 'error');
       throw error;
     }
   };
@@ -232,8 +237,9 @@ const NetworkOptimizationDemo: React.FC = () => {
     try {
       const data = customData ? JSON.parse(customData) : undefined;
       await executeRequest(customUrl, customMethod, data);
-    } catch (error: any) {
-      addLog(`Error parsing JSON data: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      addLog(`Error parsing JSON data: ${message}`, 'error');
     }
   };
 
@@ -271,7 +277,7 @@ const NetworkOptimizationDemo: React.FC = () => {
     if (isAutoTesting) {
       runAutoTest();
     }
-  }, [isAutoTesting]);
+  }, [isAutoTesting, runAutoTest]);
 
   return (
     <div className="space-y-6">
@@ -381,7 +387,12 @@ const NetworkOptimizationDemo: React.FC = () => {
                   <select
                     id="method"
                     value={customMethod}
-                    onChange={(e) => setCustomMethod(e.target.value as any)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === 'GET' || v === 'POST' || v === 'PUT' || v === 'DELETE') {
+                        setCustomMethod(v);
+                      }
+                    }}
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="GET">GET</option>

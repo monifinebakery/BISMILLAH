@@ -44,7 +44,7 @@ const PaymentStatusWrapper = ({ children }: PaymentStatusWrapperProps) => {
     }
   }, [needsOrderLinking, unlinkedPayments?.length, showAutoLinkPopup, currentUser, setShowAutoLinkPopup]);
   
-  const handleAutoLinked = (linkedPayments: any[]) => {
+  const handleAutoLinked = (linkedPayments: Array<{ order_id: string }>) => {
     console.log('✅ Payments linked successfully:', linkedPayments);
     refetchPayment(); // Refresh payment status
     setShowAutoLinkPopup(false);

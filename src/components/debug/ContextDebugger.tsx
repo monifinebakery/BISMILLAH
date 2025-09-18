@@ -13,7 +13,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 interface ContextStatus {
   name: string;
   status: 'loading' | 'ready' | 'error' | 'missing';
-  details: any;
+  details: unknown;
   loadTime?: number;
 }
 
@@ -21,191 +21,132 @@ export const ContextDebugger: React.FC = () => {
   const [startTime] = useState(Date.now());
   const [contexts, setContexts] = useState<ContextStatus[]>([]);
 
+  // Access contexts at top-level to respect Rules of Hooks
+  const authContext = useAuth();
+  const activityContext = useActivity();
+  const financialContext = useFinancial();
+  const settingsContext = useUserSettings();
+  const notificationContext = useNotification();
+
   // Test all contexts
   useEffect(() => {
-    const checkContexts = async () => {
-      const results: ContextStatus[] = [];
+    const results: ContextStatus[] = [];
 
-      // 1. Auth Context
-      try {
-        const authContext = useAuth();
-        results.push({
-          name: 'AuthContext',
-          status: authContext ? 'ready' : 'loading',
-          details: {
-            exists: !!authContext,
-            user: authContext?.user?.id || 'no_user',
-            email: authContext?.user?.email || 'no_email',
-            loading: authContext?.isLoading,
-            type: typeof authContext
-          },
-          loadTime: Date.now() - startTime
-        });
-      } catch (error) {
-        results.push({
-          name: 'AuthContext',
-          status: 'error',
-          details: { error: error instanceof Error ? error.message : String(error) },
-          loadTime: Date.now() - startTime
-        });
+    // 1. Auth Context
+    results.push({
+      name: 'AuthContext',
+      status: authContext ? 'ready' : 'loading',
+      details: {
+        exists: !!authContext,
+        user: authContext?.user?.id || 'no_user',
+        email: authContext?.user?.email || 'no_email',
+        loading: authContext?.isLoading,
+        type: typeof authContext
+      },
+      loadTime: Date.now() - startTime
+    });
+
+    // 2. Activity Context
+    results.push({
+      name: 'ActivityContext',
+      status: activityContext ? 'ready' : 'loading',
+      details: {
+        exists: !!activityContext,
+        hasAddActivity: !!activityContext?.addActivity,
+        addActivityType: typeof activityContext?.addActivity,
+        contextType: typeof activityContext
+      },
+      loadTime: Date.now() - startTime
+    });
+
+    // 3. Financial Context
+    results.push({
+      name: 'FinancialContext',
+      status: financialContext ? 'ready' : 'loading',
+      details: {
+        exists: !!financialContext,
+        hasAddTransaction: !!financialContext?.addFinancialTransaction,
+        addTransactionType: typeof financialContext?.addFinancialTransaction,
+        contextType: typeof financialContext
+      },
+      loadTime: Date.now() - startTime
+    });
+
+    // 4. User Settings Context
+    results.push({
+      name: 'UserSettingsContext',
+      status: settingsContext ? 'ready' : 'loading',
+      details: {
+        exists: !!settingsContext,
+        hasSettings: !!settingsContext?.settings,
+        settingsType: typeof settingsContext?.settings,
+        contextType: typeof settingsContext
+      },
+      loadTime: Date.now() - startTime
+    });
+
+    // 5. Notification Context
+    results.push({
+      name: 'NotificationContext',
+      status: notificationContext ? 'ready' : 'loading',
+      details: {
+        exists: !!notificationContext,
+        hasAddNotification: !!notificationContext?.addNotification,
+        addNotificationType: typeof notificationContext?.addNotification,
+        contextType: typeof notificationContext
+      },
+      loadTime: Date.now() - startTime
+    });
+
+    setContexts(results);
+
+    // Log results
+    logger.debug('ContextDebugger: Context check results:', results);
+    
+    // Log summary
+    const ready = results.filter(c => c.status === 'ready').length;
+    const total = results.length;
+    const errors = results.filter(c => c.status === 'error');
+    const loading = results.filter(c => c.status === 'loading');
+
+    const extractError = (details: unknown): string | undefined => {
+      if (details && typeof details === 'object' && 'error' in details) {
+        const val = (details as { error?: unknown }).error;
+        return typeof val === 'string' ? val : undefined;
       }
-
-      // 2. Activity Context
-      try {
-        const activityContext = useActivity();
-        results.push({
-          name: 'ActivityContext',
-          status: activityContext ? 'ready' : 'loading',
-          details: {
-            exists: !!activityContext,
-            hasAddActivity: !!activityContext?.addActivity,
-            addActivityType: typeof activityContext?.addActivity,
-            contextType: typeof activityContext
-          },
-          loadTime: Date.now() - startTime
-        });
-      } catch (error) {
-        results.push({
-          name: 'ActivityContext',
-          status: 'error',
-          details: { error: error instanceof Error ? error.message : String(error) },
-          loadTime: Date.now() - startTime
-        });
-      }
-
-      // 3. Financial Context (with defensive handling)
-      try {
-        let financialContext = null;
-        try {
-          financialContext = useFinancial();
-        } catch (hookError) {
-          // If useFinancial hook fails, it means provider is not available
-          results.push({
-            name: 'FinancialContext',
-            status: 'error',
-            details: { 
-              error: hookError instanceof Error ? hookError.message : String(hookError),
-              reason: 'Hook execution failed - provider likely not available'
-            },
-            loadTime: Date.now() - startTime
-          });
-          financialContext = null; // Continue with next context
-        }
-        
-        if (financialContext !== null) {
-          results.push({
-            name: 'FinancialContext',
-            status: financialContext ? 'ready' : 'loading',
-            details: {
-              exists: !!financialContext,
-              hasAddTransaction: !!financialContext?.addFinancialTransaction,
-              addTransactionType: typeof financialContext?.addFinancialTransaction,
-              contextType: typeof financialContext
-            },
-            loadTime: Date.now() - startTime
-          });
-        }
-      } catch (error) {
-        results.push({
-          name: 'FinancialContext',
-          status: 'error',
-          details: { error: error instanceof Error ? error.message : String(error) },
-          loadTime: Date.now() - startTime
-        });
-      }
-
-      // 4. User Settings Context
-      try {
-        const settingsContext = useUserSettings();
-        results.push({
-          name: 'UserSettingsContext',
-          status: settingsContext ? 'ready' : 'loading',
-          details: {
-            exists: !!settingsContext,
-            hasSettings: !!settingsContext?.settings,
-            settingsType: typeof settingsContext?.settings,
-            contextType: typeof settingsContext
-          },
-          loadTime: Date.now() - startTime
-        });
-      } catch (error) {
-        results.push({
-          name: 'UserSettingsContext',
-          status: 'error',
-          details: { error: error instanceof Error ? error.message : String(error) },
-          loadTime: Date.now() - startTime
-        });
-      }
-
-      // 5. Notification Context
-      try {
-        const notificationContext = useNotification();
-        results.push({
-          name: 'NotificationContext',
-          status: notificationContext ? 'ready' : 'loading',
-          details: {
-            exists: !!notificationContext,
-            hasAddNotification: !!notificationContext?.addNotification,
-            addNotificationType: typeof notificationContext?.addNotification,
-            contextType: typeof notificationContext
-          },
-          loadTime: Date.now() - startTime
-        });
-      } catch (error) {
-        results.push({
-          name: 'NotificationContext',
-          status: 'error',
-          details: { error: error instanceof Error ? error.message : String(error) },
-          loadTime: Date.now() - startTime
-        });
-      }
-
-      setContexts(results);
-
-      // Log results
-      logger.debug('ContextDebugger: Context check results:', results);
-      
-      // Log summary
-      const ready = results.filter(c => c.status === 'ready').length;
-      const total = results.length;
-      const errors = results.filter(c => c.status === 'error');
-      const loading = results.filter(c => c.status === 'loading');
-
-      logger.context('ContextDebugger', `Context Status: ${ready}/${total} ready`, {
-        ready: results.filter(c => c.status === 'ready').map(c => c.name),
-        loading: loading.map(c => c.name),
-        errors: errors.map(c => ({ name: c.name, error: c.details.error })),
-        totalLoadTime: Date.now() - startTime
-      });
-
-      // Individual context logging
-      results.forEach(context => {
-        const emoji = context.status === 'ready' ? '✅' : 
-                     context.status === 'error' ? '❌' : 
-                     context.status === 'loading' ? '⏳' : '❓';
-        
-        logger.context('ContextDebugger', `${emoji} ${context.name}`, {
-          status: context.status,
-          loadTime: `${context.loadTime}ms`,
-          details: context.details
-        });
-      });
+      return undefined;
     };
 
-    checkContexts();
+    logger.context('ContextDebugger', `Context Status: ${ready}/${total} ready`, {
+      ready: results.filter(c => c.status === 'ready').map(c => c.name),
+      loading: loading.map(c => c.name),
+      errors: errors.map(c => ({ name: c.name, error: extractError(c.details) })),
+      totalLoadTime: Date.now() - startTime
+    });
+
+    // Individual context logging
+    results.forEach(context => {
+      const emoji = context.status === 'ready' ? '✅' : 
+                   context.status === 'error' ? '❌' : 
+                   context.status === 'loading' ? '⏳' : '❓';
+      
+      logger.context('ContextDebugger', `${emoji} ${context.name}`, {
+        status: context.status,
+        loadTime: `${context.loadTime}ms`,
+        details: context.details
+      });
+    });
 
     // Re-check every 2 seconds if any are still loading
     const interval = setInterval(() => {
       const hasLoading = contexts.some(c => c.status === 'loading');
-      if (hasLoading) {
-        checkContexts();
-      } else {
+      if (!hasLoading) {
         clearInterval(interval);
       }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [startTime]);
+  }, [startTime, authContext, activityContext, financialContext, settingsContext, notificationContext, contexts]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

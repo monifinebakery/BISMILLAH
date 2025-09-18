@@ -23,6 +23,8 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      // Relax strictness on explicit any to speed migration; we will tighten over time
+      "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": "off",
     },
   },

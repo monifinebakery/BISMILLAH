@@ -3,7 +3,7 @@
 // WAC per item bahan + Overhead per pcs
 
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import type { 
   AppSettings, 
   DualModeCalculationResult 

@@ -22,7 +22,7 @@ import {
 import { OperationalCost, CostFormData } from '../types';
 import { useCostClassification } from '../hooks/useCostClassification';
 import { getCostGroupLabel, getCostGroupDescription } from '../constants/costClassification';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { toast } from 'sonner';
 import { 
   generateSmartSuggestion, 

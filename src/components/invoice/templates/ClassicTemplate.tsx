@@ -1,7 +1,7 @@
 // src/components/invoice/templates/ClassicTemplate.tsx
 import React from 'react';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { formatDateForInvoice } from '../utils';
 import type { OrderData } from '../types';
 

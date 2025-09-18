@@ -4,7 +4,7 @@ import React from 'react';
 import { 
   Edit, Trash2, ToggleLeft, ToggleRight, Gift, Percent, Package 
 } from 'lucide-react';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 const PromoTableRow = ({ 

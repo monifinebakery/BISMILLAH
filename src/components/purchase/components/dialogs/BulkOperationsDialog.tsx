@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import type { Purchase, PurchaseStatus } from '../../types/purchase.types';
 
 interface BulkOperationsDialogProps {

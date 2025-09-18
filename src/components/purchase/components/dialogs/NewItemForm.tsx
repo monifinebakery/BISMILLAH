@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, ActionButtons } from '@/components/ui';
 import { Plus, Calculator, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
 import { parseRobustNumber } from '@/utils/robustNumberParser';

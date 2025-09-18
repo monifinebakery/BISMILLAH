@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { formatDateForInvoice } from '../utils';
 import type { OrderData } from '../types';
 

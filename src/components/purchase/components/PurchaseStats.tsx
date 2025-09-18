@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { PurchaseStatsProps } from '../types/purchase.types';
 
 const PurchaseStats: React.FC<PurchaseStatsProps> = ({ stats, className = '' }) => {

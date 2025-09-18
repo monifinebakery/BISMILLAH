@@ -30,7 +30,7 @@ import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 import { PurchaseItem } from './types/purchase.types';
 import { usePurchaseForm } from './hooks/usePurchaseForm';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { toast } from 'sonner';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { usePurchase } from './hooks/usePurchase';

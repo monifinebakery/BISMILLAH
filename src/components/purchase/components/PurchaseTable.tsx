@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { getStatusDisplayText, getFormattedTotalQuantities } from '../utils/purchaseHelpers';
 
 // Type imports

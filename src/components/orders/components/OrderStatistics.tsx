@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyDisplay, StatCard } from '@/lib/shared';
 import { formatCurrency } from '@/utils/formatters';
 import type { Order } from '../types';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface OrderStatisticsProps {
   orders: Order[];
@@ -100,22 +101,10 @@ const OrderStatistics: React.FC<OrderStatisticsProps> = ({ orders, loading = fal
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index} className="border border-gray-200 bg-white animate-pulse">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                  <div className="h-6 bg-gray-200 rounded w-16"></div>
-                </div>
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center ml-4">
-                  <div className="w-6 h-6 bg-gray-200 rounded"></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="mb-6">
+        <div className="min-h-[96px] flex items-center justify-center">
+          <LoadingSpinner size="sm" />
+        </div>
       </div>
     );
   }

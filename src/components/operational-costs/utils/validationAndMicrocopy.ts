@@ -2,7 +2,7 @@
 // 📋 Validation & Indonesian Microcopy (Revision 8)
 // Comprehensive guardrails and user-friendly messages
 
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 
 // ====================================
 // VALIDATION CONSTANTS

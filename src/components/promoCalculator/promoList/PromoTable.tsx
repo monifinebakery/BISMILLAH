@@ -5,7 +5,7 @@ import {
   ChevronUp, ChevronDown, Edit, Trash2, ToggleLeft, ToggleRight,
   Calendar, Gift, Percent, Package, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { TableSkeleton } from '@/components/ui/skeleton';
 

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/breadcrumb';
 
 // Import utilities and context
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { getStatusText } from '../constants';
 import { useOrder } from '../context/OrderContext';

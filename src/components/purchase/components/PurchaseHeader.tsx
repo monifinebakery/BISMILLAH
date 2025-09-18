@@ -11,7 +11,7 @@ import {
   Plus,
   AlertTriangle
 } from 'lucide-react';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { PurchaseHeaderProps } from '../types/purchase.types';
 
 const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({

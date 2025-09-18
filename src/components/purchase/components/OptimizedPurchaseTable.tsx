@@ -6,7 +6,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';

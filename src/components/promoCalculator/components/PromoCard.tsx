@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react'; // ✅ Tambahkan useState, useRef, useEffect
 import { Edit, Trash2, Eye, Copy, MoreVertical } from 'lucide-react';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 

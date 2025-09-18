@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/alert';
 import { ActionButtons } from '@/components/ui/action-buttons';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order } from '../types';

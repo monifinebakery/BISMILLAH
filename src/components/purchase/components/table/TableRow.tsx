@@ -5,7 +5,7 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Purchase } from '../../types/purchase.types';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { getFormattedTotalQuantities } from '../../utils/purchaseHelpers';
 import { StatusDropdown } from './StatusDropdown';
 import { ActionButtons } from './ActionButtons';

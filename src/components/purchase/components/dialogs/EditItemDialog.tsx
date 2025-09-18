@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Edit3, Save, X } from 'lucide-react';
 import { ActionButtons } from '@/components/ui/action-buttons';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/utils/formatUtils';
+import { formatCurrency } from '@/lib/shared';
 import { SafeNumericInput } from './SafeNumericInput';
 import type { PurchaseItem } from '../../types/purchase.types';
 import { parseRobustNumber } from '@/utils/robustNumberParser';

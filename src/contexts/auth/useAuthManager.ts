@@ -557,7 +557,8 @@ const useAuthLifecycle = ({
 
       logger.context(
         "AuthContext",
-        "Auth state updated, letting AuthGuard handle navigation",
+        "Auth state updated, checking for redirect",
+        { currentPath: window.location.pathname, hasValidUser: !!validUser },
       );
 
       if (validUser) {

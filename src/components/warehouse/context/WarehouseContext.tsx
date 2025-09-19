@@ -587,9 +587,6 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         const newStok = item.stok - jumlah;
         const success = await updateBahanBaku(item.id, { stok: newStok });
 
-        if (success) {
-          await refetch(); // Refresh using useQuery
-        }
         return success;
       } catch (error) {
         logger.error(`[${providerId.current}] Reduce stock failed:`, error);

@@ -48,7 +48,7 @@ export const useAuthManager = (): AuthContextValue => {
     userRef,
   });
 
-  // Cache management when user changes
+  // ✅ ANTI-FLICKER: Optimized cache management to prevent UI flicker
   useEffect(() => {
     const currentId = user?.id || null;
     const prevId = lastUserIdRef.current;
@@ -59,41 +59,55 @@ export const useAuthManager = (): AuthContextValue => {
 
     const clearCaches = async () => {
       try {
+        // ✅ ANTI-FLICKER: More selective cache clearing to prevent data loss flicker
         const queries = queryClient.getQueryCache().getAll();
-        const chunkSize = 50;
+        const userSpecificQueries = queries.filter(query => {
+          const queryKey = query.queryKey;
+          // Only clear user-specific queries that contain user IDs
+          return queryKey.some(key => 
+            typeof key === 'string' && 
+            (key.includes('user') || key.includes('auth') || key === prevId)
+          );
+        });
 
-        for (let i = 0; i < queries.length; i += chunkSize) {
-          const chunk = queries.slice(i, i + chunkSize);
+        // ✅ ANTI-FLICKER: Smaller chunks to prevent UI blocking
+        const chunkSize = 10;
+        for (let i = 0; i < userSpecificQueries.length; i += chunkSize) {
+          const chunk = userSpecificQueries.slice(i, i + chunkSize);
           chunk.forEach((query) =>
-            queryClient.removeQueries({ queryKey: query.queryKey }),
+            queryClient.removeQueries({ queryKey: query.queryKey })
           );
 
-          if (i + chunkSize < queries.length) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+          // ✅ ANTI-FLICKER: Longer delay between chunks to prevent blocking
+          if (i + chunkSize < userSpecificQueries.length) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
           }
         }
 
         clearPersistedQueryState();
-        logger.info("AuthContext: Non-blocking cache clear completed", {
+        logger.info("AuthContext: Selective cache clear completed", {
           prevId,
           currentId,
+          clearedQueries: userSpecificQueries.length,
+          totalQueries: queries.length
         });
       } catch (error) {
-        logger.warn("AuthContext: Non-blocking cache clear failed", error);
+        logger.warn("AuthContext: Selective cache clear failed", error);
       }
     };
 
+    // ✅ ANTI-FLICKER: Longer delay to prevent immediate cache clearing
     if (typeof requestIdleCallback !== "undefined") {
       requestIdleCallback(
         () => {
           void clearCaches();
         },
-        { timeout: 2000 },
+        { timeout: 5000 }, // Increased timeout
       );
     } else {
       setTimeout(() => {
         void clearCaches();
-      }, 100);
+      }, 300); // Increased delay
     }
   }, [user?.id]);
 

@@ -15,21 +15,29 @@ export const useAuthState = () => {
   const userRef = useRef(user);
 
   const updateSession = useCallback((newSession: Session | null) => {
-    sessionRef.current = newSession;
-    setSession(newSession);
+    // ✅ ANTI-FLICKER: Only update if session actually changed
+    if (sessionRef.current?.access_token !== newSession?.access_token) {
+      sessionRef.current = newSession;
+      setSession(newSession);
+    }
   }, []);
 
   const updateUser = useCallback((newUser: User | null) => {
-    userRef.current = newUser;
-    setUser(newUser);
+    // ✅ ANTI-FLICKER: Only update if user actually changed
+    if (userRef.current?.id !== newUser?.id) {
+      userRef.current = newUser;
+      setUser(newUser);
+    }
   }, []);
 
   const updateLoadingState = useCallback((loading: boolean) => {
-    setIsLoading(loading);
+    // ✅ ANTI-FLICKER: Only update if loading state actually changed
+    setIsLoading(current => current !== loading ? loading : current);
   }, []);
 
   const updateReadyState = useCallback((ready: boolean) => {
-    setIsReady(ready);
+    // ✅ ANTI-FLICKER: Only update if ready state actually changed
+    setIsReady(current => current !== ready ? ready : current);
   }, []);
 
   // Memoized current values for external access

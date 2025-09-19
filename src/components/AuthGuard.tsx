@@ -17,11 +17,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // ✅ FIX: Navigation state management to prevent race conditions
   const navigationRef = useRef({ isNavigating: false, lastPath: '', lastTimestamp: 0 });
   const [renderCount, setRenderCount] = useState(0);
-  const [isMobileOptimized, setIsMobileOptimized] = useState(false);
-  const [showQuickPreview, setShowQuickPreview] = useState(false);
+  // ✅ ANTI-FLICKER: Reduce mobile optimization states to prevent flicker
+  const isMobile = useRef(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  const [isInitialized, setIsInitialized] = useState(false);
   
-  // ⚡ MOBILE DETECTION
-  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   // ✅ Development bypass authentication (must NOT short‑circuit before hooks)
   const isDevelopmentBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
@@ -117,20 +116,16 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isLoading, isReady, location.pathname, renderCount]);
 
-  // ⚡ MOBILE-OPTIMIZED: Quick preview untuk user experience
+  // ✅ ANTI-FLICKER: Simple initialization tracking
   useEffect(() => {
-    if (user && isReady && !isLoading) {
-      if (!isMobileOptimized) {
-        // Show quick preview first untuk mobile
-        if (isMobile) {
-          setShowQuickPreview(true);
-          setTimeout(() => setIsMobileOptimized(true), 50);
-        } else {
-          setIsMobileOptimized(true);
-        }
+    if (isReady && !isLoading) {
+      if (!isInitialized) {
+        // Small delay to prevent flash
+        const timer = setTimeout(() => setIsInitialized(true), 50);
+        return () => clearTimeout(timer);
       }
     }
-  }, [user, isReady, isLoading, isMobile, isMobileOptimized]);
+  }, [isReady, isLoading, isInitialized]);
 
   // ✅ FIXED: Single redirect logic with race condition prevention
   useEffect(() => {
@@ -151,34 +146,17 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     // This separation prevents competing navigation mechanisms
   }, [user, isReady, isLoading, location.pathname, handleNavigation]);
 
-  // ⚡ MOBILE-OPTIMIZED: Loading state dengan progressive improvement
+  // ✅ ANTI-FLICKER: Simplified loading state without mobile branching
   if ((isLoading || !isReady) && !user) {
-    console.log(`🔄 [AuthGuard #${renderCount}] Loading state:`, { isLoading, isReady, isMobile });
-    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          {/* ⚡ MOBILE: Smaller spinner untuk mobile */}
-          <div className={`${
-            isMobile ? 'w-12 h-12' : 'w-16 h-16'
-          } border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`}></div>
-          
-          <h2 className={`${
-            isMobile ? 'text-lg' : 'text-xl'
-          } font-semibold text-gray-700 mb-2`}>Memuat Autentikasi</h2>
-          
-          <p className="text-gray-500 text-sm">
-            {!isReady ? (
-              isMobile ? 'Memuat...' : 'Memuat sistem...'
-            ) : (
-              isMobile ? 'Verifikasi...' : 'Memverifikasi sesi...'
-            )}
-          </p>
-          
-          {/* ⚡ MOBILE: Hide debug info di mobile untuk cleaner UI */}
-          {!isMobile && (
+          <div className="w-14 h-14 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Memuat Autentikasi</h2>
+          <p className="text-gray-500 text-sm">Memverifikasi sesi...</p>
+          {import.meta.env.DEV && (
             <p className="text-xs text-gray-400 mt-2">
-              Render #{renderCount} | isLoading: {isLoading.toString()} | isReady: {isReady.toString()}
+              Ready: {isReady.toString()} | Loading: {isLoading.toString()}
             </p>
           )}
         </div>
@@ -192,14 +170,13 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  // ⚡ MOBILE: Quick preview state untuk smoother transition
-  if (user && showQuickPreview && !isMobileOptimized && isMobile) {
-    console.log(`⚡ [AuthGuard #${renderCount}] Showing quick preview for mobile`);
+  // ✅ ANTI-FLICKER: Quick initialization state
+  if (user && !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-sm text-gray-600">Hampir siap...</p>
+          <div className="w-10 h-10 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-sm text-gray-600">Menyiapkan...</p>
         </div>
       </div>
     );

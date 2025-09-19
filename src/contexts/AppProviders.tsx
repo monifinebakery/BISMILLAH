@@ -48,40 +48,33 @@ interface AppProvidersProps {
  */
 
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
-  // Define providers to compose immediately (no staged loading, no overlays)
-  const criticalProviders = [
-    { component: NotificationProvider, name: 'Notification', priority: 'critical' as const },
-    { component: UserSettingsProvider, name: 'UserSettings', priority: 'critical' as const },
-    { component: FinancialProvider, name: 'Financial', priority: 'critical' as const },
+  // ✅ ANTI-FLICKER: Flatten provider structure to reduce initialization flicker
+  const allProviders = [
+    // Critical providers loaded first
+    { component: NotificationProvider, name: 'Notification' },
+    { component: UserSettingsProvider, name: 'UserSettings' },
+    { component: FinancialProvider, name: 'Financial' },
+    
+    // Core app providers  
+    { component: ActivityProvider, name: 'Activity' },
+    { component: RecipeProvider, name: 'Recipe' },
+    { component: WarehouseProvider, name: 'Warehouse' },
+    { component: SupplierProvider, name: 'Supplier' },
+    { component: PurchaseProvider, name: 'Purchase' },
+    { component: OrderProvider, name: 'Order' },
+    
+    // Secondary providers
+    { component: OperationalCostProvider, name: 'OperationalCost' },
+    { component: PromoProvider, name: 'Promo' },
+    { component: FollowUpTemplateProvider, name: 'FollowUpTemplate' },
+    { component: DeviceProvider, name: 'Device' },
+    { component: ProfitAnalysisProvider, name: 'ProfitAnalysis' },
   ];
 
-  const highProviders = [
-    { component: ActivityProvider, name: 'Activity', priority: 'high' as const },
-    { component: RecipeProvider, name: 'Recipe', priority: 'high' as const },
-    { component: WarehouseProvider, name: 'Warehouse', priority: 'high' as const },
-    { component: SupplierProvider, name: 'Supplier', priority: 'high' as const },
-    { component: PurchaseProvider, name: 'Purchase', priority: 'high' as const },
-  ];
-
-  const mediumProviders = [
-    { component: OrderProvider, name: 'Order', priority: 'medium' as const },
-  ];
-
-  const lowProviders = [
-    { component: OperationalCostProvider, name: 'OperationalCost', priority: 'low' as const },
-    { component: PromoProvider, name: 'Promo', priority: 'low' as const },
-    { component: FollowUpTemplateProvider, name: 'FollowUpTemplate', priority: 'low' as const },
-    { component: DeviceProvider, name: 'Device', priority: 'low' as const },
-    { component: ProfitAnalysisProvider, name: 'ProfitAnalysis', priority: 'low' as const },
-  ];
-
+  // ✅ ANTI-FLICKER: Reduce logging to prevent console spam during renders  
   const renderProviders = (providers: any[], content: ReactNode): ReactNode => {
-    logger.debug('AppProviders: Rendering providers:', {
-      providerNames: providers.map(p => p.name),
-    });
     return providers.reduceRight((acc, p) => {
       const ProviderComponent = p.component;
-      logger.debug(`AppProviders: Wrapping content with ${p.name}Provider`);
       return <ProviderComponent>{acc}</ProviderComponent>;
     }, <>{content}</>);
   };
@@ -95,16 +88,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <>
       <CoreProviders>
-        {renderProviders(
-          criticalProviders,
-          renderProviders(
-            highProviders,
-            renderProviders(
-              mediumProviders,
-              renderProviders(lowProviders, children)
-            )
-          )
-        )}
+        {renderProviders(allProviders, children)}
       </CoreProviders>
 
       <Toaster 

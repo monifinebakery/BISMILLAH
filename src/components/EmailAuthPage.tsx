@@ -68,14 +68,20 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [authState, setAuthState] = useState<AuthState>("idle");
   const [error, setError] = useState("");
 
-  // Initialize state from storage
+  // Initialize state from storage - NOW WORKS FOR ALL PLATFORMS
   const initializeFromStorage = useCallback(() => {
     const stored = loadAuthState();
-    if (stored && isMobile) {
-      logger.debug("📱 Restoring auth state from storage:", stored);
+    if (stored) { // ✅ FIXED: Removed mobile-only restriction
+      logger.debug("💾 Restoring auth state from storage:", stored);
       
+      // ✅ FIXED: Also restore OTP array if available
       setEmail(stored.email || "");
       setAuthState((stored.authState as AuthState) || "idle");
+      
+      // Restore OTP array if it exists
+      if (stored.otp && Array.isArray(stored.otp)) {
+        setOtp(stored.otp);
+      }
 
       // Restore cooldown if it was active
       if (stored.cooldownStartTime && stored.cooldownTime) {
@@ -115,7 +121,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         }
       }
     }
-  }, [loadAuthState, isMobile, restoreCooldown]);
+  }, [loadAuthState, restoreCooldown]);
 
   // Initialize on mount
   useEffect(() => {
@@ -129,37 +135,67 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     };
   }, [initializeFromStorage]);
 
-  // Page Visibility API - Handle app switching for mobile
+  // Page Visibility API - NOW WORKS FOR ALL PLATFORMS
   useEffect(() => {
-    if (!isMobile) return;
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        // User returned to app - restore state if needed
+        // User returned to tab - restore state if needed
         const stored = loadAuthState();
         if (stored && stored.authState === "sent" && authState !== "sent") {
-          logger.debug("📱 App became visible, restoring OTP state");
+          logger.debug("🔄 Tab became visible, restoring OTP state");
           setAuthState("sent");
           setEmail(stored.email || email);
+          
+          // ✅ FIXED: Also restore OTP array
+          if (stored.otp && Array.isArray(stored.otp)) {
+            setOtp(stored.otp);
+          }
         }
       } else {
-        // User left app - save current state
+        // User left tab - save current state INCLUDING OTP
         if (authState === "sent" || cooldownTime > 0) {
+          logger.debug("💾 Saving state before tab switch", {
+            email,
+            authState,
+            otp: otp.join(''),
+            cooldownTime
+          });
+          
           saveAuthState({
             email,
             authState,
+            otp, // ✅ FIXED: Save OTP array
             cooldownTime,
             cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined,
+            otpRequestTime: authState === "sent" ? Date.now() : undefined,
           });
         }
       }
     };
 
+    const handleBeforeUnload = () => {
+      // Save state before page unload
+      if (authState === "sent" || cooldownTime > 0) {
+        logger.debug("💾 Saving state before page unload");
+        saveAuthState({
+          email,
+          authState,
+          otp, // ✅ FIXED: Save OTP array
+          cooldownTime,
+          cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined,
+          otpRequestTime: authState === "sent" ? Date.now() : undefined,
+        });
+      }
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [email, authState, cooldownTime, loadAuthState, saveAuthState, isMobile]);
+  }, [email, authState, otp, cooldownTime, loadAuthState, saveAuthState]);
 
   // Reset functions
   const resetForm = useCallback(() => {
@@ -279,7 +315,20 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     next[index] = value.toUpperCase();
     setOtp(next);
     setError("");
-  }, [otp]);
+    
+    // ✅ FIXED: Save OTP state immediately when user types
+    if (authState === "sent") {
+      logger.debug("💾 Saving OTP as user types:", next.join(''));
+      saveAuthState({
+        email,
+        authState: "sent",
+        otp: next,
+        cooldownTime,
+        cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined,
+        otpRequestTime: Date.now(),
+      });
+    }
+  }, [otp, authState, email, cooldownTime, saveAuthState]);
 
   const handleVerifyOtp = useCallback(async () => {
     const code = otp.join("");

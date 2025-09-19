@@ -5,6 +5,7 @@ import { logger } from '@/utils/logger';
 interface AuthStateData {
   email?: string;
   authState?: string;
+  otp?: string[]; // ✅ FIXED: Added OTP array support
   cooldownTime?: number;
   cooldownStartTime?: number;
   otpRequestTime?: number;

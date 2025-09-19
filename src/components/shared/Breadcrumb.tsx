@@ -47,7 +47,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className = '' })
                       <span className="hidden sm:inline">{item.label}</span>
                     </div>
                   ) : (
-                    item.label
+                    <span>{item.label}</span>
                   )}
                 </Link>
               ) : (
@@ -65,7 +65,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className = '' })
                       <span className="hidden sm:inline">{item.label}</span>
                     </>
                   ) : (
-                    item.label
+                    <span>{item.label}</span>
                   )}
                 </span>
               )}

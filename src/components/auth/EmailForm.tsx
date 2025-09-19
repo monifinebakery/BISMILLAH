@@ -35,7 +35,7 @@ export const EmailForm: React.FC<EmailFormProps> = ({
           htmlFor="email"
           className="text-sm font-medium text-gray-700"
         >
-          Email Address
+          <span>Email Address</span>
         </Label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -63,15 +63,15 @@ export const EmailForm: React.FC<EmailFormProps> = ({
         {cooldownTime > 0 ? (
           <>
             <Clock className="mr-2 h-5 w-5" />
-            Tunggu {cooldownTime}s
+            <span>Tunggu {cooldownTime}s</span>
           </>
         ) : isLoading ? (
           <>
             <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
-            Mengirim Kode...
+            <span>Mengirim Kode...</span>
           </>
         ) : (
-          "Kirim Kode Verifikasi"
+          <span>Kirim Kode Verifikasi</span>
         )}
       </Button>
 

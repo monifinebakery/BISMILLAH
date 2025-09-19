@@ -129,7 +129,7 @@ export const OTPForm: React.FC<OTPFormProps> = ({
             Berhasil! Mengarahkan...
           </>
         ) : (
-          "Verifikasi Kode"
+          <span>Verifikasi Kode</span>
         )}
       </Button>
 
@@ -141,8 +141,8 @@ export const OTPForm: React.FC<OTPFormProps> = ({
           className="text-orange-600 hover:text-orange-700 text-sm"
         >
           {cooldownTime > 0
-            ? `Kirim ulang dalam ${cooldownTime}s`
-            : "Kirim ulang kode"}
+            ? <span>{`Kirim ulang dalam ${cooldownTime}s`}</span>
+            : <span>Kirim ulang kode</span>}
         </Button>
 
         {/* Reset button for error states */}
@@ -153,7 +153,7 @@ export const OTPForm: React.FC<OTPFormProps> = ({
               onClick={onReset}
               className="text-gray-500 hover:text-gray-700 text-xs"
             >
-              Mulai dari awal dengan email lain
+              <span>Mulai dari awal dengan email lain</span>
             </Button>
           </div>
         )}

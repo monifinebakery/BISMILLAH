@@ -63,7 +63,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       cooldownStartTime?: number;
       otpRequestTime?: number;
     }) => {
-      if (!isMobile) return; // Only persist on mobile
       try {
         const existing = JSON.parse(
           localStorage.getItem(AUTH_STORAGE_KEY) || "{}",
@@ -79,7 +78,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   );
 
   const loadAuthState = useCallback(() => {
-    if (!isMobile) return null;
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (!stored) return null;

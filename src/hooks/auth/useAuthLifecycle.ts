@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { debounce } from '@/utils/debounce';
+import { debounce } from '@/utils';
 import { 
   getAdaptiveTimeout, 
   safeWithTimeout 

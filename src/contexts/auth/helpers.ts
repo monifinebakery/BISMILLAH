@@ -67,6 +67,19 @@ export const detectDeviceCapabilities = () => {
 export const getAdaptiveTimeout = (baseTimeout = 12000) => {
   const capabilities = detectDeviceCapabilities();
   const safariDetection = detectSafariIOS();
+  const androidDetection = detectAndroid();
+
+  // Android-specific timeout handling
+  if (androidDetection.isAndroid) {
+    const androidTimeout = getAndroidOptimizedTimeout(baseTimeout);
+    logger.debug('AuthContext: Android adaptive timeout applied', {
+      originalTimeout: baseTimeout,
+      androidTimeout,
+      isSlowDevice: androidDetection.isSlowDevice,
+      networkType: androidDetection.networkType
+    });
+    return androidTimeout;
+  }
 
   if (safariDetection.isSafariIOS) {
     const safariTimeout = getSafariTimeout(baseTimeout);

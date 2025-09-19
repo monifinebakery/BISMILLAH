@@ -18,6 +18,13 @@ import {
   needsSafariWorkaround,
   safariAuthFallback,
 } from '@/utils/safariUtils';
+import {
+  detectProblematicAndroid,
+  forceAndroidSessionRefresh,
+  validateAndroidSession,
+  preOptimizeAndroidLogin,
+  cleanupAndroidStorage
+} from '@/utils/androidSessionFix';
 import { logger } from '@/utils/logger';
 
 import { getAdaptiveTimeout, safeWithTimeout, validateSession } from './helpers';
@@ -42,6 +49,45 @@ const useAuthLifecycle = ({
   setIsReady,
   navigate,
 }: AuthLifecycleParams) => {
+  // Android-specific periodic session validation
+  useEffect(() => {
+    const androidDetection = detectProblematicAndroid();
+    if (!androidDetection.isProblematic) {
+      return;
+    }
+
+    const validateAndroidSessionPeriodically = async () => {
+      // Only validate if we have a session
+      if (!session || !user) {
+        return;
+      }
+
+      try {
+        const result = await validateAndroidSession(session);
+        if (!result.success && result.requiresRelogin) {
+          logger.warn('Android: Periodic validation failed, clearing session', result.message);
+          
+          // Clear corrupted session
+          setSession(null);
+          setUser(null);
+          setIsReady(true);
+          setIsLoading(false);
+          
+          // Clean up storage
+          cleanupAndroidStorage();
+        }
+      } catch (error) {
+        logger.debug('Android: Periodic validation error (non-critical)', error);
+      }
+    };
+
+    // Validate immediately and then every 30 seconds
+    validateAndroidSessionPeriodically();
+    const interval = setInterval(validateAndroidSessionPeriodically, 30000);
+
+    return () => clearInterval(interval);
+  }, [session, user]);
+  
   useEffect(() => {
     let mounted = true;
 
@@ -92,6 +138,40 @@ const useAuthLifecycle = ({
       try {
         logger.context('AuthContext', 'Initializing auth...');
 
+        // Android-specific pre-optimization
+        const androidDetection = detectProblematicAndroid();
+        if (androidDetection.isProblematic) {
+          logger.warn('AuthContext: Problematic Android device detected', androidDetection);
+          preOptimizeAndroidLogin();
+          
+          // Try Android-specific session refresh first
+          try {
+            const androidResult = await forceAndroidSessionRefresh(2, 1500);
+            if (androidResult.success && androidResult.session) {
+              const { session: validSession, user: validUser } = validateSession(androidResult.session);
+              
+              if (mounted && validSession && validUser) {
+                setSession(validSession);
+                setUser(validUser);
+                setIsLoading(false);
+                setIsReady(true);
+                
+                logger.success('AuthContext: Android session fix successful', {
+                  userId: validUser.id,
+                  email: validUser.email
+                });
+                return;
+              }
+            } else if (androidResult.requiresRelogin) {
+              logger.warn('AuthContext: Android session fix requires relogin', androidResult.message);
+              // Continue with normal flow to show login
+            }
+          } catch (androidError) {
+            logger.error('AuthContext: Android session fix failed', androidError);
+            // Continue with normal flow
+          }
+        }
+        
         const safariDetection = detectSafariIOS();
         if (safariDetection.isSafariIOS) {
           logger.warn('AuthContext: Safari iOS detected - using auth fallback strategy', {

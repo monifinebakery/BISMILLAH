@@ -1,6 +1,8 @@
 // Safari iOS detection and compatibility utilities
 import { logger } from './logger';
 
+const SAFARI_TIMEOUT_CAP = 12000;
+
 /**
  * Deteksi Safari iOS dengan akurat
  */
@@ -61,7 +63,11 @@ export const getSafariTimeout = (baseTimeout: number = 15000): number => {
     else if (majorVersion < 16) multiplier = 3.5; // Increased from 2.5
   }
   
-  const safariTimeout = Math.min(baseTimeout * multiplier, 90000); // Increased max from 60000
+  const computedTimeout = baseTimeout * multiplier;
+  const safariTimeout = Math.max(
+    Math.min(computedTimeout, SAFARI_TIMEOUT_CAP),
+    Math.min(baseTimeout, SAFARI_TIMEOUT_CAP)
+  );
   
   logger.debug('Safari iOS timeout calculated:', {
     baseTimeout,
@@ -148,7 +154,7 @@ export const logSafariInfo = () => {
 export const safariAuthFallback = async <T>(
   primaryMethod: () => Promise<T>,
   fallbackMethod: () => Promise<T>,
-  timeoutMs: number = 30000
+  timeoutMs: number = 9000
 ): Promise<T> => {
   const detection = detectSafariIOS();
   
@@ -160,8 +166,9 @@ export const safariAuthFallback = async <T>(
   
   try {
     // Coba method utama dengan timeout
+    const timeoutBudget = getSafariTimeout(timeoutMs);
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Safari iOS auth timeout')), timeoutMs);
+      setTimeout(() => reject(new Error('Safari iOS auth timeout')), timeoutBudget);
     });
     
     return await Promise.race([primaryMethod(), timeoutPromise]);

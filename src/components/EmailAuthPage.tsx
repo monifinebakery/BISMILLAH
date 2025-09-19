@@ -49,59 +49,67 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
 
   // 🔄 MOBILE-PERSISTENT Storage keys
-  const AUTH_STORAGE_KEY = 'mobile_auth_state';
-  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  
+  const AUTH_STORAGE_KEY = "mobile_auth_state";
+  const isMobile =
+    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent,
+    );
+
   // 📱 Persistent storage helpers
-  const saveAuthState = useCallback((data: {
-    email?: string;
-    authState?: AuthState;
-    cooldownTime?: number;
-    cooldownStartTime?: number;
-    otpRequestTime?: number;
-  }) => {
-    if (!isMobile) return; // Only persist on mobile
-    try {
-      const existing = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
-      const updated = { ...existing, ...data, timestamp: Date.now() };
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
-      logger.debug('📱 Auth state saved:', data);
-    } catch (error) {
-      logger.warn('Failed to save auth state:', error);
-    }
-  }, [AUTH_STORAGE_KEY, isMobile]);
-  
+  const saveAuthState = useCallback(
+    (data: {
+      email?: string;
+      authState?: AuthState;
+      cooldownTime?: number;
+      cooldownStartTime?: number;
+      otpRequestTime?: number;
+    }) => {
+      if (!isMobile) return; // Only persist on mobile
+      try {
+        const existing = JSON.parse(
+          localStorage.getItem(AUTH_STORAGE_KEY) || "{}",
+        );
+        const updated = { ...existing, ...data, timestamp: Date.now() };
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+        logger.debug("📱 Auth state saved:", data);
+      } catch (error) {
+        logger.warn("Failed to save auth state:", error);
+      }
+    },
+    [AUTH_STORAGE_KEY, isMobile],
+  );
+
   const loadAuthState = useCallback(() => {
     if (!isMobile) return null;
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (!stored) return null;
       const data = JSON.parse(stored);
-      
+
       // Check if data is not too old (max 10 minutes)
       const age = Date.now() - (data.timestamp || 0);
       if (age > 10 * 60 * 1000) {
         localStorage.removeItem(AUTH_STORAGE_KEY);
         return null;
       }
-      
-      logger.debug('📱 Auth state loaded:', data);
+
+      logger.debug("📱 Auth state loaded:", data);
       return data;
     } catch (error) {
-      logger.warn('Failed to load auth state:', error);
+      logger.warn("Failed to load auth state:", error);
       return null;
     }
   }, [AUTH_STORAGE_KEY, isMobile]);
-  
+
   const clearAuthState = useCallback(() => {
     try {
       localStorage.removeItem(AUTH_STORAGE_KEY);
-      logger.debug('📱 Auth state cleared');
+      logger.debug("📱 Auth state cleared");
     } catch (error) {
-      logger.warn('Failed to clear auth state:', error);
+      logger.warn("Failed to clear auth state:", error);
     }
   }, [AUTH_STORAGE_KEY]);
-  
+
   // 📱 Initialize state with persistence
   const initializeState = useCallback(() => {
     const stored = loadAuthState();
@@ -110,26 +118,25 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         email: stored.email || "",
         authState: (stored.authState as AuthState) || "idle",
         cooldownTime: 0, // Will be calculated separately
-        shouldRestoreCooldown: !!stored.cooldownStartTime
+        shouldRestoreCooldown: !!stored.cooldownStartTime,
       };
     }
     return {
       email: "",
       authState: "idle" as AuthState,
       cooldownTime: 0,
-      shouldRestoreCooldown: false
+      shouldRestoreCooldown: false,
     };
   }, [loadAuthState]);
-  
+
   const initialState = initializeState();
-  
+
   // State with mobile persistence
   const [email, setEmail] = useState(initialState.email);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [authState, setAuthState] = useState<AuthState>(initialState.authState);
   const [error, setError] = useState("");
   const [cooldownTime, setCooldownTime] = useState(initialState.cooldownTime);
-
 
   // Refs
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -140,15 +147,17 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   useEffect(() => {
     const stored = loadAuthState();
     if (stored && isMobile) {
-      logger.debug('📱 Restoring mobile auth state:', stored);
-      
+      logger.debug("📱 Restoring mobile auth state:", stored);
+
       // Restore cooldown if it was active
       if (stored.cooldownStartTime && stored.cooldownTime) {
-        const elapsed = Math.floor((Date.now() - stored.cooldownStartTime) / 1000);
+        const elapsed = Math.floor(
+          (Date.now() - stored.cooldownStartTime) / 1000,
+        );
         const remaining = Math.max(0, stored.cooldownTime - elapsed);
-        
+
         if (remaining > 0) {
-          logger.debug('📱 Restoring cooldown timer:', { remaining, elapsed });
+          logger.debug("📱 Restoring cooldown timer:", { remaining, elapsed });
           setCooldownTime(remaining);
           // Directly start timer instead of using startCooldown to avoid dependency
           if (timerRef.current) clearInterval(timerRef.current);
@@ -165,11 +174,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           }, 1000);
         }
       }
-      
+
       // Show notification that state was restored (deduplicated)
-      if (stored.authState === 'sent') {
+      if (stored.authState === "sent") {
         // 🕐 Show timing info when state is restored
-        let timingInfo = '';
+        let timingInfo = "";
         if (stored.otpRequestTime) {
           const otpAge = Date.now() - stored.otpRequestTime;
           const ageInMinutes = Math.floor(otpAge / (1000 * 60));
@@ -177,19 +186,24 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           if (remainingMinutes > 0) {
             timingInfo = ` (${remainingMinutes} menit tersisa)`;
           } else {
-            timingInfo = ' (mungkin sudah kadaluarsa)';
+            timingInfo = " (mungkin sudah kadaluarsa)";
           }
         }
-        const TOAST_ID = 'auth_restored_info';
+        const TOAST_ID = "auth_restored_info";
         // Prevent duplicate toasts within a session
         try {
           const shown = sessionStorage.getItem(TOAST_ID);
           if (!shown) {
-            toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`, { id: TOAST_ID });
-            sessionStorage.setItem(TOAST_ID, '1');
+            toast.info(
+              `Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`,
+              { id: TOAST_ID },
+            );
+            sessionStorage.setItem(TOAST_ID, "1");
           }
         } catch {
-          toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`);
+          toast.info(
+            `Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`,
+          );
         }
       }
     }
@@ -198,43 +212,45 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Clear dedupe flag on unmount (sesi baru)
   useEffect(() => {
     return () => {
-      try { sessionStorage.removeItem('auth_restored_info'); } catch {}
+      try {
+        sessionStorage.removeItem("auth_restored_info");
+      } catch {}
     };
   }, []);
-  
+
   // 📱 Page Visibility API - Handle app switching
   useEffect(() => {
     if (!isMobile) return;
-    
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         // User returned to app - restore state if needed
         const stored = loadAuthState();
-        if (stored && stored.authState === 'sent' && authState !== 'sent') {
-          logger.debug('📱 App became visible, restoring OTP state');
-          setAuthState('sent');
+        if (stored && stored.authState === "sent" && authState !== "sent") {
+          logger.debug("📱 App became visible, restoring OTP state");
+          setAuthState("sent");
           setEmail(stored.email || email);
         }
       } else {
         // User left app - save current state
-        if (authState === 'sent' || cooldownTime > 0) {
+        if (authState === "sent" || cooldownTime > 0) {
           saveAuthState({
             email,
             authState,
             cooldownTime,
-            cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined
+            cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined,
           });
         }
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [email, authState, cooldownTime, loadAuthState, saveAuthState, isMobile]);
-  
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -291,9 +307,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   // Simple button validation:
   const canSend =
-    isValidEmail(email) &&
-    cooldownTime === 0 &&
-    authState !== "sending";
+    isValidEmail(email) && cooldownTime === 0 && authState !== "sending";
 
   const canVerify =
     otp.every((d) => d !== "") &&
@@ -322,12 +336,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setError("");
 
     try {
-      const success = await sendEmailOtp(
-        email,
-        null,
-        true,
-        true
-      );
+      const success = await sendEmailOtp(email, null, true, true);
 
       if (!mountedRef.current) return;
 
@@ -341,13 +350,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           authState: "sent",
           cooldownTime: 60,
           cooldownStartTime: now,
-          otpRequestTime: now
+          otpRequestTime: now,
         });
-        
-        console.log('🕐 [DEBUG] OTP sent and state saved:', {
+
+        console.log("🕐 [DEBUG] OTP sent and state saved:", {
           email,
           timestamp: new Date(now).toISOString(),
-          localTime: new Date(now).toLocaleString('id-ID')
+          localTime: new Date(now).toLocaleString("id-ID"),
         });
         toast.success("Kode OTP telah dikirim ke email Anda.");
         setTimeout(() => inputRefs.current[0]?.focus(), 120);
@@ -380,12 +389,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
     try {
       logger.debug("EmailAuth: Resending OTP...");
-      const success = await sendEmailOtp(
-        email,
-        null,
-        true,
-        true
-      );
+      const success = await sendEmailOtp(email, null, true, true);
 
       if (!mountedRef.current) return;
 
@@ -399,13 +403,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           authState: "sent",
           cooldownTime: 60,
           cooldownStartTime: now,
-          otpRequestTime: now
+          otpRequestTime: now,
         });
-        
-        console.log('🕐 [DEBUG] OTP resent and state saved:', {
+
+        console.log("🕐 [DEBUG] OTP resent and state saved:", {
           email,
           timestamp: new Date(now).toISOString(),
-          localTime: new Date(now).toLocaleString('id-ID')
+          localTime: new Date(now).toLocaleString("id-ID"),
         });
         toast.success("Kode OTP baru telah dikirim.");
         inputRefs.current[0]?.focus();
@@ -418,7 +422,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       logger.error("Error resending OTP:", e);
       if (mountedRef.current) {
         setAuthState("error");
-        setError("Terjadi kesalahan saat mengirim ulang kode OTP. Silakan coba lagi.");
+        setError(
+          "Terjadi kesalahan saat mengirim ulang kode OTP. Silakan coba lagi.",
+        );
         startCooldown(30);
       }
     }
@@ -442,7 +448,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\s/g, "").toUpperCase();
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\s/g, "")
+      .toUpperCase();
     if (pasted.length === 6 && /^[0-9A-Z]{6}$/.test(pasted)) {
       setOtp(pasted.split(""));
       setError("");
@@ -464,25 +473,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       const otpAge = Date.now() - stored.otpRequestTime;
       const ageInMinutes = Math.floor(otpAge / (1000 * 60));
       const ageInSeconds = Math.floor(otpAge / 1000);
-      
-      console.log('🕐 [DEBUG] OTP Age Check:', {
+
+      console.log("🕐 [DEBUG] OTP Age Check:", {
         otpRequestTime: new Date(stored.otpRequestTime).toISOString(),
-        otpRequestLocal: new Date(stored.otpRequestTime).toLocaleString('id-ID'),
+        otpRequestLocal: new Date(stored.otpRequestTime).toLocaleString(
+          "id-ID",
+        ),
         currentTime: new Date().toISOString(),
-        currentLocal: new Date().toLocaleString('id-ID'),
+        currentLocal: new Date().toLocaleString("id-ID"),
         ageMs: otpAge,
         ageSeconds: ageInSeconds,
         ageMinutes: ageInMinutes,
         isWithin5Minutes: ageInMinutes < 5,
         email: stored.email,
-        code: code.substring(0, 2) + '****' // Partially masked for security
+        code: code.substring(0, 2) + "****", // Partially masked for security
       });
-      
+
       // Warn if OTP might be getting old
       if (ageInMinutes >= 4) {
-        logger.warn('🕐 OTP is getting close to expiry:', {
+        logger.warn("🕐 OTP is getting close to expiry:", {
           ageMinutes,
-          remainingMinutes: 5 - ageInMinutes
+          remainingMinutes: 5 - ageInMinutes,
         });
       }
     }
@@ -505,14 +516,42 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         onLoginSuccess?.();
         // ✅ NEW: Mark recent OTP success to give AuthGuard a grace period on mobile
         try {
-          localStorage.setItem('otpVerifiedAt', String(Date.now()));
+          localStorage.setItem("otpVerifiedAt", String(Date.now()));
         } catch (error) {
-          logger.warn('EmailAuth: Failed to store otpVerifiedAt timestamp', error);
+          logger.warn(
+            "EmailAuth: Failed to store otpVerifiedAt timestamp",
+            error,
+          );
         }
 
-        // ✅ Let AuthContext handle SPA redirect to avoid duplicate navigations
+        // ✅ ENHANCED: Multiple fallback mechanisms for redirect
         // This prevents navigation thrashing and Chrome's "Throttling navigation" warning
+
+        // Method 1: Try AuthContext redirect first
         redirectCheck();
+
+        // Method 2: Fallback direct navigation after short delay
+        setTimeout(() => {
+          if (window.location.pathname === "/auth") {
+            logger.info("EmailAuth: Fallback navigation triggered");
+            navigate("/", { replace: true });
+          }
+        }, 2000);
+
+        // Method 3: Force refresh user session to ensure auth state is updated
+        setTimeout(async () => {
+          if (window.location.pathname === "/auth") {
+            logger.info("EmailAuth: Force refreshing user session");
+            await refreshUser();
+            // Final fallback navigation
+            setTimeout(() => {
+              if (window.location.pathname === "/auth") {
+                logger.warn("EmailAuth: Final fallback navigation");
+                window.location.href = "/";
+              }
+            }, 1000);
+          }
+        }, 4000);
 
         return;
       } else if (ok === "expired") {
@@ -576,9 +615,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
               <p className="text-red-700 text-sm">{error}</p>
               {(authState === "error" || authState === "expired") && (
                 <p className="text-red-600 text-xs mt-2">
-                  • Pastikan kode dimasukkan dengan benar<br/>
-                  • Kode mungkin sudah kadaluarsa (5 menit)<br/>
-                  • Jika masalah berlanjut, coba mulai dari awal
+                  • Pastikan kode dimasukkan dengan benar
+                  <br />
+                  • Kode mungkin sudah kadaluarsa (5 menit)
+                  <br />• Jika masalah berlanjut, coba mulai dari awal
                 </p>
               )}
             </div>
@@ -588,7 +628,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             // Email Input
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Email Address
                 </Label>
                 <div className="relative">
@@ -687,9 +730,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
                   disabled={cooldownTime > 0}
                   className="text-orange-600 hover:text-orange-700 text-sm"
                 >
-                  {cooldownTime > 0 ? `Kirim ulang dalam ${cooldownTime}s` : "Kirim ulang kode"}
+                  {cooldownTime > 0
+                    ? `Kirim ulang dalam ${cooldownTime}s`
+                    : "Kirim ulang kode"}
                 </Button>
-                
+
                 {/* ✅ NEW: Reset button for when users get stuck */}
                 {(authState === "error" || authState === "expired") && (
                   <div>

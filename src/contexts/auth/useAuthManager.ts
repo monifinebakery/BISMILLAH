@@ -579,17 +579,40 @@ const useAuthLifecycle = ({
           } else {
             w.__AUTH_REDIRECTING__ = true;
             logger.info(
-              "AuthContext: Redirecting authenticated user from /auth to / (SPA)",
+              "AuthContext: 🚀 REDIRECTING authenticated user from /auth to / (SPA)",
+              {
+                userId: validUser.id,
+                email: validUser.email,
+                currentPath: window.location.pathname,
+                timestamp: new Date().toISOString(),
+              },
             );
             navigate("/", { replace: true });
-            // Reset the flag shortly after navigation completes
+
+            // Enhanced logging to track redirect success
             setTimeout(() => {
+              const redirectSuccess = window.location.pathname !== "/auth";
+              logger.info("AuthContext: 📍 Redirect result:", {
+                success: redirectSuccess,
+                currentPath: window.location.pathname,
+                userId: validUser.id,
+              });
+
+              // If redirect failed, try window.location as fallback
+              if (!redirectSuccess) {
+                logger.warn(
+                  "AuthContext: React Router redirect failed, using window.location fallback",
+                );
+                window.location.href = "/";
+              }
+
               try {
                 (window as any).__AUTH_REDIRECTING__ = false;
               } catch {}
             }, 1500);
           }
-        } catch {
+        } catch (redirectError) {
+          logger.error("AuthContext: Redirect error:", redirectError);
           // Fallback to a single navigate attempt
           navigate("/", { replace: true });
         }

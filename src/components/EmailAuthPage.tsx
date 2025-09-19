@@ -79,10 +79,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         (Date.now() - stored.otpRequestTime) > (10 * 60 * 1000);
         
       // ✅ ENHANCED: Only restore if state is recent and valid
-        const shouldRestore = stored.authState === "sent" && 
-          stored.otpRequestTime &&
-          !isOtpExpired &&
-          stored.email;
+      const shouldRestore = stored.authState === "sent" && 
+        stored.otpRequestTime &&
+        !isOtpExpired &&
+        stored.email;
       
       if (shouldRestore) {
         logger.debug("🔄 Restoring valid OTP session");
@@ -107,7 +107,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // Show restoration notification
         const otpAge = Date.now() - stored.otpRequestTime;
         const ageInMinutes = Math.floor(otpAge / (1000 * 60));
-        const remainingMinutes = Math.max(0, 5 - ageInMinutes);
+        const remainingMinutes = Math.max(0, 10 - ageInMinutes);
         const timingInfo = remainingMinutes > 0 
           ? ` (${remainingMinutes} menit tersisa)` 
           : "";
@@ -135,11 +135,15 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // Default to idle state for fresh sessions
         logger.debug("🎆 Starting fresh auth session");
         setAuthState("idle");
+        setEmail(""); // Clear email as well when starting fresh
+        setOtp(["", "", "", "", "", ""]); // Clear OTP as well
       }
     } else {
       // ✅ ENHANCED: Explicitly set idle for completely new sessions
       logger.debug("🎆 No stored state, starting fresh");
       setAuthState("idle");
+      setEmail(""); // Clear email
+      setOtp(["", "", "", "", "", ""]); // Clear OTP
     }
   }, [loadAuthState, restoreCooldown, clearAuthState]);
 

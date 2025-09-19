@@ -50,13 +50,40 @@ export const OTPForm: React.FC<OTPFormProps> = ({
     const pasted = e.clipboardData
       .getData("text")
       .replace(/\s/g, "")
+      .replace(/[^0-9A-Z]/g, "")
       .toUpperCase();
     
-    if (pasted.length === 6 && /^[0-9A-Z]{6}$/.test(pasted)) {
-      const pastedArray = pasted.split("");
+    if (pasted.length >= 6) {
+      // Take first 6 characters
+      const pastedArray = pasted.slice(0, 6).split("");
       pastedArray.forEach((digit, index) => {
-        onOtpChange(index, digit);
+        if (index < 6) {
+          onOtpChange(index, digit);
+        }
       });
+      // Focus on the last filled input or next empty input
+      setTimeout(() => {
+        const nextInput = inputRefs.current[5]; // Focus on last input
+        nextInput?.focus();
+      }, 10);
+    } else if (pasted.length > 0) {
+      // Handle partial paste
+      const startIndex = otp.findIndex(digit => digit === "");
+      if (startIndex !== -1) {
+        const pastedArray = pasted.split("");
+        pastedArray.forEach((digit, offset) => {
+          const index = startIndex + offset;
+          if (index < 6) {
+            onOtpChange(index, digit);
+          }
+        });
+        // Focus on next empty input
+        setTimeout(() => {
+          const nextEmptyIndex = Math.min(startIndex + pasted.length, 5);
+          const nextInput = inputRefs.current[nextEmptyIndex];
+          nextInput?.focus();
+        }, 10);
+      }
     }
   };
 
@@ -78,7 +105,7 @@ export const OTPForm: React.FC<OTPFormProps> = ({
               value={digit}
               onChange={(e) => handleOtpChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              onPaste={index === 0 ? handlePaste : undefined}
+              onPaste={handlePaste}
               className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
               disabled={disabled || authState === "verifying"}
             />

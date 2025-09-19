@@ -1,6 +1,6 @@
 // src/config/routes.tsx - Konfigurasi Rute Utama (modular)
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import EmailAuthPage from '@/components/EmailAuthPage';
@@ -35,10 +35,22 @@ import menuRoutes from '@/routes/menu';
 import TestCalendarPage from '@/test-calendar-page';
 import { OverheadDebug } from '@/components/debug/OverheadDebug';
 
+// AuthRoute wrapper dengan navigation callback
+const AuthRoute: React.FC = () => {
+  const navigate = useNavigate();
+  
+  const handleLoginSuccess = () => {
+    logger.info('Login successful, redirecting to dashboard...');
+    navigate('/', { replace: true });
+  };
+  
+  return <EmailAuthPage onLoginSuccess={handleLoginSuccess} />;
+};
+
 // Membuat komponen AppRouter agar dapat diimpor sebagai named export
 export const AppRouter: React.FC = () => (
   <Routes>
-    <Route path="/auth" element={<EmailAuthPage />} />
+    <Route path="/auth" element={<AuthRoute />} />
     <Route
       element={
         <ErrorBoundary>

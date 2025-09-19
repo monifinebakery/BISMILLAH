@@ -563,7 +563,6 @@ export const useAuthLifecycle = ({
     updateReadyState,
     updateSession,
     updateUser,
-    debouncedNavigate,
   ]);
 
   // ✅ Setup auth state subscription

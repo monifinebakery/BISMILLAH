@@ -27,35 +27,63 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// ✅ UPDATED: Import from correct path
-import NotificationSettingsForm from '@/components/NotificationSettingsForm';
+// ✅ PERFORMANCE: Lazy load heavy components
+import { lazy, Suspense } from 'react';
+import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// ✅ NEW: Import device management section
-import DeviceManagementSection from '@/components/settings/DeviceManagementSection';
+// Lazy load heavy components to improve initial page load
+const NotificationSettingsForm = lazy(() => import('@/components/NotificationSettingsForm'));
+const DeviceManagementSection = lazy(() => import('@/components/settings/DeviceManagementSection'));
+const PWAInstallButton = lazy(() => import('@/components/pwa/PWAInstallButton'));
 
-// ✅ NEW: Import PWA components
-import PWAInstallButton from '@/components/pwa/PWAInstallButton';
+// ✅ PERFORMANCE: Import utils directly but defer execution
 import { usePWA } from '@/utils/pwaUtils';
-
-// ✅ NEW: Import notification triggers for demo
 import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 import { getDeviceType, getBrowserInfo } from '@/utils';
 
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
-  const { triggerCustomNotification } = useNotificationTriggers();
-  const { canInstall, isInstalled, isOnline } = usePWA();
+  
+  // ✅ PERFORMANCE: Always call hooks but defer expensive operations
+  const [shouldLoadHeavyFeatures, setShouldLoadHeavyFeatures] = useState(false);
+  
+  // Call hooks unconditionally but only use results when ready
+  const notificationHooks = useNotificationTriggers();
+  const pwaHooks = usePWA();
+  
+  // Extract values conditionally based on loading state
+  const triggerCustomNotification = shouldLoadHeavyFeatures ? notificationHooks.triggerCustomNotification : null;
+  const { canInstall, isInstalled, isOnline } = shouldLoadHeavyFeatures 
+    ? pwaHooks 
+    : { canInstall: false, isInstalled: false, isOnline: true };
 
   const [formState, setFormState] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState({ device: '', browser: '' });
+  const [heavyComponentsLoaded, setHeavyComponentsLoaded] = useState(false);
 
+  // ✅ PERFORMANCE: Defer device info calculation
   useEffect(() => {
-    setDeviceInfo({
-      device: getDeviceType(),
-      browser: getBrowserInfo().browser,
-    });
+    const timeoutId = setTimeout(() => {
+      setDeviceInfo({
+        device: getDeviceType(),
+        browser: getBrowserInfo().browser,
+      });
+    }, 100); // Defer by 100ms to not block initial render
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+  
+  // ✅ PERFORMANCE: Load heavy components after main content renders
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setHeavyComponentsLoaded(true);
+      setShouldLoadHeavyFeatures(true);
+    }, 500); // Load heavy components after 500ms
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
@@ -115,13 +143,15 @@ const SettingsPage = () => {
         setHasChanges(false);
         toast.success('Pengaturan bisnis berhasil disimpan');
         
-        // ✅ NEW: Trigger notification when settings saved
-        await triggerCustomNotification(
-          'Pengaturan Disimpan',
-          'Informasi bisnis Anda telah diperbarui',
-          'success',
-          2
-        );
+        // ✅ PERFORMANCE: Only trigger notification if loaded
+        if (triggerCustomNotification) {
+          await triggerCustomNotification(
+            'Pengaturan Disimpan',
+            'Informasi bisnis Anda telah diperbarui',
+            'success',
+            2
+          );
+        }
       }
     } finally {
       setIsSaving(false);
@@ -412,7 +442,7 @@ const SettingsPage = () => {
             </CardContent>
           </Card>
 
-          {/* NOTIFICATION SETTINGS SECTION */}
+          {/* NOTIFICATION SETTINGS SECTION - LAZY LOADED */}
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="bg-green-100 p-2 rounded-lg">
@@ -424,11 +454,27 @@ const SettingsPage = () => {
               </div>
             </div>
             
-            <NotificationSettingsForm />
+            {heavyComponentsLoaded ? (
+              <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat pengaturan notifikasi</div>}>
+                <Suspense fallback={<NotificationSettingsLoadingSkeleton />}>
+                  <NotificationSettingsForm />
+                </Suspense>
+              </ErrorBoundary>
+            ) : (
+              <NotificationSettingsLoadingSkeleton />
+            )}
           </div>
 
-          {/* Device Management Section */}
-          <DeviceManagementSection />
+          {/* Device Management Section - LAZY LOADED */}
+          {heavyComponentsLoaded ? (
+            <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat manajemen perangkat</div>}>
+              <Suspense fallback={<DeviceManagementLoadingSkeleton />}>
+                <DeviceManagementSection />
+              </Suspense>
+            </ErrorBoundary>
+          ) : (
+            <DeviceManagementLoadingSkeleton />
+          )}
 
           {/* MONIFINE WHATSAPP CHANNEL SECTION */}
           <Card className="border-0 overflow-hidden">
@@ -483,8 +529,14 @@ const SettingsPage = () => {
                         <CheckCircle className="h-5 w-5" />
                         <span className="font-medium">Terinstall</span>
                       </div>
+                    ) : heavyComponentsLoaded ? (
+                      <ErrorBoundary fallback={<Button disabled>PWA tidak tersedia</Button>}>
+                        <Suspense fallback={<Button disabled>Loading...</Button>}>
+                          <PWAInstallButton className="" showNetworkStatus={false} />
+                        </Suspense>
+                      </ErrorBoundary>
                     ) : (
-                      <PWAInstallButton className="" showNetworkStatus={false} />
+                      <Button disabled>Loading...</Button>
                     )}
                   </div>
                 </div>
@@ -537,5 +589,61 @@ const SettingsPage = () => {
     </div>
   );
 };
+
+// ✅ PERFORMANCE: Loading skeletons for heavy components
+const NotificationSettingsLoadingSkeleton = () => (
+  <div className="border rounded-lg p-6 space-y-4">
+    <div className="flex items-center gap-3 mb-4">
+      <Skeleton className="h-10 w-10 rounded-lg" />
+      <div>
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-64 mt-2" />
+      </div>
+    </div>
+    <div className="space-y-3">
+      <Skeleton className="h-4 w-32" />
+      <div className="space-y-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-4 w-4" />
+              <div>
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48 mt-1" />
+              </div>
+            </div>
+            <Skeleton className="h-6 w-12 rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const DeviceManagementLoadingSkeleton = () => (
+  <div className="border rounded-lg">
+    <div className="p-6 border-b">
+      <Skeleton className="h-6 w-48 mb-2" />
+      <Skeleton className="h-4 w-64" />
+    </div>
+    <div className="p-6">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div>
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-24 mt-1" />
+            </div>
+          </div>
+          <Skeleton className="h-9 w-24" />
+        </div>
+        <div className="pt-2 border-t">
+          <Skeleton className="h-4 w-48" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export default SettingsPage;

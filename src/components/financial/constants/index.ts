@@ -221,7 +221,7 @@ export const FORMAT_CONFIG = {
 // ===========================================
 
 export const UI_CONFIG = {
-  skeletonLines: 5,
+  loadingLines: 5,
   loadingDelay: 300,
   toastDuration: 3000,
   modalTransition: 200,

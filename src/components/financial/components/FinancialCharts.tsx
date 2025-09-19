@@ -4,7 +4,6 @@ import { format, subDays, startOfMonth, endOfDay, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw } from 'lucide-react';
 import { 
   ComposedChart, 
@@ -50,9 +49,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// ✅ IMPROVED: Safe loading skeleton untuk chart that won't break UI
+// ✅ IMPROVED: Simple loading spinner untuk chart
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-const ChartLoadingSkeleton = () => {
+const ChartLoading = () => {
   return (
     <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
       <div className="text-center space-y-4">
@@ -235,7 +234,9 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
       <CardContent>
         {/* ✅ TAMBAH: Loading state */}
         {isLoading ? (
-          <ChartLoadingSkeleton />
+          <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
         ) : data.length === 0 ? (
           <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
             <div className="text-center">

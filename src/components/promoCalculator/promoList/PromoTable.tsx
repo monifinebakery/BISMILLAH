@@ -7,8 +7,6 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
-import { TableSkeleton } from '@/components/ui/skeleton';
-
 const PromoTable = ({
   promos,
   isLoading,
@@ -22,7 +20,6 @@ const PromoTable = ({
   onToggleStatus,
   onPaginationChange
 }: any) => {
-
 
   const getPromoIcon = (type) => {
     switch (type) {
@@ -79,7 +76,9 @@ const PromoTable = ({
 
   if (isLoading) {
     return (
-      <TableSkeleton rows={8} columns={9} />
+      <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
     );
   }
 

@@ -34,8 +34,6 @@ import { formatCurrency } from '@/lib/shared';
 import { toast } from 'sonner';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { usePurchase } from './hooks/usePurchase';
-import { Skeleton, LoadingSkeleton } from '@/components/ui/skeleton';
-
 // Import extracted components
 import { NewItemForm } from './components/dialogs/NewItemForm';
 import SupplierComboBox from './components/SupplierComboBox';

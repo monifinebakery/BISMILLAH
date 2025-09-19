@@ -453,24 +453,32 @@ const SettingsPage = () => {
             
             {heavyComponentsLoaded ? (
               <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat pengaturan notifikasi</div>}>
-                <Suspense fallback={<NotificationSettingsLoadingSkeleton />}>
+                <Suspense fallback={<div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>}>
                   <NotificationSettingsForm />
                 </Suspense>
               </ErrorBoundary>
             ) : (
-              <NotificationSettingsLoadingSkeleton />
+              <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
             )}
           </div>
 
           {/* Device Management Section - LAZY LOADED */}
           {heavyComponentsLoaded ? (
             <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat manajemen perangkat</div>}>
-              <Suspense fallback={<DeviceManagementLoadingSkeleton />}>
+              <Suspense fallback={<div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>}>
                 <DeviceManagementSection />
               </Suspense>
             </ErrorBoundary>
           ) : (
-            <DeviceManagementLoadingSkeleton />
+            <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
           )}
 
           {/* MONIFINE WHATSAPP CHANNEL SECTION */}
@@ -587,29 +595,28 @@ const SettingsPage = () => {
   );
 };
 
-// ✅ PERFORMANCE: Loading skeletons for heavy components
-const NotificationSettingsLoadingSkeleton = () => (
+const NotificationSettingsSimpleLoading = () => (
   <div className="border rounded-lg p-6 space-y-4">
     <div className="flex items-center gap-3 mb-4">
-      <Skeleton className="h-10 w-10 rounded-lg" />
+      <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
       <div>
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-4 w-64 mt-2" />
+        <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+        <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
       </div>
     </div>
     <div className="space-y-3">
-      <Skeleton className="h-4 w-32" />
+      <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
       <div className="space-y-3">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center gap-3">
-              <Skeleton className="h-4 w-4" />
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
               <div>
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-48 mt-1" />
+                <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+                <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
               </div>
             </div>
-            <Skeleton className="h-6 w-12 rounded-full" />
+            <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
           </div>
         ))}
       </div>
@@ -617,26 +624,26 @@ const NotificationSettingsLoadingSkeleton = () => (
   </div>
 );
 
-const DeviceManagementLoadingSkeleton = () => (
+const DeviceManagementSimpleLoading = () => (
   <div className="border rounded-lg">
     <div className="p-6 border-b">
-      <Skeleton className="h-6 w-48 mb-2" />
-      <Skeleton className="h-4 w-64" />
+      <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+      <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
     </div>
     <div className="p-6">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
             <div>
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-3 w-24 mt-1" />
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
             </div>
           </div>
-          <Skeleton className="h-9 w-24" />
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
         </div>
         <div className="pt-2 border-t">
-          <Skeleton className="h-4 w-48" />
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
         </div>
       </div>
     </div>

@@ -74,7 +74,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const TableSkeleton = () => (
+const TableLoading = () => (
   <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
     <div className="p-4 border-b">
       <div className="flex items-center justify-between">
@@ -282,7 +282,9 @@ const WarehousePageRefactored: React.FC = () => {
           {/* Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200/80">
             <ErrorBoundary fallback={<div className="p-4 text-center text-red-500">Error loading table</div>}>
-              <Suspense fallback={<TableSkeleton />}>
+              <Suspense fallback={<div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>}>
                 <WarehouseTable
                   data={bahanBaku || []}
                   selectedItems={selectedItems}
@@ -301,7 +303,9 @@ const WarehousePageRefactored: React.FC = () => {
 
           {/* Dialog Manager */}
           <ErrorBoundary fallback={<div>Dialog system unavailable</div>}>
-            <Suspense fallback={<DialogSkeleton />}>
+            <Suspense fallback={<div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>}>
               <DialogManager
                 dialogs={dialogs}
                 onClose={closeDialog}

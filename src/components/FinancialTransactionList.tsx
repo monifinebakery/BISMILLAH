@@ -4,7 +4,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Calendar, DollarSign } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { FinancialTransaction, FinancialTransactionType } from '@/components/financial/types/financial';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -98,8 +97,8 @@ const FinancialTransactionList = ({
     return (
       <Card className="text-center p-8">
         <div className="space-y-3">
-          <Skeleton className="h-4 w-32 mx-auto" />
-          <Skeleton className="h-4 w-24 mx-auto" />
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
         </div>
       </Card>
     );

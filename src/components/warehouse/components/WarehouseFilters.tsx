@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 import { 
   Search, 
@@ -318,7 +317,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Kategori
               {categoriesLoading && (
-                <Skeleton className="ml-2 h-3 w-16 inline-block" />
+                <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
               )}
             </label>
             <select
@@ -335,7 +334,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               ))}
             </select>
             {categoriesLoading && (
-              <Skeleton className="h-3 w-24 mt-1" />
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
             )}
           </div>
 
@@ -344,7 +343,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Supplier
               {suppliersLoading && (
-                <Skeleton className="ml-2 h-3 w-16 inline-block" />
+                <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
               )}
             </label>
             <select
@@ -361,7 +360,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               ))}
             </select>
             {suppliersLoading && (
-              <Skeleton className="h-3 w-24 mt-1" />
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
             )}
           </div>
 

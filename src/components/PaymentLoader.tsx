@@ -1,15 +1,15 @@
-// src/components/PaymentSkeletonLoader.tsx
+
 // Simple loading untuk payment verification
 import React from 'react';
 
-interface PaymentSkeletonLoaderProps {
+interface PaymentLoaderProps {
   variant?: 'card' | 'inline' | 'minimal';
   showHeader?: boolean;
   showProgress?: boolean;
   animate?: boolean;
 }
 
-const PaymentSkeletonLoader: React.FC<PaymentSkeletonLoaderProps> = ({
+const PaymentLoader: React.FC<PaymentLoaderProps> = ({
   variant = 'card'
 }) => {
   if (variant === 'minimal') {
@@ -43,20 +43,28 @@ const PaymentSkeletonLoader: React.FC<PaymentSkeletonLoaderProps> = ({
 };
 
 // ✅ Simple components for different contexts
-export const PaymentStatusSkeleton: React.FC = () => (
-  <PaymentSkeletonLoader variant="card" />
+export const PaymentStatusLoader: React.FC = () => (
+  <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
 );
 
-export const PaymentGuardSkeleton: React.FC = () => (
-  <PaymentSkeletonLoader variant="card" />
+export const PaymentGuardLoader: React.FC = () => (
+  <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
 );
 
-export const PaymentInlineSkeleton: React.FC = () => (
-  <PaymentSkeletonLoader variant="inline" />
+export const PaymentInlineLoader: React.FC = () => (
+  <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
 );
 
-export const PaymentMinimalSkeleton: React.FC = () => (
-  <PaymentSkeletonLoader variant="minimal" />
+export const PaymentMinimalLoader: React.FC = () => (
+  <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
 );
 
-export default PaymentSkeletonLoader;
+export default PaymentLoader;

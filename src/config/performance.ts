@@ -112,7 +112,7 @@ export const PERFORMANCE_CONFIG = {
     },
     
     
-    // Skeleton loading delays
+    
     SKELETON_DELAYS: {
       FAST: 200,
       STANDARD: 500,

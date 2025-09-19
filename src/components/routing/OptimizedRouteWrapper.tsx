@@ -65,19 +65,11 @@ class CustomErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 /**
- * Loading fallback component yang dapat dikustomisasi
+ * Simple loading fallback
  */
 const DefaultLoadingFallback: React.FC<{ routeName?: string }> = ({ routeName }) => (
-  <div className="flex items-center justify-center min-h-[400px] bg-gray-50">
-    <div className="text-center">
-      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-      <p className="text-gray-600 text-sm">
-        Memuat {routeName ? `halaman ${routeName}` : 'komponen'}...
-      </p>
-      <div className="mt-2 w-32 h-1 bg-gray-200 rounded-full mx-auto overflow-hidden">
-        <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{ width: '60%' }} />
-      </div>
-    </div>
+  <div className="flex items-center justify-center min-h-[200px]">
+    <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
   </div>
 );
 

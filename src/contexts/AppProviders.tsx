@@ -1,4 +1,3 @@
-// Removed external skeleton imports to keep bundle lean
 
 
 // src/contexts/AppProviders.tsx - PROGRESSIVE LOADING
@@ -32,7 +31,6 @@ import { OperationalCostProviderRefactored as OperationalCostProvider } from '@/
 import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
 import { DeviceProvider } from './DeviceContext';
 
-
 interface AppProvidersProps {
   children: ReactNode;
 }
@@ -48,7 +46,6 @@ interface AppProvidersProps {
  * This version uses a flattened structure to ensure each provider group
  * is fully loaded before rendering the next, eliminating context errors.
  */
-
 
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   // Define providers to compose immediately (no staged loading, no overlays)

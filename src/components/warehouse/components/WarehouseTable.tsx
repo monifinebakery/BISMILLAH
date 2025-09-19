@@ -224,7 +224,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           >
             <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
             {selectionState.isRefreshing ? (
-              <Skeleton className="h-4 w-16" />
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
             ) : 'Refresh'}
           </Button>
         )}

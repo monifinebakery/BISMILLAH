@@ -217,7 +217,6 @@ const PromoCalculatorLayout = () => {
 
   // Utility functions
 
-
   const getPromoTypeIcon = (type: string) => {
     const icons: Record<string, string> = { 
       bogo: '🎁', 
@@ -290,7 +289,7 @@ const PromoCalculatorLayout = () => {
     createPromoMutation.mutate(duplicatedData);
   };
 
-  // Enhanced Loading Component dengan skeleton
+  
   const LoadingFallback = ({ size = "medium" }: { size?: "small" | "medium" | "large" }) => {
     const sizeClasses: Record<string, string> = {
       small: "h-4 w-4",

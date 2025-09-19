@@ -225,7 +225,7 @@ const BestSellingProducts: React.FC<Props> = ({
   // 📋 Current page products
   const currentProducts = useMemo(() => {
     if (isLoading) {
-      // Return skeleton items
+      
       return Array(itemsPerPage).fill(null).map((_, index) => ({
         id: `skeleton-${index}`,
         name: '',

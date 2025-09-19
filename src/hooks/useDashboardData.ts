@@ -117,7 +117,7 @@ const calculateTrend = (current: number, previous: number, label: string = 'peri
 };
 
 export const useDashboardData = (dateRange: DateRange) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // ✅ Start false
   const [error, setError] = useState<string | null>(null);
 
   // 🔗 Context Hooks
@@ -132,12 +132,13 @@ export const useDashboardData = (dateRange: DateRange) => {
   const profitLoading = false;
   const profitError = null;
 
-  // ⏳ Loading State Management (progressive)
+  // ⏳ Optimized Loading State - only show when really necessary
   useEffect(() => {
-    // Consider loading only if contexts report loading AND we have no data yet
-    const currentlyLoading = Boolean(activitiesLoading && (!activities || activities.length === 0));
-    setIsLoading(currentlyLoading);
-  }, [activitiesLoading, activities]);
+    // Only show loading for initial data fetch, not subsequent updates
+    const hasNoData = (!activities || activities.length === 0) && (!orders || orders.length === 0);
+    const shouldLoad = activitiesLoading && hasNoData;
+    setIsLoading(shouldLoad);
+  }, [activitiesLoading, activities, orders]);
 
   // 📅 Previous Period Calculation
   const previousPeriod = useMemo(() => {

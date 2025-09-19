@@ -5,8 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ChefHat, Plus, List } from 'lucide-react';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
-import { Skeleton } from '@/components/ui/skeleton';
-
 // Main navigation container
 import RecipeNavigationContainer from '@/components/recipe/components/RecipeNavigationContainer';
 // Warehouse provider for recipe ingredients

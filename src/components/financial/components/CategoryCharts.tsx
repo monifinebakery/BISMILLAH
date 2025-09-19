@@ -44,9 +44,9 @@ const renderCustomizedLabel = ({
   );
 };
 
-// ✅ IMPROVED: Safe loading skeleton untuk category charts yang tidak break UI
+// ✅ IMPROVED: Simple loading spinner untuk category charts
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-const CategoryLoadingSkeleton = () => (
+const CategoryLoading = () => (
   <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
     <LoadingSpinner size="md" />
   </div>

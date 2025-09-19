@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
   TooltipContent,
@@ -517,18 +516,16 @@ const SidebarMenuBadge = React.forwardRef<HTMLDivElement, React.ComponentProps<"
 ))
 SidebarMenuBadge.displayName = "SidebarMenuBadge"
 
-const SidebarMenuSkeleton = React.forwardRef<HTMLDivElement, React.ComponentProps<"div"> & { showIcon?: boolean }>(
-  ({ className, showIcon = false, ...props }, ref) => {
-    const width = React.useMemo(() => `${Math.floor(Math.random() * 40) + 50}%`, [])
+const SidebarMenuLoader = React.forwardRef<HTMLDivElement, React.ComponentProps<"div"> & { showIcon?: boolean }>(
+  ({ className, ...props }, ref) => {
     return (
-      <div ref={ref} data-sidebar="menu-skeleton" className={cn("rounded-md h-8 flex gap-2 px-2 items-center", className)} {...props}>
-        {showIcon && <Skeleton className="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />}
-        <Skeleton className="h-4 flex-1 max-w-[--skeleton-width]" data-sidebar="menu-skeleton-text" style={{ "--skeleton-width": width } as React.CSSProperties} />
+      <div ref={ref} data-sidebar="menu-loading" className={cn("rounded-md h-8 flex justify-center items-center", className)} {...props}>
+        <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
       </div>
     )
   }
 )
-SidebarMenuSkeleton.displayName = "SidebarMenuSkeleton"
+SidebarMenuLoader.displayName = "SidebarMenuLoader"
 
 const SidebarMenuSub = React.forwardRef<HTMLUListElement, React.ComponentProps<"ul">>(({ className, ...props }, ref) => (
   <ul
@@ -583,7 +580,7 @@ export {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSkeleton,
+  SidebarMenuLoader,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,

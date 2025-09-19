@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const QuickSkeleton = ({ className = "" }: { className?: string }) => (
+const QuickSpinner = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
 );
 
@@ -103,10 +103,14 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
               "text-xl md:text-2xl font-bold",
               card.color === 'green' ? 'text-green-600' : 'text-red-600'
             )}>
-              {isLoading ? <QuickSkeleton className="h-8 w-24" /> : formatCurrency(card.value)}
+              {isLoading ? <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div> : formatCurrency(card.value)}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {isLoading ? <QuickSkeleton className="h-4 w-32" /> : card.description}
+              {isLoading ? <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div> : card.description}
             </p>
           </CardContent>
         </Card>

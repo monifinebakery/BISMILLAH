@@ -22,7 +22,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   children
 }) => {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col relative overflow-hidden">
       {/* 📱 Mobile Header */}
       <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-white px-4 w-full">
         <div className="flex items-center gap-3 flex-1">
@@ -43,13 +43,13 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
       </header>
 
       {/* 📱 Main Content */}
-      <main className="flex-1 overflow-y-auto p-4 pb-24" style={{paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))'}}>
+      <main className="flex-1 overflow-y-auto p-4" style={{paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))'}}>
         <ErrorBoundary fallback={<AppError />}>
           {children}
         </ErrorBoundary>
       </main>
 
-      {/* 📱 Bottom Navigation */}
+      {/* 📱 Bottom Navigation - Positioned independently */}
       <BottomTabBar />
 
       {/* 📱 Floating Payment Indicator */}

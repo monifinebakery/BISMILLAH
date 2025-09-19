@@ -29,6 +29,7 @@ import preloadingRoutes from '@/routes/preloading';
 import networkOptimizationRoutes from '@/routes/network-optimization';
 import notFoundRoutes from '@/routes/not-found';
 import tutorialRoutes from '@/routes/tutorial';
+import menuRoutes from '@/routes/menu';
 
 // Development only - Calendar testing
 import TestCalendarPage from '@/test-calendar-page';
@@ -72,6 +73,7 @@ export const AppRouter: React.FC = () => (
       {preloadingRoutes}
       {networkOptimizationRoutes}
       {tutorialRoutes}
+      {menuRoutes}
 
       {/* Development only - Testing pages */}
       {process.env.NODE_ENV === 'development' && (

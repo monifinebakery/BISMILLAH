@@ -20,7 +20,18 @@ const BottomTabBar = () => {
   ];
 
   return (
-    <div className="fixed inset-x-0 bottom-0 md:hidden z-[200] border-t bg-white pb-[env(safe-area-inset-bottom)] shadow-lg" style={{backgroundColor: 'white'}}>
+    <div 
+      className="fixed left-0 right-0 bottom-0 md:hidden border-t bg-white shadow-lg"
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'white',
+        zIndex: 200,
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      }}
+    >
       <div className="flex justify-around items-center h-16 px-2 max-w-md mx-auto w-full">
         {tabs.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path;

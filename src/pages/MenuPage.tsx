@@ -30,6 +30,8 @@ import financialApi from '@/components/financial/services/financialApi';
 import { orderQueryKeys } from '@/components/orders/hooks/useOrderData';
 import * as orderService from '@/components/orders/services/orderService';
 import { warehouseApi } from '@/components/warehouse/services/warehouseApi';
+import { purchaseQueryKeys } from '@/components/purchase/query/purchase.queryKeys';
+import { PurchaseApiService } from '@/components/purchase/services/purchaseApi';
 
 import {
   AlertDialog,
@@ -206,6 +208,15 @@ const MenuPage = () => {
     });
   }, [queryClient, user?.id]);
 
+  const prefetchPurchases = React.useCallback(() => {
+    if (!user?.id) return;
+    queryClient.prefetchQuery({
+      queryKey: purchaseQueryKeys.list(user.id),
+      queryFn: () => PurchaseApiService.fetchPurchases(user.id),
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [queryClient, user?.id]);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -241,8 +252,8 @@ const MenuPage = () => {
               key={item.path}
               className="cursor-pointer hover:border-gray-300 transition-all duration-200 border-gray-200 bg-white rounded-xl hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate(item.path)}
-              onMouseEnter={item.path === '/laporan' ? prefetchFinancial : item.path === '/pesanan' ? prefetchOrders : item.path === '/gudang' ? prefetchWarehouse : undefined}
-              onTouchStart={item.path === '/laporan' ? prefetchFinancial : item.path === '/pesanan' ? prefetchOrders : item.path === '/gudang' ? prefetchWarehouse : undefined}
+              onMouseEnter={item.path === '/laporan' ? prefetchFinancial : item.path === '/pesanan' ? prefetchOrders : item.path === '/gudang' ? prefetchWarehouse : item.path === '/pembelian' ? prefetchPurchases : undefined}
+              onTouchStart={item.path === '/laporan' ? prefetchFinancial : item.path === '/pesanan' ? prefetchOrders : item.path === '/gudang' ? prefetchWarehouse : item.path === '/pembelian' ? prefetchPurchases : undefined}
             >
               <CardContent className="p-4 flex items-start gap-4">
                 {/* Icon */}

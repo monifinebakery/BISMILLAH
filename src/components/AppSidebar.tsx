@@ -41,6 +41,8 @@ import financialApi from "@/components/financial/services/financialApi";
 import { orderQueryKeys } from "@/components/orders/hooks/useOrderData";
 import * as orderService from "@/components/orders/services/orderService";
 import { warehouseApi } from "@/components/warehouse/services/warehouseApi";
+import { purchaseQueryKeys } from "@/components/purchase/query/purchase.queryKeys";
+import { PurchaseApiService } from "@/components/purchase/services/purchaseApi";
 
 import { useProfitAnalysis } from "@/components/profitAnalysis";
 import { exportAllDataToExcel } from "@/utils/exportUtils";
@@ -200,10 +202,22 @@ export function AppSidebar() {
     } catch {}
   }, [queryClient, user?.id]);
 
+  const prefetchPurchases = React.useCallback(() => {
+    try {
+      if (!user?.id) return;
+      queryClient.prefetchQuery({
+        queryKey: purchaseQueryKeys.list(user.id),
+        queryFn: () => PurchaseApiService.fetchPurchases(user.id),
+        staleTime: 5 * 60 * 1000,
+      });
+    } catch {}
+  }, [queryClient, user?.id]);
+
   const renderMenuItem = (item: { title: string; url: string; icon: React.ElementType }, isActive: boolean) => {
     const isFinancial = item.url === "/laporan";
     const isOrders = item.url === "/pesanan";
     const isWarehouse = item.url === "/gudang";
+    const isPurchase = item.url === "/pembelian";
     return (
       <SidebarMenuButton
         tooltip={item.title}
@@ -211,9 +225,9 @@ export function AppSidebar() {
         isActive={isActive}
         style={baseMenuButtonStyle}
         className={cn(baseMenuButtonClass, "flex items-center", isActive && "!bg-orange-100 !text-orange-600 !border-orange-200")}
-        onMouseEnter={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : undefined}
-        onFocus={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : undefined}
-        onTouchStart={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : undefined}
+        onMouseEnter={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : isPurchase ? prefetchPurchases : undefined}
+        onFocus={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : isPurchase ? prefetchPurchases : undefined}
+        onTouchStart={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : isPurchase ? prefetchPurchases : undefined}
       >
         <item.icon className="h-5 w-5 flex-shrink-0" />
         <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>

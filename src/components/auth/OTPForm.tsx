@@ -50,7 +50,7 @@ export const OTPForm: React.FC<OTPFormProps> = ({
     const pasted = e.clipboardData
       .getData("text")
       .replace(/\s/g, "")
-      .replace(/[^0-9A-Z]/g, "")
+      .replace(/[^0-9A-Z]/gi, "") // Allow both uppercase and lowercase
       .toUpperCase();
     
     if (pasted.length >= 6) {
@@ -66,6 +66,15 @@ export const OTPForm: React.FC<OTPFormProps> = ({
         const nextInput = inputRefs.current[5]; // Focus on last input
         nextInput?.focus();
       }, 10);
+      // Trigger verification automatically if all 6 digits are entered
+      if (pastedArray.length === 6) {
+        setTimeout(() => {
+          const allFilled = otp.every((digit, i) => digit !== "" || i < 6);
+          if (allFilled) {
+            onVerifyOtp();
+          }
+        }, 50);
+      }
     } else if (pasted.length > 0) {
       // Handle partial paste
       const startIndex = otp.findIndex(digit => digit === "");
@@ -106,6 +115,18 @@ export const OTPForm: React.FC<OTPFormProps> = ({
               onChange={(e) => handleOtpChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
+              onInput={(e) => {
+                // Handle paste events that might not trigger onPaste
+                const value = e.currentTarget.value;
+                if (value.length > 1) {
+                  handlePaste({
+                    preventDefault: () => {},
+                    clipboardData: {
+                      getData: () => value
+                    }
+                  } as React.ClipboardEvent);
+                }
+              }}
               className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all"
               disabled={disabled || authState === "verifying"}
             />

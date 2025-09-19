@@ -175,15 +175,42 @@ const WarehousePageRefactored: React.FC = () => {
   const closeDialog = coreResult.dialogs?.close || (() => {});
   const handleSort = coreResult.handlers?.sort || (() => {});
   
-  // Create proper handler functions
+  // Debug core result structure
+  if (import.meta.env.DEV) {
+    console.log('[DEBUG] coreResult structure:', {
+      selection: Object.keys(coreResult.selection || {}),
+      filters: Object.keys(coreResult.filters || {}),
+      dialogs: Object.keys(coreResult.dialogs || {}),
+      handlers: Object.keys(coreResult.handlers || {}),
+      bulk: Object.keys(coreResult.bulk || {})
+    });
+  }
+  
+  // Create proper handler functions with error checking
   const handleSearch = (term: string) => {
-    const setSearchTerm = coreResult.filters?.setSearchTerm;
-    if (setSearchTerm) setSearchTerm(term);
+    try {
+      const setSearchTerm = coreResult.filters?.setSearchTerm;
+      if (typeof setSearchTerm === 'function') {
+        setSearchTerm(term);
+      } else {
+        console.warn('[handleSearch] setSearchTerm is not a function:', typeof setSearchTerm);
+      }
+    } catch (error) {
+      console.error('[handleSearch] Error:', error);
+    }
   };
   
   const handleFilterChange = (newFilters: any) => {
-    const setFilters = coreResult.filters?.setFilters;
-    if (setFilters) setFilters(newFilters);
+    try {
+      const setFilters = coreResult.filters?.setFilters;
+      if (typeof setFilters === 'function') {
+        setFilters(newFilters);
+      } else {
+        console.warn('[handleFilterChange] setFilters is not a function:', typeof setFilters);
+      }
+    } catch (error) {
+      console.error('[handleFilterChange] Error:', error);
+    }
   };
   
   // Create dialogs object for compatibility
@@ -356,14 +383,36 @@ const WarehousePageRefactored: React.FC = () => {
     <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
   </div>}>
               <DialogManager
-                dialogs={dialogs}
-                onClose={closeDialog}
-                onCreate={handleCreateItem}
-                onUpdate={handleUpdateItem}
-                onDelete={handleDeleteItem}
-                isCreating={isCreating}
-                isUpdating={isUpdating}
-                isDeleting={isDeleting}
+                dialogs={{
+                  states: dialogStates,
+                  open: openDialog,
+                  close: closeDialog,
+                  editingItem: coreResult.dialogs?.editingItem || null,
+                  setEditingItem: coreResult.dialogs?.setEditingItem || (() => {})
+                }}
+                handlers={{
+                  edit: coreResult.handlers?.edit || (() => {}),
+                  editSave: coreResult.handlers?.editSave || (() => Promise.resolve()),
+                  delete: coreResult.handlers?.delete || (() => Promise.resolve()),
+                  sort: handleSort,
+                  create: handleCreateItem,
+                  update: handleUpdateItem
+                }}
+                context={contextForCore}
+                selection={{
+                  selectedItems,
+                  clearSelection: handleClearSelection
+                }}
+                filters={{
+                  availableCategories: coreResult.filters?.availableCategories || [],
+                  availableSuppliers: coreResult.filters?.availableSuppliers || []
+                }}
+                bulk={{
+                  isProcessing: isBulkDeleting,
+                  bulkEdit: handleBulkEdit,
+                  bulkDelete: handleBulkDeleteItems
+                }}
+                pageId="warehouse"
               />
             </Suspense>
           </ErrorBoundary>

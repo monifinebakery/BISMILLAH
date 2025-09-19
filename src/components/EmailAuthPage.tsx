@@ -526,68 +526,42 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           );
         }
 
-        // ✅ NUCLEAR OPTION: Force redirect with auth state listener
-        logger.info("EmailAuth: 🚀 NUCLEAR redirect after OTP success");
+        // ✅ CLEAN REDIRECT: Single method to avoid conflicts
+        logger.info("EmailAuth: 🚀 Clean redirect after OTP success");
 
-        // Add auth state change listener
-        const handleAuthChange = () => {
-          logger.info(
-            "EmailAuth: Auth state changed detected, forcing redirect",
-          );
-          setTimeout(() => {
-            if (window.location.pathname === "/auth") {
-              logger.warn(
-                "EmailAuth: 💣 NUCLEAR redirect - window.location.replace",
-              );
-              window.location.replace("/");
-            }
-          }, 100);
-        };
+        let redirectHandled = false;
 
-        // Listen for Supabase auth changes
-        const {
-          data: { subscription },
-        } = supabase.auth.onAuthStateChange((event, session) => {
-          logger.info("EmailAuth: Supabase auth event:", {
-            event,
-            hasSession: !!session,
-          });
-          if (event === "SIGNED_IN" && session) {
-            handleAuthChange();
-            subscription.unsubscribe();
-          }
-        });
+        // Single redirect function to prevent multiple calls
+        const performRedirect = () => {
+          if (redirectHandled) return;
+          redirectHandled = true;
 
-        // Method 1: Immediate window.location (most reliable)
-        setTimeout(() => {
-          logger.warn("EmailAuth: 500ms timeout - forcing redirect");
-          window.location.href = "/";
-        }, 500);
+          logger.info("EmailAuth: Performing single redirect");
 
-        // Method 2: React Router as fallback
-        try {
-          navigate("/", { replace: true });
-          logger.info("EmailAuth: React Router navigate called");
-        } catch (navError) {
-          logger.error("EmailAuth: navigate() failed:", navError);
-        }
+          try {
+            // Try React Router first (cleaner)
+            navigate("/", { replace: true });
 
-        // Method 3: AuthContext redirect
-        setTimeout(() => {
-          if (window.location.pathname === "/auth") {
-            logger.info("EmailAuth: Trying AuthContext redirectCheck");
-            redirectCheck();
-          }
-        }, 1000);
-
-        // Method 4: Final nuclear option
-        setTimeout(() => {
-          if (window.location.pathname === "/auth") {
-            logger.error("EmailAuth: 🔴 FINAL NUCLEAR OPTION");
+            // Fallback check after short delay
+            setTimeout(() => {
+              if (window.location.pathname === "/auth") {
+                logger.warn(
+                  "EmailAuth: React Router failed, using window.location",
+                );
+                window.location.replace("/");
+              }
+            }, 1000);
+          } catch (error) {
+            logger.error(
+              "EmailAuth: Navigate failed, using window.location:",
+              error,
+            );
             window.location.replace("/");
           }
-          subscription.unsubscribe();
-        }, 2000);
+        };
+
+        // Give AuthContext a moment to detect session, then redirect
+        setTimeout(performRedirect, 1500);
 
         return;
       } else if (ok === "expired") {

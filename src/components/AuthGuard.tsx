@@ -127,24 +127,21 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [isReady, isLoading, isInitialized]);
 
-  // ✅ FIXED: Single redirect logic with race condition prevention
+  // ✅ FIXED: Simplified redirect logic with race condition prevention
   useEffect(() => {
     // Only handle navigation when auth state is fully ready
     if (!isReady || isLoading) return;
 
     // Case 1: Authenticated user on auth page → redirect to app
     if (user && location.pathname === '/auth') {
-      const success = handleNavigation('/', 'authenticated user on auth page');
-      if (success) {
-        logger.info('✅ AuthGuard: Redirected authenticated user to app', {
-          userId: user.id,
-          email: user.email
-        });
-      }
+      logger.info('✅ AuthGuard: Redirecting authenticated user to app', {
+        userId: user.id,
+        email: user.email
+      });
+      navigate('/', { replace: true });
     }
     // Case 2: No user and not on auth page → will be handled by Navigate component below
-    // This separation prevents competing navigation mechanisms
-  }, [user, isReady, isLoading, location.pathname, handleNavigation]);
+  }, [user, isReady, isLoading, location.pathname, navigate]);
 
   // ✅ ANTI-FLICKER: Simplified loading state without mobile branching
   if ((isLoading || !isReady) && !user) {

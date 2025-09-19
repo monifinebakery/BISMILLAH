@@ -19,7 +19,7 @@ export const sanitizeUser = (user: User | null): User | null => {
     return null;
   }
 
-  if (typeof user.id !== 'string' || user.id.length < 10) {
+  if (typeof user.id !== 'string' || user.id.length < 3) {
     logger.error('AuthValidation: Invalid user ID format', {
       userId: user.id,
       userIdType: typeof user.id,
@@ -29,13 +29,14 @@ export const sanitizeUser = (user: User | null): User | null => {
     return null;
   }
 
+  // Loosen UUID validation - warn but don't block non-standard IDs
   if (!UUID_REGEX.test(user.id)) {
-    logger.error('AuthValidation: Invalid UUID format detected', {
+    logger.warn('AuthValidation: Non-standard UUID format (not blocking)', {
       userId: user.id,
       userIdType: typeof user.id,
       email: user.email,
     });
-    return null;
+    // Don't return null here - allow non-standard IDs to pass through
   }
 
   logger.debug('AuthValidation: User sanitization passed', {

@@ -56,6 +56,16 @@ const App = () => {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
       
+      // Also check for query params (Supabase sometimes uses these)
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessTokenQuery = urlParams.get('access_token');
+      
+      if (accessTokenQuery) {
+        logger.debug('App: Auth tokens found in query params, cleaning URL...');
+        // Clean URL and let AuthContext handle the rest
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
       logger.debug('App: Initial setup completed');
     } catch (error) {
       logger.error('App initial setup error:', error);

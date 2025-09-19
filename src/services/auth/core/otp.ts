@@ -201,11 +201,26 @@ export const verifyEmailOtp = async (
       toast.success('Login berhasil!');
       return true;
     } else {
-      logger.warn('OTP verified but no session/user created:', {
+      // Even if no session is returned, if there's no error, consider it successful
+      // This can happen with Supabase's auth flow
+      logger.warn('OTP verified but no session/user in response - checking current session', {
         hasSession: !!data.session,
         hasUser: !!data.user,
         dataKeys: Object.keys(data || {})
       });
+      
+      // Check current session to verify login success
+      try {
+        const { data: currentSessionData, error: sessionError } = await supabase.auth.getSession();
+        if (currentSessionData?.session?.user && !sessionError) {
+          logger.success('Confirmed login success via session check');
+          toast.success('Login berhasil!');
+          return true;
+        }
+      } catch (sessionCheckError) {
+        logger.error('Error checking current session:', sessionCheckError);
+      }
+      
       toast.error('Verifikasi berhasil tetapi sesi tidak dibuat. Silakan coba login ulang.');
       return false;
     }

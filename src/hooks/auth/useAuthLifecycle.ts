@@ -99,7 +99,9 @@ export const useAuthLifecycle = ({
         !!session?.user?.id && session.user.id === lastEventRef.current.userId;
       const sameEvent = event === lastEventRef.current.event;
       const tooSoon = nowTs - lastEventRef.current.ts < 800; // 0.8s window
-      if (sameUser && sameEvent && tooSoon) {
+      
+      // Don't dedupe SIGNED_IN events as they're critical for login flow
+      if (sameUser && sameEvent && tooSoon && event !== 'SIGNED_IN') {
         logger.debug("AuthContext: Dedupe auth state event", { event });
         return;
       }

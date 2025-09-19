@@ -68,43 +68,49 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const [authState, setAuthState] = useState<AuthState>("idle");
   const [error, setError] = useState("");
 
-  // Initialize state from storage - NOW WORKS FOR ALL PLATFORMS
+  // Initialize state from storage - WITH SMART EXPIRY VALIDATION
   const initializeFromStorage = useCallback(() => {
     const stored = loadAuthState();
-    if (stored) { // ✅ FIXED: Removed mobile-only restriction
-      logger.debug("💾 Restoring auth state from storage:", stored);
+    if (stored) {
+      logger.debug("💾 Checking stored auth state:", stored);
       
-      // ✅ FIXED: Also restore OTP array if available
-      setEmail(stored.email || "");
-      setAuthState((stored.authState as AuthState) || "idle");
+      // ✅ ENHANCED: Validate OTP session freshness (max 10 minutes)
+      const isOtpExpired = stored.otpRequestTime && 
+        (Date.now() - stored.otpRequestTime) > (10 * 60 * 1000);
+        
+      // ✅ ENHANCED: Only restore if state is recent and valid
+        const shouldRestore = stored.authState === "sent" && 
+          stored.otpRequestTime &&
+          !isOtpExpired &&
+          stored.email;
       
-      // Restore OTP array if it exists
-      if (stored.otp && Array.isArray(stored.otp)) {
-        setOtp(stored.otp);
-      }
-
-      // Restore cooldown if it was active
-      if (stored.cooldownStartTime && stored.cooldownTime) {
-        const elapsed = Math.floor((Date.now() - stored.cooldownStartTime) / 1000);
-        const remaining = Math.max(0, stored.cooldownTime - elapsed);
-        if (remaining > 0) {
-          restoreCooldown(remaining);
+      if (shouldRestore) {
+        logger.debug("🔄 Restoring valid OTP session");
+        
+        setEmail(stored.email || "");
+        setAuthState("sent");
+        
+        // Restore OTP array if it exists
+        if (stored.otp && Array.isArray(stored.otp)) {
+          setOtp(stored.otp);
         }
-      }
 
-      // Show restoration notification for OTP state
-      if (stored.authState === "sent") {
-        let timingInfo = "";
-        if (stored.otpRequestTime) {
-          const otpAge = Date.now() - stored.otpRequestTime;
-          const ageInMinutes = Math.floor(otpAge / (1000 * 60));
-          const remainingMinutes = Math.max(0, 5 - ageInMinutes);
-          if (remainingMinutes > 0) {
-            timingInfo = ` (${remainingMinutes} menit tersisa)`;
-          } else {
-            timingInfo = " (mungkin sudah kadaluarsa)";
+        // Restore cooldown if it was active
+        if (stored.cooldownStartTime && stored.cooldownTime) {
+          const elapsed = Math.floor((Date.now() - stored.cooldownStartTime) / 1000);
+          const remaining = Math.max(0, stored.cooldownTime - elapsed);
+          if (remaining > 0) {
+            restoreCooldown(remaining);
           }
         }
+
+        // Show restoration notification
+        const otpAge = Date.now() - stored.otpRequestTime;
+        const ageInMinutes = Math.floor(otpAge / (1000 * 60));
+        const remainingMinutes = Math.max(0, 5 - ageInMinutes);
+        const timingInfo = remainingMinutes > 0 
+          ? ` (${remainingMinutes} menit tersisa)` 
+          : "";
         
         try {
           const shown = sessionStorage.getItem("auth_restored_info");
@@ -119,9 +125,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             `Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`,
           );
         }
+      } else {
+        // ✅ ENHANCED: Clear expired or invalid state
+        if (stored.authState === "sent" && isOtpExpired) {
+          logger.debug("🧽 Clearing expired OTP session");
+          clearAuthState();
+        }
+        
+        // Default to idle state for fresh sessions
+        logger.debug("🎆 Starting fresh auth session");
+        setAuthState("idle");
       }
+    } else {
+      // ✅ ENHANCED: Explicitly set idle for completely new sessions
+      logger.debug("🎆 No stored state, starting fresh");
+      setAuthState("idle");
     }
-  }, [loadAuthState, restoreCooldown]);
+  }, [loadAuthState, restoreCooldown, clearAuthState]);
 
   // Initialize on mount
   useEffect(() => {
@@ -202,7 +222,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setAuthState("idle");
-  }, []);
+    // ✅ ENHANCED: Clear any stored state when resetting form
+    clearAuthState();
+    logger.debug("🧽 Form reset with state cleanup");
+  }, [clearAuthState]);
 
   const resetAll = useCallback(() => {
     setEmail("");
@@ -221,7 +244,10 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   // Handlers
   const handleEmailChange = useCallback((newEmail: string) => {
     setEmail(newEmail);
-    if (authState !== "idle") resetForm();
+    if (authState !== "idle") {
+      logger.debug("🧽 Email changed, resetting form");
+      resetForm();
+    }
   }, [authState, resetForm]);
 
   const handleSendOtp = useCallback(async () => {
@@ -340,24 +366,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     // Debug OTP age for timing analysis
     const stored = loadAuthState();
     if (stored?.otpRequestTime) {
-      const otpAge = Date.now() - stored.otpRequestTime;
       const ageInMinutes = Math.floor(otpAge / (1000 * 60));
-      
-      logger.debug("🕐 OTP Age Check:", {
-        otpRequestTime: new Date(stored.otpRequestTime).toISOString(),
-        currentTime: new Date().toISOString(),
-        ageMinutes: ageInMinutes,
-        isWithin5Minutes: ageInMinutes < 5,
-        email: stored.email,
-      });
+          
+          logger.debug("🕐 OTP Age Check:", {
+            otpRequestTime: new Date(stored.otpRequestTime).toISOString(),
+            currentTime: new Date().toISOString(),
+            ageMinutes: ageInMinutes,
+            isWithin10Minutes: ageInMinutes < 10,
+            email: stored.email,
+          });
 
-      // Warn if OTP might be getting old
-      if (ageInMinutes >= 4) {
-        logger.warn("🕐 OTP is getting close to expiry:", {
-          ageMinutes: ageInMinutes,
-          remainingMinutes: 5 - ageInMinutes,
-        });
-      }
+          // Warn if OTP might be getting old
+          if (ageInMinutes >= 8) {
+            logger.warn("🕐 OTP is getting close to expiry:", {
+              ageMinutes: ageInMinutes,
+              remainingMinutes: 10 - ageInMinutes,
+            });
+          }
     }
 
     setAuthState("verifying");
@@ -379,6 +404,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         } catch (error) {
           logger.warn("EmailAuth: Failed to store otpVerifiedAt timestamp", error);
         }
+
+        // Small delay to ensure session is established
+        setTimeout(() => {
+          onLoginSuccess?.();
+        }, 300);
 
         return;
       } else if (ok === "expired") {
@@ -430,6 +460,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* ✅ DEBUG: Clear localStorage button (development only) */}
+          {import.meta.env.DEV && (
+            <div className="bg-gray-100 border border-gray-300 rounded-lg p-3 mb-4">
+              <p className="text-gray-700 text-xs mb-2">🛠️ Debug Mode</p>
+              <button
+                onClick={() => {
+                  clearAuthState();
+                  setAuthState("idle");
+                  setEmail("");
+                  setOtp(["", "", "", "", "", ""]);
+                  setError("");
+                  stopCooldown();
+                  toast.info("Debug: State cleared");
+                }}
+                className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-700"
+              >
+                🧽 Clear All State
+              </button>
+            </div>
+          )}
+          
           {/* Enhanced error display */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">

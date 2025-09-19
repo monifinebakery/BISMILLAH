@@ -34,6 +34,9 @@ const ChartsTab = React.lazy(() => import('./report/ChartsTab'));
 const TransactionsTab = React.lazy(() => import('./report/TransactionsTab'));
 const UmkmTab = React.lazy(() => import('./report/UmkmTab'));
 
+// Preloader utilities for hover/idle prefetch
+import { preloadRoute, registerRoutePreloader } from '@/utils/route-preloader';
+
 // LEGACY DIALOGS - Lazy loaded with error handling
 
 const FinancialTransactionDialog = React.lazy(() => 
@@ -278,15 +281,46 @@ const FinancialReportPage: React.FC = () => {
     }
   }, [dialogs.category.isOpen]);
 
-  // Prefetch heavy chart chunks on mobile after idle to reduce long skeleton
+  // Register tab preloaders locally in case initializeRoutePreloaders wasn't called yet
   React.useEffect(() => {
-    if (!isMobile) return;
-    const idle = (cb: () => void) => (window as any).requestIdleCallback ? (window as any).requestIdleCallback(cb) : setTimeout(cb, 600);
-    idle(() => {
-      import('./components/FinancialCharts');
-      import('./components/CategoryCharts');
+    // No-ops if already registered
+    registerRoutePreloader?.('financial:charts-tab', async () => {
+      await Promise.all([
+        import('./report/ChartsTab'),
+        import('./components/FinancialCharts'),
+        import('./components/CategoryCharts'),
+      ]);
     });
-  }, [isMobile]);
+    registerRoutePreloader?.('financial:transactions-tab', async () => {
+      await Promise.all([
+        import('./report/TransactionsTab'),
+        import('./components/TransactionTable'),
+        import('./components/BulkActions'),
+      ]);
+    });
+    registerRoutePreloader?.('financial:umkm-tab', async () => {
+      await Promise.all([
+        import('./report/UmkmTab'),
+        import('./components/DailySummaryWidget'),
+        import('./components/DailyCashFlowTracker'),
+        import('./components/ProfitLossSimple'),
+        import('./components/UMKMExpenseCategories'),
+        import('./components/SavingsGoalTracker'),
+        import('./components/DebtTracker'),
+        import('./components/ExpenseAlerts'),
+      ]);
+    });
+  }, []);
+
+  // Prefetch heavy tab chunks after idle (both mobile and desktop)
+  React.useEffect(() => {
+    const idle = (cb: () => void) => (window as any).requestIdleCallback ? (window as any).requestIdleCallback(cb) : setTimeout(cb, 500);
+    idle(() => {
+      preloadRoute('financial:charts-tab');
+      preloadRoute('financial:transactions-tab');
+      preloadRoute('financial:umkm-tab');
+    });
+  }, []);
 
   // ✅ NAVIGATION HANDLERS - Navigate to full pages instead of dialogs
   const handleAddTransaction = () => {
@@ -515,6 +549,7 @@ const FinancialReportPage: React.FC = () => {
             <TabsTrigger 
               value="charts" 
               className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
+              onMouseEnter={() => preloadRoute('financial:charts-tab')}
             >
               <span className="hidden sm:inline">Charts & Reports</span>
               <span className="sm:hidden">Charts</span>
@@ -522,12 +557,14 @@ const FinancialReportPage: React.FC = () => {
             <TabsTrigger 
               value="transactions" 
               className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
+              onMouseEnter={() => preloadRoute('financial:transactions-tab')}
             >
               Transaksi
             </TabsTrigger>
             <TabsTrigger 
               value="umkm" 
               className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
+              onMouseEnter={() => preloadRoute('financial:umkm-tab')}
             >
               <span className="hidden sm:inline">Fitur UMKM</span>
               <span className="sm:hidden">UMKM</span>

@@ -156,6 +156,33 @@ export const initializeRoutePreloaders = () => {
   registerRoutePreloader('warehouse', () => import('../components/warehouse/WarehousePage'));
   registerRoutePreloader('purchase', () => import('../components/purchase/PurchasePage'));
   registerRoutePreloader('financial', () => import('../components/financial/FinancialReportPage'));
+  // Financial tabs and heavy sub-chunks
+  registerRoutePreloader('financial:charts-tab', async () => {
+    await Promise.all([
+      import('../components/financial/report/ChartsTab'),
+      import('../components/financial/components/FinancialCharts'),
+      import('../components/financial/components/CategoryCharts'),
+    ]);
+  });
+  registerRoutePreloader('financial:transactions-tab', async () => {
+    await Promise.all([
+      import('../components/financial/report/TransactionsTab'),
+      import('../components/financial/components/TransactionTable'),
+      import('../components/financial/components/BulkActions'),
+    ]);
+  });
+  registerRoutePreloader('financial:umkm-tab', async () => {
+    await Promise.all([
+      import('../components/financial/report/UmkmTab'),
+      import('../components/financial/components/DailySummaryWidget'),
+      import('../components/financial/components/DailyCashFlowTracker'),
+      import('../components/financial/components/ProfitLossSimple'),
+      import('../components/financial/components/UMKMExpenseCategories'),
+      import('../components/financial/components/SavingsGoalTracker'),
+      import('../components/financial/components/DebtTracker'),
+      import('../components/financial/components/ExpenseAlerts'),
+    ]);
+  });
   
   // Feature routes
   registerRoutePreloader('recipes', () => import('../pages/Recipes'));

@@ -385,9 +385,9 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               Level Stok
             </label>
             <StatusFilter
-              value={filters.stockLevel || 'all'}
-              onChange={(value) => updateFilter('stockLevel', value as any)}
-              options={STOCK_LEVEL_OPTIONS}
+              value={filters.stockLevel === 'all' ? '' : filters.stockLevel}
+              onChange={(value) => updateFilter('stockLevel', value === '' ? 'all' : value as any)}
+              options={STOCK_LEVEL_OPTIONS.filter(opt => opt.value !== 'all')}
               placeholder="Semua Level"
             />
           </div>
@@ -398,9 +398,9 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
               Status Kadaluarsa
             </label>
             <StatusFilter
-              value={filters.expiry || 'all'}
-              onChange={(value) => updateFilter('expiry', value as any)}
-              options={EXPIRY_OPTIONS}
+              value={filters.expiry === 'all' ? '' : filters.expiry}
+              onChange={(value) => updateFilter('expiry', value === '' ? 'all' : value as any)}
+              options={EXPIRY_OPTIONS.filter(opt => opt.value !== 'all')}
               placeholder="Semua Status"
             />
           </div>

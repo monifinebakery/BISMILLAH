@@ -139,6 +139,15 @@ const DialogManager: React.FC<DialogManagerProps> = ({
   const [failedDialogs, setFailedDialogs] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
+  // Debug handlers object
+  if (import.meta.env.DEV) {
+    console.log('[DialogManager] Received handlers:', {
+      handlersKeys: Object.keys(handlers || {}),
+      editSaveType: typeof handlers?.editSave,
+      editSaveExists: !!handlers?.editSave
+    });
+  }
+
   useEffect(() => {
     Object.entries(dialogs.states).forEach(([dialogName, isOpen]) => {
       if (isOpen && !loadedDialogs.has(dialogName)) {

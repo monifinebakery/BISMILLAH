@@ -1,6 +1,5 @@
 // src/components/auth/EmailAuthPage.tsx — Simple OTP Authentication
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Clock, RefreshCw } from "lucide-react";
 import { sendEmailOtp, verifyEmailOtp } from "@/services/auth";
 import { Button } from "@/components/ui/button";
@@ -46,7 +45,6 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   onLoginSuccess,
   redirectUrl = "/",
 }) => {
-  const navigate = useNavigate();
   const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
 
   // 🔄 MOBILE-PERSISTENT Storage keys
@@ -526,42 +524,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           );
         }
 
-        // ✅ CLEAN REDIRECT: Single method to avoid conflicts
-        logger.info("EmailAuth: 🚀 Clean redirect after OTP success");
-
-        let redirectHandled = false;
-
-        // Single redirect function to prevent multiple calls
-        const performRedirect = () => {
-          if (redirectHandled) return;
-          redirectHandled = true;
-
-          logger.info("EmailAuth: Performing single redirect");
-
-          try {
-            // Try React Router first (cleaner)
-            navigate("/", { replace: true });
-
-            // Fallback check after short delay
-            setTimeout(() => {
-              if (window.location.pathname === "/auth") {
-                logger.warn(
-                  "EmailAuth: React Router failed, using window.location",
-                );
-                window.location.replace("/");
-              }
-            }, 1000);
-          } catch (error) {
-            logger.error(
-              "EmailAuth: Navigate failed, using window.location:",
-              error,
-            );
-            window.location.replace("/");
-          }
-        };
-
-        // Give AuthContext a moment to detect session, then redirect
-        setTimeout(performRedirect, 1500);
+        // ✅ Let AuthContext handle SPA redirect to avoid duplicate navigations
+        redirectCheck();
 
         return;
       } else if (ok === "expired") {

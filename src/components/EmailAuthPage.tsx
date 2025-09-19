@@ -554,7 +554,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const isSent = authState === "sent" || authState === "expired";
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
       <Card className="w-full max-w-md border rounded-xl overflow-hidden">
         {/* Header Accent */}
         <div className="h-2 bg-gradient-to-r from-orange-500 to-red-500"></div>

@@ -1,5 +1,5 @@
 // src/components/AuthGuard.tsx - FORCE RE-RENDER VERSION
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [renderCount, setRenderCount] = useState(0);
+  const otpRefreshRequestedRef = useRef(false);
   const [isMobileOptimized, setIsMobileOptimized] = useState(false);
   const [showQuickPreview, setShowQuickPreview] = useState(false);
   
@@ -159,15 +160,16 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
     if (recentlyVerified) {
       console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP just verified)`);
-      // Optional: trigger a background refresh to speed up
-      // Don't block hooks rules; use a microtask
-      Promise.resolve().then(() => {
-        try {
-          window.dispatchEvent(new Event('auth-refresh-request'));
-        } catch (error) {
-          console.warn('[AuthGuard] Failed to dispatch auth refresh event', error);
-        }
-      });
+      if (!otpRefreshRequestedRef.current) {
+        otpRefreshRequestedRef.current = true;
+        Promise.resolve().then(() => {
+          try {
+            window.dispatchEvent(new Event('auth-refresh-request'));
+          } catch (error) {
+            console.warn('[AuthGuard] Failed to dispatch auth refresh event', error);
+          }
+        });
+      }
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
@@ -177,6 +179,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         </div>
       );
     }
+
+    otpRefreshRequestedRef.current = false;
 
     console.log(`🔒 [AuthGuard #${renderCount}] No user found, redirecting to /auth`);
     return <Navigate to="/auth" state={{ from: location }} replace />;

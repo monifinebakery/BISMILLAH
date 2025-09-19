@@ -570,6 +570,7 @@ const PurchaseAddEditPage: React.FC = () => {
               )}
             </div>
           </div>
+        )}
       </div>
     </div>
   );

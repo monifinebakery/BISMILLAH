@@ -166,7 +166,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         }
       }
       
-      // Show notification that state was restored
+      // Show notification that state was restored (deduplicated)
       if (stored.authState === 'sent') {
         // 🕐 Show timing info when state is restored
         let timingInfo = '';
@@ -180,10 +180,27 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             timingInfo = ' (mungkin sudah kadaluarsa)';
           }
         }
-        toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`);
+        const TOAST_ID = 'auth_restored_info';
+        // Prevent duplicate toasts within a session
+        try {
+          const shown = sessionStorage.getItem(TOAST_ID);
+          if (!shown) {
+            toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`, { id: TOAST_ID });
+            sessionStorage.setItem(TOAST_ID, '1');
+          }
+        } catch {
+          toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`);
+        }
       }
     }
   }, []); // Only run on mount
+
+  // Clear dedupe flag on unmount (sesi baru)
+  useEffect(() => {
+    return () => {
+      try { sessionStorage.removeItem('auth_restored_info'); } catch {}
+    };
+  }, []);
   
   // 📱 Page Visibility API - Handle app switching
   useEffect(() => {

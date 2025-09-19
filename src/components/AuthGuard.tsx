@@ -79,6 +79,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isReady, isLoading, isMobile, isMobileOptimized]);
 
+
   // ✅ IMPROVED REDIRECT CHECK - more reliable for OTP flow
   useEffect(() => {
     if (isReady && !isLoading && user && location.pathname === '/auth') {

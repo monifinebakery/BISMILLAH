@@ -68,16 +68,17 @@ export const useFinancialData = () => {
     queryKey: financialQueryKeys.transactions(user?.id),
     queryFn: () => getFinancialTransactions(user!.id),
     enabled: !!user?.id,
-    staleTime: 1 * 60 * 1000, // 1 minute - reduced for more frequent updates
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    // ✅ Enable automatic background refetching
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    refetchInterval: 2 * 60 * 1000, // Auto-refresh every 2 minutes
-    refetchIntervalInBackground: false, // Only when tab is active
+    // Align with global QueryClient defaults to avoid excessive refetching
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    retry: 1,
+    retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 5000),
+    // Disable auto-refetch storms for better UX on low-end devices
+    refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
   });
 };
 
@@ -283,18 +284,10 @@ export const useFinancialOperations = () => {
       toast.error(`Gagal menambahkan transaksi: ${error.message}`);
     },
     onSuccess: () => {
+      // Only refresh the transactions list; optimistic update already updated UI
       queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.transactions(user?.id) 
-      });
-      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
-      console.log('📈 Invalidating profit analysis cache after adding financial transaction');
-      queryClient.invalidateQueries({ 
-        queryKey: ['profit-analysis'] 
-      });
-      // ✅ STANDARDIZED: Use financialQueryKeys for consistent patterns
-      console.log('💰 Invalidating all financial caches after adding transaction');
-      queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.all 
+        queryKey: financialQueryKeys.transactions(user?.id),
+        exact: true,
       });
       toast.success('Transaksi berhasil ditambahkan');
     }
@@ -335,18 +328,10 @@ export const useFinancialOperations = () => {
       toast.error(`Gagal memperbarui transaksi: ${error.message}`);
     },
     onSuccess: () => {
+      // Only refresh the transactions list to avoid global refetch storms
       queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.transactions(user?.id) 
-      });
-      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
-      console.log('📈 Invalidating profit analysis cache after updating financial transaction');
-      queryClient.invalidateQueries({ 
-        queryKey: ['profit-analysis'] 
-      });
-      // ✅ STANDARDIZED: Use financialQueryKeys for consistent patterns
-      console.log('💰 Invalidating all financial caches after updating transaction');
-      queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.all 
+        queryKey: financialQueryKeys.transactions(user?.id),
+        exact: true,
       });
       toast.success('Transaksi berhasil diperbarui');
     }
@@ -381,18 +366,10 @@ export const useFinancialOperations = () => {
       toast.error(`Gagal menghapus transaksi: ${error.message}`);
     },
     onSuccess: () => {
+      // Only refresh the transactions list after deletion
       queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.transactions(user?.id) 
-      });
-      // ✅ INVALIDATE PROFIT ANALYSIS: When financial transactions change, profit analysis data becomes stale
-      console.log('📈 Invalidating profit analysis cache after deleting financial transaction');
-      queryClient.invalidateQueries({ 
-        queryKey: ['profit-analysis'] 
-      });
-      // ✅ STANDARDIZED: Use financialQueryKeys for consistent patterns
-      console.log('💰 Invalidating all financial caches after deleting transaction');
-      queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.all 
+        queryKey: financialQueryKeys.transactions(user?.id),
+        exact: true,
       });
       toast.success('Transaksi berhasil dihapus');
     }

@@ -160,21 +160,25 @@ const WarehousePageRefactored: React.FC = () => {
   };
   
   // Use existing warehouse core hook for UI state with proper context
-  const {
-    dialogs,
-    selectedItems,
-    filters,
-    searchTerm,
-    sortConfig,
-    handleSearch,
-    handleFilterChange,
-    handleSort,
-    handleSelectItem,
-    handleSelectAll,
-    handleBulkDelete,
-    openDialog,
-    closeDialog,
-  } = useWarehouseCore(contextForCore);
+  const coreResult = useWarehouseCore(contextForCore);
+  
+  // Extract values with safe fallbacks
+  const selectedItems = coreResult.selection?.selectedItems || [];
+  const handleSelectItem = coreResult.selection?.toggle || (() => {});
+  const handleSelectAll = coreResult.selection?.selectPage || (() => {});
+  const searchTerm = coreResult.filters?.searchTerm || '';
+  const filters = coreResult.filters?.activeFilters || {};
+  const sortConfig = coreResult.filters?.sortConfig || { key: 'nama', direction: 'asc' };
+  const handleSearch = coreResult.filters?.setSearchTerm || (() => {});
+  const handleFilterChange = coreResult.filters?.setFilters || (() => {});
+  const dialogStates = coreResult.dialogs?.states || {};
+  const openDialog = coreResult.dialogs?.open || (() => {});
+  const closeDialog = coreResult.dialogs?.close || (() => {});
+  const handleSort = coreResult.handlers?.sort || (() => {});
+  const handleBulkDelete = coreResult.bulk?.bulkDelete || (() => {});
+  
+  // Create dialogs object for compatibility
+  const dialogs = { states: dialogStates, open: openDialog, close: closeDialog };
 
   const handleCreateItem = async (newItem: any) => {
     try {
@@ -209,7 +213,7 @@ const WarehousePageRefactored: React.FC = () => {
   const handleBulkDeleteItems = async (ids: string[]) => {
     try {
       await bulkDeleteItems(ids);
-      handleBulkDelete(ids); // Update UI state
+      handleBulkDelete(); // Update UI state
     } catch (error) {
       // Error handling is done in the hook
       console.error('Failed to bulk delete items:', error);
@@ -232,7 +236,7 @@ const WarehousePageRefactored: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 p-4">
+      <div className="min-h-screen bg-white p-4">
         <div className="max-w-7xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <h2 className="text-lg font-semibold text-red-800 mb-2">
@@ -254,7 +258,7 @@ const WarehousePageRefactored: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
+    <div className="min-h-screen bg-white">
       <ErrorBoundary>
         <div className="max-w-7xl mx-auto p-4 space-y-6">
           {/* Header */}
@@ -262,6 +266,9 @@ const WarehousePageRefactored: React.FC = () => {
             onRefresh={smartRefetch}
             onNavigateToAdd={() => handleNavigateToAddEdit()}
             isRefreshing={loading}
+            isConnected={true}
+            itemCount={bahanBaku?.length || 0}
+            selectedCount={selectedItems?.length || 0}
           />
 
           {/* Filters and Search */}
@@ -291,11 +298,11 @@ const WarehousePageRefactored: React.FC = () => {
                   isSelectionMode={selectedItems && selectedItems.length > 0}
                   searchTerm={""}
                   sortConfig={sortConfig || { key: 'nama', direction: 'asc' }}
-                  onSort={(key) => handleSort(key as string)}
-                  onEdit={(item) => openDialog('edit', item)}
+                  onSort={handleSort}
+                  onEdit={(item) => openDialog(item.id)}
                   onDelete={(id, nama) => {
                     const item = (bahanBaku || []).find(b => b.id === id);
-                    if (item) openDialog('delete', item);
+                    if (item) openDialog(item.id);
                   }}
                   emptyStateAction={() => handleNavigateToAddEdit()}
                   onRefresh={smartRefetch}

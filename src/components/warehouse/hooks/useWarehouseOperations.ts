@@ -320,15 +320,29 @@ export const useWarehouseOperations = (page: number = 1, limit: number = 10, use
   });
 
   const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      if (!ids || ids.length === 0) {
+    mutationFn: async (ids: string[] | string) => {
+      // Convert single ID to array if needed
+      const idsArray = Array.isArray(ids) ? ids : [ids];
+      
+      if (!idsArray || idsArray.length === 0) {
         throw new Error('Tidak ada item yang dipilih untuk dihapus');
       }
       if (!user?.id) {
         throw new Error('User tidak terautentikasi');
       }
-      logger.info('Starting bulk delete mutation:', { ids, userId: user.id });
-      const result = await bulkDeleteWarehouseItems(ids, user.id);
+      
+      // Validate all IDs are strings
+      const validIds = idsArray.filter(id => typeof id === 'string' && id.trim() !== '');
+      if (validIds.length !== idsArray.length) {
+        logger.warn('Some invalid IDs filtered out:', { original: idsArray, valid: validIds });
+      }
+      
+      if (validIds.length === 0) {
+        throw new Error('Tidak ada ID yang valid untuk dihapus');
+      }
+      
+      logger.info('Starting bulk delete mutation:', { ids: validIds, userId: user.id });
+      const result = await bulkDeleteWarehouseItems(validIds, user.id);
       if (!result) {
         throw new Error('Bulk delete operation failed');
       }

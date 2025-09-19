@@ -297,7 +297,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       logger.debug("🕐 OTP Age Check:", {
         otpRequestTime: new Date(stored.otpRequestTime).toISOString(),
         currentTime: new Date().toISOString(),
-        ageMinutes,
+        ageMinutes: ageInMinutes,
         isWithin5Minutes: ageInMinutes < 5,
         email: stored.email,
       });
@@ -305,7 +305,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       // Warn if OTP might be getting old
       if (ageInMinutes >= 4) {
         logger.warn("🕐 OTP is getting close to expiry:", {
-          ageMinutes,
+          ageMinutes: ageInMinutes,
           remainingMinutes: 5 - ageInMinutes,
         });
       }

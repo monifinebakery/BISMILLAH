@@ -94,19 +94,21 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
             </Button>
           </form>
         ) : (
-          <div className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-gray-400" />
-            <span className="font-medium text-gray-900">{category.name}</span>
-            {!category.isCustom && (
-              <Badge variant="secondary" className="ml-2 text-xs">
-                Default
-              </Badge>
-            )}
-          </div>
-          {/* Mobile inline count under name */}
-          <div className="mt-1 text-xs text-gray-500 sm:hidden">
-            {category.count} resep
-          </div>
+          <>
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-gray-400" />
+              <span className="font-medium text-gray-900">{category.name}</span>
+              {!category.isCustom && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  Default
+                </Badge>
+              )}
+            </div>
+            {/* Mobile inline count under name */}
+            <div className="mt-1 text-xs text-gray-500 sm:hidden">
+              {category.count} resep
+            </div>
+          </>
         )}
       </TableCell>
       

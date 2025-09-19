@@ -568,25 +568,31 @@ const useAuthLifecycle = ({
         }
       }
 
-      if (validUser && window.location.pathname === '/auth') {
+      if (validUser && window.location.pathname === "/auth") {
         try {
           // Prevent duplicate rapid navigations that can cause flicker and Chrome IPC flooding protection warnings
           const w = window as any;
           if (w.__AUTH_REDIRECTING__) {
-            logger.debug('AuthContext: Redirect already in flight, skipping duplicate');
+            logger.debug(
+              "AuthContext: Redirect already in flight, skipping duplicate",
+            );
           } else {
             w.__AUTH_REDIRECTING__ = true;
-            logger.info('AuthContext: Redirecting authenticated user from /auth to / (SPA)');
-            navigate('/', { replace: true });
+            logger.info(
+              "AuthContext: Redirecting authenticated user from /auth to / (SPA)",
+            );
+            navigate("/", { replace: true });
             // Reset the flag shortly after navigation completes
-            setTimeout(() => { try { (window as any).__AUTH_REDIRECTING__ = false; } catch {} }, 1500);
+            setTimeout(() => {
+              try {
+                (window as any).__AUTH_REDIRECTING__ = false;
+              } catch {}
+            }, 1500);
           }
         } catch {
           // Fallback to a single navigate attempt
-          navigate('/', { replace: true });
+          navigate("/", { replace: true });
         }
-      }
-        navigate("/", { replace: true });
       }
     });
 

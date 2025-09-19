@@ -43,7 +43,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
       </header>
 
       {/* 📱 Main Content */}
-      <main className="flex-1 overflow-y-auto p-4 pb-20">
+      <main className="flex-1 overflow-y-auto p-4 pb-24" style={{paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))'}}>
         <ErrorBoundary fallback={<AppError />}>
           {children}
         </ErrorBoundary>
@@ -54,7 +54,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 
       {/* 📱 Floating Payment Indicator */}
       {!isPaid && (
-        <div className="fixed bottom-20 right-4 z-50">
+        <div className="fixed right-4 z-50" style={{bottom: 'calc(5rem + env(safe-area-inset-bottom))'}}>
           <PaymentStatusIndicator size="lg" />
         </div>
       )}

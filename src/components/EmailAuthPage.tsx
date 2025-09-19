@@ -1,582 +1,386 @@
-// src/components/EmailAuthPage.tsx - Modular Email Auth Page
-import React, { useState, useEffect, useCallback } from "react";
-import { Lock } from "lucide-react";
+// src/components/EmailAuthPage.tsx - Simple Email + OTP Login
+import React, { useState, useRef, useEffect } from "react";
+import { Lock, Mail, RefreshCw } from "lucide-react";
 import { sendEmailOtp, verifyEmailOtp } from "@/services/auth";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Import refactored components and hooks
-import { EmailForm } from "@/components/auth/EmailForm";
-import { OTPForm } from "@/components/auth/OTPForm";
-import { useAuthStorage } from "@/hooks/auth/useAuthStorage";
-import { useCooldownTimer } from "@/hooks/auth/useCooldownTimer";
-import { isMobileDevice } from "@/utils/auth/deviceDetection";
-import { isValidEmail } from "@/utils/auth/sessionValidation";
-
-type AuthState =
-  | "idle"
-  | "sending"
-  | "sent"
-  | "verifying"
-  | "error"
-  | "expired"
-  | "success";
+type AuthStep = "email" | "otp" | "verifying" | "success";
 
 interface EmailAuthPageProps {
-  appName?: string;
-  appDescription?: string;
-  primaryColor?: string;
-  supportEmail?: string;
-  logoUrl?: string;
   onLoginSuccess?: () => void;
-  redirectUrl?: string;
 }
 
-const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
-  appName = "Sistem HPP",
-  appDescription = "Hitung Harga Pokok Penjualan dengan mudah",
-  primaryColor = "#ea580c",
-  supportEmail = "admin@sistemhpp.com",
-  logoUrl,
-  onLoginSuccess,
-  redirectUrl = "/",
-}) => {
-  const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
-
-  // Storage and device detection
-  const AUTH_STORAGE_KEY = "mobile_auth_state";
-  const isMobile = isMobileDevice();
-  const { saveAuthState, loadAuthState, clearAuthState } = useAuthStorage(AUTH_STORAGE_KEY);
-  const { 
-    cooldownTime, 
-    startCooldown, 
-    stopCooldown, 
-    restoreCooldown 
-  } = useCooldownTimer();
-
+const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
   // State
+  const [step, setStep] = useState<AuthStep>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [authState, setAuthState] = useState<AuthState>("idle");
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
 
-  // Initialize state from storage - WITH SMART EXPIRY VALIDATION
-  const initializeFromStorage = useCallback(() => {
-    const stored = loadAuthState();
-    if (stored) {
-      logger.debug("💾 Checking stored auth state:", stored);
-      
-      // ✅ ENHANCED: Validate OTP session freshness (max 10 minutes)
-      const isOtpExpired = stored.otpRequestTime && 
-        (Date.now() - stored.otpRequestTime) > (10 * 60 * 1000);
-        
-      // ✅ ENHANCED: Only restore if state is recent and valid
-      const shouldRestore = stored.authState === "sent" && 
-        stored.otpRequestTime &&
-        !isOtpExpired &&
-        stored.email;
-      
-      if (shouldRestore) {
-        logger.debug("🔄 Restoring valid OTP session");
-        
-        setEmail(stored.email || "");
-        setAuthState("sent");
-        
-        // Restore OTP array if it exists
-        if (stored.otp && Array.isArray(stored.otp)) {
-          setOtp(stored.otp);
-        }
+  // Refs for OTP inputs
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const cooldownRef = useRef<NodeJS.Timeout | null>(null);
 
-        // Restore cooldown if it was active
-        if (stored.cooldownStartTime && stored.cooldownTime) {
-          const elapsed = Math.floor((Date.now() - stored.cooldownStartTime) / 1000);
-          const remaining = Math.max(0, stored.cooldownTime - elapsed);
-          if (remaining > 0) {
-            restoreCooldown(remaining);
-          }
-        }
+  const { user } = useAuth();
 
-        // Show restoration notification
-        const otpAge = Date.now() - stored.otpRequestTime;
-        const ageInMinutes = Math.floor(otpAge / (1000 * 60));
-        const remainingMinutes = Math.max(0, 10 - ageInMinutes);
-        const timingInfo = remainingMinutes > 0 
-          ? ` (${remainingMinutes} menit tersisa)` 
-          : "";
-        
-        try {
-          const shown = sessionStorage.getItem("auth_restored_info");
-          if (!shown) {
-            toast.info(
-              `Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`,
-            );
-            sessionStorage.setItem("auth_restored_info", "1");
-          }
-        } catch {
-          toast.info(
-            `Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`,
-          );
-        }
-      } else {
-        // ✅ ENHANCED: Clear expired or invalid state
-        logger.debug("🧽 Clearing invalid or expired auth state", {
-          hasStoredState: !!stored.authState,
-          storedAuthState: stored.authState,
-          isOtpExpired,
-          hasEmail: !!stored.email,
-          hasOtpRequestTime: !!stored.otpRequestTime
-        });
-        
-        if (stored.authState === "sent") {
-          clearAuthState();
-        }
-        
-        // Default to idle state for fresh sessions
-        logger.debug("🎆 Starting fresh auth session");
-        setAuthState("idle");
-        setEmail(""); // Clear email as well when starting fresh
-        setOtp(["", "", "", "", "", ""]); // Clear OTP as well
-      }
-    } else {
-      // ✅ ENHANCED: Explicitly set idle for completely new sessions
-      logger.debug("🎆 No stored state, starting fresh");
-      setAuthState("idle");
-      setEmail(""); // Clear email
-      setOtp(["", "", "", "", "", ""]); // Clear OTP
-    }
-  }, [loadAuthState, restoreCooldown, clearAuthState]);
-
-  // Initialize on mount
+  // Cleanup cooldown on unmount
   useEffect(() => {
-    logger.debug("🔐 EmailAuthPage mounting, checking auth state...");
-    
-    // Always check for expired sessions on mount
-    const stored = loadAuthState();
-    logger.debug("🔐 Stored auth state:", stored);
-    
-    if (stored?.authState === "sent" && stored?.otpRequestTime) {
-      const isOtpExpired = (Date.now() - stored.otpRequestTime) > (10 * 60 * 1000);
-      logger.debug("🔐 OTP expiration check:", { 
-        isOtpExpired, 
-        otpRequestTime: stored.otpRequestTime,
-        currentTime: Date.now(),
-        age: Date.now() - stored.otpRequestTime
+    return () => {
+      if (cooldownRef.current) {
+        clearInterval(cooldownRef.current);
+      }
+    };
+  }, []);
+
+  // Start cooldown timer
+  const startCooldown = (seconds: number) => {
+    setCooldown(seconds);
+    cooldownRef.current = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          if (cooldownRef.current) {
+            clearInterval(cooldownRef.current);
+            cooldownRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
       });
-      
-      if (isOtpExpired) {
-        logger.debug("🔐 Clearing expired session and resetting to email input");
-        // Clear expired session
-        clearAuthState();
-        // Reset to email input state
-        setAuthState("idle");
-        setEmail("");
-        setOtp(["", "", "", "", "", ""]);
-        return;
-      } else {
-        // Valid session, proceed with normal initialization
-        logger.debug("🔐 Valid session found, proceeding with normal initialization");
-        initializeFromStorage();
-      }
-    } else {
-      // No valid session or wrong state, clear any existing state and start fresh
-      logger.debug("🔐 No valid session found, clearing state and starting fresh");
-      clearAuthState();
-      setAuthState("idle");
-      setEmail("");
-      setOtp(["", "", "", "", "", ""]);
-    }
+    }, 1000);
+  };
 
-    // Clear session flag on unmount
-    return () => {
-      try {
-        sessionStorage.removeItem("auth_restored_info");
-      } catch {}
-    };
-  }, [initializeFromStorage, loadAuthState, clearAuthState]);
-
-  // Page Visibility API - NOW WORKS FOR ALL PLATFORMS
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // User returned to tab - restore state if needed
-        const stored = loadAuthState();
-        if (stored && stored.authState === "sent" && authState !== "sent") {
-          // Validate OTP session freshness (max 10 minutes)
-          const isOtpExpired = stored.otpRequestTime && 
-            (Date.now() - stored.otpRequestTime) > (10 * 60 * 1000);
-            
-          if (!isOtpExpired && stored.email) {
-            logger.debug("🔄 Tab became visible, restoring OTP state");
-            setAuthState("sent");
-            setEmail(stored.email || email);
-            
-            // ✅ FIXED: Also restore OTP array
-            if (stored.otp && Array.isArray(stored.otp)) {
-              setOtp(stored.otp);
-            }
-          } else {
-            // OTP expired, clear state and show email form
-            logger.debug("🧽 Clearing expired OTP session on tab visibility");
-            clearAuthState();
-            setAuthState("idle");
-            setEmail("");
-            setOtp(["", "", "", "", "", ""]);
-          }
-        }
-      } else {
-        // User left tab - save current state INCLUDING OTP
-        if (authState === "sent" || cooldownTime > 0) {
-          logger.debug("💾 Saving state before tab switch", {
-            email,
-            authState,
-            otp: otp.join(''),
-            cooldownTime
-          });
-          
-          saveAuthState({
-            email,
-            authState,
-            otp, // ✅ FIXED: Save OTP array
-            cooldownTime,
-            cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined,
-            otpRequestTime: authState === "sent" ? Date.now() : undefined,
-          });
-        }
-      }
-    };
-
-    const handleBeforeUnload = () => {
-      // Save state before page unload
-      if (authState === "sent" || cooldownTime > 0) {
-        logger.debug("💾 Saving state before page unload");
-        saveAuthState({
-          email,
-          authState,
-          otp, // ✅ FIXED: Save OTP array
-          cooldownTime,
-          cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined,
-          otpRequestTime: authState === "sent" ? Date.now() : undefined,
-        });
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [email, authState, otp, cooldownTime, loadAuthState, saveAuthState]);
-
-  // Reset functions
-  const resetForm = useCallback(() => {
-    setOtp(["", "", "", "", "", ""]);
-    setError("");
-    setAuthState("idle");
-    // ✅ ENHANCED: Clear any stored state when resetting form
-    clearAuthState();
-    logger.debug("🧽 Form reset with state cleanup");
-  }, [clearAuthState]);
-
-  const resetAll = useCallback(() => {
+  // Reset form
+  const resetForm = () => {
+    setStep("email");
     setEmail("");
     setOtp(["", "", "", "", "", ""]);
     setError("");
-    setAuthState("idle");
-    stopCooldown();
-    clearAuthState();
-    logger.debug("📱 Full reset performed with state cleanup");
-  }, [stopCooldown, clearAuthState]);
-
-  // Validation
-  const canSend = isValidEmail(email) && cooldownTime === 0 && authState !== "sending";
-  const canVerify = otp.every((d) => d !== "") && authState !== "verifying" && authState !== "success";
-
-  // Handlers
-  const handleEmailChange = useCallback((newEmail: string) => {
-    setEmail(newEmail);
-    if (authState !== "idle") {
-      logger.debug("🧽 Email changed, resetting form");
-      resetForm();
+    setIsLoading(false);
+    setCooldown(0);
+    if (cooldownRef.current) {
+      clearInterval(cooldownRef.current);
+      cooldownRef.current = null;
     }
-  }, [authState, resetForm]);
+  };
 
-  const handleSendOtp = useCallback(async () => {
-    if (cooldownTime > 0) {
-      toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
-      return;
-    }
-    if (!isValidEmail(email)) {
-      toast.error("Masukkan alamat email yang valid.");
+  // Send OTP
+  const handleSendOtp = async () => {
+    if (!email.trim()) {
+      setError("Email harus diisi");
       return;
     }
 
-    setAuthState("sending");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Format email tidak valid");
+      return;
+    }
+
+    setIsLoading(true);
     setError("");
 
     try {
-      const success = await sendEmailOtp(email, null, true, true);
-
+      const success = await sendEmailOtp(email.trim(), null, true, true);
+      
       if (success) {
-        setAuthState("sent");
+        setStep("otp");
         startCooldown(60);
+        toast.success("Kode OTP telah dikirim ke email Anda");
         
-        // Save mobile state after successful OTP send
-        const now = Date.now();
-        saveAuthState({
-          email,
-          authState: "sent",
-          cooldownTime: 60,
-          cooldownStartTime: now,
-          otpRequestTime: now,
-        });
-
-        toast.success("Kode OTP telah dikirim ke email Anda.");
+        // Focus first OTP input
+        setTimeout(() => {
+          otpRefs.current[0]?.focus();
+        }, 100);
       } else {
-        setAuthState("error");
         setError("Gagal mengirim kode OTP. Silakan coba lagi.");
         startCooldown(30);
       }
-    } catch (e) {
-      logger.error("Error sending OTP:", e);
-      setAuthState("error");
-      setError("Terjadi kesalahan saat mengirim kode OTP.");
+    } catch (error) {
+      console.error("Send OTP error:", error);
+      setError("Terjadi kesalahan. Silakan coba lagi.");
       startCooldown(30);
+    } finally {
+      setIsLoading(false);
     }
-  }, [email, cooldownTime, startCooldown, saveAuthState]);
+  };
 
-  const handleResendOtp = useCallback(async () => {
-    if (cooldownTime > 0) {
-      toast.error(`Tunggu ${cooldownTime} detik sebelum mencoba lagi.`);
-      return;
-    }
+  // Resend OTP
+  const handleResendOtp = async () => {
+    if (cooldown > 0) return;
 
-    setAuthState("sending");
+    setIsLoading(true);
     setError("");
     setOtp(["", "", "", "", "", ""]);
 
     try {
       const success = await sendEmailOtp(email, null, true, true);
-
+      
       if (success) {
-        setAuthState("sent");
         startCooldown(60);
-        
-        // Save mobile state after successful resend
-        const now = Date.now();
-        saveAuthState({
-          email,
-          authState: "sent",
-          cooldownTime: 60,
-          cooldownStartTime: now,
-          otpRequestTime: now,
-        });
-
-        toast.success("Kode OTP baru telah dikirim.");
+        toast.success("Kode OTP baru telah dikirim");
+        otpRefs.current[0]?.focus();
       } else {
-        setAuthState("error");
-        setError("Gagal mengirim ulang kode OTP. Silakan coba lagi.");
+        setError("Gagal mengirim ulang kode OTP");
         startCooldown(30);
       }
-    } catch (e) {
-      logger.error("Error resending OTP:", e);
-      setAuthState("error");
-      setError("Terjadi kesalahan saat mengirim ulang kode OTP. Silakan coba lagi.");
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      setError("Terjadi kesalahan saat mengirim ulang kode");
       startCooldown(30);
+    } finally {
+      setIsLoading(false);
     }
-  }, [email, cooldownTime, startCooldown, saveAuthState]);
+  };
 
-  const handleOtpChange = useCallback((index: number, value: string) => {
+  // Handle OTP input change
+  const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return;
-    const next = [...otp];
-    next[index] = value.toUpperCase();
-    setOtp(next);
-    setError("");
-    
-    // ✅ FIXED: Save OTP state immediately when user types
-    if (authState === "sent") {
-      logger.debug("💾 Saving OTP as user types:", next.join(''));
-      saveAuthState({
-        email,
-        authState: "sent",
-        otp: next,
-        cooldownTime,
-        cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined,
-        otpRequestTime: Date.now(),
-      });
-    }
-  }, [otp, authState, email, cooldownTime, saveAuthState]);
 
-  const handleVerifyOtp = useCallback(async () => {
-    const code = otp.join("");
+    const newOtp = [...otp];
+    newOtp[index] = value.toUpperCase();
+    setOtp(newOtp);
+    setError("");
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify when all fields filled
+    if (newOtp.every(digit => digit !== "") && newOtp.join("").length === 6) {
+      setTimeout(() => handleVerifyOtp(newOtp.join("")), 100);
+    }
+  };
+
+  // Handle OTP input keydown
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle paste
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\s/g, "").toUpperCase();
+    
+    if (pastedData.length >= 6) {
+      const newOtp = pastedData.slice(0, 6).split("");
+      while (newOtp.length < 6) newOtp.push("");
+      setOtp(newOtp);
+      setError("");
+      
+      // Auto-verify pasted OTP
+      if (newOtp.every(digit => digit !== "")) {
+        setTimeout(() => handleVerifyOtp(newOtp.join("")), 100);
+      }
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async (otpCode?: string) => {
+    const code = otpCode || otp.join("");
+    
     if (code.length !== 6) {
       setError("Kode OTP harus 6 digit");
       return;
     }
 
-    // Debug OTP age for timing analysis
-    const stored = loadAuthState();
-    if (stored?.otpRequestTime) {
-      const otpAge = Date.now() - stored.otpRequestTime;
-      const ageInMinutes = Math.floor(otpAge / (1000 * 60));
-          
-      logger.debug("🕐 OTP Age Check:", {
-        otpRequestTime: new Date(stored.otpRequestTime).toISOString(),
-        currentTime: new Date().toISOString(),
-        ageMinutes: ageInMinutes,
-        isWithin10Minutes: ageInMinutes < 10,
-        email: stored.email,
-      });
-
-      // Warn if OTP might be getting old
-      if (ageInMinutes >= 8) {
-        logger.warn("🕐 OTP is getting close to expiry:", {
-          ageMinutes: ageInMinutes,
-          remainingMinutes: 10 - ageInMinutes,
-        });
-      }
-    }
-
-    setAuthState("verifying");
+    setStep("verifying");
     setError("");
 
     try {
-      const ok = await verifyEmailOtp(email, code);
-
-      if (ok === true) {
-        logger.debug("EmailAuth: OTP verification successful");
-        setAuthState("success");
-        clearAuthState(); // Clear mobile auth state on successful login
-        toast.success("Login berhasil! Mengarahkan ke dashboard...");
-        onLoginSuccess?.();
-
-        // Mark OTP success timestamp
-        try {
-          localStorage.setItem("otpVerifiedAt", String(Date.now()));
-        } catch (error) {
-          logger.warn("EmailAuth: Failed to store otpVerifiedAt timestamp", error);
+      const result = await verifyEmailOtp(email, code);
+      
+      if (result === true) {
+        setStep("success");
+        toast.success("Login berhasil!");
+        
+        // Call success callback
+        if (onLoginSuccess) {
+          setTimeout(onLoginSuccess, 1000);
         }
-
-        // Small delay to ensure session is established
-        setTimeout(() => {
-          onLoginSuccess?.();
-        }, 300);
-
-        return;
-      } else if (ok === "expired") {
-        setAuthState("expired");
+      } else if (result === "expired") {
         setError("Kode OTP sudah kadaluarsa. Silakan minta kode baru.");
+        setStep("otp");
         setOtp(["", "", "", "", "", ""]);
-      } else if (ok === "rate_limited") {
-        setAuthState("error");
+      } else if (result === "rate_limited") {
         setError("Terlalu banyak percobaan. Tunggu beberapa menit.");
+        setStep("otp");
         setOtp(["", "", "", "", "", ""]);
       } else {
-        setAuthState("error");
         setError("Kode OTP tidak valid. Silakan coba lagi.");
+        setStep("otp");
         setOtp(["", "", "", "", "", ""]);
       }
-    } catch (e) {
-      logger.error("Error verifying OTP:", e);
-      setAuthState("error");
+    } catch (error) {
+      console.error("Verify OTP error:", error);
       setError("Terjadi kesalahan saat verifikasi. Silakan coba lagi.");
+      setStep("otp");
       setOtp(["", "", "", "", "", ""]);
     }
-  }, [otp, email, loadAuthState, clearAuthState, onLoginSuccess]);
+  };
 
-  const isLoading = authState === "sending" || authState === "verifying";
-  const isSent = authState === "sent" || authState === "expired";
+  // Back to email
+  const handleBackToEmail = () => {
+    resetForm();
+  };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-red-50">
-      <Card className="w-full max-w-md border rounded-xl overflow-hidden">
+      <Card className="w-full max-w-md border rounded-xl overflow-hidden shadow-lg">
         {/* Header Accent */}
         <div className="h-2 bg-gradient-to-r from-orange-500 to-red-500"></div>
 
         <CardHeader className="space-y-4 pt-8">
           <div className="flex justify-center mb-4">
-            {logoUrl ? (
-              <img src={logoUrl} alt={appName} className="h-16 w-auto" />
-            ) : (
-              <div className="h-16 w-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                <Lock className="h-8 w-8 text-white" />
-              </div>
-            )}
+            <div className="h-16 w-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+              <Lock className="h-8 w-8 text-white" />
+            </div>
           </div>
           <CardTitle className="text-2xl font-bold text-center text-gray-800">
-            {appName}
+            Sistem HPP
           </CardTitle>
           <CardDescription className="text-center text-gray-600">
-            {appDescription}
+            Hitung Harga Pokok Penjualan dengan mudah
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* ✅ DEBUG: Clear localStorage button (development only) */}
-          {import.meta.env.DEV && (
-            <div className="bg-gray-100 border border-gray-300 rounded-lg p-3 mb-4">
-              <p className="text-gray-700 text-xs mb-2">🛠️ Debug Mode</p>
-              <button
-                onClick={() => {
-                  clearAuthState();
-                  setAuthState("idle");
-                  setEmail("");
-                  setOtp(["", "", "", "", "", ""]);
-                  setError("");
-                  stopCooldown();
-                  toast.info("Debug: State cleared");
-                }}
-                className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-700"
-              >
-                🧽 Clear All State
-              </button>
-            </div>
-          )}
-          
-          {/* Enhanced error display */}
+          {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <p className="text-red-700 text-sm">{error}</p>
-              {(authState === "error" || authState === "expired") && (
-                <p className="text-red-600 text-xs mt-2">
-                  • Pastikan kode dimasukkan dengan benar
-                  <br />
-                  • Kode mungkin sudah kadaluarsa (5 menit)
-                  <br />• Jika masalah berlanjut, coba mulai dari awal
-                </p>
-              )}
             </div>
           )}
 
-          {!isSent ? (
-            <EmailForm
-              email={email}
-              onEmailChange={handleEmailChange}
-              onSendOtp={handleSendOtp}
-              cooldownTime={cooldownTime}
-              isLoading={isLoading}
-              canSend={canSend}
-            />
-          ) : (
-            <OTPForm
-              otp={otp}
-              onOtpChange={handleOtpChange}
-              onVerifyOtp={handleVerifyOtp}
-              onResendOtp={handleResendOtp}
-              onReset={resetAll}
-              authState={authState}
-              cooldownTime={cooldownTime}
-              canVerify={canVerify}
-            />
+          {/* Email Step */}
+          {step === "email" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 block">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    type="email"
+                    placeholder="Masukkan email Anda"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-12 text-base"
+                    disabled={isLoading || cooldown > 0}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSendOtp}
+                disabled={isLoading || cooldown > 0}
+                className="w-full h-12 text-base font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                    Mengirim...
+                  </>
+                ) : cooldown > 0 ? (
+                  `Tunggu ${cooldown}s`
+                ) : (
+                  "Kirim Kode Verifikasi"
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-gray-500">
+                Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)
+              </p>
+            </div>
+          )}
+
+          {/* OTP Step */}
+          {(step === "otp" || step === "verifying") && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-4">
+                  Masukkan kode OTP yang telah dikirim ke:
+                </p>
+                <p className="font-medium text-gray-800">{email}</p>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-sm font-medium text-gray-700 block text-center">
+                  Masukkan Kode OTP (6 digit)
+                </label>
+                <div className="flex justify-center space-x-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (otpRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      onPaste={handleOtpPaste}
+                      className="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none"
+                      disabled={step === "verifying"}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {step === "verifying" && (
+                <div className="flex items-center justify-center py-4">
+                  <RefreshCw className="h-6 w-6 animate-spin text-orange-500 mr-2" />
+                  <span className="text-gray-600">Memverifikasi...</span>
+                </div>
+              )}
+
+              <div className="text-center space-y-2">
+                <Button
+                  variant="link"
+                  onClick={handleResendOtp}
+                  disabled={cooldown > 0 || step === "verifying"}
+                  className="text-orange-600 hover:text-orange-700"
+                >
+                  {cooldown > 0 ? `Kirim ulang dalam ${cooldown}s` : "Kirim ulang kode"}
+                </Button>
+
+                <div>
+                  <Button
+                    variant="link"
+                    onClick={handleBackToEmail}
+                    className="text-gray-500 hover:text-gray-700 text-sm"
+                  >
+                    ← Kembali ke email
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Success Step */}
+          {step === "success" && (
+            <div className="text-center py-8">
+              <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="h-8 w-8 text-green-600 text-2xl">✓</div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                Login Berhasil!
+              </h3>
+              <p className="text-gray-600">
+                Mengarahkan ke dashboard...
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>

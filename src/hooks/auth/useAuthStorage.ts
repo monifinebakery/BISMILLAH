@@ -38,6 +38,7 @@ export const useAuthStorage = (storageKey: string) => {
       const age = Date.now() - (data.timestamp || 0);
       if (age > 10 * 60 * 1000) {
         localStorage.removeItem(storageKey);
+        logger.debug("📱 Auth state expired, cleared:", { age, maxAge: 10 * 60 * 1000 });
         return null;
       }
 
@@ -52,6 +53,8 @@ export const useAuthStorage = (storageKey: string) => {
   const clearAuthState = useCallback(() => {
     try {
       localStorage.removeItem(storageKey);
+      // Also clear the otpVerifiedAt timestamp
+      localStorage.removeItem("otpVerifiedAt");
       logger.debug("📱 Auth state cleared");
     } catch (error) {
       logger.warn("Failed to clear auth state:", error);

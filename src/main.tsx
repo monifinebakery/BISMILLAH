@@ -204,76 +204,106 @@ if (effectiveDev && "performance" in window) {
 // Global error handlers now handled by networkErrorHandler
 
 // ------------------------------
-// PWA initialization - ENABLED WITH SAFE CACHING AND SAFARI iOS FALLBACK
+// PWA initialization - add DEV and emergency bypass to stop SW loops
 // ------------------------------
 const safariDetection = detectSafariIOS();
 
 // Initialize Safari utilities
 initSafariUtils();
 
-if (safariDetection.isSafariIOS) {
-   logger.warn('PWA: Safari iOS detected - applying service worker workarounds', {
-     version: safariDetection.version,
-     userAgent: safariDetection.userAgent,
-     timestamp: new Date().toISOString()
-   });
-   
-   // Add Safari iOS class untuk CSS optimizations
-   document.documentElement.classList.add('safari-ios');
-   document.body.classList.add('safari-ios');
-   
-   // Log detailed Safari info for debugging
-   logSafariInfo();
-   
-   if (shouldBypassServiceWorker()) {
-     logger.warn('PWA: Bypassing service worker registration due to Safari iOS compatibility issues', {
-       safariInfo: safariDetection,
-       timestamp: new Date().toISOString()
-     });
-   } else {
-    // Delay service worker registration for Safari iOS to prevent loading issues
-    setTimeout(() => {
-      pwaManager.registerServiceWorker().then((registration) => {
-        if (registration) {
-          logger.info('PWA: Service worker registered successfully (Safari iOS delayed)', {
-            scope: registration.scope,
-            mode: import.meta.env.MODE,
-            cacheVersion: 'v4-safe'
-          });
-          
-          // Skip automatic updates for Safari iOS to prevent conflicts
-          logger.info('PWA: Skipping automatic update check for Safari iOS');
-        }
-      }).catch((error) => {
-           logger.warn('PWA: Service worker registration failed on Safari iOS (non-critical):', {
-             error,
-             errorMessage: error instanceof Error ? error.message : 'Unknown error',
-             safariInfo: safariDetection,
-             timestamp: new Date().toISOString()
-           });
-           // Don't throw error for Safari iOS - app should work without SW
-         });
-    }, getSafariDelay(5000)); // Increased delay for Safari iOS
+// Determine if SW should be disabled (dev, query flag, or local flag)
+const shouldDisableSW = (() => {
+  try {
+    const qs = new URLSearchParams(window.location.search);
+    const byQuery = qs.has('nosw') || qs.has('disable_sw');
+    const byLocal = localStorage.getItem('DISABLE_SW') === '1';
+    return import.meta.env.DEV || byQuery || byLocal;
+  } catch {
+    return import.meta.env.DEV;
+  }
+})();
+
+if (shouldDisableSW) {
+  logger.warn('PWA: Service worker disabled for this session', {
+    reason: import.meta.env.DEV ? 'dev-mode' : 'flag',
+  });
+
+  // Best-effort cleanup so stale SW does not control next loads
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+      .catch(() => {});
+  }
+  if ('caches' in window) {
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .catch(() => {});
   }
 } else {
-  // Normal registration for other browsers
-  pwaManager.registerServiceWorker().then((registration) => {
-    if (registration) {
-      logger.info('PWA: Service worker registered successfully', {
-        scope: registration.scope,
-        mode: import.meta.env.MODE,
-        cacheVersion: 'v4-safe'
-      });
-      
-      // Check for updates every page load
-      registration.update();
+  if (safariDetection.isSafariIOS) {
+     logger.warn('PWA: Safari iOS detected - applying service worker workarounds', {
+       version: safariDetection.version,
+       userAgent: safariDetection.userAgent,
+       timestamp: new Date().toISOString()
+     });
+     
+     // Add Safari iOS class untuk CSS optimizations
+     document.documentElement.classList.add('safari-ios');
+     document.body.classList.add('safari-ios');
+     
+     // Log detailed Safari info for debugging
+     logSafariInfo();
+     
+     if (shouldBypassServiceWorker()) {
+       logger.warn('PWA: Bypassing service worker registration due to Safari iOS compatibility issues', {
+         safariInfo: safariDetection,
+         timestamp: new Date().toISOString()
+       });
+     } else {
+      // Delay service worker registration for Safari iOS to prevent loading issues
+      setTimeout(() => {
+        pwaManager.registerServiceWorker().then((registration) => {
+          if (registration) {
+            logger.info('PWA: Service worker registered successfully (Safari iOS delayed)', {
+              scope: registration.scope,
+              mode: import.meta.env.MODE,
+              cacheVersion: 'v4-safe'
+            });
+            
+            // Skip automatic updates for Safari iOS to prevent conflicts
+            logger.info('PWA: Skipping automatic update check for Safari iOS');
+          }
+        }).catch((error) => {
+             logger.warn('PWA: Service worker registration failed on Safari iOS (non-critical):', {
+               error,
+               errorMessage: error instanceof Error ? error.message : 'Unknown error',
+               safariInfo: safariDetection,
+               timestamp: new Date().toISOString()
+             });
+             // Don't throw error for Safari iOS - app should work without SW
+           });
+      }, getSafariDelay(5000)); // Increased delay for Safari iOS
     }
-  }).catch((error) => {
-    logger.error('PWA: Service worker registration failed:', error);
-  });
-}
+  } else {
+    // Normal registration for other browsers
+    pwaManager.registerServiceWorker().then((registration) => {
+      if (registration) {
+        logger.info('PWA: Service worker registered successfully', {
+          scope: registration.scope,
+          mode: import.meta.env.MODE,
+          cacheVersion: 'v4-safe'
+        });
+        
+        // Check for updates every page load
+        registration.update();
+      }
+    }).catch((error) => {
+      logger.error('PWA: Service worker registration failed:', error);
+    });
+  }
 
-console.log('✅ [PWA] Service worker enabled with safe caching strategy');
+  console.log('✅ [PWA] Service worker enabled with safe caching strategy');
+}
 
 // ------------------------------
 // Initialize toast swipe handlers

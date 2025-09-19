@@ -130,6 +130,7 @@ const WarehousePageRefactored: React.FC = () => {
   const contextForCore = {
     bahanBaku: bahanBaku || [],
     loading,
+    refetch: smartRefetch, // Add refetch function
     updateBahanBaku: async (id: string, updates: any) => {
       try {
         await updateItem({ id, item: updates });
@@ -162,20 +163,28 @@ const WarehousePageRefactored: React.FC = () => {
   // Use existing warehouse core hook for UI state with proper context
   const coreResult = useWarehouseCore(contextForCore);
   
-  // Extract values with safe fallbacks
+  // Extract values with proper function references
   const selectedItems = coreResult.selection?.selectedItems || [];
   const handleSelectItem = coreResult.selection?.toggle || (() => {});
   const handleSelectAll = coreResult.selection?.selectPage || (() => {});
   const searchTerm = coreResult.filters?.searchTerm || '';
   const filters = coreResult.filters?.activeFilters || {};
   const sortConfig = coreResult.filters?.sortConfig || { key: 'nama', direction: 'asc' };
-  const handleSearch = coreResult.filters?.setSearchTerm || (() => {});
-  const handleFilterChange = coreResult.filters?.setFilters || (() => {});
   const dialogStates = coreResult.dialogs?.states || {};
   const openDialog = coreResult.dialogs?.open || (() => {});
   const closeDialog = coreResult.dialogs?.close || (() => {});
   const handleSort = coreResult.handlers?.sort || (() => {});
-  const handleBulkDelete = coreResult.bulk?.bulkDelete || (() => {});
+  
+  // Create proper handler functions
+  const handleSearch = (term: string) => {
+    const setSearchTerm = coreResult.filters?.setSearchTerm;
+    if (setSearchTerm) setSearchTerm(term);
+  };
+  
+  const handleFilterChange = (newFilters: any) => {
+    const setFilters = coreResult.filters?.setFilters;
+    if (setFilters) setFilters(newFilters);
+  };
   
   // Create dialogs object for compatibility
   const dialogs = { states: dialogStates, open: openDialog, close: closeDialog };
@@ -210,14 +219,31 @@ const WarehousePageRefactored: React.FC = () => {
     }
   };
 
-  const handleBulkDeleteItems = async (ids: string[]) => {
+  const handleBulkDeleteItems = async () => {
+    if (!selectedItems || selectedItems.length === 0) {
+      console.warn('No items selected for bulk delete');
+      return;
+    }
+    
     try {
-      await bulkDeleteItems(ids);
-      handleBulkDelete(); // Update UI state
+      await bulkDeleteItems(selectedItems);
+      // Clear selection after successful delete
+      const clearSelection = coreResult.selection?.clear;
+      if (clearSelection) clearSelection();
     } catch (error) {
       // Error handling is done in the hook
       console.error('Failed to bulk delete items:', error);
     }
+  };
+  
+  const handleBulkEdit = async () => {
+    // TODO: Implement bulk edit functionality
+    console.log('Bulk edit not yet implemented');
+  };
+  
+  const handleClearSelection = () => {
+    const clearSelection = coreResult.selection?.clear;
+    if (clearSelection) clearSelection();
   };
 
   // Handle navigation
@@ -280,11 +306,15 @@ const WarehousePageRefactored: React.FC = () => {
           />
 
           {/* Bulk Actions */}
-          <BulkActions
-            selectedItems={selectedItems}
-            onBulkDelete={handleBulkDeleteItems}
-            isDeleting={isBulkDeleting}
-          />
+          {selectedItems && selectedItems.length > 0 && (
+            <BulkActions
+              selectedCount={selectedItems.length}
+              onBulkEdit={handleBulkEdit}
+              onBulkDelete={handleBulkDeleteItems}
+              onClearSelection={handleClearSelection}
+              isProcessing={isBulkDeleting}
+            />
+          )}
 
           {/* Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200/80">
@@ -299,10 +329,13 @@ const WarehousePageRefactored: React.FC = () => {
                   searchTerm={""}
                   sortConfig={sortConfig || { key: 'nama', direction: 'asc' }}
                   onSort={handleSort}
-                  onEdit={(item) => openDialog(item.id)}
+                  onEdit={(item) => {
+                    const handleEdit = coreResult.handlers?.edit;
+                    if (handleEdit) handleEdit(item);
+                  }}
                   onDelete={(id, nama) => {
-                    const item = (bahanBaku || []).find(b => b.id === id);
-                    if (item) openDialog(item.id);
+                    const handleDelete = coreResult.handlers?.delete;
+                    if (handleDelete) handleDelete(id, nama);
                   }}
                   emptyStateAction={() => handleNavigateToAddEdit()}
                   onRefresh={smartRefetch}

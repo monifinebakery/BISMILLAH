@@ -180,12 +180,19 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         setEmail("");
         setOtp(["", "", "", "", "", ""]);
         return;
+      } else {
+        // Valid session, proceed with normal initialization
+        logger.debug("🔐 Valid session found, proceeding with normal initialization");
+        initializeFromStorage();
       }
+    } else {
+      // No valid session or wrong state, clear any existing state and start fresh
+      logger.debug("🔐 No valid session found, clearing state and starting fresh");
+      clearAuthState();
+      setAuthState("idle");
+      setEmail("");
+      setOtp(["", "", "", "", "", ""]);
     }
-    
-    // Normal initialization
-    logger.debug("🔐 Proceeding with normal initialization");
-    initializeFromStorage();
 
     // Clear session flag on unmount
     return () => {

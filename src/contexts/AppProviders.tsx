@@ -89,25 +89,36 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     }, <>{content}</>);
   };
 
-  const CoreProviders: React.FC<{ children: ReactNode }> = ({ children }) => (
-    <AuthProvider>
-      <PaymentProvider>{children}</PaymentProvider>
-    </AuthProvider>
-  );
+  const CoreProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const isAuthRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth');
+    if (isAuthRoute) {
+      // On auth route, mount only AuthProvider to avoid heavy queries
+      return <AuthProvider>{children}</AuthProvider>;
+    }
+    return (
+      <AuthProvider>
+        <PaymentProvider>{children}</PaymentProvider>
+      </AuthProvider>
+    );
+  };
+
+  const isAuthRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth');
 
   return (
     <>
       <CoreProviders>
-        {renderProviders(
-          criticalProviders,
-          renderProviders(
-            highProviders,
-            renderProviders(
-              mediumProviders,
-              renderProviders(lowProviders, children)
-            )
-          )
-        )}
+        {isAuthRoute
+          ? children // Skip heavy providers entirely on /auth
+          : renderProviders(
+              criticalProviders,
+              renderProviders(
+                highProviders,
+                renderProviders(
+                  mediumProviders,
+                  renderProviders(lowProviders, children)
+                )
+              )
+            )}
       </CoreProviders>
 
       <Toaster 

@@ -313,6 +313,7 @@ const isPaginatedWarehouseResponse = (data: any): data is PaginatedWarehouseResp
 
 const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: boolean = false, userId?: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   // ✅ FIXED: State untuk track USER ACTIONS (bukan data changes)
   const [lastUserAction, setLastUserAction] = useState<Date | undefined>(undefined);
@@ -363,7 +364,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
 
   // Mutations dengan explicit timestamp update
   const createMutation = useMutation({
-    mutationFn: (item: Partial<BahanBakuFrontend>) => createWarehouseItem(item, user?.id),
+    mutationFn: (item: Partial<BahanBakuFrontend>) => createWarehouseItem(item, userId || user?.id),
     onSuccess: (newItem) => {
       // ✅ FIXED: Update timestamp saat user berhasil tambah item
       setLastUserAction(new Date());
@@ -378,7 +379,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, item }: { id: string; item: Partial<BahanBakuFrontend> }) => updateWarehouseItem({ id, item, userId: user?.id }),
+    mutationFn: ({ id, item }: { id: string; item: Partial<BahanBakuFrontend> }) => updateWarehouseItem({ id, item, userId: userId || user?.id }),
     onSuccess: (updatedItem) => {
       // ✅ FIXED: Update timestamp saat user berhasil edit item
       setLastUserAction(new Date());
@@ -393,7 +394,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteWarehouseItem(id, user?.id),
+    mutationFn: (id: string) => deleteWarehouseItem(id, userId || user?.id),
     onSuccess: () => {
       // ✅ FIXED: Update timestamp saat user berhasil hapus item
       setLastUserAction(new Date());

@@ -35,6 +35,7 @@ export function useWarehouseSelection(
   }, []);
 
   const selectAllCurrent = useCallback(() => {
+    if (!items || items.length === 0) return;
     const currentIds = items.map(item => item.id);
     const allSelected = currentIds.every(id => selectedItems.includes(id));
     setSelectedItems(prev => {
@@ -53,12 +54,12 @@ export function useWarehouseSelection(
   );
 
   const allCurrentSelected = useMemo(
-    () => items.length > 0 && items.every(item => selectedItems.includes(item.id)),
+    () => items && items.length > 0 && items.every(item => selectedItems.includes(item.id)),
     [items, selectedItems]
   );
 
   const someCurrentSelected = useMemo(
-    () => !allCurrentSelected && items.some(item => selectedItems.includes(item.id)),
+    () => !allCurrentSelected && items && items.some(item => selectedItems.includes(item.id)),
     [items, selectedItems, allCurrentSelected]
   );
 

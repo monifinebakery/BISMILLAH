@@ -32,12 +32,10 @@ class UpdateService {
   private readonly REPO_NAME = 'BISMILLAH';
   private readonly BRANCH = 'main';
   
-  // Feature flag: enable/disable polling Supabase Edge Function
-  private readonly ENABLE_DEPLOYMENT_POLLING = Boolean(import.meta.env.VITE_ENABLE_DEPLOYMENT_POLLING);
-  // Supabase Edge Function for deployment status (only when enabled)
-  private readonly DEPLOYMENT_STATUS_ENDPOINT = (import.meta.env.VITE_SUPABASE_URL && this.ENABLE_DEPLOYMENT_POLLING)
-    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vercel-deployments`
-    : undefined;
+  // ❌ DISABLED: Feature flag disabled to prevent unnecessary network calls
+  private readonly ENABLE_DEPLOYMENT_POLLING = false; // Permanently disabled
+  // Supabase Edge Function for deployment status (disabled to reduce network overhead)
+  private readonly DEPLOYMENT_STATUS_ENDPOINT = undefined; // Always undefined
 
   constructor() {
     this.currentVersion = this.getCurrentVersion();

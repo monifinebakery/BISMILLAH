@@ -177,11 +177,9 @@ export const useUpdateNotification = () => {
   })();
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const ENABLE_DEPLOYMENT_POLLING = Boolean(import.meta.env.VITE_ENABLE_DEPLOYMENT_POLLING);
-  const DEPLOYMENT_STATUS_ENDPOINT = SUPABASE_URL && ENABLE_DEPLOYMENT_POLLING
-    ? `${SUPABASE_URL}/functions/v1/vercel-deployments`
-    : null;
-  const HAS_DEPLOYMENT_ENDPOINT = Boolean(DEPLOYMENT_STATUS_ENDPOINT) && ENABLE_DEPLOYMENT_POLLING;
+  const ENABLE_DEPLOYMENT_POLLING = false; // ❌ DISABLED: Prevent unnecessary network calls
+  const DEPLOYMENT_STATUS_ENDPOINT = null; // ❌ DISABLED: Always null to avoid API calls
+  const HAS_DEPLOYMENT_ENDPOINT = false; // ❌ DISABLED: Always false
 
   const pollDeploymentStatus = async (commitHash: string, timeout = 5 * 60 * 1000) => {
     // If env vars are not available (e.g., local dev or preview without secrets),

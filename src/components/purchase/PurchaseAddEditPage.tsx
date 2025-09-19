@@ -532,7 +532,7 @@ const PurchaseAddEditPage: React.FC = () => {
 
         {/* Action Bar (Sticky) */}
         {!isViewOnly && (
-          <div className="sticky bottom-0 sm:bottom-0 md:bottom-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-4 py-3 mt-6 mb-16 sm:mb-0">
+          <div className="sticky bottom-0 sm:bottom-0 md:bottom-0 z-40 bg-white/95 backdrop-blur border-t px-4 py-3 mt-6 mb-16 sm:mb-0">
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"

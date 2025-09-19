@@ -156,11 +156,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   // Initialize on mount
   useEffect(() => {
+    logger.debug("🔐 EmailAuthPage mounting, checking auth state...");
+    
     // Always check for expired sessions on mount
     const stored = loadAuthState();
+    logger.debug("🔐 Stored auth state:", stored);
+    
     if (stored?.authState === "sent" && stored?.otpRequestTime) {
       const isOtpExpired = (Date.now() - stored.otpRequestTime) > (10 * 60 * 1000);
+      logger.debug("🔐 OTP expiration check:", { 
+        isOtpExpired, 
+        otpRequestTime: stored.otpRequestTime,
+        currentTime: Date.now(),
+        age: Date.now() - stored.otpRequestTime
+      });
+      
       if (isOtpExpired) {
+        logger.debug("🔐 Clearing expired session and resetting to email input");
         // Clear expired session
         clearAuthState();
         // Reset to email input state
@@ -172,6 +184,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     }
     
     // Normal initialization
+    logger.debug("🔐 Proceeding with normal initialization");
     initializeFromStorage();
 
     // Clear session flag on unmount

@@ -109,16 +109,12 @@ const useAuthLifecycle = ({
         );
       }
     }, 60000); // Throttle to max once per minute instead of every 30 seconds
-  }, [session?.access_token, user?.id]);
+  }, [session, user, setSession, setUser]);
 
   useEffect(() => {
     if (!throttledAndroidValidation) return;
 
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    let interval: ReturnType<typeof setInterval> | undefined;
-
-    // Defer first run by 2 minutes to avoid interference with initial auth
-    timeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
       if (throttledAndroidValidation) {
         throttledAndroidValidation();
         // Check every 5 minutes instead of 30 seconds
@@ -569,7 +565,7 @@ const useAuthLifecycle = ({
         }
       }
 
-      if (validUser && window.location.pathname !== "/") {
+      if (validUser && window.location.pathname === "/auth") {
         navigate("/", { replace: true });
       }
     });

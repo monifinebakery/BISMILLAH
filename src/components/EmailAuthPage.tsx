@@ -522,8 +522,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           );
         }
 
-        // ✅ AuthContext will handle the redirect automatically via onAuthStateChange
-
+        // ✅ Force refresh + redirect so user isn't stuck on /auth during propagation
         return;
       } else if (ok === "expired") {
         setAuthState("expired");

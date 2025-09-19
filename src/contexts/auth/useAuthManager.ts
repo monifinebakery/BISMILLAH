@@ -569,32 +569,8 @@ const useAuthLifecycle = ({
         }
       }
 
-      if (validUser && window.location.pathname === "/auth") {
-        try {
-          // Prevent duplicate rapid navigations that can cause flicker and Chrome IPC flooding protection warnings
-          const w = window as any;
-          if (w.__AUTH_REDIRECTING__) {
-            logger.debug(
-              "AuthContext: Redirect already in flight, skipping duplicate",
-            );
-          } else {
-            w.__AUTH_REDIRECTING__ = true;
-            logger.info(
-              "AuthContext: 🚀 REDIRECTING authenticated user from /auth to / (SPA)",
-              {
-                userId: validUser.id,
-                email: validUser.email,
-                currentPath: window.location.pathname,
-                timestamp: new Date().toISOString(),
-              },
-            );
-            navigate("/", { replace: true });
-          }
-        } catch (redirectError) {
-          logger.error("AuthContext: Redirect error:", redirectError);
-          // Fallback to a single navigate attempt
-          navigate("/", { replace: true });
-        }
+      if (validUser) {
+        navigate("/", { replace: true });
       }
     });
 

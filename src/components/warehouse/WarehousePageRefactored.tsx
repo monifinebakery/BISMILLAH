@@ -329,7 +329,15 @@ const WarehousePageRefactored: React.FC = () => {
             searchTerm={searchTerm}
             onSearchChange={handleSearch}
             filters={filters}
-            onFilterChange={handleFilterChange}
+            onFiltersChange={handleFilterChange}
+            onResetFilters={coreResult.filters?.reset || (() => {})}
+            itemsPerPage={coreResult.pagination?.itemsPerPage || 10}
+            onItemsPerPageChange={coreResult.pagination?.setItemsPerPage || (() => {})}
+            isSelectionMode={coreResult.selection?.isSelectionMode || false}
+            onToggleSelectionMode={coreResult.selection?.toggleSelectionMode || (() => {})}
+            availableCategories={coreResult.filters?.availableCategories || []}
+            availableSuppliers={coreResult.filters?.availableSuppliers || []}
+            activeFiltersCount={coreResult.filters?.activeCount || 0}
           />
 
           {/* Bulk Actions */}

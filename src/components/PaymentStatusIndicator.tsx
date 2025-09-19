@@ -29,19 +29,8 @@ const PaymentStatusIndicator = ({ size = 'sm' }: PaymentStatusIndicatorProps) =>
     );
   }
 
-  return (
-    <Button
-      // MODIFIED: Mengubah onClick handler untuk langsung membuka URL
-      onClick={() => window.open(UPGRADE_URL, '_blank')}
-      variant="outline"
-      // MODIFIED: Menggunakan prop 'size' yang diterima
-      size={size}
-      className="border-orange-300 text-orange-600 hover:bg-orange-50"
-    >
-      <Zap className="h-3 w-3 mr-1" />
-      Upgrade
-    </Button>
-  );
+  // HIDE upgrade button for non-paid users (requested)
+  return null;
 };
 
 export default PaymentStatusIndicator;

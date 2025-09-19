@@ -5,6 +5,7 @@
 import React, { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useLocation } from 'react-router-dom';
 
 // ⚡ CRITICAL: Always load immediately
 import { AuthProvider } from './AuthContext';
@@ -90,7 +91,8 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   };
 
   const CoreProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const isAuthRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth');
+    const { pathname } = useLocation();
+    const isAuthRoute = pathname.startsWith('/auth');
     if (isAuthRoute) {
       // On auth route, mount only AuthProvider to avoid heavy queries
       return <AuthProvider>{children}</AuthProvider>;
@@ -102,7 +104,8 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     );
   };
 
-  const isAuthRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth');
+  const { pathname } = useLocation();
+  const isAuthRoute = pathname.startsWith('/auth');
 
   return (
     <>

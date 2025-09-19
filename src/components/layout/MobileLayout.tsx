@@ -28,9 +28,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
         <AppSidebar />
 
         {/* 📱 Main content inset */}
-        <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
+        <SidebarInset className="flex-1 w-full min-w-0 flex flex-col bg-white">
           {/* 📱 Mobile Header with sidebar trigger and actions */}
-          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-white/95 backdrop-blur px-4 sm:px-6 w-full">
+          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-white px-4 sm:px-6 w-full">
             <SidebarTrigger className="-ml-1 flex-shrink-0 !relative !static !z-auto" />
             <div className="flex-1" />
             <div className="flex items-center space-x-4">

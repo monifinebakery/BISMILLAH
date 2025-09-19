@@ -48,11 +48,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const navigate = useNavigate();
   const { refreshUser, triggerRedirectCheck: redirectCheck } = useAuth();
 
-  // 🔄 MOBILE-PERSISTENT Storage keys
-  const AUTH_STORAGE_KEY = 'mobile_auth_state';
+  // 🔄 UNIVERSAL-PERSISTENT Storage keys (works on all devices)
+  const AUTH_STORAGE_KEY = 'otp_auth_state';
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  // 📱 Persistent storage helpers
+  // 📱 Persistent storage helpers (now works for all devices)
   const saveAuthState = useCallback((data: {
     email?: string;
     authState?: AuthState;
@@ -60,19 +60,17 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     cooldownStartTime?: number;
     otpRequestTime?: number;
   }) => {
-    if (!isMobile) return; // Only persist on mobile
     try {
       const existing = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}');
       const updated = { ...existing, ...data, timestamp: Date.now() };
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
-      logger.debug('📱 Auth state saved:', data);
+      logger.debug('💾 Auth state saved:', data);
     } catch (error) {
       logger.warn('Failed to save auth state:', error);
     }
-  }, [AUTH_STORAGE_KEY, isMobile]);
+  }, [AUTH_STORAGE_KEY]);
   
   const loadAuthState = useCallback(() => {
-    if (!isMobile) return null;
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (!stored) return null;
@@ -85,13 +83,13 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         return null;
       }
       
-      logger.debug('📱 Auth state loaded:', data);
+      logger.debug('💾 Auth state loaded:', data);
       return data;
     } catch (error) {
       logger.warn('Failed to load auth state:', error);
       return null;
     }
-  }, [AUTH_STORAGE_KEY, isMobile]);
+  }, [AUTH_STORAGE_KEY]);
   
   const clearAuthState = useCallback(() => {
     try {
@@ -136,11 +134,11 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
 
-  // 📱 Mobile state restoration on mount
+  // 💾 Universal state restoration on mount (all devices)
   useEffect(() => {
     const stored = loadAuthState();
-    if (stored && isMobile) {
-      logger.debug('📱 Restoring mobile auth state:', stored);
+    if (stored) {
+      logger.debug('💾 Restoring auth state:', stored);
       
       // Restore cooldown if it was active
       if (stored.cooldownStartTime && stored.cooldownTime) {
@@ -148,7 +146,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         const remaining = Math.max(0, stored.cooldownTime - elapsed);
         
         if (remaining > 0) {
-          logger.debug('📱 Restoring cooldown timer:', { remaining, elapsed });
+          logger.debug('💾 Restoring cooldown timer:', { remaining, elapsed });
           setCooldownTime(remaining);
           // Directly start timer instead of using startCooldown to avoid dependency
           if (timerRef.current) clearInterval(timerRef.current);
@@ -166,7 +164,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         }
       }
       
-      // Show notification that state was restored
+      // Show notification that state was restored (deduplication to prevent spam)
       if (stored.authState === 'sent') {
         // 🕐 Show timing info when state is restored
         let timingInfo = '';
@@ -180,26 +178,41 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
             timingInfo = ' (mungkin sudah kadaluarsa)';
           }
         }
-        toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`);
+        const TOAST_ID = 'auth_restored_info';
+        // Prevent duplicate toasts within a session
+        try {
+          const shown = sessionStorage.getItem(TOAST_ID);
+          if (!shown) {
+            toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`, { id: TOAST_ID });
+            sessionStorage.setItem(TOAST_ID, '1');
+          }
+        } catch {
+          toast.info(`Status login dipulihkan. Silakan masukkan kode OTP${timingInfo}.`);
+        }
       }
     }
   }, []); // Only run on mount
   
-  // 📱 Page Visibility API - Handle app switching
+  // Clear dedupe flag on unmount (new session)
   useEffect(() => {
-    if (!isMobile) return;
-    
+    return () => {
+      try { sessionStorage.removeItem('auth_restored_info'); } catch {}
+    };
+  }, []);
+  
+  // 💾 Universal Page Visibility + Focus/Blur - Handle tab switching (all devices)
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // User returned to app - restore state if needed
+        // User returned to tab - restore state if needed
         const stored = loadAuthState();
         if (stored && stored.authState === 'sent' && authState !== 'sent') {
-          logger.debug('📱 App became visible, restoring OTP state');
+          logger.debug('💾 Tab became visible, restoring OTP state');
           setAuthState('sent');
           setEmail(stored.email || email);
         }
       } else {
-        // User left app - save current state
+        // User left tab - save current state
         if (authState === 'sent' || cooldownTime > 0) {
           saveAuthState({
             email,
@@ -211,12 +224,39 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       }
     };
     
+    const handleWindowFocus = () => {
+      // User focused window - restore state if needed (fallback for browsers that don't fire visibilitychange)
+      const stored = loadAuthState();
+      if (stored && stored.authState === 'sent' && authState !== 'sent') {
+        logger.debug('💾 Window focused, restoring OTP state');
+        setAuthState('sent');
+        setEmail(stored.email || email);
+      }
+    };
+    
+    const handleWindowBlur = () => {
+      // User unfocused window - save current state
+      if (authState === 'sent' || cooldownTime > 0) {
+        saveAuthState({
+          email,
+          authState,
+          cooldownTime,
+          cooldownStartTime: cooldownTime > 0 ? Date.now() : undefined
+        });
+      }
+    };
+    
+    // Add multiple event listeners for maximum compatibility
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('blur', handleWindowBlur);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [email, authState, cooldownTime, loadAuthState, saveAuthState, isMobile]);
+  }, [email, authState, cooldownTime, loadAuthState, saveAuthState]);
   
   // Cleanup
   useEffect(() => {
@@ -264,9 +304,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    // 📱 Clear mobile persistent state
+    // 💾 Clear persistent state
     clearAuthState();
-    logger.debug("📱 Full reset performed with state cleanup");
+    logger.debug("💾 Full reset performed with state cleanup");
   };
 
   // Validation
@@ -317,7 +357,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       if (success) {
         setAuthState("sent");
         startCooldown(60);
-        // 📱 Save mobile state after successful OTP send
+        // 💾 Save state after successful OTP send
         const now = Date.now();
         saveAuthState({
           email,
@@ -375,7 +415,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
       if (success) {
         setAuthState("sent");
         startCooldown(60);
-        // 📱 Save mobile state after successful resend
+        // 💾 Save state after successful resend
         const now = Date.now();
         saveAuthState({
           email,

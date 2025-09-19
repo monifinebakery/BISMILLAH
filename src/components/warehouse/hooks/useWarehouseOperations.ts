@@ -236,12 +236,26 @@ export const useWarehouseOperations = (page: number = 1, limit: number = 10, use
   
   // Extract data based on pagination mode with defensive checks
   const bahanBaku = useMemo(() => {
+    logger.debug('useWarehouseOperations: Processing queryData:', {
+      queryData: !!queryData,
+      queryDataType: typeof queryData,
+      isArray: Array.isArray(queryData),
+      usePagination,
+      queryDataLength: Array.isArray(queryData) ? queryData.length : 'N/A',
+      userId: user?.id,
+      loading
+    });
+    
     if (usePagination && isPaginatedWarehouseResponse(queryData)) {
-      return queryData.data || [];
+      const result = queryData.data || [];
+      logger.debug('useWarehouseOperations: Returning paginated data:', result.length);
+      return result;
     }
     // Ensure we always return an array, even if queryData is undefined/null
-    return Array.isArray(queryData) ? queryData : [];
-  }, [queryData, usePagination]);
+    const result = Array.isArray(queryData) ? queryData : [];
+    logger.debug('useWarehouseOperations: Returning direct data:', result.length);
+    return result;
+  }, [queryData, usePagination, user?.id, loading]);
     
   const paginationInfo = usePagination && isPaginatedWarehouseResponse(queryData)
     ? {
@@ -306,16 +320,33 @@ export const useWarehouseOperations = (page: number = 1, limit: number = 10, use
   });
 
   const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: string[]) => bulkDeleteWarehouseItems(ids, user?.id),
-    onSuccess: () => {
+    mutationFn: async (ids: string[]) => {
+      if (!ids || ids.length === 0) {
+        throw new Error('Tidak ada item yang dipilih untuk dihapus');
+      }
+      if (!user?.id) {
+        throw new Error('User tidak terautentikasi');
+      }
+      logger.info('Starting bulk delete mutation:', { ids, userId: user.id });
+      const result = await bulkDeleteWarehouseItems(ids, user.id);
+      if (!result) {
+        throw new Error('Bulk delete operation failed');
+      }
+      return result;
+    },
+    onSuccess: (result, variables) => {
       // ✅ Update timestamp saat user berhasil bulk delete items
       setLastUserAction(new Date());
       queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
-      logger.info('✅ Item berhasil dihapus secara massal');
-      toast.success('Item berhasil dihapus secara massal!');
+      logger.info(`✅ Successfully bulk deleted ${variables.length} items`);
+      toast.success(`${variables.length} item berhasil dihapus!`);
     },
-    onError: (error: Error) => {
-      logger.error('❌ Gagal menghapus item secara massal:', error.message);
+    onError: (error: Error, variables) => {
+      logger.error('❌ Bulk delete mutation failed:', {
+        error: error.message,
+        ids: variables,
+        userId: user?.id
+      });
       toast.error(`Gagal menghapus item: ${error.message}`);
     },
   });

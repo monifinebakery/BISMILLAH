@@ -371,39 +371,74 @@ class CrudService {
 
   async bulkDeleteBahanBaku(ids: string[]): Promise<boolean> {
     try {
+      // Validate input
+      if (!ids || ids.length === 0) {
+        logger.warn('Bulk delete called with empty IDs');
+        return true;
+      }
+      
+      if (!this.config.userId) {
+        throw new Error('User ID is required for bulk delete');
+      }
+      
+      logger.info(`Starting bulk delete for ${ids.length} items:`, ids);
+      
       // First, get names for logging
-      const { data: existingBahan } = await supabase
+      const { data: existingBahan, error: fetchError } = await supabase
         .from('bahan_baku')
         .select('id, nama')
         .in('id', ids)
-        .eq('user_id', this.config.userId || '');
+        .eq('user_id', this.config.userId);
+        
+      if (fetchError) {
+        logger.error('Failed to fetch materials for bulk delete:', fetchError);
+        throw fetchError;
+      }
         
       const bahanNames = existingBahan?.map(b => b.nama) || [];
+      const foundIds = existingBahan?.map(b => b.id) || [];
+      
+      if (foundIds.length === 0) {
+        logger.warn('No materials found for bulk delete - they may already be deleted');
+        return true;
+      }
+      
+      logger.info(`Found ${foundIds.length} materials to delete:`, bahanNames);
       
       // 🧹 CLEANUP: Delete related pemakaian_bahan records for all materials
-      const { error: usageCleanupError } = await supabase
-        .from('pemakaian_bahan')
-        .delete()
-        .in('bahan_baku_id', ids)
-        .eq('user_id', this.config.userId || '');
-        
-      if (usageCleanupError) {
-        console.warn('Warning: Failed to clean up pemakaian_bahan records:', usageCleanupError.message);
-        // Continue with deletion since FK should handle this
+      try {
+        const { error: usageCleanupError } = await supabase
+          .from('pemakaian_bahan')
+          .delete()
+          .in('bahan_baku_id', foundIds)
+          .eq('user_id', this.config.userId);
+          
+        if (usageCleanupError) {
+          console.warn('Warning: Failed to clean up pemakaian_bahan records:', usageCleanupError.message);
+          // Continue with deletion since FK should handle this
+        }
+      } catch (cleanupError) {
+        console.warn('Warning: Cleanup error (continuing with main delete):', cleanupError);
       }
       
       // Delete the main bahan_baku records
-      let query = supabase.from('bahan_baku').delete().in('id', ids);
-      if (this.config.userId) query = query.eq('user_id', this.config.userId);
+      const { error: deleteError } = await supabase
+        .from('bahan_baku')
+        .delete()
+        .in('id', foundIds)
+        .eq('user_id', this.config.userId);
 
-      const { error } = await query;
-      if (error) throw error;
+      if (deleteError) {
+        logger.error('Bulk delete failed:', deleteError);
+        throw deleteError;
+      }
       
-      console.log(`✅ Bulk deleted ${ids.length} materials and related data:`, bahanNames.join(', '));
+      logger.info(`✅ Successfully bulk deleted ${foundIds.length} materials:`, bahanNames);
       return true;
     } catch (error: any) {
+      logger.error('Bulk delete operation failed:', { error: error.message, ids });
       this.handleError('Bulk delete failed', error);
-      return false;
+      throw new Error(`Failed to bulk delete items: ${error.message}`);
     }
   }
 

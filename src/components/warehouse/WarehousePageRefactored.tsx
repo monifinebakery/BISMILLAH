@@ -286,16 +286,25 @@ const WarehousePageRefactored: React.FC = () => {
     <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
   </div>}>
                 <WarehouseTable
-                  data={bahanBaku || []}
-                  selectedItems={selectedItems}
-                  sortConfig={sortConfig}
-                  onSelectItem={handleSelectItem}
-                  onSelectAll={handleSelectAll}
-                  onSort={handleSort}
+                  items={bahanBaku || []}
+                  isLoading={loading}
+                  isSelectionMode={selectedItems && selectedItems.length > 0}
+                  searchTerm={""}
+                  sortConfig={sortConfig || { key: 'nama', direction: 'asc' }}
+                  onSort={(key) => handleSort(key as string)}
                   onEdit={(item) => openDialog('edit', item)}
-                  onDelete={(item) => openDialog('delete', item)}
-                  onDetail={handleNavigateToDetail}
-                  loading={loading}
+                  onDelete={(id, nama) => {
+                    const item = (bahanBaku || []).find(b => b.id === id);
+                    if (item) openDialog('delete', item);
+                  }}
+                  emptyStateAction={() => handleNavigateToAddEdit()}
+                  onRefresh={smartRefetch}
+                  selectedItems={selectedItems}
+                  onToggleSelection={handleSelectItem}
+                  onSelectPage={handleSelectAll}
+                  isSelected={(id: string) => selectedItems?.includes(id) || false}
+                  isPageSelected={selectedItems && selectedItems.length > 0 && selectedItems.length === bahanBaku?.length}
+                  isPagePartiallySelected={selectedItems && selectedItems.length > 0 && selectedItems.length < (bahanBaku?.length || 0)}
                 />
               </Suspense>
             </ErrorBoundary>

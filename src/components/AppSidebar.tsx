@@ -31,7 +31,7 @@ import type { BahanBakuFrontend } from "@/components/warehouse/types";
 import type { FinancialTransaction } from "@/components/financial/types/financial";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { usePromo } from "@/components/promoCalculator/context/PromoContext";
-import { useOperationalCost } from "@/components/operational-costs/context/OperationalCostContext";
+import { useOperationalCostRefactored } from '@/components/operational-costs/context/OperationalCostContextRefactored';
 
 import { useAssetQuery } from "@/components/assets";
 import { useAuth } from "@/contexts/AuthContext";
@@ -96,7 +96,7 @@ export function AppSidebar() {
   }
   
   const { promos } = usePromo();
-  const { state: operationalCostState } = useOperationalCost();
+  const { state: operationalCostState } = useOperationalCostRefactored();
 
   const { assets, isLoading: assetsLoading } = useAssetQuery({ userId: user?.id, enableRealtime: false });
   const { currentAnalysis: profitAnalysis, profitHistory, loading: profitLoading } =

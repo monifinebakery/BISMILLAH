@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Target, Calculator, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useOperationalCost } from '../context/OperationalCostContext';
+import { useOperationalCostRefactored } from '../context/OperationalCostContextRefactored';
 import { productionOutputApi } from '../services/productionOutputApi';
 import { logger } from '@/utils/logger';
 
@@ -20,7 +20,7 @@ const ProductionTargetSettings: React.FC<ProductionTargetSettingsProps> = ({
   className = '',
   onTargetChanged,
 }) => {
-  const { actions } = useOperationalCost();
+  const { actions } = useOperationalCostRefactored();
   const [targetPcs, setTargetPcs] = useState<number>(1000);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCurrent, setIsLoadingCurrent] = useState(true);

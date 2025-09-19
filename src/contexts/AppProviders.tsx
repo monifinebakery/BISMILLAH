@@ -28,7 +28,7 @@ import { ProfitAnalysisProvider } from '@/components/profitAnalysis/contexts';
 import { PurchaseProvider } from '@/components/purchase/context/PurchaseContext';
 import { OrderProvider } from '@/components/orders/context/OrderProvider';
 import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
-import { OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContext';
+import { OperationalCostProviderRefactored as OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContextRefactored';
 import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
 import { DeviceProvider } from './DeviceContext';
 

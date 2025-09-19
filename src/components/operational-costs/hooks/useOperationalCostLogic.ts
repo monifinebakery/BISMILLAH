@@ -1,7 +1,7 @@
 // src/components/operational-costs/hooks/useOperationalCostLogic.ts
 
 import { useState, useEffect, useRef } from 'react';
-import { useOperationalCost } from '../context';
+import { useOperationalCostRefactored as useOperationalCost } from '../context/OperationalCostContextRefactored';
 import { useOperationalCostTable } from './useOperationalCostTable';
 import { useOperationalCostBulkNew } from './useOperationalCostBulkNew';
 import { appSettingsApi } from '../services/appSettingsApi';

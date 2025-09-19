@@ -96,7 +96,7 @@ export const RecipeComponents = {
   ),
   
   IngredientsStep: React.lazy(() => 
-    import(/* webpackChunkName: "ingredients-step" */ '@/components/recipe/components/RecipeForm/IngredientsStep')
+    import(/* webpackChunkName: "ingredients-step" */ '@/components/recipe/components/RecipeForm/IngredientsStepRefactored')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat langkah bahan') }))
   )
 };

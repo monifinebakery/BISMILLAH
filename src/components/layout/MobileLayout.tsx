@@ -30,7 +30,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
         {/* 📱 Main content inset */}
         <SidebarInset className="flex-1 w-full min-w-0 flex flex-col">
           {/* 📱 Mobile Header with sidebar trigger and actions */}
-          <header className="sticky top-0 z-40 flex h-12 items-center gap-2 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-2">
+          <header className="sticky top-0 z-40 flex h-12 items-center gap-2 border-b bg-white/95 backdrop-blur px-2">
             <SidebarTrigger className="-ml-1" />
             <div className="flex-1" />
             <div className="flex items-center space-x-2">

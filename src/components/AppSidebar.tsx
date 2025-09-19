@@ -38,6 +38,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { financialQueryKeys } from "@/components/financial/hooks/useFinancialHooks";
 import financialApi from "@/components/financial/services/financialApi";
+import { orderQueryKeys } from "@/components/orders/hooks/useOrderData";
+import * as orderService from "@/components/orders/services/orderService";
+import { warehouseApi } from "@/components/warehouse/services/warehouseApi";
 
 import { useProfitAnalysis } from "@/components/profitAnalysis";
 import { exportAllDataToExcel } from "@/utils/exportUtils";
@@ -171,8 +174,36 @@ export function AppSidebar() {
     } catch {}
   }, [queryClient, user?.id]);
 
+  const prefetchOrders = React.useCallback(() => {
+    try {
+      if (!user?.id) return;
+      queryClient.prefetchQuery({
+        queryKey: orderQueryKeys.list(user.id),
+        queryFn: () => orderService.fetchOrders(user.id),
+        staleTime: 5 * 60 * 1000,
+      });
+    } catch {}
+  }, [queryClient, user?.id]);
+
+  const prefetchWarehouse = React.useCallback(() => {
+    try {
+      if (!user?.id) return;
+      queryClient.prefetchQuery({
+        queryKey: ['warehouse','list'],
+        queryFn: async () => {
+          const service = await warehouseApi.createService('crud', { userId: user.id });
+          // @ts-ignore service type
+          return service.fetchBahanBaku();
+        },
+        staleTime: 2 * 60 * 1000,
+      });
+    } catch {}
+  }, [queryClient, user?.id]);
+
   const renderMenuItem = (item: { title: string; url: string; icon: React.ElementType }, isActive: boolean) => {
     const isFinancial = item.url === "/laporan";
+    const isOrders = item.url === "/pesanan";
+    const isWarehouse = item.url === "/gudang";
     return (
       <SidebarMenuButton
         tooltip={item.title}
@@ -180,9 +211,9 @@ export function AppSidebar() {
         isActive={isActive}
         style={baseMenuButtonStyle}
         className={cn(baseMenuButtonClass, "flex items-center", isActive && "!bg-orange-100 !text-orange-600 !border-orange-200")}
-        onMouseEnter={isFinancial ? prefetchFinancial : undefined}
-        onFocus={isFinancial ? prefetchFinancial : undefined}
-        onTouchStart={isFinancial ? prefetchFinancial : undefined}
+        onMouseEnter={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : undefined}
+        onFocus={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : undefined}
+        onTouchStart={isFinancial ? prefetchFinancial : isOrders ? prefetchOrders : isWarehouse ? prefetchWarehouse : undefined}
       >
         <item.icon className="h-5 w-5 flex-shrink-0" />
         <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>

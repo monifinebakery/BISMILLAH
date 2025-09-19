@@ -27,6 +27,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { financialQueryKeys } from '@/components/financial/hooks/useFinancialHooks';
 import financialApi from '@/components/financial/services/financialApi';
+import { orderQueryKeys } from '@/components/orders/hooks/useOrderData';
+import * as orderService from '@/components/orders/services/orderService';
+import { warehouseApi } from '@/components/warehouse/services/warehouseApi';
 
 import {
   AlertDialog,
@@ -181,6 +184,28 @@ const MenuPage = () => {
     });
   }, [queryClient, user?.id]);
 
+  const prefetchOrders = React.useCallback(() => {
+    if (!user?.id) return;
+    queryClient.prefetchQuery({
+      queryKey: orderQueryKeys.list(user.id),
+      queryFn: () => orderService.fetchOrders(user.id),
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [queryClient, user?.id]);
+
+  const prefetchWarehouse = React.useCallback(() => {
+    if (!user?.id) return;
+    queryClient.prefetchQuery({
+      queryKey: ['warehouse','list'],
+      queryFn: async () => {
+        const service = await warehouseApi.createService('crud', { userId: user.id });
+        // @ts-ignore
+        return service.fetchBahanBaku();
+      },
+      staleTime: 2 * 60 * 1000,
+    });
+  }, [queryClient, user?.id]);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -216,8 +241,8 @@ const MenuPage = () => {
               key={item.path}
               className="cursor-pointer hover:border-gray-300 transition-all duration-200 border-gray-200 bg-white rounded-xl hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate(item.path)}
-              onMouseEnter={item.path === '/laporan' ? prefetchFinancial : undefined}
-              onTouchStart={item.path === '/laporan' ? prefetchFinancial : undefined}
+              onMouseEnter={item.path === '/laporan' ? prefetchFinancial : item.path === '/pesanan' ? prefetchOrders : item.path === '/gudang' ? prefetchWarehouse : undefined}
+              onTouchStart={item.path === '/laporan' ? prefetchFinancial : item.path === '/pesanan' ? prefetchOrders : item.path === '/gudang' ? prefetchWarehouse : undefined}
             >
               <CardContent className="p-4 flex items-start gap-4">
                 {/* Icon */}

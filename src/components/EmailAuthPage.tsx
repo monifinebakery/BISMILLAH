@@ -127,8 +127,15 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         }
       } else {
         // ✅ ENHANCED: Clear expired or invalid state
-        if (stored.authState === "sent" && isOtpExpired) {
-          logger.debug("🧽 Clearing expired OTP session");
+        logger.debug("🧽 Clearing invalid or expired auth state", {
+          hasStoredState: !!stored.authState,
+          storedAuthState: stored.authState,
+          isOtpExpired,
+          hasEmail: !!stored.email,
+          hasOtpRequestTime: !!stored.otpRequestTime
+        });
+        
+        if (stored.authState === "sent") {
           clearAuthState();
         }
         
@@ -149,6 +156,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
 
   // Initialize on mount
   useEffect(() => {
+    // Always check for expired sessions on mount
+    const stored = loadAuthState();
+    if (stored?.authState === "sent" && stored?.otpRequestTime) {
+      const isOtpExpired = (Date.now() - stored.otpRequestTime) > (10 * 60 * 1000);
+      if (isOtpExpired) {
+        // Clear expired session
+        clearAuthState();
+        // Reset to email input state
+        setAuthState("idle");
+        setEmail("");
+        setOtp(["", "", "", "", "", ""]);
+        return;
+      }
+    }
+    
+    // Normal initialization
     initializeFromStorage();
 
     // Clear session flag on unmount
@@ -157,7 +180,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         sessionStorage.removeItem("auth_restored_info");
       } catch {}
     };
-  }, [initializeFromStorage]);
+  }, [initializeFromStorage, loadAuthState, clearAuthState]);
 
   // Page Visibility API - NOW WORKS FOR ALL PLATFORMS
   useEffect(() => {

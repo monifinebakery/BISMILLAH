@@ -157,6 +157,7 @@ html.dark .mobile-layout-force-white *,
 /* ============================
    Components (Dialog, Cards, etc.)
    ============================
+*/
 @layer components {
   /* ---- DIALOG SYSTEM: Responsive & Consistent ---- 
      Primary pattern: 
@@ -597,5 +598,4 @@ html.dark .mobile-layout-force-white *,
       font-size: 0.875rem;
     }
   }
-
 }

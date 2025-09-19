@@ -169,26 +169,34 @@ export const useUpdateNotification = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
 
-  // Delay before showing the banner (ms). Default to 2000ms if not provided.
+  // ✅ Delay before showing the banner (ms). Default to 3000ms for better UX.
   const UPDATE_BANNER_DELAY_MS = (() => {
     const raw = import.meta.env.VITE_UPDATE_BANNER_DELAY_MS as unknown as string | undefined;
     const num = raw ? Number(raw) : NaN;
-    return Number.isFinite(num) ? Number(num) : 2000;
+    return Number.isFinite(num) ? Number(num) : 3000; // Increased default delay
   })();
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const ENABLE_DEPLOYMENT_POLLING = false; // ❌ DISABLED: Prevent unnecessary network calls
-  const DEPLOYMENT_STATUS_ENDPOINT = null; // ❌ DISABLED: Always null to avoid API calls
-  const HAS_DEPLOYMENT_ENDPOINT = false; // ❌ DISABLED: Always false
+  // ✅ ENABLED: Enable deployment polling to check Vercel status
+  const ENABLE_DEPLOYMENT_POLLING = true; 
+  const DEPLOYMENT_STATUS_ENDPOINT = import.meta.env.VITE_VERCEL_DEPLOYMENT_ENDPOINT || null;
+  const HAS_DEPLOYMENT_ENDPOINT = !!DEPLOYMENT_STATUS_ENDPOINT;
 
   const pollDeploymentStatus = async (commitHash: string, timeout = 5 * 60 * 1000) => {
     // If env vars are not available (e.g., local dev or preview without secrets),
-    // silently skip polling and do nothing.
+    // fallback to immediate banner display with delay.
     if (!HAS_DEPLOYMENT_ENDPOINT) {
       if (import.meta.env.DEV) {
-        // Keep logs only in dev to avoid noisy console in production
-        console.info('[update] Skipping deployment polling: endpoint not set');
+        console.info('[update] No deployment endpoint, showing banner immediately with delay');
       }
+      // ✅ Show banner immediately with delay when no endpoint available
+      setTimeout(() => {
+        showUpdateNotification({ 
+          commitHash, 
+          updateAvailable: true,
+          deploymentUrl: window.location.origin 
+        });
+      }, UPDATE_BANNER_DELAY_MS);
       return;
     }
 
@@ -233,16 +241,38 @@ export const useUpdateNotification = () => {
           );
         });
 
-        // Only show banner when deployment is READY, not during BUILDING or QUEUED
+        // ✅ Only show banner when deployment is READY, not during BUILDING or QUEUED
         const state = deployment?.readyState || deployment?.state;
+        console.info('[update] Deployment status:', { state, commitHash, hasDeployment: !!deployment });
+        
         if (deployment && state === 'READY') {
-          showUpdateNotification({ newVersion: commitHash, deploymentUrl: deployment.url });
+          // ✅ Show banner with delay when deployment is ready
+          console.info('[update] Deployment is READY, showing banner with delay:', UPDATE_BANNER_DELAY_MS + 'ms');
+          setTimeout(() => {
+            showUpdateNotification({ 
+              newVersion: commitHash, 
+              deploymentUrl: deployment.url,
+              updateAvailable: true,
+              commitHash 
+            });
+          }, UPDATE_BANNER_DELAY_MS);
           setIsPolling(false);
-        } else if (deployment && (state === 'BUILDING' || state === 'QUEUED')) {
+        } else if (deployment && (state === 'BUILDING' || state === 'QUEUED' || state === 'INITIALIZING')) {
           // Continue polling every 15 seconds while building
+          console.info('[update] Deployment still building, will check again in 15s');
           setTimeout(checkStatus, 15000);
+        } else if (!deployment) {
+          // Deployment not found yet, continue polling for a bit
+          if (Date.now() - startTime < 60000) { // Poll for max 1 minute
+            console.info('[update] Deployment not found yet, will check again in 10s');
+            setTimeout(checkStatus, 10000);
+          } else {
+            console.warn('[update] Deployment not found after 1 minute, stopping polling');
+            setIsPolling(false);
+          }
         } else {
-          // Deployment not found or in a different state, stop polling
+          // Deployment in error or other state, stop polling
+          console.warn('[update] Deployment in state:', state, '- stopping polling');
           setIsPolling(false);
         }
       } catch (error) {

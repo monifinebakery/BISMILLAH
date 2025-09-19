@@ -203,9 +203,9 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
   
   // Query untuk mapping supplier ID ke nama (untuk resolve existing data)
   const { data: suppliersMapping = [] } = useQuery({
-    queryKey: ['dialog-suppliers-mapping'],
-    queryFn: fetchSuppliersWithMapping,
-    enabled: isOpen,
+    queryKey: ['dialog-suppliers-mapping', user?.id],
+    queryFn: () => fetchSuppliersWithMapping(user?.id),
+    enabled: isOpen && !!user?.id,
     staleTime: 5 * 60 * 1000,
   });
   

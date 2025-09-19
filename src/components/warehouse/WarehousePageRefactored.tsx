@@ -282,7 +282,7 @@ const WarehousePageRefactored: React.FC = () => {
     if (itemId) {
       navigate(`/warehouse/edit/${itemId}`);
     } else {
-      navigate('/warehouse/add');
+      navigate('/warehouse/new');
     }
   };
 
@@ -357,8 +357,7 @@ const WarehousePageRefactored: React.FC = () => {
                   sortConfig={sortConfig || { key: 'nama', direction: 'asc' }}
                   onSort={handleSort}
                   onEdit={(item) => {
-                    const handleEdit = coreResult.handlers?.edit;
-                    if (handleEdit) handleEdit(item);
+                    navigate(`/warehouse/edit/${item.id}`);
                   }}
                   onDelete={(id, nama) => {
                     const handleDelete = coreResult.handlers?.delete;

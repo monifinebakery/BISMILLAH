@@ -49,6 +49,7 @@ export const withSmartLazy = <P extends object>(
   Component: React.ComponentType<P>,
   name: string
 ) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return React.forwardRef<any, P>((props, ref) => (
     <React.Suspense fallback={<QuickFallback />}>
       <Component {...props} ref={ref} />

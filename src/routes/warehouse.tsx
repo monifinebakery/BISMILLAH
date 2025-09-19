@@ -12,6 +12,10 @@ const WarehouseAddEditPage = React.lazy(() =>
   import(/* webpackChunkName: "warehouse-add-edit" */ '@/components/warehouse/components/WarehouseAddEditPage')
 );
 
+const EditBahanBaku = React.lazy(() =>
+  import(/* webpackChunkName: "warehouse-edit-fullpage" */ '@/components/warehouse/pages/EditBahanBaku')
+);
+
 const WarehouseErrorFallback: React.FC<{ 
   error: Error; 
   resetErrorBoundary: () => void;
@@ -46,10 +50,51 @@ const WarehouseErrorFallback: React.FC<{
 const warehouseRoutes = (
   <>
     <Route
-      path="gudang"
+      path="warehouse"
       element={
         <OptimizedRouteWrapper 
           routeName="warehouse" 
+          priority="high"
+          preloadOnHover={true}
+          errorFallback={WarehouseErrorFallback}
+        >
+          <WarehousePage />
+        </OptimizedRouteWrapper>
+      }
+    />
+    <Route
+      path="warehouse/edit/:id"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="warehouse-edit-fullpage" 
+          priority="medium"
+          preloadOnHover={true}
+          errorFallback={WarehouseErrorFallback}
+        >
+          <EditBahanBaku />
+        </OptimizedRouteWrapper>
+      }
+    />
+    <Route
+      path="warehouse/new"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="warehouse-add-fullpage" 
+          priority="medium"
+          preloadOnHover={true}
+          errorFallback={WarehouseErrorFallback}
+        >
+          <EditBahanBaku />
+        </OptimizedRouteWrapper>
+      }
+    />
+    
+    {/* Legacy routes */}
+    <Route
+      path="gudang"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="warehouse-legacy" 
           priority="high"
           preloadOnHover={true}
           errorFallback={WarehouseErrorFallback}

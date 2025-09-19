@@ -1,21 +1,18 @@
-// ===== 1. UPDATE WarehouseFilters.tsx dengan useQuery =====
-// src/components/warehouse/components/WarehouseFilters.tsx
-import React, { useState } from 'react';
+// src/components/warehouse/components/WarehouseFilters.tsx - Using Shared Filter Components
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import DateRangePicker from '@/components/ui/DateRangePicker';
 import { 
-  Search, 
   Filter, 
-  X, 
   ChevronDown,
   CheckSquare,
   Square,
-  RotateCcw,
   Settings2,
-  RefreshCw // ✅ TAMBAH: Import refresh icon
+  RefreshCw,
+  X
 } from 'lucide-react';
-// ✅ TAMBAH: Import useQuery
+// ✅ USING SHARED FILTER COMPONENTS
+import { SearchInput, StatusFilter, DateRangeFilter } from '@/components/shared/filters';
+import type { FilterOption, DateRange as SharedDateRange } from '@/components/shared/filters/types';
 import { useQuery } from '@tanstack/react-query';
 import { toNumber } from '../utils/typeUtils';
 import { warehouseApi } from '../services/warehouseApi';
@@ -27,8 +24,8 @@ import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profi
 // ✅ FIX: Import supabase client for direct supplier lookup
 import { supabase } from '@/integrations/supabase/client';
 
-// Define DateRange interface locally
-interface DateRange {
+// Define DateRange interface for backward compatibility with existing DateRangePicker
+interface LegacyDateRange {
   from: Date;
   to: Date;
 }
@@ -46,27 +43,33 @@ interface WarehouseFiltersProps {
   availableCategories: string[];
   availableSuppliers: string[];
   activeFiltersCount: number;
-  dateRange?: DateRange;
-  onDateRangeChange?: (range: DateRange | undefined) => void;
+  dateRange?: LegacyDateRange;
+  onDateRangeChange?: (range: LegacyDateRange | undefined) => void;
 }
 
-// ✅ TAMBAH: Query keys for filter data
+// ✅ Query keys for filter data  
 const filterQueryKeys = {
   categories: ['warehouse', 'categories'] as const,
   suppliers: ['warehouse', 'suppliers'] as const,
 };
 
-// ✅ TAMBAH: API functions for filter data
-const fetchCategories = async (): Promise<string[]> => {
+// ✅ API functions for filter data
+const fetchCategories = async (): Promise<FilterOption[]> => {
   try {
-    return [...FNB_COGS_CATEGORIES];
+    return FNB_COGS_CATEGORIES.map(category => ({
+      label: category,
+      value: category
+    }));
   } catch (error) {
     logger.error('Failed to fetch categories:', error);
-    return [...FNB_COGS_CATEGORIES];
+    return FNB_COGS_CATEGORIES.map(category => ({
+      label: category,
+      value: category
+    }));
   }
 };
 
-const fetchSuppliers = async (userId?: string): Promise<string[]> => {
+const fetchSuppliers = async (userId?: string): Promise<FilterOption[]> => {
   try {
     // First, try to get actual supplier names from suppliers table
     if (userId) {
@@ -106,7 +109,10 @@ const fetchSuppliers = async (userId?: string): Promise<string[]> => {
           }
         });
         
-        return Array.from(supplierNames).sort();
+        return Array.from(supplierNames).sort().map(supplier => ({
+          label: supplier,
+          value: supplier
+        }));
       }
     }
     
@@ -118,18 +124,36 @@ const fetchSuppliers = async (userId?: string): Promise<string[]> => {
     
     const items = await (service as any).fetchBahanBaku();
     const suppliers = [...new Set(items.map((item: any) => item.supplier).filter(Boolean))] as string[];
-    return suppliers.sort();
+    return suppliers.sort().map(supplier => ({
+      label: supplier,
+      value: supplier
+    }));
   } catch (error) {
     logger.error('Failed to fetch suppliers:', error);
     return [];
   }
 };
 
+// Stock level options for warehouse
+const STOCK_LEVEL_OPTIONS: FilterOption[] = [
+  { label: 'Semua Level', value: 'all' },
+  { label: 'Stok Rendah', value: 'low' },
+  { label: 'Stok Habis', value: 'out' }
+];
+
+// Expiry status options for warehouse
+const EXPIRY_OPTIONS: FilterOption[] = [
+  { label: 'Semua Status', value: 'all' },
+  { label: 'Akan Kadaluarsa', value: 'expiring' },
+  { label: 'Sudah Kadaluarsa', value: 'expired' }
+];
+
 /**
- * Warehouse Filters Component
+ * Warehouse Filters Component using Shared Filter Components
+ * ✅ ENHANCED: Uses shared SearchInput, StatusFilter, DateRangeFilter
  * ✅ ENHANCED: Added useQuery for categories & suppliers
  * ✅ ENHANCED: Added refresh functionality
- * ✅ ENHANCED: Fallback to props for backward compatibility
+ * ✅ ENHANCED: Maintains backward compatibility with existing interfaces
  */
 const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
   searchTerm,
@@ -148,9 +172,9 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
   onDateRangeChange,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
+  const { user } = useAuth();
 
-  // ✅ TAMBAH: useQuery for categories
+  // ✅ useQuery for categories
   const {
     data: queriedCategories = [],
     isLoading: categoriesLoading,
@@ -162,8 +186,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
     retry: 1,
   });
 
-  // ✅ TAMBAH: useQuery for suppliers
-  const { user } = useAuth();
+  // ✅ useQuery for suppliers
   const {
     data: queriedSuppliers = [],
     isLoading: suppliersLoading,
@@ -175,11 +198,22 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
     retry: 1,
   });
 
-  // ✅ TAMBAH: Use queried data with fallback to props for backward compatibility
-  const availableCategories = queriedCategories.length > 0 ? queriedCategories : propCategories;
-  const availableSuppliers = queriedSuppliers.length > 0 ? queriedSuppliers : propSuppliers;
+  // ✅ Convert string arrays to FilterOption arrays for backward compatibility
+  const categoryOptions = useMemo(() => {
+    if (queriedCategories.length > 0) {
+      return queriedCategories;
+    }
+    return propCategories.map(cat => ({ label: cat, value: cat }));
+  }, [queriedCategories, propCategories]);
 
-  // ✅ TAMBAH: Refresh filter data
+  const supplierOptions = useMemo(() => {
+    if (queriedSuppliers.length > 0) {
+      return queriedSuppliers;
+    }
+    return propSuppliers.map(sup => ({ label: sup, value: sup }));
+  }, [queriedSuppliers, propSuppliers]);
+
+  // ✅ Refresh filter data
   const handleRefreshFilters = async () => {
     try {
       await Promise.all([
@@ -197,44 +231,43 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
     onFiltersChange({ ...filters, [key]: value });
   };
 
+  // Convert legacy DateRange to shared DateRange format
+  const sharedDateRange: SharedDateRange = useMemo(() => {
+    if (dateRange) {
+      return {
+        start: dateRange.from.toISOString().split('T')[0],
+        end: dateRange.to.toISOString().split('T')[0]
+      };
+    }
+    return {};
+  }, [dateRange]);
+
+  // Handle shared date range change
+  const handleSharedDateRangeChange = (range: SharedDateRange) => {
+    if (onDateRangeChange) {
+      if (range.start && range.end) {
+        onDateRangeChange({
+          from: new Date(range.start),
+          to: new Date(range.end)
+        });
+      } else {
+        onDateRangeChange(undefined);
+      }
+    }
+  };
+
   return (
     <div className="p-4 border-b border-gray-200 bg-white">
       {/* Top Row - Search & Main Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
         
-        {/* Search Bar */}
-        <div className="relative flex-1 max-w-md">
-          <div className={`relative transition-all duration-200 ${
-            searchFocused ? 'ring-2 ring-orange-500 ring-opacity-50' : ''
-          }`}>
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              type="text"
-              placeholder="Cari nama, kategori, atau supplier..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              className="pl-10 pr-10 py-2 w-full border-gray-300 rounded-lg focus:border-orange-500 focus:ring-orange-500"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => onSearchChange('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          
-          {/* Search Suggestions (if needed) */}
-          {searchTerm && searchFocused && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg z-10 max-h-40 overflow-y-auto">
-              <div className="p-2 text-sm text-gray-500">
-                Pencarian: "{searchTerm}"
-              </div>
-            </div>
-          )}
+        {/* Search Bar using shared SearchInput */}
+        <div className="flex-1 max-w-md">
+          <SearchInput
+            value={searchTerm}
+            onChange={onSearchChange}
+            placeholder="Cari nama, kategori, atau supplier..."
+          />
         </div>
 
         {/* Action Buttons */}
@@ -308,105 +341,76 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
         </div>
       </div>
 
-      {/* Expandable Filters Section */}
+      {/* Expandable Filters Section using shared components */}
       {showFilters && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-gray-50 rounded-lg border">
           
-          {/* Category Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Category Filter using shared StatusFilter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               Kategori
               {categoriesLoading && (
-                <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
               )}
             </label>
-            <select
-              value={filters.category}
-              onChange={(e) => updateFilter('category', e.target.value)}
+            <StatusFilter
+              value={filters.category || ''}
+              onChange={(value) => updateFilter('category', value)}
+              options={categoryOptions}
+              placeholder="Semua Kategori"
               disabled={categoriesLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">Semua Kategori</option>
-              {availableCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-            {categoriesLoading && (
-              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
-            )}
+            />
           </div>
 
-          {/* Supplier Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Supplier Filter using shared StatusFilter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               Supplier
               {suppliersLoading && (
-                <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
               )}
             </label>
-            <select
-              value={filters.supplier}
-              onChange={(e) => updateFilter('supplier', e.target.value)}
+            <StatusFilter
+              value={filters.supplier || ''}
+              onChange={(value) => updateFilter('supplier', value)}
+              options={supplierOptions}
+              placeholder="Semua Supplier"
               disabled={suppliersLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">Semua Supplier</option>
-              {availableSuppliers.map((supplier) => (
-                <option key={supplier} value={supplier}>
-                  {supplier}
-                </option>
-              ))}
-            </select>
-            {suppliersLoading && (
-              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
-            )}
+            />
           </div>
 
-          {/* Stock Level Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Stock Level Filter using shared StatusFilter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
               Level Stok
             </label>
-            <select
-              value={filters.stockLevel}
-              onChange={(e) => updateFilter('stockLevel', e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
-            >
-              <option value="all">Semua Level</option>
-              <option value="low">Stok Rendah</option>
-              <option value="out">Stok Habis</option>
-            </select>
+            <StatusFilter
+              value={filters.stockLevel || 'all'}
+              onChange={(value) => updateFilter('stockLevel', value as any)}
+              options={STOCK_LEVEL_OPTIONS}
+              placeholder="Semua Level"
+            />
           </div>
 
-          {/* Expiry Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Expiry Filter using shared StatusFilter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
               Status Kadaluarsa
             </label>
-            <select
-              value={filters.expiry}
-              onChange={(e) => updateFilter('expiry', e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
-            >
-              <option value="all">Semua Status</option>
-              <option value="expiring">Akan Kadaluarsa</option>
-              <option value="expired">Sudah Kadaluarsa</option>
-            </select>
+            <StatusFilter
+              value={filters.expiry || 'all'}
+              onChange={(value) => updateFilter('expiry', value as any)}
+              options={EXPIRY_OPTIONS}
+              placeholder="Semua Status"
+            />
           </div>
 
-          {/* Date Range Filter */}
+          {/* Date Range Filter using shared DateRangeFilter */}
           {onDateRangeChange && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rentang Tanggal
-              </label>
-              <DateRangePicker
-                dateRange={dateRange}
-                onDateRangeChange={onDateRangeChange}
-                placeholder="Pilih rentang tanggal"
-                className="w-full"
+            <div className="space-y-2">
+              <DateRangeFilter
+                value={sharedDateRange}
+                onChange={handleSharedDateRangeChange}
               />
             </div>
           )}
@@ -416,7 +420,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
       {/* Bottom Row - Results Info & Settings */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-100">
         
-        {/* Active Filters Display */}
+        {/* Active Filters Display - Consistent with shared filter pattern */}
         {activeFiltersCount > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-gray-600">Filter aktif:</span>
@@ -459,7 +463,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             
             {filters.stockLevel !== 'all' && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                Stok: {filters.stockLevel === 'low' ? 'Rendah' : 'Habis'}
+                Stok: {STOCK_LEVEL_OPTIONS.find(opt => opt.value === filters.stockLevel)?.label || filters.stockLevel}
                 <button
                   onClick={() => updateFilter('stockLevel', 'all')}
                   className="text-yellow-600 hover:text-yellow-800"
@@ -471,7 +475,7 @@ const WarehouseFilters: React.FC<WarehouseFiltersProps> = ({
             
             {filters.expiry !== 'all' && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                Expiry: {filters.expiry === 'expiring' ? 'Akan Kadaluarsa' : 'Kadaluarsa'}
+                Expiry: {EXPIRY_OPTIONS.find(opt => opt.value === filters.expiry)?.label || filters.expiry}
                 <button
                   onClick={() => updateFilter('expiry', 'all')}
                   className="text-red-600 hover:text-red-800"

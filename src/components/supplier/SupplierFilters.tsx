@@ -1,17 +1,14 @@
-// Search and filter controls for supplier table
+// Search and filter controls for supplier table - Using Shared Filter Components
 
-import React from 'react';
-import { Input } from '@/components/ui/input';
+import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Search, CheckSquare, X } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CheckSquare, X, Filter, Settings } from 'lucide-react';
+// ✅ USING SHARED FILTER COMPONENTS
+import { SearchInput, StatusFilter } from '@/components/shared/filters';
+import type { FilterOption } from '@/components/shared/filters/types';
 
 interface SupplierFiltersProps {
   searchTerm: string;
@@ -22,6 +19,14 @@ interface SupplierFiltersProps {
   onSelectionModeChange: (enabled: boolean) => void;
 }
 
+// Items per page options
+const ITEMS_PER_PAGE_OPTIONS: FilterOption[] = [
+  { label: '5', value: '5' },
+  { label: '10', value: '10' },
+  { label: '20', value: '20' },
+  { label: '50', value: '50' }
+];
+
 const SupplierFilters: React.FC<SupplierFiltersProps> = ({
   searchTerm,
   onSearchChange,
@@ -30,70 +35,93 @@ const SupplierFilters: React.FC<SupplierFiltersProps> = ({
   isSelectionMode,
   onSelectionModeChange
 }) => {
+  const hasActiveFilters = searchTerm !== '';
+  
+  const handleClearFilters = () => {
+    onSearchChange('');
+  };
+
   return (
-    <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50/50">
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-        {/* Left side controls */}
-        <div className="flex items-center gap-4">
-          {/* Items per page selector */}
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Label htmlFor="show-entries" className="whitespace-nowrap font-medium">
-              Show
-            </Label>
-            <Select 
-              value={String(itemsPerPage)} 
-              onValueChange={(value) => onItemsPerPageChange(Number(value))}
-            >
-              <SelectTrigger className="w-20 border-gray-300">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-              </SelectContent>
-            </Select>
-            <span className="font-medium">entries</span>
-          </div>
-
-          {/* Selection mode toggle */}
-          <Button
-            variant={isSelectionMode ? "default" : "outline"}
-            size="sm"
-            onClick={() => onSelectionModeChange(!isSelectionMode)}
-            className={
-              isSelectionMode 
-                ? "bg-blue-600 hover:bg-blue-700" 
-                : "border-blue-300 text-blue-600 hover:bg-blue-50"
-            }
-          >
-            {isSelectionMode ? (
-              <>
-                <X className="h-4 w-4 mr-2" />
-                Keluar Mode Pilih
-              </>
-            ) : (
-              <>
-                <CheckSquare className="h-4 w-4 mr-2" />
-                Mode Pilih
-              </>
+    <Card className="mb-6">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filter Supplier
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="ml-2">
+                1
+              </Badge>
             )}
-          </Button>
+          </CardTitle>
+          
+          <div className="flex items-center gap-2">
+            {/* Selection mode toggle */}
+            <Button
+              variant={isSelectionMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => onSelectionModeChange(!isSelectionMode)}
+              className={isSelectionMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+            >
+              {isSelectionMode ? (
+                <>
+                  <X className="h-4 w-4 mr-2" />
+                  Keluar Mode Pilih
+                </>
+              ) : (
+                <>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Mode Pilih
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-
-        {/* Right side - Search */}
-        <div className="w-full lg:w-auto relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Cari Nama Supplier / Kontak..."
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {/* Search */}
+        <div>
+          <SearchInput
             value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 border-gray-300 rounded-lg border focus:border-orange-500 focus:ring-orange-500 w-full lg:w-80"
+            onChange={onSearchChange}
+            placeholder="Cari Nama Supplier / Kontak..."
           />
         </div>
-      </div>
-    </div>
+        
+        {/* Items per Page */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Settings className="h-4 w-4 text-gray-500" />
+            <Label className="text-sm font-medium text-gray-700">Tampilkan per halaman:</Label>
+          </div>
+          
+          <div className="w-24">
+            <StatusFilter
+              value={String(itemsPerPage)}
+              onChange={(value) => onItemsPerPageChange(Number(value))}
+              options={ITEMS_PER_PAGE_OPTIONS}
+              placeholder="10"
+            />
+          </div>
+        </div>
+        
+        {/* Clear filters if active */}
+        {hasActiveFilters && (
+          <div className="flex justify-end border-t pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearFilters}
+              className="flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              Bersihkan Filter
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

@@ -53,6 +53,10 @@ const useAuthLifecycle = ({
   session,
   user,
 }: AuthLifecycleParams) => {
+  // Refs for dedupe/throttle & in-flight flags
+  const lastEventRef = useRef<{ userId?: string; event?: string; ts: number }>({ ts: 0 });
+  const isFetchingRef = useRef(false);
+
   // Android-specific periodic session validation (deferred to avoid initial UI flicker)
   useEffect(() => {
     const androidDetection = detectProblematicAndroid();
@@ -260,7 +264,7 @@ const useAuthLifecycle = ({
           }
         }
 
-        const MAX_SESSION_ATTEMPTS = 3;
+        const MAX_SESSION_ATTEMPTS = 2;
         const BASE_RETRY_DELAY_MS = 1500;
 
         const fetchSessionWithRetry = async (): Promise<{
@@ -399,8 +403,13 @@ const useAuthLifecycle = ({
 
     const handleAuthRefreshRequest = () => {
       if (!mounted) return;
+      if (isFetchingRef.current) {
+        logger.debug('AuthContext: Skipping auth-refresh-request (in-flight)');
+        return;
+      }
       logger.debug('AuthContext: Received auth-refresh-request event');
-      void refreshUser();
+      isFetchingRef.current = true;
+      void refreshUser().finally(() => { isFetchingRef.current = false; });
     };
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
@@ -412,6 +421,16 @@ const useAuthLifecycle = ({
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+
+      // Throttle/dedupe repeated events from Supabase
+      const nowTs = Date.now();
+      const sameUser = !!session?.user?.id && session.user.id === lastEventRef.current.userId;
+      const sameEvent = event === lastEventRef.current.event;
+      const tooSoon = nowTs - lastEventRef.current.ts < 800; // 0.8s window
+      if (sameUser && sameEvent && tooSoon) {
+        logger.debug('AuthContext: Dedupe auth state event', { event });
+        return;
+      }
 
       logger.context('AuthContext', `Auth state changed: ${event}`, {
         hasSession: !!session,
@@ -425,6 +444,9 @@ const useAuthLifecycle = ({
       const { session: validSession, user: validUser } = validateSession(session);
       setSession(validSession);
       setUser(validUser);
+
+      // Remember last processed event signature
+      lastEventRef.current = { userId: validUser?.id ?? session?.user?.id, event, ts: nowTs };
 
       if (session && !validSession) {
         logger.error('AuthContext: Auth state change contained invalid session/user, cleaning up');

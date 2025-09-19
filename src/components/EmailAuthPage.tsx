@@ -510,17 +510,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           logger.warn('EmailAuth: Failed to store otpVerifiedAt timestamp', error);
         }
 
-        // ✅ Immediate SPA navigation to dashboard to reduce perceived delay
-        try {
-          navigate(redirectUrl, { replace: true });
-        } catch (e) {
-          logger.warn('EmailAuth: navigate failed, using fallback redirectCheck');
-          // Fallback: allow AuthContext + AuthGuard to handle redirect
-          setTimeout(() => {
-            if (!mountedRef.current) return;
-            redirectCheck();
-          }, 500);
-        }
+        // ✅ Let AuthContext handle SPA redirect to avoid duplicate navigations
+        // This prevents navigation thrashing and Chrome's "Throttling navigation" warning
+        redirectCheck();
 
         return;
       } else if (ok === "expired") {

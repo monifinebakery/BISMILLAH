@@ -1,60 +1,110 @@
 // src/contexts/FinancialContext.tsx
-// ✅ ENHANCED CONTEXT - Better error handling and retry logic for real-time subscriptions
+// ✅ FIXED RENDER LOOPS - Debounced real-time subscriptions and memoized context value
 
-import React, { createContext, useContext, useEffect, ReactNode, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/utils/logger';
-import { realtimeMonitor } from '@/utils/realtimeMonitor';
-import { getFinancialTransactions } from '../services/financialApi';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  ReactNode,
+  useCallback,
+  useMemo,
+} from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
+import { realtimeMonitor } from "@/utils/realtimeMonitor";
+import { debounce } from "@/utils/asyncUtils";
+import { getFinancialTransactions } from "../services/financialApi";
 
 // Type imports only (no circular deps)
-import { 
-  FinancialTransaction, 
+import {
+  FinancialTransaction,
   FinancialContextType,
   CreateTransactionData,
-  UpdateTransactionData
-} from '../types/financial';
+  UpdateTransactionData,
+} from "../types/financial";
 
 // Hook imports (clean dependencies)
-import { 
-  useFinancialData, 
+import {
+  useFinancialData,
   useFinancialOperations,
-  financialQueryKeys
-} from '../hooks/useFinancialHooks';
+  financialQueryKeys,
+} from "../hooks/useFinancialHooks";
 
 // Context imports
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/AuthContext";
 
 // ===========================================
 // ✅ CONTEXT SETUP
 // ===========================================
 
-const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
+const FinancialContext = createContext<FinancialContextType | undefined>(
+  undefined,
+);
 
 // ===========================================
 // ✅ PROVIDER COMPONENT (Minimal)
 // ===========================================
 
-export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const FinancialProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Get data and operations from hooks
-  const { data: financialTransactions = [], isLoading: dataLoading } = useFinancialData();
-  const { addTransaction, updateTransaction, deleteTransaction, isLoading: operationLoading } = useFinancialOperations();
+  const { data: financialTransactions = [], isLoading: dataLoading } =
+    useFinancialData();
+  const {
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    isLoading: operationLoading,
+  } = useFinancialOperations();
 
   // ===========================================
-  // ✅ REAL-TIME SUBSCRIPTION (Enhanced with Better Error Handling)
+  // ✅ DEBOUNCED CACHE INVALIDATION - Prevent excessive invalidations
+  // ===========================================
+
+  const debouncedCacheInvalidation = useMemo(() => {
+    return debounce(() => {
+      try {
+        logger.context(
+          "FinancialContext",
+          "Executing debounced cache invalidation",
+        );
+
+        // Invalidate specific queries only
+        queryClient.invalidateQueries({
+          queryKey: financialQueryKeys.transactions(user?.id || ""),
+        });
+
+        // Don't invalidate ALL financial queries at once - too aggressive
+        logger.context(
+          "FinancialContext",
+          "Cache invalidation completed successfully",
+        );
+      } catch (cacheError) {
+        logger.error("Debounced cache invalidation error:", cacheError);
+      }
+    }, 1000); // 1 second debounce - group multiple rapid changes
+  }, [queryClient, user?.id]);
+
+  // ===========================================
+  // ✅ REAL-TIME SUBSCRIPTION (Enhanced with Debouncing)
   // ===========================================
 
   useEffect(() => {
     if (!user?.id) {
-      logger.context('FinancialContext', 'No user ID, skipping subscription');
+      logger.context("FinancialContext", "No user ID, skipping subscription");
       return;
     }
 
-    logger.context('FinancialContext', 'Setting up real-time subscription for user:', user.id);
+    logger.context(
+      "FinancialContext",
+      "Setting up real-time subscription for user:",
+      user.id,
+    );
 
     let channel: any = null;
     let retryCount = 0;
@@ -65,92 +115,89 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
       try {
         // Increment subscription count for monitoring
         realtimeMonitor.incrementSubscriptionCount();
-        
+
         channel = supabase
           .channel(`realtime-financial-${user.id}`, {
             config: {
               broadcast: { self: false },
-              presence: { key: user.id }
-            }
+              presence: { key: user.id },
+            },
           })
           .on(
-            'postgres_changes',
-            { 
-              event: '*', 
-              schema: 'public', 
-              table: 'financial_transactions', 
-              filter: `user_id=eq.${user.id}` 
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "financial_transactions",
+              filter: `user_id=eq.${user.id}`,
             },
             (payload) => {
               try {
-                logger.context('FinancialContext', 'Real-time update received:', {
-                  event: payload.eventType,
-                  table: payload.table,
-                  hasNew: !!payload.new,
-                  hasOld: !!payload.old
-                });
+                logger.context(
+                  "FinancialContext",
+                  "Real-time update received:",
+                  {
+                    event: payload.eventType,
+                    table: payload.table,
+                    hasNew: !!payload.new,
+                    hasOld: !!payload.old,
+                  },
+                );
 
-                // ✅ SAFE: More granular cache updates with error handling
+                // ✅ DEBOUNCED: Use debounced invalidation instead of immediate
                 switch (payload.eventType) {
-                  case 'INSERT':
-                  case 'UPDATE':
-                  case 'DELETE':
-                    try {
-                      // Invalidate and refetch for immediate updates
-                      queryClient.invalidateQueries({
-                        queryKey: financialQueryKeys.transactions(user.id)
-                      });
-                      // Also invalidate related caches
-                      queryClient.invalidateQueries({
-                        queryKey: financialQueryKeys.all
-                      });
-                      logger.context('FinancialContext', 'Cache invalidated successfully');
-                    } catch (cacheError) {
-                      logger.error('Cache invalidation error:', cacheError);
-                    }
+                  case "INSERT":
+                  case "UPDATE":
+                  case "DELETE":
+                    debouncedCacheInvalidation();
                     break;
                   default:
-                    logger.context('FinancialContext', 'Unknown event type:', payload.eventType);
+                    logger.context(
+                      "FinancialContext",
+                      "Unknown event type:",
+                      payload.eventType,
+                    );
                 }
-
               } catch (error) {
-                logger.error('Real-time update processing error:', error);
+                logger.error("Real-time update processing error:", error);
               }
-            }
+            },
           )
           .subscribe((status, err) => {
-            logger.context('FinancialContext', 'Subscription status:', status, {
+            logger.context("FinancialContext", "Subscription status:", status, {
               retryCount,
-              maxRetries
+              maxRetries,
             });
-            
+
             if (err) {
-              logger.error('Financial real-time subscription error:', {
+              logger.error("Financial real-time subscription error:", {
                 error: err,
-                message: err.message || 'Unknown subscription error',
-                code: err.code || 'NO_CODE',
+                message: err.message || "Unknown subscription error",
+                code: err.code || "NO_CODE",
                 retryCount,
-                willRetry: retryCount < maxRetries
+                willRetry: retryCount < maxRetries,
               });
             }
-            
+
             // ✅ ENHANCED: Better error handling with controlled retry logic
             switch (status) {
-              case 'SUBSCRIBED':
+              case "SUBSCRIBED":
                 retryCount = 0; // Reset retry count on successful connection
                 realtimeMonitor.resetRetryCount();
-                logger.info('✅ Financial real-time subscription active');
+                logger.info("✅ Financial real-time subscription active");
                 break;
-                
-              case 'CHANNEL_ERROR':
+
+              case "CHANNEL_ERROR":
                 if (retryCount < maxRetries) {
                   retryCount++;
                   realtimeMonitor.incrementRetryCount();
-                  logger.warn(`⚠️ Financial subscription connection issue (attempt ${retryCount}/${maxRetries}) - retrying in 5 seconds...`);
-                  
+                  logger.warn(
+                    `⚠️ Financial subscription connection issue (attempt ${retryCount}/${maxRetries}) - retrying in 5 seconds...`,
+                  );
+
                   // Clear any existing retry timer
                   if (retryTimer) clearTimeout(retryTimer);
-                  
+
                   // Retry after 5 seconds
                   retryTimer = setTimeout(() => {
                     if (channel) {
@@ -159,32 +206,42 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
                     setupSubscription();
                   }, 5000);
                 } else {
-                  logger.error('❌ Financial subscription failed after maximum retries. Operating in offline mode.');
+                  logger.error(
+                    "❌ Financial subscription failed after maximum retries. Operating in offline mode.",
+                  );
                   // Reset retry count for future attempts
                   retryCount = 0;
                 }
                 break;
-                
-              case 'TIMED_OUT':
-                logger.warn('⏰ Financial subscription timed out - reconnecting...');
+
+              case "TIMED_OUT":
+                logger.warn(
+                  "⏰ Financial subscription timed out - reconnecting...",
+                );
                 // Supabase will handle automatic reconnection
                 break;
-                
-              case 'CLOSED':
-                logger.info('🔒 Financial subscription closed');
+
+              case "CLOSED":
+                logger.info("🔒 Financial subscription closed");
                 break;
-                
+
               default:
-                logger.context('FinancialContext', 'Unknown subscription status:', status);
+                logger.context(
+                  "FinancialContext",
+                  "Unknown subscription status:",
+                  status,
+                );
             }
           });
-
       } catch (setupError) {
-        logger.error('Failed to setup financial real-time subscription:', setupError);
+        logger.error(
+          "Failed to setup financial real-time subscription:",
+          setupError,
+        );
         // Don't throw error, just log it and retry if within limits
         if (retryCount < maxRetries) {
           retryCount++;
-          retryTimer = setTimeout(setupSubscription, 10000); // Retry in 10 seconds
+          setTimeout(() => setupSubscription(), 3000);
         }
       }
     };
@@ -194,79 +251,79 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     return () => {
       try {
-        // Clear retry timer
+        // Clear any retry timer
         if (retryTimer) {
           clearTimeout(retryTimer);
           retryTimer = null;
         }
-        
+
         // Unsubscribe from channel
         if (channel) {
-          logger.context('FinancialContext', 'Unsubscribing from real-time updates');
+          logger.context(
+            "FinancialContext",
+            "Unsubscribing from real-time updates",
+          );
           channel.unsubscribe();
           realtimeMonitor.decrementSubscriptionCount();
         }
+
+        // Cancel any pending debounced calls
+        debouncedCacheInvalidation.cancel?.();
       } catch (unsubError) {
-        logger.error('Error unsubscribing from financial channel:', unsubError);
+        logger.error("Error unsubscribing from financial channel:", unsubError);
       }
     };
+  }, [user?.id, debouncedCacheInvalidation]);
+
+  // ===========================================
+  // ✅ MEMOIZED REFETCH FUNCTION
+  // ===========================================
+
+  const refetch = useCallback(async () => {
+    if (!user?.id) {
+      logger.warn("FinancialContext: Cannot refetch without user ID");
+      return;
+    }
+
+    try {
+      logger.info("FinancialContext: Manual refetch triggered");
+      await queryClient.invalidateQueries({
+        queryKey: financialQueryKeys.transactions(user.id),
+      });
+      logger.success("FinancialContext: Manual refetch completed");
+    } catch (error) {
+      logger.error("FinancialContext: Manual refetch failed:", error);
+    }
   }, [user?.id, queryClient]);
 
   // ===========================================
-  // ✅ CONTEXT FUNCTIONS (Wrapper for compatibility)
+  // ✅ MEMOIZED CONTEXT VALUE - Prevent unnecessary re-renders
   // ===========================================
 
-  const addFinancialTransaction = useCallback(async (
-    data: CreateTransactionData
-  ): Promise<boolean> => {
-    try {
-      await addTransaction(data);
-      return true;
-    } catch (error) {
-      logger.error('Context: Failed to add transaction:', error);
-      return false;
-    }
-  }, [addTransaction]);
+  const contextValue = useMemo(
+    (): FinancialContextType => ({
+      // Data
+      financialTransactions,
+      isLoading: dataLoading || operationLoading,
 
-  const updateFinancialTransaction = useCallback(async (
-    id: string,
-    data: UpdateTransactionData
-  ): Promise<boolean> => {
-    try {
-      await updateTransaction(id, data);
-      return true;
-    } catch (error) {
-      logger.error('Context: Failed to update transaction:', error);
-      return false;
-    }
-  }, [updateTransaction]);
+      // Operations
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
 
-  const deleteFinancialTransaction = useCallback(async (
-    id: string
-  ): Promise<boolean> => {
-    try {
-      await deleteTransaction(id);
-      return true;
-    } catch (error) {
-      logger.error('Context: Failed to delete transaction:', error);
-      return false;
-    }
-  }, [deleteTransaction]);
-
-  // ===========================================
-  // ✅ CONTEXT VALUE (Minimal interface)
-  // ===========================================
-
-  const contextValue: FinancialContextType = {
-    // State
-    financialTransactions,
-    isLoading: dataLoading || operationLoading,
-
-    // Actions
-    addFinancialTransaction,
-    updateFinancialTransaction,
-    deleteFinancialTransaction,
-  };
+      // Utils
+      refetch,
+    }),
+    [
+      financialTransactions,
+      dataLoading,
+      operationLoading,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+      refetch,
+    ],
+  );
 
   return (
     <FinancialContext.Provider value={contextValue}>
@@ -276,55 +333,15 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
 };
 
 // ===========================================
-// ✅ HOOK
+// CONTEXT HOOK
 // ===========================================
 
 export const useFinancial = (): FinancialContextType => {
   const context = useContext(FinancialContext);
   if (context === undefined) {
-    throw new Error('useFinancial must be used within a FinancialProvider');
+    throw new Error("useFinancial must be used within a FinancialProvider");
   }
   return context;
-};
-
-// ===========================================
-// ✅ UTILITY HOOKS
-// ===========================================
-
-/**
- * Hook for accessing React Query specific functions
- */
-export const useFinancialQuery = () => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  const invalidateTransactions = useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: financialQueryKeys.transactions(user?.id)
-    });
-  }, [queryClient, user?.id]);
-
-  const prefetchTransactions = useCallback(() => {
-    if (user?.id) {
-      queryClient.prefetchQuery({
-        queryKey: financialQueryKeys.transactions(user.id),
-        queryFn: () => getFinancialTransactions(user.id),
-        staleTime: 5 * 60 * 1000,
-      });
-    }
-  }, [queryClient, user?.id]);
-
-  const getTransactionsFromCache = useCallback(() => {
-    return queryClient.getQueryData(
-      financialQueryKeys.transactions(user?.id)
-    ) as FinancialTransaction[] | undefined;
-  }, [queryClient, user?.id]);
-
-  return {
-    invalidateTransactions,
-    prefetchTransactions,
-    getTransactionsFromCache,
-  };
 };
 
 export default FinancialContext;

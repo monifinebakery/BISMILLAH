@@ -1,12 +1,20 @@
-// src/contexts/PaymentContext.tsx - FIXED Hook Order Issues
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { useUnlinkedPayments } from '@/hooks/useUnlinkedPayments';
-import { getUserAccessStatus } from '@/services/auth/payments/access';
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/utils/logger';
-import { withTimeout } from '@/utils/asyncUtils';
+// src/contexts/PaymentContext.tsx - FIXED Hook Order Issues & Render Loops
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePaymentStatus } from "@/hooks/usePaymentStatus";
+import { useUnlinkedPayments } from "@/hooks/useUnlinkedPayments";
+import { getUserAccessStatus } from "@/services/auth/payments/access";
+import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
+import { withTimeout, debounce } from "@/utils/asyncUtils";
 
 interface PaymentContextType {
   // Original payment context
@@ -26,7 +34,7 @@ interface PaymentContextType {
   hasAccess: boolean;
   accessMessage: string;
   refreshAccessStatus: () => Promise<void>;
-  
+
   // Auto-linking webhook payments
   currentUser: any;
   unlinkedPayments: any[];
@@ -36,7 +44,7 @@ interface PaymentContextType {
   autoLinkLoading: boolean;
   autoLinkError: string | null;
   refetchUnlinkedPayments: () => void;
-  
+
   // Combined counts
   unlinkedPaymentCount: number;
   totalUnlinkedCount: number;
@@ -44,38 +52,42 @@ interface PaymentContextType {
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
-export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   // ✅ FIX: ALL HOOKS CALLED IN EXACT SAME ORDER EVERY TIME
-  
+
   // Check for development bypass
   const isDev = import.meta.env.DEV;
-  const bypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
-  
+  const bypassAuth = isDev && import.meta.env.VITE_DEV_BYPASS_AUTH === "true";
+
   // 1. useAuth - ALWAYS called first
   const { user, isLoading: authLoading, isReady: authReady } = useAuth();
-  
+
   // 2. ALL useState hooks - ALWAYS called in same order
   const [isUserValid, setIsUserValid] = useState(false);
   const [showMandatoryUpgrade, setShowMandatoryUpgrade] = useState(false);
   const [previewTimeLeft, setPreviewTimeLeft] = useState(60);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [hasAccess, setHasAccess] = useState(bypassAuth); // Set to true if bypassing
-  const [accessMessage, setAccessMessage] = useState(bypassAuth ? 'Development bypass active' : 'Checking access...');
+  const [accessMessage, setAccessMessage] = useState(
+    bypassAuth ? "Development bypass active" : "Checking access...",
+  );
   const [accessLoading, setAccessLoading] = useState(!bypassAuth); // Skip loading if bypassing
 
   // 3. usePaymentStatus - ALWAYS called (no conditionals)
-  const { 
-    paymentStatus, 
-    isLoading: paymentLoading, 
-    isPaid, 
+  const {
+    paymentStatus,
+    isLoading: paymentLoading,
+    isPaid,
     needsPayment,
     needsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
     hasUnlinkedPayment,
-    refetch: refetchPaymentStatus
+    refetch: refetchPaymentStatus,
   } = usePaymentStatus();
-  
+
   // 4. useUnlinkedPayments - ALWAYS called with consistent user parameter
   // ✅ FIX: Always pass user, let the hook handle null internally
   const {
@@ -85,7 +97,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     showAutoLinkPopup,
     setShowAutoLinkPopup,
     refetch: refetchUnlinkedPayments,
-    unlinkedCount: autoLinkCount
+    unlinkedCount: autoLinkCount,
   } = useUnlinkedPayments(supabase, user); // ✅ Always pass user, not conditional
 
   // 5. useRef for stable function reference
@@ -93,87 +105,112 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Prevent repeated auto-link attempts
   const triedAutoLinkRef = useRef(false);
 
-  // 6. ALL useCallback hooks - ALWAYS called in same order
-  
-  // ✅ Access status refresh callback
-  const refreshAccessStatus = useCallback(async () => {
-    if (!authReady || authLoading) {
-      logger.debug('PaymentContext: Skipping access check - auth not ready');
-      return;
-    }
-    
-    if (!isUserValid) {
-      logger.debug('PaymentContext: Skipping access check - user invalid');
-      setHasAccess(false);
-      setAccessMessage('Please login to check access');
-      setAccessLoading(false);
-      return;
-    }
-    
-    setAccessLoading(true);
-    
-    try {
-      logger.debug('PaymentContext: Refreshing access status for valid user:', user?.email);
-      
-const accessPromise = getUserAccessStatus();
-      const accessStatus = await withTimeout(accessPromise, 3000, 'Access status timeout') as any; // ✅ FIXED: 3s timeout instead of 8s
-      
-      logger.debug('Access status result:', {
-        hasAccess: accessStatus.hasAccess,
-        message: accessStatus.message,
-        needsOrderVerification: accessStatus.needsOrderVerification,
-        needsLinking: accessStatus.needsLinking
-      });
-      
-      setHasAccess(accessStatus.hasAccess);
-      setAccessMessage(accessStatus.message);
-      
-      if ((accessStatus.needsOrderVerification || accessStatus.needsLinking) && 
-          !accessStatus.hasAccess && 
-          !showOrderPopup &&
-          !paymentLoading &&
-          isUserValid) {
-        // Debounce auto-popup to avoid annoyance on tab switches
-        const now = Date.now();
-        let lastShown = 0;
+  // 6. ✅ DEBOUNCED ACCESS STATUS REFRESH - Prevent excessive calls
+  const debouncedAccessRefresh = useMemo(
+    () =>
+      debounce(async () => {
+        if (!authReady || authLoading || !isUserValid) {
+          logger.debug(
+            "PaymentContext: Skipping debounced access check - conditions not met",
+          );
+          return;
+        }
+
+        setAccessLoading(true);
+
         try {
-          lastShown = parseInt(localStorage.getItem('orderPopupLastShown') || '0', 10) || 0;
-        } catch (storageError) {
-          logger.debug('PaymentContext: Failed to read orderPopupLastShown from storage', storageError);
-        }
-        const cooldownMs = 2 * 60 * 60 * 1000; // 2 hours
-        if (now - lastShown > cooldownMs) {
-          logger.info('PaymentContext: Auto-showing manual order popup (cooldown passed)');
-          window.setTimeout(() => {
-            setShowOrderPopup(true);
+          logger.debug(
+            "PaymentContext: Debounced access refresh for user:",
+            user?.email,
+          );
+
+          const accessPromise = getUserAccessStatus();
+          const accessStatus = (await withTimeout(
+            accessPromise,
+            3000,
+            "Access status timeout",
+          )) as any;
+
+          setHasAccess(accessStatus.hasAccess);
+          setAccessMessage(accessStatus.message);
+
+          logger.debug("Debounced access status result:", {
+            hasAccess: accessStatus.hasAccess,
+            message: accessStatus.message,
+          });
+
+          if (
+            (accessStatus.needsOrderVerification ||
+              accessStatus.needsLinking) &&
+            !accessStatus.hasAccess &&
+            !showOrderPopup &&
+            !paymentLoading &&
+            isUserValid
+          ) {
+            // Debounce auto-popup to avoid annoyance on tab switches
+            const now = Date.now();
+            let lastShown = 0;
             try {
-              localStorage.setItem('orderPopupLastShown', String(Date.now()));
+              lastShown =
+                parseInt(
+                  localStorage.getItem("orderPopupLastShown") || "0",
+                  10,
+                ) || 0;
             } catch (storageError) {
-              logger.debug('PaymentContext: Failed to persist orderPopupLastShown timestamp', storageError);
+              logger.debug(
+                "PaymentContext: Failed to read orderPopupLastShown from storage",
+                storageError,
+              );
             }
-          }, 1500);
-        } else {
-          logger.debug('PaymentContext: Skipping auto popup (cooldown active)');
+            const cooldownMs = 2 * 60 * 60 * 1000; // 2 hours
+            if (now - lastShown > cooldownMs) {
+              logger.info(
+                "PaymentContext: Auto-showing manual order popup (cooldown passed)",
+              );
+              window.setTimeout(() => {
+                setShowOrderPopup(true);
+                try {
+                  localStorage.setItem(
+                    "orderPopupLastShown",
+                    String(Date.now()),
+                  );
+                } catch (storageError) {
+                  logger.debug(
+                    "PaymentContext: Failed to persist orderPopupLastShown timestamp",
+                    storageError,
+                  );
+                }
+              }, 1500);
+            } else {
+              logger.debug(
+                "PaymentContext: Skipping auto popup (cooldown active)",
+              );
+            }
+          }
+        } catch (error) {
+          logger.error("PaymentContext debounced access check failed:", error);
+          setHasAccess(false);
+          setAccessMessage("Error checking access");
+        } finally {
+          setAccessLoading(false);
         }
-      }
-      
-    } catch (error) {
-      logger.error('PaymentContext access check failed:', error);
-      
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage?.includes('Auth session missing') || 
-          errorMessage?.includes('session missing')) {
-        setHasAccess(false);
-        setAccessMessage('Session expired. Please login again.');
-        setIsUserValid(false);
-      } else {
-        setHasAccess(false);
-        setAccessMessage('Error checking access');
-      }
-    } finally {
-      setAccessLoading(false);
-    }
-  }, [authReady, authLoading, isUserValid, user?.email, showOrderPopup, paymentLoading]);
+      }, 1000), // 1 second debounce
+    [
+      authReady,
+      authLoading,
+      isUserValid,
+      user?.email,
+      showOrderPopup,
+      paymentLoading,
+    ],
+  );
+
+  // 7. ALL useCallback hooks - ALWAYS called in same order
+
+  // ✅ Access status refresh callback with debouncing
+  const refreshAccessStatus = useCallback(async () => {
+    debouncedAccessRefresh();
+  }, [debouncedAccessRefresh]);
 
   // Update ref with current function
   refreshAccessStatusRef.current = refreshAccessStatus;
@@ -181,150 +218,168 @@ const accessPromise = getUserAccessStatus();
   // ✅ Enhanced refetch function
   const enhancedRefetch = useCallback(async () => {
     if (!isUserValid) {
-      logger.warn('PaymentContext: Skipping refetch - user invalid');
+      logger.warn("PaymentContext: Skipping refetch - user invalid");
       return;
     }
-    
-    logger.info('PaymentContext: Enhanced refetch triggered for valid user');
-    
+
+    logger.info("PaymentContext: Enhanced refetch triggered for valid user");
+
     try {
       await refetchPaymentStatus();
       await refetchUnlinkedPayments();
       await refreshAccessStatusRef.current?.();
     } catch (error) {
-      logger.error('PaymentContext: Enhanced refetch failed:', error);
+      logger.error("PaymentContext: Enhanced refetch failed:", error);
     }
   }, [isUserValid, refetchPaymentStatus, refetchUnlinkedPayments]);
 
   // 7. ALL useEffect hooks - ALWAYS called in same order
 
-  // ✅ EFFECT 1: Validate user
-  useEffect(() => {
-    const validateUser = async () => {
-      if (!authReady || authLoading) {
-        setIsUserValid(false);
-        return;
-      }
-      
-      if (!user || !user.id || !user.email) {
-        // ✅ Reduce log level for normal loading state
-        logger.debug('PaymentContext: User not ready yet:', { 
-          hasUser: !!user, 
-          hasId: !!user?.id, 
-          hasEmail: !!user?.email,
-          authReady,
-          authLoading
-        });
-        setIsUserValid(false);
-        return;
-      }
-      
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error || !session || !session.user) {
-          logger.debug('PaymentContext: Session not ready:', { 
-            hasSession: !!session, 
-            error: error?.message,
-            note: 'This is normal during app initialization'
-          });
+  // ✅ EFFECT 1: Validate user with debouncing
+  const debouncedUserValidation = useMemo(
+    () =>
+      debounce(async () => {
+        if (!authReady || authLoading) {
           setIsUserValid(false);
           return;
         }
-        
-        if (session.user.id !== user.id) {
-          logger.warn('PaymentContext: Session user mismatch:', {
-            authUser: user.id,
-            sessionUser: session.user.id
-          });
-          setIsUserValid(false);
-          return;
-        }
-        
-        logger.success('PaymentContext: User validation passed:', {
-          userId: user.id,
-          email: user.email
-        });
-        setIsUserValid(true);
-        
-      } catch (error) {
-        logger.error('PaymentContext: Session validation error:', error);
-        setIsUserValid(false);
-      }
-    };
-    
-    validateUser();
-  }, [authReady, authLoading, user]);
 
-  // ✅ EFFECT 2: Trigger access refresh
+        if (!user || !user.id || !user.email) {
+          logger.debug("PaymentContext: User not ready yet:", {
+            hasUser: !!user,
+            hasId: !!user?.id,
+            hasEmail: !!user?.email,
+            authReady,
+            authLoading,
+          });
+          setIsUserValid(false);
+          return;
+        }
+
+        try {
+          const {
+            data: { session },
+            error,
+          } = await supabase.auth.getSession();
+
+          if (error || !session || !session.user) {
+            logger.debug("PaymentContext: Session not ready:", {
+              hasSession: !!session,
+              error: error?.message,
+            });
+            setIsUserValid(false);
+            return;
+          }
+
+          if (session.user.id !== user.id) {
+            logger.warn("PaymentContext: Session user mismatch");
+            setIsUserValid(false);
+            return;
+          }
+
+          logger.success("PaymentContext: User validation passed:", {
+            userId: user.id,
+            email: user.email,
+          });
+          setIsUserValid(true);
+        } catch (error) {
+          logger.error("PaymentContext: Session validation error:", error);
+          setIsUserValid(false);
+        }
+      }, 500), // 500ms debounce for user validation
+    [authReady, authLoading, user],
+  );
+
+  useEffect(() => {
+    debouncedUserValidation();
+  }, [debouncedUserValidation]);
+
+  // ✅ EFFECT 2: Trigger access refresh with debouncing
   useEffect(() => {
     if (authReady && !authLoading && isUserValid && !paymentLoading) {
-      logger.debug('PaymentContext: Triggering access refresh for valid user');
-      refreshAccessStatusRef.current?.();
-    } else {
-      logger.debug('PaymentContext: Skipping access refresh', {
-        authReady,
-        authLoading,
-        isUserValid,
-        paymentLoading
-      });
+      logger.debug("PaymentContext: Triggering debounced access refresh");
+      debouncedAccessRefresh();
     }
-  }, [authReady, authLoading, isUserValid, paymentLoading, isPaid]);
+  }, [
+    authReady,
+    authLoading,
+    isUserValid,
+    paymentLoading,
+    isPaid,
+    debouncedAccessRefresh,
+  ]);
 
   // ✅ EFFECT 2b: Auto-link unlinked payments by email after login (one-time, non-blocking)
   useEffect(() => {
     const autoLinkByEmail = async () => {
       try {
-        if (!authReady || authLoading || !isUserValid || triedAutoLinkRef.current) return;
+        if (
+          !authReady ||
+          authLoading ||
+          !isUserValid ||
+          triedAutoLinkRef.current
+        )
+          return;
         if (!user?.id || !user?.email) return;
         triedAutoLinkRef.current = true;
 
-        logger.info('PaymentContext: Attempting auto-link of unlinked payments by email');
+        logger.info(
+          "PaymentContext: Attempting auto-link of unlinked payments by email",
+        );
         const { data: unlinked, error } = await supabase
-          .from('user_payments')
-          .select('id')
-          .is('user_id', null)
-          .eq('email', user.email)
-          .eq('is_paid', true)
-          .eq('payment_status', 'settled')
+          .from("user_payments")
+          .select("id")
+          .is("user_id", null)
+          .eq("email", user.email)
+          .eq("is_paid", true)
+          .eq("payment_status", "settled")
           .limit(5);
 
         if (error) {
-          logger.error('PaymentContext: Auto-link query error:', error);
+          logger.error("PaymentContext: Auto-link query error:", error);
           return;
         }
         if (!unlinked || unlinked.length === 0) {
-          logger.debug('PaymentContext: No unlinked payments found for auto-link');
+          logger.debug(
+            "PaymentContext: No unlinked payments found for auto-link",
+          );
           return;
         }
 
         const ids = unlinked.map((p: any) => p.id);
-        logger.info('PaymentContext: Auto-linking payments:', ids);
+        logger.info("PaymentContext: Auto-linking payments:", ids);
         const { error: linkError } = await supabase
-          .from('user_payments')
+          .from("user_payments")
           .update({ user_id: user.id })
-          .in('id', ids);
+          .in("id", ids);
 
         if (linkError) {
-          logger.error('PaymentContext: Auto-link update error:', linkError);
+          logger.error("PaymentContext: Auto-link update error:", linkError);
           return;
         }
 
         // Refresh related caches
         await enhancedRefetch();
-        logger.success('PaymentContext: Auto-link completed');
+        logger.success("PaymentContext: Auto-link completed");
       } catch (e) {
-        logger.error('PaymentContext: Auto-link failed:', e);
+        logger.error("PaymentContext: Auto-link failed:", e);
       }
     };
 
     autoLinkByEmail();
-  }, [authReady, authLoading, isUserValid, user?.id, user?.email, enhancedRefetch]);
+  }, [
+    authReady,
+    authLoading,
+    isUserValid,
+    user?.id,
+    user?.email,
+    enhancedRefetch,
+  ]);
 
   // ✅ EFFECT 3: Close popup when access granted
   useEffect(() => {
     if (hasAccess && showOrderPopup) {
-      logger.info('PaymentContext: Access granted, closing order popup');
+      logger.info("PaymentContext: Access granted, closing order popup");
       setShowOrderPopup(false);
     }
   }, [hasAccess, showOrderPopup, setShowOrderPopup]);
@@ -332,14 +387,14 @@ const accessPromise = getUserAccessStatus();
   // ✅ EFFECT 4: Auto-close auto-link popup
   useEffect(() => {
     if (autoLinkCount === 0 && showAutoLinkPopup) {
-      logger.info('PaymentContext: No more auto-link payments, closing popup');
+      logger.info("PaymentContext: No more auto-link payments, closing popup");
       setShowAutoLinkPopup(false);
     }
   }, [autoLinkCount, showAutoLinkPopup, setShowAutoLinkPopup]);
 
   // ✅ EFFECT 5: Debug logging
   useEffect(() => {
-    logger.debug('PaymentContext state update:', {
+    logger.debug("PaymentContext state update:", {
       authReady,
       authLoading,
       isUserValid,
@@ -356,44 +411,65 @@ const accessPromise = getUserAccessStatus();
       isDev,
       bypassAuth,
       finalIsPaid: bypassAuth ? true : isPaid,
-      finalNeedsPayment: bypassAuth ? false : needsPayment
+      finalNeedsPayment: bypassAuth ? false : needsPayment,
     });
   }, [
     authReady,
     authLoading,
     isUserValid,
-    paymentLoading, 
+    paymentLoading,
     accessLoading,
-    isPaid, 
-    hasAccess, 
+    isPaid,
+    hasAccess,
     user?.email,
     user?.id,
-    autoLinkCount, 
+    autoLinkCount,
     hasUnlinkedPayment,
     isDev,
     bypassAuth,
-    needsPayment
+    needsPayment,
   ]);
 
-  // ✅ Calculate derived values AFTER all hooks
-  const unlinkedPaymentCount = hasUnlinkedPayment ? 1 : 0;
-  const totalUnlinkedCount = unlinkedPaymentCount + autoLinkCount;
-  const isLoading = paymentLoading || authLoading || accessLoading;
+  // ✅ Calculate derived values with memoization
+  const derivedValues = useMemo(() => {
+    const unlinkedPaymentCount = hasUnlinkedPayment ? 1 : 0;
+    const totalUnlinkedCount = unlinkedPaymentCount + autoLinkCount;
+    const isLoading = paymentLoading || authLoading || accessLoading;
 
-  // ✅ Development bypass overrides
-  const finalIsPaid = bypassAuth ? true : isPaid;
-  const finalNeedsPayment = bypassAuth ? false : needsPayment;
-  const finalShowMandatoryUpgrade = bypassAuth ? false : showMandatoryUpgrade;
+    // Development bypass overrides
+    const finalIsPaid = bypassAuth ? true : isPaid;
+    const finalNeedsPayment = bypassAuth ? false : needsPayment;
+    const finalShowMandatoryUpgrade = bypassAuth ? false : showMandatoryUpgrade;
 
-  // ✅ RETURN: Always return same structure
-  return (
-    <PaymentContext.Provider value={{
-      // Original context values
-      isPaid: finalIsPaid,
+    return {
+      unlinkedPaymentCount,
+      totalUnlinkedCount,
       isLoading,
+      finalIsPaid,
+      finalNeedsPayment,
+      finalShowMandatoryUpgrade,
+    };
+  }, [
+    hasUnlinkedPayment,
+    autoLinkCount,
+    paymentLoading,
+    authLoading,
+    accessLoading,
+    bypassAuth,
+    isPaid,
+    needsPayment,
+    showMandatoryUpgrade,
+  ]);
+
+  // ✅ CONTEXT VALUE WITH MEMO - Prevents unnecessary re-renders
+  const contextValue = useMemo(
+    (): PaymentContextType => ({
+      // Original context values
+      isPaid: derivedValues.finalIsPaid,
+      isLoading: derivedValues.isLoading,
       paymentStatus,
-      needsPayment: finalNeedsPayment,
-      showMandatoryUpgrade: finalShowMandatoryUpgrade,
+      needsPayment: derivedValues.finalNeedsPayment,
+      showMandatoryUpgrade: derivedValues.finalShowMandatoryUpgrade,
       previewTimeLeft,
       showUpgradePopup,
       setShowUpgradePopup,
@@ -405,7 +481,7 @@ const accessPromise = getUserAccessStatus();
       hasAccess,
       accessMessage,
       refreshAccessStatus,
-      
+
       // Auto-linking values - ✅ Only use user if valid
       currentUser: isUserValid ? user : null,
       unlinkedPayments,
@@ -415,11 +491,39 @@ const accessPromise = getUserAccessStatus();
       autoLinkLoading,
       autoLinkError,
       refetchUnlinkedPayments,
-      
+
       // Combined counts
-      unlinkedPaymentCount,
-      totalUnlinkedCount
-    }}>
+      unlinkedPaymentCount: derivedValues.unlinkedPaymentCount,
+      totalUnlinkedCount: derivedValues.totalUnlinkedCount,
+    }),
+    [
+      derivedValues,
+      paymentStatus,
+      previewTimeLeft,
+      showUpgradePopup,
+      setShowUpgradePopup,
+      needsOrderLinking,
+      showOrderPopup,
+      setShowOrderPopup,
+      hasUnlinkedPayment,
+      enhancedRefetch,
+      hasAccess,
+      accessMessage,
+      refreshAccessStatus,
+      isUserValid,
+      user,
+      unlinkedPayments,
+      showAutoLinkPopup,
+      setShowAutoLinkPopup,
+      autoLinkCount,
+      autoLinkLoading,
+      autoLinkError,
+      refetchUnlinkedPayments,
+    ],
+  );
+
+  return (
+    <PaymentContext.Provider value={contextValue}>
       {children}
     </PaymentContext.Provider>
   );
@@ -428,7 +532,7 @@ const accessPromise = getUserAccessStatus();
 export const usePaymentContext = () => {
   const context = useContext(PaymentContext);
   if (context === undefined) {
-    throw new Error('usePaymentContext must be used within a PaymentProvider');
+    throw new Error("usePaymentContext must be used within a PaymentProvider");
   }
   return context;
 };

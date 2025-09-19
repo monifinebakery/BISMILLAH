@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 type AuthState =
   | "idle"
@@ -514,7 +515,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         clearAuthState();
         toast.success("Login berhasil! Mengarahkan ke dashboard...");
         onLoginSuccess?.();
-        // ✅ NEW: Mark recent OTP success to give AuthGuard a grace period on mobile
+
+        // ✅ Mark OTP success timestamp
         try {
           localStorage.setItem("otpVerifiedAt", String(Date.now()));
         } catch (error) {
@@ -524,34 +526,68 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           );
         }
 
-        // ✅ ENHANCED: Multiple fallback mechanisms for redirect
-        // This prevents navigation thrashing and Chrome's "Throttling navigation" warning
+        // ✅ NUCLEAR OPTION: Force redirect with auth state listener
+        logger.info("EmailAuth: 🚀 NUCLEAR redirect after OTP success");
 
-        // Method 1: Try AuthContext redirect first
-        redirectCheck();
+        // Add auth state change listener
+        const handleAuthChange = () => {
+          logger.info(
+            "EmailAuth: Auth state changed detected, forcing redirect",
+          );
+          setTimeout(() => {
+            if (window.location.pathname === "/auth") {
+              logger.warn(
+                "EmailAuth: 💣 NUCLEAR redirect - window.location.replace",
+              );
+              window.location.replace("/");
+            }
+          }, 100);
+        };
 
-        // Method 2: Fallback direct navigation after short delay
+        // Listen for Supabase auth changes
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((event, session) => {
+          logger.info("EmailAuth: Supabase auth event:", {
+            event,
+            hasSession: !!session,
+          });
+          if (event === "SIGNED_IN" && session) {
+            handleAuthChange();
+            subscription.unsubscribe();
+          }
+        });
+
+        // Method 1: Immediate window.location (most reliable)
+        setTimeout(() => {
+          logger.warn("EmailAuth: 500ms timeout - forcing redirect");
+          window.location.href = "/";
+        }, 500);
+
+        // Method 2: React Router as fallback
+        try {
+          navigate("/", { replace: true });
+          logger.info("EmailAuth: React Router navigate called");
+        } catch (navError) {
+          logger.error("EmailAuth: navigate() failed:", navError);
+        }
+
+        // Method 3: AuthContext redirect
         setTimeout(() => {
           if (window.location.pathname === "/auth") {
-            logger.info("EmailAuth: Fallback navigation triggered");
-            navigate("/", { replace: true });
+            logger.info("EmailAuth: Trying AuthContext redirectCheck");
+            redirectCheck();
           }
-        }, 2000);
+        }, 1000);
 
-        // Method 3: Force refresh user session to ensure auth state is updated
-        setTimeout(async () => {
+        // Method 4: Final nuclear option
+        setTimeout(() => {
           if (window.location.pathname === "/auth") {
-            logger.info("EmailAuth: Force refreshing user session");
-            await refreshUser();
-            // Final fallback navigation
-            setTimeout(() => {
-              if (window.location.pathname === "/auth") {
-                logger.warn("EmailAuth: Final fallback navigation");
-                window.location.href = "/";
-              }
-            }, 1000);
+            logger.error("EmailAuth: 🔴 FINAL NUCLEAR OPTION");
+            window.location.replace("/");
           }
-        }, 4000);
+          subscription.unsubscribe();
+        }, 2000);
 
         return;
       } else if (ok === "expired") {

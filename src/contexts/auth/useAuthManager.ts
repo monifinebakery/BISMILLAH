@@ -39,6 +39,8 @@ type AuthLifecycleParams = {
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setIsReady: React.Dispatch<React.SetStateAction<boolean>>;
   navigate: ReturnType<typeof useNavigate>;
+  session: Session | null;
+  user: User | null;
 };
 
 const useAuthLifecycle = ({
@@ -48,6 +50,8 @@ const useAuthLifecycle = ({
   setIsLoading,
   setIsReady,
   navigate,
+  session,
+  user,
 }: AuthLifecycleParams) => {
   // Android-specific periodic session validation
   useEffect(() => {
@@ -609,6 +613,8 @@ export const useAuthManager = (): AuthContextValue => {
     setIsLoading,
     setIsReady,
     navigate,
+    session,
+    user,
   });
 
   useEffect(() => {

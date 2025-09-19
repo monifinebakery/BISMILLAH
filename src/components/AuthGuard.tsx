@@ -95,24 +95,22 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
     logger.debug('🔍 AuthGuard State Update:', debugInfo);
     
-    // ✅ FORCE LOG to console for debugging
-    console.log(`🔍 [AuthGuard #${renderCount}] State:`, debugInfo);
+    // ✅ REDUCED: Only log in dev mode and when there are actual changes
+    if (import.meta.env.DEV && renderCount % 5 === 1) {
+      console.log(`🔍 [AuthGuard #${renderCount}] State:`, debugInfo);
+    }
 
-    // ✅ Log specific navigation decisions
-    if (isReady && !isLoading) {
+    // ✅ REDUCED: Log specific navigation decisions (dev mode only)
+    if (import.meta.env.DEV && isReady && !isLoading) {
       if (!user && location.pathname !== '/auth') {
-        logger.info('🚀 AuthGuard: Will redirect to /auth (no user)');
         console.log(`🚀 [AuthGuard #${renderCount}] Will redirect to /auth (no user)`);
       } else if (user && location.pathname === '/auth') {
-        logger.info('🚀 AuthGuard: Will redirect to / (authenticated user on auth page)');
-        console.log(`🚀 [AuthGuard #${renderCount}] Will redirect to / (authenticated user on auth page)`);
-        console.log(`🚀 [AuthGuard #${renderCount}] User details:`, { id: user.id, email: user.email });
+        console.log(`🚀 [AuthGuard #${renderCount}] Will redirect to / (authenticated user)`);
       } else if (user && location.pathname !== '/auth') {
-        logger.info('✅ AuthGuard: User authenticated, rendering protected content');
-        console.log(`✅ [AuthGuard #${renderCount}] User authenticated, rendering protected content`);
+        if (renderCount % 10 === 1) {
+          console.log(`✅ [AuthGuard #${renderCount}] User authenticated, rendering content`);
+        }
       }
-    } else {
-      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for AuthContext:`, { isReady, isLoading });
     }
   }, [user, isLoading, isReady, location.pathname, renderCount]);
 

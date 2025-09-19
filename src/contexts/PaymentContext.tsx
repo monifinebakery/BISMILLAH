@@ -208,13 +208,11 @@ const accessPromise = getUserAccessStatus();
       
       if (!user || !user.id || !user.email) {
         // ✅ Silent for unauthenticated state - this is normal
-        if (authReady && !authLoading) {
+        if (import.meta.env.DEV && authReady && !authLoading) {
           console.log('PaymentContext: User not ready yet:', { 
             hasUser: !!user, 
             hasId: !!user?.id, 
             hasEmail: !!user?.email,
-            authReady,
-            authLoading,
             note: 'Normal when not logged in'
           });
         }

@@ -119,6 +119,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   }, []);
 
   const availableSuppliers = useMemo(() => {
+    if (!context.bahanBaku || !Array.isArray(context.bahanBaku)) {
+      logger.warn(`[${hookId.current}] ⚠️ bahanBaku is not an array:`, context.bahanBaku);
+      return [];
+    }
+    
     const suppliers = new Set(
       context.bahanBaku.map(item => resolveSupplierName(item.supplier)).filter(Boolean)
     );
@@ -129,6 +134,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
 
   // Filtered and sorted items
   const filteredItems = useMemo(() => {
+    if (!context.bahanBaku || !Array.isArray(context.bahanBaku)) {
+      logger.warn(`[${hookId.current}] ⚠️ bahanBaku is not an array for filtering:`, context.bahanBaku);
+      return [];
+    }
+    
     let items = [...context.bahanBaku];
     const initialCount = items.length;
 
@@ -245,6 +255,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   }, [selectedItems.length]);
 
   const selectPage = useCallback(() => {
+    if (!currentItems || !Array.isArray(currentItems) || currentItems.length === 0) {
+      logger.warn(`[${hookId.current}] ⚠️ Cannot select page: currentItems is empty or invalid`);
+      return;
+    }
+    
     const pageIds = currentItems.map(item => item.id);
     setSelectedItems(prev => {
       const newSelected = new Set([...prev, ...pageIds]);

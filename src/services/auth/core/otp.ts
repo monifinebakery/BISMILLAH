@@ -198,13 +198,28 @@ export const verifyEmailOtp = async (
       // ✅ CRITICAL: Set otpVerifiedAt flag for AuthGuard session handling
       try {
         localStorage.setItem('otpVerifiedAt', Date.now().toString());
-        console.log('🔑 [OTP] Set otpVerifiedAt flag for session persistence');
+        if (import.meta.env.DEV) {
+          console.log('🔑 [OTP] Set otpVerifiedAt flag for session persistence');
+        }
       } catch (storageError) {
         logger.warn('Failed to set otpVerifiedAt flag:', storageError);
       }
       
+      // ✅ CRITICAL: Trigger payment status refresh after successful login
+      try {
+        // Dispatch custom event to trigger payment refresh
+        window.dispatchEvent(new CustomEvent('auth-refresh-request', {
+          detail: { reason: 'otp_verification_success', timestamp: Date.now() }
+        }));
+        if (import.meta.env.DEV) {
+          console.log('🔄 [OTP] Triggered payment refresh after login');
+        }
+      } catch (eventError) {
+        logger.warn('Failed to trigger payment refresh:', eventError);
+      }
+      
       // ✅ ENHANCED: Force a small delay to ensure session is fully committed
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300)); // Increased delay for payment sync
       
       toast.success('Login berhasil!');
       return true;
@@ -226,7 +241,9 @@ export const verifyEmailOtp = async (
           // ✅ CRITICAL: Set otpVerifiedAt flag for AuthGuard session handling
           try {
             localStorage.setItem('otpVerifiedAt', Date.now().toString());
-            console.log('🔑 [OTP] Set otpVerifiedAt flag via session check');
+            if (import.meta.env.DEV) {
+              console.log('🔑 [OTP] Set otpVerifiedAt flag via session check');
+            }
           } catch (storageError) {
             logger.warn('Failed to set otpVerifiedAt flag:', storageError);
           }

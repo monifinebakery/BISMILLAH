@@ -10,26 +10,60 @@ import { safeDom } from '@/utils/browserApiSafeWrappers';
  * @returns {boolean} - Mengembalikan `true` jika lebar layar kurang dari atau sama dengan maxWidth, `false` jika lebih besar.
  */
 export const useIsMobile = (maxWidth: number = 768): boolean => {
-  const [isMobile, setIsMobile] = useState(false);
+  // Initialize from window on first render to avoid desktop/mobile flip
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= maxWidth;
+    }
+    return false;
+  });
 
   useEffect(() => {
-    // Fungsi untuk memeriksa ukuran layar
+    // Prefer matchMedia for more accurate breakpoint tracking
+    const mql = typeof window !== 'undefined'
+      ? window.matchMedia(`(max-width: ${maxWidth}px)`)
+      : null;
+
+    const updateFromMql = () => {
+      if (!mql) return;
+      setIsMobile(mql.matches);
+    };
+
+    // Fallback resize handler
     const handleResize = () => {
       setIsMobile(window.innerWidth <= maxWidth);
     };
 
-    // Panggil fungsi sekali saat komponen pertama kali dimuat
-    handleResize();
+    // Initial sync
+    if (mql) {
+      updateFromMql();
+      // Modern browsers
+      try {
+        mql.addEventListener('change', updateFromMql);
+      } catch {
+        // Safari <14 fallback
+        // @ts-ignore
+        mql.addListener(updateFromMql);
+      }
+    } else {
+      handleResize();
+    }
 
-    // Tambahkan event listener untuk memantau perubahan ukuran jendela
-    safeDom.addEventListener(safeDom, window, 'resize', handleResize);
+    // Also listen to resize as a fallback (covers zoom/orientation edge cases)
+    safeDom.addEventListener(window, 'resize', handleResize, undefined);
 
-    // Fungsi cleanup untuk menghapus event listener saat komponen tidak lagi digunakan
-    // Ini penting untuk mencegah memory leak
     return () => {
-      safeDom.removeEventListener(safeDom, window, 'resize', handleResize);
+      if (mql) {
+        try {
+          mql.removeEventListener('change', updateFromMql);
+        } catch {
+          // @ts-ignore
+          mql.removeListener(updateFromMql);
+        }
+      }
+      safeDom.removeEventListener(window, 'resize', handleResize, undefined);
     };
-  }, [maxWidth]); // Efek ini akan dijalankan ulang jika nilai maxWidth berubah
+  }, [maxWidth]);
 
   return isMobile;
 };

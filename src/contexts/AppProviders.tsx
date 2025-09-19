@@ -9,7 +9,6 @@ import { useLocation } from 'react-router-dom';
 
 // ⚡ CRITICAL: Always load immediately
 import { AuthProvider } from './AuthContext';
-import { PaymentProvider } from './PaymentContext';
 
 // ⚡ HIGH PRIORITY: Load after auth is ready
 import { NotificationProvider } from './NotificationContext';
@@ -90,39 +89,40 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     }, <>{content}</>);
   };
 
-  const CoreProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { pathname } = useLocation();
-    const isAuthRoute = pathname.startsWith('/auth');
-    if (isAuthRoute) {
-      // On auth route, mount only AuthProvider to avoid heavy queries
-      return <AuthProvider>{children}</AuthProvider>;
-    }
-    return (
-      <AuthProvider>
-        <PaymentProvider>{children}</PaymentProvider>
-      </AuthProvider>
-    );
-  };
-
   const { pathname } = useLocation();
   const isAuthRoute = pathname.startsWith('/auth');
 
+  const heavyProvidersTree = renderProviders(
+    criticalProviders,
+    renderProviders(
+      highProviders,
+      renderProviders(
+        mediumProviders,
+        renderProviders(lowProviders, children)
+      )
+    )
+  );
+
+  const PaymentGate: React.FC<{ content: ReactNode }> = ({ content }) => {
+    const { user, isReady, isLoading } = useAuth();
+    const shouldMountPayment = !!user && isReady && !isLoading;
+    if (!shouldMountPayment) {
+      logger.debug('AppProviders: Skipping PaymentProvider until auth ready');
+      return <>{content}</>;
+    }
+    logger.debug('AppProviders: Mounting PaymentProvider (auth ready)');
+    return <PaymentProvider>{content}</PaymentProvider>;
+  };
+
   return (
     <>
-      <CoreProviders>
-        {isAuthRoute
-          ? children // Skip heavy providers entirely on /auth
-          : renderProviders(
-              criticalProviders,
-              renderProviders(
-                highProviders,
-                renderProviders(
-                  mediumProviders,
-                  renderProviders(lowProviders, children)
-                )
-              )
-            )}
-      </CoreProviders>
+      <AuthProvider>
+        {isAuthRoute ? (
+          children
+        ) : (
+          <PaymentGate content={heavyProvidersTree} />
+        )}
+      </AuthProvider>
 
       <Toaster 
         className="toaster"

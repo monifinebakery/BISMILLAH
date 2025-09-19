@@ -84,14 +84,21 @@ const useAuthLifecycle = ({
   );
 
   // ✅ FIX: Debounce navigation to prevent loops
+  // Use ref to always get current navigate without triggering dependency changes
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+
   const debouncedNavigate = useMemo(
     () =>
       debounce((path: string) => {
         if (window.location.pathname !== path) {
-          stableNavigate(path, { replace: true });
+          logger.debug(`AuthContext: Debounced navigate to ${path}`);
+          navigateRef.current(path, { replace: true });
         }
       }, 100),
-    [stableNavigate],
+    [], // No dependencies to prevent recreation
   );
 
   // ✅ OPTIMIZED: Android-specific periodic session validation with throttling
@@ -552,7 +559,8 @@ const useAuthLifecycle = ({
     setIsReady,
     setSession,
     setUser,
-    debouncedNavigate,
+    // ✅ REMOVED debouncedNavigate to prevent infinite loop
+    // debouncedNavigate is used inside callbacks but doesn't need to trigger effect restart
   ]);
 
   // ✅ FIX: Stabilize auth state change handler outside useEffect

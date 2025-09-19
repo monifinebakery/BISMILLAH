@@ -522,7 +522,7 @@ const PurchaseAddEditPage: React.FC = () => {
                 <p className="text-sm text-gray-600">{formData.items.length} Item</p>
                 <p className="text-sm text-gray-500 truncate">
                   {formData.supplier
-                    ? `Supplier: ${formData.supplier}`
+                    ? 'Supplier: ' + formData.supplier
                     : 'Supplier belum dipilih'}
                 </p>
               </div>
@@ -539,7 +539,7 @@ const PurchaseAddEditPage: React.FC = () => {
                 variant="outline"
                 onClick={handleResetForm}
                 disabled={isSubmitting || !isDirty}
-                className="min-h-[44px]"
+                className="h-11"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Reset
@@ -550,7 +550,7 @@ const PurchaseAddEditPage: React.FC = () => {
                 variant="outline"
                 onClick={() => onSubmit()}
                 disabled={isSubmitting}
-                className="min-h-[44px]"
+                className="h-11"
               >
                 <Save className="h-4 w-4 mr-2" />
                 {isEditing ? 'Simpan Perubahan' : 'Simpan Draft'}
@@ -561,7 +561,7 @@ const PurchaseAddEditPage: React.FC = () => {
                   type="button"
                   onClick={() => onSubmit('completed')}
                   disabled={isSubmitting || formData.items.length === 0 || !formData.supplier.trim()}
-                  className="bg-orange-500 hover:bg-orange-600 text-white min-h-[44px] flex-1 sm:flex-none"
+                  className="bg-orange-500 hover:bg-orange-600 text-white h-11 flex-1 sm:flex-none"
                 >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   <span className="truncate sm:hidden">Selesaikan</span>

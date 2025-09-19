@@ -53,12 +53,15 @@ const useAuthLifecycle = ({
   session,
   user,
 }: AuthLifecycleParams) => {
-  // Android-specific periodic session validation
+  // Android-specific periodic session validation (deferred to avoid initial UI flicker)
   useEffect(() => {
     const androidDetection = detectProblematicAndroid();
     if (!androidDetection.isProblematic) {
       return;
     }
+
+    let interval: ReturnType<typeof setInterval> | undefined;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
     const validateAndroidSessionPeriodically = async () => {
       // Only validate if we have a session
@@ -71,11 +74,9 @@ const useAuthLifecycle = ({
         if (!result.success && result.requiresRelogin) {
           logger.warn('Android: Periodic validation failed, clearing session', result.message);
           
-          // Clear corrupted session
+          // Clear corrupted session without toggling loading states to avoid flicker
           setSession(null);
           setUser(null);
-          setIsReady(true);
-          setIsLoading(false);
           
           // Clean up storage
           cleanupAndroidStorage();
@@ -85,12 +86,17 @@ const useAuthLifecycle = ({
       }
     };
 
-    // Validate immediately and then every 30 seconds
-    validateAndroidSessionPeriodically();
-    const interval = setInterval(validateAndroidSessionPeriodically, 30000);
+    // Defer first run by 30s to avoid extra state changes during initial auth
+    timeout = setTimeout(() => {
+      validateAndroidSessionPeriodically();
+      interval = setInterval(validateAndroidSessionPeriodically, 30000);
+    }, 30000);
 
-    return () => clearInterval(interval);
-  }, [session, user]);
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
+  }, [session?.user?.id, session?.expires_at]);
   
   useEffect(() => {
     let mounted = true;

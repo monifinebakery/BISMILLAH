@@ -121,8 +121,22 @@ This ensures they appear above ALL other UI elements.
 }
 
 /* ============================
+   Mobile Layout Background Fix
+   ============================
+   Force white background on mobile layout components
+*/
+.mobile-layout-force-white,
+.mobile-layout-force-white *,
+.mobile-layout-force-white [data-sidebar="inset"],
+.mobile-layout-force-white header {
+  background-color: white !important;
+  background-image: none !important;
+  background: white !important;
+}
+
+/* ============================
    Components (Dialog, Cards, etc.)
-   ============================ */
+   ============================
 @layer components {
   /* ---- DIALOG SYSTEM: Responsive & Consistent ---- 
      Primary pattern: 

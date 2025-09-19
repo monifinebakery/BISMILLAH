@@ -23,7 +23,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 }) => {
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="min-h-svh flex w-full !bg-white" style={{backgroundColor: 'white'}}>
+      <div className="mobile-layout-force-white min-h-svh flex w-full !bg-white" style={{backgroundColor: 'white'}}>
         {/* 📱 Sidebar as sheet on mobile */}
         <AppSidebar />
 

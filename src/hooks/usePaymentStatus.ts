@@ -40,6 +40,7 @@ export const usePaymentStatus = () => {
   const authSubRef = useRef<any>(null);
   const currentUserRef = useRef<any>(null);
   const setupTimeoutRef = useRef<NodeJS.Timeout>();
+  const mountedRef = useRef(true);
 
   // ✅ OPTIMIZED: Use debounce hook untuk prevent spam
   const { smartInvalidatePayment, cleanup } = usePaymentDebounce({
@@ -113,9 +114,9 @@ export const usePaymentStatus = () => {
 
         return {
           ...payment,
-          created_at: safeParseDate(payment.created_at),
-          updated_at: safeParseDate(payment.updated_at),
-          payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
+          created_at: safeParseDate(payment.created_at) || undefined,
+          updated_at: safeParseDate(payment.updated_at) || undefined,
+          payment_date: safeParseDate(payment.updated_at) || undefined, // ✅ Use updated_at as payment_date
           amount: null, // ✅ Not in schema, set null
           currency: "IDR", // ✅ Default currency
           marketing_channel: null, // ✅ Not in schema, set null
@@ -155,9 +156,9 @@ export const usePaymentStatus = () => {
 
         return {
           ...payment,
-          created_at: safeParseDate(payment.created_at),
-          updated_at: safeParseDate(payment.updated_at),
-          payment_date: safeParseDate(payment.updated_at), // ✅ Use updated_at as payment_date
+          created_at: safeParseDate(payment.created_at) || undefined,
+          updated_at: safeParseDate(payment.updated_at) || undefined,
+          payment_date: safeParseDate(payment.updated_at) || undefined, // ✅ Use updated_at as payment_date
           amount: null, // ✅ Not in schema, set null
           currency: "IDR", // ✅ Default currency
           marketing_channel: null, // ✅ Not in schema, set null
@@ -177,7 +178,7 @@ export const usePaymentStatus = () => {
     },
     enabled: true,
     staleTime: 60000, // ✅ OPTIMIZED: 1 minute (longer cache for better UX)
-    cacheTime: 900000, // ✅ OPTIMIZED: 15 minutes (longer cache)
+    gcTime: 900000, // ✅ OPTIMIZED: 15 minutes (longer cache)
     refetchOnWindowFocus: false, // ✅ FIXED: Don't refetch on focus untuk speed
     refetchOnMount: false, // ✅ OPTIMIZED: Don't refetch on mount if data exists
     refetchOnReconnect: "always", // ✅ OPTIMIZED: Only refetch on reconnect if needed
@@ -195,6 +196,45 @@ export const usePaymentStatus = () => {
     },
   });
 
+  // ✅ FIX: Move handleAuthStateChange outside useEffect to follow hook rules
+  const handleAuthStateChange = useCallback(
+    async (event: AuthChangeEvent, session: Session | null) => {
+      if (!mountedRef.current) return;
+
+      if (process.env.NODE_ENV === "development") {
+        logger.hook("usePaymentStatus", "Auth state changed:", event);
+      }
+
+      if (event === "SIGNED_IN" && session?.user) {
+        if (process.env.NODE_ENV === "development") {
+          logger.hook(
+            "usePaymentStatus",
+            "User signed in, refreshing payment status",
+          );
+        }
+
+        setTimeout(() => {
+          if (mountedRef.current) {
+            // ✅ FIX: Use debounced invalidation
+            debouncedInvalidatePayment();
+          }
+        }, 500);
+      } else if (event === "SIGNED_OUT") {
+        if (process.env.NODE_ENV === "development") {
+          logger.hook("usePaymentStatus", "User signed out, cleaning up");
+        }
+
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+        currentUserRef.current = null;
+        queryClient.setQueryData(["paymentStatus"], null);
+      }
+    },
+    [debouncedInvalidatePayment, queryClient],
+  );
+
   // ✅ REMOVED: Now using dedicated debounce hook instead
   // const debouncedInvalidate = useCallback(() => {
   //   queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
@@ -207,7 +247,7 @@ export const usePaymentStatus = () => {
 
   // ✅ Fixed real-time subscription - no more spam!
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
 
     const setupSubscription = async () => {
       try {
@@ -227,10 +267,10 @@ export const usePaymentStatus = () => {
         }
 
         const isAuth = await isAuthenticated();
-        if (!isAuth || !mounted) return;
+        if (!isAuth || !mountedRef.current) return;
 
         const user = await getCurrentUser();
-        if (!user || !mounted) return;
+        if (!user || !mountedRef.current) return;
 
         // ✅ Check if user changed to prevent duplicate subscriptions
         if (currentUserRef.current?.id === user.id && channelRef.current) {
@@ -241,7 +281,7 @@ export const usePaymentStatus = () => {
 
         // ✅ Small delay to prevent rapid re-creation
         setupTimeoutRef.current = setTimeout(() => {
-          if (!mounted) return;
+          if (!mountedRef.current) return;
 
           if (process.env.NODE_ENV === "development") {
             logger.hook(
@@ -265,9 +305,9 @@ export const usePaymentStatus = () => {
                 filter: `user_id=eq.${user.id}`,
               },
               (payload) => {
-                if (!mounted) return;
+                if (!mountedRef.current) return;
 
-                const record = payload.new || payload.old;
+                const record = (payload.new || payload.old) as any;
                 if (process.env.NODE_ENV === "development") {
                   logger.hook(
                     "usePaymentStatus",
@@ -288,7 +328,7 @@ export const usePaymentStatus = () => {
             // Note: Realtime OR filters can cause binding mismatches. For unlinked payments by email,
             // we rely on useUnlinkedPayments which already subscribes to user_id IS NULL and filters by email in handler.
             .subscribe((status, err) => {
-              if (!mounted) return;
+              if (!mountedRef.current) return;
 
               if (status === "SUBSCRIBED") {
                 if (process.env.NODE_ENV === "development") {
@@ -315,46 +355,6 @@ export const usePaymentStatus = () => {
       }
     };
 
-    // ✅ FIX: Stabilize auth change handler
-    const handleAuthStateChange = useCallback(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        if (!mounted) return;
-
-        if (process.env.NODE_ENV === "development") {
-          logger.hook("usePaymentStatus", "Auth state changed:", event);
-        }
-
-        if (event === "SIGNED_IN" && session?.user) {
-          if (process.env.NODE_ENV === "development") {
-            logger.hook(
-              "usePaymentStatus",
-              "User signed in, refreshing payment status",
-            );
-          }
-
-          setTimeout(() => {
-            if (mounted) {
-              setupSubscription();
-              // ✅ FIX: Use debounced invalidation
-              debouncedInvalidatePayment();
-            }
-          }, 500);
-        } else if (event === "SIGNED_OUT") {
-          if (process.env.NODE_ENV === "development") {
-            logger.hook("usePaymentStatus", "User signed out, cleaning up");
-          }
-
-          if (channelRef.current) {
-            supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
-          }
-          currentUserRef.current = null;
-          queryClient.setQueryData(["paymentStatus"], null);
-        }
-      },
-      [debouncedInvalidatePayment],
-    );
-
     // ✅ Setup auth change listener (only once)
     if (!authSubRef.current) {
       authSubRef.current = supabase.auth.onAuthStateChange(
@@ -366,7 +366,7 @@ export const usePaymentStatus = () => {
     setupSubscription();
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
 
       if (setupTimeoutRef.current) {
         clearTimeout(setupTimeoutRef.current);
@@ -387,24 +387,32 @@ export const usePaymentStatus = () => {
 
       currentUserRef.current = null;
     };
-  }, [debouncedInvalidatePayment]); // ✅ FIX: Include debounced function in deps
+  }, [debouncedInvalidatePayment, handleAuthStateChange, cleanup]); // ✅ FIX: Include stable handlers in deps
+
+  // ✅ Cleanup mounted ref on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // ✅ Enhanced payment status logic with unlinked payment support
   const isLinkedToCurrentUser =
-    paymentStatus?.user_id !== null && paymentStatus?.user_id !== undefined;
+    (paymentStatus as PaymentStatus)?.user_id !== null &&
+    (paymentStatus as PaymentStatus)?.user_id !== undefined;
 
   // Check for valid linked payment
   const hasValidLinkedPayment =
-    paymentStatus?.is_paid === true &&
-    paymentStatus?.payment_status === "settled" &&
+    (paymentStatus as PaymentStatus)?.is_paid === true &&
+    (paymentStatus as PaymentStatus)?.payment_status === "settled" &&
     isLinkedToCurrentUser;
 
   // Check for unlinked but valid payment (same email)
   const hasUnlinkedPayment =
     paymentStatus &&
-    !paymentStatus.user_id &&
-    paymentStatus.is_paid === true &&
-    paymentStatus.payment_status === "settled";
+    !(paymentStatus as PaymentStatus).user_id &&
+    (paymentStatus as PaymentStatus).is_paid === true &&
+    (paymentStatus as PaymentStatus).payment_status === "settled";
 
   // 🔧 FIXED: Accept both linked and unlinked payments as valid
   // This fixes the issue where paid users see upgrade popup
@@ -422,11 +430,12 @@ export const usePaymentStatus = () => {
         hasUnlinkedPayment,
         needsOrderLinking,
         isLinkedToCurrentUser,
-        paymentRecord: paymentStatus?.order_id || "none",
-        userEmail: paymentStatus?.email || "none",
-        userId: paymentStatus?.user_id || "none",
-        paymentStatus: paymentStatus?.payment_status || "none",
-        isPaid: paymentStatus?.is_paid || false,
+        paymentRecord: (paymentStatus as PaymentStatus)?.order_id || "none",
+        userEmail: (paymentStatus as PaymentStatus)?.email || "none",
+        userId: (paymentStatus as PaymentStatus)?.user_id || "none",
+        paymentStatus:
+          (paymentStatus as PaymentStatus)?.payment_status || "none",
+        isPaid: (paymentStatus as PaymentStatus)?.is_paid || false,
         needsPayment,
       });
 
@@ -434,8 +443,8 @@ export const usePaymentStatus = () => {
       if (hasUnlinkedPayment) {
         logger.warn("UNLINKED PAYMENT DETECTED:", {
           message: "User has paid but payment is not linked to account",
-          orderId: paymentStatus?.order_id,
-          email: paymentStatus?.email,
+          orderId: (paymentStatus as PaymentStatus)?.order_id,
+          email: (paymentStatus as PaymentStatus)?.email,
           fix: "Run payment linking script or manual linking",
         });
       }
@@ -480,7 +489,7 @@ export const usePaymentStatus = () => {
     needsOrderLinking: finalNeedsOrderLinking,
     showOrderPopup,
     setShowOrderPopup,
-    userName: paymentStatus?.name || null, // ✅ Use 'name' from schema
+    userName: (paymentStatus as PaymentStatus)?.name || null, // ✅ Use 'name' from schema
     hasValidPayment: finalIsPaid,
     hasValidLinkedPayment: bypassAuth ? true : hasValidLinkedPayment,
     isLinkedToCurrentUser: bypassAuth ? true : isLinkedToCurrentUser,

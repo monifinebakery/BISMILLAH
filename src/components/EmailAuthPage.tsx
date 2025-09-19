@@ -366,23 +366,24 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
     // Debug OTP age for timing analysis
     const stored = loadAuthState();
     if (stored?.otpRequestTime) {
+      const otpAge = Date.now() - stored.otpRequestTime;
       const ageInMinutes = Math.floor(otpAge / (1000 * 60));
           
-          logger.debug("🕐 OTP Age Check:", {
-            otpRequestTime: new Date(stored.otpRequestTime).toISOString(),
-            currentTime: new Date().toISOString(),
-            ageMinutes: ageInMinutes,
-            isWithin10Minutes: ageInMinutes < 10,
-            email: stored.email,
-          });
+      logger.debug("🕐 OTP Age Check:", {
+        otpRequestTime: new Date(stored.otpRequestTime).toISOString(),
+        currentTime: new Date().toISOString(),
+        ageMinutes: ageInMinutes,
+        isWithin10Minutes: ageInMinutes < 10,
+        email: stored.email,
+      });
 
-          // Warn if OTP might be getting old
-          if (ageInMinutes >= 8) {
-            logger.warn("🕐 OTP is getting close to expiry:", {
-              ageMinutes: ageInMinutes,
-              remainingMinutes: 10 - ageInMinutes,
-            });
-          }
+      // Warn if OTP might be getting old
+      if (ageInMinutes >= 8) {
+        logger.warn("🕐 OTP is getting close to expiry:", {
+          ageMinutes: ageInMinutes,
+          remainingMinutes: 10 - ageInMinutes,
+        });
+      }
     }
 
     setAuthState("verifying");

@@ -1,195 +1,34 @@
-// src/components/financial/FinancialReportPage.tsx
-// ✅ SIMPLIFIED VERSION - Only Financial Reports and Charts
-
-import React, { useState, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+// src/components/financial/FinancialReportPage.tsx - Modular Financial Report Page
+import React, { useState, useEffect } from 'react';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Settings, RefreshCw, AlertCircle, TrendingUp } from 'lucide-react';
-import { toast } from 'sonner';
-
-// UI utilities
-import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { logger } from '@/utils/logger';
+import { registerRoutePreloader, preloadRoute } from '@/utils/route-preloader';
 
-// Auth Context
-import { useAuth } from '@/contexts/AuthContext';
+// Import refactored components
+import { FinancialHeader } from './components/FinancialHeader';
+import { SummaryCards } from './components/SummaryCards';
+import { FinancialTabs } from './components/FinancialTabs';
 
-// ✅ EXISTING COMPONENTS - Reuse what's already available
-import DateRangePicker from '@/components/ui/DateRangePicker';
-
-// ✅ CLEAN IMPORTS - Using consolidated hooks
+// Import existing hooks
 import { useFinancialCore } from './hooks/useFinancialCore';
-import { useFinancialPage } from './hooks/useFinancialPages';
 import { useFinancialChartDataProcessing } from './hooks/useFinancialData';
-import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
-import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { useTransactionTable } from './hooks/useTransactionTable';
+import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 
-// LAZY LOADED TABS - Code-split large tab sections
-const ChartsTab = React.lazy(() => import('./report/ChartsTab'));
-const TransactionsTab = React.lazy(() => import('./report/TransactionsTab'));
-const UmkmTab = React.lazy(() => import('./report/UmkmTab'));
+// Import new refactored hooks
+import { useFinancialNavigation } from '@/hooks/financial/useFinancialNavigation';
+import { useFinancialTransactions } from '@/hooks/financial/useFinancialTransactions';
 
-// Preloader utilities for hover/idle prefetch
-import { preloadRoute, registerRoutePreloader } from '@/utils/route-preloader';
+// Auth components
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 
-// LEGACY DIALOGS - Lazy loaded with error handling
+// Lazy loaded dialogs
+const FinancialTransactionDialog = React.lazy(() => import('./dialogs/FinancialTransactionDialog'));
+const CategoryManagementDialog = React.lazy(() => import('./dialogs/CategoryManagementDialog'));
 
-const FinancialTransactionDialog = React.lazy(() => 
-  import('./dialogs/FinancialTransactionDialog').catch((error) => {
-    logger.error('Failed to load FinancialTransactionDialog', error);
-    return { default: () => null };
-  })
-);
-
-const CategoryManagementDialog = React.lazy(() => 
-  import('./dialogs/CategoryManagementDialog').catch((error) => {
-    logger.error('Failed to load CategoryManagementDialog', error);
-    return { default: () => null };
-  })
-);
-
-const BulkActions = React.lazy(() => 
-  import('./components/BulkActions').catch((error) => {
-    logger.error('Failed to load BulkActions', error);
-    return { default: () => null };
-  })
-);
-
-
-// Loading components (fallback for tab chunks)
-const QuickSkeleton = ({ className = "" }: { className?: string }) => (
-  <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
-);
-
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-const ChartSkeleton = () => (
-  <div className="min-h-[120px] flex items-center justify-center">
-    <LoadingSpinner size="sm" />
-  </div>
-);
-
-// ✅ ENHANCED Summary Cards Component - With auto-refresh feedback
-const SummaryCards: React.FC<{
-  totalIncome: number;
-  totalExpense: number;
-  balance: number;
-  isLoading?: boolean;
-  isRefreshing?: boolean;
-  lastRefresh?: Date | null;
-  onRefresh?: () => void;
-}> = ({ totalIncome, totalExpense, balance, isLoading, isRefreshing, lastRefresh, onRefresh }) => {
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
-
-  const cards = [
-    {
-      title: 'Total Pemasukan',
-      value: totalIncome,
-      color: 'green',
-      icon: TrendingUp,
-      description: 'Jumlah seluruh pemasukan yang tercatat'
-    },
-    {
-      title: 'Total Pengeluaran',
-      value: totalExpense,
-      color: 'red',
-      icon: TrendingUp,
-      iconRotate: true,
-      description: 'Jumlah seluruh pengeluaran yang tercatat'
-    },
-    {
-      title: 'Saldo Akhir',
-      value: balance,
-      color: balance >= 0 ? 'green' : 'red',
-      icon: TrendingUp,
-      description: 'Selisih antara pemasukan dan pengeluaran'
-    }
-  ];
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {cards.map((card, index) => (
-        <Card key={index} className="border-l-4 border-blue-500">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <card.icon className={cn(
-                  "h-4 w-4",
-                  card.iconRotate && "rotate-180"
-                )} />
-                {card.title}
-              </CardTitle>
-              {index === 0 && onRefresh && (
-                <div className="flex items-center gap-2">
-                  {lastRefresh && (
-                    <span className="text-xs text-gray-500 hidden sm:inline">
-                      {new Date(lastRefresh).toLocaleTimeString('id-ID', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  )}
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={onRefresh} 
-                    disabled={isLoading || isRefreshing}
-                    className={cn(
-                      "transition-colors",
-                      isRefreshing && "text-blue-600"
-                    )}
-                  >
-                    <RefreshCw className={cn(
-                      "h-3 w-3",
-                      (isLoading || isRefreshing) && "animate-spin"
-                    )} />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className={cn(
-              "text-xl md:text-2xl font-bold",
-              card.color === 'green' ? 'text-green-600' : 'text-red-600'
-            )}>
-              {isLoading ? <QuickSkeleton className="h-8 w-24" /> : formatCurrency(card.value)}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              {isLoading ? <QuickSkeleton className="h-4 w-32" /> : card.description}
-            </p>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-};
-
-// ✅ SIMPLIFIED Error Display Component
-const ErrorDisplay: React.FC<{ error: string; onRetry: () => void }> = ({ error, onRetry }) => (
-  <Card className="border-red-200 bg-red-50">
-    <CardContent className="p-6">
-      <div className="flex items-center gap-3 text-red-600">
-        <AlertCircle className="h-6 w-6" />
-        <div>
-          <h3 className="font-medium">Gagal Memuat Data</h3>
-          <p className="text-sm text-red-500 mt-1">{error}</p>
-        </div>
-      </div>
-      <Button onClick={onRetry} variant="outline" className="mt-4">
-        <RefreshCw className="mr-2 h-4 w-4" />
-        Coba Lagi
-      </Button>
-    </CardContent>
-  </Card>
-);
-
-// ✅ SIMPLIFIED Auth Guard Component
+// Simple Auth Guard
 const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
 
@@ -226,125 +65,64 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// ✅ MAIN COMPONENT - SIMPLIFIED WITHOUT PROFIT MARGIN
 const FinancialReportPage: React.FC = () => {
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // ✅ SINGLE HOOK - All functionality consolidated with auto-refresh
-  const {
-    // Data
-    filteredTransactions,
-    totalIncome,
-    totalExpense,
-    balance,
-    dateRange,
-    
-    // State
-    isLoading,
-    isRefreshing,
-    lastRefresh,
-    hasTransactions,
-    
-    // Operations
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-    setDateRange,
-    
-    // Refresh operations
-    refresh,
-    forceRefresh,
-    
-    // Settings
-    settings,
-    saveSettings
-  } = useFinancialCore();
-
-  // ✅ CHART DATA - Single hook
-  const chartData = useFinancialChartDataProcessing(filteredTransactions);
-
-  // ✅ BULK OPERATIONS - Transaction table hook
-  const transactionTable = useTransactionTable(filteredTransactions);
-
-  // ✅ STATE - Dialogs and active tab (only charts and transactions)
+  // Core data and operations
+  const financialCore = useFinancialCore();
+  const chartData = useFinancialChartDataProcessing(financialCore.filteredTransactions);
+  const transactionTable = useTransactionTable(financialCore.filteredTransactions);
+  
+  // Navigation and transaction handlers
+  const navigation = useFinancialNavigation();
+  const transactions = useFinancialTransactions({
+    addTransaction: financialCore.addTransaction,
+    updateTransaction: financialCore.updateTransaction,
+    deleteTransaction: financialCore.deleteTransaction,
+  });
+  
+  // Local state
   const [activeTab, setActiveTab] = useState(isMobile ? 'transactions' : 'charts');
   const [dialogs, setDialogs] = useState({
     transaction: { isOpen: false, editing: null as any },
     category: { isOpen: false }
   });
 
-  // ✅ EFFECT - Reset form fields when category dialog opens
-  React.useEffect(() => {
-    if (dialogs.category.isOpen) {
-      // Dialog just opened, ensure we have fresh data
-    }
-  }, [dialogs.category.isOpen]);
-
-  // Register tab preloaders locally in case initializeRoutePreloaders wasn't called yet
-  React.useEffect(() => {
-    // No-ops if already registered
-    registerRoutePreloader?.('financial:charts-tab', async () => {
-      await Promise.all([
+  // Route preloading setup
+  useEffect(() => {
+    const routes = {
+      'financial:charts-tab': () => Promise.all([
         import('./report/ChartsTab'),
         import('./components/FinancialCharts'),
         import('./components/CategoryCharts'),
-      ]);
-    });
-    registerRoutePreloader?.('financial:transactions-tab', async () => {
-      await Promise.all([
+      ]),
+      'financial:transactions-tab': () => Promise.all([
         import('./report/TransactionsTab'),
         import('./components/TransactionTable'),
         import('./components/BulkActions'),
-      ]);
-    });
-    registerRoutePreloader?.('financial:umkm-tab', async () => {
-      await Promise.all([
+      ]),
+      'financial:umkm-tab': () => Promise.all([
         import('./report/UmkmTab'),
         import('./components/DailySummaryWidget'),
-        import('./components/DailyCashFlowTracker'),
-        import('./components/ProfitLossSimple'),
         import('./components/UMKMExpenseCategories'),
-        import('./components/SavingsGoalTracker'),
-        import('./components/DebtTracker'),
-        import('./components/ExpenseAlerts'),
-      ]);
-    });
-  }, []);
+      ]),
+    };
 
-  // Prefetch heavy tab chunks after idle (both mobile and desktop)
-  React.useEffect(() => {
-    const idle = (cb: () => void) => (window as any).requestIdleCallback ? (window as any).requestIdleCallback(cb) : setTimeout(cb, 500);
+    Object.entries(routes).forEach(([key, loader]) => {
+      registerRoutePreloader?.(key, loader);
+    });
+
+    // Prefetch after idle
+    const idle = (cb: () => void) => 
+      (window as any).requestIdleCallback ? (window as any).requestIdleCallback(cb) : setTimeout(cb, 500);
+    
     idle(() => {
-      preloadRoute('financial:charts-tab');
-      preloadRoute('financial:transactions-tab');
-      preloadRoute('financial:umkm-tab');
+      Object.keys(routes).forEach(preloadRoute);
     });
   }, []);
 
-  // ✅ NAVIGATION HANDLERS - Navigate to full pages instead of dialogs
-  const handleAddTransaction = () => {
-    logger.debug('Navigating to add transaction page');
-    navigate('/laporan-keuangan/tambah');
-  };
-
-  const handleManageCategories = () => {
-    logger.debug('Navigating to manage categories page');
-    navigate('/laporan-keuangan/kategori');
-  };
-
-  const handleEditTransaction = (transaction: any) => {
-    logger.debug('Navigating to edit transaction page', { transactionId: transaction?.id });
-    if (transaction?.id) {
-      navigate(`/laporan-keuangan/edit/${transaction.id}`);
-    } else {
-      navigate('/laporan-keuangan/tambah');
-    }
-  };
-
-  // Keep legacy dialog handlers for components that still use them
+  // Dialog handlers
   const openTransactionDialog = (transaction: any = null) => {
-    logger.debug('Legacy: Opening transaction dialog', { editing: !!transaction });
     setDialogs(prev => ({
       ...prev,
       transaction: { isOpen: true, editing: transaction }
@@ -352,7 +130,6 @@ const FinancialReportPage: React.FC = () => {
   };
 
   const closeTransactionDialog = () => {
-    logger.debug('Legacy: Closing transaction dialog');
     setDialogs(prev => ({
       ...prev,
       transaction: { isOpen: false, editing: null }
@@ -360,268 +137,74 @@ const FinancialReportPage: React.FC = () => {
   };
 
   const openCategoryDialog = () => {
-    logger.debug('Legacy: Opening category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: true } }));
   };
 
   const closeCategoryDialog = () => {
-    logger.debug('Legacy: Closing category dialog');
     setDialogs(prev => ({ ...prev, category: { isOpen: false } }));
   };
 
-  // ✅ DELETE TRANSACTION HANDLER - Keep this for table delete functionality
-  const handleDeleteTransaction = async (id: string) => {
-    try {
-      logger.info('Deleting transaction', { id });
-      const result = await deleteTransaction(id);
-      if (result.success) {
-        toast.success('Transaksi berhasil dihapus');
-        logger.info('Transaction deleted successfully', { id });
-        return true;
-      } else {
-        toast.error(result.error || 'Gagal menghapus transaksi');
-        logger.error('Failed to delete transaction', { id, error: result.error });
-        return false;
-      }
-    } catch (error: any) {
-      toast.error('Terjadi kesalahan');
-      logger.error('Exception while deleting transaction', error);
-      return false;
-    }
-  };
-
-  // Legacy transaction handlers for dialog components (if still needed)
-  const handleLegacyAddTransaction = async (transactionData: any) => {
-    try {
-      logger.info('Adding new transaction', { transactionData });
-      const result = await addTransaction(transactionData);
-      if (result.success) {
-        closeTransactionDialog();
-        toast.success('Transaksi berhasil ditambahkan');
-        logger.info('Transaction added successfully');
-        return true;
-      } else {
-        toast.error(result.error || 'Gagal menambah transaksi');
-        logger.error('Failed to add transaction', { error: result.error });
-        return false;
-      }
-    } catch (error: any) {
-      toast.error('Terjadi kesalahan');
-      logger.error('Exception while adding transaction', error);
-      return false;
-    }
-  };
-
-  const handleLegacyUpdateTransaction = async (id: string, transactionData: any) => {
-    try {
-      logger.info('Updating transaction', { id, transactionData });
-      const result = await updateTransaction(id, transactionData);
-      if (result.success) {
-        closeTransactionDialog();
-        toast.success('Transaksi berhasil diperbarui');
-        logger.info('Transaction updated successfully', { id });
-        return true;
-      } else {
-        toast.error(result.error || 'Gagal memperbarui transaksi');
-        logger.error('Failed to update transaction', { id, error: result.error });
-        return false;
-      }
-    } catch (error: any) {
-      toast.error('Terjadi kesalahan');
-      logger.error('Exception while updating transaction', error);
-      return false;
-    }
-  };
-
-  // ✅ DATE RANGE HANDLER
-  const handleDateRangeChange = (range: { from: Date; to: Date } | undefined) => {
-    logger.debug('Date range changed', { range });
-    if (range) {
-      setDateRange({
-        from: range.from,
-        to: range.to
-      });
-    } else {
-      // Reset to current month if no range selected
-      const now = new Date();
-      const from = new Date(now.getFullYear(), now.getMonth(), 1);
-      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setDateRange({ from, to });
-    }
-  };
-
-  // ✅ CONVERT dateRange format for DateRangePicker component
-  const dateRangeForPicker = dateRange && dateRange.from && dateRange.to ? {
-    from: dateRange.from,
-    to: dateRange.to
+  // Convert dateRange format for DateRangePicker
+  const dateRangeForPicker = financialCore.dateRange && financialCore.dateRange.from && financialCore.dateRange.to ? {
+    from: financialCore.dateRange.from,
+    to: financialCore.dateRange.to
   } : undefined;
 
   return (
     <AuthGuard>
       <div className="p-4 sm:p-6 space-y-6">
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white border">
-          <div className="flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="bg-white bg-opacity-20 p-3 rounded-xl backdrop-blur-sm">
-                <TrendingUp className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold mb-1">Laporan Keuangan Arus Kas</h1>
-                <p className="text-white opacity-90 text-sm sm:text-base">
-                  Analisis pemasukan, pengeluaran, dan saldo bisnis Anda
-                </p>
-              </div>
-            </div>
-
-            <div className="hidden md:flex flex-wrap items-center gap-3">
-              <Button
-                onClick={handleAddTransaction}
-                disabled={isLoading}
-                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
-              >
-                <Plus className="h-4 w-4" />
-                Tambah Transaksi
-              </Button>
-
-              <Button
-                onClick={handleManageCategories}
-                className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
-              >
-                <Settings className="h-4 w-4" />
-                {isMobile ? "Kategori" : "Kelola Kategori"}
-              </Button>
-
-              <div className="w-full md:w-auto md:min-w-[260px]">
-                <DateRangePicker
-                  dateRange={dateRangeForPicker}
-                  onDateRangeChange={handleDateRangeChange}
-                  placeholder="Pilih periode laporan"
-                  isMobile={isMobile}
-                  className="bg-white text-gray-900 border-none hover:bg-gray-100 w-full"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex md:hidden flex-col gap-3 mt-6">
-            <Button
-              onClick={handleAddTransaction}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
-            >
-              <Plus className="h-4 w-4" />
-              Tambah Transaksi
-            </Button>
-
-            <Button
-              onClick={handleManageCategories}
-              className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
-            >
-              <Settings className="h-4 w-4" />
-              {isMobile ? "Kategori" : "Kelola Kategori"}
-            </Button>
-
-            <DateRangePicker
-              dateRange={dateRangeForPicker}
-              onDateRangeChange={handleDateRangeChange}
-              placeholder="Pilih periode laporan"
-              isMobile={isMobile}
-              className="bg-white text-gray-900 border-none hover:bg-gray-100 w-full"
-            />
-          </div>
-        </div>
-
-        {/* ✅ ENHANCED Summary Cards - With auto-refresh feedback */}
-        <SummaryCards 
-          totalIncome={totalIncome}
-          totalExpense={totalExpense}
-          balance={balance}
-          isLoading={isLoading}
-          isRefreshing={isRefreshing}
-          lastRefresh={lastRefresh}
-          onRefresh={refresh}
+        {/* Header */}
+        <FinancialHeader
+          onAddTransaction={navigation.handleAddTransaction}
+          onManageCategories={navigation.handleManageCategories}
+          onDateRangeChange={navigation.handleDateRangeChange(financialCore.setDateRange)}
+          dateRange={dateRangeForPicker}
+          isLoading={financialCore.isLoading}
+          isMobile={isMobile}
         />
 
-        {/* ✅ ENHANCED TABBED INTERFACE - Charts, Transactions, and UMKM Features */}
-        <div className="w-full overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0 h-auto sm:h-10 p-1 bg-muted">
-            <TabsTrigger 
-              value="charts" 
-              className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
-              onMouseEnter={() => preloadRoute('financial:charts-tab')}
-            >
-              <span className="hidden sm:inline">Charts & Reports</span>
-              <span className="sm:hidden">Charts</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="transactions" 
-              className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
-              onMouseEnter={() => preloadRoute('financial:transactions-tab')}
-            >
-              Transaksi
-            </TabsTrigger>
-            <TabsTrigger 
-              value="umkm" 
-              className="h-10 sm:h-auto text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-1.5 whitespace-nowrap"
-              onMouseEnter={() => preloadRoute('financial:umkm-tab')}
-            >
-              <span className="hidden sm:inline">Fitur UMKM</span>
-              <span className="sm:hidden">UMKM</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Summary Cards */}
+        <SummaryCards 
+          totalIncome={financialCore.totalIncome}
+          totalExpense={financialCore.totalExpense}
+          balance={financialCore.balance}
+          isLoading={financialCore.isLoading}
+          isRefreshing={financialCore.isRefreshing}
+          lastRefresh={financialCore.lastRefresh}
+          onRefresh={financialCore.refresh}
+        />
 
-{/* ✅ CHARTS TAB - Code-split */}
-          <TabsContent value="charts" className="space-y-6">
-            <Suspense fallback={<ChartSkeleton />}>
-              <ChartsTab 
-                filteredTransactions={filteredTransactions}
-                dateRange={dateRange as any}
-                isLoading={isLoading}
-                isRefreshing={isRefreshing}
-                onRefresh={refresh}
-                lastUpdated={lastRefresh as any}
-              />
-            </Suspense>
-          </TabsContent>
+        {/* Tabbed Interface */}
+        <FinancialTabs
+          activeTab={activeTab}
+          onActiveTabChange={setActiveTab}
+          filteredTransactions={financialCore.filteredTransactions}
+          dateRange={financialCore.dateRange}
+          isLoading={financialCore.isLoading}
+          isRefreshing={financialCore.isRefreshing}
+          onRefresh={financialCore.refresh}
+          lastRefresh={financialCore.lastRefresh}
+          transactionTable={transactionTable}
+          onEditTransaction={navigation.handleEditTransaction}
+          onAddTransaction={navigation.handleAddTransaction}
+          onDeleteTransaction={transactions.handleDeleteTransaction}
+        />
 
-{/* ✅ TRANSACTIONS TAB - Code-split */}
-          <TabsContent value="transactions" className="space-y-6">
-            <Suspense fallback={<ChartSkeleton />}>
-              <TransactionsTab
-                filteredTransactions={filteredTransactions}
-                isLoading={isLoading}
-                isSelectionMode={transactionTable.isSelectionMode}
-                selectedTransactions={transactionTable.selectedTransactions}
-                selectedIds={transactionTable.selectedIds}
-                onClearSelection={transactionTable.exitSelectionMode}
-                onSelectAll={transactionTable.handleSelectAll}
-                isAllSelected={transactionTable.isAllSelected}
-                onSelectionChange={transactionTable.handleSelectionChange}
-                onEditTransaction={handleEditTransaction}
-                onAddTransaction={handleAddTransaction}
-                onDeleteTransaction={handleDeleteTransaction}
-                dateRange={dateRange as any}
-              />
-            </Suspense>
-          </TabsContent>
-
-{/* ✅ UMKM FEATURES TAB - Code-split */}
-          <TabsContent value="umkm" className="space-y-4">
-            <Suspense fallback={<ChartSkeleton />}>
-              <UmkmTab transactions={filteredTransactions} />
-            </Suspense>
-          </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* ✅ DIALOGS - Only transaction and category dialogs */}
+        {/* Legacy Dialogs */}
         <SafeSuspense loadingMessage="Memuat dialog transaksi...">
           <FinancialTransactionDialog
             isOpen={dialogs.transaction.isOpen}
             onClose={closeTransactionDialog}
-            onAddTransaction={handleLegacyAddTransaction}
-            onUpdateTransaction={handleLegacyUpdateTransaction}
+            onAddTransaction={async (data) => {
+              const success = await transactions.handleAddTransaction(data);
+              if (success) closeTransactionDialog();
+              return success;
+            }}
+            onUpdateTransaction={async (id, data) => {
+              const success = await transactions.handleUpdateTransaction(id, data);
+              if (success) closeTransactionDialog();
+              return success;
+            }}
             categories={DEFAULT_FINANCIAL_CATEGORIES}
             transaction={dialogs.transaction.editing}
           />
@@ -631,29 +214,9 @@ const FinancialReportPage: React.FC = () => {
           <CategoryManagementDialog
             isOpen={dialogs.category.isOpen}
             onClose={closeCategoryDialog}
-            settings={settings}
-            saveSettings={async (newSettings) => {
-              try {
-                // This is now a legacy fallback - categories are managed dynamically
-                const result = await saveSettings(newSettings);
-                if (result) {
-                  toast.success('Pengaturan berhasil disimpan');
-                  logger.info('Settings saved successfully');
-                  return true;
-                } else {
-                  toast.error('Gagal menyimpan pengaturan');
-                  return false;
-                }
-              } catch (error) {
-                toast.error('Terjadi kesalahan saat menyimpan pengaturan');
-                logger.error('Failed to save settings:', error);
-                return false;
-              }
-            }}
-            refreshSettings={async () => {
-              // Refresh settings if needed
-              return true;
-            }}
+            settings={financialCore.settings}
+            saveSettings={financialCore.saveSettings}
+            refreshSettings={async () => true}
           />
         </SafeSuspense>
       </div>

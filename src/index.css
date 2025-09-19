@@ -20,6 +20,8 @@ html, body {
 
 body {
   position: relative;
+  background-color: white !important;
+  background: white !important;
 }
 
 /* ============================
@@ -128,10 +130,28 @@ This ensures they appear above ALL other UI elements.
 .mobile-layout-force-white,
 .mobile-layout-force-white *,
 .mobile-layout-force-white [data-sidebar="inset"],
-.mobile-layout-force-white header {
+.mobile-layout-force-white header,
+.mobile-layout-force-white main {
   background-color: white !important;
   background-image: none !important;
   background: white !important;
+  color: black !important;
+}
+
+/* Force light mode on mobile layout */
+.mobile-layout-force-white {
+  color-scheme: light !important;
+}
+
+/* Override any dark mode classes */
+html.dark .mobile-layout-force-white,
+html.dark .mobile-layout-force-white *,
+.dark .mobile-layout-force-white,
+.dark .mobile-layout-force-white * {
+  background-color: white !important;
+  background-image: none !important;
+  background: white !important;
+  color: black !important;
 }
 
 /* ============================

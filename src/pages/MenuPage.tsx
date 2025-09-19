@@ -14,7 +14,7 @@ import {
   Package, 
   Receipt, 
   DollarSign, 
-
+  Download,
   TrendingUp, // ✅ NEW: Icon for Profit Analysis
   BookOpen // ✅ NEW: Icon for Tutorial
 } from 'lucide-react';
@@ -246,6 +246,27 @@ const MenuPage = () => {
 
       {/* Menu List - Simplified */}
       <div className="w-full p-4 pb-20">
+        {/* Highlighted Export Data CTA */}
+        <div className="mb-4">
+          <Card
+            className="cursor-pointer border-2 border-green-300 bg-gradient-to-r from-green-50 via-emerald-50 to-white hover:from-green-100 hover:to-white transition-all duration-200 rounded-xl shadow-sm"
+            onClick={() => navigate('/export')}
+          >
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center shadow-inner">
+                <Download className="h-6 w-6 text-green-700" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-green-800">Export Data</h3>
+                  <span className="text-[10px] px-2 py-0.5 bg-green-600 text-white rounded-full uppercase tracking-wider">Baru</span>
+                </div>
+                <p className="text-xs text-green-700 mt-0.5">Unduh data penting Anda (Excel/CSV)</p>
+              </div>
+              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">Buka</Button>
+            </CardContent>
+          </Card>
+        </div>
         <div className="space-y-3">
           {menuItems.map((item) => (
             <Card

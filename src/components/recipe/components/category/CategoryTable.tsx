@@ -78,13 +78,13 @@ export const CategoryTable: React.FC<CategoryTableProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto sm:overflow-visible">
           <Table>
             <TableHeader className="bg-gray-50">
               <TableRow>
                 <TableHead className="font-semibold text-gray-700">Nama Kategori</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-center">Jumlah Resep</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-right">Aksi</TableHead>
+                <TableHead className="font-semibold text-gray-700 text-center hidden sm:table-cell">Jumlah Resep</TableHead>
+                <TableHead className="font-semibold text-gray-700 text-right hidden sm:table-cell">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

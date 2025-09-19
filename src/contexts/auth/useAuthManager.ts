@@ -26,7 +26,7 @@ import {
   cleanupAndroidStorage,
 } from "@/utils/androidSessionFix";
 import { logger } from "@/utils/logger";
-import { debounce, throttle } from "@/utils/asyncUtils";
+import { debounce, throttle } from "@/utils/debounce";
 
 import {
   getAdaptiveTimeout,
@@ -64,6 +64,36 @@ const useAuthLifecycle = ({
   });
   const isFetchingRef = useRef(false);
 
+  // ✅ FIX: Use refs to track current values without triggering effects
+  const sessionRef = useRef(session);
+  const userRef = useRef(user);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // ✅ FIX: Stabilize callback references
+  const stableRefreshUser = useCallback(() => refreshUser(), [refreshUser]);
+  const stableNavigate = useCallback(
+    (path: string, options?: { replace?: boolean }) => navigate(path, options),
+    [navigate],
+  );
+
+  // ✅ FIX: Debounce navigation to prevent loops
+  const debouncedNavigate = useMemo(
+    () =>
+      debounce((path: string) => {
+        if (window.location.pathname !== path) {
+          stableNavigate(path, { replace: true });
+        }
+      }, 100),
+    [stableNavigate],
+  );
+
   // ✅ OPTIMIZED: Android-specific periodic session validation with throttling
   const throttledAndroidValidation = useMemo(() => {
     const androidDetection = detectProblematicAndroid();
@@ -72,15 +102,18 @@ const useAuthLifecycle = ({
     }
 
     return throttle(async () => {
-      // Only validate if we have a valid session and user
-      if (!session?.access_token || !user?.id) {
+      // ✅ FIX: Use refs to get current values, not dependencies
+      const currentSession = sessionRef.current;
+      const currentUser = userRef.current;
+
+      if (!currentSession?.access_token || !currentUser?.id) {
         logger.debug("Android: Skipping validation - no session or user");
         return;
       }
 
       // Additional check: only validate if session is close to expiring or suspicious
       const now = Math.floor(Date.now() / 1000);
-      const expiresAt = session.expires_at || 0;
+      const expiresAt = currentSession.expires_at || 0;
       const timeUntilExpiry = expiresAt - now;
 
       // Only validate if session expires within 10 minutes or if it's suspicious
@@ -90,7 +123,7 @@ const useAuthLifecycle = ({
       }
 
       try {
-        const result = await validateAndroidSession(session);
+        const result = await validateAndroidSession(currentSession);
         if (!result.success && result.requiresRelogin) {
           logger.warn(
             "Android: Throttled validation failed, clearing session",
@@ -109,11 +142,12 @@ const useAuthLifecycle = ({
         );
       }
     }, 60000); // Throttle to max once per minute instead of every 30 seconds
-  }, [session, user, setSession, setUser]);
+  }, [setSession, setUser]); // ✅ FIX: Include setter dependencies
 
   useEffect(() => {
     if (!throttledAndroidValidation) return;
 
+    let interval: NodeJS.Timeout;
     const timeout = setTimeout(() => {
       if (throttledAndroidValidation) {
         throttledAndroidValidation();
@@ -128,8 +162,11 @@ const useAuthLifecycle = ({
     };
   }, [throttledAndroidValidation]);
 
+  // ✅ FIX: Move mounted ref outside to be accessible by all handlers
+  const mountedRef = useRef(true);
+
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
 
     const initializeAuth = async () => {
       if (
@@ -165,7 +202,7 @@ const useAuthLifecycle = ({
           user: mockUser,
         };
 
-        if (mounted) {
+        if (mountedRef.current) {
           setSession(mockSession);
           setUser(mockUser);
           setIsLoading(false);
@@ -198,7 +235,7 @@ const useAuthLifecycle = ({
               const { session: validSession, user: validUser } =
                 validateSession(androidResult.session);
 
-              if (mounted && validSession && validUser) {
+              if (mountedRef.current && validSession && validUser) {
                 setSession(validSession);
                 setUser(validUser);
                 setIsLoading(false);
@@ -277,7 +314,7 @@ const useAuthLifecycle = ({
             const { session: validSession, user: validUser } =
               validateSession(session);
 
-            if (mounted) {
+            if (mountedRef.current) {
               setSession(validSession);
               setUser(validUser);
               setIsLoading(false);
@@ -303,7 +340,7 @@ const useAuthLifecycle = ({
 
             logSafariInfo();
 
-            if (mounted) {
+            if (mountedRef.current) {
               setIsLoading(false);
               setIsReady(true);
             }
@@ -323,7 +360,7 @@ const useAuthLifecycle = ({
 
           for (
             let attempt = 0;
-            attempt < MAX_SESSION_ATTEMPTS && mounted;
+            attempt < MAX_SESSION_ATTEMPTS && mountedRef.current;
             attempt++
           ) {
             const adaptiveTimeout = getAdaptiveTimeout(15000);
@@ -352,7 +389,7 @@ const useAuthLifecycle = ({
               error: lastError.message,
             });
 
-            if (!mounted || attempt >= MAX_SESSION_ATTEMPTS - 1) {
+            if (!mountedRef.current || attempt >= MAX_SESSION_ATTEMPTS - 1) {
               break;
             }
 
@@ -392,7 +429,7 @@ const useAuthLifecycle = ({
             },
           );
 
-          if (mounted) {
+          if (mountedRef.current) {
             setSession(null);
             setUser(null);
           }
@@ -409,7 +446,7 @@ const useAuthLifecycle = ({
             "AuthContext: Session returned error during initialization",
             sessionError,
           );
-          if (mounted) {
+          if (mountedRef.current) {
             setSession(null);
             setUser(null);
           }
@@ -428,7 +465,7 @@ const useAuthLifecycle = ({
           sessionAttempts,
         });
 
-        if (mounted) {
+        if (mountedRef.current) {
           setSession(validSession);
           setUser(validUser);
         }
@@ -448,12 +485,12 @@ const useAuthLifecycle = ({
       } catch (error) {
         logger.error("AuthContext initialization failed", error);
 
-        if (mounted) {
+        if (mountedRef.current) {
           setSession(null);
           setUser(null);
         }
       } finally {
-        if (mounted) {
+        if (mountedRef.current) {
           setIsLoading(false);
           setIsReady(true);
           logger.context("AuthContext", "Auth initialization completed");
@@ -477,7 +514,7 @@ const useAuthLifecycle = ({
     };
 
     const handleAuthRefreshRequest = () => {
-      if (!mounted) return;
+      if (!mountedRef.current) return;
       if (isFetchingRef.current) {
         logger.debug("AuthContext: Skipping auth-refresh-request (in-flight)");
         return;
@@ -497,10 +534,31 @@ const useAuthLifecycle = ({
 
     void initializeAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+    return () => {
+      mountedRef.current = false;
+      logger.context("AuthContext", "Cleaning up auth subscription");
+      window.removeEventListener(
+        "unhandledrejection",
+        handleUnhandledRejection,
+      );
+      window.removeEventListener(
+        "auth-refresh-request",
+        handleAuthRefreshRequest as EventListener,
+      );
+    };
+  }, [
+    refreshUser,
+    setIsLoading,
+    setIsReady,
+    setSession,
+    setUser,
+    debouncedNavigate,
+  ]);
+
+  // ✅ FIX: Stabilize auth state change handler outside useEffect
+  const handleAuthStateChange = useCallback(
+    async (event: string, session: Session | null) => {
+      if (!mountedRef.current) return;
 
       // Throttle/dedupe repeated events from Supabase
       const nowTs = Date.now();
@@ -524,8 +582,15 @@ const useAuthLifecycle = ({
 
       const { session: validSession, user: validUser } =
         validateSession(session);
-      setSession(validSession);
-      setUser(validUser);
+
+      // ✅ FIX: Only update state if actually different
+      if (sessionRef.current?.access_token !== validSession?.access_token) {
+        setSession(validSession);
+      }
+
+      if (userRef.current?.id !== validUser?.id) {
+        setUser(validUser);
+      }
 
       // Remember last processed event signature
       lastEventRef.current = {
@@ -565,25 +630,31 @@ const useAuthLifecycle = ({
         }
       }
 
+      // ✅ FIX: Use debounced navigation
       if (validUser && window.location.pathname === "/auth") {
-        navigate("/", { replace: true });
+        debouncedNavigate("/");
       }
-    });
+    },
+    [setSession, setUser, debouncedNavigate],
+  );
+
+  // ✅ Setup auth state subscription
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     return () => {
-      mounted = false;
-      logger.context("AuthContext", "Cleaning up auth subscription");
-      window.removeEventListener(
-        "unhandledrejection",
-        handleUnhandledRejection,
-      );
-      window.removeEventListener(
-        "auth-refresh-request",
-        handleAuthRefreshRequest as EventListener,
-      );
       subscription.unsubscribe();
     };
-  }, [navigate, refreshUser, setIsLoading, setIsReady, setSession, setUser]);
+  }, [handleAuthStateChange]);
+
+  // ✅ Cleanup mounted ref on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 };
 
 export const useAuthManager = (): AuthContextValue => {
@@ -809,16 +880,29 @@ export const useAuthManager = (): AuthContextValue => {
     }
   }, [isLoading, isReady, session, user]);
 
-  const contextValue: AuthContextValue = {
-    session,
-    user,
-    isLoading,
-    isReady,
-    refreshUser,
-    triggerRedirectCheck,
-    validateSession: validateSessionWrapper,
-    debugAuth: debugAuthWrapper,
-  };
+  // ✅ FIX: Memoize context value to prevent unnecessary re-renders
+  const contextValue: AuthContextValue = useMemo(
+    () => ({
+      session,
+      user,
+      isLoading,
+      isReady,
+      refreshUser,
+      triggerRedirectCheck,
+      validateSession: validateSessionWrapper,
+      debugAuth: debugAuthWrapper,
+    }),
+    [
+      session,
+      user,
+      isLoading,
+      isReady,
+      refreshUser,
+      triggerRedirectCheck,
+      validateSessionWrapper,
+      debugAuthWrapper,
+    ],
+  );
 
   return contextValue;
 };

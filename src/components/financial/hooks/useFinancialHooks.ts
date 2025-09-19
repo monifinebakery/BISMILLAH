@@ -75,10 +75,14 @@ export const useFinancialData = () => {
     retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 5000),
     // Disable auto-refetch storms for better UX on low-end devices
     refetchOnWindowFocus: false,
-    refetchOnMount: 'always',
+    refetchOnMount: false, // avoid mount refetch flicker when cache is fresh
     refetchOnReconnect: false,
     refetchInterval: false,
     refetchIntervalInBackground: false,
+    // Prevent UI from flashing empty state during param changes
+    keepPreviousData: true as any,
+    placeholderData: (prev: any) => prev,
+    notifyOnChangeProps: 'tracked',
   });
 };
 

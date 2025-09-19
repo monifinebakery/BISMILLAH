@@ -35,7 +35,9 @@ import { useOperationalCost } from "@/components/operational-costs/context/Opera
 
 import { useAssetQuery } from "@/components/assets";
 import { useAuth } from "@/contexts/AuthContext";
-
+import { useQueryClient } from "@tanstack/react-query";
+import { financialQueryKeys } from "@/components/financial/hooks/useFinancialHooks";
+import financialApi from "@/components/financial/services/financialApi";
 
 import { useProfitAnalysis } from "@/components/profitAnalysis";
 import { exportAllDataToExcel } from "@/utils/exportUtils";
@@ -48,6 +50,7 @@ export function AppSidebar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { settings } = useUserSettings();
   const { isPaid } = usePaymentContext();
   const isMobile = useIsMobile();
@@ -156,7 +159,20 @@ export function AppSidebar() {
     }, settings.businessName, format);
   };
 
+  // Prefetch Financial data to avoid flicker when navigating
+  const prefetchFinancial = React.useCallback(() => {
+    try {
+      if (!user?.id) return;
+      queryClient.prefetchQuery({
+        queryKey: financialQueryKeys.transactions(user.id),
+        queryFn: () => financialApi.getFinancialTransactions(user.id),
+        staleTime: 10 * 60 * 1000,
+      });
+    } catch {}
+  }, [queryClient, user?.id]);
+
   const renderMenuItem = (item: { title: string; url: string; icon: React.ElementType }, isActive: boolean) => {
+    const isFinancial = item.url === "/laporan";
     return (
       <SidebarMenuButton
         tooltip={item.title}
@@ -164,6 +180,9 @@ export function AppSidebar() {
         isActive={isActive}
         style={baseMenuButtonStyle}
         className={cn(baseMenuButtonClass, "flex items-center", isActive && "!bg-orange-100 !text-orange-600 !border-orange-200")}
+        onMouseEnter={isFinancial ? prefetchFinancial : undefined}
+        onFocus={isFinancial ? prefetchFinancial : undefined}
+        onTouchStart={isFinancial ? prefetchFinancial : undefined}
       >
         <item.icon className="h-5 w-5 flex-shrink-0" />
         <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>

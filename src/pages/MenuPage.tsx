@@ -23,6 +23,10 @@ import { toast } from 'sonner';
 import { performSignOut, performGlobalSignOut } from '@/lib/authUtils';
 import PWAInstallButton from '@/components/pwa/PWAInstallButton';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { financialQueryKeys } from '@/components/financial/hooks/useFinancialHooks';
+import financialApi from '@/components/financial/services/financialApi';
 
 import {
   AlertDialog,
@@ -165,6 +169,18 @@ const MenuPage = () => {
     },
   ];
 
+  // Prefetch helper to warm financial data
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const prefetchFinancial = React.useCallback(() => {
+    if (!user?.id) return;
+    queryClient.prefetchQuery({
+      queryKey: financialQueryKeys.transactions(user.id),
+      queryFn: () => financialApi.getFinancialTransactions(user.id),
+      staleTime: 10 * 60 * 1000,
+    });
+  }, [queryClient, user?.id]);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -200,6 +216,8 @@ const MenuPage = () => {
               key={item.path}
               className="cursor-pointer hover:border-gray-300 transition-all duration-200 border-gray-200 bg-white rounded-xl hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate(item.path)}
+              onMouseEnter={item.path === '/laporan' ? prefetchFinancial : undefined}
+              onTouchStart={item.path === '/laporan' ? prefetchFinancial : undefined}
             >
               <CardContent className="p-4 flex items-start gap-4">
                 {/* Icon */}

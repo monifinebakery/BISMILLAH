@@ -5,7 +5,7 @@ import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import { logger } from '@/utils/logger';
 
 const WarehousePage = React.lazy(() =>
-  import(/* webpackChunkName: "warehouse" */ '@/components/warehouse/WarehousePage')
+  import(/* webpackChunkName: "warehouse" */ '@/components/warehouse/WarehousePageRefactored')
 );
 
 const WarehouseAddEditPage = React.lazy(() =>

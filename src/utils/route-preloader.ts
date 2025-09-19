@@ -153,7 +153,7 @@ export const initializeRoutePreloaders = () => {
   // Core routes
   registerRoutePreloader('dashboard', () => import('../routes/dashboard'));
   registerRoutePreloader('orders', () => import('../components/orders/components/OrdersPage'));
-  registerRoutePreloader('warehouse', () => import('../components/warehouse/WarehousePage'));
+  registerRoutePreloader('warehouse', () => import('../components/warehouse/WarehousePageRefactored'));
   registerRoutePreloader('purchase', () => import('../components/purchase/PurchasePage'));
   registerRoutePreloader('financial', () => import('../components/financial/FinancialReportPage'));
   // Financial tabs and heavy sub-chunks

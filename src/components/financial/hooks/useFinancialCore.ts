@@ -141,12 +141,13 @@ export const useFinancialCore = () => {
     }, [user?.id, queryClient])
   };
 
-  // ✅ AUTO-REFRESH: Automatic refresh on mount
-  useEffect(() => {
-    if (user?.id) {
-      refreshOperations.refresh();
-    }
-  }, [user?.id]); // Only run when user changes
+  // ✅ OPTIMIZED: Remove automatic refresh on mount to speed up initial loading
+  // User can manually refresh if needed
+  // useEffect(() => {
+  //   if (user?.id) {
+  //     refreshOperations.refresh();
+  //   }
+  // }, [user?.id]);
 
   // ✅ CONSOLIDATED: Date range management
   const dateRangeOperations = {

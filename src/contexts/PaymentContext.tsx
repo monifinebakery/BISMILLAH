@@ -198,6 +198,26 @@ const accessPromise = getUserAccessStatus();
 
   // 7. ALL useEffect hooks - ALWAYS called in same order
 
+  // ✅ NEW EFFECT: Listen for auth refresh events
+  useEffect(() => {
+    const handleAuthRefreshRequest = (event: CustomEvent) => {
+      const { reason } = event.detail || {};
+      if (reason === 'otp_verification_success') {
+        logger.info('PaymentContext: Received OTP success refresh request - triggering payment refresh');
+        // Delay payment refresh slightly to ensure session is fully established
+        setTimeout(() => {
+          enhancedRefetch();
+        }, 500);
+      }
+    };
+
+    window.addEventListener('auth-refresh-request', handleAuthRefreshRequest as EventListener);
+    
+    return () => {
+      window.removeEventListener('auth-refresh-request', handleAuthRefreshRequest as EventListener);
+    };
+  }, [enhancedRefetch]);
+
   // ✅ EFFECT 1: Validate user
   useEffect(() => {
     const validateUser = async () => {

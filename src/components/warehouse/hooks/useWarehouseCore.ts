@@ -598,7 +598,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       selectedItems: selectedItems.length,
       isSelectionMode,
       editingItem: editingItem?.id || null,
-      activeDialogs: Object.entries(dialogStates).filter(([_, isOpen]) => isOpen).map(([name]) => name),
+      activeDialogs: dialogStates ? Object.entries(dialogStates).filter(([_, isOpen]) => isOpen).map(([name]) => name) : [],
       isBulkProcessing
     });
   }, [context.bahanBaku?.length, filteredItems.length, page, selectedItems.length, isSelectionMode, editingItem?.id, dialogStates, isBulkProcessing]);

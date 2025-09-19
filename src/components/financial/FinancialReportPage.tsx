@@ -88,38 +88,23 @@ const FinancialReportPage: React.FC = () => {
     category: { isOpen: false }
   });
 
-  // Route preloading setup
+  // ✅ SIMPLIFIED: Minimal route preloading to speed up initial load
   useEffect(() => {
-    const routes = {
-      'financial:charts-tab': () => Promise.all([
-        import('./report/ChartsTab'),
-        import('./components/FinancialCharts'),
-        import('./components/CategoryCharts'),
-      ]),
-      'financial:transactions-tab': () => Promise.all([
-        import('./report/TransactionsTab'),
-        import('./components/TransactionTable'),
-        import('./components/BulkActions'),
-      ]),
-      'financial:umkm-tab': () => Promise.all([
-        import('./report/UmkmTab'),
-        import('./components/DailySummaryWidget'),
-        import('./components/UMKMExpenseCategories'),
-      ]),
-    };
-
-    Object.entries(routes).forEach(([key, loader]) => {
-      registerRoutePreloader?.(key, loader);
-    });
-
-    // Prefetch after idle
-    const idle = (cb: () => void) => 
-      (window as any).requestIdleCallback ? (window as any).requestIdleCallback(cb) : setTimeout(cb, 500);
+    // Only preload the default tab (charts for desktop, transactions for mobile)
+    const defaultTab = isMobile ? 'transactions' : 'charts';
     
-    idle(() => {
-      Object.keys(routes).forEach(preloadRoute);
-    });
-  }, []);
+    // Preload only after a delay to not block initial render
+    const timer = setTimeout(() => {
+      if (defaultTab === 'charts') {
+        import('./components/FinancialCharts').catch(() => null);
+        import('./components/CategoryCharts').catch(() => null);
+      } else {
+        import('./components/TransactionTable').catch(() => null);
+      }
+    }, 1000); // Delay preloading by 1 second
+    
+    return () => clearTimeout(timer);
+  }, [isMobile]);
 
   // Dialog handlers
   const openTransactionDialog = (transaction: any = null) => {

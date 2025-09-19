@@ -145,9 +145,12 @@ const useTransactionData = (
       }
     },
     enabled,
-    staleTime: 2 * 60 * 1000, // 2 menit
-    refetchInterval: 5 * 60 * 1000, // Refresh tiap 5 menit
+    // ✅ OPTIMIZED: Faster loading configuration
+    staleTime: 10 * 1000, // 10 seconds - very fresh data
+    refetchInterval: false, // Disable auto refresh - use manual refresh instead
     retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false, // Disable to reduce network calls
   });
 
   // Extract data based on pagination mode with type guard

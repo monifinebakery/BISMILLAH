@@ -1,7 +1,7 @@
 import React, { createContext, useContext, type ReactNode } from 'react';
 
 import type { AuthContextValue } from '@/contexts/auth/types';
-import { useAuthManager } from '@/contexts/auth/useAuthManagerRefactored';
+import { useAuthManager } from '@/contexts/auth/useAuthManager';
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 

@@ -23,14 +23,16 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 }) => {
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="min-h-svh flex w-full bg-white">
+      <div className="min-h-svh flex w-full !bg-white" style={{backgroundColor: 'white'}}>
         {/* 📱 Sidebar as sheet on mobile */}
         <AppSidebar />
 
         {/* 📱 Main content inset */}
-        <SidebarInset className="flex-1 w-full min-w-0 flex flex-col bg-white">
+        <SidebarInset className="flex-1 w-full min-w-0 flex flex-col !bg-white" style={{backgroundColor: 'white'}}>
+          {/* Force white background wrapper */}
+          <div className="w-full h-full flex flex-col !bg-white" style={{backgroundColor: 'white'}}>
           {/* 📱 Mobile Header with sidebar trigger and actions */}
-          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-white px-4 sm:px-6 w-full">
+          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b !bg-white px-4 sm:px-6 w-full" style={{backgroundColor: 'white'}}>
             <SidebarTrigger className="-ml-1 flex-shrink-0 !relative !static !z-auto" />
             <div className="flex-1" />
             <div className="flex items-center space-x-4">
@@ -48,6 +50,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
               {children}
             </ErrorBoundary>
           </main>
+          </div>
         </SidebarInset>
       </div>
 

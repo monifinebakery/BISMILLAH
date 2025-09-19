@@ -166,13 +166,26 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
         // User returned to tab - restore state if needed
         const stored = loadAuthState();
         if (stored && stored.authState === "sent" && authState !== "sent") {
-          logger.debug("🔄 Tab became visible, restoring OTP state");
-          setAuthState("sent");
-          setEmail(stored.email || email);
-          
-          // ✅ FIXED: Also restore OTP array
-          if (stored.otp && Array.isArray(stored.otp)) {
-            setOtp(stored.otp);
+          // Validate OTP session freshness (max 10 minutes)
+          const isOtpExpired = stored.otpRequestTime && 
+            (Date.now() - stored.otpRequestTime) > (10 * 60 * 1000);
+            
+          if (!isOtpExpired && stored.email) {
+            logger.debug("🔄 Tab became visible, restoring OTP state");
+            setAuthState("sent");
+            setEmail(stored.email || email);
+            
+            // ✅ FIXED: Also restore OTP array
+            if (stored.otp && Array.isArray(stored.otp)) {
+              setOtp(stored.otp);
+            }
+          } else {
+            // OTP expired, clear state and show email form
+            logger.debug("🧽 Clearing expired OTP session on tab visibility");
+            clearAuthState();
+            setAuthState("idle");
+            setEmail("");
+            setOtp(["", "", "", "", "", ""]);
           }
         }
       } else {

@@ -41,8 +41,9 @@ export const AppLayout = () => {
         const currentCommit = import.meta.env.VITE_COMMIT_HASH;
 
         if (latestCommit && currentCommit && latestCommit !== currentCommit) {
-          // Show update banner immediately without polling Supabase endpoint
-          showUpdateNotification({ commitHash: latestCommit });
+          // Only show banner after Vercel deployment is READY (via Supabase polling)
+          // Falls back to immediate banner in dev if polling is disabled
+          checkForUpdate({ commitHash: latestCommit });
         }
       } catch (error) {
         console.warn('Failed to check for new version:', error);

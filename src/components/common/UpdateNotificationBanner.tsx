@@ -169,6 +169,13 @@ export const useUpdateNotification = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
 
+  // Delay before showing the banner (ms). Default to 2000ms if not provided.
+  const UPDATE_BANNER_DELAY_MS = (() => {
+    const raw = import.meta.env.VITE_UPDATE_BANNER_DELAY_MS as unknown as string | undefined;
+    const num = raw ? Number(raw) : NaN;
+    return Number.isFinite(num) ? Number(num) : 2000;
+  })();
+
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const ENABLE_DEPLOYMENT_POLLING = Boolean(import.meta.env.VITE_ENABLE_DEPLOYMENT_POLLING);
   const DEPLOYMENT_STATUS_ENDPOINT = SUPABASE_URL && ENABLE_DEPLOYMENT_POLLING
@@ -249,6 +256,13 @@ export const useUpdateNotification = () => {
     checkStatus();
   };
 
+  // Helper to actually reveal the banner with a delay
+  const revealWithDelay = (info: UpdateInfo) => {
+    setUpdateInfo(info);
+    setUpdateAvailable(true);
+    // Add a small delay before showing the banner to avoid UI jank
+    setTimeout(() => setIsVisible(true), UPDATE_BANNER_DELAY_MS);
+  };
 
   const showUpdateNotification = (info: UpdateInfo) => {
     // If a refresh is already in progress, don't show the banner again
@@ -273,9 +287,7 @@ export const useUpdateNotification = () => {
       console.warn('UpdateNotificationBanner: unable to persist banner state', error);
     }
 
-    setUpdateInfo(info);
-    setUpdateAvailable(true);
-    setIsVisible(true);
+    revealWithDelay(info);
   };
 
   const checkForUpdate = (info: { commitHash: string } & Partial<UpdateInfo>) => {
@@ -298,6 +310,15 @@ export const useUpdateNotification = () => {
     setIsVisible(false);
     setUpdateInfo(null);
   };
+
+  // Also listen for service worker update events and surface the banner
+  useEffect(() => {
+    const onSWUpdate = () => {
+      showUpdateNotification({ updateAvailable: true });
+    };
+    window.addEventListener('sw-update-available', onSWUpdate);
+    return () => window.removeEventListener('sw-update-available', onSWUpdate);
+  }, []);
 
   return {
     updateAvailable,

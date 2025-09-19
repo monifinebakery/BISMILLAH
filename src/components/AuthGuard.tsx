@@ -1,8 +1,9 @@
-// src/components/AuthGuard.tsx - FORCE RE-RENDER VERSION
-import React, { useEffect, useState } from 'react';
+// src/components/AuthGuard.tsx - FIXED REDIRECT RACE CONDITIONS
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
+import { authNavigationLogger } from '@/utils/auth/navigationLogger';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -12,6 +13,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, isLoading, isReady } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // ✅ FIX: Navigation state management to prevent race conditions
+  const navigationRef = useRef({ isNavigating: false, lastPath: '', lastTimestamp: 0 });
   const [renderCount, setRenderCount] = useState(0);
   const [isMobileOptimized, setIsMobileOptimized] = useState(false);
   const [showQuickPreview, setShowQuickPreview] = useState(false);
@@ -21,6 +25,55 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
   // ✅ Development bypass authentication (must NOT short‑circuit before hooks)
   const isDevelopmentBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+
+  // ✅ FIX: Centralized navigation handler to prevent race conditions
+  const handleNavigation = useCallback((targetPath: string, reason: string) => {
+    const now = Date.now();
+    const { isNavigating, lastPath, lastTimestamp } = navigationRef.current;
+
+    // ✅ FIX: Check for redirect loops using navigation logger
+    const loopCheck = authNavigationLogger.detectRedirectLoop();
+    if (loopCheck.hasLoop) {
+      logger.error('🚫 AuthGuard: Redirect loop detected, aborting navigation', {
+        details: loopCheck.details,
+        targetPath,
+        reason
+      });
+      console.error('🚫 [AuthGuard] REDIRECT LOOP DETECTED:', loopCheck.details);
+      return false;
+    }
+
+    // Prevent duplicate navigation within 500ms window
+    if (isNavigating && lastPath === targetPath && (now - lastTimestamp) < 500) {
+      console.log(`🚫 [AuthGuard] Prevented duplicate navigation to ${targetPath} (${reason})`);
+      return false;
+    }
+
+    // ✅ FIX: Log navigation event
+    authNavigationLogger.logNavigation({
+      from: location.pathname,
+      to: targetPath,
+      reason,
+      source: 'AuthGuard',
+      userId: user?.id,
+      userEmail: user?.email
+    });
+
+    // Update navigation state
+    navigationRef.current = {
+      isNavigating: true,
+      lastPath: targetPath,
+      lastTimestamp: now
+    };
+    
+    // Reset navigation state after navigation completes
+    setTimeout(() => {
+      navigationRef.current.isNavigating = false;
+    }, 200);
+
+    navigate(targetPath, { replace: true });
+    return true;
+  }, [navigate, location.pathname, user]);
 
   // ✅ FORCE RE-RENDER on auth state changes
   useEffect(() => {
@@ -79,18 +132,24 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isReady, isLoading, isMobile, isMobileOptimized]);
 
-  // ✅ IMPROVED REDIRECT CHECK - more reliable for OTP flow
+  // ✅ FIXED: Single redirect logic with race condition prevention
   useEffect(() => {
-    if (isReady && !isLoading && user && location.pathname === '/auth') {
-      console.log(`🚀 [AuthGuard] IMMEDIATE SPA REDIRECT triggered for user:`, user.email);
-      console.log(`🚀 [AuthGuard] Current path before redirect:`, location.pathname);
-      
-      // ✅ FIXED: Immediate redirect for successful OTP - no delay needed
-      // The session is already validated by AuthContext at this point
-      console.log(`🚀 [AuthGuard] Executing immediate SPA redirect to /`);
-      navigate('/', { replace: true });
+    // Only handle navigation when auth state is fully ready
+    if (!isReady || isLoading) return;
+
+    // Case 1: Authenticated user on auth page → redirect to app
+    if (user && location.pathname === '/auth') {
+      const success = handleNavigation('/', 'authenticated user on auth page');
+      if (success) {
+        logger.info('✅ AuthGuard: Redirected authenticated user to app', {
+          userId: user.id,
+          email: user.email
+        });
+      }
     }
-  }, [user, isReady, isLoading, location.pathname, navigate]);
+    // Case 2: No user and not on auth page → will be handled by Navigate component below
+    // This separation prevents competing navigation mechanisms
+  }, [user, isReady, isLoading, location.pathname, handleNavigation]);
 
   // ⚡ MOBILE-OPTIMIZED: Loading state dengan progressive improvement
   if ((isLoading || !isReady) && !user) {
@@ -146,38 +205,41 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  // ✅ ENHANCED: Redirect logic with mobile-friendly grace period after OTP
+  // ✅ FIXED: Simplified redirect logic without race conditions
   if (!user) {
+    // Check for recent OTP verification to provide better UX
     let recentlyVerified = false;
     try {
       const ts = parseInt(localStorage.getItem('otpVerifiedAt') || '0', 10) || 0;
-      recentlyVerified = ts > 0 && (Date.now() - ts) < 15000; // 15s grace
+      recentlyVerified = ts > 0 && (Date.now() - ts) < 10000; // Reduced to 10s
     } catch (error) {
-      console.warn('[AuthGuard] Failed to read otpVerifiedAt from storage', error);
+      logger.warn('[AuthGuard] Failed to read otpVerifiedAt from storage', error);
     }
 
     if (recentlyVerified) {
-      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP just verified)`);
-      // Optional: trigger a background refresh to speed up
-      // Don't block hooks rules; use a microtask
-      Promise.resolve().then(() => {
-        try {
-          window.dispatchEvent(new Event('auth-refresh-request'));
-        } catch (error) {
-          console.warn('[AuthGuard] Failed to dispatch auth refresh event', error);
-        }
-      });
+      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP recently verified)`);
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
             <p className="text-sm text-gray-600">Menyiapkan sesi...</p>
+            <p className="text-xs text-gray-400 mt-2">Render #{renderCount}</p>
           </div>
         </div>
       );
     }
 
-    console.log(`🔒 [AuthGuard #${renderCount}] No user found, redirecting to /auth`);
+    // ✅ FIXED: Use Navigate component for unauthenticated users (no competing navigation)
+    console.log(`🔒 [AuthGuard #${renderCount}] No user, using Navigate to /auth`);
+    
+    // ✅ FIX: Log navigation event for Navigate component
+    authNavigationLogger.logNavigation({
+      from: location.pathname,
+      to: '/auth',
+      reason: 'unauthenticated user',
+      source: 'Navigate'
+    });
+    
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

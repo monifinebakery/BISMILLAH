@@ -66,25 +66,27 @@ export const useAuthLifecycle = ({
     [navigate],
   );
 
-  // ✅ FIX: Debounce navigation to prevent loops
-  const debouncedNavigate = useMemo(
-    () =>
-      debounce((path: string) => {
-        if (window.location.pathname !== path) {
-          stableNavigate(path, { replace: true });
-        }
-      }, 100),
-    [stableNavigate],
-  );
+  // ❌ DISABLED: Navigation handled by AuthGuard to prevent race conditions
+  // const debouncedNavigate = useMemo(
+  //   () =>
+  //     debounce((path: string) => {
+  //       if (window.location.pathname !== path) {
+  //         stableNavigate(path, { replace: true });
+  //       }
+  //     }, 100),
+  //   [stableNavigate],
+  // );
 
   const triggerRedirectCheck = useCallback(() => {
+    // ✅ FIXED: Let AuthGuard handle navigation to prevent race conditions
     if (userRef.current && window.location.pathname === "/auth") {
       logger.info(
-        "AuthContext: Manual redirect trigger - user authenticated on auth page",
+        "AuthContext: Manual redirect trigger requested - delegating to AuthGuard",
       );
-      navigate("/", { replace: true });
+      // Don't navigate directly - let AuthGuard handle it
+      // This prevents competing navigation mechanisms
     }
-  }, [navigate]);
+  }, []);
 
   // ✅ FIX: Stabilize auth state change handler outside useEffect
   const handleAuthStateChange = useCallback(
@@ -161,12 +163,16 @@ export const useAuthLifecycle = ({
         }
       }
 
-      // ✅ FIX: Use debounced navigation
+      // ✅ FIXED: Let AuthGuard handle navigation to prevent race conditions
       if (validUser && window.location.pathname === "/auth") {
-        debouncedNavigate("/");
+        logger.debug(
+          "AuthContext: User authenticated on auth page - delegating navigation to AuthGuard"
+        );
+        // Don't navigate here - AuthGuard will handle it through useEffect
+        // This prevents race conditions between AuthContext and AuthGuard
       }
     },
-    [updateSession, updateUser, debouncedNavigate, sessionRef, userRef],
+    [updateSession, updateUser, sessionRef, userRef],
   );
 
   // Main initialization effect

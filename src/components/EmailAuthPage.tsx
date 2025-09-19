@@ -14,6 +14,8 @@ interface EmailAuthPageProps {
   onLoginSuccess?: () => void;
 }
 
+const STORAGE_KEY = 'emailAuthSession';
+
 const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
   // State
   const [step, setStep] = useState<AuthStep>("email");
@@ -28,6 +30,86 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
   const cooldownRef = useRef<NodeJS.Timeout | null>(null);
 
   const { user } = useAuth();
+
+  // Load persisted session on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const { step: savedStep, email: savedEmail, timestamp } = JSON.parse(saved);
+        
+        // Only restore if session is less than 5 minutes old
+        const isRecent = Date.now() - timestamp < 5 * 60 * 1000;
+        
+        if (isRecent && savedStep === 'otp' && savedEmail) {
+          setStep(savedStep);
+          setEmail(savedEmail);
+          console.log('📱 EmailAuth: Restored OTP session for:', savedEmail);
+          
+          // Focus first OTP input after restoration
+          setTimeout(() => {
+            otpRefs.current[0]?.focus();
+          }, 200);
+        } else {
+          // Clear expired session
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to restore auth session:', error);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  // Save session when step changes to OTP
+  useEffect(() => {
+    if (step === 'otp' && email) {
+      const sessionData = {
+        step,
+        email,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+      console.log('💾 EmailAuth: Saved OTP session');
+    } else if (step === 'email' || step === 'success') {
+      // Clear session when back to email or successful
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [step, email]);
+
+  // Handle page visibility changes to maintain session
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && step === 'otp' && email) {
+        // Save session when page becomes hidden
+        const sessionData = {
+          step,
+          email,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      if (step === 'otp' && email) {
+        const sessionData = {
+          step,
+          email,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [step, email]);
 
   // Cleanup cooldown on unmount
   useEffect(() => {
@@ -302,6 +384,22 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
               <p className="text-xs text-center text-gray-500">
                 Kami akan mengirim kode 6 digit ke email Anda (berlaku 5 menit)
               </p>
+
+              {/* Development only - Debug clear button */}
+              {import.meta.env.DEV && (
+                <div className="text-center">
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem(STORAGE_KEY);
+                      console.log('🧹 EmailAuth: Cleared session storage');
+                    }}
+                    className="text-xs text-gray-400 hover:text-gray-600 underline"
+                    type="button"
+                  >
+                    [DEV] Clear Session
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

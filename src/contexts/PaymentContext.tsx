@@ -207,15 +207,20 @@ const accessPromise = getUserAccessStatus();
       }
       
       if (!user || !user.id || !user.email) {
-        // ✅ Reduce log level for normal loading state
-        logger.debug('PaymentContext: User not ready yet:', { 
-          hasUser: !!user, 
-          hasId: !!user?.id, 
-          hasEmail: !!user?.email,
-          authReady,
-          authLoading
-        });
+        // ✅ Silent for unauthenticated state - this is normal
+        if (authReady && !authLoading) {
+          console.log('PaymentContext: User not ready yet:', { 
+            hasUser: !!user, 
+            hasId: !!user?.id, 
+            hasEmail: !!user?.email,
+            authReady,
+            authLoading,
+            note: 'Normal when not logged in'
+          });
+        }
         setIsUserValid(false);
+        setHasAccess(bypassAuth); // Set access to bypass value when no user
+        setAccessMessage(bypassAuth ? 'Development bypass active' : 'Please login to access features');
         return;
       }
       

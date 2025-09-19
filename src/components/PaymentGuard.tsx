@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { usePaymentContext } from '@/contexts/PaymentContext';
-import MandatoryUpgradeModal from '@/components/MandatoryUpgradeModal';
 import PaymentVerificationLoader from '@/components/PaymentVerificationLoader';
 import { logger } from '@/utils/logger';
 
@@ -17,8 +16,6 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
   const [initialCheckDone, setInitialCheckDone] = useState<boolean>(
     () => __paymentInitialCheckDone || safeReadInitialFlag()
   );
-  // Prevent modal flicker by delaying its display until state stabilizes
-  const [showModal, setShowModal] = useState(false);
 
   function safeReadInitialFlag(): boolean {
     try {
@@ -70,22 +67,10 @@ const PaymentGuard: React.FC<PaymentGuardProps> = ({ children }) => {
 
   logger.debug('PaymentGuard: Payment status checked', { isPaid });
 
-  // Delay showing upgrade modal to prevent flicker right after login
-  useEffect(() => {
-    if (!isLoading && !isPaid) {
-      const t = window.setTimeout(() => setShowModal(true), 800);
-      return () => window.clearTimeout(t);
-    } else {
-      setShowModal(false);
-    }
-  }, [isLoading, isPaid]);
-
-  // Render children with guarded upgrade modal
-  // Note: PaymentProvider sudah ada di AppProviders
+  // Render children only; upgrade modal dihapus sesuai permintaan
   return (
     <>
       {children}
-      {showModal && <MandatoryUpgradeModal />}
     </>
   );
 };

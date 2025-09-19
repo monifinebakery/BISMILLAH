@@ -14,6 +14,11 @@ const WarehouseAddEditPage = React.lazy(() =>
 
 const EditBahanBaku = React.lazy(() =>
   import(/* webpackChunkName: "warehouse-edit-fullpage" */ '@/components/warehouse/pages/EditBahanBaku')
+    .then(mod => ({ default: mod.EditBahanBaku }))
+    .catch((err) => {
+      logger.error('Failed to load EditBahanBaku page:', err);
+      return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat halaman edit gudang</div> };
+    })
 );
 
 const WarehouseErrorFallback: React.FC<{ 

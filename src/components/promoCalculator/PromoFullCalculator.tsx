@@ -5,7 +5,6 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, ChevronRight, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -105,14 +104,14 @@ const PromoFullCalculator = () => {
     return (
       <div className="space-y-6 p-6">
         <div className="space-y-4">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-6 w-96" />
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
         </div>
-        <Skeleton className="h-12 w-32" />
+        <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
       </div>
     );
   }

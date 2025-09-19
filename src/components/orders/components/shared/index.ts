@@ -2,7 +2,7 @@
 export {
   PageLoading,
   DialogLoader,
-  TableSkeleton,
+  TableLoading,
   ButtonLoading
 } from './LoadingStates';
 

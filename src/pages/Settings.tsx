@@ -25,37 +25,62 @@ import {
   Download,
   MessageSquare
 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+// ✅ PERFORMANCE: Lazy load heavy components
+import { lazy, Suspense } from 'react';
+import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 
-// ✅ UPDATED: Import from correct path
-import NotificationSettingsForm from '@/components/NotificationSettingsForm';
+// Lazy load heavy components to improve initial page load
+const NotificationSettingsForm = lazy(() => import('@/components/NotificationSettingsForm'));
+const DeviceManagementSection = lazy(() => import('@/components/settings/DeviceManagementSection'));
+const PWAInstallButton = lazy(() => import('@/components/pwa/PWAInstallButton'));
 
-// ✅ NEW: Import device management section
-import DeviceManagementSection from '@/components/settings/DeviceManagementSection';
-
-// ✅ NEW: Import PWA components
-import PWAInstallButton from '@/components/pwa/PWAInstallButton';
+// ✅ PERFORMANCE: Import utils directly but defer execution
 import { usePWA } from '@/utils/pwaUtils';
-
-// ✅ NEW: Import notification triggers for demo
 import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 import { getDeviceType, getBrowserInfo } from '@/utils';
 
 const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
-  const { triggerCustomNotification } = useNotificationTriggers();
-  const { canInstall, isInstalled, isOnline } = usePWA();
+  
+  // ✅ PERFORMANCE: Always call hooks but defer expensive operations
+  const [shouldLoadHeavyFeatures, setShouldLoadHeavyFeatures] = useState(false);
+  
+  // Call hooks unconditionally but only use results when ready
+  const notificationHooks = useNotificationTriggers();
+  const pwaHooks = usePWA();
+  
+  // Extract values conditionally based on loading state
+  const triggerCustomNotification = shouldLoadHeavyFeatures ? notificationHooks.triggerCustomNotification : null;
+  const { canInstall, isInstalled, isOnline } = shouldLoadHeavyFeatures 
+    ? pwaHooks 
+    : { canInstall: false, isInstalled: false, isOnline: true };
 
   const [formState, setFormState] = useState<UserSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState({ device: '', browser: '' });
+  const [heavyComponentsLoaded, setHeavyComponentsLoaded] = useState(false);
 
+  // ✅ PERFORMANCE: Defer device info calculation
   useEffect(() => {
-    setDeviceInfo({
-      device: getDeviceType(),
-      browser: getBrowserInfo().browser,
-    });
+    const timeoutId = setTimeout(() => {
+      setDeviceInfo({
+        device: getDeviceType(),
+        browser: getBrowserInfo().browser,
+      });
+    }, 100); // Defer by 100ms to not block initial render
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+  
+  // ✅ PERFORMANCE: Load heavy components after main content renders
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setHeavyComponentsLoaded(true);
+      setShouldLoadHeavyFeatures(true);
+    }, 500); // Load heavy components after 500ms
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
@@ -81,9 +106,9 @@ const SettingsPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-          <Skeleton className="h-6 w-48 mx-auto" />
-          <Skeleton className="h-4 w-32 mx-auto" />
+          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
+          <div className="text-lg font-medium text-gray-700">Memuat Pengaturan...</div>
+          <div className="text-sm text-gray-500">Mohon tunggu sebentar</div>
         </div>
       </div>
     );
@@ -115,13 +140,15 @@ const SettingsPage = () => {
         setHasChanges(false);
         toast.success('Pengaturan bisnis berhasil disimpan');
         
-        // ✅ NEW: Trigger notification when settings saved
-        await triggerCustomNotification(
-          'Pengaturan Disimpan',
-          'Informasi bisnis Anda telah diperbarui',
-          'success',
-          2
-        );
+        // ✅ PERFORMANCE: Only trigger notification if loaded
+        if (triggerCustomNotification) {
+          await triggerCustomNotification(
+            'Pengaturan Disimpan',
+            'Informasi bisnis Anda telah diperbarui',
+            'success',
+            2
+          );
+        }
       }
     } finally {
       setIsSaving(false);
@@ -412,7 +439,7 @@ const SettingsPage = () => {
             </CardContent>
           </Card>
 
-          {/* NOTIFICATION SETTINGS SECTION */}
+          {/* NOTIFICATION SETTINGS SECTION - LAZY LOADED */}
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="bg-green-100 p-2 rounded-lg">
@@ -424,11 +451,35 @@ const SettingsPage = () => {
               </div>
             </div>
             
-            <NotificationSettingsForm />
+            {heavyComponentsLoaded ? (
+              <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat pengaturan notifikasi</div>}>
+                <Suspense fallback={<div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>}>
+                  <NotificationSettingsForm />
+                </Suspense>
+              </ErrorBoundary>
+            ) : (
+              <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
+            )}
           </div>
 
-          {/* Device Management Section */}
-          <DeviceManagementSection />
+          {/* Device Management Section - LAZY LOADED */}
+          {heavyComponentsLoaded ? (
+            <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat manajemen perangkat</div>}>
+              <Suspense fallback={<div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>}>
+                <DeviceManagementSection />
+              </Suspense>
+            </ErrorBoundary>
+          ) : (
+            <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
+          )}
 
           {/* MONIFINE WHATSAPP CHANNEL SECTION */}
           <Card className="border-0 overflow-hidden">
@@ -483,8 +534,14 @@ const SettingsPage = () => {
                         <CheckCircle className="h-5 w-5" />
                         <span className="font-medium">Terinstall</span>
                       </div>
+                    ) : heavyComponentsLoaded ? (
+                      <ErrorBoundary fallback={<Button disabled>PWA tidak tersedia</Button>}>
+                        <Suspense fallback={<Button disabled>Loading...</Button>}>
+                          <PWAInstallButton className="" showNetworkStatus={false} />
+                        </Suspense>
+                      </ErrorBoundary>
                     ) : (
-                      <PWAInstallButton className="" showNetworkStatus={false} />
+                      <Button disabled>Loading...</Button>
                     )}
                   </div>
                 </div>
@@ -537,5 +594,60 @@ const SettingsPage = () => {
     </div>
   );
 };
+
+const NotificationSettingsSimpleLoading = () => (
+  <div className="border rounded-lg p-6 space-y-4">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+      <div>
+        <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+        <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+      </div>
+    </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+      <div className="space-y-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+              <div>
+                <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+                <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+              </div>
+            </div>
+            <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const DeviceManagementSimpleLoading = () => (
+  <div className="border rounded-lg">
+    <div className="p-6 border-b">
+      <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+      <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+    </div>
+    <div className="p-6">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+            <div>
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+            </div>
+          </div>
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+        </div>
+        <div className="pt-2 border-t">
+          <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export default SettingsPage;

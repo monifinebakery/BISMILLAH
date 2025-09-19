@@ -20,7 +20,7 @@ import { logger } from '@/utils/logger';
 
 // Form components
 import BasicInfoStep from './RecipeForm/BasicInfoStep';
-import IngredientsStep from './RecipeForm/IngredientsStep';
+import IngredientsStep from './RecipeForm/IngredientsStepRefactored';
 
 // Lazy load CostCalculationStep
 const CostCalculationStep = React.lazy(() => 

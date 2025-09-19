@@ -20,7 +20,6 @@ const WarehouseTable = React.lazy(() =>
     .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat tabel gudang') }))
 );
 
-
 // CONSOLIDATED HOOK IMPORTS
 import { useWarehouseCore } from './hooks/useWarehouseCore';
 // WarehouseContext will be imported dynamically
@@ -264,7 +263,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const TableSkeleton = () => (
+const TableLoading = () => (
   <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
     <div className="p-4 border-b">
       <div className="flex items-center justify-between">
@@ -314,6 +313,7 @@ const isPaginatedWarehouseResponse = (data: any): data is PaginatedWarehouseResp
 
 const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: boolean = false, userId?: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   // ✅ FIXED: State untuk track USER ACTIONS (bukan data changes)
   const [lastUserAction, setLastUserAction] = useState<Date | undefined>(undefined);
@@ -364,7 +364,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
 
   // Mutations dengan explicit timestamp update
   const createMutation = useMutation({
-    mutationFn: (item: Partial<BahanBakuFrontend>) => createWarehouseItem(item, user?.id),
+    mutationFn: (item: Partial<BahanBakuFrontend>) => createWarehouseItem(item, userId || user?.id),
     onSuccess: (newItem) => {
       // ✅ FIXED: Update timestamp saat user berhasil tambah item
       setLastUserAction(new Date());
@@ -379,7 +379,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, item }: { id: string; item: Partial<BahanBakuFrontend> }) => updateWarehouseItem({ id, item, userId: user?.id }),
+    mutationFn: ({ id, item }: { id: string; item: Partial<BahanBakuFrontend> }) => updateWarehouseItem({ id, item, userId: userId || user?.id }),
     onSuccess: (updatedItem) => {
       // ✅ FIXED: Update timestamp saat user berhasil edit item
       setLastUserAction(new Date());
@@ -394,7 +394,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteWarehouseItem(id, user?.id),
+    mutationFn: (id: string) => deleteWarehouseItem(id, userId || user?.id),
     onSuccess: () => {
       // ✅ FIXED: Update timestamp saat user berhasil hapus item
       setLastUserAction(new Date());
@@ -726,7 +726,9 @@ const WarehousePageContent: React.FC = () => {
       {/* OPTIMIZED: Dialog System - Only when needed */}
       {hasDialogsOpen && isMountedRef.current && (
         <ErrorBoundary>
-          <Suspense fallback={<DialogSkeleton />}>
+          <Suspense fallback={<div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>}>
             <DialogManager
               dialogs={core.dialogs}
               handlers={enhancedHandlers}

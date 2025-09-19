@@ -198,6 +198,26 @@ const accessPromise = getUserAccessStatus();
 
   // 7. ALL useEffect hooks - ALWAYS called in same order
 
+  // ✅ NEW EFFECT: Listen for auth refresh events
+  useEffect(() => {
+    const handleAuthRefreshRequest = (event: CustomEvent) => {
+      const { reason } = event.detail || {};
+      if (reason === 'otp_verification_success') {
+        logger.info('PaymentContext: Received OTP success refresh request - triggering payment refresh');
+        // Delay payment refresh slightly to ensure session is fully established
+        setTimeout(() => {
+          enhancedRefetch();
+        }, 500);
+      }
+    };
+
+    window.addEventListener('auth-refresh-request', handleAuthRefreshRequest as EventListener);
+    
+    return () => {
+      window.removeEventListener('auth-refresh-request', handleAuthRefreshRequest as EventListener);
+    };
+  }, [enhancedRefetch]);
+
   // ✅ EFFECT 1: Validate user
   useEffect(() => {
     const validateUser = async () => {
@@ -207,15 +227,18 @@ const accessPromise = getUserAccessStatus();
       }
       
       if (!user || !user.id || !user.email) {
-        // ✅ Reduce log level for normal loading state
-        logger.debug('PaymentContext: User not ready yet:', { 
-          hasUser: !!user, 
-          hasId: !!user?.id, 
-          hasEmail: !!user?.email,
-          authReady,
-          authLoading
-        });
+        // ✅ Silent for unauthenticated state - this is normal
+        if (import.meta.env.DEV && authReady && !authLoading) {
+          console.log('PaymentContext: User not ready yet:', { 
+            hasUser: !!user, 
+            hasId: !!user?.id, 
+            hasEmail: !!user?.email,
+            note: 'Normal when not logged in'
+          });
+        }
         setIsUserValid(false);
+        setHasAccess(bypassAuth); // Set access to bypass value when no user
+        setAccessMessage(bypassAuth ? 'Development bypass active' : 'Please login to access features');
         return;
       }
       

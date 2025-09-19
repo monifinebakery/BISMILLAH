@@ -1,16 +1,12 @@
-// 🎯 150 lines - All filters consolidated
-import React from 'react';
-import { Filter, Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+// Orders Filter Components using Shared Filter System
+import React, { useMemo } from 'react';
+import { Filter, X, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import DateRangePicker from '@/components/ui/DateRangePicker';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+// ✅ USING SHARED FILTER COMPONENTS
+import { SearchInput, StatusFilter, DateRangeFilter } from '@/components/shared/filters';
+import type { FilterOption, DateRange as SharedDateRange } from '@/components/shared/filters/types';
 import type { UseOrderUIReturn } from '../types';
 import { ORDER_STATUSES, getStatusText, TABLE_PAGE_SIZES } from '../constants';
 
@@ -19,135 +15,43 @@ interface OrderFiltersProps {
   loading: boolean;
 }
 
-// Search Filter Component
-const SearchFilter: React.FC<{
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-}> = ({ value, onChange, disabled = false }) => {
-  const handleClear = () => {
-    onChange('');
-  };
+// Order status options for shared StatusFilter
+const ORDER_STATUS_OPTIONS: FilterOption[] = ORDER_STATUSES.map(status => ({
+  label: getStatusText(status),
+  value: status
+}));
 
-  return (
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Search className="h-4 w-4 text-gray-400" />
-      </div>
-      
-      <Input
-        type="text"
-        placeholder="Cari pesanan, pelanggan, telepon..."
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className="pl-10 pr-10"
-      />
-      
-      {value && (
-        <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-4 w-4 p-0 hover:bg-transparent"
-            onClick={handleClear}
-            disabled={disabled}
-          >
-            <X className="h-3 w-3 text-gray-400 hover:text-gray-600" />
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-};
+// Items per page options for shared StatusFilter
+const ITEMS_PER_PAGE_OPTIONS: FilterOption[] = TABLE_PAGE_SIZES.map(size => ({
+  label: size.toString(),
+  value: size.toString()
+}));
 
-// Status Filter Component
-const StatusFilter: React.FC<{
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-}> = ({ value, onChange, disabled = false }) => {
-  return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Semua Status" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">Semua Status</SelectItem>
-        {ORDER_STATUSES.map((status) => (
-          <SelectItem key={status} value={status}>
-            {getStatusText(status)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-};
-
-// Date Range Filter Component
-const DateRangeFilter: React.FC<{
-  dateFrom: Date | null;
-  dateTo: Date | null;
-  onChange: (dateFrom: Date | null, dateTo: Date | null) => void;
-  disabled?: boolean;
-}> = ({ dateFrom, dateTo, onChange, disabled = false }) => {
-  const dateRange = React.useMemo(() => {
-    if (dateFrom && dateTo) {
-      return { from: dateFrom, to: dateTo };
-    }
-    return undefined;
-  }, [dateFrom, dateTo]);
-
-  const handleDateRangeChange = (range: { from: Date; to: Date } | undefined) => {
-    if (range) {
-      onChange(range.from, range.to);
-    } else {
-      onChange(null, null);
-    }
-  };
-
-  return (
-    <DateRangePicker
-      dateRange={dateRange}
-      onDateRangeChange={handleDateRangeChange}
-      placeholder="Pilih rentang tanggal"
-      disabled={disabled}
-      className="w-full"
-    />
-  );
-};
-
-// Items Per Page Filter Component
-const ItemsPerPageFilter: React.FC<{
-  value: number;
-  onChange: (value: number) => void;
-  disabled?: boolean;
-}> = ({ value, onChange, disabled = false }) => {
-  return (
-    <div>
-      <Select
-        value={value.toString()}
-        onValueChange={(val) => onChange(parseInt(val))}
-        disabled={disabled}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Jumlah item" />
-        </SelectTrigger>
-        <SelectContent>
-          {TABLE_PAGE_SIZES.map((size) => (
-            <SelectItem key={size} value={size.toString()}>
-              {size}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
-
-// Main Filters Component
+// Main Filters Component using Shared Filter Components
 const OrderFilters: React.FC<OrderFiltersProps> = ({ uiState, loading }) => {
+  // Convert legacy date filter format to shared DateRange format
+  const sharedDateRange: SharedDateRange = useMemo(() => {
+    if (uiState.filters.dateFrom && uiState.filters.dateTo) {
+      return {
+        start: uiState.filters.dateFrom.toISOString().split('T')[0],
+        end: uiState.filters.dateTo.toISOString().split('T')[0]
+      };
+    }
+    return {};
+  }, [uiState.filters.dateFrom, uiState.filters.dateTo]);
+
+  // Handle shared date range change
+  const handleSharedDateRangeChange = (range: SharedDateRange) => {
+    if (range.start && range.end) {
+      uiState.updateFilters({
+        dateFrom: new Date(range.start),
+        dateTo: new Date(range.end)
+      });
+    } else {
+      uiState.updateFilters({ dateFrom: null, dateTo: null });
+    }
+  };
+
   const activeFilterCount = Object.values(uiState.filters).filter(value => {
     if (value === null || value === undefined || value === '' || value === 'all') {
       return false;
@@ -156,67 +60,80 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({ uiState, loading }) => {
   }).length;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Filter className="h-5 w-5 text-gray-500" />
-        <h3 className="text-sm font-medium text-gray-900">Filter Pesanan</h3>
-        {activeFilterCount > 0 && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-            {activeFilterCount} aktif
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        {/* Row 1: Search and Status */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SearchFilter
-            value={uiState.filters.search}
-            onChange={(search) => uiState.updateFilters({ search })}
-            disabled={loading}
-          />
-          <StatusFilter
-            value={uiState.filters.status || 'all'}
-            onChange={(status) => uiState.updateFilters({ status: status === 'all' ? 'all' : status })}
-            disabled={loading}
-          />
-        </div>
-
-        {/* Row 2: Date Range and Items Per Page */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <DateRangeFilter
-              dateFrom={uiState.filters.dateFrom}
-              dateTo={uiState.filters.dateTo}
-              onChange={(dateFrom, dateTo) => uiState.updateFilters({ dateFrom, dateTo })}
-              disabled={loading}
-            />
-          </div>
-          <div className="flex items-center">
-            <ItemsPerPageFilter
-              value={uiState.itemsPerPage}
-              onChange={uiState.setItemsPerPage}
-              disabled={loading}
-            />
-          </div>
-        </div>
-
-        {/* Row 3: Clear All Filters */}
-        {uiState.hasActiveFilters && (
-          <div className="flex justify-end">
+    <Card className="mb-6">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filter Pesanan
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </CardTitle>
+          
+          {uiState.hasActiveFilters && (
             <Button
               variant="outline"
+              size="sm"
               onClick={uiState.clearFilters}
               disabled={loading}
               className="flex items-center gap-2"
             >
-              <X className="h-4 w-4" />
-              Hapus Semua Filter
+              <RotateCcw className="h-4 w-4" />
+              Reset
             </Button>
+          )}
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {/* Search */}
+        <div>
+          <SearchInput
+            value={uiState.filters.search}
+            onChange={(search) => uiState.updateFilters({ search })}
+            placeholder="Cari pesanan, pelanggan, telepon..."
+            disabled={loading}
+          />
+        </div>
+        
+        {/* Status and Items Per Page */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Status Order</label>
+            <StatusFilter
+              value={uiState.filters.status === 'all' ? '' : uiState.filters.status || ''}
+              onChange={(status) => uiState.updateFilters({ status: status === '' ? 'all' : status })}
+              options={ORDER_STATUS_OPTIONS}
+              placeholder="Semua Status"
+              disabled={loading}
+            />
           </div>
-        )}
-      </div>
-    </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Items per Page</label>
+            <StatusFilter
+              value={uiState.itemsPerPage.toString()}
+              onChange={(value) => uiState.setItemsPerPage(parseInt(value))}
+              options={ITEMS_PER_PAGE_OPTIONS}
+              placeholder="Jumlah item"
+              disabled={loading}
+            />
+          </div>
+        </div>
+        
+        {/* Date Range */}
+        <div className="border-t pt-4">
+          <DateRangeFilter
+            value={sharedDateRange}
+            onChange={handleSharedDateRangeChange}
+            disabled={loading}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

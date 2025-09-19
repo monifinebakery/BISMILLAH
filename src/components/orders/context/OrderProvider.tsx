@@ -31,7 +31,7 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
   const userId = user?.id;
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); 
 
   const {
     isConnected,
@@ -44,17 +44,23 @@ export const OrderProvider: React.FC<Props> = ({ children }) => {
 
   const refreshData = useCallback(async () => {
     if (!userId) return;
-    setLoading(true);
+    // ✅ Only show loading if we don't have data yet
+    if (orders.length === 0) {
+      setLoading(true);
+    }
     try {
       const data = await orderService.fetchOrders(userId);
       setOrders(data);
     } catch (error: any) {
       toast.error(`Gagal memuat pesanan: ${error instanceof Error ? error.message : String(error)}`);
-      setOrders([]);
+      // ✅ Don't clear existing orders on error to avoid empty state flashing
+      if (orders.length === 0) {
+        setOrders([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, orders.length]);
 
   const handleRealtimeEvent = useCallback((payload: any) => {
     console.log('🔥 Real-time event received:', payload.eventType, payload.new?.id, payload.new?.status);

@@ -20,14 +20,10 @@ const CriticalStock = lazy(() => import('@/components/dashboard/CriticalStock'))
 const RecentActivities = lazy(() => import('@/components/dashboard/RecentActivities'));
 const WorstSellingProducts = lazy(() => import('@/components/dashboard/WorstSellingProducts'));
 
-// 📦 Enhanced Loading Component
-const SectionLoader = ({ height = "h-32", className = "" }) => (
-  <div className={`${height} ${className} bg-white rounded-lg border border-gray-100 p-4`}>
-    <div className="space-y-3">
-      <div className="h-4 bg-gray-200 rounded animate-pulse" />
-      <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
-      <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
-    </div>
+// ✅ Simple Loading Component
+const SectionLoader = ({ className = "" }) => (
+  <div className={`${className} flex items-center justify-center p-8`}>
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
   </div>
 );
 

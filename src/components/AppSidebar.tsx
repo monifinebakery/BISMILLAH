@@ -31,7 +31,7 @@ import type { BahanBakuFrontend } from "@/components/warehouse/types";
 import type { FinancialTransaction } from "@/components/financial/types/financial";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { usePromo } from "@/components/promoCalculator/context/PromoContext";
-import { useOperationalCost } from "@/components/operational-costs/context/OperationalCostContext";
+import { useOperationalCostRefactored } from '@/components/operational-costs/context/OperationalCostContextRefactored';
 
 import { useAssetQuery } from "@/components/assets";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,11 +69,16 @@ export function AppSidebar() {
     isIOS = false;
   }
 
-  // Use warehouse hook directly with defensive check
+  // ✅ FIXED: Enhanced defensive warehouse data access
   let bahanBaku: BahanBakuFrontend[] = [];
   try {
     const warehouseContext = useBahanBaku();
-    bahanBaku = warehouseContext?.bahanBaku || [];
+    // ✅ MULTI-LEVEL SAFETY: Check context exists and has bahanBaku property
+    if (warehouseContext && typeof warehouseContext === 'object' && 'bahanBaku' in warehouseContext) {
+      bahanBaku = Array.isArray(warehouseContext.bahanBaku) ? warehouseContext.bahanBaku : [];
+    } else {
+      console.warn('Warehouse context not ready or missing bahanBaku property in AppSidebar');
+    }
   } catch (error) {
     console.warn('Failed to get warehouse data in AppSidebar:', error);
     bahanBaku = [];
@@ -96,7 +101,7 @@ export function AppSidebar() {
   }
   
   const { promos } = usePromo();
-  const { state: operationalCostState } = useOperationalCost();
+  const { state: operationalCostState } = useOperationalCostRefactored();
 
   const { assets, isLoading: assetsLoading } = useAssetQuery({ userId: user?.id, enableRealtime: false });
   const { currentAnalysis: profitAnalysis, profitHistory, loading: profitLoading } =

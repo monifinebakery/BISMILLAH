@@ -6,8 +6,8 @@
  * Dependencies: 6 (reduced from 11)
  */
 
-// ✅ CORE EXPORTS ONLY (Most Used)
-export { default as WarehousePage } from './WarehousePage';
+// ✅ CORE EXPORTS ONLY (Most Used) - Updated to use refactored version
+export { default as WarehousePage } from './WarehousePageRefactored';
 export { 
   WarehouseProvider, 
   useWarehouseContext,

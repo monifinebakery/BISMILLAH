@@ -30,8 +30,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { LoadingSkeleton, Skeleton } from '@/components/ui/skeleton';
-
 const DeviceManagementPage: React.FC = () => {
   const { devices, currentDevice, loading, error, refreshDevices, updateDeviceName, removeDevice, removeAllOtherDevices, fetchDevicesPaginated } = useDevice();
   const { user } = useAuth();

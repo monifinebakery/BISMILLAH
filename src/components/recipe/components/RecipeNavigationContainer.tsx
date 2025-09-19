@@ -25,9 +25,6 @@ import { EmptyState } from './shared/EmptyState';
 import { LoadingState } from './shared/LoadingState';
 import BulkActions from './BulkActions';
 import RecipeFormPage from './RecipeFormPage';
-import { LoadingSkeleton, Skeleton } from '@/components/ui/skeleton';
-
-
 // Breadcrumb and view mode types
 import type { RecipeViewMode } from './RecipeBreadcrumb';
 
@@ -41,7 +38,6 @@ export const RECIPE_QUERY_KEYS = {
   categories: () => [...RECIPE_QUERY_KEYS.all, 'categories'] as const,
 } as const;
 
-// Safe lazy component wrapper using skeleton
 const LazyComponentWrapper: React.FC<{ children: React.ReactNode; loadingMessage?: string }> = ({ children, loadingMessage }) => {
   return (
     <Suspense fallback={<LoadingStates.Card />}>
@@ -381,7 +377,7 @@ const RecipeNavigationContainer: React.FC = () => {
 
   // Loading state
   if (isLoading) {
-    // Use shared lightweight loading spinner instead of heavy skeleton
+    
     return <LoadingStates.Page />;
   }
 
@@ -529,7 +525,6 @@ const RecipeNavigationContainer: React.FC = () => {
         <LazyComponentWrapper>
           <RecipeStats stats={stats} />
         </LazyComponentWrapper>
-
 
         {/* Main Content Card */}
         <Card className="border border-gray-200 bg-white/90 backdrop-blur-sm">

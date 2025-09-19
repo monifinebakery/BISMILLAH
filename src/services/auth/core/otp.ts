@@ -195,17 +195,66 @@ export const verifyEmailOtp = async (
       
       logger.debug('[OTP] Verification successful, AuthContext will detect session change');
       
+      // ✅ CRITICAL: Set otpVerifiedAt flag for AuthGuard session handling
+      try {
+        localStorage.setItem('otpVerifiedAt', Date.now().toString());
+        if (import.meta.env.DEV) {
+          console.log('🔑 [OTP] Set otpVerifiedAt flag for session persistence');
+        }
+      } catch (storageError) {
+        logger.warn('Failed to set otpVerifiedAt flag:', storageError);
+      }
+      
+      // ✅ CRITICAL: Trigger payment status refresh after successful login
+      try {
+        // Dispatch custom event to trigger payment refresh
+        window.dispatchEvent(new CustomEvent('auth-refresh-request', {
+          detail: { reason: 'otp_verification_success', timestamp: Date.now() }
+        }));
+        if (import.meta.env.DEV) {
+          console.log('🔄 [OTP] Triggered payment refresh after login');
+        }
+      } catch (eventError) {
+        logger.warn('Failed to trigger payment refresh:', eventError);
+      }
+      
       // ✅ ENHANCED: Force a small delay to ensure session is fully committed
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300)); // Increased delay for payment sync
       
       toast.success('Login berhasil!');
       return true;
     } else {
-      logger.warn('OTP verified but no session/user created:', {
+      // Even if no session is returned, if there's no error, consider it successful
+      // This can happen with Supabase's auth flow
+      logger.warn('OTP verified but no session/user in response - checking current session', {
         hasSession: !!data.session,
         hasUser: !!data.user,
         dataKeys: Object.keys(data || {})
       });
+      
+      // Check current session to verify login success
+      try {
+        const { data: currentSessionData, error: sessionError } = await supabase.auth.getSession();
+        if (currentSessionData?.session?.user && !sessionError) {
+          logger.success('Confirmed login success via session check');
+          
+          // ✅ CRITICAL: Set otpVerifiedAt flag for AuthGuard session handling
+          try {
+            localStorage.setItem('otpVerifiedAt', Date.now().toString());
+            if (import.meta.env.DEV) {
+              console.log('🔑 [OTP] Set otpVerifiedAt flag via session check');
+            }
+          } catch (storageError) {
+            logger.warn('Failed to set otpVerifiedAt flag:', storageError);
+          }
+          
+          toast.success('Login berhasil!');
+          return true;
+        }
+      } catch (sessionCheckError) {
+        logger.error('Error checking current session:', sessionCheckError);
+      }
+      
       toast.error('Verifikasi berhasil tetapi sesi tidak dibuat. Silakan coba login ulang.');
       return false;
     }

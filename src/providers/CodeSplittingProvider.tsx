@@ -47,15 +47,25 @@ export const CodeSplittingProvider: React.FC<CodeSplittingProviderProps> = ({ ch
     loadingProgress: 0
   });
 
-  // Update loading stats secara berkala
+  // ✅ ANTI-FLICKER: Update loading stats only when necessary
   useEffect(() => {
     const updateStats = () => {
-      const stats = getLoadingStats();
-      setLoadingStats(stats);
+      const newStats = getLoadingStats();
       
-      // Hitung bundle metrics
+      // ✅ ANTI-FLICKER: Only update if stats actually changed
+      setLoadingStats(currentStats => {
+        if (currentStats.total !== newStats.total || 
+            currentStats.loaded !== newStats.loaded || 
+            currentStats.loading !== newStats.loading || 
+            currentStats.failed !== newStats.failed) {
+          return newStats;
+        }
+        return currentStats;
+      });
+      
+      // Hitung bundle metrics hanya jika ada perubahan
       const totalChunks = Object.keys(BUNDLE_INFO).length;
-      const loadedChunks = stats.loaded;
+      const loadedChunks = newStats.loaded;
       const progress = totalChunks > 0 ? (loadedChunks / totalChunks) * 100 : 0;
       
       // Estimasi ukuran bundle yang sudah dimuat
@@ -73,32 +83,41 @@ export const CodeSplittingProvider: React.FC<CodeSplittingProviderProps> = ({ ch
         }
       });
       
-      setBundleMetrics({
-        totalEstimatedSize: `${totalEstimatedKB}KB`,
-        loadedSize: `${loadedEstimatedKB}KB`,
-        loadingProgress: progress
+      // ✅ ANTI-FLICKER: Only update metrics if they changed
+      setBundleMetrics(currentMetrics => {
+        const newMetrics = {
+          totalEstimatedSize: `${totalEstimatedKB}KB`,
+          loadedSize: `${loadedEstimatedKB}KB`,
+          loadingProgress: progress
+        };
+        
+        if (currentMetrics.totalEstimatedSize !== newMetrics.totalEstimatedSize ||
+            currentMetrics.loadedSize !== newMetrics.loadedSize ||
+            Math.abs(currentMetrics.loadingProgress - newMetrics.loadingProgress) > 0.1) {
+          return newMetrics;
+        }
+        return currentMetrics;
       });
     };
 
     updateStats();
-    const interval = setInterval(updateStats, 2000); // Update setiap 2 detik
+    // ✅ ANTI-FLICKER: Less frequent updates to prevent flicker
+    const interval = setInterval(updateStats, 5000); // Update setiap 5 detik instead of 2
     
     return () => clearInterval(interval);
   }, [getLoadingStats, isChunkLoaded]);
 
-  // Log metrics untuk debugging (hanya di development)
+  // ✅ ANTI-FLICKER: Reduced debug logging to prevent console spam
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.group('🚀 Code Splitting Metrics');
-      console.log('Loading Stats:', loadingStats);
-      console.log('Bundle Metrics:', bundleMetrics);
-      console.log('Average Load Time:', metrics.chunkLoadTimes.size > 0 ? 
-        Array.from(metrics.chunkLoadTimes.values()).reduce((a, b) => a + b, 0) / metrics.chunkLoadTimes.size + 'ms' : 
-        'N/A'
-      );
-      console.groupEnd();
+    if (process.env.NODE_ENV === 'development' && loadingStats.loading > 0) {
+      // Only log when chunks are actively loading
+      console.log('🚀 Code Splitting:', {
+        loading: loadingStats.loading,
+        loaded: loadingStats.loaded,
+        progress: `${Math.round(bundleMetrics.loadingProgress)}%`
+      });
     }
-  }, [loadingStats, bundleMetrics, metrics]);
+  }, [loadingStats.loading, loadingStats.loaded, bundleMetrics.loadingProgress]);
 
   const contextValue: CodeSplittingContextType = {
     preloadRoute,

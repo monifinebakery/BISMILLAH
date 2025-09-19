@@ -25,8 +25,8 @@ export const DialogLoader: React.FC = () => {
   );
 };
 
-// Table Skeleton Component (compact)
-export const TableSkeleton: React.FC = () => {
+// Table Loading Component (compact)
+export const TableLoading: React.FC = () => {
   return (
     <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
       <div className="p-6 flex items-center justify-center">

@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useOperationalCost } from '@/components/operational-costs/context/OperationalCostContext';
+import { useOperationalCostRefactored } from '@/components/operational-costs/context/OperationalCostContextRefactored';
 
 export const OverheadDebug: React.FC = () => {
   const { 
     state: { overheadCalculation, isAuthenticated, loading },
     actions: { calculateOverhead, updateProductionTarget, invalidateOverheadCalculations }
-  } = useOperationalCost();
+  } = useOperationalCostRefactored();
 
   const [materialCost, setMaterialCost] = useState(1000);
   const [targetProduction, setTargetProduction] = useState(2333);

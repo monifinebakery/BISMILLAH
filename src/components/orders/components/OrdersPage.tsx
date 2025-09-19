@@ -36,7 +36,7 @@ const OrderStatistics = React.lazy(() =>
   import('./OrderStatistics').catch((error) => {
     logger.error('Failed to load OrderStatistics component:', error);
     return {
-      default: () => <div className="h-32 bg-gray-100 rounded animate-pulse" />
+      default: () => <div>Statistics unavailable</div>
     };
   })
 );
@@ -74,7 +74,7 @@ const OrderFilters = React.lazy(() =>
   import('./OrderFilters').catch((error) => {
     logger.error('Failed to load OrderFilters component:', error);
     return {
-      default: () => <div className="h-16 bg-gray-100 rounded animate-pulse" />
+      default: () => <div>Filters unavailable</div>
     };
   })
 );
@@ -83,7 +83,7 @@ const OrderControls = React.lazy(() =>
   import('./OrderControls').catch((error) => {
     logger.error('Failed to load OrderControls component:', error);
     return {
-      default: () => <div className="h-12 bg-gray-100 rounded animate-pulse" />
+      default: () => <div>Controls unavailable</div>
     };
   })
 );

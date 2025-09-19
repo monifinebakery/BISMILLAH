@@ -252,7 +252,7 @@ const RecentActivities: React.FC<Props> = ({
   // 📋 Current page activities
   const currentActivities = useMemo(() => {
     if (isLoading) {
-      // Return skeleton items that match Activity interface
+      
       return Array(itemsPerPage).fill(null).map((_, index) => ({
         id: `skeleton-${index}`,
         userId: '',

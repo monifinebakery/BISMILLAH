@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 // Form components
 import BasicInfoStep from './BasicInfoStep';
-import IngredientsStep from './IngredientsStep';
+import IngredientsStep from './IngredientsStepRefactored';
 
 // Lazy load CostCalculationStep
 const CostCalculationStep = React.lazy(() => 

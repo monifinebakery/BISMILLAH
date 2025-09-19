@@ -79,6 +79,12 @@ export const RecipeComponents = {
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat form resep') }))
   ),
   
+  // Enhanced Recipe Form (Refactored)
+  EnhancedRecipeForm: React.lazy(() => 
+    import(/* webpackChunkName: "enhanced-recipe-form" */ '@/components/EnhancedRecipeFormRefactored')
+      .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat form resep enhanced') }))
+  ),
+  
   RecipeTable: React.lazy(() => 
     import(/* webpackChunkName: "recipe-table" */ '@/components/recipe/components/RecipeList/RecipeTable')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat tabel resep') }))
@@ -90,7 +96,7 @@ export const RecipeComponents = {
   ),
   
   IngredientsStep: React.lazy(() => 
-    import(/* webpackChunkName: "ingredients-step" */ '@/components/recipe/components/RecipeForm/IngredientsStep')
+    import(/* webpackChunkName: "ingredients-step" */ '@/components/recipe/components/RecipeForm/IngredientsStepRefactored')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat langkah bahan') }))
   )
 };

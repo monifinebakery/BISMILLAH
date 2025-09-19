@@ -1,5 +1,10 @@
 // src/components/financial/components/index.ts
 
+// Refactored modular components
+export { FinancialHeader } from './FinancialHeader';
+export { SummaryCards } from './SummaryCards';
+export { FinancialTabs } from './FinancialTabs';
+
 // Main components
 export { default as TransactionTable } from './TransactionTable';
 export { default as TransactionTableWithFilters } from './TransactionTableWithFilters';

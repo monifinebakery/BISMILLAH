@@ -30,30 +30,49 @@ export const AppLayout = () => {
       try {
         // If a refresh is already in progress, skip showing update banner
         try {
-          if (localStorage.getItem('appUpdateRefreshing') === '1') return;
+          if (localStorage.getItem('appUpdateRefreshing') === '1') {
+            logger.debug('[AppLayout] App update in progress, skipping version check');
+            return;
+          }
         } catch (error) {
-          console.warn('AppLayout: unable to read appUpdateRefreshing flag', error);
+          logger.warn('AppLayout: unable to read appUpdateRefreshing flag', error);
         }
 
+        logger.debug('[AppLayout] Checking for new version...');
         const response = await fetch('/version.json?t=' + new Date().getTime(), { cache: 'no-store' });
         const data = await response.json();
         const latestCommit = data.commitHash;
         const currentCommit = import.meta.env.VITE_COMMIT_HASH;
 
+        logger.debug('[AppLayout] Version check:', {
+          current: currentCommit,
+          latest: latestCommit,
+          hasUpdate: latestCommit && currentCommit && latestCommit !== currentCommit
+        });
+
         if (latestCommit && currentCommit && latestCommit !== currentCommit) {
+          logger.info('[AppLayout] ✨ New version available! Triggering update check...');
           // Only show banner after Vercel deployment is READY (via Supabase polling)
-          // Falls back to immediate banner in dev if polling is disabled
+          // Falls back to immediate banner with delay if polling is disabled
           checkForUpdate({ commitHash: latestCommit });
+        } else {
+          logger.debug('[AppLayout] ✅ App is up to date');
         }
       } catch (error) {
-        console.warn('Failed to check for new version:', error);
+        logger.warn('[AppLayout] Failed to check for new version:', error);
       }
     };
 
-    const interval = setInterval(checkVersion, 5 * 60 * 1000); // Check every 5 minutes
-    checkVersion(); // Initial check
+    // Initial check after a small delay to avoid interfering with app startup
+    const initialTimer = setTimeout(checkVersion, 2000);
+    
+    // Regular checks every 5 minutes
+    const interval = setInterval(checkVersion, 5 * 60 * 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
   }, [checkForUpdate]);
 
   // After full load, clear the in-progress flag so future updates can show

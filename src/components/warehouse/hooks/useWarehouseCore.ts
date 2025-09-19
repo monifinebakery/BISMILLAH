@@ -119,6 +119,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   }, []);
 
   const availableSuppliers = useMemo(() => {
+    if (!context.bahanBaku || !Array.isArray(context.bahanBaku)) {
+      logger.warn(`[${hookId.current}] ⚠️ bahanBaku is not an array:`, context.bahanBaku);
+      return [];
+    }
+    
     const suppliers = new Set(
       context.bahanBaku.map(item => resolveSupplierName(item.supplier)).filter(Boolean)
     );
@@ -129,6 +134,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
 
   // Filtered and sorted items
   const filteredItems = useMemo(() => {
+    if (!context.bahanBaku || !Array.isArray(context.bahanBaku)) {
+      logger.warn(`[${hookId.current}] ⚠️ bahanBaku is not an array for filtering:`, context.bahanBaku);
+      return [];
+    }
+    
     let items = [...context.bahanBaku];
     const initialCount = items.length;
 
@@ -245,6 +255,11 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   }, [selectedItems.length]);
 
   const selectPage = useCallback(() => {
+    if (!currentItems || !Array.isArray(currentItems) || currentItems.length === 0) {
+      logger.warn(`[${hookId.current}] ⚠️ Cannot select page: currentItems is empty or invalid`);
+      return;
+    }
+    
     const pageIds = currentItems.map(item => item.id);
     setSelectedItems(prev => {
       const newSelected = new Set([...prev, ...pageIds]);
@@ -304,21 +319,24 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
   }, [openDialog]);
 
   // ✅ FIXED: Enhanced handleEditSave with comprehensive logging and error handling
-  const handleEditSave = useCallback(async (updates: Partial<BahanBakuFrontend>) => {
+  // Updated to throw on error for DialogManager compatibility
+  const handleEditSave = useCallback(async (updates: Partial<BahanBakuFrontend>): Promise<void> => {
     logger.info(`[${hookId.current}] 💾 handleEditSave called`);
     logger.debug(`[${hookId.current}] 📝 Updates received:`, updates);
     logger.debug(`[${hookId.current}] 📝 Current editing item:`, editingItem);
     
     if (!editingItem) {
+      const message = 'Tidak ada item yang sedang diedit';
       logger.error(`[${hookId.current}] ❌ No editing item available for save operation`);
-      toast.error('Tidak ada item yang sedang diedit');
-      return false;
+      toast.error(message);
+      throw new Error(message);
     }
     
     if (!context.updateBahanBaku) {
+      const message = 'Fungsi update tidak tersedia';
       logger.error(`[${hookId.current}] ❌ updateBahanBaku function not available in context`);
-      toast.error('Fungsi update tidak tersedia');
-      return false;
+      toast.error(message);
+      throw new Error(message);
     }
 
     try {
@@ -351,16 +369,18 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
         closeDialog('editItem');
         setEditingItem(null);
         
-        return true;
+        // Return void for DialogManager compatibility
       } else {
+        const message = 'Gagal memperbarui item';
         logger.error(`[${hookId.current}] ❌ Update returned false - operation failed`);
-        toast.error('Gagal memperbarui item');
-        return false;
+        toast.error(message);
+        throw new Error(message);
       }
     } catch (error) {
+      const errorMessage = `Gagal memperbarui item: ${error instanceof Error ? error.message : 'Unknown error'}`;
       logger.error(`[${hookId.current}] ❌ Exception during edit save:`, error);
-      toast.error(`Gagal memperbarui item: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return false;
+      toast.error(errorMessage);
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }, [editingItem, context.updateBahanBaku, context.refetch, closeDialog]);
 
@@ -578,7 +598,7 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
       selectedItems: selectedItems.length,
       isSelectionMode,
       editingItem: editingItem?.id || null,
-      activeDialogs: Object.entries(dialogStates).filter(([_, isOpen]) => isOpen).map(([name]) => name),
+      activeDialogs: dialogStates ? Object.entries(dialogStates).filter(([_, isOpen]) => isOpen).map(([name]) => name) : [],
       isBulkProcessing
     });
   }, [context.bahanBaku?.length, filteredItems.length, page, selectedItems.length, isSelectionMode, editingItem?.id, dialogStates, isBulkProcessing]);

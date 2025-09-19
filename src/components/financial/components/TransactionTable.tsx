@@ -145,9 +145,12 @@ const useTransactionData = (
       }
     },
     enabled,
-    staleTime: 2 * 60 * 1000, // 2 menit
-    refetchInterval: 5 * 60 * 1000, // Refresh tiap 5 menit
+    // ✅ OPTIMIZED: Faster loading configuration
+    staleTime: 10 * 1000, // 10 seconds - very fresh data
+    refetchInterval: false, // Disable auto refresh - use manual refresh instead
     retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false, // Disable to reduce network calls
   });
 
   // Extract data based on pagination mode with type guard
@@ -332,8 +335,8 @@ const MemoizedTransactionRow = React.memo(({
 });
 MemoizedTransactionRow.displayName = 'MemoizedTransactionRow';
 
-// ✅ IMPROVED: Safe Loading Skeleton that won't break layout
-const TableSkeleton = React.memo(() => (
+// ✅ IMPROVED: Simple Loading Spinner that won't break layout
+const TableLoading = React.memo(() => (
   <div className="p-6 space-y-4">
     <div className="text-center">
       <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -341,7 +344,7 @@ const TableSkeleton = React.memo(() => (
     </div>
   </div>
 ));
-TableSkeleton.displayName = 'TableSkeleton';
+TableLoading.displayName = 'TableLoading';
 
 // ✅ Main Component Core
 const TransactionTableCore: React.FC<TransactionTableProps> = ({
@@ -539,7 +542,9 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
       <CardContent className="p-0">
         {isLoading ? (
           <div className="p-4">
-            <TableSkeleton />
+            <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>
           </div>
         ) : (
           <div className="overflow-x-auto">

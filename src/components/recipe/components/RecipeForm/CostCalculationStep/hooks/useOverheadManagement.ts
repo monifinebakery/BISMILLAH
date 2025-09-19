@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useOperationalCost } from '@/components/operational-costs/context/OperationalCostContext';
+import { useOperationalCostRefactored } from '@/components/operational-costs/context/OperationalCostContextRefactored';
 import { productionOutputApi } from '@/components/operational-costs/services/productionOutputApi';
 import type { OverheadCalculation } from '../utils/types';
 import { logger } from '@/utils/logger';
@@ -40,7 +40,7 @@ export const useOverheadManagement = ({
       isAuthenticated 
     },
     actions: { calculateOverhead, setError: clearOverheadError }
-  } = useOperationalCost();
+  } = useOperationalCostRefactored();
 
   const [isUsingAutoOverhead, setIsUsingAutoOverhead] = useState(true);
   const [lastCalculatedOverhead, setLastCalculatedOverhead] = useState<number>(0);

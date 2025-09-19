@@ -1,7 +1,6 @@
 // src/components/warehouse/components/WarehouseTable.tsx
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Package,
   CheckSquare,
@@ -76,10 +75,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     handleRefresh: fallbackSelection.handleRefresh,
   };
 
-  const lowStockItems = warehouseUtils.getLowStockItems(items);
+  const lowStockItems = warehouseUtils.getLowStockItems(items || []);
 
   useEffect(() => {
-    if (import.meta.env.DEV && items.length > 0) {
+    if (import.meta.env.DEV && items && items.length > 0) {
       console.debug(
         '[WAC check]',
         items.slice(0, 3).map(i => ({
@@ -106,7 +105,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     );
   }
 
-  if (!isLoading && items.length === 0) {
+  if (!isLoading && (!items || items.length === 0)) {
     logger.component('WarehouseTable', 'Displaying empty state', { hasSearchTerm: !!searchTerm });
     return (
       <EmptyState
@@ -137,7 +136,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
 
   logger.component('WarehouseTable', 'Rendering table with items:', {
-    count: items.length,
+    count: items?.length || 0,
     isSelectionMode,
   });
 
@@ -145,7 +144,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     <div className="md:hidden space-y-3 p-4">
       <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-200">
         <div>
-          <span className="text-sm font-medium text-gray-700">{items.length} item</span>
+          <span className="text-sm font-medium text-gray-700">{items?.length || 0} item</span>
           {lastUpdated && (
             <div className="text-xs text-gray-400 mt-1">
               Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
@@ -188,7 +187,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
         </div>
       )}
 
-      {items.map(item => (
+      {(items || []).map(item => (
         <WarehouseTableRow
           key={item.id}
           variant="mobile"
@@ -208,7 +207,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
     <div className="hidden md:block overflow-x-auto">
       <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
         <div>
-          <span className="text-sm font-medium text-gray-700">{items.length} item tersimpan</span>
+          <span className="text-sm font-medium text-gray-700">{items?.length || 0} item tersimpan</span>
           {lastUpdated && (
             <div className="text-xs text-gray-400 mt-1">
               Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
@@ -225,7 +224,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           >
             <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
             {selectionState.isRefreshing ? (
-              <Skeleton className="h-4 w-16" />
+              <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
             ) : 'Refresh'}
           </Button>
         )}
@@ -291,7 +290,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {items.map(item => (
+          {(items || []).map(item => (
             <WarehouseTableRow
               key={item.id}
               variant="desktop"
@@ -311,7 +310,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
-      {lowStockItems.length > 0 && (
+      {lowStockItems && lowStockItems.length > 0 && (
         <div className="p-3 bg-red-50 border-b border-red-200 text-red-800 text-sm flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" />
           {lowStockItems.length} item stok hampir habis

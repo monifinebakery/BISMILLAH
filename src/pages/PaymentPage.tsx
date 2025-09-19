@@ -9,8 +9,6 @@ import { CheckCircle, ExternalLink, Zap, LogIn, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
-import { Skeleton } from '@/components/ui/skeleton';
-
 // Fungsi helper untuk membuat Order ID yang unik.
 // ID ini adalah "benang merah" yang menghubungkan aksi di frontend
 // dengan webhook yang diterima di backend, memastikan data sinkron.
@@ -145,10 +143,10 @@ const PaymentPage = () => {
               <div className="max-w-2xl mx-auto border rounded-lg p-4 bg-white">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2 w-full">
-                    <Skeleton variant="text" className="w-48 h-5" />
-                    <Skeleton variant="text" className="w-64 h-4" />
+                    <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
+                    <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
                   </div>
-                  <Skeleton variant="rounded" width={80} height={28} />
+                  <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
                 </div>
               </div>
             )}

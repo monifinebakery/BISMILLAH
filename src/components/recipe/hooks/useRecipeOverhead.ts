@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useOperationalCost } from '@/components/operational-costs/context/OperationalCostContext';
+import { useOperationalCostRefactored } from '@/components/operational-costs/context/OperationalCostContextRefactored';
 import { productionOutputApi } from '@/components/operational-costs/services/productionOutputApi';
 import type { OverheadCalculation } from '@/components/operational-costs/types';
 import { logger } from '@/utils/logger';
@@ -52,7 +52,7 @@ export const useRecipeOverhead = (): UseRecipeOverheadReturn => {
       isAuthenticated 
     },
     actions: { calculateOverhead, setError: clearOverheadError, invalidateOverheadCalculations }
-  } = useOperationalCost();
+  } = useOperationalCostRefactored();
 
   const queryClient = useQueryClient();
 

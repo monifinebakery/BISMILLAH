@@ -5,11 +5,20 @@ import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import { logger } from '@/utils/logger';
 
 const WarehousePage = React.lazy(() =>
-  import(/* webpackChunkName: "warehouse" */ '@/components/warehouse/WarehousePage')
+  import(/* webpackChunkName: "warehouse" */ '@/components/warehouse/WarehousePageRefactored')
 );
 
 const WarehouseAddEditPage = React.lazy(() =>
   import(/* webpackChunkName: "warehouse-add-edit" */ '@/components/warehouse/components/WarehouseAddEditPage')
+);
+
+const EditBahanBaku = React.lazy(() =>
+  import(/* webpackChunkName: "warehouse-edit-fullpage" */ '@/components/warehouse/pages/EditBahanBaku')
+    .then(mod => ({ default: mod.EditBahanBaku }))
+    .catch((err) => {
+      logger.error('Failed to load EditBahanBaku page:', err);
+      return { default: () => <div className="p-4 text-center text-red-500">Gagal memuat halaman edit gudang</div> };
+    })
 );
 
 const WarehouseErrorFallback: React.FC<{ 
@@ -46,10 +55,51 @@ const WarehouseErrorFallback: React.FC<{
 const warehouseRoutes = (
   <>
     <Route
-      path="gudang"
+      path="warehouse"
       element={
         <OptimizedRouteWrapper 
           routeName="warehouse" 
+          priority="high"
+          preloadOnHover={true}
+          errorFallback={WarehouseErrorFallback}
+        >
+          <WarehousePage />
+        </OptimizedRouteWrapper>
+      }
+    />
+    <Route
+      path="warehouse/edit/:id"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="warehouse-edit-fullpage" 
+          priority="medium"
+          preloadOnHover={true}
+          errorFallback={WarehouseErrorFallback}
+        >
+          <EditBahanBaku />
+        </OptimizedRouteWrapper>
+      }
+    />
+    <Route
+      path="warehouse/new"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="warehouse-add-fullpage" 
+          priority="medium"
+          preloadOnHover={true}
+          errorFallback={WarehouseErrorFallback}
+        >
+          <EditBahanBaku />
+        </OptimizedRouteWrapper>
+      }
+    />
+    
+    {/* Legacy routes */}
+    <Route
+      path="gudang"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="warehouse-legacy" 
           priority="high"
           preloadOnHover={true}
           errorFallback={WarehouseErrorFallback}

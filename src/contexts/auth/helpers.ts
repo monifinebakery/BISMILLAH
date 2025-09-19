@@ -1,6 +1,8 @@
 import { withTimeout } from '@/utils/asyncUtils';
 import { logger } from '@/utils/logger';
 import { detectSafariIOS, getSafariTimeout } from '@/utils/safariUtils';
+import { detectDeviceCapabilities } from '@/utils/auth/deviceDetection';
+import { sanitizeUser, validateSession } from '@/utils/auth/sessionValidation';
 import type { Session, User } from '@supabase/supabase-js';
 
 type NetworkErrorPredicate = (message: string) => boolean;
@@ -25,44 +27,7 @@ export interface SafeWithTimeoutResult<T> {
   error: Error | null;
 }
 
-export const detectDeviceCapabilities = () => {
-  const capabilities = {
-    hasLocalStorage: false,
-    hasSessionStorage: false,
-    networkType: 'unknown' as string,
-    isSlowDevice: false,
-    userAgent: typeof navigator === 'undefined' ? 'unknown' : navigator.userAgent || 'unknown',
-  };
-
-  try {
-    localStorage.setItem('__test__', 'test');
-    localStorage.removeItem('__test__');
-    capabilities.hasLocalStorage = true;
-  } catch {
-    logger.warn('AuthContext: localStorage not available or restricted');
-  }
-
-  try {
-    sessionStorage.setItem('__test__', 'test');
-    sessionStorage.removeItem('__test__');
-    capabilities.hasSessionStorage = true;
-  } catch {
-    logger.warn('AuthContext: sessionStorage not available or restricted');
-  }
-
-  if (typeof navigator !== 'undefined' && 'connection' in navigator) {
-    const connection = (navigator as any).connection;
-    capabilities.networkType = connection?.effectiveType || 'unknown';
-  }
-
-  const isSlowDevice =
-    capabilities.userAgent.includes('Android 4') ||
-    capabilities.userAgent.includes('iPhone OS 10') ||
-    !capabilities.hasLocalStorage;
-
-  capabilities.isSlowDevice = isSlowDevice;
-  return capabilities;
-};
+// detectDeviceCapabilities moved to @/utils/auth/deviceDetection
 
 export const getAdaptiveTimeout = (baseTimeout = 12000) => {
   const capabilities = detectDeviceCapabilities();
@@ -99,70 +64,9 @@ export const getAdaptiveTimeout = (baseTimeout = 12000) => {
   return optimizedTimeout;
 };
 
-export const sanitizeUser = (user: User | null): User | null => {
-  if (!user) {
-    logger.debug('AuthContext: No user provided for sanitization');
-    return null;
-  }
+// sanitizeUser moved to @/utils/auth/sessionValidation
 
-  if (user.id === 'null' || user.id === 'undefined' || !user.id) {
-    logger.error('AuthContext: Invalid user ID detected', {
-      userId: user.id,
-      userIdType: typeof user.id,
-      email: user.email,
-    });
-    return null;
-  }
-
-  if (typeof user.id !== 'string' || user.id.length < 10) {
-    logger.error('AuthContext: Invalid user ID format', {
-      userId: user.id,
-      userIdType: typeof user.id,
-      userIdLength: user.id?.length || 0,
-      email: user.email,
-    });
-    return null;
-  }
-
-  if (!UUID_REGEX.test(user.id)) {
-    logger.error('AuthContext: Invalid UUID format detected', {
-      userId: user.id,
-      userIdType: typeof user.id,
-      email: user.email,
-    });
-    return null;
-  }
-
-  logger.debug('AuthContext: User sanitization passed', {
-    userId: user.id,
-    email: user.email,
-  });
-
-  return user;
-};
-
-export const validateSession = (session: Session | null) => {
-  if (!session) {
-    logger.debug('AuthContext: No session provided for validation');
-    return { session: null, user: null };
-  }
-
-  if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-    logger.warn('AuthContext: Session expired during validation');
-    return { session: null, user: null };
-  }
-
-  const sanitizedUser = sanitizeUser(session.user);
-  if (!sanitizedUser) {
-    logger.warn('AuthContext: Session has invalid user after sanitization', {
-      userId: session.user?.id,
-    });
-    return { session: null, user: null };
-  }
-
-  logger.debug('AuthContext: Session validated', { userId: sanitizedUser.id });
-  return { session, user: sanitizedUser };
-};
+// validateSession moved to @/utils/auth/sessionValidation
 
 export const safeWithTimeout = async <T>(
   promiseFactory: () => Promise<T>,

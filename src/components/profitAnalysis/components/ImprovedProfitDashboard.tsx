@@ -21,7 +21,7 @@ const QuickInsights = React.lazy(() => import('./QuickInsights'));
 
 // Loading fallback components
 import { LoadingStates } from '@/components/ui/loading-spinner';
-const LoadingSkeleton = () => (
+const SimpleLoading = () => (
   <LoadingStates.Card />
 );
 
@@ -173,7 +173,9 @@ const ImprovedProfitDashboard: React.FC = () => {
   }, [mode, dateRange?.from, dateRange?.to, defaultPeriod]);
 
   if (loading) {
-    return <LoadingSkeleton />;
+    return <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>;
   }
 
   if (error) {
@@ -182,7 +184,9 @@ const ImprovedProfitDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <React.Suspense fallback={<LoadingSkeleton />}>
+      <React.Suspense fallback={<div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  </div>}>
         <ProfitHeader 
           period={currentPeriod}
           mode={mode}

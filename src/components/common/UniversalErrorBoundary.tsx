@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react';
 import { logger } from '@/utils/logger';
 
-// Loading fallback component dengan skeleton
 const UniversalLoader: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ 
   size = 'md' 
 }) => {
@@ -213,7 +212,7 @@ export const SafeSuspense: React.FC<SafeSuspenseProps> = ({
   size = 'md',
   minimal = false
 }) => {
-  // Default to no visual fallback to avoid long-lived skeletons
+  
   const defaultFallback = fallback ?? null;
 
   return (

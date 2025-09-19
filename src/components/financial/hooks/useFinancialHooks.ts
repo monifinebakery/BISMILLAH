@@ -68,21 +68,21 @@ export const useFinancialData = () => {
     queryKey: financialQueryKeys.transactions(user?.id),
     queryFn: () => getFinancialTransactions(user!.id),
     enabled: !!user?.id,
-    // Align with global QueryClient defaults to avoid excessive refetching
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
-    retry: 1,
-    retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 5000),
-    // Disable auto-refetch storms for better UX on low-end devices
-    refetchOnWindowFocus: false,
-    refetchOnMount: false, // avoid mount refetch flicker when cache is fresh
-    refetchOnReconnect: false,
-    refetchInterval: false,
+    // ✅ OPTIMIZED: Faster loading with shorter stale time
+    staleTime: 30 * 1000, // 30 seconds - much shorter for fresh data
+    gcTime: 5 * 60 * 1000, // 5 minutes - shorter cache time
+    retry: 2, // Reduce retry attempts
+    retryDelay: (attemptIndex) => Math.min(1000 * attemptIndex, 3000), // Faster retries
+    // ✅ OPTIMIZED: Enable smart refetching for better UX
+    refetchOnWindowFocus: true, // Enable for fresh data
+    refetchOnMount: true, // Always fetch fresh on mount
+    refetchOnReconnect: true, // Refetch when connection restored
+    refetchInterval: false, // Disable interval to avoid spam
     refetchIntervalInBackground: false,
-    // Prevent UI from flashing empty state during param changes
-    keepPreviousData: true as any,
-    placeholderData: (prev: any) => prev,
-    notifyOnChangeProps: 'tracked',
+    // ✅ OPTIMIZED: Better loading states
+    keepPreviousData: false, // Don't keep stale data
+    placeholderData: undefined, // No placeholder to show loading state
+    notifyOnChangeProps: ['data', 'error', 'isLoading'], // Only track essential props
   });
 };
 

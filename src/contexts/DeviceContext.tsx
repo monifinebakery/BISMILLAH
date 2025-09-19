@@ -1,8 +1,9 @@
 // src/contexts/DeviceContext.tsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 // Device type definition
@@ -37,7 +38,11 @@ interface DeviceContextType {
 const DeviceContext = createContext<DeviceContextType | undefined>(undefined);
 
 // Helper function to generate a unique device ID with enhanced stability
+let inMemoryDeviceId: string | null = null;
+
 const generateDeviceId = (): string => {
+  if (inMemoryDeviceId) return inMemoryDeviceId;
+
   // Try to use existing device ID from localStorage
   let deviceId = localStorage.getItem('device_id');
   
@@ -118,6 +123,7 @@ const generateDeviceId = (): string => {
     }
   }
   
+  inMemoryDeviceId = deviceId;
   return deviceId;
 };
 
@@ -216,9 +222,16 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [currentDevice, setCurrentDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user, isReady, isLoading } = useAuth();
+
+  const isAuthenticated = useMemo(
+    () => !!user && isReady && !isLoading,
+    [user, isReady, isLoading]
+  );
 
   // Register current device
   const registerCurrentDevice = useCallback(async (userId: string) => {
+    if (!userId) return;
     try {
       const deviceInfo = getDeviceInfo();
       const deviceId = deviceInfo.device_id as string;
@@ -294,6 +307,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Fetch all devices for the user
   const fetchDevices = useCallback(async (userId: string) => {
+    if (!userId) return;
     try {
       // Only log in development
       if (import.meta.env.DEV) {
@@ -560,6 +574,14 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
+    if (!isAuthenticated) {
+      return () => {
+        if (import.meta.env.DEV) {
+          console.log('DeviceContext: device tracking skipped (unauthenticated)');
+        }
+      };
+    }
+
     setupDeviceTracking();
 
     // Only set up interval if we have a current device
@@ -592,7 +614,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         clearInterval(intervalId);
       }
     };
-  }, [registerCurrentDevice]); // Only depend on registerCurrentDevice, not currentDevice
+  }, [isAuthenticated, registerCurrentDevice]); // Only depend on registerCurrentDevice, not currentDevice
 
   // Listen for auth state changes - ONLY register device, don't fetch automatically
   useEffect(() => {
@@ -600,13 +622,14 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (import.meta.env.DEV) {
       console.log('DeviceContext: auth state change useEffect running');
     }
-    
+
     let isActive = true;
-    
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('DeviceContext: Auth state changed:', event);
       if (!isActive) return;
-      
+      if (!session?.user?.id) return;
+
       if (event === 'SIGNED_IN' && session?.user?.id) {
         registerCurrentDevice(session.user.id);
         // Don't automatically fetch devices here - let the component decide when to fetch

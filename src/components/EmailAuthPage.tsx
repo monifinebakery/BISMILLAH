@@ -524,8 +524,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({
           );
         }
 
-        // ✅ Let AuthContext handle SPA redirect to avoid duplicate navigations
-        redirectCheck();
+        // ✅ AuthContext will handle the redirect automatically via onAuthStateChange
 
         return;
       } else if (ok === "expired") {

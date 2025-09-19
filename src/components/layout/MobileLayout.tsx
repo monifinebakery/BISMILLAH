@@ -1,12 +1,12 @@
-// src/components/layout/MobileLayout.tsx - Mobile Layout with Sidebar on Mobile
+// src/components/layout/MobileLayout.tsx - Simple Mobile Layout with Bottom Navigation
 import React from 'react';
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import NotificationBell from "@/components/NotificationBell";
 import MobileExportButton from "@/components/MobileExportButton";
 import { AppError } from "@/components/loaders";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
+import BottomTabBar from "@/components/BottomTabBar";
+import { TrendingUp } from "lucide-react";
 
 interface MobileLayoutProps {
   isPaid: boolean;
@@ -22,44 +22,42 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   children
 }) => {
   return (
-    <SidebarProvider defaultOpen={false}>
-      <div className="mobile-layout-force-white min-h-svh flex w-full !bg-white" style={{backgroundColor: 'white'}}>
-        {/* 📱 Sidebar as sheet on mobile */}
-        <AppSidebar />
-
-        {/* 📱 Main content inset */}
-        <SidebarInset className="flex-1 w-full min-w-0 flex flex-col !bg-white" style={{backgroundColor: 'white'}}>
-          {/* Force white background wrapper */}
-          <div className="w-full h-full flex flex-col !bg-white" style={{backgroundColor: 'white'}}>
-          {/* 📱 Mobile Header with sidebar trigger and actions */}
-          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b !bg-white px-4 sm:px-6 w-full" style={{backgroundColor: 'white'}}>
-            <SidebarTrigger className="-ml-1 flex-shrink-0 !relative !static !z-auto" />
-            <div className="flex-1" />
-            <div className="flex items-center space-x-4">
-              {isPaid && <PaymentStatusIndicator />}
-              <NotificationBell />
-              <MobileExportButton />
-              {renderAutoLinkIndicator(true)}
-              {renderOrderLinkButton(true)}
-            </div>
-          </header>
-
-          {/* 📱 Main Content - proper scrolling */}
-          <main className="flex-1 overflow-y-auto p-2 sm:p-4 pb-4">
-            <ErrorBoundary fallback={<AppError />}>
-              {children}
-            </ErrorBoundary>
-          </main>
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* 📱 Mobile Header */}
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-white px-4 w-full">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+            <TrendingUp className="h-4 w-4 text-white" />
           </div>
-        </SidebarInset>
-      </div>
+          <div>
+            <h1 className="text-sm font-semibold text-gray-900">HPP by Monifine</h1>
+          </div>
+        </div>
+        <div className="flex items-center space-x-3">
+          {isPaid && <PaymentStatusIndicator />}
+          <NotificationBell />
+          <MobileExportButton />
+          {renderAutoLinkIndicator(true)}
+          {renderOrderLinkButton(true)}
+        </div>
+      </header>
+
+      {/* 📱 Main Content */}
+      <main className="flex-1 overflow-y-auto p-4 pb-20">
+        <ErrorBoundary fallback={<AppError />}>
+          {children}
+        </ErrorBoundary>
+      </main>
+
+      {/* 📱 Bottom Navigation */}
+      <BottomTabBar />
 
       {/* 📱 Floating Payment Indicator */}
       {!isPaid && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-20 right-4 z-50">
           <PaymentStatusIndicator size="lg" />
         </div>
       )}
-    </SidebarProvider>
+    </div>
   );
 };

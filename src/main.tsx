@@ -40,6 +40,44 @@ const effectiveDev = import.meta.env.DEV || VERCEL_ENV === "preview";
 const appStartTime = safePerformance.now();
 
 // ------------------------------
+// Emergency reload-loop detector (works in production too)
+// If more than 3 loads in 4s, assume SW loop and disable SW via flag
+// ------------------------------
+try {
+  const RL_KEY = 'rlc_v1';
+  const now = Date.now();
+  const raw = sessionStorage.getItem(RL_KEY);
+  const state = raw ? JSON.parse(raw) as { count: number; start: number } : { count: 0, start: now };
+  const withinWindow = now - state.start < 4000;
+  const nextState = withinWindow ? { count: state.count + 1, start: state.start } : { count: 1, start: now };
+  sessionStorage.setItem(RL_KEY, JSON.stringify(nextState));
+
+  if (nextState.count >= 3) {
+    // Set DISABLE_SW and add ?nosw to URL to guarantee SW bypass
+    try { localStorage.setItem('DISABLE_SW', '1'); } catch {}
+    const url = new URL(window.location.href);
+    url.searchParams.set('nosw', '1');
+    // Reset counter to avoid further loops
+    sessionStorage.setItem(RL_KEY, JSON.stringify({ count: 0, start: now }));
+
+    // Best-effort cleanup before reload
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(rs => Promise.all(rs.map(r => r.unregister()))).catch(() => {});
+    }
+    if ('caches' in window) {
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
+    }
+
+    // Redirect once with nosw
+    setTimeout(() => {
+      window.location.replace(url.toString());
+    }, 50);
+  }
+} catch {
+  // ignore
+}
+
+// ------------------------------
 // Initialize network error handler
 // ------------------------------
 initializeNetworkErrorHandler();

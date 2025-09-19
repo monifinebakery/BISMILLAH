@@ -569,7 +569,7 @@ const useAuthLifecycle = ({
         }
       }
 
-      if (validUser) {
+      if (validUser && window.location.pathname !== "/") {
         navigate("/", { replace: true });
       }
     });

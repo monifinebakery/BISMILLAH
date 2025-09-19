@@ -1,7 +1,6 @@
 // src/components/warehouse/components/WarehouseTable.tsx
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Package,
   CheckSquare,

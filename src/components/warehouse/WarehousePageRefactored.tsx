@@ -126,7 +126,40 @@ const WarehousePageRefactored: React.FC = () => {
     isBulkDeleting,
   } = useWarehouseOperations();
 
-  // ✅ HOOKS: Use existing warehouse core hook for UI state
+  // ✅ FIXED: Create context object and pass to useWarehouseCore
+  const contextForCore = {
+    bahanBaku: bahanBaku || [],
+    loading,
+    updateBahanBaku: async (id: string, updates: any) => {
+      try {
+        await updateItem({ id, item: updates });
+        return true;
+      } catch (error) {
+        console.error('Failed to update item:', error);
+        return false;
+      }
+    },
+    deleteBahanBaku: async (id: string) => {
+      try {
+        await deleteItem(id);
+        return true;
+      } catch (error) {
+        console.error('Failed to delete item:', error);
+        return false;
+      }
+    },
+    bulkDeleteBahanBaku: async (ids: string[]) => {
+      try {
+        await bulkDeleteItems(ids);
+        return true;
+      } catch (error) {
+        console.error('Failed to bulk delete items:', error);
+        return false;
+      }
+    },
+  };
+  
+  // Use existing warehouse core hook for UI state with proper context
   const {
     dialogs,
     selectedItems,
@@ -141,7 +174,7 @@ const WarehousePageRefactored: React.FC = () => {
     handleBulkDelete,
     openDialog,
     closeDialog,
-  } = useWarehouseCore();
+  } = useWarehouseCore(contextForCore);
 
   const handleCreateItem = async (newItem: any) => {
     try {
@@ -251,7 +284,7 @@ const WarehousePageRefactored: React.FC = () => {
             <ErrorBoundary fallback={<div className="p-4 text-center text-red-500">Error loading table</div>}>
               <Suspense fallback={<TableSkeleton />}>
                 <WarehouseTable
-                  data={bahanBaku}
+                  data={bahanBaku || []}
                   selectedItems={selectedItems}
                   sortConfig={sortConfig}
                   onSelectItem={handleSelectItem}

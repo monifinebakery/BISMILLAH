@@ -1,5 +1,5 @@
 // src/components/warehouse/hooks/useWarehouseOperations.ts
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -206,6 +206,11 @@ export const useWarehouseOperations = (page: number = 1, limit: number = 10, use
   // ✅ State untuk track USER ACTIONS (bukan data changes)
   const [lastUserAction, setLastUserAction] = useState<Date | undefined>(undefined);
   
+  // Defensive check for user
+  if (!user?.id) {
+    logger.debug('useWarehouseOperations: No authenticated user available');
+  }
+  
   // Query untuk data warehouse
   const {
     data: queryData,
@@ -229,10 +234,14 @@ export const useWarehouseOperations = (page: number = 1, limit: number = 10, use
     },
   });
   
-  // Extract data based on pagination mode
-  const bahanBaku = usePagination && isPaginatedWarehouseResponse(queryData) 
-    ? queryData.data 
-    : (queryData as BahanBakuFrontend[] || []);
+  // Extract data based on pagination mode with defensive checks
+  const bahanBaku = useMemo(() => {
+    if (usePagination && isPaginatedWarehouseResponse(queryData)) {
+      return queryData.data || [];
+    }
+    // Ensure we always return an array, even if queryData is undefined/null
+    return Array.isArray(queryData) ? queryData : [];
+  }, [queryData, usePagination]);
     
   const paginationInfo = usePagination && isPaginatedWarehouseResponse(queryData)
     ? {
@@ -328,9 +337,9 @@ export const useWarehouseOperations = (page: number = 1, limit: number = 10, use
     bulkDeleteItems: bulkDeleteMutation.mutateAsync,
     
     // Loading states
-    isCreating: createMutation.isLoading,
-    isUpdating: updateMutation.isLoading,
-    isDeleting: deleteMutation.isLoading,
-    isBulkDeleting: bulkDeleteMutation.isLoading,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isBulkDeleting: bulkDeleteMutation.isPending,
   };
 };

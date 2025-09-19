@@ -25,12 +25,9 @@ import {
   Download,
   MessageSquare
 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-
 // ✅ PERFORMANCE: Lazy load heavy components
 import { lazy, Suspense } from 'react';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
-import { Skeleton } from '@/components/ui/skeleton';
 
 // Lazy load heavy components to improve initial page load
 const NotificationSettingsForm = lazy(() => import('@/components/NotificationSettingsForm'));
@@ -109,9 +106,9 @@ const SettingsPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-          <Skeleton className="h-6 w-48 mx-auto" />
-          <Skeleton className="h-4 w-32 mx-auto" />
+          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
+          <div className="text-lg font-medium text-gray-700">Memuat Pengaturan...</div>
+          <div className="text-sm text-gray-500">Mohon tunggu sebentar</div>
         </div>
       </div>
     );

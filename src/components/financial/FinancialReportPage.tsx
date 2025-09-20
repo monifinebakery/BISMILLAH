@@ -70,8 +70,18 @@ const FinancialReportPage: React.FC = () => {
   
   // Core data and operations
   const financialCore = useFinancialCore();
-  const chartData = useFinancialChartDataProcessing(financialCore.filteredTransactions);
-  const transactionTable = useTransactionTable(financialCore.filteredTransactions);
+  
+  // 🚀 PERFORMANCE: Defer heavy data processing to speed up initial load
+  const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
+  const [shouldLoadTable, setShouldLoadTable] = useState(false);
+  
+  const chartData = useFinancialChartDataProcessing(
+    financialCore.filteredTransactions,
+    !shouldLoadCharts // defer when shouldLoadCharts is false
+  );
+  const transactionTable = useTransactionTable(
+    shouldLoadTable ? financialCore.filteredTransactions : []
+  );
   
   // Navigation and transaction handlers
   const navigation = useFinancialNavigation();
@@ -88,22 +98,34 @@ const FinancialReportPage: React.FC = () => {
     category: { isOpen: false }
   });
 
-  // ✅ SIMPLIFIED: Minimal route preloading to speed up initial load
+  // 🚀 PERFORMANCE: Defer heavy processing for much faster initial load
   useEffect(() => {
-    // Only preload the default tab (charts for desktop, transactions for mobile)
-    const defaultTab = isMobile ? 'transactions' : 'charts';
+    // Start basic processing first
+    const basicTimer = setTimeout(() => {
+      setShouldLoadTable(true);
+    }, 400); // Load table data first (400ms)
     
-    // Preload only after a delay to not block initial render
-    const timer = setTimeout(() => {
+    // Then start chart processing
+    const chartTimer = setTimeout(() => {
+      setShouldLoadCharts(true);
+    }, 800); // Delay charts by 800ms
+    
+    // Preload components last
+    const preloadTimer = setTimeout(() => {
+      const defaultTab = isMobile ? 'transactions' : 'charts';
       if (defaultTab === 'charts') {
         import('./components/FinancialCharts').catch(() => null);
         import('./components/CategoryCharts').catch(() => null);
       } else {
         import('./components/TransactionTable').catch(() => null);
       }
-    }, 1000); // Delay preloading by 1 second
+    }, 1200); // Delay preloading by 1.2 seconds
     
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(basicTimer);
+      clearTimeout(chartTimer);
+      clearTimeout(preloadTimer);
+    };
   }, [isMobile]);
 
   // Dialog handlers

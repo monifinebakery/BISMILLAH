@@ -58,13 +58,34 @@ export const useFinancialCore = () => {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ✅ CONSOLIDATED: Filtered transactions and calculations
+  // 🚀 PERFORMANCE: Lightweight calculations for faster loading
   const financialData = useMemo(() => {
+    // Early return for empty transactions
+    if (!transactions?.length) {
+      return {
+        filteredTransactions: [],
+        totalIncome: 0,
+        totalExpense: 0,
+        balance: 0,
+        transactionCount: 0
+      };
+    }
+
     const filteredTransactions = filterByDateRange(transactions, dateRange, 'date')
       .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
 
-    const totalIncome = calculateTotalIncome(filteredTransactions);
-    const totalExpense = calculateTotalExpense(filteredTransactions);
+    // 🚀 PERFORMANCE: Lightweight calculation in single pass
+    let totalIncome = 0;
+    let totalExpense = 0;
+    
+    filteredTransactions.forEach(t => {
+      if (t.type === 'income') {
+        totalIncome += t.amount || 0;
+      } else {
+        totalExpense += t.amount || 0;
+      }
+    });
+    
     const balance = totalIncome - totalExpense;
 
     return {
@@ -74,7 +95,7 @@ export const useFinancialCore = () => {
       balance,
       transactionCount: filteredTransactions.length
     };
-  }, [transactions, dateRange]);
+  }, [transactions, dateRange, transactions?.length]);
 
   // ✅ CONSOLIDATED: Transaction operations with error handling
   const transactionOperations = {

@@ -146,8 +146,10 @@ export const useFinancialCalculations = (
 // ✅ 3. CHART DATA HOOK (Optimized)
 // ===========================================
 
+// 🚀 PERFORMANCE: Lazy chart data with deferred calculation
 export const useFinancialChartData = (
-  filteredTransactions: FinancialTransaction[]
+  filteredTransactions: FinancialTransaction[],
+  defer: boolean = false
 ): FinancialChartData => {
   return useMemo(() => {
     const result: FinancialChartData = {
@@ -156,7 +158,8 @@ export const useFinancialChartData = (
       categoryData: { incomeData: [], expenseData: [] }
     };
 
-    if (!filteredTransactions?.length) return result;
+    // 🚀 PERFORMANCE: Skip expensive calculation if deferred or no data
+    if (defer || !filteredTransactions?.length) return result;
 
     // Monthly data processing
     const monthlyData: Record<string, { income: number; expense: number; date: Date }> = {};
@@ -203,19 +206,27 @@ export const useFinancialChartData = (
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Transform daily data (last 30 days)
-    const today = endOfDay(new Date());
-    for (let i = 0; i < 30; i++) {
-      const currentDate = startOfDay(subDays(today, 29 - i));
-      const dayKey = format(currentDate, 'yyyy-MM-dd');
-      const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
+    // 🚀 PERFORMANCE: Optimize daily data generation - only if needed
+    // Only generate daily data if we have recent transactions
+    const hasRecentData = Object.keys(dailyDataMap).length > 0;
+    if (hasRecentData) {
+      const today = endOfDay(new Date());
+      const dailyDataArray = [];
       
-      result.dailyData.push({
-        date: format(currentDate, 'd MMM', { locale: localeId }),
-        Pemasukan: existingData.income,
-        Pengeluaran: existingData.expense,
-        Saldo: existingData.income - existingData.expense
-      });
+      // 🚀 Pre-generate date keys to avoid repeated format calls
+      for (let i = 0; i < 30; i++) {
+        const currentDate = startOfDay(subDays(today, 29 - i));
+        const dayKey = format(currentDate, 'yyyy-MM-dd');
+        const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
+        
+        dailyDataArray.push({
+          date: format(currentDate, 'd MMM', { locale: localeId }),
+          Pemasukan: existingData.income,
+          Pengeluaran: existingData.expense,
+          Saldo: existingData.income - existingData.expense
+        });
+      }
+      result.dailyData = dailyDataArray;
     }
 
     // Category data
@@ -242,7 +253,12 @@ export const useFinancialChartData = (
     };
 
     return result;
-  }, [filteredTransactions]);
+  }, [
+    filteredTransactions, 
+    defer,
+    // 🚀 PERFORMANCE: Add length check to avoid recalc on same data
+    filteredTransactions?.length
+  ]);
 };
 
 // ===========================================

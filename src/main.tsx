@@ -5,13 +5,11 @@ import { BrowserRouter as Router } from "react-router-dom";
 
 import App from "./App";
 import "./index.css";
-import "@/styles/toast-swipe.css";
 import "@/styles/mobile-input-fixes.css";
 import "@/styles/safari-optimizations.css";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'
-import { initToastSwipeHandlers } from '@/utils/toastSwipeHandler'
 import { safePerformance } from '@/utils/browserApiSafeWrappers';
 import { initializeNetworkErrorHandler } from '@/utils/networkErrorHandler';
 import { detectSafariIOS, initSafariUtils, shouldBypassServiceWorker, getSafariDelay, logSafariInfo } from '@/utils/safariUtils';
@@ -274,14 +272,6 @@ if (safariDetection.isSafariIOS) {
 }
 
 console.log('✅ [PWA] Service worker enabled with safe caching strategy');
-
-// ------------------------------
-// Initialize toast swipe handlers
-// ------------------------------
-setTimeout(() => {
-  initToastSwipeHandlers();
-  logger.info('🎯 Toast swipe handlers initialized');
-}, 100);
 
 logger.success("React application initialized successfully", {
   initTime: appInitTime,

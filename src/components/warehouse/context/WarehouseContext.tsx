@@ -9,7 +9,6 @@ import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
-import { createNotificationHelper } from '@/utils/notificationHelpers';
 
 // Services
 import { warehouseApi } from '../services/warehouseApi';
@@ -334,7 +333,11 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     },
     onError: (error: Error, item) => {
       const errorMsg = `Gagal menambahkan "${item.nama}": ${error.message}`;
-      addNotification(createNotificationHelper.systemError(errorMsg));
+      addNotification({
+        title: 'Kesalahan Sistem',
+        message: errorMsg,
+        type: 'error'
+      });
       toast.error(errorMsg);
     },
   });

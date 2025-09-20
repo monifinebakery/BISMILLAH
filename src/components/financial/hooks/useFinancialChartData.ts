@@ -5,106 +5,97 @@ import { id as localeId } from 'date-fns/locale';
 import { FinancialTransaction, FinancialChartData } from '../types/financial';
 
 /**
- * Financial Chart Data Hook
- * Transforms financial transaction data for chart visualization
+ * Optimized Financial Chart Data Hook
+ * Transforms financial transaction data for chart visualization with minimal computation
  */
 export const useFinancialChartData = (
-  filteredTransactions: FinancialTransaction[]
+  filteredTransactions: FinancialTransaction[],
+  skipProcessing = false
 ): FinancialChartData => {
   return useMemo(() => {
-    const result: FinancialChartData = {
-      transactionData: [],
-      dailyData: [],
-      categoryData: { incomeData: [], expenseData: [] }
-    };
-
-    if (!filteredTransactions?.length) return result;
-
-    // Monthly data processing
-    const monthlyData: Record<string, { income: number; expense: number; date: Date }> = {};
-    const dailyDataMap: Record<string, { income: number; expense: number; date: Date }> = {};
-
-    filteredTransactions.forEach(t => {
-      const transactionDate = new Date(t.date!);
-      if (!transactionDate || isNaN(transactionDate.getTime())) return;
-
-      // Monthly aggregation
-      const monthStart = startOfMonth(transactionDate);
-      const monthYearKey = format(monthStart, 'yyyy-MM');
-      if (!monthlyData[monthYearKey]) {
-        monthlyData[monthYearKey] = { income: 0, expense: 0, date: monthStart };
-      }
-      
-      if (t.type === 'income') {
-        monthlyData[monthYearKey].income += t.amount || 0;
-      } else {
-        monthlyData[monthYearKey].expense += t.amount || 0;
-      }
-
-      // Daily aggregation
-      const dayKey = format(transactionDate, 'yyyy-MM-dd');
-      if (!dailyDataMap[dayKey]) {
-        dailyDataMap[dayKey] = { income: 0, expense: 0, date: transactionDate };
-      }
-      
-      if (t.type === 'income') {
-        dailyDataMap[dayKey].income += t.amount || 0;
-      } else {
-        dailyDataMap[dayKey].expense += t.amount || 0;
-      }
-    });
-
-    // Transform monthly data
-    result.transactionData = Object.values(monthlyData)
-      .map(value => ({
-        month: format(value.date, 'MMM yyyy', { locale: localeId }),
-        Pemasukan: value.income,
-        Pengeluaran: value.expense,
-        Saldo: value.income - value.expense,
-        date: format(value.date, 'yyyy-MM-dd')
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    // Transform daily data (last 30 days)
-    const today = endOfDay(new Date());
-    for (let i = 0; i < 30; i++) {
-      const currentDate = startOfDay(subDays(today, 29 - i));
-      const dayKey = format(currentDate, 'yyyy-MM-dd');
-      const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
-      
-      result.dailyData.push({
-        date: format(currentDate, 'd MMM', { locale: localeId }),
-        Pemasukan: existingData.income,
-        Pengeluaran: existingData.expense,
-        Saldo: existingData.income - existingData.expense
-      });
+    // Return empty data immediately if processing should be skipped or no data
+    if (skipProcessing || !filteredTransactions?.length) {
+      return {
+        transactionData: [],
+        dailyData: [],
+        categoryData: { incomeData: [], expenseData: [] }
+      };
     }
 
-    // Category data
-    const categoryTotals = calculateCategoryTotals(filteredTransactions);
-    const groupedByType = groupByType(filteredTransactions);
-
-    // Income categories
+    // Simple aggregation - combine monthly and daily processing in single loop
+    const monthlyData: Record<string, { income: number; expense: number }> = {};
+    const dailyData: Record<string, { income: number; expense: number }> = {};
     const incomeCategories: Record<string, number> = {};
-    groupedByType.income.forEach(t => {
-      const category = t.category || 'Lainnya';
-      incomeCategories[category] = (incomeCategories[category] || 0) + (t.amount || 0);
-    });
-
-    // Expense categories
     const expenseCategories: Record<string, number> = {};
-    groupedByType.expense.forEach(t => {
+
+    // Single loop for all processing - much faster
+    filteredTransactions.forEach(t => {
+      const amount = t.amount || 0;
+      const isIncome = t.type === 'income';
       const category = t.category || 'Lainnya';
-      expenseCategories[category] = (expenseCategories[category] || 0) + (t.amount || 0);
+      
+      try {
+        const transactionDate = new Date(t.date!);
+        if (isNaN(transactionDate.getTime())) return;
+
+        // Monthly key - simpler format
+        const monthKey = transactionDate.toISOString().slice(0, 7); // YYYY-MM
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = { income: 0, expense: 0 };
+        }
+
+        // Daily key - simpler format
+        const dayKey = transactionDate.toISOString().slice(0, 10); // YYYY-MM-DD
+        if (!dailyData[dayKey]) {
+          dailyData[dayKey] = { income: 0, expense: 0 };
+        }
+
+        // Update all data in single pass
+        if (isIncome) {
+          monthlyData[monthKey].income += amount;
+          dailyData[dayKey].income += amount;
+          incomeCategories[category] = (incomeCategories[category] || 0) + amount;
+        } else {
+          monthlyData[monthKey].expense += amount;
+          dailyData[dayKey].expense += amount;
+          expenseCategories[category] = (expenseCategories[category] || 0) + amount;
+        }
+      } catch {
+        // Skip invalid dates silently
+      }
     });
 
-    result.categoryData = {
-      incomeData: Object.entries(incomeCategories).map(([name, value]) => ({ name, value })),
-      expenseData: Object.entries(expenseCategories).map(([name, value]) => ({ name, value }))
-    };
+    // Fast transformation - minimal date formatting
+    const transactionData = Object.entries(monthlyData)
+      .map(([monthKey, data]) => ({
+        month: monthKey,
+        Pemasukan: data.income,
+        Pengeluaran: data.expense,
+        Saldo: data.income - data.expense,
+        date: monthKey
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
 
-    return result;
-  }, [filteredTransactions]);
+    // Simple daily data - only process last 30 days, no complex date operations
+    const dailyDataArray = Object.entries(dailyData)
+      .map(([dateKey, data]) => ({
+        date: dateKey.slice(-5), // Show MM-DD only
+        Pemasukan: data.income,
+        Pengeluaran: data.expense,
+        Saldo: data.income - data.expense
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30); // Only last 30 entries
+
+    return {
+      transactionData,
+      dailyData: dailyDataArray,
+      categoryData: {
+        incomeData: Object.entries(incomeCategories).map(([name, value]) => ({ name, value })),
+        expenseData: Object.entries(expenseCategories).map(([name, value]) => ({ name, value }))
+      }
+    };
+  }, [filteredTransactions, skipProcessing]);
 };
 
 // Helper functions (these should be imported from financialCalculations.ts)

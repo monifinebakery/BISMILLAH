@@ -42,7 +42,7 @@ export const HeavyComponents = {
   )
 };
 
-const QuickFallback = () => <MinimalLoader className="h-32" />;
+const QuickFallback: React.FC = () => <MinimalLoader className="h-32" />;
 
 // ✅ Smart wrapper - only wrap heavy components
 export const withSmartLazy = <P extends object>(

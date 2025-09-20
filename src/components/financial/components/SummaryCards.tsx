@@ -103,18 +103,10 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
               "text-xl md:text-2xl font-bold",
               card.color === 'green' ? 'text-green-600' : 'text-red-600'
             )}>
-              {isLoading ? (
-                <div className="animate-pulse bg-gray-200 rounded h-6 w-20" />
-              ) : (
-                formatCurrency(card.value)
-              )}
+              {formatCurrency(card.value)}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {isLoading ? (
-                <div className="animate-pulse bg-gray-200 rounded h-3 w-32" />
-              ) : (
-                card.description
-              )}
+              {card.description}
             </p>
           </CardContent>
         </Card>

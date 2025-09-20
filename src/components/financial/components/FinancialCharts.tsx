@@ -232,15 +232,8 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        {/* ✅ TAMBAH: Loading state */}
-        {isLoading ? (
-          <div className="h-80 flex items-center justify-center bg-gray-50 rounded animate-pulse">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto" />
-              <div className="w-32 h-4 bg-gray-300 rounded mx-auto" />
-            </div>
-          </div>
-        ) : data.length === 0 ? (
+        {/* Show data immediately without loading state */}
+        {data.length === 0 ? (
           <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
             <div className="text-center">
               <div className="text-4xl mb-4">📊</div>

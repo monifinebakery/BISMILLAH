@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const BulkActions = React.lazy(() => 
   import('../components/BulkActions').catch(() => ({ default: () => null }))
@@ -47,16 +46,10 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({
   onDeleteTransaction,
   dateRange
 }) => {
-  const Fallback = (
-    <div className="min-h-[120px] flex items-center justify-center">
-      <LoadingSpinner size="sm" />
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       {isSelectionMode && (
-        <SafeSuspense loadingMessage="Memuat bulk actions...">
+        <Suspense fallback={null}>
           <BulkActions
             selectedTransactions={selectedTransactions}
             selectedIds={selectedIds}
@@ -65,10 +58,10 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({
             isAllSelected={isAllSelected}
             totalCount={filteredTransactions.length}
           />
-        </SafeSuspense>
+        </Suspense>
       )}
 
-      <Suspense fallback={Fallback}>
+      <Suspense fallback={null}>
         <TransactionTable
           transactions={filteredTransactions}
           onEditTransaction={onEditTransaction}

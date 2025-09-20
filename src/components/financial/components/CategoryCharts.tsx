@@ -150,10 +150,6 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
     data: { name: string; value: number }[];
     type: 'income' | 'expense';
   }> = ({ title, data, type }) => {
-    if (isLoading) {
-      return null;
-    }
-
     if (data.length === 0) {
       return <EmptyState title={title} type={type} />;
     }

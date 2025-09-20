@@ -71,16 +71,13 @@ const FinancialReportPage: React.FC = () => {
   // Core data and operations
   const financialCore = useFinancialCore();
   
-  // 🚀 PERFORMANCE: Defer heavy data processing to speed up initial load
-  const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
-  const [shouldLoadTable, setShouldLoadTable] = useState(false);
-  
+  // 🚀 PERFORMANCE: Load data immediately without deferrals
   const chartData = useFinancialChartData(
     financialCore.filteredTransactions,
-    !shouldLoadCharts // defer when shouldLoadCharts is false
+    false // never defer
   );
   const transactionTable = useTransactionTable(
-    shouldLoadTable ? financialCore.filteredTransactions : []
+    financialCore.filteredTransactions
   );
   
   // Navigation and transaction handlers
@@ -98,34 +95,16 @@ const FinancialReportPage: React.FC = () => {
     category: { isOpen: false }
   });
 
-  // 🚀 PERFORMANCE: Defer heavy processing for much faster initial load
+  // 🚀 PERFORMANCE: Preload components immediately
   useEffect(() => {
-    // Start basic processing first
-    const basicTimer = setTimeout(() => {
-      setShouldLoadTable(true);
-    }, 400); // Load table data first (400ms)
-    
-    // Then start chart processing
-    const chartTimer = setTimeout(() => {
-      setShouldLoadCharts(true);
-    }, 800); // Delay charts by 800ms
-    
-    // Preload components last
-    const preloadTimer = setTimeout(() => {
-      const defaultTab = isMobile ? 'transactions' : 'charts';
-      if (defaultTab === 'charts') {
-        import('./components/FinancialCharts').catch(() => null);
-        import('./components/CategoryCharts').catch(() => null);
-      } else {
-        import('./components/TransactionTable').catch(() => null);
-      }
-    }, 1200); // Delay preloading by 1.2 seconds
-    
-    return () => {
-      clearTimeout(basicTimer);
-      clearTimeout(chartTimer);
-      clearTimeout(preloadTimer);
-    };
+    // Preload components immediately for faster navigation
+    const defaultTab = isMobile ? 'transactions' : 'charts';
+    if (defaultTab === 'charts') {
+      import('./components/FinancialCharts').catch(() => null);
+      import('./components/CategoryCharts').catch(() => null);
+    } else {
+      import('./components/TransactionTable').catch(() => null);
+    }
   }, [isMobile]);
 
   // Dialog handlers

@@ -1,5 +1,4 @@
 import React, { Suspense } from 'react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const DailySummaryWidget = React.lazy(() => 
   import('../components/DailySummaryWidget').catch(() => ({ default: () => null }))
@@ -28,35 +27,29 @@ interface UmkmTabProps {
 }
 
 const UmkmTab: React.FC<UmkmTabProps> = ({ transactions }) => {
-  const Fallback = (
-    <div className="min-h-[120px] flex items-center justify-center">
-      <LoadingSpinner size="sm" />
-    </div>
-  );
-
   return (
     <div className="space-y-4">
-      <Suspense fallback={Fallback}>
+      <Suspense fallback={null}>
         <DailySummaryWidget transactions={transactions} />
       </Suspense>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        <Suspense fallback={Fallback}>
+        <Suspense fallback={null}>
           <DailyCashFlowTracker transactions={transactions} />
         </Suspense>
-        <Suspense fallback={Fallback}>
+        <Suspense fallback={null}>
           <ProfitLossSimple transactions={transactions} />
         </Suspense>
-        <Suspense fallback={Fallback}>
+        <Suspense fallback={null}>
           <UMKMExpenseCategories transactions={transactions} />
         </Suspense>
-        <Suspense fallback={Fallback}>
+        <Suspense fallback={null}>
           <SavingsGoalTracker transactions={transactions} />
         </Suspense>
-        <Suspense fallback={Fallback}>
+        <Suspense fallback={null}>
           <DebtTracker />
         </Suspense>
-        <Suspense fallback={Fallback}>
+        <Suspense fallback={null}>
           <ExpenseAlerts transactions={transactions} />
         </Suspense>
       </div>

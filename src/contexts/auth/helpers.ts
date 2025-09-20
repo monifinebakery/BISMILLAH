@@ -7,7 +7,7 @@ import type { Session, User } from '@supabase/supabase-js';
 
 type NetworkErrorPredicate = (message: string) => boolean;
 
-const MAX_TIMEOUT = 60000;
+const MAX_TIMEOUT = 8000; // Reduced from 60s to 8s to prevent long loading
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NETWORK_ERROR_MATCHERS: ReadonlyArray<NetworkErrorPredicate> = [
   (message) => message.includes('network'),
@@ -29,7 +29,7 @@ export interface SafeWithTimeoutResult<T> {
 
 // detectDeviceCapabilities moved to @/utils/auth/deviceDetection
 
-export const getAdaptiveTimeout = (baseTimeout = 12000) => {
+export const getAdaptiveTimeout = (baseTimeout = 6000) => { // Reduced from 12s to 6s for faster auth
   const capabilities = detectDeviceCapabilities();
   const safariDetection = detectSafariIOS();
 

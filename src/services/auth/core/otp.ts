@@ -1,7 +1,7 @@
 // src/services/auth/core/otp.ts - Simple OTP authentication
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { getErrorMessage } from '../utils';
+import { getErrorMessage, validateEmail } from '../utils';
 import { toast } from 'sonner';
 import { safeStorageSet } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 

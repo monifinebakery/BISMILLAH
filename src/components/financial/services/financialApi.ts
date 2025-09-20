@@ -98,15 +98,15 @@ export interface PaginationParams {
   offset?: number;
 }
 
-export const getFinancialTransactions = async (userId: string, limit: number = 100): Promise<FinancialTransaction[]> => {
+export const getFinancialTransactions = async (userId: string, limit: number = 50): Promise<FinancialTransaction[]> => {
   try {
-    // 🚀 PERFORMANCE: Add default limit to avoid fetching thousands of records
+    // 🚀 PERFORMANCE: Reduced default limit for much faster loading
     const { data, error } = await supabase
       .from('financial_transactions')
       .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
       .eq('user_id', userId)
       .order('date', { ascending: false })
-      .limit(limit); // Add limit for better performance
+      .limit(Math.min(limit, 50)); // Cap at 50 for initial loading performance
 
     if (error) throw error;
     
@@ -142,7 +142,7 @@ export const getFinancialTransactionsPaginated = async (
   params: PaginationParams = {}
 ): Promise<PaginatedResponse<FinancialTransaction>> => {
   try {
-    const { page = 1, limit = 20 } = params;
+    const { page = 1, limit = 10 } = params; // Reduced from 20 to 10 for faster loading
     const offset = (page - 1) * limit;
 
     // Query untuk mendapatkan total count

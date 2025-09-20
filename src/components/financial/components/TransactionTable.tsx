@@ -145,11 +145,12 @@ const useTransactionData = (
       }
     },
     enabled,
-    // ✅ OPTIMIZED: Faster loading configuration
-    staleTime: 10 * 1000, // 10 seconds - very fresh data
-    refetchInterval: false, // Disable auto refresh - use manual refresh instead
+    // ✅ OPTIMIZED: Much faster loading configuration
+    staleTime: 5 * 60 * 1000, // 5 minutes - reduce network calls
+    gcTime: 10 * 60 * 1000, // 10 minutes cache time
+    refetchInterval: false, // Disable auto refresh
     retry: 1,
-    refetchOnMount: true,
+    refetchOnMount: false, // Don't refetch on every mount
     refetchOnWindowFocus: false, // Disable to reduce network calls
   });
 
@@ -366,7 +367,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const isMobile = useIsMobile();
-  const [itemsPerPage, setItemsPerPage] = useState(() => (isMobile ? 5 : 10));
+  const [itemsPerPage, setItemsPerPage] = useState(() => (isMobile ? 5 : 8)); // Reduced from 10 to 8 for faster loading
   const [useLazyLoading] = useState(true);
 
   // ✅ Definisikan user TERLEBIH DAHULU sebelum digunakan
@@ -406,13 +407,16 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
   const isRefetching = queryData.isRefetching;
   const paginationInfo = queryData.paginationInfo;
 
-  // Pagination logic - gunakan server-side jika lazy loading aktif
+  // 🚀 PERFORMANCE: Ultra-optimized pagination with capped rendering
   const currentTransactions = useMemo(() => {
     if (!legacyTransactions && paginationInfo) {
-      return transactions;
+      // Server-side pagination - already limited
+      return transactions.slice(0, Math.min(transactions.length, 10)); // Cap at 10 for rendering performance
     } else {
+      // Client-side pagination with performance cap
       const firstItem = (currentPage - 1) * itemsPerPage;
-      return transactions.slice(firstItem, firstItem + itemsPerPage);
+      const limitedTransactions = transactions.slice(firstItem, firstItem + itemsPerPage);
+      return limitedTransactions.slice(0, Math.min(limitedTransactions.length, 10)); // Cap rendering at 10 rows max
     }
   }, [transactions, currentPage, itemsPerPage, paginationInfo, legacyTransactions]);
 

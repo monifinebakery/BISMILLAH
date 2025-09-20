@@ -58,10 +58,10 @@ export const useFinancialCore = () => {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // 🚀 PERFORMANCE: Lightweight calculations for faster loading
+  // 🚀 PERFORMANCE: Ultra-lightweight calculations with lazy evaluation
   const financialData = useMemo(() => {
-    // Early return for empty transactions
-    if (!transactions?.length) {
+    // Early return for empty transactions - fastest path
+    if (!Array.isArray(transactions) || transactions.length === 0) {
       return {
         filteredTransactions: [],
         totalIncome: 0,
@@ -71,31 +71,41 @@ export const useFinancialCore = () => {
       };
     }
 
-    const filteredTransactions = filterByDateRange(transactions, dateRange, 'date')
-      .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+    // 🚀 PERFORMANCE: Skip expensive filtering if no date range
+    let filteredTransactions: any[];
+    if (!dateRange?.from && !dateRange?.to) {
+      // Just take latest transactions if no date filter
+      filteredTransactions = transactions
+        .filter(t => t?.date) // Only include transactions with dates
+        .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime())
+        .slice(0, 100); // Limit to first 100 for performance
+    } else {
+      filteredTransactions = filterByDateRange(transactions, dateRange, 'date')
+        .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+    }
 
-    // 🚀 PERFORMANCE: Lightweight calculation in single pass
+    // 🚀 PERFORMANCE: Ultra-fast single-pass calculation
     let totalIncome = 0;
     let totalExpense = 0;
     
-    filteredTransactions.forEach(t => {
-      if (t.type === 'income') {
-        totalIncome += t.amount || 0;
-      } else {
-        totalExpense += t.amount || 0;
+    for (let i = 0; i < filteredTransactions.length; i++) {
+      const t = filteredTransactions[i];
+      const amount = t?.amount || 0;
+      if (t?.type === 'income') {
+        totalIncome += amount;
+      } else if (t?.type === 'expense') {
+        totalExpense += amount;
       }
-    });
+    }
     
-    const balance = totalIncome - totalExpense;
-
     return {
       filteredTransactions,
       totalIncome,
       totalExpense,
-      balance,
+      balance: totalIncome - totalExpense,
       transactionCount: filteredTransactions.length
     };
-  }, [transactions, dateRange, transactions?.length]);
+  }, [transactions?.length, dateRange?.from, dateRange?.to]); // Optimized dependencies
 
   // ✅ CONSOLIDATED: Transaction operations with error handling
   const transactionOperations = {

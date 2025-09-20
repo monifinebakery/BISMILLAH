@@ -75,10 +75,22 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     return true;
   }, [navigate, location.pathname, user]);
 
-  // ✅ FORCE RE-RENDER on auth state changes
+  // ✅ FORCE RE-RENDER on auth state changes with timeout prevention
   useEffect(() => {
     setRenderCount(prev => prev + 1);
-  }, [user, isReady, isLoading]);
+    
+    // ✅ TIMEOUT PREVENTION: Force navigation after 8 seconds of loading
+    if (isLoading && !isReady && !user) {
+      const timeoutId = setTimeout(() => {
+        console.warn('🚨 AuthGuard: Session verification timeout, redirecting to auth');
+        if (location.pathname !== '/auth') {
+          navigate('/auth', { replace: true });
+        }
+      }, 8000); // 8 second timeout
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [user, isReady, isLoading, navigate, location.pathname]);
 
   // ✅ ENHANCED DEBUG: Log all state changes
   useEffect(() => {
@@ -119,8 +131,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   useEffect(() => {
     if (isReady && !isLoading) {
       if (!isInitialized) {
-        // Small delay to prevent flash
-        const timer = setTimeout(() => setIsInitialized(true), 50);
+        // Minimal delay to prevent flash, optimized for speed
+        const timer = setTimeout(() => setIsInitialized(true), 20); // Reduced from 50ms to 20ms
         return () => clearTimeout(timer);
       }
     }
@@ -129,17 +141,22 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // ✅ REMOVED: Navigation useEffect to prevent race conditions with Navigate component
   // All navigation is now handled by the Navigate component below to ensure atomic redirects
 
-  // ✅ ANTI-FLICKER: Simplified loading state without mobile branching
+  // ✅ OPTIMIZED: Faster loading state with better UX
   if ((isLoading || !isReady) && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-14 h-14 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <h2 className="text-lg font-semibold text-gray-700 mb-2">Memuat Autentikasi</h2>
           <p className="text-gray-500 text-sm">Memverifikasi sesi...</p>
+          <div className="mt-2 text-xs text-gray-400">
+            <div className="w-32 h-1 bg-gray-200 rounded-full mx-auto overflow-hidden">
+              <div className="h-full bg-orange-500 animate-pulse" style={{width: '60%'}}></div>
+            </div>
+          </div>
           {import.meta.env.DEV && (
             <p className="text-xs text-gray-400 mt-2">
-              Ready: {isReady.toString()} | Loading: {isLoading.toString()}
+              Ready: {isReady.toString()} | Loading: {isLoading.toString()} | Render: #{renderCount}
             </p>
           )}
         </div>
@@ -171,7 +188,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     let recentlyVerified = false;
     try {
       const ts = parseInt(safeStorageGet('otpVerifiedAt') || '0', 10) || 0; // ✅ FIX: Thread-safe access
-      recentlyVerified = ts > 0 && (Date.now() - ts) < 10000; // Reduced to 10s
+      recentlyVerified = ts > 0 && (Date.now() - ts) < 30000; // Increased to 30s for better session processing
     } catch (error) {
       logger.warn('[AuthGuard] Failed to read otpVerifiedAt from storage', error);
     }

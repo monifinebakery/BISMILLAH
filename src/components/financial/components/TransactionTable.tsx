@@ -104,16 +104,22 @@ const transactionQueryKeys = {
 };
 
 // ✅ Custom hook untuk transaction data dengan server-side pagination
+interface UseTransactionDataOptions {
+  enabled?: boolean;
+}
+
 const useTransactionData = (
-  dateRange?: { from: Date; to?: Date }, 
+  dateRange?: { from: Date; to?: Date },
   userId?: string,
   page: number = 1,
   limit: number = 10,
-  usePagination: boolean = false
+  usePagination: boolean = false,
+  options: UseTransactionDataOptions = {}
 ) => {
   const queryClient = useQueryClient();
-  // Hanya fetch jika userId ada
-  const enabled = !!userId;
+  const shouldFetch = options.enabled ?? true;
+  // Hanya fetch jika userId ada dan fetch diizinkan
+  const enabled = shouldFetch && !!userId;
 
   const {
     data,
@@ -159,7 +165,7 @@ const useTransactionData = (
     return data && typeof data === 'object' && 'data' in data && 'total' in data;
   };
   
-  const transactions = usePagination && isPaginatedResponse(data) ? data.data : (data as FinancialTransaction[] || []);
+  const transactions = usePagination && isPaginatedResponse(data) ? data.data : ((data as FinancialTransaction[]) || []);
   const paginationInfo = usePagination && isPaginatedResponse(data) ? {
     total: data.total,
     page: data.page,
@@ -187,11 +193,11 @@ const useTransactionData = (
 
   return {
     transactions,
-    isLoading,
-    error,
+    isLoading: enabled ? isLoading : false,
+    error: enabled ? error : null,
     refetch,
-    isRefetching,
-    lastUpdated: dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
+    isRefetching: enabled ? isRefetching : false,
+    lastUpdated: enabled && dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
     deleteTransaction: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
     paginationInfo,
@@ -368,11 +374,13 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const isMobile = useIsMobile();
   const [itemsPerPage, setItemsPerPage] = useState(() => (isMobile ? 5 : 8)); // Reduced from 10 to 8 for faster loading
-  const [useLazyLoading] = useState(true);
 
   // ✅ Definisikan user TERLEBIH DAHULU sebelum digunakan
   const { user } = useAuth(); // ✅ Harus di sini
   const { suppliers } = useSupplier();
+
+  const hasLegacyTransactions = typeof legacyTransactions !== 'undefined';
+  const shouldFetchFromServer = !hasLegacyTransactions;
   
   // Fungsi untuk mendapatkan nama supplier dari deskripsi
   const getDisplayDescription = useCallback((description: string | null): string => {
@@ -393,23 +401,31 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
 
   // Gunakan data dari useQuery (Supabase) atau dari props
   const queryData = useTransactionData(
-    dateRange, 
-    user?.id, 
-    currentPage, 
-    itemsPerPage, 
-    !legacyTransactions // Gunakan lazy loading hanya jika tidak ada legacy props
+    dateRange,
+    user?.id,
+    currentPage,
+    itemsPerPage,
+    shouldFetchFromServer,
+    { enabled: shouldFetchFromServer }
   );
-  
-  const transactions = legacyTransactions || queryData.transactions;
-  const isLoading = legacyIsLoading ?? queryData.isLoading;
-  const onRefresh = legacyOnRefresh || queryData.refetch;
-  const lastUpdated = queryData.lastUpdated;
-  const isRefetching = queryData.isRefetching;
-  const paginationInfo = queryData.paginationInfo;
+
+  const transactions = hasLegacyTransactions ? legacyTransactions! : queryData.transactions;
+  const isLoading = hasLegacyTransactions ? (legacyIsLoading ?? false) : queryData.isLoading;
+  const onRefresh = hasLegacyTransactions
+    ? legacyOnRefresh ?? (() => {})
+    : () => void queryData.refetch();
+  const lastUpdated = hasLegacyTransactions ? undefined : queryData.lastUpdated;
+  const hasTransactions = transactions.length > 0;
+  const isRefetching = hasLegacyTransactions
+    ? Boolean(legacyIsLoading && hasTransactions)
+    : queryData.isRefetching;
+  const showInitialLoading = isLoading && !hasTransactions;
+  const showBackgroundLoading = isRefetching && hasTransactions;
+  const paginationInfo = hasLegacyTransactions ? null : queryData.paginationInfo;
 
   // 🚀 PERFORMANCE: Ultra-optimized pagination with capped rendering
   const currentTransactions = useMemo(() => {
-    if (!legacyTransactions && paginationInfo) {
+    if (!hasLegacyTransactions && paginationInfo) {
       // Server-side pagination - already limited
       return transactions.slice(0, Math.min(transactions.length, 10)); // Cap at 10 for rendering performance
     } else {
@@ -418,16 +434,16 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
       const limitedTransactions = transactions.slice(firstItem, firstItem + itemsPerPage);
       return limitedTransactions.slice(0, Math.min(limitedTransactions.length, 10)); // Cap rendering at 10 rows max
     }
-  }, [transactions, currentPage, itemsPerPage, paginationInfo, legacyTransactions]);
+  }, [transactions, currentPage, itemsPerPage, paginationInfo, hasLegacyTransactions]);
 
-  const totalPages = !legacyTransactions && paginationInfo
+  const totalPages = !hasLegacyTransactions && paginationInfo
     ? paginationInfo.totalPages
     : Math.ceil(transactions.length / itemsPerPage);
-  const totalItems = !legacyTransactions && paginationInfo
+  const totalItems = !hasLegacyTransactions && paginationInfo
     ? paginationInfo.total
     : transactions.length;
   const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = !legacyTransactions && paginationInfo
+  const endItem = !hasLegacyTransactions && paginationInfo
     ? Math.min(currentPage * itemsPerPage, paginationInfo.total)
     : Math.min(currentPage * itemsPerPage, transactions.length);
 
@@ -478,7 +494,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
   };
 
   // Tampilkan error hanya jika pakai query dan error
-  if (queryData.error && !legacyTransactions) {
+  if (queryData.error && !hasLegacyTransactions) {
     return (
       <Card className={className}>
         <CardContent className="p-6">
@@ -544,7 +560,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {isLoading ? (
+        {showInitialLoading ? (
           <div className="p-4">
             <div className="flex items-center justify-center p-4">
     <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
@@ -634,7 +650,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
         )}
       </CardContent>
 
-      {transactions.length > 0 && !isLoading && (
+      {transactions.length > 0 && !showInitialLoading && (
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between p-4 border-t gap-4">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div>
@@ -730,6 +746,12 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
             </div>
           )}
         </CardFooter>
+      )}
+
+      {showBackgroundLoading && (
+        <div className="px-4 pb-4 text-xs text-muted-foreground">
+          Memuat pembaruan terbaru...
+        </div>
       )}
 
       {/* 📊 Performance monitoring in development */}

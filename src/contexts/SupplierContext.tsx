@@ -18,7 +18,6 @@ import { logger } from '@/utils/logger';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { useSimpleNotification } from './SimpleNotificationContext';
-import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 // ✅ USING EXISTING TYPES
 import { 
@@ -270,9 +269,11 @@ const useSupplierMutations = () => {
       
       toast.error(`Gagal menambahkan supplier: ${userFriendlyMessage}`);
       
-      addNotification(createNotificationHelper.systemError(
-        `Gagal menambahkan supplier ${variables.nama}: ${userFriendlyMessage}`
-      ));
+      addNotification({
+        title: 'Kesalahan Sistem',
+        message: `Gagal menambahkan supplier ${variables.nama}: ${userFriendlyMessage}`,
+        type: 'error'
+      });
     },
     onSuccess: async (newSupplier, variables) => {
       // Invalidate and refetch
@@ -334,9 +335,11 @@ const useSupplierMutations = () => {
       const errorMessage = error.message || 'Terjadi kesalahan sistem';
       toast.error(`Gagal memperbarui supplier: ${errorMessage}`);
       
-      addNotification(createNotificationHelper.systemError(
-        `Gagal memperbarui supplier: ${errorMessage}`
-      ));
+      addNotification({
+        title: 'Kesalahan Sistem',
+        message: `Gagal memperbarui supplier: ${errorMessage}`,
+        type: 'error'
+      });
     },
     onSuccess: async (updatedSupplier, { data }) => {
       queryClient.invalidateQueries({ queryKey: supplierQueryKeys.lists() });
@@ -384,9 +387,11 @@ const useSupplierMutations = () => {
       const errorMessage = error.message || 'Terjadi kesalahan sistem';
       toast.error(`Gagal menghapus supplier: ${errorMessage}`);
       
-      addNotification(createNotificationHelper.systemError(
-        `Gagal menghapus supplier: ${errorMessage}`
-      ));
+      addNotification({
+        title: 'Kesalahan Sistem',
+        message: `Gagal menghapus supplier: ${errorMessage}`,
+        type: 'error'
+      });
     },
     onSuccess: async (result, id, context) => {
       queryClient.invalidateQueries({ queryKey: supplierQueryKeys.lists() });

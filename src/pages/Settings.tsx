@@ -458,20 +458,7 @@ const SettingsPage = () => {
               </div>
             </div>
             
-            {/* {heavyComponentsLoaded ? (
-              <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat pengaturan notifikasi</div>}>
-                <Suspense fallback={<div className="flex items-center justify-center p-4">
-    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-  </div>}>
-                  {/* <NotificationSettingsForm /> */}
-                </Suspense>
-              </ErrorBoundary>
-            ) : (
-              <div className="flex items-center justify-center p-4">
-    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-  </div>
-            )} */}
-          </div>
+            </div>
 
           {/* Device Management Section - LAZY LOADED */}
           {heavyComponentsLoaded ? (

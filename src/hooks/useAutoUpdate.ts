@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { updateService, type UpdateCheckResult } from '@/services/updateService';
 import { logger } from '@/utils/logger';
-import { useUpdateNotification } from '@/components/common/UpdateNotificationBanner';
+import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
 
 export interface UseAutoUpdateOptions {
   // Update check interval in minutes (default: 5)
@@ -42,8 +42,8 @@ export const useAutoUpdate = (options: UseAutoUpdateOptions = {}) => {
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
   
-  // Update notification hook
-  const updateNotification = useUpdateNotification();
+  // Use our new simple notification system
+  const { addNotification } = useSimpleNotification();
 
   // Check if we should run update checks
   const shouldRunUpdateChecks = useCallback(() => {
@@ -71,13 +71,10 @@ export const useAutoUpdate = (options: UseAutoUpdateOptions = {}) => {
     
     // Show notification if enabled
     if (showNotifications && result.hasUpdate) {
-      updateNotification.showUpdateNotification({
-        newVersion: result.latestVersion?.version,
-        currentVersion: result.currentVersion.version,
-        commitHash: result.latestVersion?.commitHash,
-        updateAvailable: result.hasUpdate,
-        updateType: result.updateType,
-        forceUpdate: result.forceUpdate
+      addNotification({
+        title: 'Update Tersedia',
+        message: `Versi baru aplikasi tersedia. Versi saat ini: ${result.currentVersion.version}, Versi baru: ${result.latestVersion?.version}`,
+        type: 'info'
       });
     }
     
@@ -85,7 +82,7 @@ export const useAutoUpdate = (options: UseAutoUpdateOptions = {}) => {
     if (onUpdateDetected) {
       onUpdateDetected(result);
     }
-  }, [showNotifications, updateNotification, onUpdateDetected]);
+  }, [showNotifications, addNotification, onUpdateDetected]);
 
   // Handle update check error
   const handleUpdateCheckError = useCallback((error: Error) => {
@@ -217,21 +214,10 @@ export const useAutoUpdate = (options: UseAutoUpdateOptions = {}) => {
     stopUpdateChecking,
     checkForUpdatesNow,
     
-    // Notification controls
-    showUpdateNotification: updateNotification.showUpdateNotification,
-    hideUpdateNotification: updateNotification.hideUpdateNotification,
-    dismissUpdateNotification: updateNotification.dismissUpdateNotification,
-    
     // Info
     getCurrentVersion,
     getBuildInfo,
     isDevelopment: updateService.isDevelopment(),
-    
-    // Update notification state
-    updateNotification: {
-      isVisible: updateNotification.isVisible,
-      updateInfo: updateNotification.updateInfo
-    }
   };
 };
 

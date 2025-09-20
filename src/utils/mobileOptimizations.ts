@@ -57,9 +57,9 @@ export const getMobileOptimizedTimeout = (
   const capabilities = detectMobileCapabilities();
   let timeout = baseTimeout;
 
-  // Base mobile adjustment
+  // Base mobile adjustment - mobile needs MORE time for auth, not less
   if (capabilities.isMobile) {
-    timeout *= 0.8; // 20% faster for mobile
+    timeout *= 1.5; // 50% longer for mobile auth (was reducing by 20%)
   }
 
   // Device-specific adjustments
@@ -71,24 +71,24 @@ export const getMobileOptimizedTimeout = (
     timeout *= 1.2;
   }
 
-  // Network-specific adjustments
+  // Network-specific adjustments for mobile auth
   switch (capabilities.estimatedSpeed) {
     case 'very-slow':
-      timeout *= capabilities.isMobile ? 2.5 : 4;
+      timeout *= capabilities.isMobile ? 4 : 4; // Increased mobile multiplier
       break;
     case 'slow':
-      timeout *= capabilities.isMobile ? 1.5 : 2;
+      timeout *= capabilities.isMobile ? 3 : 2; // Increased mobile multiplier
       break;
     case 'fast':
-      timeout *= 0.9; // 10% faster for fast connections
+      timeout *= capabilities.isMobile ? 1.2 : 0.9; // Still longer for mobile even on fast network
       break;
   }
 
-  // Operation-specific limits
+  // Operation-specific limits - increased for mobile compatibility
   const maxTimeouts = {
-    auth: capabilities.isMobile ? 12000 : 20000,
-    api: capabilities.isMobile ? 8000 : 15000,
-    'component-load': capabilities.isMobile ? 3000 : 5000
+    auth: capabilities.isMobile ? 45000 : 20000, // Increased from 12s to 45s for mobile auth
+    api: capabilities.isMobile ? 15000 : 15000, // Increased from 8s to 15s
+    'component-load': capabilities.isMobile ? 5000 : 5000 // Increased from 3s to 5s
   };
 
   const finalTimeout = Math.min(timeout, maxTimeouts[operation]);

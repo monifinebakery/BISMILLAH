@@ -39,7 +39,7 @@ export const getCurrentSession = async (): Promise<Session | null> => {
     // ✅ ADD TIMEOUT: Prevent hanging utilities
     const sessionPromise = supabase.auth.getSession();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session utility timeout')), 3000) // Reduced from 5s to 3s
+      setTimeout(() => reject(new Error('Session utility timeout')), 8000) // Mobile-optimized timeout
     );
     
     const { data: { session }, error } = await Promise.race([
@@ -102,7 +102,7 @@ export const refreshSession = async (): Promise<Session | null> => {
       // ✅ ADD TIMEOUT: Prevent hanging refresh
       const supabaseRefresh = supabase.auth.refreshSession();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session refresh timeout')), 5000) // Reduced from 10s to 5s
+        setTimeout(() => reject(new Error('Session refresh timeout')), 15000) // Mobile-optimized timeout
       );
       
       const { data, error } = await Promise.race([

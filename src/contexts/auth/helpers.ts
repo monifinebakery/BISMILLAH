@@ -2,12 +2,13 @@ import { withTimeout } from '@/utils/asyncUtils';
 import { logger } from '@/utils/logger';
 import { detectSafariIOS, getSafariTimeout } from '@/utils/safariUtils';
 import { detectDeviceCapabilities } from '@/utils/auth/deviceDetection';
+import { getMobileOptimizedTimeout, detectMobileCapabilities } from '@/utils/mobileOptimizations';
 import { sanitizeUser, validateSession } from '@/utils/auth/sessionValidation';
 import type { Session, User } from '@supabase/supabase-js';
 
 type NetworkErrorPredicate = (message: string) => boolean;
 
-const MAX_TIMEOUT = 8000; // Reduced from 60s to 8s to prevent long loading
+const MAX_TIMEOUT = 45000; // Increased to 45s for mobile compatibility (especially iOS Safari)
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NETWORK_ERROR_MATCHERS: ReadonlyArray<NetworkErrorPredicate> = [
   (message) => message.includes('network'),
@@ -29,9 +30,21 @@ export interface SafeWithTimeoutResult<T> {
 
 // detectDeviceCapabilities moved to @/utils/auth/deviceDetection
 
-export const getAdaptiveTimeout = (baseTimeout = 6000) => { // Reduced from 12s to 6s for faster auth
+export const getAdaptiveTimeout = (baseTimeout = 6000) => { // Mobile-optimized adaptive timeout
   const capabilities = detectDeviceCapabilities();
+  const mobileCapabilities = detectMobileCapabilities();
   const safariDetection = detectSafariIOS();
+
+  // Use mobile-optimized timeout if on mobile
+  if (mobileCapabilities.isMobile) {
+    const mobileTimeout = getMobileOptimizedTimeout(baseTimeout, 'auth');
+    logger.debug('AuthContext: Mobile-optimized timeout applied', {
+      baseTimeout,
+      mobileTimeout,
+      capabilities: mobileCapabilities,
+    });
+    return Math.min(mobileTimeout, MAX_TIMEOUT);
+  }
 
   if (safariDetection.isSafariIOS) {
     const safariTimeout = getSafariTimeout(baseTimeout);

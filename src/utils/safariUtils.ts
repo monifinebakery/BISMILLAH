@@ -52,16 +52,17 @@ export const getSafariTimeout = (baseTimeout: number = 15000): number => {
   
   if (!detection.isSafariIOS) return baseTimeout;
   
-  // Safari iOS butuh timeout lebih lama - tingkatkan multiplier
-  let multiplier = 3; // Increased from 2
+  // Safari iOS butuh timeout jauh lebih lama untuk session verification
+  let multiplier = 4; // Increased from 3 for better mobile compatibility
   
   if (detection.version) {
     const majorVersion = parseInt(detection.version.split('.')[0]);
-    if (majorVersion < 14) multiplier = 4; // Increased from 3
-    else if (majorVersion < 16) multiplier = 3.5; // Increased from 2.5
+    if (majorVersion < 14) multiplier = 6; // Significantly increased from 4
+    else if (majorVersion < 16) multiplier = 5; // Increased from 3.5
+    else if (majorVersion < 17) multiplier = 4.5; // New tier for iOS 16
   }
   
-  const safariTimeout = Math.min(baseTimeout * multiplier, 90000); // Increased max from 60000
+  const safariTimeout = Math.min(baseTimeout * multiplier, 120000); // Increased max to 2 minutes for mobile
   
   logger.debug('Safari iOS timeout calculated:', {
     baseTimeout,

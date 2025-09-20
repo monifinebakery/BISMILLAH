@@ -76,20 +76,17 @@ const userSettingsApi = {
   async getSettings(userId: string, userEmail: string): Promise<UserSettings> {
     logger.context('UserSettings', 'Fetching settings for user:', { userId, userEmail });
 
+    // 🚀 PERFORMANCE: Minimal field selection for faster query
     const { data, error } = await supabase
       .from('user_settings')
       .select(`
-        id,
-        user_id,
         business_name,
         owner_name,
         email,
         phone,
         address,
         whatsapp_type,
-        notifications,
-        updated_at,
-        created_at
+        notifications
       `)
       .eq('user_id', userId)
       .maybeSingle();

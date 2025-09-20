@@ -98,13 +98,15 @@ export interface PaginationParams {
   offset?: number;
 }
 
-export const getFinancialTransactions = async (userId: string): Promise<FinancialTransaction[]> => {
+export const getFinancialTransactions = async (userId: string, limit: number = 100): Promise<FinancialTransaction[]> => {
   try {
+    // 🚀 PERFORMANCE: Add default limit to avoid fetching thousands of records
     const { data, error } = await supabase
       .from('financial_transactions')
       .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
       .eq('user_id', userId)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .limit(limit); // Add limit for better performance
 
     if (error) throw error;
     
@@ -112,6 +114,25 @@ export const getFinancialTransactions = async (userId: string): Promise<Financia
   } catch (error: any) {
     logger.error('Error fetching transactions:', error);
     throw new Error(`Failed to fetch transactions: ${error.message}`);
+  }
+};
+
+// 🚀 PERFORMANCE: Fast recent transactions query for dashboard/summary
+export const getRecentFinancialTransactions = async (userId: string, limit: number = 10): Promise<FinancialTransaction[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('financial_transactions')
+      .select('id, type, category, amount, description, date') // Minimal fields
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    
+    return (data || []).map(transformFromDB);
+  } catch (error: any) {
+    logger.error('Error fetching recent transactions:', error);
+    throw new Error(`Failed to fetch recent transactions: ${error.message}`);
   }
 };
 

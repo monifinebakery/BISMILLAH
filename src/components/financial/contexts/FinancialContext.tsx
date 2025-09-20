@@ -54,7 +54,9 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
       return;
     }
 
-    logger.context('FinancialContext', 'Setting up real-time subscription for user:', user.id);
+    // 🚀 PERFORMANCE: Defer real-time subscription to avoid blocking initial load
+    const timeoutId = setTimeout(() => {
+      logger.context('FinancialContext', 'Setting up deferred real-time subscription for user:', user.id);
 
     let channel: any = null;
     let retryCount = 0;
@@ -189,11 +191,15 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
       }
     };
 
-    // Initialize subscription
-    setupSubscription();
+      // Initialize subscription
+      setupSubscription();
+    }, 1500); // Defer by 1.5s to avoid blocking initial page load
 
     return () => {
       try {
+        // Clear defer timeout
+        clearTimeout(timeoutId);
+        
         // Clear retry timer
         if (retryTimer) {
           clearTimeout(retryTimer);

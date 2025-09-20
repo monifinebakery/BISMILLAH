@@ -1,15 +1,16 @@
 // src/components/operational-costs/features/OperationalCostContent.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { OperationalCostHeader } from '../components';
 import LoadingState from '../components/LoadingState';
 import { useOperationalCostLogic } from '../hooks/useOperationalCostLogic';
-import { DialogManager } from './DialogManager';
+import { DialogManager, DialogManagerRef } from './DialogManager';
 import { MainContent } from './MainContent';
 
 export const OperationalCostContent: React.FC = () => {
   const [showQuickSetup, setShowQuickSetup] = useState(false);
+  const dialogManagerRef = useRef<DialogManagerRef>(null);
 
   const {
     state,
@@ -50,11 +51,15 @@ export const OperationalCostContent: React.FC = () => {
 
   // Handlers
   const handleOpenAddDialog = () => {
-    // This will be handled by the DialogManager
+    if (shouldShowQuickSetupHint) {
+      dialogManagerRef.current?.openQuickSetup();
+    } else {
+      dialogManagerRef.current?.openAddDialog();
+    }
   };
 
   const handleOpenEditDialog = (cost: any) => {
-    // This will be handled by the DialogManager
+    dialogManagerRef.current?.openEditDialog(cost);
   };
 
   const handleDeleteCost = async (costId: string) => {
@@ -97,8 +102,8 @@ export const OperationalCostContent: React.FC = () => {
       <div className="min-h-screen bg-gray-50">
       {/* ❌ REMOVED: Heavy modal onboarding */}
       <OperationalCostHeader
-        onStartOnboarding={() => setShowQuickSetup(true)}
-        onOpenAddDialog={shouldShowQuickSetupHint ? () => setShowQuickSetup(true) : () => {}}
+        onStartOnboarding={() => dialogManagerRef.current?.openQuickSetup()}
+        onOpenAddDialog={handleOpenAddDialog}
         appSettings={appSettings}
         onUpdateTarget={async (target) => {
           await handleUpdateTargetMonthly(target);
@@ -131,6 +136,7 @@ export const OperationalCostContent: React.FC = () => {
 
       {/* Dialog Manager */}
       <DialogManager
+        ref={dialogManagerRef}
         state={state}
         actions={actions}
         selectedIds={selectedIds}

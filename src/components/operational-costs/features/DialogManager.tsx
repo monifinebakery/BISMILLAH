@@ -1,12 +1,18 @@
 // src/components/operational-costs/features/DialogManager.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { CostFormDialog } from '../components/CostFormDialog';
 import { QuickSetupTemplates } from '../components/QuickSetupTemplates';
 import { BulkEditDialog, BulkDeleteDialog } from '../dialogs';
 import { OperationalCost } from '../types/operationalCost.types';
 import { type CostTemplate } from '../utils/smartDefaults';
+
+export interface DialogManagerRef {
+  openAddDialog: () => void;
+  openEditDialog: (cost: OperationalCost) => void;
+  openQuickSetup: () => void;
+}
 
 interface DialogManagerProps {
   state: any;
@@ -22,36 +28,62 @@ interface DialogManagerProps {
   isBulkDeleteDialogOpen: boolean;
   openBulkEditDialog: () => void;
   openBulkDeleteDialog: () => void;
+  // NEW: Add handlers for opening dialogs
+  onOpenAddDialog?: () => void;
+  onOpenEditDialog?: (cost: OperationalCost) => void;
+  onOpenQuickSetup?: () => void;
 }
 
-export const DialogManager: React.FC<DialogManagerProps> = ({
-  state,
-  actions,
-  selectedIds,
-  selectedCosts,
-  isProcessing,
-  executeBulkEdit,
-  executeBulkDelete,
-  closeBulkEditDialog,
-  closeBulkDeleteDialog,
-  isBulkEditDialogOpen,
-  isBulkDeleteDialogOpen,
-  openBulkEditDialog,
-  openBulkDeleteDialog
-}) => {
+export const DialogManager = forwardRef<DialogManagerRef, DialogManagerProps>((
+  {
+    state,
+    actions,
+    selectedIds,
+    selectedCosts,
+    isProcessing,
+    executeBulkEdit,
+    executeBulkDelete,
+    closeBulkEditDialog,
+    closeBulkDeleteDialog,
+    isBulkEditDialogOpen,
+    isBulkDeleteDialogOpen,
+    openBulkEditDialog,
+    openBulkDeleteDialog,
+    onOpenAddDialog,
+    onOpenEditDialog,
+    onOpenQuickSetup
+  },
+  ref
+) => {
   const [showDialog, setShowDialog] = useState(false);
   const [editingCost, setEditingCost] = useState<OperationalCost | null>(null);
   const [showQuickSetup, setShowQuickSetup] = useState(false);
 
-  // Handlers
+  // Handlers - use external handlers if provided, otherwise use internal ones
   const handleOpenAddDialog = () => {
-    setEditingCost(null);
-    setShowDialog(true);
+    if (onOpenAddDialog) {
+      onOpenAddDialog();
+    } else {
+      setEditingCost(null);
+      setShowDialog(true);
+    }
   };
 
   const handleOpenEditDialog = (cost: OperationalCost) => {
-    setEditingCost(cost);
-    setShowDialog(true);
+    if (onOpenEditDialog) {
+      onOpenEditDialog(cost);
+    } else {
+      setEditingCost(cost);
+      setShowDialog(true);
+    }
+  };
+  
+  const handleOpenQuickSetup = () => {
+    if (onOpenQuickSetup) {
+      onOpenQuickSetup();
+    } else {
+      setShowQuickSetup(true);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -108,6 +140,13 @@ export const DialogManager: React.FC<DialogManagerProps> = ({
     }
   };
 
+  // Expose handlers through ref
+  useImperativeHandle(ref, () => ({
+    openAddDialog: handleOpenAddDialog,
+    openEditDialog: handleOpenEditDialog,
+    openQuickSetup: handleOpenQuickSetup
+  }));
+
   return (
     <>
       {/* Cost Form Dialog */}
@@ -151,4 +190,6 @@ export const DialogManager: React.FC<DialogManagerProps> = ({
       />
     </>
   );
-};
+});
+
+DialogManager.displayName = 'DialogManager';

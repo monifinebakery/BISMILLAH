@@ -3,26 +3,18 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Trash2, 
-  X, 
-  CheckSquare, 
-  Square, 
+import {
+  Trash2,
+  X,
+  CheckSquare,
+  Square,
   AlertTriangle,
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/shared';
-import { toast } from 'sonner';
 
-interface FinancialTransaction {
-  id: string;
-  date: Date | string | null;
-  description: string | null;
-  amount: number;
-  type: 'income' | 'expense';
-  category: string | null;
-}
+import type { FinancialTransaction } from '../types/financial';
 
 interface TransactionBulkActionsProps {
   selectedIds: string[];
@@ -61,16 +53,14 @@ const TransactionBulkActions: React.FC<TransactionBulkActionsProps> = ({
 
   const handleBulkDelete = async () => {
     if (selectedCount === 0) return;
-    
+
     setIsDeleting(true);
     try {
       await onBulkDelete(selectedIds);
       setShowConfirmDialog(false);
       onClearSelection();
-      toast.success(`${selectedCount} transaksi berhasil dihapus`);
     } catch (error) {
       console.error('Bulk delete error:', error);
-      toast.error('Gagal menghapus transaksi');
     } finally {
       setIsDeleting(false);
     }

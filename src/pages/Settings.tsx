@@ -62,6 +62,8 @@ const SettingsPage = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState({ device: '', browser: '' });
   const [heavyComponentsLoaded, setHeavyComponentsLoaded] = useState(false);
+  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
 
   // ✅ PERFORMANCE: Defer device info calculation
   useEffect(() => {
@@ -123,16 +125,82 @@ const SettingsPage = () => {
     }
   }, [safeSettings, formState]);
 
+  // Auto-save function with debounce
+  const autoSave = async (newFormState: UserSettings) => {
+    // Clear existing timer
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+    }
+
+    // Set new timer for auto-save after 2 seconds
+    const timer = setTimeout(async () => {
+      setAutoSaveStatus('saving');
+      try {
+        const settingsToUpdate: Partial<UserSettings> = {
+          businessName: newFormState.businessName,
+          ownerName: newFormState.ownerName,
+          email: newFormState.email,
+          phone: newFormState.phone,
+          address: newFormState.address,
+          whatsappType: newFormState.whatsappType,
+        };
+
+        const success = await saveSettings(settingsToUpdate);
+        if (success) {
+          setAutoSaveStatus('saved');
+          setHasChanges(false); // Mark as no changes after successful save
+          toast.success('✅ Data otomatis tersimpan', {
+            duration: 2000,
+          });
+          
+          // Reset status after 3 seconds
+          setTimeout(() => setAutoSaveStatus('idle'), 3000);
+        } else {
+          setAutoSaveStatus('failed');
+          setTimeout(() => setAutoSaveStatus('idle'), 5000);
+        }
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+        setAutoSaveStatus('failed');
+        toast.error('Gagal menyimpan otomatis. Silakan simpan manual.');
+        setTimeout(() => setAutoSaveStatus('idle'), 5000);
+      }
+    }, 2000); // Auto-save after 2 seconds of no typing
+
+    setAutoSaveTimer(timer);
+  };
+
   const handleInputChange = (
     field: keyof UserSettings,
     value: UserSettings[keyof UserSettings]
   ) => {
+    let newFormState: UserSettings;
+    
     if (!formState && !isLoading) {
-      setFormState({ ...displaySettings, [field]: value } as UserSettings);
+      newFormState = { ...displaySettings, [field]: value } as UserSettings;
     } else {
-      setFormState(prev => prev ? { ...prev, [field]: value } : null);
+      newFormState = formState ? { ...formState, [field]: value } : displaySettings;
+    }
+    
+    setFormState(newFormState);
+    
+    // Trigger auto-save for non-empty meaningful changes
+    const hasContent = newFormState.businessName || newFormState.ownerName || 
+                      newFormState.email || newFormState.phone || newFormState.address;
+    
+    if (hasContent) {
+      autoSave(newFormState);
     }
   };
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+    };
+  }, [autoSaveTimer]);
 
   const handleSaveChanges = async () => {
     const settingsToSave = formState || displaySettings;
@@ -205,11 +273,32 @@ const SettingsPage = () => {
             <div className="px-8 py-4 bg-white border-t">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {hasChanges ? (
+                  {autoSaveStatus === 'saving' ? (
+                    <>
+                      <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                      <span className="text-sm font-medium text-blue-700">
+                        Menyimpan otomatis...
+                      </span>
+                    </>
+                  ) : autoSaveStatus === 'saved' ? (
+                    <>
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <span className="text-sm font-medium text-green-700">
+                        ✅ Tersimpan otomatis
+                      </span>
+                    </>
+                  ) : autoSaveStatus === 'failed' ? (
+                    <>
+                      <AlertCircle className="h-5 w-5 text-red-500" />
+                      <span className="text-sm font-medium text-red-700">
+                        Gagal menyimpan otomatis
+                      </span>
+                    </>
+                  ) : hasChanges ? (
                     <>
                       <AlertCircle className="h-5 w-5 text-orange-500" />
                       <span className="text-sm font-medium text-orange-700">
-                        Ada perubahan yang belum disimpan
+                        Ada perubahan (akan tersimpan otomatis)
                       </span>
                     </>
                   ) : (
@@ -313,6 +402,14 @@ const SettingsPage = () => {
                   className="min-h-[100px] border-gray-300"
                   rows={4}
                 />
+              </div>
+
+              {/* Auto-save Info */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  ✨ <strong>Auto-Save Aktif:</strong> Data akan tersimpan otomatis 2 detik setelah Anda selesai mengetik. 
+                  Anda juga bisa simpan manual dengan tombol di bawah.
+                </p>
               </div>
 
               {/* Action Buttons for Business Info */}

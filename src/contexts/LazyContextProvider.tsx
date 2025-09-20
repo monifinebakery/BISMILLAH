@@ -26,7 +26,7 @@ const AuthContextProvider = lazy(() =>
   }))
 );
 
-const NotificationContextProvider = lazy(() =>
+const SimpleNotificationContextProvider = lazy(() =>
   import('./SimpleNotificationContext').then(module => ({
     default: ({ children }: { children: React.ReactNode }) => {
       const { SimpleNotificationProvider } = module;
@@ -71,11 +71,11 @@ export const CoreContextProviders: React.FC<CoreContextProvidersProps> = ({ chil
   return (
     <Suspense fallback={<ContextLoader message="Memuat konteks utama..." />}>
       <AuthContextProvider>
-        <NotificationContextProvider>
+        <SimpleNotificationContextProvider>
           <PaymentContextProvider>
             {children}
           </PaymentContextProvider>
-        </NotificationContextProvider>
+        </SimpleNotificationContextProvider>
       </AuthContextProvider>
     </Suspense>
   );
@@ -129,7 +129,7 @@ export const usePreloadContexts = (contexts: string[] = []) => {
         case 'auth':
           return import('./AuthContext');
         case 'notification':
-          return import('./NotificationContext');
+          return import('./SimpleNotificationContext');
         case 'payment':
           return import('./PaymentContext');
         case 'settings':

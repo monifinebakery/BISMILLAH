@@ -116,7 +116,12 @@ export const exportAllDataToExcel = async (
     const sheets = [
       {
         name: "Gudang Bahan Baku",
-        data: allData.bahanBaku,
+        data: (allData.bahanBaku || []).map((item: any) => ({
+          ...item,
+          hargaSatuan: item.hargaSatuan ? `Rp${item.hargaSatuan.toLocaleString()}` : 'Rp0',
+          minimum: item.minimum || 0,
+          stok: item.stok || 0
+        })),
         headers: {
           nama: "Nama Bahan",
           kategori: "Kategori",
@@ -142,12 +147,15 @@ export const exportAllDataToExcel = async (
       {
         name: "Pembelian",
         data: (allData.purchases || []).flatMap((p: any) => {
-          const supplier = (allData.suppliers || []).find((s: any) => s.id === p.supplier);
+          // For purchases, supplier is already the supplier name (not ID)
+          // This is based on the Purchase type definition where supplier is string (nama supplier)
           return (p.items || []).map((item: any) => ({
             ...item,
             tanggal: p.tanggal,
-            supplierName: supplier?.nama || 'Supplier Tidak Dikenal',
-            status: p.status
+            supplierName: p.supplier || 'Supplier Tidak Dikenal',
+            status: p.status,
+            hargaSatuan: item.hargaSatuan ? `Rp${item.hargaSatuan.toLocaleString()}` : 'Rp0',
+            totalHarga: item.totalHarga ? `Rp${item.totalHarga.toLocaleString()}` : 'Rp0'
           }));
         }),
         headers: {
@@ -171,9 +179,11 @@ export const exportAllDataToExcel = async (
             namaPelanggan: o.namaPelanggan,
             teleponPelanggan: o.teleponPelanggan,
             alamatPengiriman: o.alamatPengiriman,
-            totalPesanan: o.totalPesanan,
+            totalPesanan: o.totalPesanan ? `Rp${o.totalPesanan.toLocaleString()}` : 'Rp0',
             status: o.status,
-            catatan: o.catatan
+            catatan: o.catatan,
+            hargaSatuan: item.hargaSatuan ? `Rp${item.hargaSatuan.toLocaleString()}` : 'Rp0',
+            totalHarga: item.totalHarga ? `Rp${item.totalHarga.toLocaleString()}` : 'Rp0'
           }))
         ),
         headers: {
@@ -193,7 +203,20 @@ export const exportAllDataToExcel = async (
       },
       {
         name: "Manajemen Resep",
-        data: allData.recipes,
+        data: (allData.recipes || []).map((recipe: any) => {
+          // Process bahanResep to make it readable
+          let bahanResepText = '';
+          if (recipe.bahanResep && Array.isArray(recipe.bahanResep)) {
+            bahanResepText = recipe.bahanResep.map((b: any) => 
+              `${b.nama} (${b.jumlah} ${b.satuan})`
+            ).join(', ');
+          }
+          
+          return {
+            ...recipe,
+            bahanResep: bahanResepText
+          };
+        }),
         headers: {
           namaResep: "Nama Resep",
           jumlahPorsi: "Jumlah Porsi",
@@ -213,7 +236,20 @@ export const exportAllDataToExcel = async (
       },
       {
         name: "Hitung HPP",
-        data: allData.hppResults,
+        data: (allData.hppResults || []).map((hpp: any) => {
+          // Process ingredients to make it readable
+          let ingredientsText = '';
+          if (hpp.ingredients && Array.isArray(hpp.ingredients)) {
+            ingredientsText = hpp.ingredients.map((i: any) => 
+              `${i.name} (${i.quantity} ${i.unit}) - Rp${i.price?.toLocaleString() || '0'}`
+            ).join(', ');
+          }
+          
+          return {
+            ...hpp,
+            ingredients: ingredientsText
+          };
+        }),
         headers: {
           nama: "Nama",
           ingredients: "Bahan",
@@ -228,7 +264,32 @@ export const exportAllDataToExcel = async (
       },
       {
         name: "Kalkulator Promo",
-        data: allData.promos,
+        data: (allData.promos || []).map((promo: any) => {
+          // Format data promo and calculation result for better readability
+          let dataPromoText = '';
+          if (promo.dataPromo) {
+            if (typeof promo.dataPromo === 'object') {
+              dataPromoText = JSON.stringify(promo.dataPromo);
+            } else {
+              dataPromoText = String(promo.dataPromo);
+            }
+          }
+          
+          let calculationResultText = '';
+          if (promo.calculationResult) {
+            if (typeof promo.calculationResult === 'object') {
+              calculationResultText = JSON.stringify(promo.calculationResult);
+            } else {
+              calculationResultText = String(promo.calculationResult);
+            }
+          }
+          
+          return {
+            ...promo,
+            dataPromo: dataPromoText,
+            calculationResult: calculationResultText
+          };
+        }),
         headers: {
           namaPromo: "Nama Promo",
           tipePromo: "Tipe Promo",
@@ -248,7 +309,8 @@ export const exportAllDataToExcel = async (
           const costs = (allData.operationalCosts || []).map((c: any) => ({
             type: "Biaya",
             namaBiaya: c.nama_biaya || c.namaBiaya,
-            jumlahPerBulan: c.jumlah_per_bulan || c.jumlahPerBulan,
+            jumlahPerBulan: c.jumlah_per_bulan || c.jumlahPerBulan ? 
+              `Rp${(c.jumlah_per_bulan || c.jumlahPerBulan).toLocaleString()}` : 'Rp0',
             jenis: c.jenis,
             status: c.status,
             metode: "",
@@ -285,7 +347,10 @@ export const exportAllDataToExcel = async (
       },
       {
         name: "Bisnis",
-        data: allData.activities,
+        data: (allData.activities || []).map((activity: any) => ({
+          ...activity,
+          value: activity.value ? `Rp${activity.value.toLocaleString()}` : 'Rp0'
+        })),
         headers: {
           title: "Judul",
           description: "Deskripsi",
@@ -298,7 +363,10 @@ export const exportAllDataToExcel = async (
       },
       {
         name: "Laporan Keuangan",
-        data: allData.financialTransactions,
+        data: (allData.financialTransactions || []).map((transaction: any) => ({
+          ...transaction,
+          amount: transaction.amount ? `Rp${transaction.amount.toLocaleString()}` : 'Rp0'
+        })),
         headers: {
           date: "Tanggal",
           type: "Tipe",
@@ -327,13 +395,13 @@ export const exportAllDataToExcel = async (
             
             return {
               period: p.period,
-              total_revenue: revenue,
-              total_cogs: cogs,
-              total_opex: opex,
-              gross_profit: margins.grossProfit,
-              net_profit: margins.netProfit,
-              gross_margin: margins.grossMargin,
-              net_margin: margins.netMargin,
+              total_revenue: revenue ? `Rp${revenue.toLocaleString()}` : 'Rp0',
+              total_cogs: cogs ? `Rp${cogs.toLocaleString()}` : 'Rp0',
+              total_opex: opex ? `Rp${opex.toLocaleString()}` : 'Rp0',
+              gross_profit: margins.grossProfit ? `Rp${Math.round(margins.grossProfit).toLocaleString()}` : 'Rp0',
+              net_profit: margins.netProfit ? `Rp${Math.round(margins.netProfit).toLocaleString()}` : 'Rp0',
+              gross_margin: `${(margins.grossMargin * 100).toFixed(2)}%`,
+              net_margin: `${(margins.netMargin * 100).toFixed(2)}%`,
               calculation_date: p.calculation_date || p.calculated_at
             };
           });
@@ -352,7 +420,11 @@ export const exportAllDataToExcel = async (
       },
       {
         name: "Manajemen Aset",
-        data: allData.assets,
+        data: (allData.assets || []).map((asset: any) => ({
+          ...asset,
+          nilaiAwal: asset.nilaiAwal ? `Rp${asset.nilaiAwal.toLocaleString()}` : 'Rp0',
+          nilaiSaatIni: asset.nilaiSaatIni ? `Rp${asset.nilaiSaatIni.toLocaleString()}` : 'Rp0'
+        })),
         headers: {
           nama: "Nama Aset",
           kategori: "Kategori",

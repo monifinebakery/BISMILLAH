@@ -167,7 +167,7 @@ const SyncStatusIndicator: React.FC<{
 };
 
 // 📊 Individual Stat Card Component  
-const StatCard: React.FC<{
+const StatCardComponent: React.FC<{
   icon: React.ReactNode;
   label: string;
   shortLabel?: string; // Label pendek untuk mobile
@@ -226,16 +226,16 @@ const StatCard: React.FC<{
       className="bg-white/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 relative group h-full cursor-pointer"
       onClick={handleMobileTooltipToggle}
     >
-      <CardContent className="card-stats h-full relative">
+      <CardContent className="card-stats h-full relative p-4">
         {/* Inset Border Effect */}
         <div className="absolute inset-0 rounded-lg border-[1.5px] border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
         
         {/* Content */}
         <div className="relative h-full flex flex-col">
           {/* 🎨 Icon dan Trend - Top row */}
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <div className="bg-white/90 backdrop-blur-sm border border-gray-300 p-2.5 sm:p-3 rounded-xl flex-shrink-0 group-hover:border-gray-300 group-hover:bg-gray-50 transition-all duration-300 flex items-center justify-center">
-              <div className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600">
+          <div className="flex items-center justify-between mb-3">
+            <div className="bg-white/90 backdrop-blur-sm border border-gray-300 p-2.5 rounded-xl flex-shrink-0 group-hover:border-gray-300 group-hover:bg-gray-50 transition-all duration-300 flex items-center justify-center">
+              <div className="h-4 w-4 text-gray-600">
                 {icon}
               </div>
             </div>
@@ -252,9 +252,9 @@ const StatCard: React.FC<{
           </div>
 
           {/* 🏷️ Label - Full width */}
-          <div className="mb-2 sm:mb-3">
+          <div className="mb-2">
             <div className="flex items-start gap-2">
-              <div className="card-label-responsive uppercase tracking-wide font-medium leading-relaxed break-words line-clamp-2 text-gray-600">
+              <div className="uppercase tracking-wide font-medium leading-relaxed break-words text-gray-600 text-sm">
                 {shortLabel || label}
               </div>
               {tooltip && (
@@ -266,10 +266,10 @@ const StatCard: React.FC<{
           {/* 💰 Value */}
           <div className="mb-2 flex-1">
             {isLoading ? (
-              <div className="h-6 sm:h-7 lg:h-8 bg-gray-200 animate-pulse rounded w-full"></div>
+              <div className="h-6 bg-gray-200 animate-pulse rounded w-full"></div>
             ) : (
               <div className="w-full">
-                <p className={`card-value-responsive ${valueColor} text-overflow-safe leading-tight`}>
+                <p className={`text-xl font-bold ${valueColor} leading-tight`}>
                   {value}
                 </p>
               </div>
@@ -279,7 +279,7 @@ const StatCard: React.FC<{
           {/* 📝 Description */}
           {description && (
             <div className="mt-auto">
-              <p className="card-description-responsive leading-tight break-words">
+              <p className="text-xs text-gray-500 leading-tight break-words">
                 {description}
               </p>
             </div>
@@ -306,8 +306,8 @@ const StatCard: React.FC<{
                 onClick={() => setShowMobileTooltip(false)}
               />
               {/* Tooltip content */}
-              <div className="modal-tooltip-centered z-[9999] p-4 bg-gray-900/95 backdrop-blur-md text-white text-sm rounded-xl shadow-2xl">
-                <div className="text-center">
+              <div className="fixed inset-4 z-[9999] p-4 bg-gray-900/95 backdrop-blur-md text-white text-sm rounded-xl shadow-2xl flex items-center justify-center">
+                <div className="text-center max-w-xs">
                   <p className="leading-relaxed break-words mb-3">{tooltip}</p>
                   {trend && trend.previousValue && (
                     <div className="border-t border-gray-600 pt-3 mt-3">
@@ -345,7 +345,7 @@ const StatCard: React.FC<{
             <TooltipContent 
               side="top" 
               align="center"
-              className="max-w-xs sm:max-w-sm md:max-w-md z-[9999] px-4 py-3 text-sm bg-gray-900 text-white rounded-lg border-2 border-gray-700"
+              className="max-w-xs z-[9999] px-4 py-3 text-sm bg-gray-900 text-white rounded-lg border-2 border-gray-700"
               sideOffset={8}
               avoidCollisions={true}
               collisionPadding={16}
@@ -446,35 +446,22 @@ const StatsGrid: React.FC<Props> = ({ stats, isLoading }) => {
   ];
 
   return (
-    <div className="space-y-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {statsConfig.map((stat) => (
-        <Card key={stat.key} className="border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-2">
-                  {stat.shortLabel || stat.label}
-                </p>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <p className={`text-2xl font-bold ${stat.valueColor}`}>
-                    {isLoading ? '-' : stat.value}
-                  </p>
-                </div>
-                {stat.description && (
-                  <p className="text-xs text-gray-500">
-                    {stat.description}
-                  </p>
-                )}
-              </div>
-              
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center ml-4 flex-shrink-0">
-                <div className="text-orange-600 w-6 h-6 flex items-center justify-center">
-                  {stat.icon}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCardComponent
+          key={stat.key}
+          icon={stat.icon}
+          label={stat.label}
+          shortLabel={stat.shortLabel}
+          value={isLoading ? '-' : stat.value}
+          description={stat.description}
+          iconColor={stat.iconColor}
+          valueColor={stat.valueColor}
+          isLoading={isLoading}
+          tooltip={stat.tooltip}
+          trend={stat.trend}
+          syncStatus={stat.syncStatus}
+        />
       ))}
     </div>
   );

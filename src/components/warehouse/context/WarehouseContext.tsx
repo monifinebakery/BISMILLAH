@@ -408,11 +408,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     async (
       bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string }
     ): Promise<boolean> => {
-    // Check authentication
-    if (!user) {
-      toast.error('Anda harus login terlebih dahulu untuk menambahkan bahan baku');
-      return false;
-    }
+    // Authentication is already handled by AuthGuard at router level
     
     try {
       logger.debug(`[${providerId.current}] 🎯 addBahanBaku called:`, bahan);
@@ -427,11 +423,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   }, [createMutation, user]);
 
   const updateBahanBaku = React.useCallback(async (id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> => {
-    // Check authentication
-    if (!user) {
-      toast.error('Anda harus login terlebih dahulu untuk memperbarui bahan baku');
-      return false;
-    }
+    // Authentication is already handled by AuthGuard at router level
     
     try {
       logger.info(`[${providerId.current}] 🎯 updateBahanBaku called:`, { id, updates });

@@ -101,7 +101,7 @@ export const useAuthLifecycle = ({
       const sameUser =
         !!session?.user?.id && session.user.id === lastEventRef.current.userId;
       const sameEvent = event === lastEventRef.current.event;
-      const tooSoon = nowTs - lastEventRef.current.ts < 800; // 0.8s window
+      const tooSoon = nowTs - lastEventRef.current.ts < 300; // Reduced from 800ms to 300ms window
       
       // Don't dedupe SIGNED_IN events as they're critical for login flow
       if (sameUser && sameEvent && tooSoon && event !== 'SIGNED_IN') {
@@ -355,8 +355,8 @@ export const useAuthLifecycle = ({
           }
         }
 
-        const MAX_SESSION_ATTEMPTS = 2;
-        const BASE_RETRY_DELAY_MS = 1500;
+        const MAX_SESSION_ATTEMPTS = 1; // Reduced from 2 to 1 for faster loading
+        const BASE_RETRY_DELAY_MS = 800; // Reduced from 1500ms to 800ms
 
         const fetchSessionWithRetry = async (): Promise<{
           result: GetSessionResult | null;
@@ -370,7 +370,7 @@ export const useAuthLifecycle = ({
             attempt < MAX_SESSION_ATTEMPTS && mountedRef.current;
             attempt++
           ) {
-            const adaptiveTimeout = getAdaptiveTimeout(15000);
+            const adaptiveTimeout = getAdaptiveTimeout(5000); // Reduced from 15s to 5s
             const { data, error } = await safeWithTimeout(
               () => supabase.auth.getSession(),
               {
@@ -410,7 +410,7 @@ export const useAuthLifecycle = ({
               );
             }
 
-            const backoff = Math.min(5000, BASE_RETRY_DELAY_MS * (attempt + 1));
+            const backoff = Math.min(2000, BASE_RETRY_DELAY_MS * (attempt + 1)); // Reduced max from 5s to 2s
             await new Promise((resolve) => setTimeout(resolve, backoff));
           }
 

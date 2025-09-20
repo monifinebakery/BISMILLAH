@@ -219,8 +219,8 @@ export const verifyEmailOtp = async (
         logger.warn('Failed to trigger payment refresh:', eventError);
       }
       
-      // ✅ ENHANCED: Force a small delay to ensure session is fully committed
-      await new Promise(resolve => setTimeout(resolve, 300)); // Increased delay for payment sync
+      // ✅ ENHANCED: Minimal delay to ensure session is committed (optimized for speed)
+      await new Promise(resolve => setTimeout(resolve, 100)); // Reduced from 300ms to 100ms for faster login
       
       toast.success('Login berhasil!');
       return true;

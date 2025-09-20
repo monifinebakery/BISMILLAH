@@ -4,7 +4,3 @@ project_id = "kewhzkfvswbimmwtpymw"
 [functions.scalev-webhook]
 verify_jwt = false
 
-[functions.vercel-deployments]
-# Endpoint ini dipanggil langsung dari browser tanpa token Supabase,
-# jadi JWT verification perlu dimatikan agar tidak di-block dengan 404/401.
-verify_jwt = false

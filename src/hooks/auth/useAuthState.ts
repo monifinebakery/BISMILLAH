@@ -30,6 +30,29 @@ export const useAuthState = () => {
     }
   }, []);
 
+  // ✅ FIX: Atomic auth state update to prevent race conditions
+  const updateAuthState = useCallback((newSession: Session | null, newUser: User | null) => {
+    let changed = false;
+    
+    // Check if session changed
+    if (sessionRef.current?.access_token !== newSession?.access_token) {
+      sessionRef.current = newSession;
+      changed = true;
+    }
+    
+    // Check if user changed 
+    if (userRef.current?.id !== newUser?.id) {
+      userRef.current = newUser;
+      changed = true;
+    }
+    
+    // Atomic state update if anything changed
+    if (changed) {
+      setSession(sessionRef.current);
+      setUser(userRef.current);
+    }
+  }, []);
+
   const updateLoadingState = useCallback((loading: boolean) => {
     // ✅ ANTI-FLICKER: Only update if loading state actually changed
     setIsLoading(current => current !== loading ? loading : current);
@@ -73,6 +96,7 @@ export const useAuthState = () => {
     // Update methods
     updateSession,
     updateUser,
+    updateAuthState, // ✅ NEW: Atomic update method
     updateLoadingState,
     updateReadyState,
     resetAuthState,

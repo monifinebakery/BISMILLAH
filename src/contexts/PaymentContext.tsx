@@ -1,12 +1,13 @@
 // src/contexts/PaymentContext.tsx - FIXED Hook Order Issues
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { useUnlinkedPayments } from '@/hooks/useUnlinkedPayments';
 import { getUserAccessStatus } from '@/services/auth/payments/access';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { withTimeout } from '@/utils/asyncUtils';
+import { safeStorageGet, safeStorageSet } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 
 interface PaymentContextType {
   // Original payment context
@@ -137,17 +138,17 @@ const accessPromise = getUserAccessStatus();
         const now = Date.now();
         let lastShown = 0;
         try {
-          lastShown = parseInt(localStorage.getItem('orderPopupLastShown') || '0', 10) || 0;
+          lastShown = parseInt(safeStorageGet('orderPopupLastShown') || '0', 10) || 0; // ✅ FIX: Thread-safe get
         } catch (storageError) {
           logger.debug('PaymentContext: Failed to read orderPopupLastShown from storage', storageError);
         }
         const cooldownMs = 2 * 60 * 60 * 1000; // 2 hours
         if (now - lastShown > cooldownMs) {
           logger.info('PaymentContext: Auto-showing manual order popup (cooldown passed)');
-          window.setTimeout(() => {
+          window.setTimeout(async () => {
             setShowOrderPopup(true);
             try {
-              localStorage.setItem('orderPopupLastShown', String(Date.now()));
+              await safeStorageSet('orderPopupLastShown', String(Date.now())); // ✅ FIX: Thread-safe set
             } catch (storageError) {
               logger.debug('PaymentContext: Failed to persist orderPopupLastShown timestamp', storageError);
             }
@@ -198,16 +199,29 @@ const accessPromise = getUserAccessStatus();
 
   // 7. ALL useEffect hooks - ALWAYS called in same order
 
-  // ✅ NEW EFFECT: Listen for auth refresh events
+  // ✅ FIXED: Add mutex to prevent race conditions with main auth flow
+  const refreshMutexRef = useRef(false);
+  
   useEffect(() => {
-    const handleAuthRefreshRequest = (event: CustomEvent) => {
+    const handleAuthRefreshRequest = async (event: CustomEvent) => {
       const { reason } = event.detail || {};
       if (reason === 'otp_verification_success') {
-        logger.info('PaymentContext: Received OTP success refresh request - triggering payment refresh');
-        // Delay payment refresh slightly to ensure session is fully established
-        setTimeout(() => {
-          enhancedRefetch();
-        }, 500);
+        // ✅ FIX: Use mutex to prevent concurrent refresh operations
+        if (refreshMutexRef.current) {
+          logger.debug('PaymentContext: Refresh already in progress, skipping');
+          return;
+        }
+        
+        refreshMutexRef.current = true;
+        logger.info('PaymentContext: Received OTP success refresh request - triggering payment refresh with mutex');
+        
+        try {
+          // ✅ FIX: Longer delay to avoid race with main auth state updates
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await enhancedRefetch();
+        } finally {
+          refreshMutexRef.current = false;
+        }
       }
     };
 

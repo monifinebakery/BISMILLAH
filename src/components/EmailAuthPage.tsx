@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { safeStorageGet, safeStorageSet, safeStorageRemove } from "@/utils/auth/safeStorage"; // ✅ FIX: Thread-safe storage
 
 type AuthStep = "email" | "otp" | "verifying" | "success";
 
@@ -33,54 +34,62 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
 
   // Load persisted session on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const { step: savedStep, email: savedEmail, timestamp } = JSON.parse(saved);
-        
-        // Only restore if session is less than 5 minutes old
-        const isRecent = Date.now() - timestamp < 5 * 60 * 1000;
-        
-        if (isRecent && savedStep === 'otp' && savedEmail) {
-          setStep(savedStep);
-          setEmail(savedEmail);
-          // Only log in dev mode
-          if (import.meta.env.DEV) {
-            console.log('📱 EmailAuth: Restored OTP session for:', savedEmail);
-          }
+    const restoreSession = async () => {
+      try {
+        const saved = safeStorageGet(STORAGE_KEY); // ✅ FIX: Thread-safe get
+        if (saved) {
+          const { step: savedStep, email: savedEmail, timestamp } = JSON.parse(saved);
           
-          // Focus first OTP input after restoration
-          setTimeout(() => {
-            otpRefs.current[0]?.focus();
-          }, 200);
-        } else {
-          // Clear expired session
-          localStorage.removeItem(STORAGE_KEY);
+          // Only restore if session is less than 5 minutes old
+          const isRecent = Date.now() - timestamp < 5 * 60 * 1000;
+          
+          if (isRecent && savedStep === 'otp' && savedEmail) {
+            setStep(savedStep);
+            setEmail(savedEmail);
+            // Only log in dev mode
+            if (import.meta.env.DEV) {
+              console.log('📱 EmailAuth: Restored OTP session for:', savedEmail);
+            }
+            
+            // Focus first OTP input after restoration
+            setTimeout(() => {
+              otpRefs.current[0]?.focus();
+            }, 200);
+          } else {
+            // Clear expired session
+            await safeStorageRemove(STORAGE_KEY); // ✅ FIX: Thread-safe remove
+          }
         }
+      } catch (error) {
+        console.warn('Failed to restore auth session:', error);
+        await safeStorageRemove(STORAGE_KEY); // ✅ FIX: Thread-safe remove
       }
-    } catch (error) {
-      console.warn('Failed to restore auth session:', error);
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    };
+    
+    void restoreSession();
   }, []);
 
   // Save session when step changes to OTP (throttled)
   useEffect(() => {
-    if (step === 'otp' && email) {
-      const sessionData = {
-        step,
-        email,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
-      // Only log in dev mode
-      if (import.meta.env.DEV) {
-        console.log('💾 EmailAuth: Saved OTP session');
+    const saveSession = async () => {
+      if (step === 'otp' && email) {
+        const sessionData = {
+          step,
+          email,
+          timestamp: Date.now()
+        };
+        await safeStorageSet(STORAGE_KEY, JSON.stringify(sessionData)); // ✅ FIX: Thread-safe set
+        // Only log in dev mode
+        if (import.meta.env.DEV) {
+          console.log('💾 EmailAuth: Saved OTP session');
+        }
+      } else if (step === 'email' || step === 'success') {
+        // Clear session when back to email or successful
+        await safeStorageRemove(STORAGE_KEY); // ✅ FIX: Thread-safe remove
       }
-    } else if (step === 'email' || step === 'success') {
-      // Clear session when back to email or successful
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    };
+    
+    void saveSession();
   }, [step, email]);
 
   // Handle page visibility changes to maintain session (optimized)
@@ -96,6 +105,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
           email,
           timestamp: Date.now()
         };
+        // ✅ SYNC: Use direct localStorage for event handlers (performance critical)
         localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
       }
     };
@@ -107,6 +117,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
         email,
         timestamp: Date.now()
       };
+      // ✅ SYNC: Use direct localStorage for event handlers (performance critical)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
     };
 
@@ -397,8 +408,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
               {import.meta.env.DEV && (
                 <div className="text-center">
                   <button
-                    onClick={() => {
-                      localStorage.removeItem(STORAGE_KEY);
+                    onClick={async () => {
+                      await safeStorageRemove(STORAGE_KEY); // ✅ FIX: Thread-safe remove
                       console.log('🧹 EmailAuth: Cleared session storage');
                     }}
                     className="text-xs text-gray-400 hover:text-gray-600 underline"

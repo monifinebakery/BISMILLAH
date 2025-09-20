@@ -21,6 +21,7 @@ import {
   needsSafariWorkaround,
   safariAuthFallback,
 } from '@/utils/safariUtils';
+import { safeStorageRemove } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 import {
   detectProblematicAndroid,
   forceAndroidSessionRefresh,
@@ -35,6 +36,7 @@ interface AuthLifecycleParams {
   refreshUser: () => Promise<void>;
   updateSession: (session: Session | null) => void;
   updateUser: (user: User | null) => void;
+  updateAuthState: (session: Session | null, user: User | null) => void; // ✅ NEW: Atomic update
   updateLoadingState: (loading: boolean) => void;
   updateReadyState: (ready: boolean) => void;
   sessionRef: React.MutableRefObject<Session | null>;
@@ -45,6 +47,7 @@ export const useAuthLifecycle = ({
   refreshUser,
   updateSession,
   updateUser,
+  updateAuthState, // ✅ NEW: Atomic update method
   updateLoadingState,
   updateReadyState,
   sessionRef,
@@ -118,14 +121,8 @@ export const useAuthLifecycle = ({
       const { session: validSession, user: validUser } =
         validateSession(session);
 
-      // ✅ FIX: Only update state if actually different
-      if (sessionRef.current?.access_token !== validSession?.access_token) {
-        updateSession(validSession);
-      }
-
-      if (userRef.current?.id !== validUser?.id) {
-        updateUser(validUser);
-      }
+      // ✅ FIX: Use atomic update to prevent race conditions
+      updateAuthState(validSession, validUser);
 
       // Remember last processed event signature
       lastEventRef.current = {
@@ -159,7 +156,7 @@ export const useAuthLifecycle = ({
 
       if (validUser) {
         try {
-          localStorage.removeItem("otpVerifiedAt");
+          await safeStorageRemove("otpVerifiedAt"); // ✅ FIX: Thread-safe removal
         } catch (storageError) {
           logger.warn("AuthContext: Failed to clear OTP flag", storageError);
         }
@@ -174,7 +171,7 @@ export const useAuthLifecycle = ({
         // This prevents race conditions between AuthContext and AuthGuard
       }
     },
-    [updateSession, updateUser, sessionRef, userRef],
+    [updateAuthState, sessionRef, userRef], // ✅ FIX: Use atomic update in dependencies
   );
 
   // Main initialization effect
@@ -216,8 +213,7 @@ export const useAuthLifecycle = ({
         };
 
         if (mountedRef.current) {
-          updateSession(mockSession);
-          updateUser(mockUser);
+          updateAuthState(mockSession, mockUser); // ✅ FIX: Atomic update
           updateLoadingState(false);
           updateReadyState(true);
         }
@@ -249,8 +245,7 @@ export const useAuthLifecycle = ({
                 validateSession(androidResult.session);
 
               if (mountedRef.current && validSession && validUser) {
-                updateSession(validSession);
-                updateUser(validUser);
+                updateAuthState(validSession, validUser); // ✅ FIX: Atomic update
                 updateLoadingState(false);
                 updateReadyState(true);
 
@@ -328,8 +323,7 @@ export const useAuthLifecycle = ({
               validateSession(session);
 
             if (mountedRef.current) {
-              updateSession(validSession);
-              updateUser(validUser);
+              updateAuthState(validSession, validUser); // ✅ FIX: Atomic update
               updateLoadingState(false);
               updateReadyState(true);
             }
@@ -443,8 +437,7 @@ export const useAuthLifecycle = ({
           );
 
           if (mountedRef.current) {
-            updateSession(null);
-            updateUser(null);
+            updateAuthState(null, null); // ✅ FIX: Atomic update
           }
           return;
         }
@@ -460,8 +453,7 @@ export const useAuthLifecycle = ({
             sessionError,
           );
           if (mountedRef.current) {
-            updateSession(null);
-            updateUser(null);
+            updateAuthState(null, null); // ✅ FIX: Atomic update
           }
           return;
         }
@@ -479,8 +471,7 @@ export const useAuthLifecycle = ({
         });
 
         if (mountedRef.current) {
-          updateSession(validSession);
-          updateUser(validUser);
+          updateAuthState(validSession, validUser); // ✅ FIX: Atomic update
         }
 
         if (rawSession && !validSession) {
@@ -499,8 +490,7 @@ export const useAuthLifecycle = ({
         logger.error("AuthContext initialization failed", error);
 
         if (mountedRef.current) {
-          updateSession(null);
-          updateUser(null);
+          updateAuthState(null, null); // ✅ FIX: Atomic update
         }
       } finally {
         if (mountedRef.current) {
@@ -526,24 +516,10 @@ export const useAuthLifecycle = ({
       }
     };
 
-    const handleAuthRefreshRequest = () => {
-      if (!mountedRef.current) return;
-      if (isFetchingRef.current) {
-        logger.debug("AuthContext: Skipping auth-refresh-request (in-flight)");
-        return;
-      }
-      logger.debug("AuthContext: Received auth-refresh-request event");
-      isFetchingRef.current = true;
-      void refreshUser().finally(() => {
-        isFetchingRef.current = false;
-      });
-    };
-
+    // ✅ REMOVED: Duplicate auth-refresh-request listener (handled by PaymentContext)
+    // This prevents race conditions between multiple event handlers
+    
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
-    window.addEventListener(
-      "auth-refresh-request",
-      handleAuthRefreshRequest as EventListener,
-    );
 
     void initializeAuth();
 
@@ -554,10 +530,7 @@ export const useAuthLifecycle = ({
         "unhandledrejection",
         handleUnhandledRejection,
       );
-      window.removeEventListener(
-        "auth-refresh-request",
-        handleAuthRefreshRequest as EventListener,
-      );
+      // ✅ REMOVED: No longer removing auth-refresh-request listener since we don't add it
     };
   }, [
     refreshUser,

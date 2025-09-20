@@ -389,7 +389,7 @@ const AddTransactionPage: React.FC = () => {
       };
       
       // Call the financial API
-      const financialApi = await import('../services/financialApi');
+      const financialApi = await import('@/components/financial/services/financialApi');
       await financialApi.addFinancialTransaction(transactionData, user.id);
       
       toast.success('Transaksi berhasil ditambahkan');

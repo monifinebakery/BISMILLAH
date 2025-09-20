@@ -182,6 +182,12 @@ const WarehouseAddEditPage: React.FC<WarehouseAddEditPageProps> = () => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check authentication before submission
+    if (!user) {
+      toast.error('Anda harus login terlebih dahulu untuk menyimpan data');
+      return;
+    }
+    
     if (!validateForm()) {
       toast.error('Perbaiki kesalahan pada form');
       return;
@@ -212,6 +218,8 @@ const WarehouseAddEditPage: React.FC<WarehouseAddEditPageProps> = () => {
       if (success) {
         toast.success(isEditMode ? 'Item berhasil diperbarui' : 'Item berhasil ditambahkan');
         navigate('/gudang');
+      } else {
+        toast.error('Gagal menyimpan data. Silakan coba lagi.');
       }
     } catch (error: any) {
       logger.error('Error in handleSubmit:', error);
@@ -219,7 +227,7 @@ const WarehouseAddEditPage: React.FC<WarehouseAddEditPageProps> = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validateForm, isEditMode, itemId, updateBahanBaku, addBahanBaku, navigate]);
+  }, [formData, validateForm, isEditMode, itemId, updateBahanBaku, addBahanBaku, navigate, user]);
 
   // Cancel handler
   const handleCancel = useCallback(() => {

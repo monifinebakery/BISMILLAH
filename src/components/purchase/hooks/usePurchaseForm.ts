@@ -283,6 +283,15 @@ export const usePurchaseForm = ({
     setIsSubmitting(true);
 
     try {
+      // Check authentication before submission
+      const { useAuth } = await import('@/contexts/AuthContext');
+      const { user } = useAuth();
+      if (!user) {
+        onError?.('Anda harus login terlebih dahulu untuk menyimpan pembelian');
+        setIsSubmitting(false);
+        return;
+      }
+      
       const status = newStatus ?? (mode === 'edit' && initialData ? initialData.status : 'pending' as const);
 
       // ✅ AUTO-SAVE SUPPLIER: Handle supplier auto-save before purchase

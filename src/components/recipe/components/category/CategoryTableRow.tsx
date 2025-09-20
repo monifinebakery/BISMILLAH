@@ -94,20 +94,25 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
             </Button>
           </form>
         ) : (
-          <div className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-gray-400" />
-            <span className="font-medium text-gray-900">{category.name}</span>
-            {!category.isCustom && (
-              <Badge variant="secondary" className="ml-2 text-xs">
-                Default
-              </Badge>
-            )}
-          </div>
+          <>
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-gray-400" />
+              <span className="font-medium text-gray-900">{category.name}</span>
+              {!category.isCustom && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  Default
+                </Badge>
+              )}
+            </div>
+            <div className="mt-1 text-xs text-gray-500 sm:hidden">
+              {category.count} resep
+            </div>
+          </>
         )}
       </TableCell>
       
       {/* Recipe Count */}
-      <TableCell className="text-center">
+      <TableCell className="text-center hidden sm:table-cell">
         <Badge 
           variant={category.count > 0 ? "default" : "secondary"} 
           className={
@@ -121,7 +126,7 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
       </TableCell>
       
       {/* Actions */}
-      <TableCell className="text-right">
+      <TableCell className="text-right hidden sm:table-cell">
         <div className="flex items-center justify-end gap-2">
           {category.canEdit && (
             <Button

@@ -358,10 +358,10 @@ const WarehousePageRefactored: React.FC = () => {
     <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
   </div>}>
                 <WarehouseTable
-                  items={bahanBaku || []}
+                  items={coreResult.pagination?.currentItems || coreResult.filters?.filteredItems || []}
                   isLoading={loading}
-                  isSelectionMode={selectedItems && selectedItems.length > 0}
-                  searchTerm={""}
+                  isSelectionMode={coreResult.selection?.isSelectionMode || false}
+                  searchTerm={searchTerm}
                   sortConfig={sortConfig || { key: 'nama', direction: 'asc' }}
                   onSort={handleSort}
                   onEdit={(item) => {
@@ -377,8 +377,15 @@ const WarehousePageRefactored: React.FC = () => {
                   onToggleSelection={handleSelectItem}
                   onSelectPage={handleSelectAll}
                   isSelected={(id: string) => selectedItems?.includes(id) || false}
-                  isPageSelected={selectedItems && selectedItems.length > 0 && selectedItems.length === bahanBaku?.length}
-                  isPagePartiallySelected={selectedItems && selectedItems.length > 0 && selectedItems.length < (bahanBaku?.length || 0)}
+                  isPageSelected={(() => {
+                    const pageItems = coreResult.pagination?.currentItems || [];
+                    return pageItems.length > 0 && pageItems.every(item => selectedItems?.includes(item.id));
+                  })()}
+                  isPagePartiallySelected={(() => {
+                    const pageItems = coreResult.pagination?.currentItems || [];
+                    const selCount = pageItems.filter(item => selectedItems?.includes(item.id)).length;
+                    return selCount > 0 && selCount < pageItems.length;
+                  })()}
                 />
               </Suspense>
             </ErrorBoundary>

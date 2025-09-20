@@ -3,15 +3,24 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Simple notification type matching our context
+// Simple notification type matching Supabase notifications table structure
 export interface SimpleNotification {
-  id: string;
-  user_id: string;
+  id: string; // uuid
+  user_id: string; // uuid
   title: string;
   message?: string;
   type: 'info' | 'success' | 'warning' | 'error';
-  created_at: string;
+  icon?: string;
+  priority: number; // 1-5
+  related_type?: string;
+  related_id?: string;
+  action_url?: string;
   is_read: boolean;
+  is_archived: boolean;
+  metadata?: Record<string, any>; // jsonb
+  created_at: string; // timestamp with time zone
+  updated_at: string; // timestamp with time zone
+  expires_at?: string; // timestamp with time zone
 }
 
 // Get notifications for a user
@@ -36,14 +45,16 @@ export const getSimpleNotifications = async (userId: string): Promise<SimpleNoti
 
 // Add a new notification
 export const addSimpleNotification = async (
-  notification: Omit<SimpleNotification, 'id' | 'created_at'>,
+  notification: Omit<SimpleNotification, 'id' | 'created_at' | 'updated_at'>,
   userId: string
 ): Promise<SimpleNotification | null> => {
   try {
+    const now = new Date().toISOString();
     const newNotification = {
       ...notification,
       user_id: userId,
-      created_at: new Date().toISOString()
+      created_at: now,
+      updated_at: now
     };
 
     const { data, error } = await supabase
@@ -66,7 +77,10 @@ export const markSimpleNotificationAsRead = async (notificationId: string): Prom
   try {
     const { error } = await supabase
       .from('notifications')
-      .update({ is_read: true })
+      .update({ 
+        is_read: true,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', notificationId);
 
     if (error) throw error;
@@ -83,7 +97,10 @@ export const markAllSimpleNotificationsAsRead = async (userId: string): Promise<
   try {
     const { error } = await supabase
       .from('notifications')
-      .update({ is_read: true })
+      .update({ 
+        is_read: true,
+        updated_at: new Date().toISOString()
+      })
       .eq('user_id', userId)
       .eq('is_read', false);
 
@@ -92,6 +109,26 @@ export const markAllSimpleNotificationsAsRead = async (userId: string): Promise<
     return true;
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
+    return false;
+  }
+};
+
+// Archive a notification
+export const archiveSimpleNotification = async (notificationId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ 
+        is_archived: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', notificationId);
+
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error archiving notification:', error);
     return false;
   }
 };

@@ -11,7 +11,6 @@ import { logger } from '@/utils/logger';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { useSimpleNotification } from './SimpleNotificationContext';
-import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
@@ -258,9 +257,11 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     onError: (error: Error, variables) => {
       logger.error('❌ Create asset mutation error:', error.message);
       
-      addNotification(createNotificationHelper.systemError(
-        `Gagal menambahkan aset ${variables.nama}: ${error.message}`
-      ));
+      addNotification({
+        title: 'Kesalahan Sistem',
+        message: `Gagal menambahkan aset ${variables.nama}: ${error.message}`,
+        type: 'error'
+      });
       
       toast.error(`Gagal menyimpan aset: ${error.message}`);
     },
@@ -292,9 +293,11 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     onError: (error: Error) => {
       logger.error('❌ Update asset mutation error:', error.message);
       
-      addNotification(createNotificationHelper.systemError(
-        `Gagal memperbarui aset: ${error.message}`
-      ));
+      addNotification({
+        title: 'Kesalahan Sistem',
+        message: `Gagal memperbarui aset: ${error.message}`,
+        type: 'error'
+      });
       
       toast.error(`Gagal memperbarui aset: ${error.message}`);
     },
@@ -341,9 +344,11 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     onError: (error: Error) => {
       logger.error('❌ Delete asset mutation error:', error.message);
       
-      addNotification(createNotificationHelper.systemError(
-        `Gagal menghapus aset: ${error.message}`
-      ));
+      addNotification({
+        title: 'Kesalahan Sistem',
+        message: `Gagal menghapus aset: ${error.message}`,
+        type: 'error'
+      });
       
       toast.error(`Gagal menghapus aset: ${error.message}`);
     },
@@ -444,9 +449,11 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   React.useEffect(() => {
     if (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      addNotification(createNotificationHelper.systemError(
-        `Gagal memuat data aset: ${errorMessage}`
-      ));
+      addNotification({
+        title: 'Kesalahan Sistem',
+        message: `Gagal memuat data aset: ${errorMessage}`,
+        type: 'error'
+      });
     }
   }, [error, addNotification]);
 

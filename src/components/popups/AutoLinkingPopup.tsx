@@ -359,10 +359,17 @@ const AutoLinkingPopup: React.FC<AutoLinkingPopupProps> = ({
             // ✅ ENHANCED DEBUG: Detailed investigation of why no rows were updated
             console.error('🚨 DEBUG 250901: UPDATE returned no rows! Investigating...');
             
-            // Check if payment still exists and get full details
+            // Check if payment still exists and get specific details needed
             const { data: recheckData } = await supabaseClient
               .from('user_payments')
-              .select('*') // Get ALL columns for debugging
+              .select(`
+                id,
+                user_id,
+                order_id,
+                is_paid,
+                payment_status,
+                email
+              `)
               .eq('order_id', payment.order_id);
 
             // Check how many rows match each condition separately

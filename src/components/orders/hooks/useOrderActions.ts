@@ -135,7 +135,12 @@ export const useOrderActions = ({
           .update({ status: newStatus, updated_at: new Date().toISOString() })
           .eq('id', orderId)
           .eq('user_id', auth.user.id)
-          .select('*')
+          .select(`
+            id,
+            nomor_pesanan,
+            status,
+            total_pesanan
+          `)
           .single();
 
         if (error) throw new Error(`Database error: ${error instanceof Error ? error.message : String(error)}`);

@@ -95,10 +95,18 @@ export const generateInvoiceFromOrder = async (orderId: string): Promise<Invoice
   logger.context('InvoiceAPI', 'Generating invoice from order:', orderId);
   
   try {
-    // Get order data first
+    // Get order data first - only needed fields
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
-      .select('*')
+      .select(`
+        id,
+        nama_pelanggan,
+        email_pelanggan,
+        telepon_pelanggan,
+        alamat_pengiriman,
+        items,
+        total_pesanan
+      `)
       .eq('id', orderId)
       .single();
 

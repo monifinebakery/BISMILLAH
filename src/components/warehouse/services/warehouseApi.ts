@@ -258,21 +258,44 @@ class CrudService {
       const normalizedBahan = normalizeBahanBakuFrontend(bahan as BahanBakuFrontend);
       const dbData = transformToDatabase(normalizedBahan, this.config.userId);
 
-      // Use upsert to avoid 409 conflicts on unique constraints (e.g., user_id+nama+satuan)
-      // If your DB has a different unique index, adjust onConflict accordingly.
+      // Regular insert first
       const { error } = await supabase
         .from('bahan_baku')
-        .upsert(dbData as any, {
-          onConflict: 'user_id,nama,satuan',
-          ignoreDuplicates: false
-        });
+        .insert(dbData as any);
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific unique constraint violation
+        if (error.code === '23505') {
+          // Check which constraint was violated
+          if (error.message.includes('bahan_baku_unique_user_nama')) {
+            throw new Error(
+              `Bahan baku "${bahan.nama}" sudah ada. ` +
+              `Gunakan nama yang berbeda atau update yang sudah ada.`
+            );
+          } else if (error.message.includes('bahan_baku_unique_user_nama_satuan')) {
+            throw new Error(
+              `Kombinasi "${bahan.nama}" dengan satuan "${bahan.satuan}" sudah ada. ` +
+              `Gunakan nama atau satuan yang berbeda.`
+            );
+          } else {
+            throw new Error(
+              `Data bahan baku "${bahan.nama}" sudah ada. ` +
+              `Periksa nama, satuan, atau kombinasi field lainnya.`
+            );
+          }
+        }
+        throw error;
+      }
       return true;
     } catch (error: any) {
-      // If still failing, log and return false gracefully
-      this.handleError('Add failed', error);
-      return false;
+      // Enhanced error logging and re-throw for better user experience
+      logger.error('Add bahan baku failed:', {
+        error: error.message,
+        code: error.code,
+        bahan: bahan.nama,
+        satuan: bahan.satuan
+      });
+      throw error; // Re-throw to let context handle user notification
     }
   }
 

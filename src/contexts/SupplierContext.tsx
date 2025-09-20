@@ -102,7 +102,18 @@ const transformSupplierToDB = (supplier: Partial<Supplier>) => ({
 const fetchSuppliers = async (userId: string): Promise<Supplier[]> => {
   const { data, error } = await supabase
     .from('suppliers')
-    .select('*')
+    .select(`
+      id,
+      nama,
+      kontak,
+      email,
+      telepon,
+      alamat,
+      catatan,
+      user_id,
+      created_at,
+      updated_at
+    `)
     .eq('user_id', userId)
     .order('nama', { ascending: true });
     

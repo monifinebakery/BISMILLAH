@@ -83,9 +83,7 @@ export const FinancialTabs: React.FC<FinancialTabsProps> = ({
 
         {/* Charts Tab */}
         <TabsContent value="charts" className="space-y-6">
-          <Suspense fallback={<div className="flex items-center justify-center p-4">
-    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-  </div>}>
+          <Suspense fallback={null}>
             <ChartsTab 
               filteredTransactions={filteredTransactions}
               dateRange={dateRange as any}
@@ -99,9 +97,7 @@ export const FinancialTabs: React.FC<FinancialTabsProps> = ({
 
         {/* Transactions Tab */}
         <TabsContent value="transactions" className="space-y-6">
-          <Suspense fallback={<div className="flex items-center justify-center p-4">
-    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-  </div>}>
+          <Suspense fallback={null}>
             <TransactionsTab
               filteredTransactions={filteredTransactions}
               isLoading={isLoading}
@@ -122,9 +118,7 @@ export const FinancialTabs: React.FC<FinancialTabsProps> = ({
 
         {/* UMKM Features Tab */}
         <TabsContent value="umkm" className="space-y-4">
-          <Suspense fallback={<div className="flex items-center justify-center p-4">
-    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-  </div>}>
+          <Suspense fallback={null}>
             <UmkmTab transactions={filteredTransactions} />
           </Suspense>
         </TabsContent>

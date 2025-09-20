@@ -1,20 +1,20 @@
 // src/components/financial/hooks/useFinancialHooks.ts
-// Updated facade that exports from refactored modules for backward compatibility
+// Simplified main export file for financial hooks
 
-// Export all individual hooks from the new refactored modules
+// Export all individual hooks
 export { useFinancialOperations } from './crud/useFinancialOperations';
 export { useFinancialForm } from './form/useFinancialForm';
 export { useFinancialSearch } from './search/useFinancialSearch';
 export { useFinancialPagination } from './pagination/useFinancialPagination';
 export { useFinancialDateRange } from './date/useFinancialDateRange';
 
-// Export utility hooks
+// Export query keys (assuming this exists or will be created)
+export { financialQueryKeys } from './useFinancialQueryKeys';
+
+// Export utility hooks that were in the original file
 export { useFinancialData } from './useFinancialData';
 export { useFinancialCalculations } from './useFinancialCalculations';
 export { useFinancialChartData } from './useFinancialChartData';
-
-// Export query keys
-export { financialQueryKeys } from './useFinancialQueryKeys';
 
 // Re-export types for convenience
 export type { 

@@ -11,7 +11,7 @@ import { FinancialTabs } from './components/FinancialTabs';
 
 // Import existing hooks
 import { useFinancialCore } from './hooks/useFinancialCore';
-import { useFinancialChartDataProcessing } from './hooks/useFinancialData';
+import { useFinancialChartData } from './hooks/useFinancialHooks';
 import { useTransactionTable } from './hooks/useTransactionTable';
 import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 
@@ -70,8 +70,15 @@ const FinancialReportPage: React.FC = () => {
   
   // Core data and operations
   const financialCore = useFinancialCore();
-  const chartData = useFinancialChartDataProcessing(financialCore.filteredTransactions);
-  const transactionTable = useTransactionTable(financialCore.filteredTransactions);
+  
+  // 🚀 PERFORMANCE: Load data immediately without deferrals
+  const chartData = useFinancialChartData(
+    financialCore.filteredTransactions,
+    false // never defer
+  );
+  const transactionTable = useTransactionTable(
+    financialCore.filteredTransactions
+  );
   
   // Navigation and transaction handlers
   const navigation = useFinancialNavigation();
@@ -88,22 +95,16 @@ const FinancialReportPage: React.FC = () => {
     category: { isOpen: false }
   });
 
-  // ✅ SIMPLIFIED: Minimal route preloading to speed up initial load
+  // 🚀 PERFORMANCE: Preload components immediately
   useEffect(() => {
-    // Only preload the default tab (charts for desktop, transactions for mobile)
+    // Preload components immediately for faster navigation
     const defaultTab = isMobile ? 'transactions' : 'charts';
-    
-    // Preload only after a delay to not block initial render
-    const timer = setTimeout(() => {
-      if (defaultTab === 'charts') {
-        import('./components/FinancialCharts').catch(() => null);
-        import('./components/CategoryCharts').catch(() => null);
-      } else {
-        import('./components/TransactionTable').catch(() => null);
-      }
-    }, 1000); // Delay preloading by 1 second
-    
-    return () => clearTimeout(timer);
+    if (defaultTab === 'charts') {
+      import('./components/FinancialCharts').catch(() => null);
+      import('./components/CategoryCharts').catch(() => null);
+    } else {
+      import('./components/TransactionTable').catch(() => null);
+    }
   }, [isMobile]);
 
   // Dialog handlers

@@ -54,15 +54,9 @@ const ChartsTab: React.FC<ChartsTabProps> = ({
   onRefresh,
   lastUpdated
 }) => {
-  const Fallback = (
-    <div className="min-h-[120px] flex items-center justify-center">
-      <LoadingSpinner size="sm" />
-    </div>
-  );
-
   return (
     <div className="space-y-6">
-      <Suspense fallback={Fallback}>
+      <Suspense fallback={null}>
         <FinancialCharts 
           filteredTransactions={filteredTransactions}
           dateRange={dateRange as any}
@@ -73,7 +67,7 @@ const ChartsTab: React.FC<ChartsTabProps> = ({
         />
       </Suspense>
 
-      <Suspense fallback={Fallback}>
+      <Suspense fallback={null}>
         <CategoryCharts 
           filteredTransactions={filteredTransactions}
           isLoading={isLoading}

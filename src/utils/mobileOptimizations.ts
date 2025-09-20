@@ -2,44 +2,78 @@
 import { logger } from './logger';
 
 /**
- * Mobile device detection dengan performance hints
+ * ✅ SSR-safe mobile device detection dengan performance hints
  */
 export const detectMobileCapabilities = () => {
+  // ✅ FIX 1: SSR safety - guard against server-side rendering
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return {
+      isMobile: false,
+      isSlowDevice: false,
+      isLowMemory: false,
+      networkType: 'unknown' as const,
+      estimatedSpeed: 'fast' as const,
+      ssrMode: true
+    };
+  }
+
   const userAgent = navigator.userAgent;
   const capabilities = {
     isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent),
     isSlowDevice: false,
     isLowMemory: false,
-    networkType: 'unknown',
-    estimatedSpeed: 'fast'
+    networkType: 'unknown' as 'slow-2g' | '2g' | '3g' | '4g' | 'unknown',
+    estimatedSpeed: 'fast' as 'very-slow' | 'slow' | 'fast',
+    ssrMode: false
   };
 
-  // Detect slow devices
-  capabilities.isSlowDevice = (
-    userAgent.includes('Android 4') ||
-    userAgent.includes('iPhone OS 10') ||
-    userAgent.includes('iPhone OS 11') ||
-    (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4)
-  );
+  // ✅ FIX 2: Better device detection - prioritize hardware specs over User Agent
+  // Detect slow devices based on hardware capabilities first
+  if ('hardwareConcurrency' in navigator && navigator.hardwareConcurrency) {
+    capabilities.isSlowDevice = navigator.hardwareConcurrency < 4;
+  } else {
+    // Fallback to limited User Agent checks (more reliable patterns)
+    capabilities.isSlowDevice = (
+      /Android\s[1-4]\./i.test(userAgent) || // Android 1-4
+      /iPhone\sOS\s[89]_/i.test(userAgent) || // iPhone iOS 8-9
+      /CPU.*OS\s[89]_/i.test(userAgent) // iPad iOS 8-9
+    );
+  }
 
-  // Detect low memory devices
+  // ✅ Better memory detection with fallback
   if ('deviceMemory' in navigator) {
     const deviceMemory = (navigator as any).deviceMemory;
     capabilities.isLowMemory = deviceMemory <= 2; // 2GB or less
+  } else {
+    // Fallback: assume slow devices have low memory
+    capabilities.isLowMemory = capabilities.isSlowDevice;
   }
 
-  // Network capabilities
+  // ✅ FIX 3: Network detection with iOS Safari fallback
   if ('connection' in navigator) {
     const connection = (navigator as any).connection;
-    capabilities.networkType = connection.effectiveType || 'unknown';
-    
-    // Estimate speed based on connection type
-    if (['slow-2g', '2g'].includes(connection.effectiveType)) {
-      capabilities.estimatedSpeed = 'very-slow';
-    } else if (connection.effectiveType === '3g') {
-      capabilities.estimatedSpeed = 'slow';
-    } else if (connection.effectiveType === '4g') {
-      capabilities.estimatedSpeed = 'fast';
+    if (connection.effectiveType) {
+      capabilities.networkType = connection.effectiveType;
+      
+      // Estimate speed based on connection type
+      if (['slow-2g', '2g'].includes(connection.effectiveType)) {
+        capabilities.estimatedSpeed = 'very-slow';
+      } else if (connection.effectiveType === '3g') {
+        capabilities.estimatedSpeed = 'slow';
+      } else if (connection.effectiveType === '4g') {
+        capabilities.estimatedSpeed = 'fast';
+      }
+    }
+  } else {
+    // ✅ FIX: Fallback for iOS Safari - estimate based on device age
+    if (capabilities.isMobile) {
+      if (capabilities.isSlowDevice) {
+        capabilities.estimatedSpeed = 'slow';
+        capabilities.networkType = '3g'; // Conservative estimate
+      } else {
+        capabilities.estimatedSpeed = 'fast';
+        capabilities.networkType = '4g'; // Modern device assumption
+      }
     }
   }
 
@@ -48,54 +82,68 @@ export const detectMobileCapabilities = () => {
 };
 
 /**
- * Get optimized timeouts based on device capabilities
+ * ✅ FIX 3: Better timeout strategy - shorter timeout with retry, not single long wait
  */
 export const getMobileOptimizedTimeout = (
   baseTimeout: number,
-  operation: 'auth' | 'api' | 'component-load' = 'api'
+  operation: 'auth' | 'api' | 'component-load' = 'api',
+  attempt: number = 1
 ) => {
   const capabilities = detectMobileCapabilities();
+  
+  // ✅ SSR safety
+  if (capabilities.ssrMode) {
+    return baseTimeout;
+  }
+
   let timeout = baseTimeout;
 
-  // Base mobile adjustment - mobile needs MORE time for auth, not less
+  // ✅ IMPROVED STRATEGY: Moderate base increase, rely on retry logic
   if (capabilities.isMobile) {
-    timeout *= 1.5; // 50% longer for mobile auth (was reducing by 20%)
+    timeout *= 1.3; // Moderate 30% increase (was 50%)
   }
 
   // Device-specific adjustments
   if (capabilities.isSlowDevice) {
-    timeout *= capabilities.isMobile ? 1.3 : 2;
+    timeout *= capabilities.isMobile ? 1.2 : 1.5; // Reduced multipliers
   }
 
   if (capabilities.isLowMemory) {
-    timeout *= 1.2;
+    timeout *= 1.1; // Reduced from 1.2
   }
 
-  // Network-specific adjustments for mobile auth
+  // Network-specific adjustments - more conservative
   switch (capabilities.estimatedSpeed) {
     case 'very-slow':
-      timeout *= capabilities.isMobile ? 4 : 4; // Increased mobile multiplier
+      timeout *= capabilities.isMobile ? 2 : 2.5; // Reduced from 4x
       break;
     case 'slow':
-      timeout *= capabilities.isMobile ? 3 : 2; // Increased mobile multiplier
+      timeout *= capabilities.isMobile ? 1.5 : 1.8; // Reduced from 3x
       break;
     case 'fast':
-      timeout *= capabilities.isMobile ? 1.2 : 0.9; // Still longer for mobile even on fast network
+      timeout *= capabilities.isMobile ? 1.1 : 1.0;
       break;
   }
 
-  // Operation-specific limits - increased for mobile compatibility
+  // ✅ FIX 3: Reasonable operation limits with retry strategy
   const maxTimeouts = {
-    auth: capabilities.isMobile ? 45000 : 20000, // Increased from 12s to 45s for mobile auth
-    api: capabilities.isMobile ? 15000 : 15000, // Increased from 8s to 15s
-    'component-load': capabilities.isMobile ? 5000 : 5000 // Increased from 3s to 5s
+    auth: capabilities.isMobile ? 15000 : 12000, // Reduced from 45s to 15s - rely on retries
+    api: capabilities.isMobile ? 8000 : 6000,    // Reduced from 15s to 8s
+    'component-load': capabilities.isMobile ? 3000 : 2000 // Reduced from 5s to 3s
   };
 
-  const finalTimeout = Math.min(timeout, maxTimeouts[operation]);
+  // ✅ Exponential backoff for retries (attempt 2+ gets longer timeout)
+  if (attempt > 1) {
+    const retryMultiplier = Math.min(attempt * 1.5, 3); // Cap at 3x for attempt 3+
+    timeout *= retryMultiplier;
+  }
+
+  const finalTimeout = Math.min(timeout, maxTimeouts[operation] * Math.min(attempt, 3));
   
-  logger.debug(`Mobile optimized timeout for ${operation}:`, {
+  logger.debug(`Mobile optimized timeout for ${operation} (attempt ${attempt}):`, {
     base: baseTimeout,
     final: finalTimeout,
+    attempt,
     capabilities
   });
 
@@ -103,7 +151,33 @@ export const getMobileOptimizedTimeout = (
 };
 
 /**
- * Mobile-optimized setTimeout dengan automatic cleanup
+ * ✅ NEW: Retry-enabled timeout with exponential backoff
+ */
+export const getMobileTimeoutWithRetry = (
+  baseTimeout: number,
+  operation: 'auth' | 'api' | 'component-load' = 'api'
+) => {
+  const capabilities = detectMobileCapabilities();
+  const maxRetries = capabilities.isMobile ? 3 : 2;
+  
+  return {
+    getTimeout: (attempt: number = 1) => getMobileOptimizedTimeout(baseTimeout, operation, attempt),
+    maxRetries,
+    shouldRetry: (error: Error) => {
+      const msg = error.message.toLowerCase();
+      return msg.includes('timeout') || msg.includes('network') || msg.includes('fetch');
+    },
+    getRetryDelay: (attempt: number) => {
+      // Exponential backoff with jitter
+      const baseDelay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Cap at 5s
+      const jitter = Math.random() * 0.3 * baseDelay; // ±30% jitter
+      return baseDelay + jitter;
+    }
+  };
+};
+
+/**
+ * ✅ SSR-safe mobile-optimized setTimeout dengan automatic cleanup
  */
 export const setMobileOptimizedTimeout = (
   callback: () => void,
@@ -111,6 +185,12 @@ export const setMobileOptimizedTimeout = (
   priority: 'critical' | 'high' | 'medium' | 'low' = 'medium'
 ) => {
   const capabilities = detectMobileCapabilities();
+  
+  // ✅ SSR safety
+  if (capabilities.ssrMode) {
+    return setTimeout(callback, baseDelay);
+  }
+
   let delay = baseDelay;
 
   // Priority-based delays untuk mobile
@@ -139,7 +219,7 @@ export const setMobileOptimizedTimeout = (
 };
 
 /**
- * Non-blocking task execution untuk mobile
+ * ✅ SSR-safe non-blocking task execution untuk mobile
  */
 export const executeMobileOptimizedTask = async (
   task: () => Promise<void> | void,
@@ -147,8 +227,8 @@ export const executeMobileOptimizedTask = async (
 ) => {
   const capabilities = detectMobileCapabilities();
   
-  if (!capabilities.isMobile || priority === 'critical') {
-    // Execute immediately for desktop or critical tasks
+  // ✅ SSR safety or immediate execution for critical tasks
+  if (capabilities.ssrMode || !capabilities.isMobile || priority === 'critical') {
     return await task();
   }
 
@@ -166,7 +246,11 @@ export const executeMobileOptimizedTask = async (
     switch (priority) {
       case 'high':
         // Use requestAnimationFrame for high priority
-        requestAnimationFrame(executeTask);
+        if (typeof requestAnimationFrame !== 'undefined') {
+          requestAnimationFrame(executeTask);
+        } else {
+          setTimeout(executeTask, 16);
+        }
         break;
         
       case 'medium':
@@ -190,12 +274,18 @@ export const executeMobileOptimizedTask = async (
 };
 
 /**
- * Mobile-friendly loading states
+ * ✅ SSR-safe mobile-friendly loading states
  */
 export const getMobileLoadingComponent = (
   stage: 'auth' | 'app' | 'component' | 'feature',
-  isMobile: boolean
+  isMobile?: boolean
 ) => {
+  // ✅ Auto-detect mobile if not provided, with SSR safety
+  if (isMobile === undefined) {
+    const capabilities = detectMobileCapabilities();
+    isMobile = capabilities.isMobile;
+  }
+
   const sizes = {
     auth: isMobile ? 'w-12 h-12' : 'w-16 h-16',
     app: isMobile ? 'w-10 h-10' : 'w-14 h-14',
@@ -218,7 +308,7 @@ export const getMobileLoadingComponent = (
 };
 
 /**
- * Performance monitor untuk mobile debugging
+ * ✅ SSR-safe performance monitor dengan storage quota limits
  */
 export const createMobilePerformanceMonitor = () => {
   const capabilities = detectMobileCapabilities();
@@ -230,13 +320,63 @@ export const createMobilePerformanceMonitor = () => {
     totalLoadTime: 0
   };
 
+  // ✅ FIX 5: Storage quota management
+  const STORAGE_KEY = 'mobile-perf-report';
+  const MAX_REPORTS = 5; // Keep only last 5 reports to prevent quota issues
+
+  const manageStorageQuota = (newReport: any) => {
+    if (capabilities.ssrMode || typeof localStorage === 'undefined') {
+      return;
+    }
+
+    try {
+      // Get existing reports
+      const existing = localStorage.getItem(STORAGE_KEY);
+      let reports: any[] = [];
+      
+      if (existing) {
+        try {
+          const parsed = JSON.parse(existing);
+          reports = Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          reports = [];
+        }
+      }
+      
+      // Add new report and limit to MAX_REPORTS
+      reports.push(newReport);
+      if (reports.length > MAX_REPORTS) {
+        reports = reports.slice(-MAX_REPORTS); // Keep last N reports
+      }
+      
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+    } catch (error) {
+      // ✅ Handle quota exceeded gracefully
+      logger.debug('📊 [Mobile Perf] Storage quota exceeded, clearing old reports');
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([newReport]));
+      } catch {
+        // Give up on storage if still failing
+        logger.debug('📊 [Mobile Perf] Storage unavailable, report not persisted');
+      }
+    }
+  };
+
   return {
     start: (operation: string) => {
+      if (capabilities.ssrMode || typeof performance === 'undefined') {
+        return;
+      }
       startTimes.set(operation, performance.now());
       logger.debug(`📊 [Mobile Perf] Started: ${operation}`);
     },
 
     end: (operation: string) => {
+      if (capabilities.ssrMode || typeof performance === 'undefined') {
+        return;
+      }
+      
       const startTime = startTimes.get(operation);
       if (startTime) {
         const duration = performance.now() - startTime;
@@ -249,16 +389,16 @@ export const createMobilePerformanceMonitor = () => {
         
         logger.debug(`📊 [Mobile Perf] Completed: ${operation} in ${duration.toFixed(2)}ms`);
         
-        // Alert for slow operations on mobile
+        // Alert for slow operations on mobile - adjusted thresholds for retry strategy
         const thresholds = {
-          auth: capabilities.isMobile ? 8000 : 15000,
-          provider: capabilities.isMobile ? 3000 : 5000,
-          render: capabilities.isMobile ? 1000 : 2000
+          auth: capabilities.isMobile ? 5000 : 8000, // Reduced since we use retries
+          provider: capabilities.isMobile ? 2000 : 3000,
+          render: capabilities.isMobile ? 800 : 1500
         };
         
         const threshold = Object.entries(thresholds).find(([key]) => 
           operation.toLowerCase().includes(key)
-        )?.[1] || 5000;
+        )?.[1] || 3000;
         
         if (duration > threshold) {
           logger.warn(`⚠️ [Mobile Perf] Slow ${operation}: ${duration.toFixed(2)}ms (threshold: ${threshold}ms)`, {
@@ -280,21 +420,31 @@ export const createMobilePerformanceMonitor = () => {
       const report = {
         ...metrics,
         capabilities,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        sessionId: Date.now() // Simple session identifier
       };
       
       logger.info('📊 [Mobile Perf] Performance Report:', report);
       
-      // Store in localStorage for debugging
-      if (capabilities.isMobile) {
-        try {
-          localStorage.setItem('mobile-perf-report', JSON.stringify(report));
-        } catch (e) {
-          // Ignore storage errors
-        }
+      // ✅ Store with quota management
+      if (capabilities.isMobile && !capabilities.ssrMode) {
+        manageStorageQuota(report);
       }
       
       return report;
+    },
+
+    // ✅ NEW: Clear old reports manually
+    clearReports: () => {
+      if (capabilities.ssrMode || typeof localStorage === 'undefined') {
+        return;
+      }
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        logger.debug('📊 [Mobile Perf] Performance reports cleared');
+      } catch {
+        logger.debug('📊 [Mobile Perf] Could not clear reports');
+      }
     }
   };
 };

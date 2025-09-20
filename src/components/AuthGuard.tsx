@@ -81,21 +81,21 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   useEffect(() => {
     setRenderCount(prev => prev + 1);
     
-    // ✅ MOBILE-OPTIMIZED: Dynamic timeout based on device capabilities
+    // ✅ MOBILE-OPTIMIZED: Reasonable timeout with retry-based strategy
     if (isLoading && !isReady && !user) {
       const mobileCapabilities = detectMobileCapabilities();
       const safariDetection = detectSafariIOS();
       
-      // Calculate mobile-optimized timeout
-      let timeoutDuration = 8000; // Base timeout
+      // ✅ NEW STRATEGY: Reasonable timeout, let auth system handle retries
+      let timeoutDuration = 12000; // Base 12s timeout
       
       if (safariDetection.isSafariIOS) {
-        // Safari iOS needs much longer timeout
-        timeoutDuration = getSafariTimeout(12000); // Up to 36-48 seconds for Safari iOS
+        // Safari iOS gets longer but reasonable timeout
+        timeoutDuration = getSafariTimeout(15000); // Up to 22-30s (reduced from 48s)
         console.log('📱 AuthGuard: Safari iOS detected, using extended timeout:', timeoutDuration + 'ms');
       } else if (mobileCapabilities.isMobile) {
-        // Other mobile browsers
-        timeoutDuration = getMobileOptimizedTimeout(12000, 'auth'); // 12-15 seconds for mobile
+        // Other mobile browsers get moderate increase
+        timeoutDuration = getMobileOptimizedTimeout(15000, 'auth'); // Around 15-20s
         console.log('📱 AuthGuard: Mobile device detected, using mobile timeout:', timeoutDuration + 'ms');
       }
       

@@ -8,7 +8,7 @@ import type { Session, User } from '@supabase/supabase-js';
 
 type NetworkErrorPredicate = (message: string) => boolean;
 
-const MAX_TIMEOUT = 45000; // Increased to 45s for mobile compatibility (especially iOS Safari)
+const MAX_TIMEOUT = 20000; // ✅ Reasonable 20s max - rely on retry strategy for mobile
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NETWORK_ERROR_MATCHERS: ReadonlyArray<NetworkErrorPredicate> = [
   (message) => message.includes('network'),

@@ -137,6 +137,7 @@ export class WarehouseSyncService {
    */
   private async recalculateItemWAC(item: any, purchases: any[]): Promise<SyncResult> {
     const oldWac = item.harga_rata_rata || 0;
+    const oldVersion = item.version || 1;
     
     // Calculate new WAC from purchase history
     let totalQuantity = 0;
@@ -163,17 +164,27 @@ export class WarehouseSyncService {
 
     // Update the item with new WAC if it changed significantly
     if (Math.abs(newWac - oldWac) > 0.01) {
-      const { error: updateError } = await supabase
+      const { data: updatedItem, error: updateError } = await supabase
         .from('bahan_baku')
         .update({ 
           harga_rata_rata: newWac,
+          version: oldVersion + 1,
           updated_at: new Date().toISOString()
         })
         .eq('id', item.id)
-        .eq('user_id', this.userId);
+        .eq('user_id', this.userId)
+        .eq('version', oldVersion) // Optimistic locking - only update if version matches
+        .select()
+        .single();
 
       if (updateError) {
         throw updateError;
+      }
+
+      // Check if update was successful (affected rows > 0)
+      if (!updatedItem) {
+        // Version mismatch - another process updated the item, retry or fail
+        throw new Error(`WAC update failed due to concurrent modification. Please retry.`);
       }
 
       return {

@@ -17,26 +17,7 @@ export async function syncOrderToFinancialTransaction(
       return true;
     }
 
-    // Check if financial transaction already exists for this order
-    const { data: existing, error: checkError } = await supabase
-      .from('financial_transactions')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('type', 'income')
-      .eq('description', `Pesanan ${order.nomorPesanan}`)
-      .limit(1);
-
-    if (checkError) {
-      logger.error('Error checking existing financial transaction:', checkError);
-      return false;
-    }
-
-    if (existing && existing.length > 0) {
-      logger.debug('Financial transaction already exists for order:', order.nomorPesanan);
-      return true;
-    }
-
-    // Create financial income transaction
+    // Create financial income transaction with conflict handling
     const transactionData = {
       user_id: userId,
       type: 'income',
@@ -48,6 +29,7 @@ export async function syncOrderToFinancialTransaction(
       updated_at: new Date().toISOString(),
     };
 
+    // Use insert with conflict handling to prevent race conditions
     const { data, error } = await supabase
       .from('financial_transactions')
       .insert(transactionData)
@@ -55,6 +37,12 @@ export async function syncOrderToFinancialTransaction(
       .single();
 
     if (error) {
+      // Handle unique constraint violations (race condition when same transaction created twice)
+      if (error.code === '23505') { // Unique violation
+        logger.debug('Financial transaction already exists for order:', order.nomorPesanan);
+        return true;
+      }
+      
       logger.error('Error creating financial transaction for order:', error, {
         orderId: order.id,
         orderNumber: order.nomorPesanan,
@@ -91,12 +79,28 @@ export async function bulkSyncOrdersToFinancial(
 
   logger.info(`📈 Starting bulk financial sync for ${total} orders`);
 
-  for (const order of orders) {
+  // Process orders in smaller batches to reduce contention
+  const batchSize = 10;
+  for (let i = 0; i < orders.length; i += batchSize) {
+    const batch = orders.slice(i, i + batchSize);
+    const batchPromises = batch.map(order => syncOrderToFinancialTransaction(order, userId));
+    
     try {
-      const synced = await syncOrderToFinancialTransaction(order, userId);
-      if (synced) success++;
+      const batchResults = await Promise.allSettled(batchPromises);
+      batchResults.forEach(result => {
+        if (result.status === 'fulfilled' && result.value) {
+          success++;
+        } else if (result.status === 'rejected') {
+          logger.error('Error in bulk sync for order:', result.reason);
+        }
+      });
     } catch (error) {
-      logger.error('Error in bulk sync for order:', order.id, error);
+      logger.error('Error processing batch:', error);
+    }
+    
+    // Add a small delay between batches to reduce database load
+    if (i + batchSize < orders.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
@@ -129,59 +133,70 @@ export async function syncMissingOrderTransactions(userId: string): Promise<void
       return;
     }
 
-    // Get existing financial transactions for orders
-    const orderNumbers = completedOrders.map(o => `Pesanan ${o.nomor_pesanan}`);
-    const { data: existingTransactions, error: transError } = await supabase
-      .from('financial_transactions')
-      .select('description')
-      .eq('user_id', userId)
-      .eq('type', 'income')
-      .in('description', orderNumbers);
+    // Process in smaller batches to reduce contention
+    const batchSize = 20;
+    for (let i = 0; i < completedOrders.length; i += batchSize) {
+      const batch = completedOrders.slice(i, i + batchSize);
+      
+      // Get existing financial transactions for this batch
+      const orderNumbers = batch.map(o => `Pesanan ${o.nomor_pesanan}`);
+      const { data: existingTransactions, error: transError } = await supabase
+        .from('financial_transactions')
+        .select('description')
+        .eq('user_id', userId)
+        .eq('type', 'income')
+        .in('description', orderNumbers);
 
-    if (transError) {
-      logger.error('Error fetching existing transactions:', transError);
-      return;
+      if (transError) {
+        logger.error('Error fetching existing transactions:', transError);
+        continue;
+      }
+
+      const existingDescriptions = new Set(
+        (existingTransactions || []).map(t => t.description)
+      );
+
+      // Find orders without financial transactions
+      const missingOrders = batch.filter(order => 
+        !existingDescriptions.has(`Pesanan ${order.nomor_pesanan}`)
+      );
+
+      if (missingOrders.length === 0) {
+        logger.info(`✅ All orders in batch ${Math.floor(i/batchSize) + 1} already have financial transactions`);
+        continue;
+      }
+
+      logger.info(`📈 Found ${missingOrders.length} orders without financial sync in batch ${Math.floor(i/batchSize) + 1}`);
+
+      // Create missing transactions for this batch
+      const transactionData = missingOrders.map(order => ({
+        user_id: userId,
+        type: 'income',
+        category: 'Penjualan',
+        amount: order.total_pesanan,
+        description: `Pesanan ${order.nomor_pesanan}`,
+        date: new Date(order.tanggal).toISOString().split('T')[0],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }));
+
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .insert(transactionData)
+        .select();
+
+      if (error) {
+        logger.error('Error bulk creating financial transactions:', error);
+        continue;
+      }
+
+      logger.success(`✅ Created ${data?.length || 0} financial transactions for missing orders in batch ${Math.floor(i/batchSize) + 1}`);
+      
+      // Add a small delay between batches to reduce database load
+      if (i + batchSize < completedOrders.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
-
-    const existingDescriptions = new Set(
-      (existingTransactions || []).map(t => t.description)
-    );
-
-    // Find orders without financial transactions
-    const missingOrders = completedOrders.filter(order => 
-      !existingDescriptions.has(`Pesanan ${order.nomor_pesanan}`)
-    );
-
-    if (missingOrders.length === 0) {
-      logger.info('✅ All completed orders already have financial transactions');
-      return;
-    }
-
-    logger.info(`📈 Found ${missingOrders.length} orders without financial sync`);
-
-    // Bulk create missing transactions
-    const transactionData = missingOrders.map(order => ({
-      user_id: userId,
-      type: 'income',
-      category: 'Penjualan',
-      amount: order.total_pesanan,
-      description: `Pesanan ${order.nomor_pesanan}`,
-      date: new Date(order.tanggal).toISOString().split('T')[0],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }));
-
-    const { data, error } = await supabase
-      .from('financial_transactions')
-      .insert(transactionData)
-      .select();
-
-    if (error) {
-      logger.error('Error bulk creating financial transactions:', error);
-      return;
-    }
-
-    logger.success(`✅ Created ${data?.length || 0} financial transactions for missing orders`);
 
   } catch (error) {
     logger.error('Critical error in sync missing orders:', error);

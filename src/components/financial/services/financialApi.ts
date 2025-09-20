@@ -179,6 +179,7 @@ export const addFinancialTransaction = async (
     
     console.log('💾 Database data to insert:', dbData);
     
+    // Use atomic insert with conflict handling to prevent race conditions
     const { data, error } = await supabase
       .from('financial_transactions')
       .insert([dbData])
@@ -186,6 +187,38 @@ export const addFinancialTransaction = async (
       .single();
 
     if (error) {
+      // Handle unique constraint violations (race condition when same transaction created twice)
+      if (error.code === '23505') { // Unique violation
+        console.warn('⚠️ Financial transaction already exists, skipping creation:', {
+          userId,
+          description: transaction.description,
+          relatedId: transaction.relatedId
+        });
+        
+        // Try to fetch the existing transaction
+        const { data: existingData, error: fetchError } = await supabase
+          .from('financial_transactions')
+          .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
+          .eq('user_id', userId)
+          .eq('description', transaction.description)
+          .single();
+          
+        if (fetchError) {
+          console.error('❌ Failed to fetch existing transaction:', fetchError);
+          throw error; // Re-throw original error
+        }
+        
+        const result = transformFromDB(existingData);
+        console.log('✅ Returning existing financial transaction:', {
+          id: result.id,
+          category: result.category,
+          amount: result.amount,
+          date: result.date
+        });
+        
+        return result;
+      }
+      
       console.error('❌ Financial transaction creation failed:', error);
       throw error;
     }

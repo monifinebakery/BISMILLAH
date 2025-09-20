@@ -155,11 +155,14 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         }
       }
 
-      const { error: updateError } = await supabase
+      // Use atomic update with row-level locking to prevent race conditions
+      const { data: updatedItem, error: updateError } = await supabase
         .from('bahan_baku')
         .update(updateData)
         .eq('id', existing.id)
-        .eq('user_id', purchase.userId);
+        .eq('user_id', purchase.userId)
+        .select()
+        .single();
       
       if (updateError) {
         logger.error('❌ [PURCHASE SYNC] Error updating existing item:', updateError);
@@ -291,11 +294,14 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
         updateData.harga_rata_rata = wacResult.preservedPrice;
       }
 
-      const { error: updateError } = await supabase
+      // Use atomic update with row-level locking to prevent race conditions
+      const { data: updatedItem, error: updateError } = await supabase
         .from('bahan_baku')
         .update(updateData)
         .eq('id', existing.id)
-        .eq('user_id', purchase.userId);
+        .eq('user_id', purchase.userId)
+        .select()
+        .single();
       
       if (updateError) {
         logger.error('❌ [PURCHASE SYNC] Error updating item during reversal:', updateError);

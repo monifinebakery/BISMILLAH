@@ -94,12 +94,12 @@ const SettingsPage = () => {
   useEffect(() => {
     if (settings && formState) {
       const hasChanged = 
-        settings.businessName !== formState.businessName ||
-        settings.ownerName !== formState.ownerName ||
-        settings.email !== formState.email ||
-        settings.phone !== formState.phone ||
-        settings.address !== formState.address ||
-        settings.whatsappType !== formState.whatsappType;
+        (settings.businessName || '') !== (formState.businessName || '') ||
+        (settings.ownerName || '') !== (formState.ownerName || '') ||
+        (settings.email || '') !== (formState.email || '') ||
+        (settings.phone || '') !== (formState.phone || '') ||
+        (settings.address || '') !== (formState.address || '') ||
+        (settings.whatsappType || 'personal') !== (formState.whatsappType || 'personal');
       setHasChanges(hasChanged);
     }
   }, [settings, formState]);

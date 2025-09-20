@@ -85,7 +85,15 @@ export async function linkPaymentToUser(paymentId: string): Promise<{ success: b
     // First, verify the payment exists and is unlinked
     const { data: payment, error: fetchError } = await supabase
       .from('user_payments')
-      .select('*')
+      .select(`
+        id,
+        order_id,
+        email,
+        name,
+        payment_status,
+        is_paid,
+        user_id
+      `)
       .eq('id', paymentId)
       .is('user_id', null)
       .eq('is_paid', true)
@@ -103,7 +111,11 @@ export async function linkPaymentToUser(paymentId: string): Promise<{ success: b
       .from('user_payments')
       .update({ user_id: user.id })
       .eq('id', paymentId)
-      .select('*')
+      .select(`
+        id,
+        order_id,
+        user_id
+      `)
       .single();
 
     if (error) {

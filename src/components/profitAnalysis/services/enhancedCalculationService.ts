@@ -161,7 +161,13 @@ export class EnhancedCalculationService {
     // Fetch income transactions
     const { data: transactions, error } = await supabase
       .from('financial_transactions')
-      .select('*')
+      .select(`
+        id,
+        amount,
+        category,
+        date,
+        description
+      `)
       .eq('user_id', userId)
       .eq('type', 'income')
       .gte('date', startYMD)
@@ -352,7 +358,13 @@ export class EnhancedCalculationService {
   ) {
     const { data: costs, error } = await supabase
       .from('operational_costs')
-      .select('*')
+      .select(`
+        id,
+        nama_biaya,
+        jumlah_per_bulan,
+        kategori,
+        jenis
+      `)
       .eq('user_id', userId)
       .eq('status', 'aktif');
 

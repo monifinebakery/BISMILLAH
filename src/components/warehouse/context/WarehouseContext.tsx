@@ -333,10 +333,20 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       }
     },
     onError: (error: Error, item) => {
-      const errorMsg = `Gagal menambahkan "${item.nama}": ${error.message}`;
+      let errorMsg = error.message;
+      
+      // Handle specific constraint errors with user-friendly messages
+      if (error.message.includes('sudah ada')) {
+        // Error message already user-friendly from service layer
+        errorMsg = error.message;
+      } else {
+        // Generic error - add context
+        errorMsg = `Gagal menambahkan "${item.nama}": ${error.message}`;
+      }
+      
       if (addNotification) {
         addNotification({
-          title: 'Kesalahan Sistem',
+          title: error.message.includes('sudah ada') ? 'Data Duplikat' : 'Kesalahan Sistem',
           message: errorMsg,
           type: 'error'
         });

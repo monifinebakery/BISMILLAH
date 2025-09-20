@@ -402,6 +402,12 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     async (
       bahan: Omit<BahanBakuFrontend, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string }
     ): Promise<boolean> => {
+    // Check authentication
+    if (!user) {
+      toast.error('Anda harus login terlebih dahulu untuk menambahkan bahan baku');
+      return false;
+    }
+    
     try {
       logger.debug(`[${providerId.current}] 🎯 addBahanBaku called:`, bahan);
       const result = await createMutation.mutateAsync(bahan);
@@ -409,11 +415,18 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       return result;
     } catch (error) {
       logger.error(`[${providerId.current}] ❌ addBahanBaku failed:`, error);
+      toast.error('Gagal menambahkan bahan baku: ' + (error instanceof Error ? error.message : 'Silakan coba lagi'));
       return false;
     }
-  }, [createMutation]);
+  }, [createMutation, user]);
 
   const updateBahanBaku = React.useCallback(async (id: string, updates: Partial<BahanBakuFrontend>): Promise<boolean> => {
+    // Check authentication
+    if (!user) {
+      toast.error('Anda harus login terlebih dahulu untuk memperbarui bahan baku');
+      return false;
+    }
+    
     try {
       logger.info(`[${providerId.current}] 🎯 updateBahanBaku called:`, { id, updates });
       const result = await updateMutation.mutateAsync({ id, updates });
@@ -421,9 +434,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       return result;
     } catch (error) {
       logger.error(`[${providerId.current}] ❌ updateBahanBaku failed:`, error);
+      toast.error('Gagal memperbarui bahan baku: ' + (error instanceof Error ? error.message : 'Silakan coba lagi'));
       return false;
     }
-  }, [updateMutation]);
+  }, [updateMutation, user]);
 
   const deleteBahanBaku = React.useCallback(async (id: string): Promise<boolean> => {
     try {

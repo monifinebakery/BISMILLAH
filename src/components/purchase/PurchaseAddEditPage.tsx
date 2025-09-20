@@ -180,6 +180,12 @@ const PurchaseAddEditPage: React.FC = () => {
   }, [handleReset, handleCancelEditItem]);
 
   const onSubmit = useCallback(async (status?: string) => {
+    // Check authentication before submission
+    if (!purchaseContext?.user) {
+      toast.error('Anda harus login terlebih dahulu untuk menyimpan data pembelian');
+      return;
+    }
+    
     if (formData.items.length === 0) {
       toast.error('Minimal harus ada 1 item dalam pembelian');
       return;
@@ -189,7 +195,7 @@ const PurchaseAddEditPage: React.FC = () => {
       return;
     }
     await handleSubmit(status);
-  }, [formData.items.length, handleSubmit, total_nilai]);
+  }, [formData.items.length, handleSubmit, total_nilai, purchaseContext]);
 
   // Handle adding new item from form
   const handleAddNewItem = useCallback((item: PurchaseItem) => {

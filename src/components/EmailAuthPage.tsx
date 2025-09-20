@@ -164,6 +164,8 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
     setError("");
     setIsLoading(false);
     setCooldown(0);
+    // 🔧 FIX: Reset login success flag
+    loginSuccessRef.current = false;
     if (cooldownRef.current) {
       clearInterval(cooldownRef.current);
       cooldownRef.current = null;
@@ -284,6 +286,9 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
     }
   };
 
+  // 🔧 FIX: Add ref to prevent duplicate notifications
+  const loginSuccessRef = useRef(false);
+
   // Verify OTP
   const handleVerifyOtp = async (otpCode?: string) => {
     const code = otpCode || otp.join("");
@@ -300,12 +305,23 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
       const result = await verifyEmailOtp(email, code);
       
       if (result === true) {
+        // 🔧 FIX: Prevent duplicate success notifications
+        if (loginSuccessRef.current) {
+          console.log('🚑 EmailAuth: Login success already processed, skipping duplicate');
+          return;
+        }
+        
+        loginSuccessRef.current = true;
         setStep("success");
         toast.success("Login berhasil!");
         
         // Call success callback
         if (onLoginSuccess) {
-          setTimeout(onLoginSuccess, 1000);
+          setTimeout(() => {
+            // 🔧 FIX: Reset flag after successful navigation
+            loginSuccessRef.current = false;
+            onLoginSuccess();
+          }, 1000);
         }
       } else if (result === "expired") {
         setError("Kode OTP sudah kadaluarsa. Silakan minta kode baru.");

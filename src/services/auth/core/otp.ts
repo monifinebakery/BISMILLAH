@@ -230,7 +230,7 @@ export const verifyEmailOtp = async (
       // ✅ ENHANCED: Minimal delay to ensure session is committed (optimized for speed)
       await new Promise(resolve => setTimeout(resolve, 100)); // Reduced from 300ms to 100ms for faster login
       
-      toast.success('Login berhasil!');
+      // ✅ FIXED: Single success notification - don't show here, let caller handle it
       return true;
     } else {
       // Even if no session is returned, if there's no error, consider it successful
@@ -257,7 +257,7 @@ export const verifyEmailOtp = async (
             logger.warn('Failed to set otpVerifiedAt flag:', storageError);
           }
           
-          toast.success('Login berhasil!');
+          // ✅ FIXED: Single success notification - don't show here, let caller handle it
           return true;
         }
       } catch (sessionCheckError) {

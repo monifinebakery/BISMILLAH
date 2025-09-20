@@ -52,7 +52,7 @@ const SettingsPage = () => {
   const pwaHooks = shouldLoadHeavyFeatures ? usePWA() : null;
   
   // Extract values safely
-  const triggerCustomNotification = notificationHooks?.triggerCustomNotification || null;
+  // const triggerCustomNotification = notificationHooks?.triggerCustomNotification || null;
   const { canInstall, isInstalled, isOnline } = pwaHooks 
     ? pwaHooks 
     : { canInstall: false, isInstalled: false, isOnline: true };
@@ -148,14 +148,14 @@ const SettingsPage = () => {
         toast.success('Pengaturan bisnis berhasil disimpan');
         
         // ✅ PERFORMANCE: Only trigger notification if loaded
-        if (triggerCustomNotification) {
-          await triggerCustomNotification(
-            'Pengaturan Disimpan',
-            'Informasi bisnis Anda telah diperbarui',
-            'success',
-            2
-          );
-        }
+        // if (triggerCustomNotification) {
+        //   await triggerCustomNotification(
+        //     'Pengaturan Disimpan',
+        //     'Informasi bisnis Anda telah diperbarui',
+        //     'success',
+        //     2
+        //   );
+        // }
       }
     } finally {
       setIsSaving(false);

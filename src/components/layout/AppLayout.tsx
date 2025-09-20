@@ -9,7 +9,6 @@ import { MobileLayout } from "./MobileLayout";
 import { DesktopLayout } from "./DesktopLayout";
 // AppLoader not needed; PaymentGuard handles initial loading UX
 import { AutoLinkingPopup } from "@/components/popups";
-import { UpdateNotificationBanner, useUpdateNotification } from '@/components/common/UpdateNotificationBanner';
 import { logger } from "@/utils/logger";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,7 +21,14 @@ export const AppLayout = () => {
     checkForUpdate,
     dismissUpdateNotification,
     showUpdateNotification,
-  } = useUpdateNotification();
+  } = {
+    updateAvailable: false,
+    updateInfo: null,
+    isVisible: false,
+    checkForUpdate: () => {},
+    dismissUpdateNotification: () => {},
+    showUpdateNotification: () => {}
+  };
   
   // Check for new version periodically
   useEffect(() => {
@@ -171,12 +177,6 @@ export const AppLayout = () => {
   
   return (
     <>
-      <UpdateNotificationBanner 
-        isVisible={isVisible}
-        updateInfo={updateInfo}
-        onDismiss={dismissUpdateNotification}
-      />
-
       {isMobile ? (
         <MobileLayout {...layoutProps} />
       ) : (

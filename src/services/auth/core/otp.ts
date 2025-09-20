@@ -1,8 +1,9 @@
 // src/services/auth/core/otp.ts - Simple OTP authentication
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { validateEmail, getErrorMessage } from '@/services/auth/utils';
+import { getErrorMessage } from '../utils';
+import { toast } from 'sonner';
+import { safeStorageSet } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 
 
 export const sendEmailOtp = async (
@@ -197,7 +198,7 @@ export const verifyEmailOtp = async (
       
       // ✅ CRITICAL: Set otpVerifiedAt flag for AuthGuard session handling
       try {
-        localStorage.setItem('otpVerifiedAt', Date.now().toString());
+        await safeStorageSet('otpVerifiedAt', Date.now().toString()); // ✅ FIX: Thread-safe set
         if (import.meta.env.DEV) {
           console.log('🔑 [OTP] Set otpVerifiedAt flag for session persistence');
         }
@@ -240,7 +241,7 @@ export const verifyEmailOtp = async (
           
           // ✅ CRITICAL: Set otpVerifiedAt flag for AuthGuard session handling
           try {
-            localStorage.setItem('otpVerifiedAt', Date.now().toString());
+            await safeStorageSet('otpVerifiedAt', Date.now().toString()); // ✅ FIX: Thread-safe set
             if (import.meta.env.DEV) {
               console.log('🔑 [OTP] Set otpVerifiedAt flag via session check');
             }

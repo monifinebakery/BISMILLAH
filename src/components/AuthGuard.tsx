@@ -4,6 +4,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { authNavigationLogger } from '@/utils/auth/navigationLogger';
+import { safeStorageGet } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -125,21 +126,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [isReady, isLoading, isInitialized]);
 
-  // ✅ FIXED: Simplified redirect logic with race condition prevention
-  useEffect(() => {
-    // Only handle navigation when auth state is fully ready
-    if (!isReady || isLoading) return;
-
-    // Case 1: Authenticated user on auth page → redirect to app
-    if (user && location.pathname === '/auth') {
-      logger.info('✅ AuthGuard: Redirecting authenticated user to app', {
-        userId: user.id,
-        email: user.email
-      });
-      navigate('/', { replace: true });
-    }
-    // Case 2: No user and not on auth page → will be handled by Navigate component below
-  }, [user, isReady, isLoading, location.pathname, navigate]);
+  // ✅ REMOVED: Navigation useEffect to prevent race conditions with Navigate component
+  // All navigation is now handled by the Navigate component below to ensure atomic redirects
 
   // ✅ ANTI-FLICKER: Simplified loading state without mobile branching
   if ((isLoading || !isReady) && !user) {
@@ -182,7 +170,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     // Check for recent OTP verification to provide better UX
     let recentlyVerified = false;
     try {
-      const ts = parseInt(localStorage.getItem('otpVerifiedAt') || '0', 10) || 0;
+      const ts = parseInt(safeStorageGet('otpVerifiedAt') || '0', 10) || 0; // ✅ FIX: Thread-safe access
       recentlyVerified = ts > 0 && (Date.now() - ts) < 10000; // Reduced to 10s
     } catch (error) {
       logger.warn('[AuthGuard] Failed to read otpVerifiedAt from storage', error);

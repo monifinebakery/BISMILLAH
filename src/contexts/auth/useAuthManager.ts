@@ -22,6 +22,7 @@ export const useAuthManager = (): AuthContextValue => {
     lastUserIdRef,
     updateSession,
     updateUser,
+    updateAuthState, // ✅ NEW: Atomic update method
     updateLoadingState,
     updateReadyState,
     resetAuthState,
@@ -42,6 +43,7 @@ export const useAuthManager = (): AuthContextValue => {
     refreshUser,
     updateSession,
     updateUser,
+    updateAuthState, // ✅ NEW: Atomic update method
     updateLoadingState,
     updateReadyState,
     sessionRef,

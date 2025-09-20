@@ -268,40 +268,43 @@ export const usePaymentStatus = () => {
       }
     };
 
-    // ✅ Setup auth change listener (only once)
-    if (!authSubRef.current) {
-      authSubRef.current = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-        if (!mounted) return;
-
+    // ✅ DISABLED: Auth state change listener moved to useAuthRefreshEvent hook to prevent race conditions
+    // This prevents conflicts with the main AuthContext onAuthStateChange subscription
+    
+    // ✅ NEW: Listen for custom auth-refresh-request event from OTP verification
+    const handleAuthRefresh = () => {
+      if (!mounted) return;
+      
+      if (process.env.NODE_ENV === 'development') {
+        logger.hook('usePaymentStatus', 'Received auth refresh request');
+      }
+      
+      setTimeout(() => {
+        if (mounted) {
+          setupSubscription();
+          queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
+        }
+      }, 500);
+    };
+    
+    window.addEventListener('auth-refresh-request', handleAuthRefresh);
+    
+    // ✅ Handle sign out by listening to the auth context state directly
+    const checkAndCleanup = async () => {
+      const isAuth = await isAuthenticated();
+      if (!isAuth && channelRef.current) {
         if (process.env.NODE_ENV === 'development') {
-          logger.hook('usePaymentStatus', 'Auth state changed:', event);
+          logger.hook('usePaymentStatus', 'User not authenticated, cleaning up');
         }
         
-        if (event === 'SIGNED_IN' && session?.user) {
-          if (process.env.NODE_ENV === 'development') {
-            logger.hook('usePaymentStatus', 'User signed in, refreshing payment status');
-          }
-          
-          setTimeout(() => {
-            if (mounted) {
-              setupSubscription();
-              queryClient.invalidateQueries({ queryKey: ['paymentStatus'] });
-            }
-          }, 500);
-        } else if (event === 'SIGNED_OUT') {
-          if (process.env.NODE_ENV === 'development') {
-            logger.hook('usePaymentStatus', 'User signed out, cleaning up');
-          }
-          
-          if (channelRef.current) {
-            supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
-          }
-          currentUserRef.current = null;
-          queryClient.setQueryData(['paymentStatus'], null);
-        }
-      });
-    }
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        currentUserRef.current = null;
+        queryClient.setQueryData(['paymentStatus'], null);
+      }
+    };
+    
+    const cleanupInterval = setInterval(checkAndCleanup, 5000); // Check every 5s
 
     // ✅ Initial setup
     setupSubscription();
@@ -318,9 +321,11 @@ export const usePaymentStatus = () => {
         channelRef.current = null;
       }
       
-      if (authSubRef.current?.data?.subscription) {
-        authSubRef.current.data.subscription.unsubscribe();
-        authSubRef.current = null;
+      // ✅ FIX: Remove event listeners
+      window.removeEventListener('auth-refresh-request', handleAuthRefresh);
+      
+      if (cleanupInterval) {
+        clearInterval(cleanupInterval);
       }
       
       // ✅ OPTIMIZED: Clean up debounce timers

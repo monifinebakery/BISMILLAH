@@ -1,6 +1,7 @@
 // src/hooks/auth/useAuthStorage.ts - Mobile Auth State Persistence
 import { useCallback } from 'react';
 import { logger } from '@/utils/logger';
+import { safeStorageGet, safeStorageSet, safeStorageRemove } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 
 interface AuthStateData {
   email?: string;
@@ -13,13 +14,13 @@ interface AuthStateData {
 
 export const useAuthStorage = (storageKey: string) => {
   const saveAuthState = useCallback(
-    (data: AuthStateData) => {
+    async (data: AuthStateData) => {
       try {
         const existing = JSON.parse(
-          localStorage.getItem(storageKey) || "{}"
+          safeStorageGet(storageKey) || "{}"
         );
         const updated = { ...existing, ...data, timestamp: Date.now() };
-        localStorage.setItem(storageKey, JSON.stringify(updated));
+        await safeStorageSet(storageKey, JSON.stringify(updated));
         logger.debug("📱 Auth state saved:", data);
       } catch (error) {
         logger.warn("Failed to save auth state:", error);
@@ -28,16 +29,16 @@ export const useAuthStorage = (storageKey: string) => {
     [storageKey]
   );
 
-  const loadAuthState = useCallback(() => {
+  const loadAuthState = useCallback(async () => {
     try {
-      const stored = localStorage.getItem(storageKey);
+      const stored = safeStorageGet(storageKey);
       if (!stored) return null;
       const data = JSON.parse(stored);
 
       // Check if data is not too old (max 10 minutes)
       const age = Date.now() - (data.timestamp || 0);
       if (age > 10 * 60 * 1000) {
-        localStorage.removeItem(storageKey);
+        await safeStorageRemove(storageKey);
         logger.debug("📱 Auth state expired, cleared:", { age, maxAge: 10 * 60 * 1000 });
         return null;
       }
@@ -50,11 +51,11 @@ export const useAuthStorage = (storageKey: string) => {
     }
   }, [storageKey]);
 
-  const clearAuthState = useCallback(() => {
+  const clearAuthState = useCallback(async () => {
     try {
-      localStorage.removeItem(storageKey);
+      await safeStorageRemove(storageKey);
       // Also clear the otpVerifiedAt timestamp
-      localStorage.removeItem("otpVerifiedAt");
+      await safeStorageRemove("otpVerifiedAt");
       logger.debug("📱 Auth state cleared");
     } catch (error) {
       logger.warn("Failed to clear auth state:", error);

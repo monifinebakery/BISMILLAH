@@ -47,19 +47,11 @@ export const useAdminAuth = () => {
 
     checkAdminStatus();
 
-    // Tambahkan listener untuk memperbarui status jika sesi berubah
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-            // Perbarui status admin langsung dari app_metadata jika sesi berubah
-            setIsAdmin(session.user.app_metadata?.role === 'admin');
-        } else {
-            setIsAdmin(false);
-        }
-        setLoading(false); // Penting untuk mengakhiri loading jika auth state berubah
-    });
-
+    // ✅ DISABLED: onAuthStateChange listener to prevent race conditions with AuthContext
+    // Admin status will be checked on initial load and when components re-render due to auth changes
+    
     return () => {
-      authListener?.subscription?.unsubscribe(); // Cleanup listener saat komponen di-unmount
+      // No cleanup needed since we're not subscribing to auth state changes
     };
 
   }, []); // Dependensi kosong agar hanya berjalan sekali saat mount

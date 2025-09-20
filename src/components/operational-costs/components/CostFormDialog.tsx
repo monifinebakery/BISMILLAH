@@ -190,6 +190,15 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
     setIsSubmitting(true);
     try {
+      // Check authentication before submission
+      const { useAuth } = await import('@/contexts/AuthContext');
+      const { user } = useAuth();
+      if (!user) {
+        toast.error('Anda harus login terlebih dahulu untuk menyimpan biaya');
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Calling onSave with formData
       const success = await onSave(formData); // Send complete formData including group
       // onSave completed
@@ -208,7 +217,8 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
       }
     } catch (error) {
       // handleSubmit catch error
-      toast.error('Gagal menyimpan biaya');
+      console.error('Error saving operational cost:', error);
+      toast.error('Gagal menyimpan biaya: ' + (error instanceof Error ? error.message : 'Silakan coba lagi'));
     } finally {
       setIsSubmitting(false);
     }

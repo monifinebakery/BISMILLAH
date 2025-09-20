@@ -47,13 +47,13 @@ const SettingsPage = () => {
   // 🚀 PERFORMANCE: Load settings asynchronously
   const { settings, saveSettings, isLoading } = useUserSettings();
   
-  // 🚀 PERFORMANCE: Only call heavy hooks when needed
-  // const notificationHooks = shouldLoadHeavyFeatures ? useNotificationTriggers() : null;
-  const pwaHooks = shouldLoadHeavyFeatures ? usePWA() : null;
+  // 🚀 PERFORMANCE: Always call hooks but conditionally use features
+  // const notificationHooks = useNotificationTriggers();
+  const pwaHooks = usePWA();
   
-  // Extract values safely
-  // const triggerCustomNotification = notificationHooks?.triggerCustomNotification || null;
-  const { canInstall, isInstalled, isOnline } = pwaHooks 
+  // Extract values safely - only use when heavy features are loaded
+  // const triggerCustomNotification = (shouldLoadHeavyFeatures && notificationHooks?.triggerCustomNotification) || null;
+  const { canInstall, isInstalled, isOnline } = shouldLoadHeavyFeatures 
     ? pwaHooks 
     : { canInstall: false, isInstalled: false, isOnline: true };
 

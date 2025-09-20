@@ -40,18 +40,20 @@ import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 import { getDeviceType, getBrowserInfo } from '@/utils';
 
 const SettingsPage = () => {
-  const { settings, saveSettings, isLoading } = useUserSettings();
-  
-  // ✅ PERFORMANCE: Always call hooks but defer expensive operations
+  // 🚀 PERFORMANCE: Show UI immediately with loading states
+  const [showContent, setShowContent] = useState(true); // Always show content
   const [shouldLoadHeavyFeatures, setShouldLoadHeavyFeatures] = useState(false);
   
-  // Call hooks unconditionally but only use results when ready
-  const notificationHooks = useNotificationTriggers();
-  const pwaHooks = usePWA();
+  // 🚀 PERFORMANCE: Load settings asynchronously
+  const { settings, saveSettings, isLoading } = useUserSettings();
   
-  // Extract values conditionally based on loading state
-  const triggerCustomNotification = shouldLoadHeavyFeatures ? notificationHooks.triggerCustomNotification : null;
-  const { canInstall, isInstalled, isOnline } = shouldLoadHeavyFeatures 
+  // 🚀 PERFORMANCE: Only call heavy hooks when needed
+  const notificationHooks = shouldLoadHeavyFeatures ? useNotificationTriggers() : null;
+  const pwaHooks = shouldLoadHeavyFeatures ? usePWA() : null;
+  
+  // Extract values safely
+  const triggerCustomNotification = notificationHooks?.triggerCustomNotification || null;
+  const { canInstall, isInstalled, isOnline } = pwaHooks 
     ? pwaHooks 
     : { canInstall: false, isInstalled: false, isOnline: true };
 
@@ -102,37 +104,42 @@ const SettingsPage = () => {
     }
   }, [settings, formState]);
 
-  if (isLoading || !formState) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
-          <div className="text-lg font-medium text-gray-700">Memuat Pengaturan...</div>
-          <div className="text-sm text-gray-500">Mohon tunggu sebentar</div>
-        </div>
-      </div>
-    );
-  }
+  // 🚀 PERFORMANCE: Show content even while loading, use skeleton states
+  const isContentLoading = isLoading && !formState;
+  const displaySettings = formState || {
+    businessName: '',
+    ownerName: '',
+    email: '',
+    phone: '',
+    address: '',
+    whatsappType: 'personal' as const,
+    notifications: { lowStock: true, newOrder: true }
+  };
 
   const handleInputChange = (
     field: keyof UserSettings,
     value: UserSettings[keyof UserSettings]
   ) => {
-    setFormState(prev => prev ? { ...prev, [field]: value } : null);
+    if (!formState && !isLoading) {
+      setFormState({ ...displaySettings, [field]: value } as UserSettings);
+    } else {
+      setFormState(prev => prev ? { ...prev, [field]: value } : null);
+    }
   };
 
   const handleSaveChanges = async () => {
-    if (!formState) return;
+    const settingsToSave = formState || displaySettings;
+    if (!settingsToSave) return;
 
     setIsSaving(true);
     try {
       const settingsToUpdate: Partial<UserSettings> = {
-        businessName: formState.businessName,
-        ownerName: formState.ownerName,
-        email: formState.email,
-        phone: formState.phone,
-        address: formState.address,
-        whatsappType: formState.whatsappType,
+        businessName: settingsToSave.businessName,
+        ownerName: settingsToSave.ownerName,
+        email: settingsToSave.email,
+        phone: settingsToSave.phone,
+        address: settingsToSave.address,
+        whatsappType: settingsToSave.whatsappType,
       };
 
       const success = await saveSettings(settingsToUpdate);

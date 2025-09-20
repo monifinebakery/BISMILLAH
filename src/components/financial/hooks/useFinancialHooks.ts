@@ -68,21 +68,27 @@ export const useFinancialData = () => {
     queryKey: financialQueryKeys.transactions(user?.id),
     queryFn: () => getFinancialTransactions(user!.id),
     enabled: !!user?.id,
-    // ✅ OPTIMIZED: Faster loading with shorter stale time
-    staleTime: 30 * 1000, // 30 seconds - much shorter for fresh data
-    gcTime: 5 * 60 * 1000, // 5 minutes - shorter cache time
-    retry: 2, // Reduce retry attempts
-    retryDelay: (attemptIndex) => Math.min(1000 * attemptIndex, 3000), // Faster retries
-    // ✅ OPTIMIZED: Enable smart refetching for better UX
-    refetchOnWindowFocus: true, // Enable for fresh data
-    refetchOnMount: true, // Always fetch fresh on mount
-    refetchOnReconnect: true, // Refetch when connection restored
-    refetchInterval: false, // Disable interval to avoid spam
+    // 🚀 PERFORMANCE: Much more aggressive caching for faster loading
+    staleTime: 5 * 60 * 1000, // 5 minutes - longer to avoid unnecessary fetches
+    gcTime: 15 * 60 * 1000, // 15 minutes - longer cache time
+    retry: 1, // Reduce retry attempts for faster failure
+    retryDelay: 1000, // Fixed 1s retry delay
+    // 🚀 PERFORMANCE: Reduce refetching to improve perceived speed
+    refetchOnWindowFocus: false, // Disable to prevent loading on tab switch
+    refetchOnMount: false, // Use cached data if available
+    refetchOnReconnect: true, // Only refetch when connection restored
+    refetchInterval: false, 
     refetchIntervalInBackground: false,
-    // ✅ OPTIMIZED: Better loading states
-    keepPreviousData: false, // Don't keep stale data
-    placeholderData: undefined, // No placeholder to show loading state
-    notifyOnChangeProps: ['data', 'error', 'isLoading'], // Only track essential props
+    // 🚀 PERFORMANCE: Smoother loading experience
+    keepPreviousData: true, // Keep previous data during refetch
+    placeholderData: [], // Show empty array instead of loading
+    notifyOnChangeProps: ['data', 'error'], // Remove isLoading tracking
+    // 🚀 PERFORMANCE: Initial data from cache if available
+    initialData: undefined,
+    select: (data) => {
+      // Light processing on select to avoid blocking
+      return data || [];
+    },
   });
 };
 

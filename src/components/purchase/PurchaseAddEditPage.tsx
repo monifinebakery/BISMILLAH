@@ -180,11 +180,7 @@ const PurchaseAddEditPage: React.FC = () => {
   }, [handleReset, handleCancelEditItem]);
 
   const onSubmit = useCallback(async (status?: string) => {
-    // Check authentication before submission
-    if (!purchaseContext?.user) {
-      toast.error('Anda harus login terlebih dahulu untuk menyimpan data pembelian');
-      return;
-    }
+    // Authentication is already handled by AuthGuard at router level
     
     if (formData.items.length === 0) {
       toast.error('Minimal harus ada 1 item dalam pembelian');

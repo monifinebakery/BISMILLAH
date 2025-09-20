@@ -182,11 +182,7 @@ const WarehouseAddEditPage: React.FC<WarehouseAddEditPageProps> = () => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check authentication before submission
-    if (!user) {
-      toast.error('Anda harus login terlebih dahulu untuk menyimpan data');
-      return;
-    }
+    // Authentication is already handled by AuthGuard at router level
     
     if (!validateForm()) {
       toast.error('Perbaiki kesalahan pada form');

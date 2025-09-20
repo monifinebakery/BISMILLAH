@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import type { BahanResep, NewRecipe } from '../../../types';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import { logger } from '@/utils/logger';
+import { useIngredientValidation } from '../ingredients-step/hooks';
 
 interface UseIngredientFormManagerProps {
   recipeData: NewRecipe;
@@ -19,6 +20,8 @@ export const useIngredientFormManager = ({
   onUpdate,
   isLoading = false
 }: UseIngredientFormManagerProps) => {
+
+  const { validateNewIngredient } = useIngredientValidation();
   
   // New ingredient form state
   const [newIngredient, setNewIngredient] = useState<Partial<BahanResep>>({
@@ -84,24 +87,8 @@ export const useIngredientFormManager = ({
 
   // Add new ingredient
   const handleAddIngredient = useCallback(() => {
-    if (!newIngredient.warehouseId) {
-      toast.error('Bahan harus dipilih dari warehouse');
-      return false;
-    }
-    if (!newIngredient.nama?.trim()) {
-      toast.error('Nama bahan harus dipilih');
-      return false;
-    }
-    if (!newIngredient.satuan?.trim()) {
-      toast.error('Satuan harus dipilih');
-      return false;
-    }
-    if ((newIngredient.jumlah || 0) <= 0) {
-      toast.error('Jumlah harus lebih dari 0');
-      return false;
-    }
-    if ((newIngredient.hargaSatuan || 0) <= 0) {
-      toast.error('Harga satuan harus lebih dari 0');
+    const validationResult = validateNewIngredient(newIngredient);
+    if (!validationResult.isValid) {
       return false;
     }
 
@@ -136,7 +123,7 @@ export const useIngredientFormManager = ({
     
     toast.success('Bahan berhasil ditambahkan');
     return true;
-  }, [newIngredient, recipeData.bahanResep, onUpdate]);
+  }, [newIngredient, recipeData.bahanResep, onUpdate, validateNewIngredient]);
 
   // Remove ingredient
   const handleRemoveIngredient = useCallback((index: number) => {
@@ -236,31 +223,6 @@ export const useIngredientFormManager = ({
   }, []);
 
   // Validate new ingredient form
-  const validateNewIngredient = useCallback((): { isValid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-
-    if (!newIngredient.warehouseId) {
-      errors.push('Bahan harus dipilih dari warehouse');
-    }
-    if (!newIngredient.nama?.trim()) {
-      errors.push('Nama bahan harus dipilih');
-    }
-    if (!newIngredient.satuan?.trim()) {
-      errors.push('Satuan harus dipilih');
-    }
-    if ((newIngredient.jumlah || 0) <= 0) {
-      errors.push('Jumlah harus lebih dari 0');
-    }
-    if ((newIngredient.hargaSatuan || 0) <= 0) {
-      errors.push('Harga satuan harus lebih dari 0');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }, [newIngredient]);
-
   // Check if new ingredient form has data
   const hasNewIngredientData = useCallback(() => {
     return !!(newIngredient.jumlah && newIngredient.hargaSatuan);

@@ -91,20 +91,6 @@ const SettingsPage = () => {
     }
   }, [settings]);
 
-  useEffect(() => {
-    if (safeSettings && formState) {
-      const hasChanged = 
-        (safeSettings.businessName || '') !== (formState.businessName || '') ||
-        (safeSettings.ownerName || '') !== (formState.ownerName || '') ||
-        (safeSettings.email || '') !== (formState.email || '') ||
-        (safeSettings.phone || '') !== (formState.phone || '') ||
-        (safeSettings.address || '') !== (formState.address || '') ||
-        (safeSettings.whatsappType || 'personal') !== (formState.whatsappType || 'personal');
-      setHasChanges(hasChanged);
-    } else {
-      setHasChanges(false);
-    }
-  }, [safeSettings, formState]);
 
   // 🚀 PERFORMANCE: Show content even while loading, use skeleton states
   const isContentLoading = isLoading && !formState;
@@ -120,6 +106,22 @@ const SettingsPage = () => {
   
   // Ensure settings is never null
   const safeSettings = settings || displaySettings;
+
+  // Track changes between safeSettings and formState
+  useEffect(() => {
+    if (safeSettings && formState) {
+      const hasChanged = 
+        (safeSettings.businessName || '') !== (formState.businessName || '') ||
+        (safeSettings.ownerName || '') !== (formState.ownerName || '') ||
+        (safeSettings.email || '') !== (formState.email || '') ||
+        (safeSettings.phone || '') !== (formState.phone || '') ||
+        (safeSettings.address || '') !== (formState.address || '') ||
+        (safeSettings.whatsappType || 'personal') !== (formState.whatsappType || 'personal');
+      setHasChanges(hasChanged);
+    } else {
+      setHasChanges(false);
+    }
+  }, [safeSettings, formState]);
 
   const handleInputChange = (
     field: keyof UserSettings,
@@ -250,7 +252,7 @@ const SettingsPage = () => {
                   Nama Bisnis
                 </Label>
                 <Input 
-                  value={formState.businessName || ''} 
+                  value={formState?.businessName || displaySettings.businessName || ''} 
                   onChange={e => handleInputChange('businessName', e.target.value)}
                   placeholder="Masukkan nama bisnis Anda"
                   className="h-11 text-base border-gray-300"
@@ -263,7 +265,7 @@ const SettingsPage = () => {
                   Nama Pemilik
                 </Label>
                 <Input 
-                  value={formState.ownerName || ''} 
+                  value={formState?.ownerName || displaySettings.ownerName || ''} 
                   onChange={e => handleInputChange('ownerName', e.target.value)}
                   placeholder="Masukkan nama pemilik bisnis"
                   className="h-11 text-base border-gray-300"
@@ -278,7 +280,7 @@ const SettingsPage = () => {
                   </Label>
                   <Input 
                     type="email" 
-                    value={formState.email || ''} 
+                    value={formState?.email || displaySettings.email || ''} 
                     onChange={e => handleInputChange('email', e.target.value)} 
                     placeholder="email@bisnis.com" 
                     className="h-11 border-gray-300" 
@@ -291,7 +293,7 @@ const SettingsPage = () => {
                   </Label>
                   <Input 
                     type="tel" 
-                    value={formState.phone || ''} 
+                    value={formState?.phone || displaySettings.phone || ''} 
                     onChange={e => handleInputChange('phone', e.target.value)} 
                     placeholder="+62 XXX XXX XXXX" 
                     className="h-11 border-gray-300" 
@@ -305,7 +307,7 @@ const SettingsPage = () => {
                   Alamat Lengkap
                 </Label>
                 <Textarea 
-                  value={formState.address || ''} 
+                  value={formState?.address || displaySettings.address || ''} 
                   onChange={e => handleInputChange('address', e.target.value)}
                   placeholder="Masukkan alamat lengkap bisnis Anda"
                   className="min-h-[100px] border-gray-300"
@@ -370,7 +372,7 @@ const SettingsPage = () => {
                     {/* Personal WhatsApp Option */}
                     <div 
                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                        formState.whatsappType === 'personal'
+                        (formState?.whatsappType || displaySettings.whatsappType) === 'personal'
                           ? 'border-green-500 bg-green-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
@@ -378,11 +380,11 @@ const SettingsPage = () => {
                     >
                       <div className="flex items-start gap-3">
                         <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
-                          formState.whatsappType === 'personal'
+                          (formState?.whatsappType || displaySettings.whatsappType) === 'personal'
                             ? 'border-green-500 bg-green-500'
                             : 'border-gray-300'
                         }`}>
-                          {formState.whatsappType === 'personal' && (
+                          {(formState?.whatsappType || displaySettings.whatsappType) === 'personal' && (
                             <div className="w-2 h-2 rounded-full bg-white" />
                           )}
                         </div>
@@ -405,7 +407,7 @@ const SettingsPage = () => {
                     {/* Business WhatsApp Option */}
                     <div 
                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                        formState.whatsappType === 'business'
+                        (formState?.whatsappType || displaySettings.whatsappType) === 'business'
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
@@ -413,11 +415,11 @@ const SettingsPage = () => {
                     >
                       <div className="flex items-start gap-3">
                         <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
-                          formState.whatsappType === 'business'
+                          (formState?.whatsappType || displaySettings.whatsappType) === 'business'
                             ? 'border-blue-500 bg-blue-500'
                             : 'border-gray-300'
                         }`}>
-                          {formState.whatsappType === 'business' && (
+                          {(formState?.whatsappType || displaySettings.whatsappType) === 'business' && (
                             <div className="w-2 h-2 rounded-full bg-white" />
                           )}
                         </div>

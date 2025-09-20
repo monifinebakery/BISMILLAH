@@ -177,10 +177,10 @@ export const useUpdateNotification = () => {
   })();
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  // ✅ ENABLED: Enable deployment polling to check Vercel status
-  const ENABLE_DEPLOYMENT_POLLING = true; 
-  const DEPLOYMENT_STATUS_ENDPOINT = import.meta.env.VITE_VERCEL_DEPLOYMENT_ENDPOINT || null;
-  const HAS_DEPLOYMENT_ENDPOINT = !!DEPLOYMENT_STATUS_ENDPOINT;
+  // ❌ DISABLED: Disable deployment polling to prevent 404 errors
+  const ENABLE_DEPLOYMENT_POLLING = false; 
+  const DEPLOYMENT_STATUS_ENDPOINT = null;
+  const HAS_DEPLOYMENT_ENDPOINT = false;
 
   const pollDeploymentStatus = async (commitHash: string, timeout = 5 * 60 * 1000) => {
     // If env vars are not available (e.g., local dev or preview without secrets),

@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { updateService, type UpdateCheckResult } from '@/services/updateService';
 import { logger } from '@/utils/logger';
-import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
+import { useSimpleNotificationSafe } from '@/contexts/SimpleNotificationContext';
 
 export interface UseAutoUpdateOptions {
   // Update check interval in minutes (default: 5)
@@ -42,8 +42,9 @@ export const useAutoUpdate = (options: UseAutoUpdateOptions = {}) => {
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
   
-  // Use our new simple notification system
-  const { addNotification } = useSimpleNotification();
+  // Use our new simple notification system (safe version)
+  const notificationContext = useSimpleNotificationSafe();
+  const addNotification = notificationContext?.addNotification;
 
   // Check if we should run update checks
   const shouldRunUpdateChecks = useCallback(() => {
@@ -69,8 +70,8 @@ export const useAutoUpdate = (options: UseAutoUpdateOptions = {}) => {
     setUpdateResult(result);
     setLastCheck(new Date());
     
-    // Show notification if enabled
-    if (showNotifications && result.hasUpdate) {
+    // Show notification if enabled and notification context is available
+    if (showNotifications && result.hasUpdate && addNotification) {
       addNotification({
         title: 'Update Tersedia',
         message: `Versi baru aplikasi tersedia. Versi saat ini: ${result.currentVersion.version}, Versi baru: ${result.latestVersion?.version}`,

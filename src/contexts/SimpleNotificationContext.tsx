@@ -88,13 +88,26 @@ export const SimpleNotificationProvider: React.FC<{ children: ReactNode }> = ({ 
   );
 };
 
-// Custom hook
+// Custom hook with better error handling
 export const useSimpleNotification = (): SimpleNotificationContextType => {
   const context = useContext(SimpleNotificationContext);
   if (context === undefined) {
-    throw new Error('useSimpleNotification must be used within a SimpleNotificationProvider');
+    // 🔧 FIX: Provide more helpful error message with debugging info
+    console.error('useSimpleNotification hook called outside provider. Stack trace:', new Error().stack);
+    throw new Error(
+      'useSimpleNotification must be used within a SimpleNotificationProvider. ' +
+      'Make sure the component using this hook is wrapped in <SimpleNotificationProvider> ' +
+      'or ensure AppProviders is properly set up in your app root.'
+    );
   }
   return context;
+};
+
+// 🔧 FIX: Safe hook that returns null instead of throwing when provider is not available
+// This can be used for components that might render before providers are ready
+export const useSimpleNotificationSafe = (): SimpleNotificationContextType | null => {
+  const context = useContext(SimpleNotificationContext);
+  return context || null;
 };
 
 export default SimpleNotificationContext;

@@ -48,28 +48,38 @@ interface AppProvidersProps {
  */
 
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
-  // ✅ ANTI-FLICKER: Flatten provider structure to reduce initialization flicker
-  const allProviders = [
-    // Critical providers loaded first
+  // 🔧 FIX: Reorganize provider order to ensure SimpleNotificationProvider is available first
+  // This fixes the "useSimpleNotification must be used within a SimpleNotificationProvider" error
+  
+  // ✅ CRITICAL: Notification provider MUST be first so other providers can use notifications
+  const criticalProviders = [
     { component: SimpleNotificationProvider, name: 'Notification' },
+  ];
+  
+  const coreProviders = [
     { component: UserSettingsProvider, name: 'UserSettings' },
     { component: FinancialProvider, name: 'Financial' },
-    
-    // Core app providers  
     { component: ActivityProvider, name: 'Activity' },
+  ];
+  
+  const appProviders = [
     { component: RecipeProvider, name: 'Recipe' },
     { component: WarehouseProvider, name: 'Warehouse' },
     { component: SupplierProvider, name: 'Supplier' },
     { component: PurchaseProvider, name: 'Purchase' },
     { component: OrderProvider, name: 'Order' },
-    
-    // Secondary providers
+  ];
+  
+  const secondaryProviders = [
     { component: OperationalCostProvider, name: 'OperationalCost' },
     { component: PromoProvider, name: 'Promo' },
     { component: FollowUpTemplateProvider, name: 'FollowUpTemplate' },
     { component: DeviceProvider, name: 'Device' },
     { component: ProfitAnalysisProvider, name: 'ProfitAnalysis' },
   ];
+  
+  // Combine all providers in correct order
+  const allProviders = [...criticalProviders, ...coreProviders, ...appProviders, ...secondaryProviders];
 
   // ✅ ANTI-FLICKER: Reduce logging to prevent console spam during renders  
   const renderProviders = (providers: any[], content: ReactNode): ReactNode => {
@@ -79,19 +89,25 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     }, <>{content}</>);
   };
 
+  // 🔧 FIX: Create a multi-tier provider structure to ensure proper initialization order
   const CoreProviders: React.FC<{ children: ReactNode }> = ({ children }) => (
     <AuthProvider>
-      <PaymentProvider>{children}</PaymentProvider>
+      <PaymentProvider>
+        {/* 🔧 FIX: SimpleNotificationProvider must be available before other providers */}
+        <SimpleNotificationProvider>
+          {renderProviders(coreProviders.concat(appProviders, secondaryProviders), children)}
+        </SimpleNotificationProvider>
+      </PaymentProvider>
     </AuthProvider>
   );
 
   return (
     <>
       <CoreProviders>
-        {renderProviders(allProviders, children)}
+        {children}
       </CoreProviders>
 
-      <Toaster 
+      <Toaster
         className="toaster"
         position="top-center"
         closeButton

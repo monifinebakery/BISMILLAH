@@ -8,7 +8,7 @@ import { logger } from '@/utils/logger';
 // Dependencies
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
+import { useSimpleNotificationSafe } from '@/contexts/SimpleNotificationContext';
 
 // Services
 import { warehouseApi } from '../services/warehouseApi';
@@ -202,7 +202,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   // Dependencies
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addNotification } = useSimpleNotification();
+  const notificationContext = useSimpleNotificationSafe();
+  const addNotification = notificationContext?.addNotification;
 
   // ✅ FIXED: Live connection status tracking
   const [isConnected, setIsConnected] = React.useState(
@@ -333,11 +334,13 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     },
     onError: (error: Error, item) => {
       const errorMsg = `Gagal menambahkan "${item.nama}": ${error.message}`;
-      addNotification({
-        title: 'Kesalahan Sistem',
-        message: errorMsg,
-        type: 'error'
-      });
+      if (addNotification) {
+        addNotification({
+          title: 'Kesalahan Sistem',
+          message: errorMsg,
+          type: 'error'
+        });
+      }
       toast.error(errorMsg);
     },
   });

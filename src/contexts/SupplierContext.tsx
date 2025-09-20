@@ -17,7 +17,7 @@ import { logger } from '@/utils/logger';
 // Dependencies
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
-import { useSimpleNotification } from './SimpleNotificationContext';
+import { useSimpleNotificationSafe } from './SimpleNotificationContext';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 // ✅ USING EXISTING TYPES
 import { 
@@ -217,7 +217,8 @@ const useSupplierMutations = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addNotification } = useSimpleNotification();
+  const notificationContext = useSimpleNotificationSafe();
+  const addNotification = notificationContext?.addNotification;
 
   // Add supplier mutation
   const addMutation = useMutation({
@@ -269,11 +270,13 @@ const useSupplierMutations = () => {
       
       toast.error(`Gagal menambahkan supplier: ${userFriendlyMessage}`);
       
-      addNotification({
-        title: 'Kesalahan Sistem',
-        message: `Gagal menambahkan supplier ${variables.nama}: ${userFriendlyMessage}`,
-        type: 'error'
-      });
+      if (addNotification) {
+        addNotification({
+          title: 'Kesalahan Sistem',
+          message: `Gagal menambahkan supplier ${variables.nama}: ${userFriendlyMessage}`,
+          type: 'error'
+        });
+      }
     },
     onSuccess: async (newSupplier, variables) => {
       // Invalidate and refetch
@@ -289,17 +292,13 @@ const useSupplierMutations = () => {
       });
 
       // Success notification
-      await addNotification({
-        title: '🏢 Supplier Baru Ditambahkan!',
-        message: `${variables.nama} berhasil ditambahkan ke daftar supplier`,
-        type: 'success',
-        icon: 'building',
-        priority: 2,
-        related_type: 'system',
-        action_url: '/supplier',
-        is_read: false,
-        is_archived: false
-      });
+      if (addNotification) {
+        await addNotification({
+          title: '🏢 Supplier Baru Ditambahkan!',
+          message: `${variables.nama} berhasil ditambahkan ke daftar supplier`,
+          type: 'success'
+        });
+      }
 
       toast.success(`${variables.nama} berhasil ditambahkan!`);
     }

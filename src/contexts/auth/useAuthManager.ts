@@ -80,9 +80,9 @@ export const useAuthManager = (): AuthContextValue => {
             queryClient.removeQueries({ queryKey: query.queryKey })
           );
 
-          // ✅ ANTI-FLICKER: Longer delay between chunks to prevent blocking
+          // ✅ ANTI-FLICKER: Reduced delay between chunks for faster processing
           if (i + chunkSize < userSpecificQueries.length) {
-            await new Promise((resolve) => setTimeout(resolve, 10));
+            await new Promise((resolve) => setTimeout(resolve, 2)); // Reduced from 10ms to 2ms
           }
         }
 
@@ -104,12 +104,12 @@ export const useAuthManager = (): AuthContextValue => {
         () => {
           void clearCaches();
         },
-        { timeout: 5000 }, // Increased timeout
+        { timeout: 2000 }, // Reduced timeout for faster cache clearing
       );
     } else {
       setTimeout(() => {
         void clearCaches();
-      }, 300); // Increased delay
+      }, 100); // Reduced delay from 300ms to 100ms for faster auth loading
     }
   }, [user?.id]);
 

@@ -415,7 +415,12 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
     ? legacyOnRefresh ?? (() => {})
     : () => void queryData.refetch();
   const lastUpdated = hasLegacyTransactions ? undefined : queryData.lastUpdated;
-  const isRefetching = hasLegacyTransactions ? false : queryData.isRefetching;
+  const hasTransactions = transactions.length > 0;
+  const isRefetching = hasLegacyTransactions
+    ? Boolean(legacyIsLoading && hasTransactions)
+    : queryData.isRefetching;
+  const showInitialLoading = isLoading && !hasTransactions;
+  const showBackgroundLoading = isRefetching && hasTransactions;
   const paginationInfo = hasLegacyTransactions ? null : queryData.paginationInfo;
 
   // 🚀 PERFORMANCE: Ultra-optimized pagination with capped rendering
@@ -555,7 +560,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {isLoading ? (
+        {showInitialLoading ? (
           <div className="p-4">
             <div className="flex items-center justify-center p-4">
     <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
@@ -645,7 +650,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
         )}
       </CardContent>
 
-      {transactions.length > 0 && !isLoading && (
+      {transactions.length > 0 && !showInitialLoading && (
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between p-4 border-t gap-4">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div>
@@ -741,6 +746,12 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
             </div>
           )}
         </CardFooter>
+      )}
+
+      {showBackgroundLoading && (
+        <div className="px-4 pb-4 text-xs text-muted-foreground">
+          Memuat pembaruan terbaru...
+        </div>
       )}
 
       {/* 📊 Performance monitoring in development */}

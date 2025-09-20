@@ -17,7 +17,7 @@ import { logger } from '@/utils/logger';
 // Dependencies
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
-import { useNotification } from './NotificationContext';
+import { useSimpleNotification } from './SimpleNotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { safeParseDate } from '@/utils/unifiedDateUtils';
 // ✅ USING EXISTING TYPES
@@ -218,7 +218,7 @@ const useSupplierMutations = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addNotification } = useNotification();
+  const { addNotification } = useSimpleNotification();
 
   // Add supplier mutation
   const addMutation = useMutation({

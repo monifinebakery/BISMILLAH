@@ -14,7 +14,7 @@ import { logger } from '@/utils/logger';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
 // ✅ SAFE CONTEXT IMPORTS: Import contexts directly to check availability
@@ -138,7 +138,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return [];
   }, [supplierContext]);
   
-  const { addNotification } = useNotification();
+  const { addNotification } = useSimpleNotification();
   
   // ✅ FIXED: Safe warehouse context access without try-catch around hooks
   const warehouseContext = useBahanBaku();

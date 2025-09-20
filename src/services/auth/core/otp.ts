@@ -1,10 +1,18 @@
 // src/services/auth/core/otp.ts - Simple OTP authentication
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { getErrorMessage, validateEmail } from '../utils';
+import { getErrorMessage } from '../utils';
 import { toast } from 'sonner';
 import { safeStorageSet } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 
+// Simple email validation to avoid import conflicts
+const isValidEmail = (email: string): boolean => {
+  if (!email || typeof email !== 'string') {
+    return false;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+};
 
 export const sendEmailOtp = async (
   email: string, 
@@ -13,7 +21,7 @@ export const sendEmailOtp = async (
   skipCaptcha: boolean = true
 ): Promise<boolean> => {
   try {
-    if (!validateEmail(email)) {
+    if (!isValidEmail(email)) {
       toast.error('Format email tidak valid');
       return false;
     }

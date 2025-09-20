@@ -2,7 +2,7 @@
 // ✅ CLEAN TRIGGERS - No circular dependencies, simple logic
 
 import { useCallback } from 'react';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { logger } from '@/utils/logger';
 
@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
  * No complex context imports or circular dependencies
  */
 export const useNotificationTriggers = () => {
-  const { addNotification } = useNotification();
+  const { addNotification } = useSimpleNotification();
 
   // ===========================================
   // ✅ ORDER TRIGGERS
@@ -342,7 +342,7 @@ export const useNotificationTriggers = () => {
 // ===========================================
 
 export const useNotificationTemplates = () => {
-  const { addNotification } = useNotification();
+  const { addNotification } = useSimpleNotification();
 
   const createFromTemplate = useCallback(async (
     templateName: string, 
@@ -396,13 +396,13 @@ export const useNotificationTemplates = () => {
 // ===========================================
 
 export const useNotificationStats = () => {
-  const { notifications, unreadCount, urgentCount } = useNotification();
+  const { notifications, unreadCount } = useSimpleNotification();
 
   // Simple stats calculation
   const stats = {
     total: notifications.length,
     unread: unreadCount,
-    urgent: urgentCount,
+    urgent: 0, // Not supported in simple notification system
     read: notifications.length - unreadCount,
     
     // By type

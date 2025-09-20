@@ -8,7 +8,7 @@ import { logger } from '@/utils/logger';
 // Dependencies
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 
 // Services
@@ -203,7 +203,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   // Dependencies
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addNotification } = useNotification();
+  const { addNotification } = useSimpleNotification();
 
   // ✅ FIXED: Live connection status tracking
   const [isConnected, setIsConnected] = React.useState(

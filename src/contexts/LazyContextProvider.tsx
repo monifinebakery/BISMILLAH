@@ -27,10 +27,10 @@ const AuthContextProvider = lazy(() =>
 );
 
 const NotificationContextProvider = lazy(() =>
-  import('./NotificationContext').then(module => ({
+  import('./SimpleNotificationContext').then(module => ({
     default: ({ children }: { children: React.ReactNode }) => {
-      const { NotificationProvider } = module;
-      return <NotificationProvider>{children}</NotificationProvider>;
+      const { SimpleNotificationProvider } = module;
+      return <SimpleNotificationProvider>{children}</SimpleNotificationProvider>;
     }
   }))
 );

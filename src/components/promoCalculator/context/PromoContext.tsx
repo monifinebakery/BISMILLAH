@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
 import { logger } from '@/utils/logger';
 
 // PromoContext types
@@ -184,7 +184,7 @@ const PromoContext = createContext<PromoContextType | undefined>(undefined);
 export const PromoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addNotification } = useNotification();
+  const { addNotification } = useSimpleNotification();
   const queryClient = useQueryClient();
 
   logger.debug('🔍 PromoProvider rendered', {

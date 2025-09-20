@@ -2,7 +2,7 @@
 import React from 'react';
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
-import NotificationBell from "@/components/NotificationBell";
+import SimpleNotificationBell from "@/components/SimpleNotificationBell";
 import { AppError } from "@/components/loaders";
 import BottomTabBar from "@/components/BottomTabBar";
 import { TrendingUp } from "lucide-react";
@@ -34,7 +34,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
         </div>
         <div className="flex items-center space-x-3">
           {isPaid && <PaymentStatusIndicator />}
-          <NotificationBell />
+          <SimpleNotificationBell />
           {renderAutoLinkIndicator(true)}
           {renderOrderLinkButton(true)}
         </div>

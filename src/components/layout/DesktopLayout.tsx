@@ -5,7 +5,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import PaymentStatusIndicator from "@/components/PaymentStatusIndicator";
 import DateTimeDisplay from "@/components/DateTimeDisplay";
-import NotificationBell from "@/components/NotificationBell";
+import SimpleNotificationBell from "@/components/SimpleNotificationBell";
 import PWAInstallButton, { PWAStatus } from "@/components/pwa/PWAInstallButton";
 import { AppError } from "@/components/loaders";
 import { useIPadSidebar } from "@/hooks/use-ipad-sidebar";
@@ -83,7 +83,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
               <PWAInstallButton className="" showNetworkStatus={false} />
               <PaymentStatusIndicator />
               <DateTimeDisplay />
-              <NotificationBell />
+              <SimpleNotificationBell />
               {renderAutoLinkIndicator(false)}
               {renderOrderLinkButton(false)}
             </div>

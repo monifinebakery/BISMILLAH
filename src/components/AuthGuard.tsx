@@ -5,6 +5,8 @@ import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { authNavigationLogger } from '@/utils/auth/navigationLogger';
 import { safeStorageGet } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
+import { getMobileOptimizedTimeout, detectMobileCapabilities } from '@/utils/mobileOptimizations';
+import { detectSafariIOS, getSafariTimeout } from '@/utils/safariUtils';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -79,14 +81,30 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   useEffect(() => {
     setRenderCount(prev => prev + 1);
     
-    // ✅ TIMEOUT PREVENTION: Force navigation after 8 seconds of loading
+    // ✅ MOBILE-OPTIMIZED: Dynamic timeout based on device capabilities
     if (isLoading && !isReady && !user) {
+      const mobileCapabilities = detectMobileCapabilities();
+      const safariDetection = detectSafariIOS();
+      
+      // Calculate mobile-optimized timeout
+      let timeoutDuration = 8000; // Base timeout
+      
+      if (safariDetection.isSafariIOS) {
+        // Safari iOS needs much longer timeout
+        timeoutDuration = getSafariTimeout(12000); // Up to 36-48 seconds for Safari iOS
+        console.log('📱 AuthGuard: Safari iOS detected, using extended timeout:', timeoutDuration + 'ms');
+      } else if (mobileCapabilities.isMobile) {
+        // Other mobile browsers
+        timeoutDuration = getMobileOptimizedTimeout(12000, 'auth'); // 12-15 seconds for mobile
+        console.log('📱 AuthGuard: Mobile device detected, using mobile timeout:', timeoutDuration + 'ms');
+      }
+      
       const timeoutId = setTimeout(() => {
-        console.warn('🚨 AuthGuard: Session verification timeout, redirecting to auth');
+        console.warn('🚨 AuthGuard: Session verification timeout (' + timeoutDuration + 'ms), redirecting to auth');
         if (location.pathname !== '/auth') {
           navigate('/auth', { replace: true });
         }
-      }, 8000); // 8 second timeout
+      }, timeoutDuration);
       
       return () => clearTimeout(timeoutId);
     }

@@ -370,17 +370,33 @@ const AddTransactionPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get the authenticated user
+      const { useAuth } = await import('@/contexts/AuthContext');
+      const { user } = useAuth();
+      if (!user) {
+        toast.error('Anda harus login terlebih dahulu');
+        setIsLoading(false);
+        return;
+      }
       
-      // Here you would normally call your API
-      logger.info('Adding transaction', data);
+      // Transform form data to API format
+      const transactionData = {
+        type: data.type,
+        amount: parseFloat(data.amount),
+        category: data.category,
+        description: data.description,
+        date: data.date.toISOString(),
+      };
+      
+      // Call the financial API
+      const financialApi = await import('../services/financialApi');
+      await financialApi.addFinancialTransaction(transactionData, user.id);
       
       toast.success('Transaksi berhasil ditambahkan');
       navigate('/laporan');
     } catch (error: any) {
       logger.error('Failed to add transaction', error);
-      toast.error('Gagal menambah transaksi');
+      toast.error('Gagal menambah transaksi: ' + (error.message || 'Silakan coba lagi'));
     } finally {
       setIsLoading(false);
     }

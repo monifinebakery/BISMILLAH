@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActivity } from '@/contexts/ActivityContext';
 import { useFinancial } from '@/components/financial/contexts/FinancialContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
 
 interface ContextStatus {
   name: string;
@@ -26,7 +26,7 @@ export const ContextDebugger: React.FC = () => {
   const activityContext = useActivity();
   const financialContext = useFinancial();
   const settingsContext = useUserSettings();
-  const notificationContext = useNotification();
+  const notificationContext = useSimpleNotification();
 
   // Test all contexts
   useEffect(() => {
@@ -87,7 +87,7 @@ export const ContextDebugger: React.FC = () => {
 
     // 5. Notification Context
     results.push({
-      name: 'NotificationContext',
+      name: 'SimpleNotificationContext',
       status: notificationContext ? 'ready' : 'loading',
       details: {
         exists: !!notificationContext,

@@ -10,7 +10,7 @@ import { AuthProvider } from './AuthContext';
 import { PaymentProvider } from './PaymentContext';
 
 // ⚡ HIGH PRIORITY: Load after auth is ready
-import { NotificationProvider } from './NotificationContext';
+import { SimpleNotificationProvider } from './SimpleNotificationContext';
 import { UserSettingsProvider } from './UserSettingsContext';
 
 // ⚡ MEDIUM PRIORITY: Load progressively
@@ -51,7 +51,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   // ✅ ANTI-FLICKER: Flatten provider structure to reduce initialization flicker
   const allProviders = [
     // Critical providers loaded first
-    { component: NotificationProvider, name: 'Notification' },
+    { component: SimpleNotificationProvider, name: 'Notification' },
     { component: UserSettingsProvider, name: 'UserSettings' },
     { component: FinancialProvider, name: 'Financial' },
     

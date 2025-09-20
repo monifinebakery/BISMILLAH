@@ -10,7 +10,7 @@ import { logger } from '@/utils/logger';
 // Dependencies
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
-import { useNotification } from './NotificationContext';
+import { useSimpleNotification } from './SimpleNotificationContext';
 import { createNotificationHelper } from '@/utils/notificationHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
@@ -195,7 +195,7 @@ const AssetContext = createContext<AssetContextType | undefined>(undefined);
 export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const { addActivity } = useActivity();
-  const { addNotification } = useNotification();
+  const { addNotification } = useSimpleNotification();
   const queryClient = useQueryClient();
 
   logger.debug('🔍 AssetProvider rendered', {

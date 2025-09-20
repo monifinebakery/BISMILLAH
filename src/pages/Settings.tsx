@@ -30,13 +30,13 @@ import { lazy, Suspense } from 'react';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 
 // Lazy load heavy components to improve initial page load
-const NotificationSettingsForm = lazy(() => import('@/components/NotificationSettingsForm'));
+// const NotificationSettingsForm = lazy(() => import('@/components/NotificationSettingsForm'));
 const DeviceManagementSection = lazy(() => import('@/components/settings/DeviceManagementSection'));
 const PWAInstallButton = lazy(() => import('@/components/pwa/PWAInstallButton'));
 
 // ✅ PERFORMANCE: Import utils directly but defer execution
 import { usePWA } from '@/utils/pwaUtils';
-import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
+// import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 import { getDeviceType, getBrowserInfo } from '@/utils';
 
 const SettingsPage = () => {
@@ -48,7 +48,7 @@ const SettingsPage = () => {
   const { settings, saveSettings, isLoading } = useUserSettings();
   
   // 🚀 PERFORMANCE: Only call heavy hooks when needed
-  const notificationHooks = shouldLoadHeavyFeatures ? useNotificationTriggers() : null;
+  // const notificationHooks = shouldLoadHeavyFeatures ? useNotificationTriggers() : null;
   const pwaHooks = shouldLoadHeavyFeatures ? usePWA() : null;
   
   // Extract values safely
@@ -458,19 +458,19 @@ const SettingsPage = () => {
               </div>
             </div>
             
-            {heavyComponentsLoaded ? (
+            {/* {heavyComponentsLoaded ? (
               <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat pengaturan notifikasi</div>}>
                 <Suspense fallback={<div className="flex items-center justify-center p-4">
     <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
   </div>}>
-                  <NotificationSettingsForm />
+                  {/* <NotificationSettingsForm /> */}
                 </Suspense>
               </ErrorBoundary>
             ) : (
               <div className="flex items-center justify-center p-4">
     <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
   </div>
-            )}
+            )} */}
           </div>
 
           {/* Device Management Section - LAZY LOADED */}

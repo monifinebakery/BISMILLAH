@@ -42,7 +42,7 @@ export const getCurrentUser = async () => {
     
     const userPromise = supabase.auth.getUser();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('getUser timeout')), 5000)
+      setTimeout(() => reject(new Error('getUser timeout')), 12000) // Mobile-optimized
     );
     
     const { data: { user }, error } = await Promise.race([
@@ -149,7 +149,7 @@ export const signOut = async (): Promise<boolean> => {
     // Perform sign out with timeout
     const signOutPromise = supabase.auth.signOut();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('SignOut timeout')), 5000)
+      setTimeout(() => reject(new Error('SignOut timeout')), 10000) // Mobile-optimized
     );
     
     const { error } = await Promise.race([

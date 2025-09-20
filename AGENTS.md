@@ -34,6 +34,19 @@
 - PRs: clear description, linked issues, screenshots/GIFs for UI, and steps to reproduce/test.
 - Required: run `pnpm lint` and `pnpm build` locally; avoid committing `dist/`.
 
+## Race Condition & Thread Safety
+- **Authentication:** Use `safeStorage*` functions for auth-related localStorage operations.
+- **Session Management:** Never bypass `refreshSession()` - it has mutex protection for concurrent calls.
+- **Auth State Updates:** Always use `updateAuthState(session, user)` for atomic updates, never separate updates.
+- **Event Handlers:** Avoid multiple `onAuthStateChange` subscriptions - causes race conditions.
+- **Storage Access:** Use `safeStorageSet/Get/Remove` instead of direct `localStorage` for critical data.
+- **Critical Files:** 
+  - `src/services/auth/core/session.ts` - Mutex-protected session operations
+  - `src/utils/auth/safeStorage.ts` - Thread-safe storage utilities
+  - `src/hooks/auth/useAuthState.ts` - Atomic auth state management
+- **Testing:** Test concurrent scenarios (rapid tab switching, simultaneous auth operations).
+- **Documentation:** See `RACE_CONDITION_ELIMINATION_GUIDE.md` for detailed implementation.
+
 ## Security & Configuration Tips
 - Env files: copy `.env.example` to `.env.development` for local use.
 - Vite exposes only `VITE_`‑prefixed vars. Example: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.

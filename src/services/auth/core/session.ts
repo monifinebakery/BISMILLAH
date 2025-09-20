@@ -9,6 +9,10 @@ import { CACHE_DURATION } from '@/services/auth/config';
 let sessionCache: Session | null = null;
 let cacheTimestamp: number = 0;
 
+// ✅ FIX: Add refresh mutex to prevent concurrent refresh operations
+let isRefreshing = false;
+let refreshPromise: Promise<Session | null> | null = null;
+
 // ✅ Basic session cache clearing
 export const clearSessionCache = () => {
   logger.debug('[Session] Clearing utility session cache');
@@ -82,42 +86,59 @@ export const getCurrentSession = async (): Promise<Session | null> => {
 };
 
 export const refreshSession = async (): Promise<Session | null> => {
-  try {
-    logger.info('[Session] Refreshing session...');
-    
-    // ✅ ADD TIMEOUT: Prevent hanging refresh
-    const refreshPromise = supabase.auth.refreshSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session refresh timeout')), 10000)
-    );
-    
-    const { data, error } = await Promise.race([
-      refreshPromise,
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.error('[Session] Session refresh error:', error);
+  // ✅ FIX: Check if already refreshing - return existing promise
+  if (isRefreshing && refreshPromise) {
+    logger.debug('[Session] Refresh already in progress, waiting...');
+    return refreshPromise;
+  }
+  
+  // ✅ FIX: Set refresh mutex
+  isRefreshing = true;
+  
+  refreshPromise = (async (): Promise<Session | null> => {
+    try {
+      logger.info('[Session] Refreshing session...');
+      
+      // ✅ ADD TIMEOUT: Prevent hanging refresh
+      const supabaseRefresh = supabase.auth.refreshSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session refresh timeout')), 10000)
+      );
+      
+      const { data, error } = await Promise.race([
+        supabaseRefresh,
+        timeoutPromise
+      ]) as any;
+      
+      if (error) {
+        logger.error('[Session] Session refresh error:', error);
+        clearSessionCache();
+        return null;
+      }
+      
+      if (data.session && data.session.user && data.session.user.id !== 'null') {
+        logger.success('[Session] Session refreshed successfully');
+        // ✅ Simple cache update with validation
+        sessionCache = data.session;
+        cacheTimestamp = Date.now();
+        return data.session;
+      }
+      
+      logger.warn('[Session] Session refresh returned invalid session');
       clearSessionCache();
       return null;
+    } catch (error) {
+      logger.error('[Session] Error refreshing session:', error);
+      clearSessionCache();
+      return null;
+    } finally {
+      // ✅ FIX: Always clear refresh mutex
+      isRefreshing = false;
+      refreshPromise = null;
     }
-    
-    if (data.session && data.session.user && data.session.user.id !== 'null') {
-      logger.success('[Session] Session refreshed successfully');
-      // ✅ Simple cache update with validation
-      sessionCache = data.session;
-      cacheTimestamp = Date.now();
-      return data.session;
-    }
-    
-    logger.warn('[Session] Session refresh returned invalid session');
-    clearSessionCache();
-    return null;
-  } catch (error) {
-    logger.error('[Session] Error refreshing session:', error);
-    clearSessionCache();
-    return null;
-  }
+  })();
+  
+  return refreshPromise;
 };
 
 // ✅ Get session cache info for debugging

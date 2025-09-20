@@ -85,21 +85,36 @@ const getAdaptiveTimeout = (baseTimeout = 15000) => {
 export const cleanupAuthState = () => {
   logger.warn('🧹 Cleaning up auth state...');
   
-  // Remove all Supabase auth keys from localStorage
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  
-  // Remove from sessionStorage if in use
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
-  });
-  
-  logger.success('✅ Auth state cleanup completed');
+  try {
+    // ✅ FIX: Safer cleanup with try-catch per operation to prevent race conditions
+    // Remove all Supabase auth keys from localStorage
+    const localStorageKeys = Object.keys(localStorage);
+    localStorageKeys.forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          logger.debug(`Failed to remove localStorage key ${key}:`, error);
+        }
+      }
+    });
+    
+    // Remove from sessionStorage if in use
+    const sessionStorageKeys = Object.keys(sessionStorage || {});
+    sessionStorageKeys.forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        try {
+          sessionStorage.removeItem(key);
+        } catch (error) {
+          logger.debug(`Failed to remove sessionStorage key ${key}:`, error);
+        }
+      }
+    });
+    
+    logger.success('✅ Auth state cleanup completed');
+  } catch (error) {
+    logger.error('❌ Error during auth state cleanup:', error);
+  }
 };
 
 /**

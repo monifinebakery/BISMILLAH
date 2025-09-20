@@ -104,7 +104,6 @@ export const CategoryTableRow: React.FC<CategoryTableRowProps> = ({
                 </Badge>
               )}
             </div>
-            {/* Mobile inline count under name */}
             <div className="mt-1 text-xs text-gray-500 sm:hidden">
               {category.count} resep
             </div>

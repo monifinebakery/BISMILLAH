@@ -4,7 +4,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { authNavigationLogger } from '@/utils/auth/navigationLogger';
-import { safeStorageGet } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
+import { safeStorageGet, safeStorageRemove } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 import { getMobileOptimizedTimeout, detectMobileCapabilities } from '@/utils/mobileOptimizations';
 import { detectSafariIOS, getSafariTimeout } from '@/utils/safariUtils';
 
@@ -80,6 +80,19 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // ✅ FORCE RE-RENDER on auth state changes with timeout prevention
   useEffect(() => {
     setRenderCount(prev => prev + 1);
+    
+    // ✅ FIX: Auto-cleanup stale otpVerifiedAt flag to prevent infinite loops
+    if (!user && !isLoading && isReady) {
+      try {
+        const ts = parseInt(safeStorageGet('otpVerifiedAt') || '0', 10) || 0;
+        if (ts > 0 && (Date.now() - ts) > 15000) { // Clear flag after 15 seconds
+          console.warn('🧙 [AuthGuard] Clearing stale otpVerifiedAt flag');
+          safeStorageRemove('otpVerifiedAt');
+        }
+      } catch (error) {
+        console.error('Failed to clean stale otpVerifiedAt:', error);
+      }
+    }
     
     // ✅ MOBILE-OPTIMIZED: Reasonable timeout with retry-based strategy
     if (isLoading && !isReady && !user) {
@@ -204,21 +217,37 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   if (!user) {
     // Check for recent OTP verification to provide better UX
     let recentlyVerified = false;
+    let otpTimestamp = 0;
     try {
       const ts = parseInt(safeStorageGet('otpVerifiedAt') || '0', 10) || 0; // ✅ FIX: Thread-safe access
-      recentlyVerified = ts > 0 && (Date.now() - ts) < 30000; // Increased to 30s for better session processing
+      otpTimestamp = ts;
+      // Reduced timeout to prevent infinite loading - if session isn't established within 10s, redirect to auth
+      recentlyVerified = ts > 0 && (Date.now() - ts) < 10000; // Reduced from 30s to 10s
     } catch (error) {
       logger.warn('[AuthGuard] Failed to read otpVerifiedAt from storage', error);
     }
 
     if (recentlyVerified) {
-      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP recently verified)`);
+      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP recently verified, ${Math.floor((Date.now() - otpTimestamp) / 1000)}s ago)`);
+      
+      // ✅ FIX: Auto-cleanup if waiting too long to prevent infinite loops
+      if (renderCount > 50) { // If we've re-rendered more than 50 times, something is wrong
+        console.warn(`🚨 [AuthGuard] Too many renders (${renderCount}), clearing OTP flag and redirecting`);
+        try {
+          safeStorageRemove('otpVerifiedAt');
+        } catch (error) {
+          console.error('Failed to remove otpVerifiedAt flag:', error);
+        }
+        return <Navigate to="/auth" state={{ from: location }} replace />;
+      }
+      
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
             <p className="text-sm text-gray-600">Menyiapkan sesi...</p>
             <p className="text-xs text-gray-400 mt-2">Render #{renderCount}</p>
+            <p className="text-xs text-gray-400 mt-1">{Math.floor((Date.now() - otpTimestamp) / 1000)}s dari verifikasi</p>
           </div>
         </div>
       );

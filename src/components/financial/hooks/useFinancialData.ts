@@ -27,7 +27,6 @@ export const useFinancialData = () => {
     refetchInterval: false, // Disable interval to avoid spam
     refetchIntervalInBackground: false,
     // ✅ OPTIMIZED: Better loading states
-    keepPreviousData: false, // Don't keep stale data
     placeholderData: undefined, // No placeholder to show loading state
     notifyOnChangeProps: ['data', 'error', 'isLoading'], // Only track essential props
   });

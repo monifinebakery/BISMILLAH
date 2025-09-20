@@ -11,23 +11,27 @@ import {
   createPurchase,
   updatePurchase,
   deletePurchase,
-  bulkDeletePurchases,
+  bulkDeletePurchases
+} from './crud/purchaseCrudService';
+
+import {
   setPurchaseStatus,
-  completePurchase,
+  completePurchase
+} from './status/purchaseStatusService';
+
+import {
   getPurchaseStats,
   getPurchasesByDateRange,
-  searchPurchases
-} from './crud/purchaseCrudService';
+  searchPurchases,
+  cleanupFinancialTransactions
+} from './validation/purchaseValidationService';
 
 import {
   createPurchaseAndFetch as newCreatePurchaseAndFetch,
   updatePurchaseAndFetch as newUpdatePurchaseAndFetch,
-  setStatusAndFetch as newSetStatusAndFetch
-} from './purchaseApiRefactored';
-
-import {
+  setStatusAndFetch as newSetStatusAndFetch,
   deletePurchaseWithCleanup
-} from './validation/purchaseValidationService';
+} from './purchaseApiRefactored';
 
 // Re-export all individual functions for backward compatibility
 export {

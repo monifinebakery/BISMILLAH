@@ -17,8 +17,14 @@ import {
   deleteFinancialTransaction
 } from '../../services/financialApi';
 
-// Query keys
-import { financialQueryKeys } from '../../hooks/useFinancialQueryKeys';
+// Hook imports (clean dependencies)
+import { 
+  useFinancialData, 
+  financialQueryKeys
+} from '../../hooks/useFinancialHooks';
+
+// Context imports
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UseFinancialOperationsReturn {
   addTransaction: (data: CreateTransactionData) => Promise<FinancialTransaction>;
@@ -32,11 +38,15 @@ interface UseFinancialOperationsReturn {
  * Handles create, update, and delete operations for financial transactions
  */
 export const useFinancialOperations = (): UseFinancialOperationsReturn => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Add transaction mutation
   const addMutation = useMutation({
-    mutationFn: (data: CreateTransactionData) => addFinancialTransaction(data),
+    mutationFn: (data: CreateTransactionData) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return addFinancialTransaction(data, user.id);
+    },
     onMutate: async (newTransaction) => {
       await queryClient.cancelQueries({ 
         queryKey: financialQueryKeys.transactions()
@@ -49,8 +59,8 @@ export const useFinancialOperations = (): UseFinancialOperationsReturn => {
       // Optimistic update
       const optimisticTransaction: FinancialTransaction = {
         id: `temp-${Date.now()}`,
-        userId: newTransaction.userId || '',
-        ...newTransaction,
+        userId: user?.id || '',
+        ...data,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

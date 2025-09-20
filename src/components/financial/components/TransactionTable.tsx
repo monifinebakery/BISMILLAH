@@ -1,81 +1,22 @@
-// src/components/financial/components/TransactionTable.tsx
-// 🚀 OPTIMIZED VERSION with React.memo and Performance Optimizations
-// Performance improvements: 80% faster rendering, memoized components
+import { useCallback, useMemo } from 'react';
+import { AlertCircle } from 'lucide-react';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-
-// 🚀 Import performance optimizations
-import {
-  createSmartMemo,
-  MemoizedFormField,
-  useRenderCount,
-  useWhyDidYouUpdate
-} from '@/utils/performance/componentOptimizations';
-
-// 🔮 Import React Query optimizations
-import { 
-  useSmartPrefetch, 
-  useEnhancedOptimistic 
-} from '@/utils/performance/reactQueryAdvanced';
-import { format } from 'date-fns';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { id } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
-  RefreshCw,
-  AlertCircle,
-  Trash2,
-  Edit,
-  Info
-} from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/shared';
+
 import { cn } from '@/lib/utils';
-import { logger } from '@/utils/logger';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-// ✅ Import useAuth dengan ES Module - Pastikan path ini benar sesuai struktur proyek Anda
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
-
-// ✅ Import API functions - Sesuaikan path relatif jika perlu
-// Misalnya, jika file ini ada di src/components/financial/components/,
-// maka path ke services adalah ../services/
-import {
-  getTransactionsByDateRange,
-  deleteFinancialTransaction,
-  getFinancialTransactionsPaginated,
-  bulkDeleteFinancialTransactions,
-} from '../services/financialApi'; // ✅ Sesuaikan path ini
-
-// Import filter hooks and components
-import { useTransactionFilters } from '../hooks/useTransactionFilters';
-import TransactionFiltersComponent from './TransactionFilters';
-import TransactionBulkActions from './TransactionBulkActions';
-
-// ✅ Types - Sebaiknya diimpor dari file types terpisah jika memungkinkan
 import { useSupplier } from '@/contexts/SupplierContext';
 import { getSupplierName } from '@/utils/purchaseHelpers';
-interface FinancialTransaction {
-  id: string;
-  date: Date | string | null;
-  description: string | null;
-  amount: number;
-  type: 'income' | 'expense';
-  category: string | null;
-  userId?: string;
-  createdAt?: Date | string | null;
-  updatedAt?: Date | string | null;
-}
+import { createSmartMemo } from '@/utils/performance/componentOptimizations';
+
+import type { FinancialTransaction } from '../types/financial';
+import { useTransactionData } from '../hooks/useTransactionData';
+import TransactionTableToolbar from './transaction-table/TransactionTableToolbar';
+import TransactionRows from './transaction-table/TransactionRows';
+import TransactionPagination from './transaction-table/TransactionPagination';
 
 interface TransactionTableProps {
   dateRange?: { from: Date; to?: Date };
@@ -83,11 +24,9 @@ interface TransactionTableProps {
   onAddTransaction?: () => void;
   onDeleteTransaction?: (id: string) => void;
   className?: string;
-  // Legacy props for backward compatibility
   transactions?: FinancialTransaction[];
   isLoading?: boolean;
   onRefresh?: () => void;
-  // Bulk operations props
   selectedIds?: string[];
   onSelectionChange?: (transactionId: string, isSelected: boolean) => void;
   isSelectionMode?: boolean;
@@ -95,417 +34,111 @@ interface TransactionTableProps {
   isAllSelected?: boolean;
 }
 
-// ✅ Query keys
-const transactionQueryKeys = {
-  all: ['financial'] as const,
-  list: () => [...transactionQueryKeys.all, 'transactions'] as const,
-  byRange: (from: Date, to?: Date) =>
-    [...transactionQueryKeys.list(), 'range', from.toISOString(), to?.toISOString()] as const,
-};
-
-// ✅ Custom hook untuk transaction data dengan server-side pagination
-interface UseTransactionDataOptions {
-  enabled?: boolean;
-}
-
-const useTransactionData = (
-  dateRange?: { from: Date; to?: Date },
-  userId?: string,
-  page: number = 1,
-  limit: number = 10,
-  usePagination: boolean = false,
-  options: UseTransactionDataOptions = {}
-) => {
-  const queryClient = useQueryClient();
-  const shouldFetch = options.enabled ?? true;
-  // Hanya fetch jika userId ada dan fetch diizinkan
-  const enabled = shouldFetch && !!userId;
-
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-    dataUpdatedAt,
-    isRefetching,
-  } = useQuery({
-    queryKey: usePagination 
-      ? [...transactionQueryKeys.list(), 'paginated', page, limit, dateRange?.from?.toISOString(), dateRange?.to?.toISOString()]
-      : dateRange
-        ? transactionQueryKeys.byRange(dateRange.from, dateRange.to)
-        : transactionQueryKeys.list(),
-    queryFn: async () => {
-      if (!userId) {
-        return usePagination ? { data: [], total: 0, page: 1, limit, totalPages: 0 } : [];
-      }
-      
-      if (usePagination) {
-        // Gunakan server-side pagination
-        return await getFinancialTransactionsPaginated(userId, { page, limit });
-      } else {
-        // Gunakan metode lama untuk backward compatibility
-        if (!dateRange?.from || !dateRange?.to) {
-          return [];
-        }
-        return getTransactionsByDateRange(userId, dateRange.from, dateRange.to);
-      }
-    },
-    enabled,
-    // ✅ OPTIMIZED: Much faster loading configuration
-    staleTime: 5 * 60 * 1000, // 5 minutes - reduce network calls
-    gcTime: 10 * 60 * 1000, // 10 minutes cache time
-    refetchInterval: false, // Disable auto refresh
-    retry: 1,
-    refetchOnMount: false, // Don't refetch on every mount
-    refetchOnWindowFocus: false, // Disable to reduce network calls
-  });
-
-  // Extract data based on pagination mode with type guard
-  const isPaginatedResponse = (data: any): data is { data: FinancialTransaction[], total: number, page: number, limit: number, totalPages: number } => {
-    return data && typeof data === 'object' && 'data' in data && 'total' in data;
-  };
-  
-  const transactions = usePagination && isPaginatedResponse(data) ? data.data : ((data as FinancialTransaction[]) || []);
-  const paginationInfo = usePagination && isPaginatedResponse(data) ? {
-    total: data.total,
-    page: data.page,
-    limit: data.limit,
-    totalPages: data.totalPages
-  } : null;
-
-  // Mutation: Hapus transaksi
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteFinancialTransaction(id),
-    onSuccess: (success: boolean) => {
-      if (success) {
-        // Invalidate cache
-        queryClient.invalidateQueries({ queryKey: transactionQueryKeys.list() });
-        toast.success('Transaksi berhasil dihapus');
-      } else {
-        toast.error('Gagal menghapus transaksi');
-      }
-    },
-    onError: (error: Error) => {
-      logger.error('Failed to delete transaction:', error);
-      toast.error(`Gagal menghapus transaksi: ${error instanceof Error ? error.message : String(error)}`);
-    },
-  });
-
-  return {
-    transactions,
-    isLoading: enabled ? isLoading : false,
-    error: enabled ? error : null,
-    refetch,
-    isRefetching: enabled ? isRefetching : false,
-    lastUpdated: enabled && dataUpdatedAt ? new Date(dataUpdatedAt) : undefined,
-    deleteTransaction: deleteMutation.mutateAsync,
-    isDeleting: deleteMutation.isPending,
-    paginationInfo,
-  };
-};
-
-// ===========================================
-// 📊 MEMOIZED SUB-COMPONENTS FOR PERFORMANCE
-// ===========================================
-
-const MemoizedTransactionRow = React.memo(({
-  transaction,
-  isSelected,
-  onToggleSelect,
-  onEdit,
-  onDelete,
-  isDeleting,
-  getDisplayDescription
-}: {
-  transaction: FinancialTransaction;
-  isSelected: boolean;
-  onToggleSelect?: (id: string, selected: boolean) => void;
-  onEdit?: (transaction: FinancialTransaction) => void;
-  onDelete: (transaction: FinancialTransaction) => void;
-  isDeleting: boolean;
-  getDisplayDescription: (description: string | null) => string;
-}) => {
-  const handleToggleSelect = useCallback(() => onToggleSelect?.(transaction.id, !isSelected), [transaction.id, isSelected, onToggleSelect]);
-  const handleEdit = useCallback(() => onEdit?.(transaction), [transaction, onEdit]);
-  const handleDelete = useCallback(() => onDelete(transaction), [transaction, onDelete]);
-
-  return (
-    <TableRow className="hover:bg-gray-50">
-      {onToggleSelect && (
-        <TableCell className="w-12">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={handleToggleSelect}
-            aria-label={`Pilih transaksi ${transaction.description}`}
-          />
-        </TableCell>
-      )}
-      <TableCell className="min-w-[140px]">
-        {transaction.date ? (() => {
-          try {
-            const date = new Date(transaction.date);
-            if (isNaN(date.getTime())) {
-              return (
-                <div className="text-gray-400 text-sm">
-                  <div>Tanggal tidak valid</div>
-                </div>
-              );
-            }
-            
-            const hasTimeInfo = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
-            const dateStr = format(date, 'dd MMM yyyy', { locale: id });
-            const timeStr = format(date, 'HH:mm', { locale: id });
-            
-            if (hasTimeInfo) {
-              return (
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">{dateStr}</div>
-                  <div className="text-gray-500 text-xs">{timeStr} WIB</div>
-                </div>
-              );
-            } else {
-              return (
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">{dateStr}</div>
-                  <div className="text-gray-400 text-xs">Tanggal saja</div>
-                </div>
-              );
-            }
-          } catch (error) {
-            return (
-              <div className="text-gray-400 text-sm">
-                <div>Format tidak valid</div>
-              </div>
-            );
-          }
-        })() : (
-          <div className="text-gray-400 text-sm">
-            <div>Tidak ada tanggal</div>
-          </div>
-        )}
-      </TableCell>
-      <TableCell className="max-w-[200px] truncate">
-        {getDisplayDescription(transaction.description)}
-      </TableCell>
-      <TableCell>
-        <Badge variant="outline">
-          {transaction.category || 'Lainnya'}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <Badge
-          variant={transaction.type === 'income' ? 'default' : 'destructive'}
-          className={transaction.type === 'income'
-            ? 'bg-green-100 text-green-800 hover:bg-green-200'
-            : ''
-          }
-        >
-          {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
-        </Badge>
-      </TableCell>
-      <TableCell className={`text-right font-medium ${
-        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-      }`}>
-        {formatCurrency(transaction.amount)}
-      </TableCell>
-      <TableCell className="text-right">
-        <div className="flex items-center justify-end gap-1">
-          {onEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleEdit}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.transaction.id === nextProps.transaction.id &&
-    prevProps.transaction.updatedAt === nextProps.transaction.updatedAt &&
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isDeleting === nextProps.isDeleting
-  );
-});
-MemoizedTransactionRow.displayName = 'MemoizedTransactionRow';
-
-// ✅ IMPROVED: Simple Loading Spinner that won't break layout
-const TableLoading = React.memo(() => (
-  <div className="p-6 space-y-4">
-    <div className="text-center">
-      <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-sm text-gray-500">Memuat data transaksi...</p>
-    </div>
-  </div>
-));
-TableLoading.displayName = 'TableLoading';
-
-// ✅ Main Component Core
-const TransactionTableCore: React.FC<TransactionTableProps> = ({
+const TransactionTableComponent = ({
   dateRange,
   onEditTransaction,
   onAddTransaction,
   onDeleteTransaction,
   className,
-  // Legacy props
   transactions: legacyTransactions,
   isLoading: legacyIsLoading,
   onRefresh: legacyOnRefresh,
-  // Bulk operations props
   selectedIds = [],
   onSelectionChange,
   isSelectionMode = false,
   onSelectAll,
   isAllSelected = false,
-}) => {
-  const [currentPage, setCurrentPage] = useState(1);
+}: TransactionTableProps) => {
   const isMobile = useIsMobile();
-  const [itemsPerPage, setItemsPerPage] = useState(() => (isMobile ? 5 : 8)); // Reduced from 10 to 8 for faster loading
-
-  // ✅ Definisikan user TERLEBIH DAHULU sebelum digunakan
-  const { user } = useAuth(); // ✅ Harus di sini
+  const { user } = useAuth();
   const { suppliers } = useSupplier();
 
-  const hasLegacyTransactions = typeof legacyTransactions !== 'undefined';
-  const shouldFetchFromServer = !hasLegacyTransactions;
-  
-  // Fungsi untuk mendapatkan nama supplier dari deskripsi
-  const getDisplayDescription = useCallback((description: string | null): string => {
-    if (!description) return '-';
-    
-    // Cek apakah deskripsi mengandung ID supplier (format: "Pembelian dari {supplierId}")
-    const purchasePattern = /Pembelian dari\s+(.+)/;
-    const match = description.match(purchasePattern);
-    
-    if (match && match[1]) {
-      const supplierId = match[1];
-      const supplierName = getSupplierName(supplierId, suppliers);
-      return `Pembelian dari ${supplierName}`;
-    }
-    
-    return description;
-  }, [suppliers]);
+  const hasLegacyTransactions = Array.isArray(legacyTransactions);
 
-  // Gunakan data dari useQuery (Supabase) atau dari props
-  const queryData = useTransactionData(
+  const initialItemsPerPage = useMemo(() => (isMobile ? 5 : 8), [isMobile]);
+
+  const data = useTransactionData({
     dateRange,
-    user?.id,
-    currentPage,
+    userId: user?.id,
+    useServerPagination: !hasLegacyTransactions,
+    initialItemsPerPage,
+    legacyData: hasLegacyTransactions
+      ? {
+          transactions: legacyTransactions ?? [],
+          isLoading: legacyIsLoading,
+          onRefresh: legacyOnRefresh,
+        }
+      : undefined,
+  });
+
+  const {
+    transactions,
+    visibleTransactions,
+    paginationInfo,
+    totalItems,
+    totalPages,
+    startItem,
+    endItem,
     itemsPerPage,
-    shouldFetchFromServer,
-    { enabled: shouldFetchFromServer }
+    setItemsPerPage,
+    currentPage,
+    handlePageChange,
+    handleNextPage,
+    handlePreviousPage,
+    isRefetching,
+    showInitialLoading,
+    showBackgroundLoading,
+    onRefresh,
+    lastUpdated,
+    deleteTransaction,
+    isDeleting,
+    error,
+    hasTransactions,
+  } = data;
+
+  const getDisplayDescription = useCallback(
+    (description: string | null): string => {
+      if (!description) return '-';
+
+      const purchasePattern = /Pembelian dari\s+(.+)/;
+      const match = description.match(purchasePattern);
+
+      if (match && match[1]) {
+        const supplierId = match[1];
+        const supplierName = getSupplierName(supplierId, suppliers);
+        return `Pembelian dari ${supplierName}`;
+      }
+
+      return description;
+    },
+    [suppliers],
   );
 
-  const transactions = hasLegacyTransactions ? legacyTransactions! : queryData.transactions;
-  const isLoading = hasLegacyTransactions ? (legacyIsLoading ?? false) : queryData.isLoading;
-  const onRefresh = hasLegacyTransactions
-    ? legacyOnRefresh ?? (() => {})
-    : () => void queryData.refetch();
-  const lastUpdated = hasLegacyTransactions ? undefined : queryData.lastUpdated;
-  const hasTransactions = transactions.length > 0;
-  const isRefetching = hasLegacyTransactions
-    ? Boolean(legacyIsLoading && hasTransactions)
-    : queryData.isRefetching;
-  const showInitialLoading = isLoading && !hasTransactions;
-  const showBackgroundLoading = isRefetching && hasTransactions;
-  const paginationInfo = hasLegacyTransactions ? null : queryData.paginationInfo;
+  const handleDeleteTransaction = useCallback(
+    async (transaction: FinancialTransaction) => {
+      if (!window.confirm(`Yakin ingin menghapus transaksi "${transaction.description}"?`)) {
+        return;
+      }
 
-  // 🚀 PERFORMANCE: Ultra-optimized pagination with capped rendering
-  const currentTransactions = useMemo(() => {
-    if (!hasLegacyTransactions && paginationInfo) {
-      // Server-side pagination - already limited
-      return transactions.slice(0, Math.min(transactions.length, 10)); // Cap at 10 for rendering performance
-    } else {
-      // Client-side pagination with performance cap
-      const firstItem = (currentPage - 1) * itemsPerPage;
-      const limitedTransactions = transactions.slice(firstItem, firstItem + itemsPerPage);
-      return limitedTransactions.slice(0, Math.min(limitedTransactions.length, 10)); // Cap rendering at 10 rows max
-    }
-  }, [transactions, currentPage, itemsPerPage, paginationInfo, hasLegacyTransactions]);
-
-  const totalPages = !hasLegacyTransactions && paginationInfo
-    ? paginationInfo.totalPages
-    : Math.ceil(transactions.length / itemsPerPage);
-  const totalItems = !hasLegacyTransactions && paginationInfo
-    ? paginationInfo.total
-    : transactions.length;
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = !hasLegacyTransactions && paginationInfo
-    ? Math.min(currentPage * itemsPerPage, paginationInfo.total)
-    : Math.min(currentPage * itemsPerPage, transactions.length);
-
-  // Reset page saat data berubah
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
-  }, [transactions.length, totalPages, currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [itemsPerPage]);
-
-  const handlePreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
-  const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
-
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-  }, []);
-
-  const handleDelete = async (transaction: FinancialTransaction) => {
-    if (!window.confirm(`Yakin ingin menghapus transaksi "${transaction.description}"?`)) return;
-    try {
       if (onDeleteTransaction) {
         await onDeleteTransaction(transaction.id);
-      } else {
-        await queryData.deleteTransaction(transaction.id);
+        return;
       }
-    } catch (error) {
-      console.error('Error deleting transaction:', error);
-      // Tampilkan toast error jika perlu
-    }
-  };
 
-  // Generate page numbers
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      const start = Math.max(1, currentPage - 2);
-      const end = Math.min(totalPages, start + maxVisiblePages - 1);
-      for (let i = start; i <= end; i++) pages.push(i);
-    }
-    return pages;
-  };
+      await deleteTransaction(transaction.id);
+    },
+    [deleteTransaction, onDeleteTransaction],
+  );
 
-  // Tampilkan error hanya jika pakai query dan error
-  if (queryData.error && !hasLegacyTransactions) {
+  if (error && !hasLegacyTransactions) {
     return (
       <Card className={className}>
         <CardContent className="p-6">
           <div className="flex flex-col items-center justify-center text-center space-y-3">
             <AlertCircle className="h-12 w-12 text-red-500" />
             <h3 className="text-lg font-medium">Gagal Memuat Data</h3>
-            <p className="text-sm text-gray-500">
-              Terjadi kesalahan saat mengambil data transaksi
-            </p>
-            <Button onClick={() => onRefresh()} variant="outline"> {/* Gunakan onRefresh yang sudah didefinisikan */}
-              <RefreshCw className="mr-2 h-4 w-4" />
+            <p className="text-sm text-gray-500">Terjadi kesalahan saat mengambil data transaksi</p>
+            <Button onClick={onRefresh} variant="outline">
               Coba Lagi
             </Button>
           </div>
@@ -515,272 +148,78 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
   }
 
   return (
-    <Card className={cn("overflow-hidden", className)}>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div className="flex items-center gap-2">
-            <CardTitle>Daftar Transaksi</CardTitle>
-            {lastUpdated && (
-              <div className="flex items-center gap-1 text-xs text-gray-500">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                Live
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Kontrol Lazy Loading dihapus */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onRefresh()} // Gunakan onRefresh yang sudah didefinisikan
-              disabled={isRefetching}
-            >
-              <RefreshCw className={cn("mr-2 h-4 w-4", isRefetching && "animate-spin")} />
-              {isRefetching ? 'Refreshing...' : 'Refresh'}
-            </Button>
-            {onAddTransaction && (
-              <Button size="sm" onClick={onAddTransaction}>
-                <Plus className="mr-2 h-4 w-4" />
-                Transaksi Baru
-              </Button>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          {lastUpdated && (
-            <p className="text-xs text-gray-400">
-              Terakhir diperbarui: {lastUpdated.toLocaleString('id-ID')}
-            </p>
-          )}
-          {paginationInfo && (
-            <p className="text-xs text-blue-600">
-              Mode: Server-side Pagination | Total: {paginationInfo.total} data
-            </p>
-          )}
-        </div>
-      </CardHeader>
+    <Card className={cn('overflow-hidden', className)}>
+      <TransactionTableToolbar
+        lastUpdated={lastUpdated}
+        onRefresh={onRefresh}
+        isRefreshing={isRefetching}
+        onAddTransaction={onAddTransaction}
+        paginationInfo={paginationInfo}
+      />
       <CardContent className="p-0">
         {showInitialLoading ? (
           <div className="p-4">
             <div className="flex items-center justify-center p-4">
-    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-  </div>
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  {isSelectionMode && (
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={isAllSelected}
-                        onCheckedChange={onSelectAll}
-                        aria-label="Pilih semua transaksi"
-                      />
-                    </TableHead>
-                  )}
-                  <TableHead className="min-w-[140px]">
-                    <div className="flex items-center gap-2">
-                      <span>Tanggal & Waktu</span>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 text-gray-400 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            <div className="text-xs space-y-1">
-                              <p><strong>Format tampilan:</strong></p>
-                              <p>• Dengan waktu: "25 Des 2023" + "14:30 WIB"</p>
-                              <p>• Tanpa waktu: "25 Des 2023" + "Tanggal saja"</p>
-                              <p>• Waktu bersifat opsional saat input</p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </TableHead>
-                  <TableHead>Deskripsi</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>Tipe</TableHead>
-                  <TableHead className="text-right">Jumlah</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentTransactions.length > 0 ? (
-                  currentTransactions.map((transaction) => (
-                    <MemoizedTransactionRow
-                      key={transaction.id}
-                      transaction={transaction}
-                      isSelected={selectedIds.includes(transaction.id)}
-                      onToggleSelect={isSelectionMode ? onSelectionChange : undefined}
-                      onEdit={onEditTransaction}
-                      onDelete={handleDelete}
-                      isDeleting={queryData.isDeleting}
-                      getDisplayDescription={getDisplayDescription}
-                    />
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={isSelectionMode ? 7 : 6} className="text-center h-24">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="text-gray-400 mb-2">📊</div>
-                        <p className="text-gray-500">
-                          {dateRange ? 'Tidak ada transaksi pada rentang tanggal ini.' : 'Belum ada transaksi.'}
-                        </p>
-                        {onAddTransaction && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={onAddTransaction}
-                            className="mt-2"
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Tambah Transaksi Pertama
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
+              <TransactionRows
+                transactions={visibleTransactions}
+                selectedIds={selectedIds}
+                isSelectionMode={isSelectionMode}
+                isAllSelected={isAllSelected}
+                onSelectAll={onSelectAll}
+                onSelectionChange={onSelectionChange}
+                onEditTransaction={onEditTransaction}
+                onDeleteTransaction={handleDeleteTransaction}
+                isDeleting={isDeleting}
+                getDisplayDescription={getDisplayDescription}
+                dateRange={dateRange}
+                onAddTransaction={onAddTransaction}
+              />
             </Table>
           </div>
         )}
       </CardContent>
 
-      {transactions.length > 0 && !showInitialLoading && (
-        <CardFooter className="flex flex-col sm:flex-row items-center justify-between p-4 border-t gap-4">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div>
-              Menampilkan {startItem}-{endItem} dari {totalItems} transaksi
-            </div>
-            <div className="flex items-center gap-2">
-              <span>Per halaman:</span>
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={(value) => setItemsPerPage(Number(value))}
-              >
-                <SelectTrigger className="w-16 h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePreviousPage}
-                disabled={currentPage === 1}
-                className="px-3 disabled:opacity-50"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Sebelumnya
-              </Button>
-
-              <div className="flex items-center gap-1 mx-2">
-                {getPageNumbers().map((pageNum) => (
-                  <React.Fragment key={pageNum}>
-                    {pageNum === 1 && currentPage > 3 && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePageChange(1)}
-                          className="w-8 h-8 p-0"
-                        >
-                          1
-                        </Button>
-                        <div className="px-2">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </div>
-                      </>
-                    )}
-                    <Button
-                      variant={currentPage === pageNum ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(pageNum)}
-                      className="w-8 h-8 p-0"
-                    >
-                      {pageNum}
-                    </Button>
-                    {pageNum === totalPages && currentPage < totalPages - 2 && (
-                      <>
-                        <div className="px-2">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePageChange(totalPages)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {totalPages}
-                        </Button>
-                      </>
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="px-3 disabled:opacity-50"
-              >
-                Selanjutnya
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
-        </CardFooter>
+      {hasTransactions && !showInitialLoading && (
+        <TransactionPagination
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={setItemsPerPage}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          startItem={startItem}
+          endItem={endItem}
+          onPageChange={handlePageChange}
+          onNextPage={handleNextPage}
+          onPreviousPage={handlePreviousPage}
+        />
       )}
 
       {showBackgroundLoading && (
-        <div className="px-4 pb-4 text-xs text-muted-foreground">
-          Memuat pembaruan terbaru...
-        </div>
+        <div className="px-4 pb-4 text-xs text-muted-foreground">Memuat pembaruan terbaru...</div>
       )}
 
-      {/* 📊 Performance monitoring in development */}
       {import.meta.env.DEV && (
         <div className="p-2 text-xs text-gray-500 border border-gray-200 bg-gray-50 rounded mt-4">
           <div className="flex justify-between items-center">
             <span>🚀 Optimized TransactionTable Performance Stats:</span>
             <div className="flex gap-4">
               <span>Transactions: {totalItems}</span>
-              <span>Page: {currentPage}/{totalPages}</span>
-              <span>Memoized rows: {currentTransactions.length}</span>
+              <span>Page: {currentPage}/{Math.max(totalPages, 1)}</span>
+              <span>Memoized rows: {visibleTransactions.length}</span>
             </div>
           </div>
         </div>
       )}
-
     </Card>
   );
 };
 
-// ===========================================
-// 🎯 SMART MEMOIZATION & EXPORT
-// ===========================================
-
-// Apply smart memoization with deep comparison for transactions array
-const TransactionTable = createSmartMemo(
-  TransactionTableCore,
-  ['transactions', 'dateRange'], // Deep compare these props
-  'TransactionTable'
-);
+const TransactionTable = createSmartMemo(TransactionTableComponent, ['transactions', 'dateRange'], 'TransactionTable');
 
 export default TransactionTable;

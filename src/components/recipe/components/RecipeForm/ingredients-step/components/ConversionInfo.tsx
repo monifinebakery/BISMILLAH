@@ -1,21 +1,20 @@
-// src/components/recipe/components/RecipeForm/components/ConversionInfoPanel.tsx
+// src/components/recipe/components/RecipeForm/ingredients-step/components/ConversionInfo.tsx
 
 import React from 'react';
 import { Calculator } from 'lucide-react';
 import type { ConvertedIngredient } from '@/utils/unitConversion';
-import { getConversionDisplayText, formatConvertedPrice } from '@/utils/unitConversion';
-import { formatCurrency } from '../../../services/recipeUtils';
+import { getConversionDisplayText } from '@/utils/unitConversion';
+import { formatCurrency } from '../../../../services/recipeUtils';
 
-interface ConversionInfoPanelProps {
+interface ConversionInfoProps {
   conversionInfo: ConvertedIngredient | null;
   className?: string;
 }
 
-export const ConversionInfoPanel: React.FC<ConversionInfoPanelProps> = ({
+export const ConversionInfo: React.FC<ConversionInfoProps> = ({
   conversionInfo,
-  className = ""
+  className = '',
 }) => {
-  // Don't render if no conversion or not converted
   if (!conversionInfo || !conversionInfo.isConverted) {
     return null;
   }
@@ -27,9 +26,7 @@ export const ConversionInfoPanel: React.FC<ConversionInfoPanelProps> = ({
           <Calculator className="w-4 h-4 text-blue-600" />
         </div>
         <div className="flex-1 space-y-2">
-          <h4 className="font-medium text-blue-900 text-sm">
-            🆕 Konversi Satuan Otomatis
-          </h4>
+          <h4 className="font-medium text-blue-900 text-sm">🆕 Konversi Satuan Otomatis</h4>
           <p className="text-blue-700 text-xs leading-relaxed">
             {getConversionDisplayText(conversionInfo)}
           </p>

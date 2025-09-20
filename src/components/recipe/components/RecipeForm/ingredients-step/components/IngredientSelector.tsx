@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Package } from 'lucide-react';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
-import { formatCurrency } from '../../../services/recipeUtils';
+import { formatCurrency } from '../../../../services/recipeUtils';
 import type { ConvertedIngredient } from '@/utils/unitConversion';
 
 interface IngredientSelectorProps {

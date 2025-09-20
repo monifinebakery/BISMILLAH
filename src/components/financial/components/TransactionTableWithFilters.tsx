@@ -1,18 +1,13 @@
 // src/components/financial/components/TransactionTableWithFilters.tsx
 // Enhanced TransactionTable with filters and bulk delete functionality
 
-import React, { useState } from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  CheckSquare, 
-  Square, 
-  Settings,
-  RefreshCw 
+import {
+  Square,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
+import { useQuery } from '@tanstack/react-query';
 
 import { useTransactionFilters } from '../hooks/useTransactionFilters';
 import TransactionFiltersComponent from './TransactionFilters';
@@ -22,20 +17,11 @@ import TransactionTable from './TransactionTable';
 import {
   getTransactionsByDateRange,
   getFinancialTransactionsPaginated,
-  bulkDeleteFinancialTransactions,
 } from '../services/financialApi';
 
-interface FinancialTransaction {
-  id: string;
-  date: Date | string | null;
-  description: string | null;
-  amount: number;
-  type: 'income' | 'expense';
-  category: string | null;
-  userId?: string;
-  createdAt?: Date | string | null;
-  updatedAt?: Date | string | null;
-}
+import type { FinancialTransaction } from '../types/financial';
+import { useTransactionBulkActions } from '../hooks/useTransactionBulkActions';
+
 
 interface TransactionTableWithFiltersProps {
   dateRange?: { from: Date; to?: Date };
@@ -61,8 +47,7 @@ const TransactionTableWithFilters: React.FC<TransactionTableWithFiltersProps> = 
   onRefresh: legacyOnRefresh,
 }) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  
+
   // Query for transactions data
   const { data: transactions = [], isLoading, refetch } = useQuery({
     queryKey: ['financial', 'transactions', user?.id, dateRange?.from, dateRange?.to],
@@ -83,26 +68,23 @@ const TransactionTableWithFilters: React.FC<TransactionTableWithFiltersProps> = 
   // Use filter hook
   const filterHook = useTransactionFilters(legacyTransactions || transactions);
   
-  // Bulk delete mutation
-  const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      if (!user?.id) throw new Error('User not authenticated');
-      return await bulkDeleteFinancialTransactions(ids, user.id);
-    },
+  const { bulkDeleteTransactions } = useTransactionBulkActions({
+    userId: user?.id,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financial'] });
-      if (legacyOnRefresh) legacyOnRefresh();
-      else refetch();
-    },
-    onError: (error: Error) => {
-      logger.error('Bulk delete failed:', error);
-      toast.error(`Gagal menghapus transaksi: ${error.message}`);
+      if (legacyOnRefresh) {
+        legacyOnRefresh();
+      } else {
+        refetch();
+      }
     },
   });
 
-  const handleBulkDelete = async (ids: string[]) => {
-    await bulkDeleteMutation.mutateAsync(ids);
-  };
+  const handleBulkDelete = useCallback(
+    async (ids: string[]) => {
+      await bulkDeleteTransactions(ids);
+    },
+    [bulkDeleteTransactions],
+  );
 
   const selectedTransactions = filterHook.selectedIds
     .map(id => filterHook.filteredTransactions.find(t => t.id === id))

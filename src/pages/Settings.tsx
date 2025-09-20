@@ -92,17 +92,19 @@ const SettingsPage = () => {
   }, [settings]);
 
   useEffect(() => {
-    if (settings && formState) {
+    if (safeSettings && formState) {
       const hasChanged = 
-        (settings.businessName || '') !== (formState.businessName || '') ||
-        (settings.ownerName || '') !== (formState.ownerName || '') ||
-        (settings.email || '') !== (formState.email || '') ||
-        (settings.phone || '') !== (formState.phone || '') ||
-        (settings.address || '') !== (formState.address || '') ||
-        (settings.whatsappType || 'personal') !== (formState.whatsappType || 'personal');
+        (safeSettings.businessName || '') !== (formState.businessName || '') ||
+        (safeSettings.ownerName || '') !== (formState.ownerName || '') ||
+        (safeSettings.email || '') !== (formState.email || '') ||
+        (safeSettings.phone || '') !== (formState.phone || '') ||
+        (safeSettings.address || '') !== (formState.address || '') ||
+        (safeSettings.whatsappType || 'personal') !== (formState.whatsappType || 'personal');
       setHasChanges(hasChanged);
+    } else {
+      setHasChanges(false);
     }
-  }, [settings, formState]);
+  }, [safeSettings, formState]);
 
   // 🚀 PERFORMANCE: Show content even while loading, use skeleton states
   const isContentLoading = isLoading && !formState;
@@ -115,6 +117,9 @@ const SettingsPage = () => {
     whatsappType: 'personal' as const,
     notifications: { lowStock: true, newOrder: true }
   };
+  
+  // Ensure settings is never null
+  const safeSettings = settings || displaySettings;
 
   const handleInputChange = (
     field: keyof UserSettings,
@@ -215,7 +220,7 @@ const SettingsPage = () => {
                   )}
                 </div>
                 <div className="text-xs text-gray-500">
-                  Terakhir diperbarui: {settings?.updatedAt ? new Date(settings.updatedAt).toLocaleString('id-ID') : 'N/A'}
+                  Terakhir diperbarui: {safeSettings?.updatedAt ? new Date(safeSettings.updatedAt).toLocaleString('id-ID') : 'N/A'}
                 </div>
               </div>
             </div>

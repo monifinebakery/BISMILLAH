@@ -21,10 +21,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Trash2, ChefHat, ShoppingCart } from 'lucide-react';
-import type { BahanResep } from '../../../types';
+import type { BahanResep } from '../../../../types';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
-import { RECIPE_UNITS } from '../../../types';
-import { formatCurrency } from '../../../services/recipeUtils';
+import { RECIPE_UNITS } from '../../../../types';
+import { formatCurrency } from '../../../../services/recipeUtils';
 import { convertIngredientUnit } from '@/utils/unitConversion';
 
 interface IngredientTableProps {

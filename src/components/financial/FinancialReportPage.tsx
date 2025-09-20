@@ -11,7 +11,7 @@ import { FinancialTabs } from './components/FinancialTabs';
 
 // Import existing hooks
 import { useFinancialCore } from './hooks/useFinancialCore';
-import { useFinancialChartDataProcessing } from './hooks/useFinancialData';
+import { useFinancialChartData } from './hooks/useFinancialHooks';
 import { useTransactionTable } from './hooks/useTransactionTable';
 import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 
@@ -75,7 +75,7 @@ const FinancialReportPage: React.FC = () => {
   const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
   const [shouldLoadTable, setShouldLoadTable] = useState(false);
   
-  const chartData = useFinancialChartDataProcessing(
+  const chartData = useFinancialChartData(
     financialCore.filteredTransactions,
     !shouldLoadCharts // defer when shouldLoadCharts is false
   );

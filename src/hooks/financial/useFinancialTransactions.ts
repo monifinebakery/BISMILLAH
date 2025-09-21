@@ -20,7 +20,6 @@ export const useFinancialTransactions = ({
       logger.info('Deleting transaction', { id });
       const result = await deleteTransaction(id);
       if (result.success) {
-        toast.success('Transaksi berhasil dihapus');
         logger.info('Transaction deleted successfully', { id });
         return true;
       } else {
@@ -40,7 +39,6 @@ export const useFinancialTransactions = ({
       logger.info('Adding new transaction', { transactionData });
       const result = await addTransaction(transactionData);
       if (result.success) {
-        toast.success('Transaksi berhasil ditambahkan');
         logger.info('Transaction added successfully');
         return true;
       } else {
@@ -60,7 +58,6 @@ export const useFinancialTransactions = ({
       logger.info('Updating transaction', { id, transactionData });
       const result = await updateTransaction(id, transactionData);
       if (result.success) {
-        toast.success('Transaksi berhasil diperbarui');
         logger.info('Transaction updated successfully', { id });
         return true;
       } else {

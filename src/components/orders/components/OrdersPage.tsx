@@ -162,24 +162,23 @@ const OrdersPage: React.FC = () => {
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    keepPreviousData: true,
     placeholderData: (prev) => prev,
   });
 
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
   const { getWhatsappUrl } = useOrderFollowUp();
 
-  // ✅ DATA SELECTION: Pilih data berdasarkan mode lazy loading
-  const finalOrders = paginatedData?.orders || [];
-  const finalIsLoading = isPaginatedLoading;
-  const finalError = paginatedError;
+  // ✅ DATA SELECTION: Use context orders for proper filtering
+  const finalOrders = orders; // Use all orders from context for client-side filtering
+  const finalIsLoading = loading;
+  const finalError = null; // Context handles errors differently
 
-  // ✅ STATS CALCULATION: Hitung statistik berdasarkan data yang dipilih
+  // ✅ STATS CALCULATION: Calculate stats from filtered orders
   const finalStats = useMemo(() => {
-    const dataToUse = paginatedData?.orders || [];
+    const dataToUse = finalOrders;
     return {
-      total: paginationInfo.totalCount,
-      totalValue: dataToUse.reduce((sum: number, order: any) => sum + (order.total_pesanan || order.totalPesanan || 0), 0),
+      total: dataToUse.length,
+      totalValue: dataToUse.reduce((sum: number, order: any) => sum + ((order as any).total_pesanan || (order as any).totalPesanan || order.total_amount || 0), 0),
       byStatus: dataToUse.reduce((acc: Record<string, number>, order: Order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
@@ -188,20 +187,20 @@ const OrdersPage: React.FC = () => {
         ? Math.round((dataToUse.filter((o: Order) => o.status === 'completed').length / dataToUse.length) * 100)
         : 0
     };
-  }, [paginatedData, paginationInfo.totalCount]);
-
-  // ✅ UPDATE PAGINATION INFO: Update when data changes
-  React.useEffect(() => {
-    if (paginatedData) {
-      setPaginationInfo({ 
-        totalCount: paginatedData.totalCount, 
-        totalPages: paginatedData.totalPages 
-      });
-    }
-  }, [paginatedData]);
+  }, [finalOrders]);
 
   // ✅ UI STATE: Optimized with memoization
   const uiState = useOrderUI(finalOrders, itemsPerPage);
+
+  // ✅ UPDATE PAGINATION INFO: Calculate from filtered orders
+  React.useEffect(() => {
+    const filteredCount = uiState?.filtered_orders?.length || finalOrders.length;
+    const calculatedPages = Math.max(1, Math.ceil(filteredCount / itemsPerPage));
+    setPaginationInfo({ 
+      totalCount: filteredCount, 
+      totalPages: calculatedPages 
+    });
+  }, [finalOrders, uiState?.filtered_orders, itemsPerPage]);
 
   // ✅ BULK OPERATIONS: Table selection state
   const {
@@ -263,8 +262,8 @@ const OrdersPage: React.FC = () => {
   const businessHandlers = useOrderActions({
     context: contextValue,
     ordersForView: finalOrders,
-    selectedIds: uiState.selectedOrderIds,
-    toggleSelectOrder: uiState.toggleSelectOrder,
+    selectedIds: selectedIds,
+    toggleSelectOrder: toggleOrderSelection,
     editingOrder: pageState.editingOrder,
     dialog: {
       openOrderForm: (order?: Order | null) => dialogHandlers.openOrderForm(order ?? null),
@@ -277,8 +276,8 @@ const OrdersPage: React.FC = () => {
     (order: Order) => {
       logger.component('OrdersPage', 'Follow up initiated:', {
         orderId: order.id,
-        nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan'],
-        hasPhone: !!order.teleponPelanggan,
+        nomorPesanan: (order as any).nomor_pesanan || order.order_number,
+        hasPhone: !!(order as any).telepon_pelanggan || !!order.customer_phone,
         status: order.status
       });
 
@@ -293,11 +292,11 @@ const OrdersPage: React.FC = () => {
       window.open(whatsappUrl, '_blank');
 
       logger.success('Follow up WhatsApp opened:', {
-        customer: order.namaPelanggan,
-        orderNumber: (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']
+        customer: (order as any).nama_pelanggan || order.customer_name,
+        orderNumber: (order as any).nomor_pesanan || order.order_number
       });
 
-      toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
+      toast.success(`Follow up untuk ${(order as any).nama_pelanggan || order.customer_name} berhasil dibuka di WhatsApp`);
     },
     [getWhatsappUrl]
   );
@@ -306,7 +305,7 @@ const OrdersPage: React.FC = () => {
   const handleViewDetail = useCallback((order: Order) => {
     logger.component('OrdersPage', 'View detail requested:', {
       orderId: order.id,
-      nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan']
+      nomorPesanan: (order as any).nomor_pesanan || order.order_number
     });
     dialogHandlers.openDetail(order);
   }, [dialogHandlers]);
@@ -350,7 +349,7 @@ const OrdersPage: React.FC = () => {
     useLazyLoading,
     currentPage,
     totalPages: paginationInfo.totalPages,
-    selectedOrdersCount: uiState.selectedOrderIds.length,
+    selectedOrdersCount: selectedIds.length,
     dialogsOpen: pageState.dialogs,
     isEditingOrder: !!pageState.editingOrder,
     hasUpdateOrderStatus: typeof updateOrderStatus === 'function'
@@ -390,17 +389,11 @@ const OrdersPage: React.FC = () => {
         fallback={SmallFallback}
       >
         {/* ✅ STATISTICS: Order statistics section */}
-         <SafeSuspense 
-           loadingMessage="" 
-           size="md"
-           fallback={SmallFallback}
-         >
-           <OrderStatistics 
-             orders={finalOrders} 
-             loading={finalIsLoading}
-           />
-         </SafeSuspense>
-        
+        <OrderStatistics
+          orders={finalOrders}
+          loading={finalIsLoading}
+        />
+
         <OrderControls 
           uiState={uiState} 
           loading={finalIsLoading}
@@ -463,11 +456,8 @@ const OrdersPage: React.FC = () => {
                 isAllSelected={isAllSelected}
                 totalCount={finalOrders.length}
                 onRefresh={() => {
-                  if (useLazyLoading) {
-                    refetchPaginated();
-                  } else {
-                    refreshData();
-                  }
+                  // ✅ FIXED: Use context refreshData instead of pagination refetch
+                  refreshData();
                 }}
               />
            </SafeSuspense>
@@ -489,13 +479,13 @@ const OrdersPage: React.FC = () => {
           isAllSelected={isAllSelected}
         />
         
-        {/* ✅ Extracted: Pagination */}
+        {/* ✅ Extracted: Pagination - Updated to use filtered counts */}
         <OrderPagination
-          currentPage={currentPage}
-          totalPages={paginationInfo.totalPages}
-          totalCount={paginationInfo.totalCount}
-          onPrev={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          onNext={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
+          currentPage={uiState.current_page}
+          totalPages={uiState.total_pages}
+          totalCount={uiState.total_items}
+          onPrev={() => uiState.setCurrentPage(Math.max(1, uiState.current_page - 1))}
+          onNext={() => uiState.setCurrentPage(Math.min(uiState.total_pages, uiState.current_page + 1))}
         />
         
         <OrderDialogs

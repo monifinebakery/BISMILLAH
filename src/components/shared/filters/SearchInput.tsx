@@ -1,17 +1,41 @@
 // src/components/shared/filters/SearchInput.tsx - Reusable Search Input
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { helpers } from '@/components/promoCalculator/utils/helpers';
 import type { SearchInputProps } from './types';
 
 export const SearchInput: React.FC<SearchInputProps> = ({
   value,
   onChange,
   placeholder = "Cari...",
-  disabled = false
+  disabled = false,
+  debounceMs = 300
 }) => {
-  const handleClear = () => onChange('');
+  const [localValue, setLocalValue] = useState(value);
+
+  // Create debounced onChange function
+  const debouncedOnChange = useMemo(
+    () => helpers.debounce(onChange, debounceMs),
+    [onChange, debounceMs]
+  );
+
+  // Sync local value with prop value
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    debouncedOnChange(newValue);
+  };
+
+  const handleClear = () => {
+    setLocalValue('');
+    onChange(''); // Clear immediately, no debounce needed
+  };
 
   return (
     <div className="relative">
@@ -20,12 +44,12 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         <Input
           type="text"
           placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={localValue}
+          onChange={handleInputChange}
           disabled={disabled}
           className="pl-10 pr-10"
         />
-        {value && (
+        {localValue && (
           <Button
             type="button"
             variant="ghost"

@@ -33,4 +33,5 @@ export interface SearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  debounceMs?: number;
 }

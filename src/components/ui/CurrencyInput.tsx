@@ -1,6 +1,7 @@
 // src/components/ui/CurrencyInput.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { helpers } from '@/components/promoCalculator/utils/helpers';
 
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   value: number | string;
@@ -9,6 +10,7 @@ interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   thousandSeparator?: string;
   allowNegative?: boolean;
   onValueChange?: (formattedValue: string, value: number) => void;
+  debounceMs?: number;
 }
 
 export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
@@ -22,11 +24,18 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     onValueChange,
     placeholder,
     disabled,
+    debounceMs = 300,
     ...props
   }, ref) => {
     const [displayValue, setDisplayValue] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
+
+    // Create debounced onChange function
+    const debouncedOnChange = useMemo(
+      () => helpers.debounce(onChange, debounceMs),
+      [onChange, debounceMs]
+    );
 
     // Format number to display with thousands separator
     const formatNumber = (num: number | string): string => {
@@ -69,7 +78,9 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
       const numericValue = parseNumber(inputValue);
       
       setDisplayValue(inputValue.replace(prefix, ''));
-      onChange(numericValue);
+      
+      // Use debounced onChange while typing for better performance
+      debouncedOnChange(numericValue);
       
       if (onValueChange) {
         onValueChange(inputValue, numericValue);

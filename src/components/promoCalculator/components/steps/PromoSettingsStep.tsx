@@ -43,6 +43,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
               </Label>
               <Input
                 id="hargaProduk"
+                name="hargaProduk"
                 type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -73,6 +74,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
               </Label>
               <Input
                 id="hpp"
+                name="hpp"
                 type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -104,6 +106,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
               </Label>
               <Input
                 id="nilaiDiskon"
+                name="nilaiDiskon"
                 type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -140,6 +143,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                   </Label>
                   <Input
                     id="beli"
+                    name="beli"
                     type="number"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -167,6 +171,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                   </Label>
                   <Input
                     id="gratis"
+                    name="gratis"
                     type="number"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -203,6 +208,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 </Label>
                 <Input
                   id="hargaNormal"
+                  name="hargaNormal"
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -229,6 +235,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 </Label>
                 <Input
                   id="hargaBundle"
+                  name="hargaBundle"
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"

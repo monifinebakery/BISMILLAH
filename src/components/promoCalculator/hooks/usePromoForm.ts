@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { promoService } from '@/components/promoCalculator/services/promoService';
+import { promosService } from '@/components/promoCalculator/services';
 import { usePromoCalculation } from './usePromoCalculation';
 import type { 
   PromoFormData, 
@@ -63,7 +63,7 @@ export const usePromoForm = (id?: string) => {
     queryFn: async () => {
       if (!id) return null;
       try {
-        const promo = await promoService.getById(id);
+        const promo = await promosService.getById(id);
         return promo;
       } catch (error) {
         console.error('Error fetching promo:', error);
@@ -118,9 +118,9 @@ export const usePromoForm = (id?: string) => {
       };
 
       if (isEditMode) {
-        return await promoService.update(id, fullPromoData);
+        return await promosService.update(id, fullPromoData);
       } else {
-        return await promoService.create(fullPromoData);
+        return await promosService.create(fullPromoData);
       }
     },
     onSuccess: (data) => {
@@ -222,7 +222,7 @@ export const usePromoForm = (id?: string) => {
     // Handle both event object and direct value calls
     let fieldName: string;
     let fieldValue: string;
-    
+
     if (typeof e === 'string') {
       // Direct call with field name and value
       fieldName = e;
@@ -230,14 +230,22 @@ export const usePromoForm = (id?: string) => {
     } else {
       // Event object call
       if (!e || !e.target) return;
-      const { id, value: targetValue } = e.target;
-      if (!id) return;
-      fieldName = id;
+      const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+      const { id, name, value: targetValue } = target;
+      const dataField = target.dataset?.field;
+      const resolvedFieldName = id || name || dataField;
+
+      if (!resolvedFieldName) {
+        console.warn('usePromoForm: field identifier tidak ditemukan pada elemen input', target);
+        return;
+      }
+
+      fieldName = resolvedFieldName;
       fieldValue = targetValue;
     }
-    
+
     setFormData(prev => ({ ...prev, [fieldName]: fieldValue }));
-    
+
     // Clear errors untuk step saat ini ketika user mengubah input
     setStepErrors(prev => ({ ...prev, [currentStep]: [] }));
     

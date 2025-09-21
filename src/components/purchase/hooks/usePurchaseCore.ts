@@ -99,19 +99,18 @@ export const usePurchaseCore = ({
   // ---------- Permissions (edit/delete selalu boleh, hanya beri info) ----------
   const canEdit = useCallback((purchase: any) => {
     if (isProcessing(purchase.id)) {
-      toast.warning('Pembelian sedang diproses, tunggu sebentar');
+      // Toast notifications sudah ditangani oleh PurchaseContext
       return false;
     }
     if (purchase.status === 'completed') {
-      // izinkan edit, beri info
-      toast.message('Edit setelah selesai diperbolehkan. Stok akan disesuaikan otomatis.');
+      // Toast notifications sudah ditangani oleh PurchaseContext
     }
     return true;
   }, [isProcessing]);
 
   const canDelete = useCallback((purchase: any) => {
     if (isProcessing(purchase.id)) {
-      toast.warning('Pembelian sedang diproses, tunggu sebentar');
+      // Toast notifications sudah ditangani oleh PurchaseContext
       return false;
     }
     // izinkan delete; manual sync akan rollback stok jika sudah applied
@@ -123,23 +122,23 @@ export const usePurchaseCore = ({
   const updateStatus = useCallback(async (purchaseId: string, newStatus: 'pending'|'completed'|'cancelled'): Promise<boolean> => {
     const v = validateStatusChangeLocal(purchaseId, newStatus);
     if (!v.canChange) {
-      toast.error(v.errors[0] || 'Perubahan status tidak valid');
+      // Toast notifications sudah ditangani oleh PurchaseContext
       return false;
     }
-    v.warnings.forEach(w => toast.warning(w));
+    // Toast notifications sudah ditangani oleh PurchaseContext
 
     addProcessing(purchaseId);
     try {
       if (!user?.id) throw new Error('User belum login');
       const ok = await setStatus(purchaseId, newStatus);
       if (ok) {
-        toast.success(`Status berhasil diubah ke ${getStatusDisplayText(newStatus)}. Stok gudang akan tersinkron otomatis.`);
+        // Toast notifications sudah ditangani oleh PurchaseContext
         return true;
       }
       throw new Error('Gagal update status');
     } catch (e: any) {
       logger.error('Error updating status', e);
-      toast.error(e?.message || 'Gagal mengubah status');
+      // Toast notifications sudah ditangani oleh PurchaseContext
       return false;
     } finally {
       removeProcessing(purchaseId);
@@ -151,11 +150,13 @@ export const usePurchaseCore = ({
     addProcessing(id);
     try {
       const ok = await updatePurchase(id, patch);
-      if (ok) toast.success('Pembelian berhasil diperbarui. Stok gudang akan dikoreksi otomatis bila diperlukan.');
+      if (ok) {
+        // Toast notifications sudah ditangani oleh PurchaseContext
+      }
       return ok;
     } catch (e: any) {
       logger.error('Update purchase error', e);
-      toast.error(e?.message || 'Gagal memperbarui pembelian');
+      // Toast notifications sudah ditangani oleh PurchaseContext
       return false;
     } finally {
       removeProcessing(id);
@@ -171,7 +172,9 @@ export const usePurchaseCore = ({
     addProcessing(purchaseId);
     try {
       const ok = await deletePurchase(purchaseId);
-      if (ok) toast.success('Pembelian dihapus. Stok gudang disesuaikan otomatis.');
+      if (ok) {
+        // Toast notifications sudah ditangani oleh PurchaseContext
+      }
       return { success: ok, error: ok ? null : 'Gagal menghapus pembelian' };
     } catch (e: any) {
       logger.error('Delete purchase error', e);
@@ -208,9 +211,7 @@ export const usePurchaseCore = ({
     // Validation / prerequisites
     validation,
     validatePrerequisites: useCallback((): boolean => {
-      if (!suppliers?.length) {
-        toast.warning('Belum ada data supplier. Kamu bisa menambahkannya nanti.');
-      }
+      // Toast notifications sudah ditangani oleh PurchaseContext
       return true;
     }, [suppliers?.length]),
 

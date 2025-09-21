@@ -105,13 +105,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       if (!newRecipe) {
         const errorMsg = 'Data resep baru tidak diterima dari server';
         logger.error('RecipeForm: No recipe data received from create API');
-        toast.error(errorMsg);
+        // Toast notifications sudah ditangani oleh useRecipeOperations
         return;
       }
       if (!newRecipe.id) {
         const errorMsg = 'Data resep baru tidak valid diterima dari server (ID hilang)';
         logger.error('RecipeForm: Invalid recipe data received from create API (missing ID)', newRecipe);
-        toast.error(errorMsg);
+        // Toast notifications sudah ditangani oleh useRecipeOperations
         return;
       }
 
@@ -120,7 +120,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         RECIPE_QUERY_KEYS.detail(newRecipe.id), 
         newRecipe
       );
-      toast.success('Resep berhasil ditambahkan!');
+      // Toast notifications sudah ditangani oleh useRecipeOperations
       onSuccess?.(newRecipe, false);
       onOpenChange(false);
     },
@@ -139,13 +139,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       if (!updatedRecipe) {
         const errorMsg = 'Data resep tidak diterima dari server';
         logger.error('RecipeForm: No recipe data received from update API');
-        toast.error(errorMsg);
+        // Toast notifications sudah ditangani oleh useRecipeOperations
         return;
       }
       if (!updatedRecipe.id) {
         const errorMsg = 'Data resep tidak valid diterima dari server (ID hilang)';
         logger.error('RecipeForm: Invalid recipe data received from update API (missing ID)', updatedRecipe);
-        toast.error(errorMsg);
+        // Toast notifications sudah ditangani oleh useRecipeOperations
         return;
       }
 
@@ -163,7 +163,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           );
         }
       );
-      toast.success('Resep berhasil diperbarui!');
+      // Toast notifications sudah ditangani oleh useRecipeOperations
       onSuccess?.(updatedRecipe, true);
       onOpenChange(false);
     },

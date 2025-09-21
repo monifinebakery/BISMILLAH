@@ -532,7 +532,7 @@ const WarehousePageContent: React.FC = () => {
       } catch (error) {
         logger.error('Create handler error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        toast.error(`Gagal menambah item: ${errorMessage}`);
+        // Toast notifications sudah ditangani oleh WarehouseContext
       }
     },
     
@@ -544,7 +544,7 @@ const WarehousePageContent: React.FC = () => {
       } catch (error) {
         logger.error('Update handler error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        toast.error(`Gagal memperbarui item: ${errorMessage}`);
+        // Toast notifications sudah ditangani oleh WarehouseContext
       }
     },
     
@@ -556,7 +556,7 @@ const WarehousePageContent: React.FC = () => {
       } catch (error) {
         logger.error('Delete handler error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        toast.error(`Gagal menghapus item: ${errorMessage}`);
+        // Toast notifications sudah ditangani oleh WarehouseContext
       }
     },
     

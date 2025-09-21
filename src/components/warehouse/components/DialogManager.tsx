@@ -198,10 +198,10 @@ const DialogManager: React.FC<DialogManagerProps> = ({
         queryClient.invalidateQueries({ queryKey: ['warehouse', 'categories'] });
         queryClient.invalidateQueries({ queryKey: ['warehouse', 'suppliers'] });
         logger.debug(`[${pageId}] ✅ ${isEdit ? 'Updated' : 'Created'} item successfully`);
-        toast.success(`${isEdit ? 'Diperbarui' : 'Ditambahkan'} item berhasil!`);
+        // Toast notifications sudah ditangani oleh WarehouseContext
       } catch (error: any) {
         logger.error(`[${pageId}] ❌ Failed to ${isEdit ? 'update' : 'create'} item:`, error);
-        toast.error(`Gagal ${isEdit ? 'memperbarui' : 'menambah'} item: ${error.message || 'Unknown error'}`);
+        // Toast notifications sudah ditangani oleh WarehouseContext
         throw error;
       }
     },
@@ -283,7 +283,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
           if (!hasValidUpdates || Object.keys(updates).length === 0) {
             const message = 'Tidak ada perubahan valid yang akan diterapkan';
             logger.warn(`[${pageId}] ⚠️ ${message}`);
-            toast.warning(message);
+            // Toast notifications sudah ditangani oleh useWarehouseBulk hook
             return false;
           }
           
@@ -298,7 +298,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
             isEditWithoutData: operation === 'edit' && !data
           });
           const message = operation === 'edit' ? 'Data untuk bulk edit tidak tersedia' : 'Operasi bulk tidak valid';
-          toast.error(message);
+          // Toast notifications sudah ditangani oleh useWarehouseBulk hook
           return false;
         }
         
@@ -307,7 +307,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
           logger.info(`[${pageId}] ✅ Bulk ${operation} operation successful`);
         } else {
           logger.warn(`[${pageId}] ⚠️ Bulk ${operation} operation returned false`);
-          toast.warning(`Operasi ${operation === 'edit' ? 'edit' : 'hapus'} massal tidak berhasil`);
+          // Toast notifications sudah ditangani oleh useWarehouseBulk hook
         }
         
         return success;
@@ -331,7 +331,7 @@ const DialogManager: React.FC<DialogManagerProps> = ({
           errorMessage = `Operasi ${operation === 'edit' ? 'edit' : 'hapus'} massal gagal: ${error.message || 'Error tidak diketahui'}`;
         }
         
-        toast.error(errorMessage);
+        // Toast notifications sudah ditangani oleh useWarehouseBulk hook
         return false; // Don't re-throw to prevent dialog from staying open
       }
     },

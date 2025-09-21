@@ -85,16 +85,16 @@ const PurchaseAddEditPage: React.FC = () => {
         if (purchaseData) {
           setPurchase(purchaseData);
           setDataLoaded(true);
-          toast.success('Data pembelian berhasil dimuat');
+          // Toast notifications sudah ditangani oleh PurchaseContext
         } else {
           console.warn('Purchase not found for ID:', purchaseId);
-          toast.error('Data pembelian tidak ditemukan');
+          // Toast notifications sudah ditangani oleh PurchaseContext
           navigate('/purchase');
           return;
         }
       } catch (error) {
         console.error('Error loading purchase data:', error);
-        toast.error('Gagal memuat data pembelian');
+        // Toast notifications sudah ditangani oleh PurchaseContext
         navigate('/purchase');
         return;
       } finally {

@@ -75,7 +75,7 @@ export const useRecipeOperations = ({
       const result = await recipeApi.addRecipe(finalRecipeData, userId);
 
       if (result.success && result.data) {
-        toast.success('Resep berhasil ditambahkan!');
+        // Toast notifications sudah ditangani oleh useRecipeMutations
         onRecipeAdded?.(result.data);
         logger.debug('useRecipeOperations: Successfully added recipe:', result.data.id);
         return true;
@@ -153,7 +153,7 @@ export const useRecipeOperations = ({
       const result = await recipeApi.updateRecipe(id, finalUpdates, userId);
 
       if (result.success && result.data) {
-        toast.success('Resep berhasil diperbarui!');
+        // Toast notifications sudah ditangani oleh useRecipeMutations
         onRecipeUpdated?.(result.data);
         logger.debug('useRecipeOperations: Successfully updated recipe:', result.data.id);
         return true;
@@ -187,7 +187,7 @@ export const useRecipeOperations = ({
       const result = await recipeApi.deleteRecipe(id, userId);
 
       if (result.success) {
-        toast.success('Resep berhasil dihapus');
+        // Toast notifications sudah ditangani oleh useRecipeMutations
         onRecipeDeleted?.(id);
         logger.debug('useRecipeOperations: Successfully deleted recipe:', id);
         return true;
@@ -225,7 +225,7 @@ export const useRecipeOperations = ({
       const success = await addRecipe(duplicatedRecipe);
 
       if (success) {
-        toast.success(`Resep "${newName}" berhasil diduplikasi`);
+        // Toast notifications sudah ditangani oleh useRecipeMutations
         return true;
       }
       return false;
@@ -261,7 +261,7 @@ export const useRecipeOperations = ({
       const result = await recipeApi.bulkDeleteRecipes(ids, userId);
 
       if (result.success) {
-        toast.success(`${ids.length} resep berhasil dihapus`);
+        // Toast notifications sudah ditangani oleh useRecipeBulk
         // Notify for each deleted recipe
         ids.forEach(id => onRecipeDeleted?.(id));
         logger.debug('useRecipeOperations: Successfully bulk deleted recipes:', ids.length);

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { recipeApi } from '../services/recipeApi';
 import { logger } from '@/utils/logger';
-import { RECIPE_QUERY_KEYS } from './RecipeNavigationContainer';
+import { RECIPE_QUERY_KEYS } from '../components/RecipeNavigationContainer';
 
 export const useRecipeQueries = () => {
   // Recipe data query

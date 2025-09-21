@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { RECIPE_QUERY_KEYS } from './RecipeNavigationContainer';
+import { RECIPE_QUERY_KEYS } from '../components/RecipeNavigationContainer';
 import type { Recipe } from '../types';
 
 interface NavigationState {

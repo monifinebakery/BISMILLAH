@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { recipeApi } from '../services/recipeApi';
 import { logger } from '@/utils/logger';
-import { RECIPE_QUERY_KEYS } from './RecipeNavigationContainer';
+import { RECIPE_QUERY_KEYS } from '../components/RecipeNavigationContainer';
 import type { Recipe, NewRecipe } from '../types';
 
 export const useRecipeMutations = () => {

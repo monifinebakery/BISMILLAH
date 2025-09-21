@@ -6,6 +6,7 @@ import { validateCostForm, sanitizeCostForm } from '../utils/costValidation';
 import { transformCostToForm } from '../utils/costTransformers';
 import { JENIS_BIAYA_OPTIONS, STATUS_BIAYA_OPTIONS, DEFAULT_COST_NAMES } from '../constants/costCategories';
 import { formatCurrency } from '../utils/costHelpers';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import { logger } from '@/utils/logger';
 
 interface CostFormProps {
@@ -242,25 +243,21 @@ const CostForm: React.FC<CostFormProps> = ({
           <label htmlFor="jumlah_per_bulan" className="block text-sm font-medium text-gray-700 mb-1">
             Jumlah per Bulan <span className="text-red-500">*</span>
           </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-              Rp
-            </span>
-            <input
-              type="number"
-              id="jumlah_per_bulan"
-              value={formData.jumlah_per_bulan || ''}
-              onChange={(e) => handleInputChange('jumlah_per_bulan', Number(e.target.value))}
-              placeholder="1000"
-              min="1000"
-              step="1000"
-              className={`w-full pl-10 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.jumlah_per_bulan ? 'border-red-300' : 'border-gray-300'
-              }`}
-              disabled={loading}
-            />
-          </div>
-          
+          <CurrencyInput
+            id="jumlah_per_bulan"
+            name="jumlah_per_bulan"
+            value={formData.jumlah_per_bulan || 0}
+            onChange={(value) => handleInputChange('jumlah_per_bulan', value)}
+            placeholder="1000"
+            disabled={loading}
+            className={`pr-3 ${
+              errors.jumlah_per_bulan
+                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+            }`}
+            debounceMs={300}
+          />
+
           {/* Preview formatted amount */}
           {formData.jumlah_per_bulan > 0 && (
             <p className="mt-1 text-sm text-gray-500">

@@ -85,21 +85,22 @@ export const useCodeSplitting = (): UseCodeSplittingReturn => {
   }, [state]);
 
   // Preload komponen prioritas tinggi saat mount
-  useEffect(() => {
-    const preloadHighPriorityComponents = async () => {
-      const highPriorityRoutes = ['dashboard', 'orders', 'profit-analysis'];
-      
-      // Preload secara bertahap untuk menghindari blocking
-      for (const route of highPriorityRoutes) {
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
-        preloadRoute(route).catch(console.error);
-      }
-    };
+  // Removed automatic preloading to reduce fetch requests
+  // useEffect(() => {
+  //   const preloadHighPriorityComponents = async () => {
+  //     const highPriorityRoutes = ['dashboard', 'orders', 'profit-analysis'];
+  //     
+  //     // Preload secara bertahap untuk menghindari blocking
+  //     for (const route of highPriorityRoutes) {
+  //       await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+  //       preloadRoute(route).catch(console.error);
+  //     }
+  //   };
 
-    // Delay preloading untuk tidak mengganggu initial render
-    const timer = setTimeout(preloadHighPriorityComponents, 1000);
-    return () => clearTimeout(timer);
-  }, [preloadRoute]);
+  //   // Delay preloading untuk tidak mengganggu initial render
+  //   const timer = setTimeout(preloadHighPriorityComponents, 1000);
+  //   return () => clearTimeout(timer);
+  // }, [preloadRoute]);
 
   return {
     preloadRoute,

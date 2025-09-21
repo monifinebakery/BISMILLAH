@@ -75,10 +75,11 @@ const App = () => {
   // ✅ SIMPLIFIED: Remove auth redirect logic (now handled in AuthContext)
   useEffect(() => {
     handleInitialSetup();
-    // Preload route chunks early to reduce lazy-load lag, especially on mobile
+    // Initialize route preloaders but don't preload routes upfront
     try {
       initializeRoutePreloaders();
-      preloadCriticalRoutes();
+      // Remove aggressive preloading - routes will be preloaded on demand
+      // preloadCriticalRoutes();
     } catch (e) {
       logger.debug('Route preloading init skipped', e);
     }

@@ -418,15 +418,14 @@ const OrdersPage: React.FC = () => {
               const success = await contextValue.bulkDeleteOrders?.(selectedIds);
               
               if (success) {
-                toast.success(`${selectedIds.length} pesanan berhasil dihapus`);
                 clearSelection();
                 exitSelectionMode();
               } else {
-                toast.error('Gagal menghapus pesanan');
+                // Toast error sudah ditangani oleh useOrderBulk hook
               }
             } catch (error) {
               logger.error('Error during bulk delete:', error);
-              toast.error('Terjadi kesalahan saat menghapus pesanan');
+              // Toast error sudah ditangani oleh useOrderBulk hook
             }
           }}
           isSelectionMode={isSelectionMode}

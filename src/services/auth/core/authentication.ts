@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 import { toSafeISOString } from '@/utils/unifiedDateUtils';
-import { getCurrentSession, clearSessionCache } from './session';
+import { getCurrentSession, clearSessionCache, refreshSession as refreshSessionInternal } from './session';
 
 // ✅ SIMPLIFIED: Check authentication using utility session
 export const isAuthenticated = async (): Promise<boolean> => {
@@ -104,22 +104,8 @@ export const refreshCurrentUser = async () => {
     // Clear utility cache first
     clearSessionCache();
     
-    // Force refresh session with timeout
-    const refreshPromise = supabase.auth.refreshSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Refresh timeout')), 10000)
-    );
-    
-    const { data: { session }, error } = await Promise.race([
-      refreshPromise,
-      timeoutPromise
-    ]) as any;
-    
-    if (error) {
-      logger.error('[Auth] Session refresh error:', error);
-      return null;
-    }
-    
+    const session = await refreshSessionInternal();
+
     if (session?.user?.id && session.user.id !== 'null') {
       logger.success('[Auth] Session refreshed successfully:', {
         userId: session.user.id,
@@ -128,7 +114,7 @@ export const refreshCurrentUser = async () => {
       });
       return session.user;
     }
-    
+
     logger.warn('[Auth] Session refresh returned invalid user');
     return null;
     

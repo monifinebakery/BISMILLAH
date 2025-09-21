@@ -40,34 +40,16 @@ export const useAuthValidation = ({
       if (timeoutError) {
         logger.error("AuthContext refresh timeout/error", timeoutError);
 
-        const refreshSuccess = await refreshSessionSafely();
-        if (!refreshSuccess) {
+        const refreshedSession = await refreshSessionSafely();
+        if (!refreshedSession) {
           logger.warn("AuthContext: Both getSession and refreshSession failed");
           return;
         }
 
-        const { data: retryResult } = await safeWithTimeout(
-          () => supabase.auth.getSession(),
-          {
-            timeoutMs: adaptiveTimeout,
-            timeoutMessage: "AuthContext refresh retry",
-          },
-        );
-
-        if (retryResult) {
-          const {
-            data: { session: retrySession },
-            error,
-          } = retryResult as GetSessionResult;
-
-          if (!error) {
-            const { session: validSession, user: validUser } =
-              validateSession(retrySession);
-            updateSession(validSession);
-            updateUser(validUser);
-            return;
-          }
-        }
+        const { session: validSession, user: validUser } =
+          validateSession(refreshedSession);
+        updateSession(validSession);
+        updateUser(validUser);
         return;
       }
 

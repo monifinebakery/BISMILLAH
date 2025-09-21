@@ -400,10 +400,18 @@ export const useAuthLifecycle = ({
               break;
             }
 
-            const refreshed = await refreshSessionSafely();
-            if (refreshed) {
+            const refreshedSession = await refreshSessionSafely();
+            if (refreshedSession) {
               logger.debug(
                 "AuthContext: refreshSessionSafely succeeded before retry",
+                {
+                  attempt,
+                  userId: refreshedSession.user?.id,
+                },
+              );
+            } else {
+              logger.warn(
+                "AuthContext: refreshSessionSafely returned no session before retry",
                 {
                   attempt,
                 },

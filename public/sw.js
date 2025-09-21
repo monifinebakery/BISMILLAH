@@ -20,12 +20,52 @@ function swError(...args) {
 }
 
 // Update version number when you want to force cache refresh
-const CACHE_VERSION = 'v4-' + new Date().toISOString().split('T')[0]; // v4-2025-01-10
-const CACHE_NAME = 'hpp-calculator-' + CACHE_VERSION;
-const STATIC_CACHE = 'hpp-static-' + CACHE_VERSION;
-const DYNAMIC_CACHE = 'hpp-dynamic-' + CACHE_VERSION;
-const API_CACHE = 'hpp-api-' + CACHE_VERSION;
-const ASSETS_CACHE = 'hpp-assets-' + CACHE_VERSION;
+// Use a static base prefix combined with commit hash from version.json
+// so cache names remain stable between reloads of the same build.
+const CACHE_PREFIX = 'v5';
+const VERSION_URL = new URL('version.json', self.location.origin).href;
+
+const cacheConfigPromise = resolveCacheConfig();
+
+async function resolveCacheConfig() {
+  const versionSuffix = await loadVersionSuffix();
+  const cacheVersion = `${CACHE_PREFIX}-${versionSuffix}`;
+  const config = {
+    version: cacheVersion,
+    cacheName: `hpp-calculator-${cacheVersion}`,
+    staticCache: `hpp-static-${cacheVersion}`,
+    dynamicCache: `hpp-dynamic-${cacheVersion}`,
+    apiCache: `hpp-api-${cacheVersion}`,
+    assetsCache: `hpp-assets-${cacheVersion}`
+  };
+  config.activeCacheNames = new Set([
+    config.staticCache,
+    config.dynamicCache,
+    config.apiCache,
+    config.assetsCache
+  ]);
+  swLog('[SW] Using cache version:', cacheVersion);
+  return config;
+}
+
+async function loadVersionSuffix() {
+  try {
+    const response = await fetch(VERSION_URL, { cache: 'no-store' });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && typeof data.commitHash === 'string' && data.commitHash) {
+        return data.commitHash;
+      }
+    }
+  } catch (error) {
+    swError('[SW] Failed to load version.json for cache versioning:', error);
+  }
+  return 'fallback';
+}
+
+function getCacheConfig() {
+  return cacheConfigPromise;
+}
 
 // Files to cache immediately
 const STATIC_ASSETS = [
@@ -55,17 +95,20 @@ const API_ENDPOINTS = [
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   swLog('[SW] Installing service worker...');
-  
+
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => {
-        swLog('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => {
-        swLog('[SW] Static assets cached successfully');
-        return self.skipWaiting();
-      })
+    getCacheConfig()
+      .then(({ staticCache }) =>
+        caches.open(staticCache)
+          .then((cache) => {
+            swLog('[SW] Caching static assets');
+            return cache.addAll(STATIC_ASSETS);
+          })
+          .then(() => {
+            swLog('[SW] Static assets cached successfully');
+            return self.skipWaiting();
+          })
+      )
       .catch((error) => {
         swError('[SW] Failed to cache static assets:', error);
       })
@@ -75,22 +118,20 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   swLog('[SW] Activating service worker...');
-  
+
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE && 
-                cacheName !== DYNAMIC_CACHE && 
-                cacheName !== API_CACHE &&
-                cacheName !== ASSETS_CACHE) {
-              console.log('[SW] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
+    getCacheConfig()
+      .then(({ activeCacheNames }) =>
+        caches.keys()
+          .then((cacheNames) => Promise.all(
+            cacheNames.map((cacheName) => {
+              if (!activeCacheNames.has(cacheName)) {
+                console.log('[SW] Deleting old cache:', cacheName);
+                return caches.delete(cacheName);
+              }
+            })
+          ))
+      )
       .then(() => {
         console.log('[SW] Service worker activated');
         return self.clients.claim();
@@ -149,7 +190,8 @@ function isNavigationRequest(request) {
 // Handle static assets with smart caching strategy
 async function handleStaticAsset(request) {
   const url = new URL(request.url);
-  
+  const { assetsCache, staticCache, dynamicCache } = await getCacheConfig();
+
   // Additional safety check for unsupported schemes
   if (!url.protocol.startsWith('http')) {
     swError('[SW] Unsupported scheme for caching:', url.protocol, url.href);
@@ -184,7 +226,7 @@ async function handleStaticAsset(request) {
       // Avoid caching HTML responses for JS/CSS requests (prevents MIME errors)
       const isJsOrCss = /\.(js|css)$/.test(url.pathname);
       if (!(isJsOrCss && ct.includes('text/html'))) {
-        const cacheName = isCriticalAsset ? ASSETS_CACHE : STATIC_CACHE;
+        const cacheName = isCriticalAsset ? assetsCache : staticCache;
         const cache = await caches.open(cacheName);
         cache.put(request, networkResponse.clone());
         swLog('[SW] Cached asset:', url.pathname);
@@ -196,9 +238,9 @@ async function handleStaticAsset(request) {
     return networkResponse;
   } catch (error) {
     swError('[SW] Static asset fetch failed:', url.pathname, error);
-    
+
     // Try to find in any cache as fallback
-    const cacheNames = [ASSETS_CACHE, STATIC_CACHE, DYNAMIC_CACHE];
+    const cacheNames = [assetsCache, staticCache, dynamicCache];
     for (const cacheName of cacheNames) {
       const cache = await caches.open(cacheName);
       const cachedResponse = await cache.match(request);
@@ -233,7 +275,8 @@ async function handleAPIRequest(request) {
     
     if (networkResponse.ok) {
       // Cache successful API responses
-      const cache = await caches.open(API_CACHE);
+      const { apiCache } = await getCacheConfig();
+      const cache = await caches.open(apiCache);
       cache.put(request, networkResponse.clone());
       return networkResponse;
     }
@@ -286,7 +329,8 @@ async function handleNavigation(request) {
 // Handle dynamic requests with network-first strategy
 async function handleDynamicRequest(request) {
   const url = new URL(request.url);
-  
+  const { dynamicCache } = await getCacheConfig();
+
   // Additional safety check for unsupported schemes
   if (!url.protocol.startsWith('http')) {
     swError('[SW] Unsupported scheme for dynamic caching:', url.protocol, url.href);
@@ -297,7 +341,7 @@ async function handleDynamicRequest(request) {
     const networkResponse = await fetch(request);
     
     if (networkResponse.ok) {
-      const cache = await caches.open(DYNAMIC_CACHE);
+      const cache = await caches.open(dynamicCache);
       cache.put(request, networkResponse.clone());
     }
     
@@ -380,15 +424,18 @@ self.addEventListener('notificationclick', (event) => {
 // Message handling from main thread
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
-  
+
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
+
   if (event.data && event.data.type === 'CACHE_URLS') {
     event.waitUntil(
-      caches.open(DYNAMIC_CACHE)
-        .then(cache => cache.addAll(event.data.payload))
+      getCacheConfig()
+        .then(({ dynamicCache }) =>
+          caches.open(dynamicCache)
+            .then(cache => cache.addAll(event.data.payload))
+        )
     );
   }
 });

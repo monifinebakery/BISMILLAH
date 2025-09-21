@@ -194,7 +194,7 @@ export const useFinancialOperations = (): UseFinancialOperationsReturn => {
 
   return {
     addTransaction: addMutation.mutateAsync,
-    updateTransaction: (id: string, data: UpdateTransactionData) => 
+    updateTransaction: (id: string, data: UpdateTransactionData) =>
       updateMutation.mutateAsync({ id, data }),
     deleteTransaction: deleteMutation.mutateAsync,
     isLoading: addMutation.isPending || updateMutation.isPending || deleteMutation.isPending

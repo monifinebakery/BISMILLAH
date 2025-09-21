@@ -168,17 +168,17 @@ const OrdersPage: React.FC = () => {
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
   const { getWhatsappUrl } = useOrderFollowUp();
 
-  // ✅ DATA SELECTION: Pilih data berdasarkan mode lazy loading
-  const finalOrders = paginatedData?.orders || [];
-  const finalIsLoading = isPaginatedLoading;
-  const finalError = paginatedError;
+  // ✅ DATA SELECTION: Use context orders for proper filtering
+  const finalOrders = orders; // Use all orders from context for client-side filtering
+  const finalIsLoading = loading;
+  const finalError = null; // Context handles errors differently
 
-  // ✅ STATS CALCULATION: Hitung statistik berdasarkan data yang dipilih
+  // ✅ STATS CALCULATION: Calculate stats from filtered orders
   const finalStats = useMemo(() => {
-    const dataToUse = paginatedData?.orders || [];
+    const dataToUse = finalOrders;
     return {
-      total: paginationInfo.totalCount,
-      totalValue: dataToUse.reduce((sum: number, order: any) => sum + (order.total_pesanan || order.totalPesanan || 0), 0),
+      total: dataToUse.length,
+      totalValue: dataToUse.reduce((sum: number, order: any) => sum + ((order as any).total_pesanan || (order as any).totalPesanan || order.total_amount || 0), 0),
       byStatus: dataToUse.reduce((acc: Record<string, number>, order: Order) => {
         acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
@@ -187,20 +187,20 @@ const OrdersPage: React.FC = () => {
         ? Math.round((dataToUse.filter((o: Order) => o.status === 'completed').length / dataToUse.length) * 100)
         : 0
     };
-  }, [paginatedData, paginationInfo.totalCount]);
-
-  // ✅ UPDATE PAGINATION INFO: Update when data changes
-  React.useEffect(() => {
-    if (paginatedData) {
-      setPaginationInfo({ 
-        totalCount: paginatedData.totalCount, 
-        totalPages: paginatedData.totalPages 
-      });
-    }
-  }, [paginatedData]);
+  }, [finalOrders]);
 
   // ✅ UI STATE: Optimized with memoization
   const uiState = useOrderUI(finalOrders, itemsPerPage);
+
+  // ✅ UPDATE PAGINATION INFO: Calculate from filtered orders
+  React.useEffect(() => {
+    const filteredCount = uiState?.filtered_orders?.length || finalOrders.length;
+    const calculatedPages = Math.max(1, Math.ceil(filteredCount / itemsPerPage));
+    setPaginationInfo({ 
+      totalCount: filteredCount, 
+      totalPages: calculatedPages 
+    });
+  }, [finalOrders, uiState?.filtered_orders, itemsPerPage]);
 
   // ✅ BULK OPERATIONS: Table selection state
   const {
@@ -456,11 +456,8 @@ const OrdersPage: React.FC = () => {
                 isAllSelected={isAllSelected}
                 totalCount={finalOrders.length}
                 onRefresh={() => {
-                  if (useLazyLoading) {
-                    refetchPaginated();
-                  } else {
-                    refreshData();
-                  }
+                  // ✅ FIXED: Use context refreshData instead of pagination refetch
+                  refreshData();
                 }}
               />
            </SafeSuspense>
@@ -482,13 +479,13 @@ const OrdersPage: React.FC = () => {
           isAllSelected={isAllSelected}
         />
         
-        {/* ✅ Extracted: Pagination */}
+        {/* ✅ Extracted: Pagination - Updated to use filtered counts */}
         <OrderPagination
-          currentPage={currentPage}
-          totalPages={paginationInfo.totalPages}
-          totalCount={paginationInfo.totalCount}
-          onPrev={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-          onNext={() => setCurrentPage(prev => Math.min(paginationInfo.totalPages, prev + 1))}
+          currentPage={uiState.current_page}
+          totalPages={uiState.total_pages}
+          totalCount={uiState.total_items}
+          onPrev={() => uiState.setCurrentPage(Math.max(1, uiState.current_page - 1))}
+          onNext={() => uiState.setCurrentPage(Math.min(uiState.total_pages, uiState.current_page + 1))}
         />
         
         <OrderDialogs

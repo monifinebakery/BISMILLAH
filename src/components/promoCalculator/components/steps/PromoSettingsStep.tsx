@@ -66,7 +66,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={formData.hpp}
-                onChange={onInputChange}
+                onChange={(e) => onInputChange(e)}
                 placeholder="30000"
                 className={`mt-1 ${
                   stepErrors?.some(error => error.includes('HPP')) 
@@ -97,7 +97,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={formData.nilaiDiskon}
-                onChange={onInputChange}
+                onChange={(e) => onInputChange(e)}
                 placeholder="25"
                 min="0"
                 max="100"
@@ -133,7 +133,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={formData.beli}
-                    onChange={onInputChange}
+                    onChange={(e) => onInputChange(e)}
                     placeholder="2"
                     min="1"
                     className={`mt-1 ${
@@ -160,7 +160,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={formData.gratis}
-                    onChange={onInputChange}
+                    onChange={(e) => onInputChange(e)}
                     placeholder="1"
                     min="1"
                     className={`mt-1 ${
@@ -196,7 +196,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={formData.hargaNormal}
-                  onChange={onInputChange}
+                  onChange={(e) => onInputChange(e)}
                   placeholder="100000"
                   className={`mt-1 ${
                     stepErrors?.some(error => error.includes('Harga normal')) 
@@ -222,7 +222,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={formData.hargaBundle}
-                  onChange={onInputChange}
+                  onChange={(e) => onInputChange(e)}
                   placeholder="80000"
                   className={`mt-1 ${
                     stepErrors?.some(error => error.includes('Harga bundle')) 
